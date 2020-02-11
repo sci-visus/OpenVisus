@@ -7,7 +7,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-file(GLOB Sources include/Visus/*.h src/*.cpp resources/*.glsl resources/*.qrc)
+file(GLOB Sources include/Visus/*.h include/Visus/*.i src/*.cpp resources/*.glsl resources/*.qrc)
 
 source_group("" FILES ${Sources})
 
@@ -24,10 +24,7 @@ else()
 	target_link_libraries(VisusGui PUBLIC GL GLU X11)
 endif()
 
-
-if (VISUS_PYTHON)
-	AddSwigLibrary(VisusGuiPy VisusGui ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiPy.i 
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
-endif()
+AddSwigLibrary(VisusGuiPy VisusGui ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiPy.i 
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
   

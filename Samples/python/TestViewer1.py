@@ -14,8 +14,8 @@ from OpenVisus       import *
 from OpenVisus.VisusGuiPy      import *
 from OpenVisus.VisusGuiNodesPy import *
 from OpenVisus.VisusAppKitPy   import *
-
 from OpenVisus.PyViewer        import *
+from OpenVisus.PyScriptingNode import *
 
 
 # //////////////////////////////////////////////
@@ -26,22 +26,19 @@ def Main(argv):
 	
 	SetCommandLine("__main__")
 	GuiModule.createApplication()
-	AppKitModule.attach()  	
+	AppKitModule.attach()
 	
-	"""
-	allow some python code inside scripting node
-	"""
-
+	VISUS_REGISTER_NODE_CLASS("ScriptingNode", "PyScriptingNode", lambda : PyScriptingNode())
+	
 	viewer=PyViewer()
 	viewer.open(r".\datasets\cat\gray.idx")
+	
 	# ... with some little python scripting
-	viewer.setScriptingCode("""
-import cv2,numpy
-pdim=input.dims.getPointDim()
-img=Array.toNumPy(input,bShareMem=True)
-img=cv2.Laplacian(img,cv2.CV_64F)
-output=Array.fromNumPy(img,TargetDim=pdim)
-""".strip())	
+	viewer.setScriptingCode("\n".join([
+		"import numpy,cv2",
+		"print(type(input),input.shape,input.dtype)",
+		"output=cv2.Laplacian(input,cv2.CV_64F)"
+		]))
 	viewer.run()
 	
 	GuiModule.execApplication()

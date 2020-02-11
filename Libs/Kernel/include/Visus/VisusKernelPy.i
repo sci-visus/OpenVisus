@@ -15,8 +15,6 @@
 using namespace Visus;
 %}
 
-//Returning a pointer or reference in a director method is not recommended
-%warnfilter(473) Visus::NodeCreator;
 
 %include <Visus/VisusPy.i>
 
@@ -24,11 +22,11 @@ using namespace Visus;
 %shared_ptr(Visus::StringTree)
 %shared_ptr(Visus::ConfigFile)
 
-//VISUS_NEWOBJECT
+//VISUS_NEWOBJECT (%use newobject or %newobject_director)
 //%newobject Visus::ClassName::MethodName;
+//%newobject_director(Visus::ClassName *, Visus::ClassName::MethodName);
 
 //VISUS_DISOWN -> DISOWN | DISOWN_FOR_DIRECTOR
-//%apply SWIGTYPE *DISOWN              { Visus::ClassName*         disown};
 //%apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::DirectorClassName* disown};
 
 %apply SWIGTYPE *DISOWN                { Visus::NetServerModule* disown};
@@ -125,11 +123,13 @@ Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*sel
    # ////////////////////////////////////////////////////////
    def toNumPy(src,bShareMem=False,bSqueeze=False):
       import numpy
+      if not src.dtype.valid(): return numpy.zeros(0) 
+      N=src.dtype.ncomponents()
+      dtype=src.dtype.get(0)
       shape=list(reversed([src.dims[I] for I in range(src.dims.getPointDim())]))
-      shape.append(src.dtype.ncomponents())
+      if N>1 : shape.append(N)
       if bSqueeze: shape=[it for it in shape if it>1]
-      single_dtype=src.dtype.get(0)
-      typestr=("|" if single_dtype.getBitSize()==8 else "<") + ("f" if single_dtype.isDecimal() else ("u" if single_dtype.isUnsigned() else "i")) + str(int(single_dtype.getBitSize()/8))
+      typestr=("|" if dtype.getBitSize()==8 else "<") + ("f" if dtype.isDecimal() else ("u" if dtype.isUnsigned() else "i")) + str(int(dtype.getBitSize()/8))
       class numpy_holder(object): pass
       holder = numpy_holder()
       holder.__array_interface__ = {'strides': None,'shape': tuple(shape), 'typestr': typestr, 'data': (int(src.c_address()), False), 'version': 3 }
@@ -138,10 +138,11 @@ Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*sel
    toNumPy = staticmethod(toNumPy)
    
    # ////////////////////////////////////////////////////////
-   def fromNumPy(src,TargetDim=0,bShareMem=False,bounds=None):
+   def fromNumPy(src,TargetDim=0,bShareMem=False):
       import numpy
+      if src.shape==(0,): return Array()
       if src.__array_interface__["strides"] is not None: 
-        if bShareMem: raise Exception("numpy array is not memory contiguous","src.__array_interface__['strides']",src.__array_interface__["strides"],"bShareMem",bShareMem)
+        if bShareMem: raise Exception("numpy array is not memory contiguous")
         src=numpy.ascontiguousarray(src)
       shape=src.__array_interface__["shape"]
       shape=tuple(reversed(shape))
@@ -151,14 +152,19 @@ Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*sel
       dtype=DType(typestr[1]=="u", typestr[1]=="f", int(typestr[2])*8)
       c_address=str(src.__array_interface__["data"][0])
       ret=Array(dims,dtype,c_address,bShareMem)
-      if TargetDim: 
+
+      if TargetDim!=0: 
+        # example (3,512,512) uint8 -> (512,512) uint8[3]
         dims=PointNi.one(TargetDim)
-        for I in range(TargetDim): dims.set(I,ret.dims[ret.dims.getPointDim()-TargetDim+I])
+        for I in range(TargetDim): 
+          dims.set(I,ret.dims[ret.dims.getPointDim()-TargetDim+I])
+
         ret.resize(dims,DType(int(ret.dims.innerProduct()/dims.innerProduct()),ret.dtype), "Array::fromNumPy",0)
-      if bounds is not None: ret.bounds=bounds
+
       return ret
    fromNumPy = staticmethod(fromNumPy)
 %}
+
 }; //%extend Visus::Array {
 
 	
@@ -166,3 +172,4 @@ Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*sel
 %include <Visus/TransferFunction.h>
 
 %include <Visus/NetServer.h>
+

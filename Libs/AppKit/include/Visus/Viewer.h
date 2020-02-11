@@ -371,7 +371,7 @@ public:
   bool takeSnapshot(bool bOnlyCanvas = false, String filename = "");
 
   //editNode
-  void editNode(Node* node = nullptr);
+  virtual void editNode(Node* node = nullptr);
 
   //beginFreeTransform
   void beginFreeTransform(QueryNode* node);
@@ -640,7 +640,6 @@ public:
 
   //addIsoContour
   QueryNode* addIsoContour(String uuid, Node* parent, String fieldname = "", int access_id = 0, String isovalue = "");
-
 
   //addScripting
   ScriptingNode* addScripting(String uuid, Node* parent);

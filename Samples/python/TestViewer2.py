@@ -97,7 +97,7 @@ def Main(argv):
 	GuiModule.createApplication()
 	AppKitModule.attach()  
 	
-	VISUS_REGISTER_NODE_CLASS("MyPythonNode")
+	VISUS_REGISTER_NODE_CLASS("MyPythonNode", "MyPythonNode", lambda : MyPythonNode())
 
 	viewer=Viewer()
 	viewer.open("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1") 

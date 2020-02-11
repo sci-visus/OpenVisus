@@ -35,7 +35,7 @@ using namespace Visus;
 
 //VISUS_NEWOBJECT
 %newobject Visus::Domain::createDomain;
-%newobject Visus::IdxFile::load;
+%newobject Visus::XIdxFile::load;
 
 %template(VectorOfAttribute)       std::vector<Visus::Attribute*>;
 %template(VectorOfDataItem)        std::vector<Visus::DataItem*>;
@@ -77,3 +77,4 @@ using namespace Visus;
 %include <Visus/xidx_topology.h>
 %include <Visus/xidx_geometry.h>
 %include <Visus/xidx_spatial_domain.h>
+

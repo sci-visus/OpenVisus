@@ -16,10 +16,10 @@
 using namespace Visus;
 %}
 
-//VISUS_DISOWN | DISOWN_FOR_DIRECTOR
+//VISUS_DISOWN -> DISOWN | DISOWN_FOR_DIRECTOR
 %apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::Node* disown };
 
-%feature("director") Visus::VisusViewer;
+%feature("director") Visus::Viewer;
 
 %import  <Visus/VisusKernelPy.i>
 
@@ -31,7 +31,3 @@ using namespace Visus;
 
 %include <Visus/AppKit.h>
 %include <Visus/Viewer.h>
-
-
-
-

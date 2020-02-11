@@ -51,9 +51,10 @@ namespace Visus {
     VISUS_NON_COPYABLE_CLASS(ClassName)\
     static ClassName* __instance__;\
   public:\
-    static ClassName* getSingleton()     {return __instance__;}\
-    static void       allocSingleton()   {VisusAssert(!__instance__);__instance__=new ClassName();} \
-    static void       releaseSingleton() {VisusAssert( __instance__);delete __instance__; __instance__=nullptr;} \
+    static ClassName* getSingleton()                 {return __instance__;}\
+    static void       setSingleton(ClassName* value) {__instance__=value;} \
+    static void       allocSingleton()               {VisusAssert(!__instance__);__instance__=new ClassName();} \
+    static void       releaseSingleton()             {VisusAssert( __instance__);delete __instance__; __instance__=nullptr;} \
   /*--*/
 
 #define VISUS_IMPLEMENT_SINGLETON_CLASS(ClassName) \

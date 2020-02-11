@@ -29,6 +29,15 @@ using namespace Visus;
 
 %include <Visus/GuiNodes.h>
 
+%feature("director") Visus::GLCameraNode;
+%feature("director") Visus::IsoContourNode;
+%feature("director") Visus::IsoContourRenderNode;
+%feature("director") Visus::RenderArrayNode;
+%feature("director") Visus::OSPRayRenderNode;
+%feature("director") Visus::KdRenderArrayNode;
+%feature("director") Visus::JTreeRenderNode;
+%feature("director") Visus::PythonNode;
+
 %include <Visus/GLCameraNode.h>
 
 %shared_ptr(Visus::IsoContour)

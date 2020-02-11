@@ -829,3 +829,4 @@ endif()
 target_compile_definitions(FreeImage PRIVATE  LIBRAW_LIBRARY_BUILD)
 
 
+set_target_properties(FreeImage PROPERTIES FOLDER "ExternalLibs/VISUS_IMAGE")

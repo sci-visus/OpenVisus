@@ -73,6 +73,8 @@ For support : support@visus.net
 
 namespace Visus {
 
+VISUS_KERNEL_API String GetPythonErrorMessage();
+
 ///////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API PythonEngine
 {
@@ -89,12 +91,6 @@ public:
 
   //destructor
   virtual ~PythonEngine();
-
-  //setMainThread
-  static void setMainThread();
-
-  //main
-  static int main(std::vector<String> args);
 
   //isGoodVariableName
   static bool isGoodVariableName(String name);
@@ -185,9 +181,6 @@ public:
 
   //convertToString
   static String convertToString(PyObject* value);
-
-  //addSysPath
-  void addSysPath(String value,bool bVerbose=true);
 
   //printMessage (must have the GIL)
   void printMessage(String message);

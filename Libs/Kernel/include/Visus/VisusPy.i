@@ -36,72 +36,22 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-%{
-#include <Visus/Kernel.h>
-%}
-
-//common code 
 %begin %{
   #if _WIN32
     //this is needed if you dont' have python debug library
     #pragma warning(disable: 4101)
     #pragma warning(disable: 4244)
   #endif
-
 %}
 
 %{
+#include <Visus/Kernel.h>
+#include <Visus/Python.h>
 
 #include <sstream>
 #include <string>
 #include <iostream>
-
-///////////////////////////////////////////////////////////////////////////
-std::string ConvertToString(PyObject* value)
-{
-  if (!value)  return "";
-  PyObject *py_str = PyObject_Str(value);
-  auto tmp = SWIG_Python_str_AsChar(py_str);
-  std::string ret = tmp ? tmp : "";
-  SWIG_Python_str_DelForPy3(tmp);
-  Py_DECREF(py_str);
-  return ret;
-}
-
-///////////////////////////////////////////////////////////////////////////
-std::string GetLastErrorMessage()
-{
-  //see http://www.solutionscan.org/154789-python
-  auto err = PyErr_Occurred();
-  if (!err)
-    return "";
-
-  PyObject *type, *value, *traceback;
-  PyErr_Fetch(&type, &value, &traceback);
-
-  std::ostringstream out;
-
-  out << "Python error: " 
-    << ConvertToString(type) << " "
-    << ConvertToString(value) << " ";
-
-  auto module_name = PyString_FromString("traceback");
-  auto module = PyImport_Import(module_name);
-  Py_DECREF(module_name);
-
-  auto fn = module? PyObject_GetAttrString(module, "format_exception") : nullptr;
-  if (fn && PyCallable_Check(fn)) {
-    if (auto descr = PyObject_CallFunctionObjArgs(fn, type, value, traceback, NULL)) {
-      out << ConvertToString(descr);
-      Py_DECREF(descr);
-    }
-  }
-
-  return out.str();
-}
-
 %}
-
 
 //__________________________________________________________
 %pythonbegin %{
@@ -160,6 +110,15 @@ namespace Visus {}
 
 
 //__________________________________________________________
+//argn argv
+
+%include <argcargv.i>
+
+%apply (int ARGC, char **ARGV) { (int argn, const char **argv) }
+
+
+
+//__________________________________________________________
 //RENAME
 
 %rename(From)                              *::from;
@@ -187,20 +146,25 @@ namespace Visus {}
   try { 
     $action
   } 
-  catch (Swig::DirectorMethodException& e) {
-	PrintInfo("Error happened in swig director code",e.what(),"where",__FILE__,":",__LINE__);
-	PrintInfo(GetLastErrorMessage());
-    SWIG_fail;
-  }
+
   catch (std::exception& e) {
-    PrintInfo("Error happened in swig director code",e.what(),"where",__FILE__,":",__LINE__);
-    SWIG_exception_fail(SWIG_SystemError, e.what() );
+	auto msg=cstring("Error in swig director code","what", e.what(),"where",__FILE__,":",__LINE__, "\n", GetPythonErrorMessage());
+	PrintInfo(msg);
+    SWIG_exception_fail(SWIG_SystemError, msg.c_str());
   }
   catch (...) {
-    PrintInfo("Error happened in swig director code","unknown error","where",__FILE__,":",__LINE__);
-    SWIG_exception(SWIG_UnknownError, "Unknown exception");
+	auto msg=cstring("Error in swig director code","where",__FILE__,":",__LINE__, "\n", GetPythonErrorMessage());
+	PrintInfo(msg);
+    SWIG_exception_fail(SWIG_SystemError, msg.c_str());
   }
+}
 
+%feature("director:except") {
+   if ($error != NULL) {
+     auto msg=cstring("Error calling $symname","where",__FILE__,":",__LINE__, "\n", GetPythonErrorMessage());
+     PrintInfo(msg);
+     Swig::DirectorMethodException::raise(msg.c_str());
+   }
 }
 
 //allow using PyObject* as input/output
@@ -225,20 +189,42 @@ namespace Visus {}
 // see http://swig.10945.n7.nabble.com/Disown-Typemap-and-Directors-td9146.html)
 %typemap(in, noblock=1) SWIGTYPE *DISOWN_FOR_DIRECTOR(int res = 0) 
 {
+  //scrgiorgio : TYPEMAP_0071534
   res = SWIG_ConvertPtr($input, %as_voidptrptr(&$1), $descriptor, SWIG_POINTER_DISOWN | %convertptr_flags);
   if (!SWIG_IsOK(res))  {
     %argument_fail(res,"$type", $symname, $argnum);
   }
-  if (Swig::Director *director = dynamic_cast<Swig::Director *>($1)) 
+  if (auto director = dynamic_cast<Swig::Director *>($1)) 
     director->swig_disown(); //C++ will own swig counterpart
 }
 
 
 //__________________________________________________________
 // NEW_OBJECT
-
-// IMPORTANT avoid returning director objects x
 #define VISUS_NEWOBJECT(typename) typename
+
+
+//use this when using directors 
+// IMPORTANT NOTE: directorout is a typemape which is used when C++ code call Python code
+// in this case (for example see c++ NodeFactory calling one Python createInstance function)
+// C++ , after the call to python, owns the object
+%define %newobject_director(ReturnType,Function)
+
+    %newobject Function;
+
+    %typemap(directorout,noblock=1) ReturnType Function(void *swig_argp, int swig_res, swig_owntype own) {
+      swig_res = SWIG_ConvertPtrAndOwn($input, &swig_argp, $descriptor, %convertptr_flags | SWIG_POINTER_DISOWN, &own);
+      if (!SWIG_IsOK(swig_res)) {
+        %dirout_fail(swig_res,"$type");
+      }
+      $result = %reinterpret_cast(swig_argp, $ltype);
+  
+      //TYPEMAP_4562958  
+      if (auto director = dynamic_cast<Swig::Director*>($result))
+        director->swig_disown(); //C++ will own swig counterpart
+    }
+
+%enddef
 
 
 //__________________________________________________________
@@ -249,5 +235,3 @@ namespace Visus {}
 //__________________________________________________________
 // ScopedVector
 // (not exposing ScopedVector to swig, please move it to the private section) ***
-//  %newobject Visus::ScopedVector::release;
-// Visus::ScopedVector::*(...VISUS_DISOWN....)

@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
 	SetCommandLine("__main__")
 	DbModule.attach()
-	
+
 	# trick to speed up the conversion
 	os.environ["VISUS_DISABLE_WRITE_LOCK"]="1"
 	

@@ -30,6 +30,18 @@ using namespace Visus;
 %import <Visus/VisusDbPy.i>
 
 %include <Visus/Nodes.h>
+
+%feature("director") Visus::CpuPaletteNode;
+%feature("director") Visus::FieldNode;
+%feature("director") Visus::ModelViewNode;
+%feature("director") Visus::PaletteNode;
+%feature("director") Visus::ScriptingNode;
+%feature("director") Visus::StatisticsNode;
+%feature("director") Visus::TimeNode;
+%feature("director") Visus::DatasetNode;
+%feature("director") Visus::QueryNode;
+%feature("director") Visus::KdQueryNode;
+
 %include <Visus/CpuPaletteNode.h>
 %include <Visus/FieldNode.h>
 %include <Visus/ModelViewNode.h>
@@ -42,3 +54,4 @@ using namespace Visus;
 %include <Visus/KdQueryNode.h>
 
 //not exposing anything, don't know if we need it
+

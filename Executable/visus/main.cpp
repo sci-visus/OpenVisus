@@ -56,10 +56,6 @@ For support : support@visus.net
 #include <Visus/IdxMultipleDataset.h>
 #include <Visus/MultiplexAccess.h>
 
-#if VISUS_PYTHON
-#include <Visus/Python.h>
-#endif
-
 using namespace Visus;
 
 void execTestIdx(int max_seconds);
@@ -2197,17 +2193,6 @@ public:
 //////////////////////////////////////////////////////////////////////////////
 int main(int argn, const char* argv[])
 {
-  //python main
-  #if VISUS_PYTHON
-  if (argn >= 2 && (String(argv[1]) == "--python" || String(argv[1]) == "-python"))
-  {
-    std::vector<String> args;
-    for (int I = 0; I < argn; I++)
-      if (I != 1) args.push_back(argv[I]);
-    return PythonEngine::main(args);
-  }
-  #endif
-
   Time T1 = Time::now();
 
   SetCommandLine(argn, argv);

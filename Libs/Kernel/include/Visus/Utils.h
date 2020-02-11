@@ -55,10 +55,18 @@ namespace Visus {
 //////////////////////////////////////////////////////////////////////////
 namespace Utils
 {
+  //find
   template <typename T>
   int find(const std::vector<T>& v,T value) {
     auto it = std::find(v.begin(), v.end(), value);
     return it == v.end() ? -1 : (int)(it - v.begin());
+  }
+
+  //contains
+  template <typename T>
+  bool contains(const std::vector<T>& v, T value) {
+    auto it = std::find(v.begin(), v.end(), value);
+    return it == v.end() ? false : true;
   }
 
   //remove

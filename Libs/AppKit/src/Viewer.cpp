@@ -2120,7 +2120,7 @@ QueryNode* Viewer::addVolume(String uuid, Node* parent, String fieldname, int ac
     connectNodes(field_node, query_node);
 
     //scripting
-    auto scripting_node = new ScriptingNode();
+    auto scripting_node = NodeFactory::getSingleton()->createInstance("ScriptingNode");
     scripting_node->setUUID(concatenate(uuid, "/scripting"));
     scripting_node->setName("Scripting");
     addNode(query_node, scripting_node);
@@ -2204,7 +2204,7 @@ QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int acc
     connectNodes(field_node, query_node);
 
     //scripting
-    auto scripting_node = new ScriptingNode();
+    auto scripting_node = NodeFactory::getSingleton()->createInstance("ScriptingNode");
     scripting_node->setUUID(concatenate(uuid, "/scripting"));
     scripting_node->setName("Scripting");
     addNode(query_node, scripting_node);
@@ -2281,7 +2281,7 @@ QueryNode* Viewer::addIsoContour(String uuid, Node* parent, String fieldname, in
     connectNodes(field_node, query_node);
 
     //scripting
-    auto scripting_node = new ScriptingNode();
+    auto scripting_node = NodeFactory::getSingleton()->createInstance("ScriptingNode");
     scripting_node->setUUID(concatenate(uuid, "/scripting"));
     scripting_node->setName("Scripting");
     connectNodes(query_node, scripting_node);
@@ -2412,14 +2412,14 @@ ScriptingNode* Viewer::addScripting(String uuid, Node* parent)
     StringTree("RemoveNode", "uuid", uuid));
   {
     //scripting
-    auto scripting = new ScriptingNode();
-    scripting->setUUID(uuid);
-    scripting->setName("Scripting");
-    addNode(parent, scripting);
-    connectNodes(parent, scripting);
+    auto scripting_node = NodeFactory::getSingleton()->createInstance("ScriptingNode");
+    scripting_node->setUUID(uuid);
+    scripting_node->setName("Scripting");
+    addNode(parent, scripting_node);
+    connectNodes(parent, scripting_node);
 
     //render
-    addRender(concatenate(uuid, "/scripting"), scripting, "GrayOpaque");
+    addRender(concatenate(uuid, "/scripting"), scripting_node, "GrayOpaque");
   }
   endUpdate();
 

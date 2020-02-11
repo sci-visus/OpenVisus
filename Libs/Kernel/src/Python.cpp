@@ -103,10 +103,6 @@ ScopedReleaseGil::~ScopedReleaseGil() {
   PyEval_RestoreThread(state);
 }
 
-///////////////////////////////////////////////////////////////////////////
-void PythonEngine::setMainThread()
-{
-}
 
 ////////////////////////////////////////////////////////////////////////////////////
 bool PythonEngine::isGoodVariableName(String name)
@@ -133,19 +129,12 @@ bool PythonEngine::isGoodVariableName(String name)
   return true;
 };
 
-///////////////////////////////////////////////////////////////////////////
-static bool runningInsidePyMain() 
-{
-  //no one has already callset SetCommandLine
-  const auto& args = ApplicationInfo::args;
-  return args.empty() || args[0].empty() || args[0] == "__main__";
-}
 
 
 ///////////////////////////////////////////////////////////////////////////
 void InitPython()
 {
-  if (runningInsidePyMain())
+  if (Py_IsInitialized())
   {
     PrintInfo("Visus is running (i.e. extending) python");
   }
@@ -180,6 +169,23 @@ void InitPython()
 	  // acquire the gil
 	  PyEval_InitThreads();
 
+    //add value PYTHONPATH in order to find the OpenVisus directory
+    {
+      auto path = KnownPaths::BinaryDirectory.toString() + "/../..";
+#if WIN32
+      path = StringUtils::replaceAll(path, "/", "\\\\");
+#else
+      path = StringUtils::replaceAll(path, "\\\\", "/");
+#endif
+      auto cmd = StringUtils::join({
+      "import os,sys",
+      "value=os.path.realpath('" + path + "')",
+      "if not value in sys.path: sys.path.append(value)"
+        }, "\r\n");
+
+      PyRun_SimpleString(cmd.c_str());
+    }
+
 	  //NOTE if you try to have multiple interpreters (Py_NewInterpreter) I get deadlock
 	  //see https://issues.apache.org/jira/browse/MODPYTHON-217
 	  //see https://trac.xapian.org/ticket/185
@@ -187,20 +193,25 @@ void InitPython()
 	}
 	
   PrintInfo("Python initialization done");
+
+  //this is important to import swig libraries
+  if (auto engine = std::make_shared<PythonEngine>(true))
+  {
+    ScopedAcquireGil acquire_gil;
+    engine->execCode("print('PythonEngine is working fine')");
+  }
 }
 
 
 ///////////////////////////////////////////////////////////////////////////
 void ShutdownPython()
 {
-  if (runningInsidePyMain())
-    return;
-
-  //PrintInfo("Shutting down python...");
-  PyEval_RestoreThread(__main__thread_state__);
-  Py_Finalize();
-
-  //PrintInfo("Python shutting down done");
+  if (__main__thread_state__)
+  {
+    //PrintInfo("Shutting down python...");
+    PyEval_RestoreThread(__main__thread_state__);
+    Py_Finalize();
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -222,27 +233,6 @@ String PythonEngine::fixPath(String value) {
 #endif
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-void PythonEngine::addSysPath(String value,bool bVerbose)
-{
-  value = fixPath(value);
-
-  const String crlf = "\r\n";
-
-  std::ostringstream out;
-  out <<
-    "import os,sys" << crlf <<
-    "value=os.path.realpath('" + value + "')" << crlf <<
-    "if not value in sys.path:" << crlf <<
-    "   sys.path.append(value)" << crlf;
-
-  String cmd = out.str();
-
-  if (bVerbose)
-    PrintInfo(cmd);
-
-  execCode(cmd);
-}
 
 static std::atomic<int> module_id(0);
 
@@ -260,22 +250,6 @@ PythonEngine::PythonEngine(bool bVerbose)
 
   auto builtins = PyEval_GetBuiltins(); VisusAssert(builtins);
   PyDict_SetItemString(this->globals, "__builtins__", builtins);
-
-  if (runningInsidePyMain())
-  {
-    //thing to do, OpenVisus package has already been found
-    if (bVerbose)
-      PrintInfo("Visus is extending Python");
-  }
-  else
-  {
-    if (bVerbose)
-      PrintInfo("Visus is embedding Python");
-
-    //add value PYTHONPATH in order to find the OpenVisus directory
-    addSysPath(KnownPaths::BinaryDirectory.toString() + "/../..", bVerbose);
-  }
-
 
 	if (bVerbose)
     PrintInfo("Trying to import OpenVisus...");
@@ -300,38 +274,6 @@ PythonEngine::~PythonEngine()
   }
 }
 
-
-///////////////////////////////////////////////////////////////////////////
-int PythonEngine::main(std::vector<String> args)
-{
-#if PY_MAJOR_VERSION>=3
-  typedef wchar_t* ArgType;
-  #define PyNewArg(arg)  char2wchar(arg.c_str())
-  #define PyFreeArg(arg) PyMem_RawFree(arg)
-#else
-  typedef char* ArgType;
-  #define PyNewArg(arg) ((char*)arg.c_str())
-  #define PyFreeArg(arg)
-#endif
-
-  static int     py_argn = 0;
-  static ArgType py_argv[1024];
-  for (auto arg : args)
-    py_argv[py_argn++] = PyNewArg(arg);
-
-  Py_SetProgramName(py_argv[0]);
-  //Py_Initialize();
-  int ret = Py_Main(py_argn, py_argv);
-  Py_Finalize();
-
-  for (int I = 0; I < py_argn; I++)
-    PyFreeArg(py_argv[I]);
-
-  #undef NewPyArg
-  #undef FreePyArg
-
-  return ret;
-}
 
 ///////////////////////////////////////////////////////////////////////////
 void PythonEngine::setModuleAttr(String name, PyObject* value) {
@@ -520,7 +462,7 @@ String PythonEngine::convertToString(PyObject* value)
 }
 
 ///////////////////////////////////////////////////////////////////////////
-static String GetLastPythonErrorMessage(bool bClear)
+String GetPythonErrorMessage()
 {
   //see http://www.solutionscan.org/154789-python
   auto err = PyErr_Occurred();
@@ -549,9 +491,6 @@ static String GetLastPythonErrorMessage(bool bClear)
       Py_DECREF(descr);
     }
   }
-
-  if (bClear)
-    PyErr_Clear();
 
   return out.str();
 }
@@ -586,7 +525,8 @@ void PythonEngine::execCode(String s)
   {
     if (PyErr_Occurred())
     {
-      String error_msg = cstring("Python error code:\n", s, "\nError:\n",GetLastPythonErrorMessage(true));
+      String error_msg = cstring("Python error code:\n", s, "\nError:\n", GetPythonErrorMessage());
+      PyErr_Clear();
       PrintInfo(error_msg);
       ThrowException(error_msg);
     }
@@ -610,7 +550,8 @@ PyObject* PythonEngine::evalCode(String s)
   {
     if (PyErr_Occurred())
     {
-      String error_msg = cstring("Python error code:\n", s,"\nError:\n", GetLastPythonErrorMessage(true));
+      String error_msg = cstring("Python error code:\n", s,"\nError:\n", GetPythonErrorMessage());
+      PyErr_Clear();
       PrintInfo(error_msg);
       ThrowException(error_msg);
     }

@@ -79,9 +79,9 @@ if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/Libs/Slam/CMakeLists.txt)
 endif()
 
 if (CMAKE_CONFIGURATION_TYPES)
-	set(InstallDir ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus)
+	set(InstallDir    ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus)
 else()
-	set(InstallDir ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus)
+	set(InstallDir    ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus)
 endif()
 
 if (VISUS_PYTHON)
@@ -113,10 +113,10 @@ add_subdirectory(Executable)
 # install
 if (1)
 
-	InstallFile(LICENSE                                       .)
-	InstallFile(README.md                                     .)
-	InstallFile(CMake/OpenVisusConfig.cmake                   .)
-	InstallFile(datasets/visus.config                         .)
+	InstallFiles(LICENSE                                      .)
+	InstallFiles(README.md                                    .)
+	InstallFiles(CMake/OpenVisusConfig.cmake                  .)
+	InstallFiles(datasets/*.config                            .)
 
 	InstallDirectory(Copyrights                               .)
 	InstallDirectory(Samples                                  .)
@@ -124,13 +124,7 @@ if (1)
 	InstallDirectory(datasets                                 .)
 
 	if (VISUS_PYTHON)
-		InstallFile(./CMake/__init__.py  .)
-		InstallFile(./CMake/__main__.py  .)
-		InstallFile(./CMake/PyDataset.py .)
-		InstallFile(./CMake/PyDeploy.py  .)
-		InstallFile(./CMake/PyUtils.py   .)
-		InstallFile(./CMake/PyViewer.py  .)
-		InstallFile(./CMake/setup.py     .)
+		InstallFiles(./CMake/*.py .)
 	endif()
 
 	# copy needed windows *.dll
