@@ -74,10 +74,12 @@ public:
 
     // create and setup an ambient light
     cpp::Light ambient_light("ambient");
+    ambient_light.setParam("intensity", 0.25f);
     ambient_light.commit();
 
     cpp::Light directional_light("distant");
-    directional_light.setParam("direction", math::vec3f(0.5f, -1.f, 0.25f));
+    directional_light.setParam("direction", math::vec3f(0.5f, 1.f, 0.25f));
+    directional_light.setParam("intensity", 10.f);
     directional_light.commit();
     std::vector<cpp::Light> lights = {ambient_light, directional_light};
     world.setParam("light", cpp::Data(lights));
@@ -87,6 +89,9 @@ public:
     // regular render node (which doesn't seem to do srgb?)
     const math::vec3f bgColor(0.021219f, 0.0423114f, 0.093059f);
     renderer.setParam("backgroundColor", bgColor);
+    renderer.setParam("varianceThreshold", varianceThreshold);
+    renderer.setParam("maxPathLength", int(8));
+    renderer.setParam("volumeSamplingRate", 0.25f);
     renderer.commit();
   }
 
@@ -109,7 +114,7 @@ public:
 
     sceneChanged = true;
 
-    const size_t npaletteSamples = 256;
+    const size_t npaletteSamples = 128;
     std::vector<math::vec3f> tfnColors(npaletteSamples, math::vec3f(0.f));
     std::vector<float> tfnOpacities(npaletteSamples, 0.f);
 
@@ -221,8 +226,10 @@ public:
     if (viewport.width != imgDims[0] || viewport.height != imgDims[1]) 
     {
       sceneChanged = true;
+
       imgDims[0] = viewport.width;
       imgDims[1] = viewport.height;
+
       camera.setParam("aspect", imgDims[0] / static_cast<float>(imgDims[1]));
       camera.commit();
 
@@ -290,9 +297,9 @@ private:
   Point4d prevUpDir = Point4d(0.f, 0.f, 0.f, 0.f);
   bool sceneChanged = true;
 
-  float varianceThreshold = 2.f;
+  float varianceThreshold = 15.f;
 
-  std::array<int, 2>  imgDims = { -1,-1 };
+  std::array<int, 2> imgDims = { -1,-1 };
 
   //dtypeToOSPDtype
   static OSPDataType dtypeToOSPDtype(const DType& dtype) {
@@ -432,7 +439,6 @@ bool OSPRayRenderNode::processInput()
   this->data   = *data;
   this->palette = palette;
 
-  PrintInfo("got array","data",this->data.dims);
   return true;
 }
 
