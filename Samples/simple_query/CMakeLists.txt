@@ -8,4 +8,4 @@ find_package(OpenVisus REQUIRED)
 
 file(GLOB Sources *.h *.cpp)
 add_executable(simple_query ${Sources})
-target_link_libraries(simple_query PUBLIC OpenVisus::Idx)
+target_link_libraries(simple_query PUBLIC OpenVisus::Db)

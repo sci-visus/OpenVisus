@@ -203,15 +203,17 @@ public:
     this->dataflow=std::make_shared<Dataflow>();
     this->dataflow->listeners.push_back(this);
 
-    this->dataflow->addNode(this->dataset_node = new DatasetNode("Dataset node"));
+    this->dataflow->addNode(this->dataset_node = new DatasetNode());
+    this->dataset_node->setName("Dataset node");
     this->dataset_node->setDataset(dataset);
     this->dataset_bounds=dataset_node->getBounds();
 
     if (dataset->getKdQueryMode()!=0)
     {
       this->dataflow->addNode(this->query_node=new KdQueryNode());
-      auto render_node=new KdRenderArrayNode("KdRender");
-      this->render_node=render_node;
+      auto render_node=new KdRenderArrayNode();
+      this->render_node = render_node;
+      render_node->setName("KdRender");
       this->dataflow->addNode(render_node);
       this->dataflow->connectNodes(dataset_node,query_node);
       this->dataflow->connectNodes(query_node,"array",render_node);
@@ -219,8 +221,9 @@ public:
     else
     { 
       this->dataflow->addNode(this->query_node=new QueryNode());
-      auto render_node=new RenderArrayNode("Render Node");
-      this->render_node=render_node;
+      auto render_node=new RenderArrayNode();
+      this->render_node = render_node;
+      render_node->setName("Render Node");
       this->dataflow->addNode(render_node);
       this->dataflow->connectNodes(dataset_node,query_node);
       this->dataflow->connectNodes(query_node,"kdarray",render_node);
