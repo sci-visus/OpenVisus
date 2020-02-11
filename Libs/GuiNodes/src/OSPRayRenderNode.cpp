@@ -225,6 +225,8 @@ public:
 
     if (viewport.width != imgDims[0] || viewport.height != imgDims[1]) 
     {
+      // On windows it seems like the ref-counting doesn't quite work and we leak?
+      ospRelease(framebuffer.handle());
       sceneChanged = true;
 
       imgDims[0] = viewport.width;
