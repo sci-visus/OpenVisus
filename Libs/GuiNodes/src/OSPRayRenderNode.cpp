@@ -138,13 +138,10 @@ public:
     transferFcn.setParam("valueRange", math::vec2f(range.from, range.to));
     transferFcn.commit();
 
-    const OSPDataType ospDType = dtypeToOSPDtype(data.dtype);
     const math::vec3ul volumeDims(data.getWidth(), data.getHeight(), data.getDepth());
 
-    cpp::Volume volume = cpp::Volume("structuredRegular");
-    volume.setParam("dimensions", volumeDims);
-
     // OSPRay shares the data pointer with us, does not copy internally
+    const OSPDataType ospDType = dtypeToOSPDtype(data.dtype);
     cpp::Data volumeData;
     if (ospDType == OSP_UCHAR) {
         volumeData = cpp::Data(volumeDims, reinterpret_cast<uint8_t*>(data.c_ptr()), true);
@@ -155,9 +152,14 @@ public:
     } else if (ospDType == OSP_DOUBLE) {
         volumeData = cpp::Data(volumeDims, reinterpret_cast<double*>(data.c_ptr()), true);
     } else {
-        throw std::runtime_error("Unsupported voxel type for OSPRay volume rendr node");
+      std::cout << "OSPRay only supports scalar voxel types\n";
+      volumeValid = false;
+      return;
     }
+    volumeValid = true;
 
+    cpp::Volume volume = cpp::Volume("structuredRegular");
+    volume.setParam("dimensions", volumeDims);
     volume.setParam("data", volumeData);
     volume.setParam("voxelType", int(ospDType));
 
@@ -200,6 +202,11 @@ public:
 
     if (data.clipping.valid()) {
       PrintInfo("CLIPPING TODO");
+    }
+
+    if (!volumeValid) {
+      std::cout << "Skipping rendering unsupported volume\n";
+      return;
     }
 
     // Extract camera parameters from model view matrix
@@ -298,6 +305,7 @@ private:
   Point4d prevEyeDir = Point4d(0.f, 0.f, 0.f, 0.f);
   Point4d prevUpDir = Point4d(0.f, 0.f, 0.f, 0.f);
   bool sceneChanged = true;
+  bool volumeValid = false;
 
   float varianceThreshold = 15.f;
 
@@ -329,8 +337,7 @@ private:
 
     if (dtype == DTypes::FLOAT64) return OSP_DOUBLE;
 
-    ThrowException("Unsupported Visus Datatype");
-    return (OSPDataType)0;
+    return OSP_UNKNOWN;
   }
 
   //ospDTypeStr
