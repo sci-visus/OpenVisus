@@ -134,8 +134,8 @@ public:
     cpp::TransferFunction transferFcn("piecewiseLinear");
     transferFcn.setParam("color", cpp::Data(tfnColors));
     transferFcn.setParam("opacity", cpp::Data(tfnOpacities));
-    // TODO: Somehow get the value range of the array
-    transferFcn.setParam("valueRange", math::vec2f(0.f, 255.f));
+    const Range range = palette->computeRange(data, 0);
+    transferFcn.setParam("valueRange", math::vec2f(range.from, range.to));
     transferFcn.commit();
 
     const OSPDataType ospDType = dtypeToOSPDtype(data.dtype);
