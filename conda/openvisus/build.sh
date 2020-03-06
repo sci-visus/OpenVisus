@@ -36,7 +36,7 @@ function NeedApache {
 		make install  
 		popd	
 
-		curl -fsSL --insecure "http://it.apache.contactlab.it/httpd/httpd-2.4.38.tar.gz" | tar xz 
+		curl -fsSL --insecure "http://mirror.nohup.it/apache//httpd/httpd-2.4.38.tar.gz" | tar xz 
 		pushd httpd-2.4.38		
 		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz"      | tar xz
 		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz" | tar xz	
