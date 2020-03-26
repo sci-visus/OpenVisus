@@ -1,7 +1,8 @@
 import sys
+import argparse
 from OpenVisus import *
 import numpy as np
-from os.path import abspath,splitext
+from os.path import abspath,splitext,split
 
 def load_image(img_file):
 	"""
@@ -9,6 +10,7 @@ def load_image(img_file):
 	numpy array 
 	"""
 	
+	print("Opening file {}".format(img_file))
 	if splitext(img_file)[1] == '.tif' or splitext(img_file)[1] == '.tiff':
 		from PIL import Image
 		
@@ -18,32 +20,50 @@ def load_image(img_file):
 
 	return data
 
+def guess_index(name):
+	""" 
+	Given a file name which contains a single index number try to 
+	guess that number for sorting oddly name files
+	"""
+	
 
 if __name__ == '__main__':
 	
 	""" 
 	Somewhat general data conversion tool from slices to 3D stacks
 	
-	Input is a list of slices 
+	Arguments:
 	
-	Ouput is an IDX
+		--i <image0> ... <imageN>: A sorted list of input slices
+		--o <output.idx>: The output idx file
+		--sort <template> : The filename template used to sort 
 	
 	"""
 
-	if len(sys.argv) < 3:
-		print("Usage: {} <slice0> .... <sliceN> <target.idx>".format(sys.argv[0]))
-		sys.exit(1)
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--i', nargs='*', dest='input_files', type=str)
+	parser.add_argument('--o', nargs='?', dest='idx_name', default='output.idx', type=str)
+	parser.add_argument('--sort', dest='template', type=str)
+	parser.add_argument('--fieldnames', nargs='+', dest='field_names', type=str)
+	
+	
+	args = parser.parse_args()
 
+	if args.template:
+		print(args.template)
+		prefix = len(args.template.split('{')[0])
+		postfix = len(args.template.split('}')[1])
+		
+		args.input_files.sort(key = lambda name: int(split(name)[1][prefix:-postfix]))
+		
+	
 	SetCommandLine("__main__")
 	DbModule.attach()
 
 	# trick to speed up the conversion
 	os.environ["VISUS_DISABLE_WRITE_LOCK"]="1"
 
-	# figure out the format, dimensions etc.
-	img_file = sys.argv[1]
-	
-	data = load_image(img_file)
+	data = load_image(args.input_files[0])
 	
 	
 	width = data.shape[0]
@@ -53,8 +73,6 @@ if __name__ == '__main__':
 
 	print("Final image will have width: {}  height: {} depth: {}".format(width,height,depth))
 	
-	idx_name = abspath(sys.argv[-1])
-	
 	# numpy dtype -> OpenVisus dtype
 	typestr=data.__array_interface__["typestr"]
 	dtype=DType(typestr[1]=="u", typestr[1]=="f", int(typestr[2])*8)      	
@@ -62,20 +80,26 @@ if __name__ == '__main__':
 	dims = PointNi(int(width),int(height),int(depth))
 	idx_file = IdxFile()
 	idx_file.logic_box = BoxNi(PointNi(0,0,0),dims)
-	idx_file.fields.push_back(Field('density',dtype))
-	idx_file.save(idx_name)
+	
+	if args.field_names:
+		for fields in args.field_name:
+			idx_file.fields.push_back(Field(fields,dtype))
+	else:
+		idx_file.fields.push_back(Field('value',dtype))
+		
+	idx_file.save(args.idx_name)
 			
 	print("Created IDX file")
 
 	# Load the dataset back into memory	
-	dataset = LoadDataset(idx_name)
+	dataset = LoadDataset(args.idx_name)
 	
 	# And create a handle to manipulate the data
 	access = dataset.createAccess()
 	if not dataset:
 		raise Exception("Assert failed")	
   
-	for z,img in enumerate(sys.argv[1:-1]):  			
+	for z,img in enumerate(args.input_files):  			
 		print("Processing slice %d" % z)
 		data = load_image(img)
 		
