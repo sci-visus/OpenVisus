@@ -68,7 +68,7 @@ if __name__ == '__main__':
 	
 	width = data.shape[0]
 	height = data.shape[1]
-	depth = len(sys.argv[1:-1])
+	depth = len(args.input_files)
 
 
 	print("Final image will have width: {}  height: {} depth: {}".format(width,height,depth))
