@@ -45,6 +45,7 @@ For support : support@visus.net
 #include <vector>
 #include <algorithm>
 #include <iomanip>
+#include <cctype>
 
 namespace Visus {
 
