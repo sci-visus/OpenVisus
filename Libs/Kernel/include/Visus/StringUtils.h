@@ -125,6 +125,13 @@ public:
     return find(src, what) >= 0;
   }
 
+  //containsControl
+  static inline bool containsControl(String src) {
+    return std::any_of(src.begin(), src.end(), [](int ch) {
+      return std::iscntrl(ch);
+    });
+  }
+
   //nextToken
   static inline String nextToken(String src, String separator) {
     int idx = find(src, separator); return idx >= 0 ? src.substr(idx + (int)separator.length()) : "";

@@ -466,7 +466,14 @@ public:
   static Matrix rotateAroundAxis(Point3d axis, double angle);
 
   //rotateAroundCenter
+  static Matrix rotateAroundCenter(Point3d center, Quaternion q) {
+    if (!q.getAngle()) return Matrix();
+    return Matrix::translate(center) * rotate(q) * Matrix::translate(-center);
+  }
+
+  //rotateAroundCenter
   static Matrix rotateAroundCenter(Point3d center, Point3d axis, double angle) {
+    if (!angle) return Matrix();
     return Matrix::translate(center) * rotateAroundAxis(axis, angle) * Matrix::translate(-center);
   }
 

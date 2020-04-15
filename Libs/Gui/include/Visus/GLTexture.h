@@ -99,6 +99,11 @@ public:
     return depth() > 1 ? QOpenGLTexture::Target3D : QOpenGLTexture::Target2D;
   }
 
+  //uploaded
+  bool uploaded() const {
+    return texture_id > 0;
+  }
+
   //textureId (call only when you have a context)
   GLuint textureId(GLCanvas& gl);
 

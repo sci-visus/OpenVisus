@@ -1413,10 +1413,6 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
 
   VisusAssert(access);
 
-#define PUSH()  (*((stack)++))=(item)
-#define POP()   (item)=(*(--(stack)))
-#define EMPTY() ((stack)==(STACK))
-
   int           bReading = query->mode == 'r';
   const Field& field = query->field;
   double        time = query->time;
@@ -1481,154 +1477,192 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
 
     query->logic_samples = query->filter.query->logic_samples;
     query->buffer        = query->filter.query->buffer;
+
+    VisusAssert(query->buffer.dims == query->getNumberOfSamples());
+    query->setCurrentResolution(query->end_resolution);
+    return true;
   }
+
   //execute with access
-  else
+  int bitsperblock = access->bitsperblock;
+  VisusAssert(bitsperblock);
+
+  FastLoopStack  item, * stack = NULL;
+  FastLoopStack  STACK[DatasetBitmaskMaxLen + 1];
+
+  DatasetBitmask bitmask = this->getBitmask();
+  HzOrder hzorder(bitmask);
+
+  int max_resolution = getMaxResolution();
+  std::vector<Int64> fldeltas(max_resolution + 1);
+  for (auto H = 0; H <= max_resolution; H++)
+    fldeltas[H] = H ? (hzorder.getLevelDelta(H)[bitmask[H]] >> 1) : 0;
+
+  auto aborted = query->aborted;
+
+  #define PUSH()  (*((stack)++))=(item)
+  #define POP()   (item)=(*(--(stack)))
+  #define EMPTY() ((stack)==(STACK))
+
+  //collect blocks
+  std::vector<BigInt> blocks;
+  for (int H = cur_resolution + 1; H <= end_resolution; H++)
   {
-    int bitsperblock = access->bitsperblock;
-    VisusAssert(bitsperblock);
-
-    FastLoopStack  item, * stack = NULL;
-    FastLoopStack  STACK[DatasetBitmaskMaxLen + 1];
-
-    DatasetBitmask bitmask = this->getBitmask();
-    HzOrder hzorder(bitmask);
-
-    int max_resolution = getMaxResolution();
-    std::vector<Int64> fldeltas(max_resolution + 1);
-    for (int H = 0; H <= max_resolution; H++)
-      fldeltas[H] = H ? (hzorder.getLevelDelta(H)[bitmask[H]] >> 1) : 0;
-
-    WaitAsync< Future<Void> > wait_async;
-
-    if (bReading)
-      access->beginRead();
-    else
-      access->beginReadWrite();
-
-    //do the loop up to the end or until a stop signal
-    Aborted& aborted = query->aborted;
-    for (int H = cur_resolution + 1; !aborted() && H <= end_resolution; H++)
-    {
-      LogicSamples Lsamples = this->getLevelSamples(H);
-      BoxNi box = Lsamples.alignBox(query->logic_samples.logic_box);
-      if (!box.isFullDim())
-        continue;
-
-      //push first item
-      BigInt hz = hzorder.getAddress(Lsamples.logic_box.p1);
-      {
-        item.box = Lsamples.logic_box;
-        item.H = H ? 1 : 0;
-        stack = STACK;
-        PUSH();
-      }
-
-      while (!EMPTY())
-      {
-        POP();
-
-        // no intersection
-        if (!item.box.strictIntersect(box))
-        {
-          hz += (((BigInt)1) << (H - item.H));
-          continue;
-        }
-
-        // intersection with hz-block!
-        if ((H - item.H) <= bitsperblock)
-        {
-          BigInt HzFrom = (hz >> bitsperblock) << bitsperblock;
-          BigInt HzTo = HzFrom + (((BigInt)1) << bitsperblock);
-          VisusAssert(hz >= HzFrom && hz < HzTo);
-
-          if (aborted())
-            break;
-
-          auto read_block = std::make_shared<BlockQuery>(this, field, time, HzFrom, HzTo, 'r', aborted);
-
-          if (bReading)
-          {
-            wait_async.pushRunning(executeBlockQuery(access, read_block)).when_ready([this, query, read_block, aborted](Void)
-              {
-                //I don't care if the read fails...
-                if (!aborted() && read_block->ok())
-                  mergeBoxQueryWithBlock(query, read_block);
-              });
-          }
-          else
-          {
-            //need a lease... so that I can read/merge/write like in a transaction mode
-            access->acquireWriteLock(read_block);
-
-            //need to read and wait the block
-            executeBlockQueryAndWait(access, read_block);
-
-            //WRITE block
-            auto write_block = std::make_shared<BlockQuery>(this, field, time, HzFrom, HzTo, 'w', aborted);
-
-            //read ok
-            if (read_block->ok())
-              write_block->buffer = read_block->buffer;
-            //I don't care if it fails... maybe does not exist
-            else
-              write_block->allocateBufferIfNeeded();
-
-            mergeBoxQueryWithBlock(query, write_block);
-
-            //need to write and wait for the block
-            executeBlockQueryAndWait(access, write_block);
-
-            //important! all writings are with a lease!
-            access->releaseWriteLock(read_block);
-
-            if (aborted() || write_block->failed()) {
-              bReading ? access->endRead() : access->endReadWrite();
-              return false;
-            }
-          }
-
-          // I know that block 0 convers several hz-levels from [0 to bitsperblock]
-          if (HzFrom == 0)
-          {
-            H = bitsperblock;
-            break;
-          }
-
-          hz += ((BigInt)1) << (H - item.H);
-          continue;
-        }
-
-        //kd-traversal code
-        int bit = bitmask[item.H];
-        Int64 delta = fldeltas[item.H];
-        ++item.H;
-        item.box.p1[bit] += delta;                         VisusAssert(item.box.isFullDim()); PUSH();
-        item.box.p1[bit] -= delta; item.box.p2[bit] -= delta; VisusAssert(item.box.isFullDim()); PUSH();
-
-      } //while (stack!=STACK)
-
-    } //for 
-
-    bReading ? access->endRead() : access->endReadWrite();
-
-    wait_async.waitAllDone();
-
-    //set the query status
     if (aborted())
       return false;
+
+    LogicSamples Lsamples = this->getLevelSamples(H);
+    BoxNi box = Lsamples.alignBox(query->logic_samples.logic_box);
+    if (!box.isFullDim())
+      continue;
+
+    //push first item
+    BigInt hz = hzorder.getAddress(Lsamples.logic_box.p1);
+    {
+      item.box = Lsamples.logic_box;
+      item.H = H ? 1 : 0;
+      stack = STACK;
+      PUSH();
+    }
+
+    while (!EMPTY())
+    {
+      POP();
+
+      // no intersection
+      if (!item.box.strictIntersect(box))
+      {
+        hz += (((BigInt)1) << (H - item.H));
+        continue;
+      }
+
+      // intersection with hz-block!
+      if ((H - item.H) <= bitsperblock)
+      {
+        BigInt HzFrom = (hz >> bitsperblock) << bitsperblock;
+        blocks.push_back(HzFrom);
+
+        // I know that block 0 convers several hz-levels from [0 to bitsperblock]
+        if (HzFrom == 0)
+        {
+          H = bitsperblock;
+          break;
+        }
+
+        hz += ((BigInt)1) << (H - item.H);
+        continue;
+      }
+
+      //kd-traversal code
+      int bit = bitmask[item.H];
+      Int64 delta = fldeltas[item.H];
+      ++item.H;
+      item.box.p1[bit] += delta;                            PUSH();
+      item.box.p1[bit] -= delta; item.box.p2[bit] -= delta; PUSH();
+
+    } //while (stack!=STACK)
+
+  } //for levels
+
+  #undef PUSH 
+  #undef POP  
+  #undef EMPTY 
+
+  if (aborted())
+    return false;
+
+  int NREAD  = 0;
+  int NWRITE = 0;
+  WaitAsync< Future<Void> > async_read;
+
+  //waitAllDone
+  auto  waitAsyncRead = [&]()
+  {
+    async_read.waitAllDone();
+    PrintInfo("aysnc read",concatenate(NREAD, "/", blocks.size()),"...");
+  };
+
+  PrintInfo("Executing query...");
+
+  if (bReading)
+    access->beginRead();
+  else
+    access->beginReadWrite();
+
+  for (auto HzFrom : blocks)
+  {
+    if (aborted())
+      break;
+
+    //flush previous
+    if (async_read.getNumRunning() > 1024)
+      waitAsyncRead();
+
+    BigInt HzTo = HzFrom + (((BigInt)1) << bitsperblock);
+    auto read_block = std::make_shared<BlockQuery>(this, field, time, HzFrom, HzTo, 'r', aborted);
+    NREAD++;
+
+    if (bReading)
+    {
+      async_read.pushRunning(executeBlockQuery(access, read_block)).when_ready([this, query, read_block, aborted](Void)
+      {
+        //I don't care if the read fails...
+        if (!aborted() && read_block->ok())
+          mergeBoxQueryWithBlock(query, read_block);
+      });
+    }
+    else
+    {
+      //need a lease... so that I can read/merge/write like in a transaction mode
+      access->acquireWriteLock(read_block);
+
+      //need to read and wait the block
+      executeBlockQueryAndWait(access, read_block);
+
+      //WRITE block
+      auto write_block = std::make_shared<BlockQuery>(this, field, time, HzFrom, HzTo, 'w', aborted);
+
+      //read ok
+      if (read_block->ok())
+        write_block->buffer = read_block->buffer;
+      //I don't care if it fails... maybe does not exist
+      else
+        write_block->allocateBufferIfNeeded();
+
+      mergeBoxQueryWithBlock(query, write_block);
+
+      //need to write and wait for the block
+      executeBlockQueryAndWait(access, write_block);
+      NWRITE++;
+
+      //important! all writings are with a lease!
+      access->releaseWriteLock(read_block);
+
+      if (aborted() || write_block->failed()) {
+        bReading ? access->endRead() : access->endReadWrite();
+        return false;
+      }
+    }
   }
+
+  if (bReading)
+    access->endRead();
+  else
+    access->endReadWrite();
+
+  waitAsyncRead();
+  PrintInfo("Query finished", "NREAD", NREAD, "NWRITE", NWRITE);
+
+  //set the query status
+  if (aborted())
+    return false;
 
   VisusAssert(query->buffer.dims == query->getNumberOfSamples());
   query->setCurrentResolution(query->end_resolution);
-
   return true;
 
-#undef PUSH 
-#undef POP  
-#undef EMPTY 
-}
 
+}
 
 
 ///////////////////////////////////////////////////////////////////////////////////////

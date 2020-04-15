@@ -23,5 +23,5 @@ if [[ "${GUI}" == "1" ]]; then
 fi
 
 cd ${this_dir}
-${TARGET} $@
+${TARGET} "$@"
 

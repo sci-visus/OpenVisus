@@ -364,9 +364,6 @@ public:
     return std::map<String,SharedPtr<Dataset> >();
   }
 
-  //guessEndResolutions
-  virtual std::vector<int> guessEndResolutions(const Frustum& logic_to_screen, Position logic_position, int quality=QueryDefaultQuality, int progression=QueryGuessProgression);
-
 public:
 
   //createAccess

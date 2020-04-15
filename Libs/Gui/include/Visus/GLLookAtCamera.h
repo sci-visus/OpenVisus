@@ -115,23 +115,8 @@ public:
     vup = getVup();
   }
 
-  //getRotation
-  Quaternion getRotation() const {
-    return rotation;
-  }
-
-  //setRotation
-  void setRotation(Quaternion new_value);
-
-  //getRotationCenter
-  Point3d getRotationCenter() {
-    return rotation_center;
-  }
-
-  //setRotationCenter
-  void setRotationCenter(Point3d value) {
-    setProperty("SetRotationCenter", this->rotation_center, value);
-  }
+  //setLookAt
+  void setLookAt(Point3d pos, Point3d dir, Point3d vup);
 
   //getFov
   double getFov() const {
@@ -143,15 +128,22 @@ public:
     setProperty("SetFov", this->fov, fov);
   }
 
+  //move
+  void move(Point3d vt);
+
+  //rotate
+  void rotate(double angle_degree, Point3d p0, Point3d p1);
+
 public:
 
   //getCurrentFrustum
   virtual Frustum getFinalFrustum(const Viewport& viewport) const override;
 
   //getCurrentFrustum
-  virtual Frustum getCurrentFrustum(const Viewport& viewport) const override {
-    return getFinalFrustum(viewport);
-  }
+  virtual Frustum getCurrentFrustum(const Viewport& viewport) const override;
+
+  //setDraggingSelection
+  void setDraggingSelection(Position value);
 
   //glMousePressEvent
   virtual void glMousePressEvent(QMouseEvent* evt, const Viewport& viewport) override;
@@ -182,29 +174,22 @@ public:
 
 private:
 
-  std::vector<Point2i>   last_mouse_pos = std::vector<Point2i>(GLMouse::getNumberOfButtons());
-  GLMouse                mouse;
-
   BoxNd                  bounds = BoxNd(3);
-
-  //projection
+  Point3d                pos, dir, vup;
   double                 fov = 60.0;
   Rectangle2d            split_frustum = Rectangle2d(0, 0, 1, 1);
 
-  //modelview
-  Point3d                pos, dir, vup;
-  Quaternion             rotation;
-  Point3d                rotation_center;
+  struct
+  {
+    Position   selection;
+    Frustum    frustum;
+  }
+  dragging;
 
-  //properties
-  const double           rotation_factor=5.2;
-  const double           pan_factor=30;
+  GLMouse mouse;
 
-  //guessForwardFactor
-  double guessForwardFactor() const ;
-
-  //guessNearFar
-  std::pair<double,double> guessNearFar() const;
+  //guessProjection
+  Matrix guessProjection(const Viewport& viewport) const;
 
 
 };//end class

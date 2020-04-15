@@ -459,10 +459,18 @@ public:
       return owner->readFailed(query);
     };
 
+    auto& aborted = query->aborted;
+
+    if (aborted())
+      return failed("aborted");
+
     //try to open the existing file
     String filename = getFilename(query->field, query->time, blockid);
     if (!openFile(filename, StringUtils::contains(mode, "w") ? "rw" : "r"))
       return failed("cannot open file");
+
+    if (aborted())
+      return failed("aborted");
 
     const BlockHeader& block_header = getBlockHeader(query->field, blockid);
     Int64 block_offset = block_header.getOffset();
@@ -483,12 +491,19 @@ public:
     if (bVerbose)
       PrintInfo("Reading buffer: read block_offset",block_offset,"encoded->c_size",encoded->c_size());
 
+    if (aborted())
+      return failed("aborted");
+
     if (!file->read(block_offset, encoded->c_size(), encoded->c_ptr()))
       return failed("cannot read encoded buffer");
 
     if (bVerbose)
       PrintInfo("Decoding buffer");
 
+    if (aborted())
+      return failed("aborted");
+
+    //TODO: noninterruptile
     auto decoded = ArrayUtils::decodeArray(compression, query->getNumberOfSamples(), query->field.dtype, encoded);
     if (!decoded)
       return failed("cannot decode the data");
@@ -508,6 +523,9 @@ public:
   virtual void writeBlock(SharedPtr<BlockQuery> query) override
   {
     BigInt blockid = query->getBlockNumber(owner->bitsperblock);
+
+    //NOTE: ignoring aborted in writing!
+    auto& aborted = query->aborted; 
 
     auto failed = [&](String reason) {
 

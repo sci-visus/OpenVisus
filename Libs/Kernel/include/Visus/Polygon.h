@@ -173,6 +173,14 @@ public:
   }
 
   //constructor
+  Quad(const BoxNd& box) {
+    std::vector< Point2d> points;
+    for (auto it : box.getPoints())
+      points.push_back(it.toPoint2());
+    *this = Quad(points);
+  }
+
+  //constructor
   Quad(const Matrix& H, const BoxNd& box) {
     std::vector< Point2d> points;
     for (auto it : box.getPoints())

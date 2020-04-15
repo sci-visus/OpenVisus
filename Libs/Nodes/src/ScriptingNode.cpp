@@ -158,6 +158,8 @@ public:
     Array output;
     try 
     {
+      auto t1 = Time::now();
+      PrintInfo("Executing script...");
       ScopedAcquireGil acquire_gil;
       engine->setModuleAttr("input", input);
       engine->setModuleAttr("aborted", aborted);
@@ -171,6 +173,7 @@ public:
       engine->execCode(code);
       output = engine->getModuleArrayAttr("output");
       clearModuleAttrs(acquire_gil);
+      PrintInfo("Executed script in", t1.elapsedMsec(), "msec");
     }
     catch (std::exception ex)
     {
@@ -470,7 +473,6 @@ void ScriptingNode::write(Archive& ar) const
 void ScriptingNode::read(Archive& ar)
 {
   Node::read(ar);
-  String code;
   ar.read("max_publish_msec", max_publish_msec);
   ar.readText("code", code);
 }

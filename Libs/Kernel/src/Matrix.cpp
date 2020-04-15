@@ -106,6 +106,9 @@ Matrix Matrix::lookAt(Point3d Eye,Point3d Center,Point3d Up)
 //////////////////////////////////////////////////////////////////////
 Matrix Matrix::rotateAroundAxis(Point3d axis,double angle)
 {
+  if (!angle)
+    return Matrix();
+
   axis = axis.normalized();
   double x = axis[0];
   double y = axis[1];

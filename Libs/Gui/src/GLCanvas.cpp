@@ -521,6 +521,8 @@ void GLCanvas::paintGL()
   if (!isVisible()) 
     return;
 
+  auto t1 = Time::now();
+
   GLDoWithContext::getSingleton()->flush(this);
 
   #ifdef GL_NORMALIZE
@@ -593,6 +595,10 @@ void GLCanvas::paintGL()
   VisusAssert(blend     .size()==1);blend      =std::stack<bool>();
   VisusAssert(depthtest .size()==1);depthtest  =std::stack<bool>();
   VisusAssert(depthmask .size()==1);depthmask  =std::stack<bool>();
+
+  auto msec = t1.elapsedMsec();
+  if (msec>250)
+    PrintInfo("paintGL took significant time", msec,"msec");
 }
 
 

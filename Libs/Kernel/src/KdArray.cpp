@@ -50,7 +50,7 @@ public:
   class Cached
   {
   public:
-    BigInt           id=0;
+    BigInt           id =0;
     Int64            c_size=0;
     Array            blockdata;
     Array            fullres;
@@ -116,7 +116,7 @@ public:
 
     const Cached& cached=*(it->second);
 
-    VisusAssert(cached.id==node->id);
+    VisusAssert(cached.id ==node->id);
     node->blockdata   = cached.blockdata;
     node->fullres     = cached.fullres;
     node->displaydata = cached.displaydata;
@@ -192,7 +192,7 @@ void KdArray::split(KdArrayNode* node,int split_bit)
 {
   VisusAssert(split_bit>=0);
   VisusAssert(node->isLeaf());
-  VisusAssert(root->id==1);
+  VisusAssert(root->id ==1);
 
   node->split_bit = split_bit;
 

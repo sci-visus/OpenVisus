@@ -71,20 +71,22 @@ void GLLookAtCamera::execute(Archive& ar)
     return;
   }
 
-  if (ar.name == "SetRotation")
-  {
-    double angle=0.0;  Point3d axis;
-    ar.read("axis", axis, Point3d(0, 0, 1));
-    ar.read("angle", angle, 0.0);
-    angle = Utils::degreeToRadiant(angle);
-    setRotation(Quaternion(axis,angle));
+  if (ar.name == "SetLookAt") {
+    Point3d pos,dir,vup;
+    ar.read("pos", pos);
+    ar.read("dir", dir);
+    ar.read("vup", vup);
+    setLookAt(pos,dir,vup);
     return;
   }
 
-  if (ar.name == "SetRotationCenter") {
-    Point3d value;
-    ar.read("value", value);
-    setRotationCenter(value);
+  if (ar.name == "Rotate") {
+    double angle_degree;
+    Point3d p0, p1;
+    ar.read("angle", angle_degree);
+    ar.read("p0", p0);
+    ar.read("p1", p1);
+    rotate(angle_degree, p0, p1);
     return;
   }
 
@@ -103,18 +105,6 @@ void GLLookAtCamera::execute(Archive& ar)
   }
 
   return GLCamera::execute(ar);
-}
-
-//////////////////////////////////////////////////////////////////////
-std::pair<double,double> GLLookAtCamera::guessNearFar() const
-{
-  auto dir = this->dir.normalized();
-  Point3d far_point ((dir[0] >= 0) ? bounds.p2[0] : bounds.p1[0], (dir[1] >= 0) ? bounds.p2[1] : bounds.p1[1], (dir[2] >= 0) ? bounds.p2[2] : bounds.p1[2]);
-  Point3d near_point((dir[0] >= 0) ? bounds.p1[0] : bounds.p2[0], (dir[1] >= 0) ? bounds.p1[1] : bounds.p2[1], (dir[2] >= 0) ? bounds.p1[2] : bounds.p2[2]);
-  Plane camera_plane(dir, this->pos);
-  auto zNear = camera_plane.getDistance(near_point);
-  auto zFar = camera_plane.getDistance(far_point);
-  return std::make_pair(zNear, zFar);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -145,40 +135,52 @@ bool GLLookAtCamera::guessPosition(BoxNd bounds, int ref)
     setPosition(pos);
     setDirection(dir);
     setViewUp(vup);
-    setRotation(Quaternion());
-    setRotationCenter(center);
     setFov(60.0);
   }
   endTransaction();
 
+  setDraggingSelection(bounds);
+
   return true;
 }
 
-
 //////////////////////////////////////////////////////////////////////
-double GLLookAtCamera::guessForwardFactor() const
+Matrix GLLookAtCamera::guessProjection(const Viewport& viewport) const
 {
-  // when camera inside volume
-  // roughly means 64 scroll steps to go through the volume
-  // if the camera is far away from the volume, it moves toward the volume faster
-  auto p = guessNearFar();
-  auto zNear = p.first;
-  auto zFar = p.second;
-  return (zNear <= 0)? (zFar - zNear) / 64 : (zFar / 16);
-}
-
-
-//////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::setRotation(Quaternion new_value) {
-  auto& old_value = this->rotation;
-  if (old_value == new_value) return;
-  beginUpdate(
-    StringTree("SetRotation").write("axis", new_value.getAxis()).write("angle", Utils::radiantToDegree(new_value.getAngle())),
-    StringTree("SetRotation").write("axis", old_value.getAxis()).write("angle", Utils::radiantToDegree(old_value.getAngle())));
+  //automatically compute zNear, zFar
+  double zNear = 0.00001, zFar = 100;
   {
-    old_value = new_value;
+    auto dir = this->dir.normalized();
+    Point3d far_point((dir[0] >= 0) ? bounds.p2[0] : bounds.p1[0], (dir[1] >= 0) ? bounds.p2[1] : bounds.p1[1], (dir[2] >= 0) ? bounds.p2[2] : bounds.p1[2]);
+    Point3d near_point((dir[0] >= 0) ? bounds.p1[0] : bounds.p2[0], (dir[1] >= 0) ? bounds.p1[1] : bounds.p2[1], (dir[2] >= 0) ? bounds.p1[2] : bounds.p2[2]);
+    Plane camera_plane(dir, this->pos);
+    auto nDist = camera_plane.getDistance(near_point);
+    auto fDist = camera_plane.getDistance(far_point);
+
+    zNear = nDist <= 0 ? 0.1 : nDist;
+    zFar = 2 * fDist - nDist;
   }
-  endUpdate();
+
+  //perspective?
+  if (split_frustum == Rectangle2d(0, 0, 1, 1))
+  {
+    auto aspect_ratio = viewport.getAspectRatio();
+    return Matrix::perspective(fov, aspect_ratio, zNear, zFar);
+  }
+  //if there is a split of the frustum I must use ortho projection
+  else
+  {
+    auto aspect_ratio = viewport.getAspectRatio();
+    GLOrthoParams params;
+    params.top = +zNear * tan(Utils::degreeToRadiant(fov * 0.5));
+    params.bottom = -zNear * tan(Utils::degreeToRadiant(fov * 0.5));
+    params.right = +params.top * aspect_ratio;
+    params.left = -params.top * aspect_ratio;
+    params.zNear = zNear;
+    params.zFar = zFar;
+    params = params.split(split_frustum);
+    return Matrix::frustum(params.left, params.right, params.bottom, params.top, params.zNear, params.zFar);
+  }
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -186,43 +188,100 @@ Frustum GLLookAtCamera::getFinalFrustum(const Viewport& viewport) const
 {
   Frustum ret;
   ret.setViewport(viewport);
-
   ret.loadModelview(Matrix::lookAt(this->pos, this->pos + this->dir, this->vup));
-
-  if (rotation.getAngle())
-    ret.multModelview(Matrix::rotateAroundCenter(this->rotation_center, rotation.getAxis(), rotation.getAngle()));
-
-  auto aspect_ratio = viewport.getAspectRatio();
-
-  auto p = guessNearFar();
-  auto zNear = p.first, zFar = p.second;
-  if (split_frustum == Rectangle2d(0, 0, 1, 1))
-  {
-    ret.loadProjection(Matrix::perspective(fov, aspect_ratio, zNear, zFar));
-  }
-  else
-  {
-    GLOrthoParams params;
-    params.top    = +zNear * tan(Utils::degreeToRadiant(fov * 0.5));
-    params.bottom = -zNear * tan(Utils::degreeToRadiant(fov * 0.5));
-    params.right  = +params.top * aspect_ratio;
-    params.left   = -params.top * aspect_ratio;
-    params.zNear  = zNear;
-    params.zFar   = zFar;
-    params = params.split(split_frustum);
-    ret.loadProjection(Matrix::frustum(params.left, params.right, params.bottom, params.top, params.zNear, params.zFar));
-  }
-
+  ret.loadProjection(guessProjection(viewport));
   return ret;
 }
 
+
+
 //////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::glMousePressEvent(QMouseEvent* evt,const Viewport& viewport)
+Frustum GLLookAtCamera::getCurrentFrustum(const Viewport& viewport) const {
+  return getFinalFrustum(viewport);
+}
+
+//////////////////////////////////////////////////////////////////////
+void GLLookAtCamera::move(Point3d vt)
+{
+  auto dir = this->dir.normalized();
+  Point3d far_point ((dir[0] >= 0) ? bounds.p2[0] : bounds.p1[0], (dir[1] >= 0) ? bounds.p2[1] : bounds.p1[1], (dir[2] >= 0) ? bounds.p2[2] : bounds.p1[2]);
+  Point3d near_point((dir[0] >= 0) ? bounds.p1[0] : bounds.p2[0], (dir[1] >= 0) ? bounds.p1[1] : bounds.p2[1], (dir[2] >= 0) ? bounds.p1[2] : bounds.p2[2]);
+  Plane camera_plane(dir, this->pos);
+  auto nDist = camera_plane.getDistance(near_point);
+  auto fDist  = camera_plane.getDistance(far_point);
+
+  // when camera inside volume
+  // roughly means 64 scroll steps to go through the volume
+  auto factor = 1.0;
+  if (nDist <= 0)
+    factor=(fDist - nDist) / 64;
+
+  // if the camera is far away from the volume, it moves toward the volume faster
+  else
+    factor= fDist / 16;
+
+  setPosition(this->pos + factor * vt);
+}
+
+
+
+
+//////////////////////////////////////////////////////////////////////
+void GLLookAtCamera::setLookAt(Point3d pos, Point3d dir, Point3d vup)
+{
+  if (pos == this->pos && dir == this->dir && vup == this->vup)
+    return;
+
+  beginUpdate(
+    StringTree("SetLookAt", "pos",       pos, "dir",       dir, "vup",       vup),
+    StringTree("SetLookAt", "pos", this->pos, "dir", this->dir, "vup", this->vup));
+  {
+    setPosition(pos);
+    setDirection(dir);
+    setViewUp(vup);
+  }
+  endUpdate();
+}
+
+//////////////////////////////////////////////////////////////////////
+void GLLookAtCamera::rotate(double angle_degree, Point3d p0, Point3d p1)
+{
+  auto axis = (p1 - p0).normalized();
+
+  if (!angle_degree || !axis.module() || !axis.valid())
+    return;
+
+  auto T =
+    Matrix::lookAt(this->pos, this->pos + this->dir, this->vup) *
+    Matrix::rotateAroundCenter(p0, Quaternion(axis, Utils::degreeToRadiant(angle_degree)));
+
+  Point3d pos, dir, vup;
+  T.getLookAt(pos, dir, vup);
+
+  beginUpdate(
+    StringTree("Rotate", "angle", angle_degree, "p0", p0, "p1", p1),
+    StringTree("SetLookAt", "pos", this->pos, "dir", this->dir, "vup", this->vup));
+  {
+    setLookAt(pos, dir, vup);
+  }
+  endUpdate();
+}
+
+
+//////////////////////////////////////////////////////////////////////
+void GLLookAtCamera::setDraggingSelection(Position value) {
+  dragging.selection = value;
+}
+
+//////////////////////////////////////////////////////////////////////
+void GLLookAtCamera::glMousePressEvent(QMouseEvent* evt, const Viewport& viewport)
 {
   this->mouse.glMousePressEvent(evt);
   evt->accept();
-  last_mouse_pos[evt->button()] = Point2i(evt->x(),evt->y());
+  dragging.frustum = getCurrentFrustum(viewport);
+  //beginTransaction();
 }
+
 
 //////////////////////////////////////////////////////////////////////
 void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt, const Viewport& viewport)
@@ -235,53 +294,68 @@ void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt, const Viewport& viewport
 
   if (!button) 
     return ;
-
+  
+  Point2i screen1 = this->mouse.getButton(button).pos; 
   this->mouse.glMouseMoveEvent(evt);
+  Point2i screen2 = this->mouse.getButton(button).pos;
 
   int W= viewport.width;
   int H= viewport.height;
 
   if (this->mouse.getButton(Qt::LeftButton).isDown && button == Qt::LeftButton) 
   {
-    Point2i screen_p1 = last_mouse_pos[button];
-    Point2i screen_p2 = this->mouse.getButton(button).pos;
-    last_mouse_pos[button] = screen_p2;
 
-    double R = viewport.width / 2.0;
+    screen1 = this->mouse.getButton(button).down;
 
-    auto p = guessNearFar();
-    auto zNear = p.first, zFar = p.second;
+    auto map = FrustumMap(dragging.frustum);
 
-    // project the center of rotation to the screen
-    Frustum temp;
-    temp.setViewport(viewport);
-    temp.loadProjection(Matrix::perspective(fov, W / (double)H, zNear, zFar));
-    temp.loadModelview(Matrix::lookAt(this->pos, this->pos + this->dir, this->vup));
+    //https://en.wikibooks.org/wiki/OpenGL_Programming/Modern_OpenGL_Tutorial_Arcball
+    //https://braintrekking.wordpress.com/2012/08/21/tutorial-of-arcball-without-quaternions/
 
-    FrustumMap map(temp);
-    Point3d center = map.unprojectPointToEye(map.projectPoint(this->pos+this->dir));
-    Point3d p1 = map.unprojectPointToEye(screen_p1.castTo<Point2d>());
-    Point3d p2 = map.unprojectPointToEye(screen_p2.castTo<Point2d>());
-
-    double x1 = p1[0] - center[0], y1 = p1[1] - center[1]; double l1 = x1 * x1 + y1 * y1;
-    double x2 = p2[0] - center[0], y2 = p2[1] - center[1]; double l2 = x2 * x2 + y2 * y2;
-    p1[2] = (l1 < R * R / 2) ? sqrt(R * R - l1) : R * R / 2 / sqrt(l1);
-    p2[2] = (l2 < R * R / 2) ? sqrt(R * R - l2) : R * R / 2 / sqrt(l2);
-
-    auto M = Matrix::lookAt(this->pos, this->pos+this->dir, this->vup).invert();
-    Point3d a = (M * p1 - M * center).normalized();
-    Point3d b = (M * p2 - M * center).normalized();
-
-    auto axis = a.cross(b).normalized();
-    auto angle = acos(a.dot(b));
-
-    if (!axis.module() || !axis.valid())
+    auto get_arcball_vector = [&](double x, double y)
     {
-      evt->accept();
-      return;
+      auto P = Point3d(
+        2.0 * x / W - 1.0, //from [0,W] -> [-1,+1]
+        2.0 * y / H - 1.0, //from [0,H] -> [-1,+1]
+        0);
+
+      double d = P.x * P.x + P.y * P.y;
+
+      if (d <= 1 * 1)
+        P.z = sqrt(1 * 1 - d);  // Pythagoras
+      else
+        P = P.normalized();  // nearest point on plane Z=0
+
+      return P;
+    };
+
+    auto O = Point3d();
+    auto A = get_arcball_vector(screen1[0], screen1[1]);
+    auto B = get_arcball_vector(screen2[0], screen2[1]);
+
+    O = (map.modelview.Ti * (map.projection.Ti * PointNd(O, /*point*/1.0))).dropHomogeneousCoordinate().toPoint3();
+    A = (map.modelview.Ti * (map.projection.Ti * PointNd(A, /*point*/1.0))).dropHomogeneousCoordinate().toPoint3();
+    B = (map.modelview.Ti * (map.projection.Ti * PointNd(B, /*point*/1.0))).dropHomogeneousCoordinate().toPoint3();
+
+    auto va = (A - O).normalized();
+    auto vb = (B - O).normalized();
+
+    auto axis = va.cross(vb).normalized();
+    auto angle = -acos(va.dot(vb));
+
+    if (angle && axis.module() && axis.valid())
+    {
+      auto center = dragging.selection.getCentroid().toPoint3();
+
+      auto modelview =
+        dragging.frustum.getModelview() *
+        Matrix::rotateAroundCenter(center, Quaternion(axis, angle));
+       
+      Point3d pos, dir, vup;
+      modelview.getLookAt(pos, dir, vup);
+      setLookAt(pos, dir, vup);
     }
 
-    setRotation(Quaternion(axis, angle * rotation_factor) * getRotation());
     evt->accept();
     return;
   }
@@ -289,39 +363,31 @@ void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt, const Viewport& viewport
   // pan
   if (this->mouse.getButton(Qt::RightButton).isDown && button==Qt::RightButton) 
   {
-    Point2i p1 = last_mouse_pos[button];
-    Point2i p2 = this->mouse.getButton(button).pos;
-    last_mouse_pos[button] = p2;
-
-
     auto dir = this->dir.normalized();
     auto right = dir.cross(vup).normalized();
     auto up = right.cross(dir);
 
-    auto dx = (((p1.x - p2.x) / viewport.width ) * pan_factor * guessForwardFactor()) * right;
-    auto dy = (((p1.y - p2.y) / viewport.height) * pan_factor * guessForwardFactor()) * up;
-    setPosition(this->pos + dx  + dy );
-
+    const double pan_factor = 30;
+    auto dx = (((screen1.x - screen2.x) / viewport.width ) * pan_factor) * right;
+    auto dy = (((screen1.y - screen2.y) / viewport.height) * pan_factor) * up;
+    move(dx + dy);
     evt->accept();
     return;
   }
-
-  last_mouse_pos[button] = Point2i(evt->x(),evt->y());
 }
 
 //////////////////////////////////////////////////////////////////////
 void GLLookAtCamera::glMouseReleaseEvent(QMouseEvent* evt, const Viewport& viewport)
 {
   this->mouse.glMouseReleaseEvent(evt);
+  //endTransaction();
   evt->accept();
-  last_mouse_pos[evt->button()] = Point2i(evt->x(),evt->y());
 }
 
 //////////////////////////////////////////////////////////////////////
 void GLLookAtCamera::glWheelEvent(QWheelEvent* evt, const Viewport& viewport)
 {
-  auto vt = (evt->delta() < 0 ? -1 : +1) * guessForwardFactor() * this->dir;
-  setPosition(this->pos + vt);
+  move((evt->delta() < 0 ? -1 : +1) * this->dir);
   evt->accept();
 }
 
@@ -332,29 +398,6 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt, const Viewport& viewport)
 
   switch(key)
   {
-    // TODO: Use double-tap to accomplish same thing on iPhone.
-    case Qt::Key_X: // recenter the camera
-    {
-      // TODO: No access to scene, so just set center of rotation
-      // at current distance, center of screen. Would like to
-      // intersect ray with bounding volumes of scene components and
-      // use an actual point on/in one of these volumes, but all we
-      // have is the global bound. Sometimes this is acceptable
-      // (e.g. a section of neural microscopy), but it's not always
-      // sufficient (e.g. large volume/more complicated scene).
-
-      // TODO: really want to use mouse position for center, not just center of screen.
-      int W= viewport.width/2;
-      int H= viewport.height/2;
-      auto ray=FrustumMap(getCurrentFrustum(viewport)).getRay(Point2d(W,H));
-
-      RayBoxIntersection intersection(ray,this->bounds);
-      if (intersection.valid)
-        setRotationCenter(ray.getPoint(0.5 * (std::max(intersection.tmin, 0.0) + intersection.tmax)).toPoint3());
-
-      evt->accept();
-      return ;
-    }
     case Qt::Key_P:
     {
       StringTree ar(this->getTypeName());
@@ -371,16 +414,14 @@ void GLLookAtCamera::write(Archive& ar) const
 {
   GLCamera::write(ar);
 
-  String bounds = this->bounds.toString(/*bInterleave*/false);
-
   ar.write("pos", pos);
   ar.write("dir", dir);
   ar.write("vup", vup);
-  ar.write("rotation", rotation);
-  ar.write("rotation_center", rotation_center);
   ar.write("fov", fov);
-  ar.write("bounds", bounds);
   ar.write("split_frustum", split_frustum);
+
+  String s_bounds = this->bounds.toString(/*bInterleave*/false);
+  ar.write("bounds", s_bounds);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -388,17 +429,15 @@ void GLLookAtCamera::read(Archive& ar)
 {
   GLCamera::read(ar);
 
-  String bounds;
-  ar.read("pos", pos);
-  ar.read("dir", dir);
-  ar.read("vup", vup);
-  ar.read("rotation", rotation);
-  ar.read("rotation_center", rotation_center);
-  ar.read("fov", fov);
-  ar.read("bounds", bounds);
+  ar.read("pos", this->pos);
+  ar.read("dir", this->dir);
+  ar.read("vup", this->vup);
+  ar.read("fov", this->fov);
   ar.read("split_frustum", split_frustum);
 
-  this->bounds = BoxNd::fromString(bounds,/*bInterleave*/false);
+  String s_bounds;
+  ar.read("bounds", s_bounds);
+  this->bounds = BoxNd::fromString(s_bounds,/*bInterleave*/false);
   this->bounds.setPointDim(3);
 }
 

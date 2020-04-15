@@ -443,6 +443,14 @@ void Viewer::execute(Archive& ar)
     return;
   }
 
+  if (ar.name == "TakeSnapshot")
+  {
+    String type,filename;
+    ar.read("type", type);
+    ar.read("filename", filename);
+    takeSnapshot(/*bOnlyCanvas*/type=="win"?false:true,filename);
+    return;
+  }
 
   return Model::execute(ar);
 }
@@ -834,7 +842,8 @@ BoxNd Viewer::getWorldBox() const
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Position Viewer::getBounds(Node* node,bool bRecursive) const
 {
-  VisusAssert(node);
+  if (!node)
+    node = getRoot();
 
   //special case for QueryNode: its content is really its bounds
   if (auto query=dynamic_cast<QueryNode*>(node))
@@ -1578,6 +1587,11 @@ void Viewer::setSelection(Node* new_value)
   auto old_value=getSelection();
   if (old_value == new_value)
     return;
+
+  auto bounds = getBounds(new_value);
+
+  auto axis_box = bounds.toAxisAlignedBox();
+  PrintInfo("New selection", "uuid", getUUID(new_value), "axis aligned box", axis_box, "center", axis_box.center());
 
   beginUpdate(
     StringTree("SetSelection", "value", getUUID(new_value)),

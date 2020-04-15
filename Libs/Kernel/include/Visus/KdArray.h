@@ -51,8 +51,8 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(KdArrayNode)
 
-  // id (root has id 1)
-  int id = 0;
+  // id (root has id 1), this is basically the block number
+  BigInt id = 0;
 
   //up
   KdArrayNode* up = nullptr;
@@ -81,11 +81,13 @@ public:
   SharedPtr<Object>    texture;
 
   //default constructor
-  KdArrayNode(int id_=0) : id(id_){
+  KdArrayNode(BigInt blocknum_=0) : id(blocknum_){
+    VisusAssert(id >= 0);
   }
 
   //constructor
-  KdArrayNode(int id_, KdArrayNode* up_ ) : id(id_), up(up_),level(up_->level+1), resolution(up_->resolution+1) {
+  KdArrayNode(BigInt blocknum_, KdArrayNode* up_ ) : id(blocknum_), up(up_),level(up_->level+1), resolution(up_->resolution+1) {
+    VisusAssert(id >= 0);
   }
 
   //destructor
@@ -140,9 +142,6 @@ public:
 
   //bounds
   Position bounds;
-
-  //current estimated end resolution
-  int end_resolution;
 
   //constructor
   KdArray(int pdim=0);

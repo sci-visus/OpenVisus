@@ -59,8 +59,8 @@ public:
 #endif
 
   //constructor
-  GLCamera() 
-  {}
+  GLCamera() {
+  }
 
   //destructor
   virtual ~GLCamera() {
@@ -121,7 +121,7 @@ public:
   virtual void read(Archive& ar) override  {
   }
 
-private:
+protected:
 
   //modelChanged
   virtual void modelChanged() override {

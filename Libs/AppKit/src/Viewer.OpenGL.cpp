@@ -205,6 +205,13 @@ void Viewer::glCanvasMousePressEvent(QMouseEvent* evt)
     }
   }
 
+  //the center of rotation is fixed
+  if (auto lookat = dynamic_cast<GLLookAtCamera*>(glcamera.get()))
+  {
+    auto bounds = getBounds(getSelection());
+    lookat->setDraggingSelection(bounds);
+  }
+
   glcamera->glMousePressEvent(evt, viewport);
 
   //needed for gesture render
@@ -410,6 +417,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
       {
         auto bounds= getBounds(dataset_node);
         GLBox(bounds,Colors::Transparent,Colors::Black.withAlpha(0.5)).glRender(gl);
+        GLAxis(bounds, 3).glRender(gl);
       }
 
       auto dataset = dataset_node->getDataset();

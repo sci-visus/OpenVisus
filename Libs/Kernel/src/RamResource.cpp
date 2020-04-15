@@ -202,12 +202,14 @@ bool RamResource::allocateMemory(Int64 reqsize)
     Int64 os_free_memory=((Int64)(getOsTotalMemory()*0.80))-getVisusUsedMemory();
     if (reqsize>os_free_memory)
     {
+#if 0
       PrintWarning("RamResource out of memory ",
                     "reqsize(",StringUtils::getStringFromByteSize(reqsize),
                     "visus_used_memory", StringUtils::getStringFromByteSize(getVisusUsedMemory()),
                     "os_used_memory", StringUtils::getStringFromByteSize(getOsUsedMemory()),
                     "os_total_memory", StringUtils::getStringFromByteSize(getOsTotalMemory()),
                     "visus_free_memory", StringUtils::getStringFromByteSize(os_free_memory));
+#endif
       return false;
     }
     return true;
