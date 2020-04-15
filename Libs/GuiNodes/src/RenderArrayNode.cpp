@@ -389,8 +389,8 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   {
     gl.setUniformMaterial(*shader,this->lighting_material);
 
-    Point3d pos,dir,vup;
-    gl.getModelview().getLookAt(pos,dir,vup);
+    Point3d pos,center,vup;
+    gl.getModelview().getLookAt(pos, center,vup, 1.0);
     gl.setUniformLight(*shader,Point4d(pos,1.0));
   }
 

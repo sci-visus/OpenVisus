@@ -108,12 +108,12 @@ void GLOrthoCamera::execute(Archive& ar)
 
   if (ar.name == "SetLookAt")
   {
-    Point3d pos, dir, vup; double rotation;
+    Point3d pos, center, vup; double rotation;
     ar.read("pos", pos);
-    ar.read("dir", dir);
+    ar.read("center", center);
     ar.read("vup", vup);
     ar.read("rotation", rotation, 0.0);
-    setLookAt(pos, dir, vup, rotation);
+    setLookAt(pos, center, vup, rotation);
     return;
   }
 
@@ -142,25 +142,25 @@ bool GLOrthoCamera::guessPosition(BoxNd bounds,int ref)
 
   auto size = bounds.size();
 
-  Point3d pos(0, 0, 0), dir, vup;
+  Point3d pos(0, 0, 0), center, vup;
   GLOrthoParams params;
 
   if (ref == 0 || (ref < 0 && !size[0] && size[1] && size[2]))
   {
-    dir = Point3d(-1, 0, 0);
+    center = Point3d(-1, 0, 0);
     vup = Point3d( 0, 0, 1);
     params = GLOrthoParams(bounds.p1[1], bounds.p2[1], bounds.p1[2], bounds.p2[2], -bounds.p1[0], -bounds.p2[0]);
   }
   else if (ref == 1 || (ref < 0 && size[0] && !size[1] && size[2]))
   {
-    dir = Point3d(0, -1, 0);
+    center = Point3d(0, -1, 0);
     vup = Point3d(0,  0, 1);
     params = GLOrthoParams(bounds.p1[0], bounds.p2[0], bounds.p1[2], bounds.p2[2], -bounds.p1[1], -bounds.p2[1]);
   }
   else
   {
     VisusAssert(ref < 0 || ref == 2);
-    dir = Point3d(0, 0, -1);
+    center = Point3d(0, 0, -1);
     vup = Point3d(0, 1,  0);
     params = GLOrthoParams(bounds.p1[0], bounds.p2[0], bounds.p1[1], bounds.p2[1], -bounds.p1[2], -bounds.p2[2]);
   }
@@ -175,7 +175,7 @@ bool GLOrthoCamera::guessPosition(BoxNd bounds,int ref)
 
   beginTransaction();
   {
-    setLookAt(pos, dir, vup, /*rotation*/0.0);
+    setLookAt(pos, center, vup, /*rotation*/0.0);
     setOrthoParams(params.withAspectRatio(aspect_ratio));
   }
   endTransaction();
@@ -261,7 +261,7 @@ Frustum GLOrthoCamera::getCurrentFrustum(const Viewport& viewport) const
   if (this->rotation)
     ret.multProjection(Matrix::rotateAroundCenter(params.getCenter(),Point3d(0,0,1),rotation));
 
-  ret.loadModelview(Matrix::lookAt(pos,pos+dir,vup));
+  ret.loadModelview(Matrix::lookAt(pos,center,vup));
 
   return ret;
 }
@@ -278,7 +278,7 @@ Frustum GLOrthoCamera::getFinalFrustum(const Viewport& viewport) const
   if (this->rotation)
     ret.multProjection(Matrix::rotateAroundCenter(ortho_params.final.getCenter(), Point3d(0, 0, 1), rotation));
 
-  ret.loadModelview(Matrix::lookAt(pos, pos + dir, vup));
+  ret.loadModelview(Matrix::lookAt(pos, center, vup));
   return ret;
 }
 
@@ -327,14 +327,14 @@ GLOrthoParams GLOrthoCamera::checkZoomRange(GLOrthoParams value, const Viewport&
 
 
 ////////////////////////////////////////////////////////////////
-void GLOrthoCamera::setLookAt(Point3d pos, Point3d dir, Point3d vup, double rotation)
+void GLOrthoCamera::setLookAt(Point3d pos, Point3d center, Point3d vup, double rotation)
 {
   beginUpdate(
-    StringTree("SetLookAt").write("pos",       pos.toString()).write("dir",       dir.toString()).write("vup",       vup.toString()).write("rotation",       rotation),
-    StringTree("SetLookAt").write("pos", this->pos.toString()).write("dir", this->dir.toString()).write("vup", this->vup.toString()).write("rotation", this->rotation));
+    StringTree("SetLookAt").write("pos",       pos.toString()).write("center",       center.toString()).write("vup",       vup.toString()).write("rotation",       rotation),
+    StringTree("SetLookAt").write("pos", this->pos.toString()).write("center", this->center.toString()).write("vup", this->vup.toString()).write("rotation", this->rotation));
   {
     this->pos = pos;
-    this->dir = dir;
+    this->center = center;
     this->vup = vup;
     this->rotation = rotation;
   }
@@ -481,7 +481,7 @@ void GLOrthoCamera::write(Archive& ar) const
   GLCamera::write(ar);
 
   ar.write("pos", pos);
-  ar.write("dir", dir);
+  ar.write("center", center);
   ar.write("vup", vup);
   ar.write("rotation", rotation);
   ar.write("ortho_params", ortho_params.final);
@@ -498,7 +498,7 @@ void GLOrthoCamera::read(Archive& ar)
   GLCamera::read(ar);
 
   ar.read("pos", pos);
-  ar.read("dir", dir);
+  ar.read("center", center);
   ar.read("vup", vup);
   ar.read("rotation", rotation, this->rotation);
   ar.read("ortho_params", ortho_params.final);

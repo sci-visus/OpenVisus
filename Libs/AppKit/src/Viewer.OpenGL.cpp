@@ -209,7 +209,7 @@ void Viewer::glCanvasMousePressEvent(QMouseEvent* evt)
   if (auto lookat = dynamic_cast<GLLookAtCamera*>(glcamera.get()))
   {
     auto bounds = getBounds(getSelection());
-    lookat->setDraggingSelection(bounds);
+    lookat->setCameraSelection(bounds);
   }
 
   glcamera->glMousePressEvent(evt, viewport);

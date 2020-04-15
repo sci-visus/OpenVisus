@@ -66,14 +66,14 @@ public:
   }
 
   //getLookAt
-  virtual void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const override {
+  virtual void getLookAt(Point3d& pos, Point3d& center, Point3d& vup) const override {
     pos = this->pos;
-    dir = this->dir;
+    center = this->center;
     vup = this->vup;
   }
 
   //setLookAt
-  void setLookAt(Point3d pos, Point3d dir, Point3d vup, double rotation = 0.0);
+  void setLookAt(Point3d pos, Point3d center, Point3d vup, double rotation = 0.0);
 
   //guessPosition
   virtual bool guessPosition(BoxNd bound, int ref = -1) override;
@@ -228,7 +228,7 @@ private:
   std::vector<Point2i>  last_mouse_pos;
 
   Point3d               pos    = Point3d(0, 0,  0);
-  Point3d               dir    = Point3d(0, 0, -1);
+  Point3d               center = Point3d(0, 0, -1);
   Point3d               vup    = Point3d(0, 1,  0);
   double                rotation = 0.0;
 

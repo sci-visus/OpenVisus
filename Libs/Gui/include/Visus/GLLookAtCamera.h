@@ -53,21 +53,14 @@ public:
   VISUS_NON_COPYABLE_CLASS(GLLookAtCamera)
 
   //constructor
-  GLLookAtCamera(){
-  }
+  GLLookAtCamera();
 
   //destructor
-  virtual ~GLLookAtCamera() {
-  }
+  virtual ~GLLookAtCamera();
 
   //getTypeName
   virtual String getTypeName() const override {
     return "GLLookAtCamera";
-  }
-
-  //setBounds
-  void setBounds(BoxNd value) {
-    setProperty("SetBounds", this->bounds, value);
   }
 
   //guessPosition
@@ -88,14 +81,14 @@ public:
     setProperty("SetPosition", this->pos, value);
   }
 
-  //getDirection
-  Point3d getDirection() const {
-    return dir;
+  //getCenter
+  Point3d getCenter() const {
+    return center;
   }
 
   //setDirection
-  void setDirection(Point3d value) {
-    setProperty("SetDirection", this->dir, value);
+  void setCenter(Point3d value) {
+    setProperty("SetCenter", this->center, value);
   }
 
   //getVup
@@ -109,14 +102,14 @@ public:
   }
 
   //getLookAt
-  virtual void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const override {
+  virtual void getLookAt(Point3d& pos, Point3d& center, Point3d& vup) const override {
     pos = getPosition();
-    dir = getDirection();
+    center = getCenter();
     vup = getVup();
   }
 
   //setLookAt
-  void setLookAt(Point3d pos, Point3d dir, Point3d vup);
+  void setLookAt(Point3d pos, Point3d center, Point3d vup);
 
   //getFov
   double getFov() const {
@@ -128,8 +121,25 @@ public:
     setProperty("SetFov", this->fov, fov);
   }
 
-  //move
-  void move(Point3d vt);
+  //getZNear
+  double getZNear() const {
+    return zNear;
+  }
+
+  //setZNear
+  void setZNear(double value) {
+    setProperty("SetZNear", this->zNear, value);
+  }
+
+  //getZFar
+  double getZFar() const {
+    return zFar;
+  }
+
+  //setZFar
+  void setZFar(double value) {
+    setProperty("SetZFar", this->zFar, value);
+  }
 
   //rotate
   void rotate(double angle_degree, Point3d p0, Point3d p1);
@@ -142,8 +152,8 @@ public:
   //getCurrentFrustum
   virtual Frustum getCurrentFrustum(const Viewport& viewport) const override;
 
-  //setDraggingSelection
-  void setDraggingSelection(Position value);
+  //setCameraSelection
+  void setCameraSelection(Position value);
 
   //glMousePressEvent
   virtual void glMousePressEvent(QMouseEvent* evt, const Viewport& viewport) override;
@@ -174,22 +184,23 @@ public:
 
 private:
 
-  BoxNd                  bounds = BoxNd(3);
-  Point3d                pos, dir, vup;
+// see https://github.com/Twinklebear/arcball-cpp
+  class ArcballCamera;
+
+
+
   double                 fov = 60.0;
+  double                 zNear = 0.0001, zFar = 10.0;
+  Point3d                pos, center, vup;
   Rectangle2d            split_frustum = Rectangle2d(0, 0, 1, 1);
 
-  struct
-  {
-    Position   selection;
-    Frustum    frustum;
-  }
-  dragging;
-
+  //run-time
+  Position selection;
+  UniquePtr<ArcballCamera> arcball;
   GLMouse mouse;
 
-  //guessProjection
-  Matrix guessProjection(const Viewport& viewport) const;
+  //getProjection
+  Matrix getProjection(const Viewport& viewport) const;
 
 
 };//end class

@@ -70,7 +70,7 @@ public:
   static SharedPtr<GLCamera> decode(StringTree& ar);
 
   //getLookAt
-  virtual void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const =0 ;
+  virtual void getLookAt(Point3d& pos, Point3d& center, Point3d& vup) const =0 ;
 
   //getTypeName
   virtual String getTypeName() const override = 0;

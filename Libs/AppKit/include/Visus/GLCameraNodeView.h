@@ -89,10 +89,10 @@ public:
 
       {
         auto sub=new QVBoxLayout();
-        sub->addWidget(widgets.dir.x=new QLabel());
-        sub->addWidget(widgets.dir.y=new QLabel());
-        sub->addWidget(widgets.dir.z=new QLabel());
-        layout->addRow("Direction",sub);
+        sub->addWidget(widgets.center.x=new QLabel());
+        sub->addWidget(widgets.center.y=new QLabel());
+        sub->addWidget(widgets.center.z=new QLabel());
+        layout->addRow("Center",sub);
       }
 
       {
@@ -127,7 +127,7 @@ private:
     {
       QLabel *x=nullptr,*y=nullptr,*z=nullptr;
     }
-    pos,dir,vup;
+    pos,center,vup;
 
     struct
     {
@@ -142,16 +142,16 @@ private:
   void refreshGui()
   {
     auto camera=model->getGLCamera();
-    Point3d pos,dir,vup;
-    camera->getLookAt(pos,dir,vup);
+    Point3d pos, center,vup;
+    camera->getLookAt(pos, center,vup);
 
     widgets.pos.x->setText(std::to_string(pos[0]).c_str());
     widgets.pos.y->setText(std::to_string(pos[1]).c_str());
     widgets.pos.z->setText(std::to_string(pos[2]).c_str());
 
-    widgets.dir.x->setText(std::to_string(dir[0]).c_str());
-    widgets.dir.y->setText(std::to_string(dir[1]).c_str());
-    widgets.dir.z->setText(std::to_string(dir[2]).c_str());
+    widgets.center.x->setText(std::to_string(center[0]).c_str());
+    widgets.center.y->setText(std::to_string(center[1]).c_str());
+    widgets.center.z->setText(std::to_string(center[2]).c_str());
 
     widgets.vup.x->setText(std::to_string(vup[0]).c_str());
     widgets.vup.y->setText(std::to_string(vup[1]).c_str());

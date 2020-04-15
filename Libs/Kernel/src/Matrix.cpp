@@ -101,6 +101,21 @@ Matrix Matrix::lookAt(Point3d Eye,Point3d Center,Point3d Up)
   return m.transpose() * translate(-1*Eye);
 }
 
+//////////////////////////////////////////////////////////////////////
+void Matrix::getLookAt(Point3d& eye, Point3d& center, Point3d& up, double lookDistance) const
+{
+  Matrix vmat = this->invert();
+  auto e = Point3d(vmat[3], vmat[7], vmat[11]);
+  up = Point3d(vmat[1], vmat[5], vmat[9]);
+
+  auto c = Point3d(-vmat[2], -vmat[6], -vmat[10]);
+  c = c.normalized();
+  c = e + c * lookDistance;
+
+  eye = e;
+  center = c;
+}
+
 
 
 //////////////////////////////////////////////////////////////////////
@@ -192,14 +207,6 @@ Matrix Matrix::embed(int axis, double offset)
 }
 
   
-//////////////////////////////////////////////////////////////////////
-void Matrix::getLookAt(Point3d& pos,Point3d& dir,Point3d& vup) const
-{
-  Matrix vmat =this->invert();
-  pos=Point3d(  vmat[3], vmat[7], vmat[11]);
-  dir=Point3d( -vmat[2],-vmat[6],-vmat[10]).normalized();
-  vup=Point3d(  vmat[1], vmat[5], vmat[ 9]).normalized();
-}
 
 
 //////////////////////////////////////////////////////////
