@@ -281,7 +281,7 @@ function NeedApache {
 
 		curl -fsSL --insecure "https://github.com/apache/httpd/archive/2.4.38.tar.gz" | tar xz 
 		pushd httpd-2.4.38		
-		curl -fsSL --insecure "https://github.com/apache/apr/archive/1.6.5.tar.gz      | tar xz
+		curl -fsSL --insecure "https://github.com/apache/apr/archive/1.6.5.tar.gz"      | tar xz
 		curl -fsSL --insecure "https://github.com/apache/apr-util/archive/1.6.1.tar.gz" | tar xz	
 		mv ./apr-1.6.5      ./srclib/apr
 		mv ./apr-util-1.6.1 ./srclib/apr-util
