@@ -98,9 +98,9 @@ void GLCameraNode::write(Archive& ar) const
 
   if (glcamera)
   {
-    StringTree ar(glcamera->getTypeName());
-    glcamera->write(ar);
-    ar.addChild(ar);
+    StringTree sub(glcamera->getTypeName());
+    glcamera->write(sub);
+    ar.addChild(sub);
   }
 
   //bDebugFrustum
@@ -112,9 +112,14 @@ void GLCameraNode::read(Archive& ar)
   Node::read(ar);
 
   if (ar.getNumberOfChilds())
-    this->glcamera = GLCamera::decode(*ar.getFirstChild());
+  {
+    auto sub = *ar.getFirstChild();
+    this->glcamera = GLCamera::decode(sub);
+  }
   else
+  {
     this->glcamera.reset();
+  }
 }
   
 } //namespace Visus

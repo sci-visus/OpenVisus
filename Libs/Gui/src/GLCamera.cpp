@@ -46,8 +46,8 @@ namespace Visus {
   //////////////////////////////////////////////////
 SharedPtr<GLCamera> GLCamera::decode(StringTree& ar)
 {
-  String TypeName=ar.name;
-  ar.read("TypeName", TypeName);
+  String TypeName;
+  ar.read("TypeName", TypeName, ar.name);
 
   SharedPtr<GLCamera> ret;
 

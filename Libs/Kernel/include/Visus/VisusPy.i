@@ -56,16 +56,30 @@ For support : support@visus.net
 //__________________________________________________________
 %pythonbegin %{
 
-import os,sys
+
+import os,sys,platform
+WIN32=platform.system()=="Windows" or platform.system()=="win32"
+
+def AddSysPath(value, bBegin=False):
+
+	if not os.path.isdir(value):
+		return
+	
+	if not value in sys.path:
+		if bBegin:
+			sys.path.insert(0,value)
+		else:
+			sys.path.append(value)
+
+	# this is needed for windows/python 38  
+	if WIN32 and hasattr(os,'add_dll_directory'):
+		os.add_dll_directory(value)
 
 __this_dir__=os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
+__bin_dir__=os.path.abspath(os.path.join(__this_dir__,"bin"))
 
-if not __this_dir__ in sys.path:
-  sys.path.append(__this_dir__)
-
-__bin_dir__=os.path.abspath(__this_dir__+ "/bin")
-if not __bin_dir__ in sys.path:
-  sys.path.append(__bin_dir__)
+AddSysPath(__this_dir__)
+AddSysPath(__bin_dir__)
 %}
 
 // Nested class not currently supported

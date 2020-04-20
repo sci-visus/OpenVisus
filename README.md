@@ -63,23 +63,23 @@ On a command prompt:
 
 ```
 REM change this as needed
-set PYTHON_EXECUTABLE=c:\Python37\python.exe
+set PYTHON_EXECUTABLE=c:\Python38\python.exe
 
-%PYTHON_EXECUTABLE% -m pip install --user --no-cache numpy OpenVisus
+%PYTHON_EXECUTABLE% -m pip install --user --no-cache numpy opencv-python OpenVisus
 
 REM finilize the installation 
 %PYTHON_EXECUTABLE% -m OpenVisus configure 
 
-%PYTHON_EXECUTABLE% -m dirname
+%PYTHON_EXECUTABLE% -m OpenVisus dirname
 cd \to\the\direttory\printed\by\above\command
 
 REM test python  examples 
-%PYTHON_EXECUTABLE% Samples/python/Array.py
-%PYTHON_EXECUTABLE% Samples/python/Dataflow.py
-%PYTHON_EXECUTABLE% Samples/python/Idx.py
-%PYTHON_EXECUTABLE% Samples/python/Viewer.py
+%PYTHON_EXECUTABLE% Samples\python\Array.py
+%PYTHON_EXECUTABLE% Samples\python\Dataflow.py
+%PYTHON_EXECUTABLE% Samples\python\Idx.py
+%PYTHON_EXECUTABLE% Samples\python\TestViewer1.py
 
-REM test OpenVisus vieweer
+REM test OpenVisus viewer
 .\visusviewer.bat
 ```
 
