@@ -422,7 +422,14 @@ public:
   }
 
   //writeText
-  StringTree& writeText(String name, const String& value, bool bCData = false) {
+  StringTree& writeText(String name, const String& value, bool bCData) {
+    NormalizeW(this, name)->addChild(name)->writeText(value, bCData); return *this;
+  }
+
+
+  //writeText
+  StringTree& writeText(String name, const String& value) {
+    bool bCData = StringUtils::containsControl(value);
     NormalizeW(this, name)->addChild(name)->writeText(value, bCData); return *this;
   }
 

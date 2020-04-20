@@ -372,9 +372,8 @@ public:
   //ViewDependentUnitVolume
   static GLMesh ViewDependentUnitVolume(const Frustum& frustum,int nslices)
   {
-    Point3d viewpos,viewdir,viewup;
-    frustum.getModelview().getLookAt(viewpos,viewdir,viewup);
-    viewdir=viewdir*(-1); //need to go back to front (i.e. the opposite of viewdir)
+    Point3d viewpos,center,viewup;
+    frustum.getModelview().getLookAt(viewpos, center,viewup, 1.0);
 
     //render view dependent texture,unproject back screenpoints
     auto unit_box = BoxNd(Point3d(0,0,0), Point3d(1,1,1));
@@ -422,9 +421,11 @@ public:
   //AxisAlignedUnitVolume
   static GLMesh AxisAlignedUnitVolume(const Frustum& frustum,int nslices)
   {
-    Point3d viewpos,viewdir,viewup;
-    frustum.getModelview().getLookAt(viewpos,viewdir,viewup);
-    viewdir=viewdir*(-1); //need to go back to front (i.e. the opposite of viewdir)
+    Point3d viewpos,center,viewup;
+    frustum.getModelview().getLookAt(viewpos, center,viewup, 1.0);
+
+    //need to go back to front (i.e. the opposite of viewdir)
+    auto viewdir = -(center-viewpos).normalized();
 
     //decide how to render (along X Y or Z)
     int Z=0;

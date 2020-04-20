@@ -466,7 +466,14 @@ public:
   static Matrix rotateAroundAxis(Point3d axis, double angle);
 
   //rotateAroundCenter
+  static Matrix rotateAroundCenter(Point3d center, Quaternion q) {
+    if (!q.getAngle()) return Matrix();
+    return Matrix::translate(center) * rotate(q) * Matrix::translate(-center);
+  }
+
+  //rotateAroundCenter
   static Matrix rotateAroundCenter(Point3d center, Point3d axis, double angle) {
+    if (!angle) return Matrix();
     return Matrix::translate(center) * rotateAroundAxis(axis, angle) * Matrix::translate(-center);
   }
 
@@ -476,8 +483,8 @@ public:
   //static lookAt
   static Matrix lookAt(Point3d eye, Point3d center, Point3d up);
 
-  //convert to look-at which is a triple (pos,dir,vup)
-  void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const;
+  //getLookAt
+  void getLookAt(Point3d& pos, Point3d& center, Point3d& vup, double lookDistance) const;
 
   //static perspective
   static Matrix perspective(double fovy, double aspect, double zNear, double zFar);

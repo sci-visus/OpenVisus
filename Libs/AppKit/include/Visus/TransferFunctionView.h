@@ -963,7 +963,7 @@ public:
 
       //second row (list of palettes, Show alpha, import, export)
       {
-        auto row=(new QHBoxLayout());
+        auto row=new QHBoxLayout();
 
         row->addWidget(new QLabel("Set default"));
         {

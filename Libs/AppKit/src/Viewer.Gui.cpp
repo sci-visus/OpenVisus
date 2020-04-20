@@ -646,7 +646,7 @@ void Viewer::editNode(Node* node)
     if (!widgets.glcanvas) 
       return;
 
-    addDockWidget("QueryNode",new QueryNodeView(query_node));
+    showTopWidget("QueryNode",new QueryNodeView(query_node));
 
     //this force the creation of the free_transform
     this->dropSelection();
@@ -655,7 +655,7 @@ void Viewer::editNode(Node* node)
     if (free_transform) 
     {
       auto view=new FreeTransformView(free_transform.get());
-      addDockWidget("FreeTransform",view);
+      showTopWidget("FreeTransform",view);
     }
 
     return;
@@ -675,7 +675,7 @@ void Viewer::editNode(Node* node)
     {
       auto view=new FreeTransformView(free_transform.get());
       view->widgets.box->setEnabled(false); //I cannot edit the down bounds, I can change only the matrix
-      addDockWidget("FreeTransform",view);
+      showTopWidget("FreeTransform",view);
     }
 
     return ;
@@ -684,28 +684,28 @@ void Viewer::editNode(Node* node)
   //DatasetNode
   if (auto model=dynamic_cast<DatasetNode*>(node))
   {
-    addDockWidget("Dataset Node",new DatasetNodeView(model));
+    showTopWidget("Dataset Node",new DatasetNodeView(model));
     return;
   }
 
   //TimeNode
   if (auto model=dynamic_cast<TimeNode*>(node))
   {
-    addDockWidget("Time Node",new TimeNodeView(model));
+    showTopWidget("Time Node",new TimeNodeView(model));
     return;
   }
 
   //GLCameraNode
   if (auto model=dynamic_cast<GLCameraNode*>(node))
   {
-    addDockWidget("GLCamera Node",new GLCameraNodeView(model));
+    showTopWidget("GLCamera Node",new GLCameraNodeView(model));
     return;
   }
 
   //StatisticsNode
   if (auto model=dynamic_cast<StatisticsNode*>(node))
   {
-    addDockWidget("Statistics Node",new StatisticsNodeView(model));
+    showTopWidget("Statistics Node",new StatisticsNodeView(model));
     return;
   }
 
@@ -723,37 +723,37 @@ void Viewer::editNode(Node* node)
     auto widget=new FieldNodeView(field_node,dataset);
 
     if (std::dynamic_pointer_cast<IdxMultipleDataset>(dataset))
-      addDockWidget(node->getName(),widget);
+      showTopWidget(node->getName(),widget);
     else
-      showPopupWidget(new FieldNodeView(field_node,dataset));
+      showTopWidget("Field", new FieldNodeView(field_node,dataset));
     return;
   }
 
   //ScriptingNode
   if (auto model=dynamic_cast<ScriptingNode*>(node))
   {
-    addDockWidget(node->getName(),new ScriptingNodeView(model));
+    showTopWidget(node->getName(),new ScriptingNodeView(model));
     return;
   }
 
  //CpuPaletteNode
   if (auto model=dynamic_cast<CpuPaletteNode*>(node))
   {
-    addDockWidget(node->getName(),new CpuTransferFunctionNodeView(model));
+    showTopWidget(node->getName(),new CpuTransferFunctionNodeView(model));
     return;
   }
 
   //PaletteNode
   if (auto model=dynamic_cast<PaletteNode*>(node))
   {
-    addDockWidget(node->getName(),new PaletteNodeView(model));
+    showTopWidget(node->getName(),new PaletteNodeView(model));
     return;
   }
 
   //RenderArrayNode
   if (auto model=dynamic_cast<RenderArrayNode*>(node))
   {
-    addDockWidget(node->getName(),new RenderArrayNodeView(model));
+    showTopWidget(node->getName(),new RenderArrayNodeView(model));
     return;
   }
 
@@ -770,38 +770,49 @@ void Viewer::editNode(Node* node)
   //IsoContourNode
   if (auto model=dynamic_cast<IsoContourNode*>(node))
   {
-    addDockWidget(node->getName(),new IsoContourNodeView(model));
+    showTopWidget(node->getName(),new IsoContourNodeView(model));
     return;
   }
 
   //IsoContourRenderNode
   if (auto model=dynamic_cast<IsoContourRenderNode*>(node))
   {
-    addDockWidget(node->getName(),new IsoContourRenderNodeView(model));
+    showTopWidget(node->getName(),new IsoContourRenderNodeView(model));
     return;
   }
 
   //VoxelScoopNode
   if (auto model=dynamic_cast<VoxelScoopNode*>(node))
   {
-    addDockWidget("VoxelScoop",new VoxelScoopNodeView(model));
+    showTopWidget("VoxelScoop",new VoxelScoopNodeView(model));
     return;
   }
 
   //JTreeNode
   if (auto model=dynamic_cast<JTreeNode*>(node))
   {
-    addDockWidget("JTreeNode",new JTreeNodeView(model));
+    showTopWidget("JTreeNode",new JTreeNodeView(model));
     return;
   }
 
   //JTreeRenderNode
   if (auto model=dynamic_cast<JTreeRenderNode*>(node))
   {
-    addDockWidget("JTreeRenderNode",new JTreeRenderNodeView(model));
+    showTopWidget("JTreeRenderNode",new JTreeRenderNodeView(model));
     return;
   }
   
+}
+
+///////////////////////////////////////////////////////////
+void Viewer::showTopWidget(String title, QWidget* widget)
+{
+  auto layout = new QVBoxLayout();
+  layout->addWidget(widget);
+
+  auto sub = new QDialog(this);
+  sub->setLayout(layout);
+  sub->show();
 }
 
 ///////////////////////////////////////////////////////////

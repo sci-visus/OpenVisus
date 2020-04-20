@@ -311,9 +311,10 @@ void RenderArrayNode::setData(Array value,SharedPtr<Palette> palette)
   }
 #endif
 
+  //note I'm not sure if the texture can be generated... 
   PrintInfo("got array",
-    "value",value.dims, value.dtype,
-    "texture" ,data_texture->dims, data_texture->dtype, StringUtils::getStringFromByteSize(data_texture->dtype.getByteSize(this->data_texture->dims)),
+    "dims",value.dims, "dtype",value.dtype,
+    "scheduling texture upload" ,data_texture->dims, data_texture->dtype, StringUtils::getStringFromByteSize(data_texture->dtype.getByteSize(this->data_texture->dims)),
     "got_new_data", got_new_data,
     "msec", t1.elapsedMsec());
 }
@@ -356,8 +357,19 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   auto return_receipt=this->return_receipt;
   this->return_receipt.reset();
 
+  if (!data_texture->uploaded())
+  {
+    if (!data_texture->textureId(gl))
+    {
+      PrintInfo("Failed to upload the texture");
+      return;
+    }
+
+    PrintInfo("Uploaded texture",data_texture->dims, data_texture->dtype, StringUtils::getStringFromByteSize(data_texture->dtype.getByteSize(this->data_texture->dims)));
+  }
+
   //need to upload a new palette?
-  bool b3D = 
+  bool b3D = data.dims.getPointDim()>2 && 
     data.dims[0] > 1 && 
     data.dims[1] > 1 && 
     data.dims[2] > 1;
@@ -377,8 +389,8 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   {
     gl.setUniformMaterial(*shader,this->lighting_material);
 
-    Point3d pos,dir,vup;
-    gl.getModelview().getLookAt(pos,dir,vup);
+    Point3d pos,center,vup;
+    gl.getModelview().getLookAt(pos, center,vup, 1.0);
     gl.setUniformLight(*shader,Point4d(pos,1.0));
   }
 

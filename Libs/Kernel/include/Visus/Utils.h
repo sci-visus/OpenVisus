@@ -72,7 +72,8 @@ namespace Utils
   //remove
   template <typename Vector, typename Value>
   inline void remove(Vector& v, Value value) {
-    v.erase(std::find(v.begin(), v.end(), value));
+    auto it = std::find(v.begin(), v.end(), value);
+    if (it != v.end()) v.erase(it);
   }
 
   //filter
@@ -235,14 +236,14 @@ namespace Utils
 
   //min_element_index
   template <typename T>
-  inline T min_element_index(const std::vector<T>& vec) {
-    return vec.empty() ? -1 : std::distance(vec.begin(), std::min_element(vec.begin(), vec.end()));
+  inline int min_element_index(const std::vector<T>& vec) {
+    return vec.empty() ? -1 : (int)std::distance(vec.begin(), std::min_element(vec.begin(), vec.end()));
   }
 
   //max_element_index
   template <typename T>
-  inline T max_element_index(const std::vector<T>& vec) {
-    return vec.empty() ? -1 : std::distance(vec.begin(), std::max_element(vec.begin(), vec.end()));
+  inline int max_element_index(const std::vector<T>& vec) {
+    return vec.empty() ? -1 : (int)std::distance(vec.begin(), std::max_element(vec.begin(), vec.end()));
   }
 
   //getRandInteger

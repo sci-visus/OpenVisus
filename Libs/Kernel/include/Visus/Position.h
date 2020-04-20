@@ -166,7 +166,15 @@ public:
   }
 
   //computeVolume
+  static double computeVolume(std::vector<Point3d> points);
+
+  //computeVolume
   double computeVolume() const;
+
+  //getCentroid
+  PointNd getCentroid() const {
+    return T * this->box.center();
+  }
 
   //getPoints
   std::vector<PointNd> getPoints() const;
@@ -193,6 +201,7 @@ public:
   void read(Archive& ar) ;
 
 };
+
 
 
 } //namespace Visus

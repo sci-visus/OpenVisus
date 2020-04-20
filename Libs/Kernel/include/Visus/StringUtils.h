@@ -45,6 +45,7 @@ For support : support@visus.net
 #include <vector>
 #include <algorithm>
 #include <iomanip>
+#include <cctype>
 
 namespace Visus {
 
@@ -123,6 +124,13 @@ public:
   //contains
   static inline bool contains(String src, String what) {
     return find(src, what) >= 0;
+  }
+
+  //containsControl
+  static inline bool containsControl(String src) {
+    return std::any_of(src.begin(), src.end(), [](int ch) {
+      return std::iscntrl(ch);
+    });
   }
 
   //nextToken

@@ -279,10 +279,10 @@ function NeedApache {
 		make install 1>/dev/null 
 		popd
 
-		curl -fsSL --insecure "http://mirror.nohup.it/apache//httpd/httpd-2.4.38.tar.gz" | tar xz 
+		curl -fsSL --insecure "https://archive.apache.org/dist/httpd/httpd-2.4.38.tar.gz" | tar xz 
 		pushd httpd-2.4.38		
-		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz"      | tar xz
-		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz" | tar xz	
+		curl -fsSL --insecure "https://archive.apache.org/dist/apr/apr-1.6.5.tar.gz"      | tar xz
+		curl -fsSL --insecure "https://archive.apache.org/dist/apr/apr-util-1.6.1.tar.gz" | tar xz	
 		mv ./apr-1.6.5      ./srclib/apr
 		mv ./apr-util-1.6.1 ./srclib/apr-util
 		./configure --prefix=${APACHE_DIR} --with-included-apr --with-pcre=${APACHE_DIR} --with-ssl=${APACHE_DIR} --with-expat=${APACHE_DIR}  1>/dev/null 

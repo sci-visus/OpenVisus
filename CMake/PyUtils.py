@@ -164,50 +164,82 @@ def SwapRedBlue(img):
 	ret=img.copy()
 	ret[:,:,0],ret[:,:,2]=img[:,:,2],img[:,:,0]
 	return ret
-
-# //////////////////////////////////////////////
-def InterleaveChannels(channels):
 	
-	if len(channels)==1: 
-		return channels[0]
-		
-	flatten=[]
-	for channel in channels:
-		flatten+=SplitChannels(channel)
-	channels=flatten
 
-	shape=channels[0].shape + (len(channels),)
-	ret=numpy.zeros(shape,dtype=channels[0].dtype)
-	pdim=len(channels[0].shape)
-	for C in range(len(channels)):
-		if pdim==2:
-			ret[:,:,C]=channels[C] # YXC
-		elif pdim==3:
-			ret[:,:,:,C]=channels[C] # ZYXC
-		else:
-			raise Exception("internal error")
-	return ret 
 
 # //////////////////////////////////////////////
 def SplitChannels(data):
 	N=len(data.shape)
-	if N==2: return [data]
-	if N==3: return [data[  :,:,C] for C in range(data.shape[-1])]
-	if N==4: return [data[:,:,:,C] for C in range(data.shape[-1])]
-	raise Exception("internal error")	
+	
+	# width*height
+	if N==2: 
+		channels = [data]
+		
+	# width*height*channel
+	elif N==3: 
+		channels = [data[  :,:,C] for C in range(data.shape[-1])]
+			
+	# width*height*depth*channel
+	elif N==4: 
+		channels = [data[:,:,:,C] for C in range(data.shape[-1])]
+			
+	else:
+		raise Exception("internal error")	
+		
+	return channels
+
+# //////////////////////////////////////////////
+def InterleaveChannels(channels):
+	
+	first=channels[0]
+		
+	N=len(channels)		
+	
+	if N==1: 
+		return first	
+	
+	ret=numpy.zeros(first.shape + (N,),dtype=first.dtype)
+	
+	# 2D arrays
+	if len(first.shape)==2:
+		for C in range(N):
+			ret[:,:,C]=channels[C]
+				
+	# 3d arrays
+	elif len(first.shape)==3:
+		for C in range(N):
+			ret[:,:,:,C]=channels[C]
+		
+	else:
+		raise Exception("internal error")
+	
+
+	return ret 
+	
 
 # //////////////////////////////////////////////
 def ConvertToGrayScale(data):	
-	Assert(isinstance(data,numpy.ndarray))
+	
+	# [R,G,B]
+	if not isinstance(data,numpy.ndarray):
+		R,G,B=data[0],data[1],data[2]
+		return (0.299 * R + 0.587 * G + 0.114 * B).astype(R.dtype)
+		
+	# width*height*channel
 	if len(data.shape)==3:
-		# 2D data
 		R,G,B=data[:,:,0],data[:,:,1],data[:,:,2]
+			
+	# width*height*depth*channel
 	elif len(data.shape)==4:
 		# 3D data
 		R,G,B=data[:,:,:,0],data[:,:,:,1] ,data[:,:,:,2]
 	else:
 		raise Exception("internal error")
-	return (0.299 * R + 0.587 * G + 0.114 * B).astype(data.dtype)
+	
+	return ConvertToGrayScale([R,G,B])
+		
+		
+		
 	
 # ////////////////////////////////////////////////////////////////////////////////
 def ConvertImageToGrayScale(img):

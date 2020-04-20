@@ -275,6 +275,16 @@ public:
   }
 #endif
 
+  //toNormalizedScreenCoordinates
+  PointNd toNormalizedScreenCoordinates(Point3d p) const {
+    return (projection.T * (modelview.T * PointNd(p, 1.0))).dropHomogeneousCoordinate();
+  }
+
+  //fromNormalizedScreenCoordinates
+  Point3d fromNormalizedScreenCoordinates(PointNd p) {
+    return (modelview.Ti * (projection.Ti * PointNd(p, 1.0))).dropHomogeneousCoordinate().toPoint3();
+  }
+
   //applyDirectMap
   virtual PointNd applyDirectMap(PointNd p) const override 
   {

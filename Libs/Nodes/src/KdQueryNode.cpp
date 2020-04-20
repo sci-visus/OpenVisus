@@ -52,11 +52,13 @@ class KdQueryJob : public NodeJob
 {
 public:
 
-  KdQueryNode*                  node = nullptr;
+  KdQueryNode*                  owner = nullptr;
 
   bool                          verbose = false;
 
   int                           kdquery_mode =KdQueryMode::NotSpecified;
+
+  Frustum                       logic_to_screen;
 
   SharedPtr<KdArray>            kdarray;
   SharedPtr<Access>             access;
@@ -66,6 +68,10 @@ public:
   double                        time=0;
   Position                      logic_position;
 
+  int                           maxh;
+  int                           pdim;
+  DatasetBitmask                bitmask;
+
   Time                          last_publish = Time::now();
   int                           publish_interval=0;
   
@@ -74,7 +80,6 @@ public:
 
   //constructor
   KdQueryJob() {
- 
   }
 
   //destructor
@@ -84,14 +89,14 @@ public:
   //publish
   void publish(bool bForce)
   {
-    if (aborted() || !node)
+    if (aborted() || !owner)
       return;
 
     if (bForce || last_publish.elapsedMsec() > publish_interval)
     {
       DataflowMessage msg;
       msg.writeValue("kdarray", kdarray);
-      node->publish(msg);
+      owner->publish(msg);
       last_publish = Time::now();
     }
   }
@@ -102,13 +107,10 @@ public:
     VisusAssert(!kdarray->root);
     VisusAssert(bitsperblock);
 
-    DatasetBitmask bitmask=dataset->getBitmask();
-
-    int pdim = bitmask.getPointDim();
     auto pow2_dims= bitmask.getPow2Dims();
     auto pow2_box=bitmask.getPow2Box();
 
-    int max_resolution=dataset->getBitmask().getMaxResolution();
+    int max_resolution=this->maxh;
     VisusAssert(bitsperblock<=max_resolution);
 
     int end_resolution=
@@ -200,23 +202,21 @@ public:
         if (!query->isRunning())
           return;
 
-        DatasetBitmask bitmask = dataset->getBitmask();
-        int splitbit = bitmask[node->resolution - 1 - bitsperblock];
-        int upsamplebit = bitmask[node->resolution];
+        auto splitbit = bitmask[node->resolution - 1 - bitsperblock];
+        auto upsamplebit = bitmask[node->resolution];
 
         bool bLeftChild = node->up->left.get() == node ? true : false;
+
         auto fullres = bLeftChild ?
-          ArrayUtils::splitAndGetFirst(node->up->fullres, splitbit, aborted) :
+          ArrayUtils::splitAndGetFirst (node->up->fullres, splitbit, aborted) :
           ArrayUtils::splitAndGetSecond(node->up->fullres, splitbit, aborted);
 
         if (aborted() || !fullres)
           return;
 
-        auto upsample = ArrayUtils::upSample(fullres, upsamplebit, aborted);
-        if (aborted() || !upsample)
+        fullres = ArrayUtils::upSample(fullres, upsamplebit, aborted);
+        if (aborted() || !fullres)
           return;
-
-        fullres = upsample;
 
         VisusAssert(query->getNumberOfSamples() == fullres.dims);
 
@@ -226,10 +226,7 @@ public:
         VisusAssert(fullres.dims == query->getNumberOfSamples());
         query->buffer = fullres;
 
-        auto start_address = BigInt(node->id    ) << bitsperblock;
-        auto end_address   = BigInt(node->id + 1) << bitsperblock;
-
-        auto blockquery = std::make_shared<BlockQuery>(dataset.get(), field, time, start_address, end_address, 'r', Aborted());
+        auto blockquery = std::make_shared<BlockQuery>(dataset.get(), field, time, getStartAddress(node), getEndAddress(node), 'r', Aborted());
         VisusAssert(blockquery->getNumberOfSamples() == node->blockdata.dims);
         blockquery->buffer = node->blockdata;
 
@@ -264,6 +261,75 @@ public:
     computeFullRes(node->right.get(), rlock);
   }
 
+  //getStartAddress
+  BigInt getStartAddress(KdArrayNode* node) 
+  {
+    auto blocknum = BigInt(bBlocksAreFullRes ? node->id - 1 : node->id); //IF !bBlocksAreFullRes node->id is the block number (considering that root has blocks 0 and 1)
+    return blocknum << bitsperblock;
+  }
+
+  //getStartAddress
+  BigInt getEndAddress(KdArrayNode* node) {
+    return getStartAddress(node) + (BigInt(1)<<bitsperblock);
+  }
+
+  //isLeafNode
+  bool isLeafNode(KdArrayNode* node)
+  {
+    //reached the end resolution
+    if (node->resolution >= maxh)
+      return true;
+
+    //I can get more resolution up to maxh
+    if (!logic_to_screen.valid())
+      return false;
+
+    //project the box to the screen and check if the resolution is enough
+    FrustumMap map(logic_to_screen);
+    auto logic_box = node->logic_box.castTo<BoxNd>();
+
+    //project on the screen
+    std::vector<Point2d> screen_points;
+    for (auto p : logic_box.getPoints())
+    {
+      auto logic_point = p.toPoint3();
+      screen_points.push_back(map.projectPoint(logic_point));
+    }
+
+    double max_screen_distance[3] = { 0,0,0 };
+    for (auto edge : BoxNi::getEdges(pdim))
+    {
+      auto axis = edge.axis;
+      auto s0 = screen_points[edge.index0];
+      auto s1 = screen_points[edge.index1];
+      max_screen_distance[axis] = std::max(max_screen_distance[axis], s0.distance(s1));
+    }
+
+    //TODO: can I do better then this to compute number of samples?
+    PointNi nsamples;
+    {
+      auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r');
+      query->logic_box = node->logic_box;
+      query->setResolutionRange(0, node->resolution);
+      dataset->beginQuery(query);
+      nsamples = query->getNumberOfSamples();
+      nsamples.setPointDim(3, 1);
+    }
+
+    //samples_per_pixel
+    double samples_per_pixel[3] =
+    {
+      nsamples[0] / max_screen_distance[0],
+      nsamples[1] / max_screen_distance[1],
+      nsamples[2] / max_screen_distance[2]
+    };
+
+    //note: for 3d the last sorted factor will be Z in screen space, which i simply ignore
+    std::sort(samples_per_pixel, samples_per_pixel + 3);
+    auto quality = sqrt(samples_per_pixel[0] * samples_per_pixel[1]);
+    return quality >= 1.0 ? true : false;
+  } 
+
   //runJobUsingBlockQuery
   void runJobUsingBlockQuery()
   {
@@ -271,8 +337,6 @@ public:
 
     if (!kdarray->root && !readRoot(rlock))
       return;
-
-    auto bitmask = dataset->getBitmask();
 
     WaitAsync< Future<Void> > wait_async;
     VisusAssert(access);
@@ -294,13 +358,14 @@ public:
       }
 
       //recursive splitting
-      if (node->resolution < kdarray->end_resolution)
+      if (!isLeafNode(node))
       {
         //make sure it's split
         if (node->isLeaf())
         {
           ScopedWriteLock wlock(rlock);
-          kdarray->split(node, bitmask[1 + node->resolution - kdarray->root->resolution]); //jump the 'V'
+          auto splitbit = bitmask[1 + node->resolution - kdarray->root->resolution];
+          kdarray->split(node, splitbit); //jump the 'V'
         }
 
         bfs.push_back(node->left.get());
@@ -327,16 +392,12 @@ public:
       if (node->blockdata)
         continue;
 
-      //for bBlocksAreFullRes I execute only final levels
-      if (bBlocksAreFullRes && node->resolution != kdarray->end_resolution)
+      //for bBlocksAreFullRes I execute only final levels (since I don't need any merging)
+      if (bBlocksAreFullRes && !isLeafNode(node))
         continue;
 
       //retrieve the block data
-      auto blocknum = BigInt(bBlocksAreFullRes ? node->id - 1 : node->id); //IF !bBlocksAreFullRes node->id is the block number (considering that root has blocks 0 and 1)
-      auto start_address = (blocknum) << bitsperblock;
-      auto end_address = (blocknum + 1) << bitsperblock;
-
-      auto blockquery = std::make_shared<BlockQuery>(dataset.get(), field, time, start_address, end_address, 'r', this->aborted);
+      auto blockquery = std::make_shared<BlockQuery>(dataset.get(), field, time, getStartAddress(node), getEndAddress(node), 'r', this->aborted);
       wait_async.pushRunning(dataset->executeBlockQuery(access, blockquery)).when_ready([this, blockquery, node, &rlock](Void) {
 
         if (aborted() || blockquery->failed())
@@ -383,8 +444,6 @@ public:
     if (!kdarray->root && !readRoot(rlock))
       return;
 
-    auto bitmask = dataset->getBitmask();
-
     //execute remote queries in async way
     SharedPtr<NetService> netservice;
     if (!access && Url(dataset->getUrl()).isRemote())
@@ -408,7 +467,7 @@ public:
       }
 
       //recursive splitting
-      if (node->resolution < kdarray->end_resolution)
+      if (!isLeafNode(node))
       {
         //make sure it's split
         if (node->isLeaf())
@@ -438,7 +497,7 @@ public:
         continue;
 
       //for Query I execute only final level
-      if (node->resolution != kdarray->end_resolution)
+      if (!isLeafNode(node))
         continue;
 
       auto query = std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
@@ -524,6 +583,8 @@ KdQueryNode::KdQueryNode() {
 KdQueryNode::~KdQueryNode() {
 }
 
+
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 bool KdQueryNode::processInput()
 {
@@ -579,12 +640,9 @@ bool KdQueryNode::processInput()
   if (kdquery_mode == KdQueryMode::UseBlockQuery && !access)
     return false;
 
-  auto resolutions = dataset->guessEndResolutions(this->logicToScreen(), logic_position, getQuality(), QueryNoProgression);
-  if (resolutions.empty())
-    return false;
 
   auto job=std::make_shared<KdQueryJob>();
-  job->node = this;
+  job->owner = this;
   job->kdquery_mode = kdquery_mode;
   job->publish_interval = dataset->getPointDim() == 3 ? 2000 : 200;
   job->dataset=dataset;
@@ -594,12 +652,14 @@ bool KdQueryNode::processInput()
   job->field=field;
   job->logic_position = logic_position;
   job->bitsperblock = access ? access->bitsperblock : dataset->getDefaultBitsPerBlock();
+  job->logic_to_screen = this->logicToScreen();
+  job->maxh = dataset->getMaxResolution();
+  job->pdim = dataset->getPointDim();
+  job->bitmask= dataset->getBitmask();
 
   //need write lock here
   {
     ScopedWriteLock wlock(kdarray->lock);
-
-    kdarray->end_resolution = resolutions.back();
 
     //remove transformation, I will add the physic clipping below
     auto logic_box = logic_position.toAxisAlignedBox().castTo<BoxNi>();

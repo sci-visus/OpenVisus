@@ -206,7 +206,7 @@ void ScriptingNodeView::flushOutputs()
 #if 1
     widgets.txtOutput->moveCursor(QTextCursor::End);
     widgets.txtOutput->insertPlainText(output.c_str());
-    widgets.txtOutput->insertPlainText("\n");
+    //widgets.txtOutput->insertPlainText("\n");
     widgets.txtOutput->moveCursor(QTextCursor::End);
 #else
     widgets.txtOutput->setTextColor(QUtils::convert<QColor>(Colors::Red));

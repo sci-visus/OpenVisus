@@ -71,6 +71,34 @@ void Position::prependTransformation(const Matrix& Left)
 
 
 //////////////////////////////////////////////////
+//https://n-e-r-v-o-u-s.com/blog/?p=4415
+double VolumeTetrahedra(Point3d a, Point3d b, Point3d c, Point3d d)
+{
+  return fabs((a - d).dot((b - d).cross((c - d))))/6.0;
+}
+
+//////////////////////////////////////////////////
+double Position::computeVolume(std::vector<Point3d> p)
+{
+  //https://www.researchgate.net/figure/Construction-of-a-uniform-tetrahedron-mesh_fig1_228349569
+  const int indices[6][4] =
+  {
+    { 2, 4, 5, 6},
+    { 2, 5, 6, 7},
+    { 2, 3, 5, 7},
+    { 0, 2, 4, 5},
+    { 0, 1, 2, 5},
+    { 1, 2, 3, 5}
+  };
+
+  auto ret = 0.0;
+  for (int I = 0; I < 6; I++)
+    ret += VolumeTetrahedra(p[indices[I][0]], p[indices[I][1]], p[indices[I][2]], p[indices[I][3]]);
+
+  return ret;
+}
+
+//////////////////////////////////////////////////
 double Position::computeVolume() const {
 
   if (!this->valid())
@@ -91,11 +119,7 @@ double Position::computeVolume() const {
     for (auto point : this->box.getPoints())
       points.push_back((T * point).toPoint3());
 
-    auto diagonal = points[6] - points[0];
-    return double(1.0 / 6.0) * diagonal.dot(
-      ((points[1] - points[0]).cross(points[2] - points[5])) +
-      ((points[4] - points[0]).cross(points[5] - points[7])) +
-      ((points[3] - points[0]).cross(points[7] - points[2])));
+    return computeVolume(points);
   }
   else
   {

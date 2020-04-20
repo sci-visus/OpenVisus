@@ -148,6 +148,8 @@ GLuint GLTexture::textureId(GLCanvas& gl)
   if (!upload.array && upload.image.width() == 0)
     return 0;
 
+  String failure_texture;
+
   //try the upload only once
   auto array = upload.array; upload.array = Array();
   auto image = upload.image; upload.image = QImage();
@@ -158,7 +160,11 @@ GLuint GLTexture::textureId(GLCanvas& gl)
     if (this->dtype != array.dtype)
     {
       auto casted = ArrayUtils::cast(array, this->dtype);
-      if (!casted) return 0;
+      if (!casted)
+      {
+        PrintInfo( "Texture generation failed (failed to creatre casted array)");
+        return 0;
+      }
       array = casted;
     }
     pixels = (const uchar*)array.c_ptr();
@@ -222,7 +228,11 @@ GLuint GLTexture::textureId(GLCanvas& gl)
 
   gl.glGenTextures(1, &texture_id);
 
-  if (texture_id)
+  if (!texture_id)
+  {
+    failure_texture = "glGenTextures failed";
+  }
+  else
   {
     gl.flushGLErrors(false);
 
@@ -256,6 +266,7 @@ GLuint GLTexture::textureId(GLCanvas& gl)
     if (texture_id)
     {
       gl.glDeleteTextures(1, &texture_id);
+      failure_texture = "glTexImage<n>D failed";
       texture_id = 0;
     }
   }
@@ -287,6 +298,9 @@ GLuint GLTexture::textureId(GLCanvas& gl)
 
   if (save_active_texture!= GL_TEXTURE0)
     gl.glActiveTexture(save_active_texture);
+
+  if (!texture_id)
+    PrintInfo("Texture generation failed (",failure_texture,")");
 
   return texture_id;
 }

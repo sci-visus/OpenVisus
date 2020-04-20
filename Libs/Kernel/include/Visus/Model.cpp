@@ -95,6 +95,11 @@ void Model::applyPatch(String patch)
 ///////////////////////////////////////////////////////////////
 void Model::execute(Archive& ar)
 {
+  //backward compatible
+  if (ar.name == "Viewer")
+    ar.name = "Transaction";
+
+
   if (ar.name == "Decode")
   {
     auto redo = ar;

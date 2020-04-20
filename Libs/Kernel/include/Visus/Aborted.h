@@ -54,6 +54,11 @@ public:
   Aborted() {
   }
 
+  //getAbortedId
+  String getAbortedId() const {
+    return std::to_string((Int64)this->inner_value.get());
+  }
+
   //call operator
   bool operator()() const {
     return *inner_value;

@@ -230,18 +230,18 @@ DataflowPortValue* Dataflow::guessLastPublished(DataflowPort* from)
 bool Dataflow::dispatchPublishedMessages()
 {
   VisusAssert(VisusHasMessageLock());
-
+  
   //make this very fast
   std::vector<DataflowMessage> published;
   {
     ScopedLock lock(this->published_lock); //need the lock
-
-    //no need to do anything
-    if (this->published.empty() && need_processing.empty())
-      return false;
-
     std::swap(published,this->published);
   }
+
+  //no need to do anything
+  if (published.empty() && this->need_processing.empty())
+    return false;
+
   //floodValues stored in the publish event
   for (auto& msg : published)
   {
@@ -284,6 +284,7 @@ bool Dataflow::dispatchPublishedMessages()
     processInput(node);
   }
   need_processing.clear();
+
   return true;
 }
 

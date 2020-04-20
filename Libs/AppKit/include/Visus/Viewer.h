@@ -352,6 +352,9 @@ public:
   //showPopupWidget
   void showPopupWidget(QWidget* widget);
 
+  //showTopWidget
+  void showTopWidget(String title, QWidget* widget);
+
   //openFile
   bool openFile(String filename, Node* parent = nullptr);
 
