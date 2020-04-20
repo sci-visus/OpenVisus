@@ -1,6 +1,6 @@
 package:
   name: openvisus
-  version: 1.3.77
+  version: 1.3.78
 
 source:
   path: ../..
