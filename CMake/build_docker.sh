@@ -18,8 +18,10 @@ set -o pipefail
 # python enabled by default
 VISUS_PYTHON=${VISUS_PYTHON:-1}
 
+# docker image
 DOCKER_IMAGE=${DOCKER_IMAGE:-quay.io/pypa/manylinux1_x86_64}
 
+# build directory
 BUILD_DIR=$(pwd)/build_docker
 mkdir -p ${BUILD_DIR}
 
@@ -56,18 +58,17 @@ if [[ "${VISUS_GUI}" != "" ]] ; then
 	docker_opts+=(-e VISUS_GUI=${VISUS_GUI})
 fi
 
+if [[ "${Qt5_DIR}" != "" ]] ; then
+	docker_opts+=(-e Qt5_DIR=${Qt5_DIR})
+fi
+
+
 # this is needed to forward the deploy to the docker image (where I have a python to do the deploy)
 # deploy to pypi | github
 if (( DEPLOY_PYPI == 1 )) ; then
 	docker_opts+=(-e DEPLOY_PYPI=${DEPLOY_PYPI})
 	docker_opts+=(-e PYPI_USERNAME=${PYPI_USERNAME})
 	docker_opts+=(-e PYPI_PASSWORD=${PYPI_PASSWORD})
-fi
-
-if (( DEPLOY_GITHUB == 1 )) ; then
-	docker_opts+=(-e DEPLOY_GITHUB=${DEPLOY_GITHUB})
-	docker_opts+=(-e GITHUB_API_TOKEN=${GITHUB_API_TOKEN})
-	docker_opts+=(-e TRAVIS_TAG=${TRAVIS_TAG})
 fi
 
 sudo docker run -d -ti --name mydocker ${docker_opts[@]} ${DOCKER_IMAGE} /bin/bash

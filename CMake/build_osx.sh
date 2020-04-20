@@ -164,7 +164,7 @@ if (( 1 == 1 )) ; then
 fi
 
 # dist
-if (( DEPLOY_PYPI == 1 || DEPLOY_GITHUB == 1 )) ; then
+if (( DEPLOY_PYPI == 1 )) ; then
 	BeginSection "CMake dist step"
 	cmake --build . --target DIST --config ${CMAKE_BUILD_TYPE}
 fi

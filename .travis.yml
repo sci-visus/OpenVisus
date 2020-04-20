@@ -43,23 +43,49 @@ matrix:
 
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.8.1']   
+      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.8.1', 'VISUS_GUI=0']   
       if: tag IS present 
     
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.7.1']   
+      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.7.1', 'VISUS_GUI=0']   
       if: tag IS present 
 
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.6.1']   
+      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.6.1', 'VISUS_GUI=0']   
           
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.5.1']
+      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.5.1', 'VISUS_GUI=0']
       if: tag IS present 
 
+    # example of to compile:
+    # PYTHON_VERSION=3.6.1 DOCKER_IMAGE=visus/manylinux2010-qt59 BUILD_DIR=$(pwd)/build/manylinux2010 VISUS_GUI=1 Qt5_DIR=/opt/qt59/lib/cmake/Qt5 ./CMake/build.sh
+
+    # Example to compile step by step:
+    # sudo docker run -ti -v $(pwd):/home/OpenVisus visus/manylinux2010-qt59 /bin/bash
+    # cd /home/OpenVisus 
+    # PYTHON_VERSION=3.6.1 BUILD_DIR=$(pwd)/build/manylinux2010 VISUS_GUI=1 Qt5_DIR=/opt/qt59/lib/cmake/Qt5 ./CMake/build.sh
+
+    - os: linux
+      dist: trusty
+      env: ['DOCKER_IMAGE=visus/manylinux2010-qt59','PYTHON_VERSION=3.8.1', 'VISUS_GUI=1', 'Qt5_DIR=/opt/qt59/lib/cmake/Qt5']   
+      if: tag IS present 
+    
+    - os: linux
+      dist: trusty
+      env: ['DOCKER_IMAGE=visus/manylinux2010-qt59','PYTHON_VERSION=3.7.1', 'VISUS_GUI=1', 'Qt5_DIR=/opt/qt59/lib/cmake/Qt5']   
+      if: tag IS present 
+
+    - os: linux
+      dist: trusty
+      env: ['DOCKER_IMAGE=visus/manylinux2010-qt59','PYTHON_VERSION=3.6.1', 'VISUS_GUI=1', 'Qt5_DIR=/opt/qt59/lib/cmake/Qt5']   
+          
+    - os: linux
+      dist: trusty
+      env: ['DOCKER_IMAGE=visus/manylinux2010-qt59','PYTHON_VERSION=3.5.1', 'VISUS_GUI=1', 'Qt5_DIR=/opt/qt59/lib/cmake/Qt5']
+      if: tag IS present 
 
 
     # ///////////////////////////////// ubuntu:trusty
@@ -187,8 +213,8 @@ matrix:
 script:
    - |
      gem install xcpretty 
-     if [[ "${TRAVIS_TAG}" != "" && "${TRAVIS_OS_NAME}" == "osx"                            ]]; then export DEPLOY_PYPI=1 ; fi
-     if [[ "${TRAVIS_TAG}" != "" && "${DOCKER_IMAGE}"   == "quay.io/pypa/manylinux1_x86_64" ]]; then export DEPLOY_PYPI=1 ; fi
+     if [[ "${TRAVIS_TAG}" != "" && "${TRAVIS_OS_NAME}" == "osx"         ]]; then export DEPLOY_PYPI=1 ; fi
+     if [[ "${TRAVIS_TAG}" != "" && "${DOCKER_IMAGE}"   == *"manylinux"* ]]; then export DEPLOY_PYPI=1 ; fi
      echo "Building travis TRAVIS_TAG(${TRAVIS_TAG})  DEPLOY_PYPI(${DEPLOY_PYPI}) "
      cd "${TRAVIS_BUILD_DIR}" 
      ./CMake/build.sh

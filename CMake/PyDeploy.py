@@ -169,24 +169,34 @@ class DeployUtils:
 		DeployUtils.PipInstall("setuptools",["--upgrade"])	
 		DeployUtils.PipInstall("wheel"     ,["--upgrade"])	
 		DeployUtils.RemoveFiles("dist/*")
+
+		# Example:
+		#   {distribution}-{version}-{python tag}-{abi tag}-{platform tag}.whl
+		#   OpenVisus-1.3.75-cp36-none-manylinux1_x86_64.whl
+
 		PYTHON_TAG="cp%s%s" % (sys.version_info[0],sys.version_info[1])
+		ABI_TAG="none"
+
 		if WIN32:
-			PLAT_NAME="win_amd64"
+			PLATFORM_TAG="win_amd64"
 		elif APPLE:
-			PLAT_NAME="macosx_%s_x86_64" % (platform.mac_ver()[0][0:5].replace('.','_'),)	
+			PLATFORM_TAG="macosx_%s_x86_64" % (platform.mac_ver()[0][0:5].replace('.','_'),)	
 		else:
-			PLAT_NAME="manylinux1_x86_64" 
+			if VISUS_GUI:
+				PLATFORM_TAG="manylinux2010_x86_64"
+			else:
+				PLATFORM_TAG="manylinux1_x86_64" 
 
 		print("Creating sdist...")
 		DeployUtils.ExecuteCommand([sys.executable,"setup.py","-q","sdist","--formats=%s" % ("zip" if WIN32 else "gztar",)])
 		sdist_ext='.zip' if WIN32 else '.tar.gz'
 		__filename__ = glob.glob('dist/*%s' % (sdist_ext,))[0]
-		sdist_filename=__filename__.replace(sdist_ext,"-%s-none-%s%s" % (PYTHON_TAG,PLAT_NAME,sdist_ext))
+		sdist_filename=__filename__.replace(sdist_ext,"-%s-%s-%s%s" % (PYTHON_TAG, ABI_TAG, PLATFORM_TAG, sdist_ext))
 		os.rename(__filename__,sdist_filename)
 		print("Created sdist",sdist_filename)
 
 		print("Creating wheel...")
-		DeployUtils.ExecuteCommand([sys.executable,"setup.py","-q","bdist_wheel","--python-tag=%s" % (PYTHON_TAG,),"--plat-name=%s" % (PLAT_NAME,)])
+		DeployUtils.ExecuteCommand([sys.executable,"setup.py","-q","bdist_wheel","--python-tag=%s" % (PYTHON_TAG,),"--plat-name=%s" % (PLATFORM_TAG,)])
 		wheel_filename=glob.glob('dist/*.whl')[0]
 		print("Created wheel",wheel_filename)
 

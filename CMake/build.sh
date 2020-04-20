@@ -545,7 +545,7 @@ if (( 1 == 1 )) ; then
 fi
 
 # dist
-if (( DEPLOY_PYPI == 1 || DEPLOY_GITHUB == 1 )) ; then
+if (( DEPLOY_PYPI == 1 )) ; then
 	BeginSection "CMake dist step"
 	cmake --build . --target DIST --config ${CMAKE_BUILD_TYPE}
 fi
@@ -602,23 +602,6 @@ if (( DEPLOY_PYPI == 1 )) ; then
 	${PYTHON_EXECUTABLE} -m twine upload --skip-existing "${WHEEL_FILENAME}"
 fi
 
-# deploy github
-if (( DEPLOY_GITHUB == 1 )) ; then
-
-	filename=$(find ${BUILD_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus/dist -iname "*.tar.gz")
-
-	old_filename=$filename
-	filename=${filename/manylinux1_x86_64.tar.gz/${OS_NICKNAME}.tar.gz}
-	mv $old_filename $filename
-
-	response=$(curl -sH "Authorization: token ${GITHUB_API_TOKEN}" https://api.github.com/repos/sci-visus/OpenVisus/releases/tags/${TRAVIS_TAG})
-	eval $(echo "$response" | grep -m 1 "id.:" | grep -w id | tr : = | tr -cd '[[:alnum:]]=')
-
-	curl --data-binary @"${filename}" \
-		-H "Authorization: token $GITHUB_API_TOKEN" \
-		-H "Content-Type: application/octet-stream" \
-		"https://uploads.github.com/repos/sci-visus/OpenVisus/releases/$id/assets?name=$(basename ${filename})"
-fi
 
 echo "OpenVisus CMake/build.sh finished"
 
