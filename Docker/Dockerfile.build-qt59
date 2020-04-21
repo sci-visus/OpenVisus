@@ -1,0 +1,75 @@
+# if you want to create a "new" minimal Qt5 file this is what I did
+# sudo docker build  -t openvisus/qt9 -f CMake/Dockerfile.BuildQt5 .
+# sudo docker create -ti --name dummy openvisus/qt9 bash
+# sudo docker cp dummy:/root/qt5.9.tar.gz . 
+# sudo docker rm -fv dummy
+# copy the file qt5.9.tar.gz to atlantis
+
+FROM quay.io/pypa/manylinux2010_x86_64
+
+ENV LC_ALL en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US.UTF-8
+
+# OpenSSL
+RUN curl -L -o openssl-1.tar.gz https://www.openssl.org/source/openssl-1.0.2n.tar.gz \
+	&& tar xzvf openssl-*.tar.gz  \
+	&& cd openssl-* \
+	&& ./config -fpic shared --prefix=/usr --openssldir=/usr \
+	&& make \
+	&& make install \
+	&& rm -rf /openssl*
+	
+# wget
+RUN curl -L -o wget-1.8.2.tar.gz http://files.directadmin.com/services/wget-1.8.2.tar.gz \
+	&&   tar xvzf wget-1.8.2.tar.gz \
+	&&   cd wget-1.8.2 \
+	&&   ./configure --prefix=/usr --with-ssl \
+	&&   make \
+	&&   make install \
+	&&   rm -rf /wget*
+	
+# xz
+RUN yum install -y xz
+
+# Qt5.9 (NOTE: myust be compatible with pyqt 5.9.2)
+RUN wget http://download.qt.io/official_releases/qt/5.9/5.9.4/single/qt-everywhere-opensource-src-5.9.4.tar.xz \
+	&& xz -d qt-everywhere*src-5.*.tar.xz \
+	&& tar xf qt-everywhere*src-5.*.tar \
+	&& cd qt-everywhere*src-5.* \
+	&& sed -i "s/#define QTESTLIB_USE_PERF_EVENTS/#undef QTESTLIB_USE_PERF_EVENTS/g" qtbase/src/testlib/qbenchmark_p.h \
+	&& ./configure \
+		-openssl \
+		-opensource \
+		-nomake examples \
+		-nomake tests \
+		-opengl desktop \
+		-confirm-license\
+		-prefix /opt/qt59 \
+		-D _X_INLINE=inline \
+		-D XK_dead_currency=0xfe6f \
+		-D XK_ISO_Level5_Lock=0xfe13 \
+		-D FC_WEIGHT_EXTRABLACK=215 \
+		-D FC_WEIGHT_ULTRABLACK=FC_WEIGHT_EXTRABLACK  \
+		-D GLX_GLXEXT_PROTOTYPES=On \
+		-skip activeqt \
+		-skip androidextras \
+		-skip connectivity \
+		-skip enginio \
+		-skip location \
+		-skip macextras \
+		-skip multimedia \
+		-skip sensors \
+		-skip serialport \
+		-skip wayland \
+		-skip webchannel \
+		-skip websockets \
+		-skip winextras \
+		-skip x11extras \
+		-skip qtgamepad \
+	&& make \
+	&& make install \
+	&& cd / \
+	&& rm -rf qt-everywhere*src-5.*
+	
+
