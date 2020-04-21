@@ -299,20 +299,24 @@ function NeedQt5
 	if [[ "${Qt5_DIR}" != "" ]] ; then	
 		return 0
 	fi
-
-	# try to use existing Qt5
-	if (( UBUNTU == 1 )) ; then
-
-		if [[ -d  "/opt/qt510/lib/cmake/Qt5" ]]; then
+	
+	# prefer Qt5 5.9 since it's the version used by conda/PyQt
+	# and it's the one used by our manylinux docker images
+	if [[ -d  "/opt/qt59/lib/cmake/Qt5" ]]; then
 			Qt5_DIR="/opt/qt510/lib/cmake/Qt5"
-			return 0
-		fi
-
-		if [[ -d  "/opt/qt511/lib/cmake/Qt5" ]]; then
-			Qt5_DIR="/opt/qt511/lib/cmake/Qt5"
-			return 0
-		fi
-
+			return 0	
+	fi
+	
+	# 5.11
+	if [[ -d  "/opt/qt511/lib/cmake/Qt5" ]]; then
+		Qt5_DIR="/opt/qt511/lib/cmake/Qt5"
+		return 0
+	fi	
+	
+	# 5.10
+	if [[ -d  "/opt/qt510/lib/cmake/Qt5" ]]; then
+		Qt5_DIR="/opt/qt510/lib/cmake/Qt5"
+		return 0
 	fi
 
 	# backup plan , use a minimal Qt5 which does not need SUDO
