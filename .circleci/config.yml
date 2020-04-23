@@ -14,7 +14,7 @@ jobs:
   #    - run: 
   #        name: Build OpenVisus
   #        command: |
-  #          ./CMake/build.sh  
+  #          ./scripts/build.sh  
   #
   # osx-10.13-3.7:
   #  macos:
@@ -26,7 +26,7 @@ jobs:
   #    - run: 
   #        name: Build OpenVisus
   #        command: |
-  #          ./CMake/build.sh
+  #          ./scripts/build.sh
   #          
   #osx-10.13-3.6:
   #  macos:
@@ -38,7 +38,7 @@ jobs:
   #    - run: 
   #        name: Build OpenVisus
   #        command: |
-  #          ./CMake/build.sh            
+  #          ./scripts/build.sh            
   
   # ///////////////////////////////// manylinux
   manylinux-3.8:
@@ -52,7 +52,7 @@ jobs:
       - run: 
           name: Build OpenVisus
           command: |
-            ./CMake/build.sh
+            ./scripts/build.sh
   
   
   manylinux-3.7:
@@ -66,7 +66,7 @@ jobs:
       - run: 
           name: Build OpenVisus
           command: |
-            ./CMake/build.sh
+            ./scripts/build.sh
             
   manylinux-3.6:
     docker:
@@ -79,7 +79,7 @@ jobs:
       - run: 
           name: Build OpenVisus
           command: |
-            ./CMake/build.sh            
+            ./scripts/build.sh            
 
 workflows:
   version: 2

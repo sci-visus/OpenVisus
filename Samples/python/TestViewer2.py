@@ -9,7 +9,7 @@ from OpenVisus       import *
 # but I'm in need of the missing debug version (example: Qt5Cored.dll)
 # as you know, python (release) does not work with debugging versions, unless you recompile all from scratch
 
-# on windows rememeber to INSTALL and CONFIGURE
+# on windows rememeber to INSTALL and use-pyqt
 
 from OpenVisus.VisusGuiPy      import *
 from OpenVisus.VisusGuiNodesPy import *

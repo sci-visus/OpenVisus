@@ -29,6 +29,6 @@ sudo docker build .
 In a shell:
 
 ```
-PYTHON_VERSION=3.6  ./CMake/build_conda.sh
+PYTHON_VERSION=3.6  ./scripts/build_conda.sh
 ```
 

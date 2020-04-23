@@ -5,6 +5,7 @@ this_dir=os.path.dirname(os.path.abspath(__file__))
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 VISUS_GUI=os.path.isfile(os.path.join(this_dir,"QT_VERSION"))
 
+
 # need to allow windows to find DLLs in bin/ directory
 # for osx/unix i use the rpath trick
 for dir in [os.path.join(this_dir,it) for it in (".","bin")]:

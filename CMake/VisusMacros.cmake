@@ -61,20 +61,36 @@ macro(DisableIncrementalLinking Name)
 	endif()
 endmacro()
 
+# /////////////////////////////////////////////////////////////
+function(StartsWith str search)
+
+  return(false)
+endfunction()
 
 
 # /////////////////////////////////////////////////////////////
 macro(InstallFiles SrcPattern DstDir)
 	SET(__deps__ "")
-	file (GLOB __sources__  ${CMAKE_CURRENT_SOURCE_DIR}/${SrcPattern})
+
+  string(FIND "${SrcPattern}" "/" __index__)
+  if(NOT "${__index__}"  EQUAL 0)
+		set(SrcPattern ${CMAKE_CURRENT_SOURCE_DIR}/${SrcPattern})
+	endif()
+
+	file (GLOB __sources__  ${SrcPattern})
 	string(MD5 __target__  "${__sources__}")
 	foreach(__src__ ${__sources__})
 	    get_filename_component(__name__ ${__src__} NAME)
-	    if (CMAKE_CONFIGURATION_TYPES)
-	    	set(__dst__ "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/OpenVisus/${DstDir}/${__name__}")
-	    else()
-	    	set(__dst__ ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus/${DstDir}/${__name__})
-	    endif()
+
+       # do not move from here
+		 if (CMAKE_CONFIGURATION_TYPES)
+			set(__dst__ "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/OpenVisus/${__name__}")
+		 else()
+		 	set(__dst__ "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus/${__name__}")
+		 endif()
+
+		 MESSAGE(STATUS "CMake will install [${__src__}] to ${__dst__}")
+
 	    set(__dep__ ${__target__}_${__name__})
 	    string(REPLACE "." "_" __dep__ "${__dep__}")
 	    ADD_CUSTOM_COMMAND(
@@ -422,6 +438,8 @@ macro(GenerateScript template_filename script_filename target_filename)
 	file(READ "${template_filename}${SCRIPT_EXT}" content) 
 	
 	string(REPLACE "\${PYTHON_EXECUTABLE}" "${PYTHON_EXECUTABLE}" content "${content}")
+	string(REPLACE "\${PYTHON_VERSION}" "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}" content "${content}")
+
 	if (VISUS_GUI)
 		string(REPLACE "\${VISUS_GUI}" "1" content "${content}")
 	else()

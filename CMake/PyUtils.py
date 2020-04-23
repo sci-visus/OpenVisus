@@ -1,18 +1,111 @@
-import os,sys
+import os,sys,glob,threading,platform,sysconfig,re,time,subprocess, errno, fnmatch
+import shutil
 import numpy
-import cv2
-import glob
-import threading
-import time
+
+# not fundamental
+try:
+	import cv2
+except:
+	pass
 
 from OpenVisus import *
 
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
+LINUX=not APPLE and not WIN32
+
 
 # ////////////////////////////////////////////////////////////////////////////////
 def ThisDir(file):
 	return os.path.dirname(os.path.abspath(file))
+
+
+# /////////////////////////////////////////////////////////////////////////
+def GetCommandOutput(cmd):
+	output=subprocess.check_output(cmd)
+	if sys.version_info >= (3, 0): output=output.decode("utf-8")
+	return output.strip()
+
+# /////////////////////////////////////////////////////////////////////////
+def CreateDirectory(value):
+	try: 
+		os.makedirs(value)
+	except OSError:
+		if not os.path.isdir(value):
+			raise
+	
+# /////////////////////////////////////////////////////////////////////////
+def GetFilenameWithoutExtension(filename):
+	return os.path.splitext(os.path.basename(filename))[0]
+
+# /////////////////////////////////////////////////////////////////////////
+def CopyFile(src,dst):
+	
+	src=os.path.realpath(src) 
+	dst=os.path.realpath(dst)		
+	
+	if src==dst or not os.path.isfile(src):
+		return		
+
+	CreateDirectory(os.path.dirname(dst))
+	shutil.copyfile(src, dst)	
+	
+# /////////////////////////////////////////////////////////////////////////
+def CopyDirectory(src,dst):
+	
+	src=os.path.realpath(src)
+	
+	if not os.path.isdir(src):
+		return
+	
+	CreateDirectory(dst)
+	
+	# problems with symbolic links so using shutil	
+	dst=dst+"/" + os.path.basename(src)
+	
+	if os.path.isdir(dst):
+		shutil.rmtree(dst,ignore_errors=True)
+		
+	shutil.copytree(src, dst, symlinks=True)				
+	
+# /////////////////////////////////////////////////////////////////////////
+def ReadTextFile(filename):
+	file = open(filename, "r") 
+	ret=file.read().strip()
+	file.close()
+	return ret
+	
+# /////////////////////////////////////////////////////////////////////////
+def WriteTextFile(filename,content):
+	if not isinstance(content, str):
+		content="\n".join(content)+"\n"
+	CreateDirectory(os.path.dirname(os.path.realpath(filename)))
+	file = open(filename,"wt") 
+	file.write(content) 
+	file.close() 		
+
+
+
+# /////////////////////////////////////////////////////////////////////////
+# glob(,recursive=True) is not supported in python 2.x
+# see https://stackoverflow.com/questions/2186525/use-a-glob-to-find-files-recursively-in-python
+def RecursiveFindFiles(rootdir='.', pattern='*'):
+  return [os.path.join(looproot, filename)
+          for looproot, _, filenames in os.walk(rootdir)
+          for filename in filenames
+          if fnmatch.fnmatch(filename, pattern)]
+
+# /////////////////////////////////////////////////////////////////////////
+def PipInstall(packagename,extra_args=[]):
+	cmd=[sys.executable,"-m","pip","install","--user",packagename]
+	if extra_args: cmd+=extra_args
+	print("# Executing",cmd)
+	return_code=subprocess.call(cmd)
+	return return_code==0
+
+
+
+
 
 # ////////////////////////////////////////////////////////////////////////////////
 def Assert(condition):
@@ -80,13 +173,16 @@ def KillProcess(process):
 	except:
 		pass	
 	
-# ////////////////////////////////////////////////////////////////////////////////
-def ExecuteCommand(cmd):
-	print(" ".join(cmd))
-	subprocess.Popen(cmd).wait()
-			
 
 
+# /////////////////////////////////////////////////////////////////////////
+def ExecuteCommand(cmd):	
+	"""
+	note: shell=False does not support wildcard but better to use this version
+	because quoting the argument is not easy
+	"""
+	print("# Executing command: ",cmd)
+	return subprocess.call(cmd, shell=False)
 
 
 # ///////////////////////////////////////////////////////////////////////
@@ -123,7 +219,16 @@ def RunJobsInParallel(jobs, advance_callback=None, nthreads=8):
 		if advance_callback:
 				advance_callback(len(results))
 
-
+# /////////////////////////////////////////////////////////////////////////
+def RemoveFiles(pattern):
+	files=glob.glob(pattern)
+	print("Removing files",files)
+	for it in files:
+		if os.path.isfile(it):
+			os.remove(it)
+		else:
+			shutil.rmtree(os.path.abspath(it),ignore_errors=True)		
+			
 
 # ////////////////////////////////////////////////////////////////////////////////
 def TryRemoveFiles(mask):

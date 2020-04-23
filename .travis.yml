@@ -31,142 +31,49 @@ matrix:
   fast_finish: true
   include:
   
-    # ///////////////////////////////// manylinux 
-
-    # example of to compile:
-    # PYTHON_VERSION=3.6.1 DOCKER_IMAGE=visus/manylinux2010-qt59 BUILD_DIR=$(pwd)/build/manylinux ./CMake/build.sh
-
-    # Example to compile step by step:
-    # sudo docker run -ti -v $(pwd):/home/OpenVisus visus/manylinux2010-qt59 /bin/bash
-    # cd /home/OpenVisus 
-    # PYTHON_VERSION=3.6.1 BUILD_DIR=$(pwd)/build/manylinux ./CMake/build.sh
+    # ///////////////////////////////// linux 
 
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=visus/manylinux2010-qt59','PYTHON_VERSION=3.8.1']   
-      if: tag IS present 
+      env: ['PYTHON_VERSION=3.8'] 
     
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=visus/manylinux2010-qt59','PYTHON_VERSION=3.7.1']   
-      if: tag IS present 
+      env: ['PYTHON_VERSION=3.7']
 
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=visus/manylinux2010-qt59','PYTHON_VERSION=3.6.1']   
+      env: ['PYTHON_VERSION=3.6']    
+      if: tag IS present   
           
-    - os: linux
-      dist: trusty
-      env: ['DOCKER_IMAGE=visus/manylinux2010-qt59','PYTHON_VERSION=3.5.1']
-      if: tag IS present 
 
-
-    # ///////////////////////////////// osx1014
-   
-    - os: osx
-      osx_image: xcode10.2
-      compiler: clang
-      env: ['OSX_VERSION=1014','PYTHON_VERSION=3.8.1']  
-   
-    - os: osx
-      osx_image: xcode10.2
-      compiler: clang
-      env: ['OSX_VERSION=1014','PYTHON_VERSION=3.7.1']  
-      if: tag IS present 
-    
-    - os: osx
-      osx_image: xcode10.2
-      compiler: clang
-      env: ['OSX_VERSION=1014','PYTHON_VERSION=3.6.5']  
-
-     
     # ///////////////////////////////// osx1013
     - os: osx
       osx_image: xcode9.4
       compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.8.1'] 
+      env: ['PYTHON_VERSION=3.8'] 
       if: tag IS present 
 
     - os: osx
       osx_image: xcode9.4
       compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.7.1'] 
+      env: ['PYTHON_VERSION=3.7'] 
       if: tag IS present 
     
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.6.5']
+      env: ['PYTHON_VERSION=3.6']
 
-      
-    # ///////////////////////////////// osx1012
-    
-    - os: osx
-      osx_image: xcode8.3
-      compiler: clang
-      env: ['OSX_VERSION=1012','PYTHON_VERSION=3.8.1'] 
-      if: tag IS present     
-    
-    - os: osx
-      osx_image: xcode8.3
-      compiler: clang
-      env: ['OSX_VERSION=1012','PYTHON_VERSION=3.7.1'] 
-      if: tag IS present 
-             
-    - os: osx
-      osx_image: xcode8.3
-      compiler: clang 
-      env: ['OSX_VERSION=1012','PYTHON_VERSION=3.6.1']   
-
-
-    # ///////////////////////////////// trusty:conda
-
-    # Example to compile by hand
-    # USE_CONDA=1 PYTHON_VERSION=3.6 ./CMake/build.sh
-    
-    - os: linux
-      dist: trusty
-      env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=3.8','USE_CONDA=1', 'INSTALL_CONDA=1']     
-      if: tag IS present     
-
-    - os: linux
-      dist: trusty
-      env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=3.7','USE_CONDA=1', 'INSTALL_CONDA=1']     
-      if: tag IS present 
-
-    - os: linux
-      dist: trusty
-      env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=3.6','USE_CONDA=1', 'INSTALL_CONDA=1']
-
-
-
-    # ///////////////////////////////// osx:conda 
-    # Example to compile by hand
-    # USE_CONDA=1 PYTHON_VERSION=3.6 ./CMake/build.sh
-    
-    - os: osx
-      osx_image: xcode9.4
-      compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.8','USE_CONDA=1', 'INSTALL_CONDA=1']  
-      if: tag IS present     
-
-    - os: osx
-      osx_image: xcode9.4
-      compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.7','USE_CONDA=1', 'INSTALL_CONDA=1']  
-      if: tag IS present 
-    
-    - os: osx
-      osx_image: xcode9.4 
-      compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.6','USE_CONDA=1', 'INSTALL_CONDA=1']
 
 script:
    - |
      gem install xcpretty 
-     if [[ "${TRAVIS_TAG}" != "" && "${TRAVIS_OS_NAME}" == "osx"         ]]; then export DEPLOY_PYPI=1 ; fi
-     if [[ "${TRAVIS_TAG}" != "" && "${DOCKER_IMAGE}"   == *"manylinux"* ]]; then export DEPLOY_PYPI=1 ; fi
-     echo "Building travis TRAVIS_TAG(${TRAVIS_TAG})  DEPLOY_PYPI(${DEPLOY_PYPI}) "
-     cd "${TRAVIS_BUILD_DIR}" 
-     ./CMake/build.sh
+     if [ "$(uname)" == "Darwin" ]; then 
+        ./scripts/build_travis_osx.sh 
+     else 
+        ./scripts/build_travis.sh
+     fi
+
+
 

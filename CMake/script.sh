@@ -2,16 +2,13 @@
 
 this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-PYTHON=${PYTHON_EXECUTABLE}
-GUI=${VISUS_GUI}
-TARGET=${TARGET_FILENAME}
+# change as needed
+PYTHON=python${PYTHON_VERSION}
 
-if [[ "${PYTHON}" != "" ]] ; then
-	export PYTHONPATH=$(${PYTHON} -c "import sys;print(sys.path)"):${PYTHONPATH}
-	export LD_LIBRARY_PATH=$(${PYTHON} -c "import os,sysconfig;print(os.path.realpath(sysconfig.get_config_var('LIBDIR')))"):${LD_LIBRARY_PATH}
-fi
+export PYTHONPATH=$(${PYTHON} -c "import sys;print(sys.path)"):${PYTHONPATH}
+export LD_LIBRARY_PATH=$(${PYTHON} -c "import os,sysconfig;print(os.path.realpath(sysconfig.get_config_var('LIBDIR')))"):${LD_LIBRARY_PATH}
 
-if [[ "${GUI}" == "1" ]] ; then
+if [[ "${VISUS_GUI}" == "1" ]] ; then
 	if [ -d "${this_dir}/bin/Qt" ]; then
 		echo "Using internal Qt5"
 		export Qt5_DIR=${this_dir}/bin/Qt
@@ -23,5 +20,5 @@ if [[ "${GUI}" == "1" ]] ; then
 fi
 
 cd ${this_dir}
-${TARGET} "$@"
+${this_dir}/${TARGET_FILENAME} "$@"
 

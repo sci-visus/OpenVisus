@@ -19,11 +19,6 @@ if "%CMAKE_GENERATOR%"=="" (
 	set CMAKE_GENERATOR=Visual Studio 15 2017 Win64
 )
 
-if NOT "%CMAKE_TOOLCHAIN_FILE%"=="" (
-	cd c:\tools\vcpkg 
-	vcpkg.exe install zlib:x64-windows lz4:x64-windows tinyxml:x64-windows freeimage:x64-windows openssl:x64-windows curl:x64-windows
-)
-
 if "%VCPKG_TARGET_TRIPLET%"=="" (
 	set VCPKG_TARGET_TRIPLET=x64-windows
 )
@@ -52,9 +47,9 @@ if not defined DevEnvDir (
  	call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
 )
 
-REM install numpy
+
 cd %THIS_DIR%
-"%PYTHON_EXECUTABLE%" -m pip install --user numpy
+"%PYTHON_EXECUTABLE%" -m pip install numpy setuptools wheel twine --upgrade
 
 cd %THIS_DIR%
 mkdir build 
@@ -77,20 +72,36 @@ REM install step
 
 REM run test step
 "%CMAKE_EXECUTABLE%" --build . --target RUN_TESTS --config %CMAKE_BUILD_TYPE%
- 
-REM dist step
-if NOT "%APPVEYOR%"=="" (
-	"%CMAKE_EXECUTABLE%" --build . --target DIST   --config %CMAKE_BUILD_TYPE%
-)
 
+cd %THIS_DIR%\build\%CMAKE_BUILD_TYPE%\OpenVisus
+ 
 REM test OpenVisus 
 set PYTHONPATH=%THIS_DIR%\build\%CMAKE_BUILD_TYPE%
-cd %THIS_DIR%\build\%CMAKE_BUILD_TYPE%\OpenVisus
-
 %PYTHON_EXECUTABLE% Samples/python/Array.py
 %PYTHON_EXECUTABLE% Samples/python/Dataflow.py
 %PYTHON_EXECUTABLE% Samples/python/Idx.py
+set PYTHONPATH=
 
 .\visus.bat
 
-echo "OpenVisus build finished"
+REM dist step
+if "%APPVEYOR_REPO_TAG%" == "true" (
+
+	rmdir "dist" /s /q
+
+	"%PYTHON_EXECUTABLE%" setup.py -q bdist_wheel --python-tag=%PYTHON_TAG%--plat-name=win_amd64
+
+	echo [distutils]                                 > %USERPROFILE%\\.pypirc
+	echo index-servers =                            >> %USERPROFILE%\\.pypirc
+	echo     pypi                                   >> %USERPROFILE%\\.pypirc
+	echo [pypi]                                     >> %USERPROFILE%\\.pypirc
+	echo username = %PYPI_USERNAME%                 >> %USERPROFILE%\\.pypirc
+	echo password = %PYPI_PASSWORD%                 >> %USERPROFILE%\\.pypirc
+	set HOME=%USERPROFILE% 
+	"%PYTHON_EXECUTABLE%" -m twine upload --skip-existing "dist/*.whl"
+)
+
+
+
+
+

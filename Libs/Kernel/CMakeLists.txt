@@ -209,11 +209,7 @@ file(GLOB CMakeFiles
 	../../CMake/*.py
 	../../CMake/*.cmake
 	../../CMake/script.*
-	../../CMake/build.bat
-	../../CMake/build.sh
-	../../CMake/build_conda.sh
-	../../CMake/build_docker.sh
-	../../CMake/build_osx.sh
+	../../scripts/*
 )
 source_group("CMake" FILES   ${CMakeFiles})
 

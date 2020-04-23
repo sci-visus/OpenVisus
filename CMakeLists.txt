@@ -100,10 +100,10 @@ if (VISUS_OSPRAY)
 endif()
 
 
-GenerateScript("${CMAKE_CURRENT_SOURCE_DIR}/CMake/script" ${InstallDir}/visus         ${InstallDir}/bin/visus)
+GenerateScript("${CMAKE_CURRENT_SOURCE_DIR}/CMake/script" ${InstallDir}/visus bin/visus)
 
 if (VISUS_GUI)
-	GenerateScript(${CMAKE_CURRENT_SOURCE_DIR}/CMake/script ${InstallDir}/visusviewer ${InstallDir}/bin/visusviewer)
+	GenerateScript(${CMAKE_CURRENT_SOURCE_DIR}/CMake/script ${InstallDir}/visusviewer bin/visusviewer)
 endif()
 
 add_subdirectory(ExternalLibs)
@@ -142,14 +142,34 @@ if (1)
 	macro(CMakePostInstall)
 	
 		# fix the problem with <CONFIG> inside
-		string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" OpenVisus_INSTALL_DIR  "${InstallDir}")
+		string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" PostInstallDir  "${InstallDir}")
 
 		# copy Qt5 plugins
-		if (VISUS_GUI AND Qt5_PLUGIN_PATH)
-			InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/iconengines    ${InstallDir}/bin/Qt/plugins/)
-			InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/platforms      ${InstallDir}/bin/Qt/plugins/)
-			InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/printsupport   ${InstallDir}/bin/Qt/plugins/)
-			InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/styles         ${InstallDir}/bin/Qt/plugins/)	
+		if (VISUS_GUI)
+
+			# for linux there is no qt deploy
+			if (NOT WIN32 AND NOT APPLE)	
+
+				InstallFiles("${Qt5_HOME}/lib/libQt5Core.so*"        ${InstallDir}/bin/)
+				InstallFiles("${Qt5_HOME}/lib/libQt5DBus.so*"        ${InstallDir}/bin/)
+				InstallFiles("${Qt5_HOME}/lib/libQt5Gui.so*"         ${InstallDir}/bin/)
+				InstallFiles("${Qt5_HOME}/lib/libQt5Network.so*"     ${InstallDir}/bin/)
+				InstallFiles("${Qt5_HOME}/lib/libQt5Svg.so*"         ${InstallDir}/bin/)		
+				InstallFiles("${Qt5_HOME}/lib/libQt5Widgets.so*"     ${InstallDir}/bin/)
+				InstallFiles("${Qt5_HOME}/lib/libQt5XcbQpa.so*"      ${InstallDir}/bin/)
+				InstallFiles("${Qt5_HOME}/lib/libQt5OpenGL.so*"      ${InstallDir}/bin/)	
+
+				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}          ${InstallDir}/bin/Qt/) # otherwise I will have problems
+
+			else()
+				if (Qt5_PLUGIN_PATH)
+					InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/iconengines    ${InstallDir}/bin/Qt/plugins/)
+					InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/platforms      ${InstallDir}/bin/Qt/plugins/)
+					InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/printsupport   ${InstallDir}/bin/Qt/plugins/)
+					InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/styles         ${InstallDir}/bin/Qt/plugins/)	
+				endif()
+			endif()
+
 		endif()
 
 		if (WIN32)
@@ -157,11 +177,13 @@ if (1)
 			# copy Qt5 libraries
 			if (VISUS_GUI)
 				install(CODE "
-					execute_process(COMMAND ${Qt5_HOME}/bin/windeployqt.exe bin/visusviewer.exe
-						--libdir    ./bin
-						--plugindir ./bin/Qt/plugins
-						--no-translations
-						WORKING_DIRECTORY ${OpenVisus_INSTALL_DIR})")
+					execute_process(
+						COMMAND ${Qt5_HOME}/bin/windeployqt.exe bin/visusviewer.exe
+							--libdir    ./bin
+							--plugindir ./bin/Qt/plugins
+							--no-translations
+							WORKING_DIRECTORY ${PostInstallDir})
+				")
 			endif()
 
 		else()
@@ -169,12 +191,25 @@ if (1)
 			# macdeployqt does not allow to choose the 'layout' of the app
 			if (PYTHON_EXECUTABLE)
 				install(CODE "
-					execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisus_INSTALL_DIR}/PyDeploy.py POSTINSTALL RESULT_VARIABLE retcode)
-					if(NOT \"\${retcode}\" STREQUAL \"0\")
-						message(FATAL_ERROR \"Fatal error executing make self contained\")
-					endif()")
+					MESSAGE(STATUS \"Executing post install command ${PYTHON_EXECUTABLE} -u -m OpenVisus post-install\")
+					set(ENV{PYTHONPATH} \"${PostInstallDir}/../\")
+					execute_process(
+						COMMAND ${PYTHON_EXECUTABLE} -u -m OpenVisus post-install 
+						RESULT_VARIABLE __retcode__
+						OUTPUT_VARIABLE __output__
+						ERROR_VARIABLE  __error__)
+					MESSAGE(STATUS \"  retcode: \${__retcode__} \")
+					if(NOT \"\${__retcode__}\" STREQUAL \"0\")
+				 		MESSAGE(STATUS \"  output:  \${__output__}  \")
+						MESSAGE(STATUS \"  error:   \${__error__}   \")
+						message(FATAL_ERROR \"Post install code failed\")
+					endif()
+				")
+
 			else()
+
 				message(WARNING "I don't have a way to create self contained binaries. Path will be absolute")
+
 			endif()
 
 		endif()
@@ -185,19 +220,13 @@ if (1)
 
 endif()
 
-# //////////////////////////////////////////////////////////////
-# *** dist (to call after INSTALL) ***
-if (VISUS_PYTHON)
-	add_custom_target(DIST COMMAND ${PYTHON_EXECUTABLE} -u \"${InstallDir}/PyDeploy.py\" DIST)
-	set_property(TARGET DIST PROPERTY FOLDER CMakePredefinedTargets)
-endif()
-
 
 # //////////////////////////////////////////////////////////////
-# *** CONFIGURE (to call after INSTALL, create scripts and forse use of PyQt) ***
+# *** use-pyqt (to call after INSTALL, create scripts and forse use of PyQt) ***
 if (VISUS_PYTHON)
-	add_custom_target(CONFIGURE COMMAND ${PYTHON_EXECUTABLE} -u \"${InstallDir}/PyDeploy.py\" CONFIGURE)
-	set_property(TARGET CONFIGURE PROPERTY FOLDER CMakePredefinedTargets)
+	add_custom_target(use-pyqt COMMAND ${PYTHON_EXECUTABLE} -u -m OpenVisus use-pyqt)
+	set_property(TARGET use-pyqt PROPERTY FOLDER CMakePredefinedTargets)
+	set_property(TARGET use-pyqt APPEND PROPERTY ENVIRONMENT "PYTHONPATH=${InstallDir}/..")
 endif()
 
 
