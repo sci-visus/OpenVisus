@@ -164,7 +164,7 @@ if (1)
 				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/printsupport   ./bin/qt/plugins/)
 				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/styles         ./bin/qt/plugins/)	
 				
-		elif (APPLE)
+		elseif (APPLE)
 		
 				# macdeployqt does not allow to choose the 'layout' of the app
 				install(CODE "
