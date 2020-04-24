@@ -77,6 +77,7 @@ script:
        -e PYPI_USERNAME=${PYPI_USERNAME} \
        -e PYPI_PASSWORD=${PYPI_PASSWORD} \
        -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
+       -e BUILD_CONDA=${BUILD_CONDA} \
        visus/travis-image\
        /bin/bash -c "./scripts/build_travis.sh"     
     fi
