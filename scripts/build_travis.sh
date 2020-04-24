@@ -29,15 +29,15 @@ if (( OSX == 1 )) ; then
 		/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 	fi
 	
-	brew update 
-	brew install cmake swig
+	brew update 1>/dev/null 2>/dev/null || true
+	brew install cmake swig  || true
 	
 	brew install sashkab/python/python@${PYTHON_VERSION} 
 	PYTHON_EXECUTABLE=$(brew --prefix python@${PYTHON_VERSION})/bin/python${PYTHON_VERSION}
 	
 	# some package I need
-	${PYTHON_EXECUTABLE} -m pip install -q --upgrade pip
-	${PYTHON_EXECUTABLE} -m pip install -q numpy setuptools wheel twine	
+	${PYTHON_EXECUTABLE} -m pip install -q --upgrade pip  || true
+	${PYTHON_EXECUTABLE} -m pip install -q numpy setuptools wheel twine	 || true
 	
 	# install Qt (a version which is compatible with PyQt5)
 	brew install "https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb"  
