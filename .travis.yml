@@ -41,7 +41,7 @@ matrix:
 
     - os: linux
       dist: trusty
-      env: ['PYTHON_VERSION=3.6'    
+      env: ['PYTHON_VERSION=3.6']
           
 
     # ///////////////////////////////// osx
@@ -61,7 +61,7 @@ matrix:
       env: ['PYTHON_VERSION=3.6']
 
 script:
-   - |
+    -|
      cd "${TRAVIS_BUILD_DIR}"
      if [ "$(uname)" == "Darwin" ]; then 
        gem install xcpretty 
