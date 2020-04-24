@@ -32,7 +32,7 @@ jobs:
             
   linux-3.6:
     docker:
-      - image: quay.io/pypa/manylinux1_x86_64
+      - image: visus/travis-image
         environment:
           PYTHON_VERSION: 3.6
           PYTHON_EXECUTABLE: /usr/local/bin/python3.6
