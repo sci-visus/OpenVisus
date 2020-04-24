@@ -62,9 +62,9 @@ matrix:
 
 script:
    - |
-     gem install xcpretty 
      cd "${TRAVIS_BUILD_DIR}"
      if [ "$(uname)" == "Darwin" ]; then 
+       gem install xcpretty 
        ./scripts/build_travis.sh
      else
        sudo docker run -ti \

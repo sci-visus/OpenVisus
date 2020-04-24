@@ -3,48 +3,50 @@ version: 2
 jobs:
 
   # ///////////////////////////////// manylinux
-  manylinux-3.8:
+  linux-3.8:
     docker:
-      - image: quay.io/pypa/manylinux1_x86_64
+      - image: visus/travis-image
         environment:
-          PYTHON_VERSION: 3.8.1
-          VISUS_GUI: 0
+          PYTHON_VERSION: 3.8
+          PYTHON_EXECUTABLE=/usr/local/bin/python3.8
+          BUILD_CONDA: 0
+          Qt5_DIR=/opt/qt59 
     steps:
       - checkout
       - run: 
           name: Build OpenVisus
-          command: |
-            ./scripts/build.sh
+          command: ./scripts/build_travis.sh
   
-  manylinux-3.7:
+  linux-3.7:
     docker:
-      - image: quay.io/pypa/manylinux1_x86_64
+      - image: visus/travis-image
         environment:
-          PYTHON_VERSION: 3.7.1
-          VISUS_GUI: 0
+          PYTHON_VERSION: 3.7
+          PYTHON_EXECUTABLE=/usr/local/bin/python3.7
+          Qt5_DIR=/opt/qt59 
     steps:
       - checkout
       - run: 
           name: Build OpenVisus
-          command: |
-            ./scripts/build.sh
+          command: ./scripts/build_travis.sh
             
-  manylinux-3.6:
+  linux-3.6:
     docker:
       - image: quay.io/pypa/manylinux1_x86_64
         environment:
-          PYTHON_VERSION: 3.6.1
-          VISUS_GUI: 0
+          PYTHON_VERSION: 3.6
+          PYTHON_EXECUTABLE=/usr/local/bin/python3.6
+          Qt5_DIR=/opt/qt59 
     steps:
       - checkout
       - run: 
           name: Build OpenVisus
-          command: |
-            ./scripts/build.sh            
+          command: ./scripts/build_travis.sh   
 
 workflows:
   version: 2
   OpenVisusWorkflow:
     jobs:
-      - manylinux-3.7
-      - manylinux-3.6
+      - linux-3.8    
+      - linux-3.7
+      - linux-3.6
