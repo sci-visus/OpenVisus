@@ -61,24 +61,24 @@ matrix:
       env: ['PYTHON_VERSION=3.6']
 
 script:
-    -|
-     cd "${TRAVIS_BUILD_DIR}"
-     if [ "$(uname)" == "Darwin" ]; then 
-       gem install xcpretty 
-       ./scripts/build_travis.sh
-     else
-       sudo docker run -ti \
-        -v $(pwd):/root/OpenVisus \
-        -w /root/OpenVisus \
-        -e PYTHON_VERSION=${PYTHON_VERSION} \
-        -e PYTHON_EXECUTABLE=/usr/local/bin/python${PYTHON_VERSION} \
-        -e Qt5_DIR=/opt/qt59 \
-        -e TRAVIS_TAG=${TRAVIS_TAG} \
-        -e PYPI_USERNAME=${PYPI_USERNAME} \
-        -e PYPI_PASSWORD=${PYPI_PASSWORD} \
-        -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
-        visus/travis-image\
-        /bin/bash -c "./scripts/build_travis.sh"     
+  - |
+    cd "${TRAVIS_BUILD_DIR}"
+    if [ "$(uname)" == "Darwin" ]; then 
+      gem install xcpretty 
+      ./scripts/build_travis.sh
+    else
+      sudo docker run -ti \
+       -v $(pwd):/root/OpenVisus \
+       -w /root/OpenVisus \
+       -e PYTHON_VERSION=${PYTHON_VERSION} \
+       -e PYTHON_EXECUTABLE=/usr/local/bin/python${PYTHON_VERSION} \
+       -e Qt5_DIR=/opt/qt59 \
+       -e TRAVIS_TAG=${TRAVIS_TAG} \
+       -e PYPI_USERNAME=${PYPI_USERNAME} \
+       -e PYPI_PASSWORD=${PYPI_PASSWORD} \
+       -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
+       visus/travis-image\
+       /bin/bash -c "./scripts/build_travis.sh"     
     fi
 
 
