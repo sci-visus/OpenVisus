@@ -147,23 +147,19 @@ if (( 1 == 1  )) ; then
 fi
 
 # ______________________________________________
-# dist step 
-if [[ "${TRAVIS_TAG}" != "" ]] ; then
+if [[ "${TRAVIS_TAG}" != ""  ]] ; then
 
-	pushd ${InstallDir}
+	${PYTHON_EXECUTABLE} -m pip install setuptools wheel --upgrade 
 	
+	PLATFORM_TAG=manylinux2010_x86_64
 	if (( OSX == 1 )) ; then
 		PLATFORM_TAG=macosx_10_9_x86_64
-	else
-		PLATFORM_TAG=manylinux2010_x86_64
-	fi
-
-	rm -Rf ./dist
-	${PYTHON_EXECUTABLE} -m pip install setuptools wheel --upgrade
-	${PYTHON_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=$PLATFORM_TAG
-	WHEEL_FILENAME=dist/OpenVisus-*.whl
-	${PYTHON_EXECUTABLE} -m twine upload --config-file ./.pypirc --skip-existing ${WHEEL_FILENAME}
-
+	fi		
+	
+	pushd ${InstallDir}	
+	rm -Rf ./dist/*OpenVisus-*.whl 
+	${PYTHON_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=${PLATFORM_TAG}
+	${PYTHON_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing ${InstallDir}/dist/OpenVisus-*.whl
 	popd
 
 fi

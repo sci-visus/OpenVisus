@@ -47,7 +47,7 @@ matrix:
       if: tag IS present   
           
 
-    # ///////////////////////////////// osx1013
+    # ///////////////////////////////// osx
     - os: osx
       osx_image: xcode9.4
       compiler: clang
@@ -57,7 +57,7 @@ matrix:
     - os: osx
       osx_image: xcode9.4
       compiler: clang
-      env: ['PYTHON_VERSION=3.7'] 
+      env: ['PYTHON_VERSION=3.7']
       if: tag IS present 
     
     - os: osx
@@ -69,11 +69,8 @@ matrix:
 script:
    - |
      gem install xcpretty 
-     if [ "$(uname)" == "Darwin" ]; then 
-        ./scripts/build_travis_osx.sh 
-     else 
-        ./scripts/build_travis.sh
-     fi
+     cd "${TRAVIS_BUILD_DIR}"
+     ./scripts/build_travis.sh
 
 
 

@@ -279,78 +279,53 @@ readelf -d bin/visus
 	
 
 
-def SetLinuxRPaths(external_rpaths=[]):
-
-	binaries=[]
-	
-	# *.so
-	binaries+=RecursiveFindFiles('.', '*.so')
-	
-	# executables in bin
-	binaries+=[it for it in glob.glob("bin/*") if os.path.isfile(it) and not os.path.splitext(it)[1]]
-
-	for filename in binaries:
-		
-		v=['$ORIGIN']
-
-		# how many ../ I should do to go back to the root of the installation directory
-		root=os.path.realpath(".")
-		curr=os.path.dirname(os.path.realpath(filename))
-		N=len(curr.split("/"))-len(root.split("/"))	
-		v+=['$ORIGIN' +  ("/.." * N) + "/bin"]	
-		
-		if external_rpaths:
-			v+=external_rpaths
-			
-		ExecuteCommand(["patchelf", "--set-rpath", ":".join(v) , filename])
-
-
-
-
 
 # ////////////////////////////////////////////////////////////////////////////////////////////////
-def Main(argv):
-	
+if __name__ == '__main__':
+
 	this_dir=ThisDir(__file__)
 	os.chdir(this_dir)
 
-	action=argv[1]
+	action=sys.argv[1]
 
 	# _____________________________________________
 	if action=="dirname":
 		print(this_dir)
-		return 0
+		sys.exit(0)
 	
 	# _____________________________________________
 	if action=="post-install":	
-		print("Executing",action,"cwd",os.getcwd(),"args",argv)
-		if WIN32:
-			raise Exception("not supported")
-		elif APPLE:
-			AppleDeploy().copyExternalDependenciesAndFixRPaths()
-		else:
-			SetLinuxRPaths()		
-
+		print("Executing",action,"cwd",os.getcwd(),"args",sys.argv)
+		if not APPLE: raise Exception("not supported")
+		AppleDeploy().copyExternalDependenciesAndFixRPaths()	
 		print("done",action)
-		return 0
+		sys.exit(0)
 
 	# _____________________________________________
 	if action=="use-pyqt":
 
-		print("Executing",action,"cwd",os.getcwd(),"args",argv)
+		print("Executing",action,"cwd",os.getcwd(),"args",sys.argv)
 
 		QT_VERSION = ReadTextFile("QT_VERSION")
-
-		packagename="PyQt5=="+"{}.{}".format(QT_VERSION.split(".")[0],QT_VERSION.split(".")[1])
-		if not PipInstall(packagename,["--ignore-installed"]):
-			raise Exception("Cannot install PyQt5")
-		print("Installed",packagename)
-
-		PipInstall("PyQt5-sip",["--ignore-installed"])
 		
-		# avoid conflicts removing any Qt file
-		RemoveFiles("bin/Qt*")
-		RemoveFiles("bin/libQt*")
+		CURRENT_QT_VERSION=""
+		try:
+			from PyQt5 import Qt
+			CURRENT_QT_VERSION=str(Qt.qVersion())
+		except:
+			pass
+			
+		if QT_VERSION.split('.')[0:2] == CURRENT_QT_VERSION.split('.')[0:2]:
+			print("Using current Pyqt5",CURRENT_QT_VERSION)
+		else:
+			print("Installing a new PyQt5")
+			packagename="PyQt5=="+"{}.{}".format(QT_VERSION.split(".")[0],QT_VERSION.split(".")[1])
+			if not PipInstall(packagename,["--ignore-installed"]):
+				raise Exception("Cannot install PyQt5")
+			print("Installed",packagename)
+	
+			PipInstall("PyQt5-sip",["--ignore-installed"])
+		
 
 		Qt5_DIR=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.join(os.path.dirname(PyQt5.__file__),'Qt'))"]).strip()
 		print("Qt5_DIR",Qt5_DIR)
@@ -358,30 +333,26 @@ def Main(argv):
 			print("Error directory does not exists")
 			raise Exception("internal error")
 			
+		# avoid conflicts removing any Qt file
+		RemoveFiles("bin/qt*")		
+			
 		# for windowss see VisusGui.i (%pythonbegin section, I'm using sys.path)
 		if WIN32:
 			pass
 		elif APPLE:	
+			RemoveFiles("bin/libQt*")	
 			AppleDeploy().addRPath(os.path.join(Qt5_DIR,"lib"))
 		else:
-			SetLinuxRPaths([os.path.join(Qt5_DIR,"lib")])
+			script=ThisDir(__file__) + "/scripts/set_rpath.sh"
+			arg=":".join(["$ORIGIN","$ORIGIN/bin",Qt5_DIR+"/lib"])
+			subprocess.check_call(["bash",script,arg])
+			
 
 		print("done",action)
-		return 0
+		sys.exit(0)
 
-	raise Exception("Unknown argument " + action)
-
-# ////////////////////////////////////////////////////////////////////////////////////////////////
-if __name__ == '__main__':
-
-	try:		
-		retcode=Main(sys.argv)
-		sys.exit(retcode)
-		
-	except Exception as e:
-		print(e)
-		traceback.print_exc(file=sys.stdout)
-		sys.exit(-1)
+	print("EXEPTION Unknown argument " + action)
+	sys.exit(-1)
 
 
 

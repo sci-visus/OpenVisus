@@ -117,15 +117,22 @@ if (1)
 	InstallFiles(LICENSE                                      .)
 	InstallFiles(README.md                                    .)
 	InstallFiles(CMake/OpenVisusConfig.cmake                  .)
-	InstallFiles(datasets/*.config                            .)
+	InstallFiles(datasets/visus.config                        .)
 
 	InstallDirectory(Copyrights                               .)
 	InstallDirectory(Samples                                  .)
 	InstallDirectory(CMake                                    .)
 	InstallDirectory(datasets                                 .)
+	InstallDirectory(scripts                                  .)
 
 	if (VISUS_PYTHON)
-		InstallFiles(./CMake/*.py .)
+			InstallFiles(CMake/__init__.py         .)
+			InstallFiles(CMake/__main__.py         .)
+			InstallFiles(CMake/PyDataset.py        .)
+			InstallFiles(CMake/PyScriptingNode.py  .)
+			InstallFiles(CMake/PyUtils.py          .)
+			InstallFiles(CMake/PyViewer.py         .)
+			InstallFiles(CMake/setup.py            .)
 	endif()
 
 	# copy needed windows *.dll
@@ -143,80 +150,67 @@ if (1)
 	
 		# fix the problem with <CONFIG> inside
 		string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" PostInstallDir  "${InstallDir}")
-
-		# copy Qt5 plugins
-		if (VISUS_GUI)
-
-			# for linux there is no qt deploy
-			if (NOT WIN32 AND NOT APPLE)	
-
-				InstallFiles("${Qt5_HOME}/lib/libQt5Core.so*"        ${InstallDir}/bin/)
-				InstallFiles("${Qt5_HOME}/lib/libQt5DBus.so*"        ${InstallDir}/bin/)
-				InstallFiles("${Qt5_HOME}/lib/libQt5Gui.so*"         ${InstallDir}/bin/)
-				InstallFiles("${Qt5_HOME}/lib/libQt5Network.so*"     ${InstallDir}/bin/)
-				InstallFiles("${Qt5_HOME}/lib/libQt5Svg.so*"         ${InstallDir}/bin/)		
-				InstallFiles("${Qt5_HOME}/lib/libQt5Widgets.so*"     ${InstallDir}/bin/)
-				InstallFiles("${Qt5_HOME}/lib/libQt5XcbQpa.so*"      ${InstallDir}/bin/)
-				InstallFiles("${Qt5_HOME}/lib/libQt5OpenGL.so*"      ${InstallDir}/bin/)	
-
-				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}          ${InstallDir}/bin/Qt/) # otherwise I will have problems
-
-			else()
-				if (Qt5_PLUGIN_PATH)
-					InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/iconengines    ${InstallDir}/bin/Qt/plugins/)
-					InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/platforms      ${InstallDir}/bin/Qt/plugins/)
-					InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/printsupport   ${InstallDir}/bin/Qt/plugins/)
-					InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/styles         ${InstallDir}/bin/Qt/plugins/)	
-				endif()
-			endif()
-
-		endif()
-
+		
 		if (WIN32)
 
-			# copy Qt5 libraries
-			if (VISUS_GUI)
 				install(CODE "
 					execute_process(
-						COMMAND ${Qt5_HOME}/bin/windeployqt.exe bin/visusviewer.exe
-							--libdir    ./bin
-							--plugindir ./bin/Qt/plugins
-							--no-translations
-							WORKING_DIRECTORY ${PostInstallDir})
+						COMMAND ${Qt5_HOME}/bin/windeployqt.exe bin/visusviewer.exe --libdir ./bin --plugindir ./bin/qt/plugins --no-translations
+					WORKING_DIRECTORY ${PostInstallDir})
 				")
-			endif()
-
-		else()
-
-			# macdeployqt does not allow to choose the 'layout' of the app
-			if (PYTHON_EXECUTABLE)
+				
+				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/iconengines    ./bin/qt/plugins/)
+				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/platforms      ./bin/qt/plugins/)
+				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/printsupport   ./bin/qt/plugins/)
+				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/styles         ./bin/qt/plugins/)	
+				
+		elif (APPLE)
+		
+				# macdeployqt does not allow to choose the 'layout' of the app
 				install(CODE "
 					MESSAGE(STATUS \"Executing post install command ${PYTHON_EXECUTABLE} -u -m OpenVisus post-install\")
 					set(ENV{PYTHONPATH} \"${PostInstallDir}/../\")
-					execute_process(
-						COMMAND ${PYTHON_EXECUTABLE} -u -m OpenVisus post-install 
-						RESULT_VARIABLE __retcode__
-						OUTPUT_VARIABLE __output__
-						ERROR_VARIABLE  __error__)
+					execute_process(COMMAND ${PYTHON_EXECUTABLE} -u -m OpenVisus post-install RESULT_VARIABLE __retcode__)
 					MESSAGE(STATUS \"  retcode: \${__retcode__} \")
 					if(NOT \"\${__retcode__}\" STREQUAL \"0\")
-				 		MESSAGE(STATUS \"  output:  \${__output__}  \")
-						MESSAGE(STATUS \"  error:   \${__error__}   \")
-						message(FATAL_ERROR \"Post install code failed\")
+						message(FATAL_ERROR \"Post install failed\")
 					endif()
 				")
+				
+				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/iconengines    ./bin/qt/plugins/)
+				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/platforms      ./bin/qt/plugins/)
+				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/printsupport   ./bin/qt/plugins/)
+				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/styles         ./bin/qt/plugins/)			
+				
+		else()
+		
+			InstallFiles("${Qt5_HOME}/lib/libQt5Core.so*"        ./bin/qt/lib)
+			InstallFiles("${Qt5_HOME}/lib/libQt5DBus.so*"        ./bin/qt/lib)
+			InstallFiles("${Qt5_HOME}/lib/libQt5Gui.so*"         ./bin/qt/lib)
+			InstallFiles("${Qt5_HOME}/lib/libQt5Network.so*"     ./bin/qt/lib)
+			InstallFiles("${Qt5_HOME}/lib/libQt5Svg.so*"         ./bin/qt/lib)		
+			InstallFiles("${Qt5_HOME}/lib/libQt5Widgets.so*"     ./bin/qt/lib)
+			InstallFiles("${Qt5_HOME}/lib/libQt5XcbQpa.so*"      ./bin/qt/lib)
+			InstallFiles("${Qt5_HOME}/lib/libQt5OpenGL.so*"      ./bin/qt/lib)	
 
-			else()
+			# need to copy all, otherwise I will have problems
+			InstallDirectory(${Qt5_PLUGIN_PATH}                  ./bin/qt/) 
 
-				message(WARNING "I don't have a way to create self contained binaries. Path will be absolute")
-
-			endif()
-
+			# fix rpaths
+			install(CODE "
+				MESSAGE(STATUS \"Executing ${CMAKE_SOURCE_DIR}/scripts/set_rpath.sh\")
+				execute_process(COMMAND bash ${CMAKE_SOURCE_DIR}/scripts/set_rpath.sh RESULT_VARIABLE __retcode__ WORKING_DIRECTORY \"${PostInstallDir}\")	
+				if(NOT \"\${__retcode__}\" STREQUAL \"0\")
+						message(FATAL_ERROR \"Post install failed\")
+				endif()
+			")	
 		endif()
-
+	
 	endmacro()
 
-	add_subdirectory(CMake/PostInstall)
+	if (VISUS_GUI)
+		add_subdirectory(CMake/PostInstall)
+	endif()
 
 endif()
 

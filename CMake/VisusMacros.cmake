@@ -70,45 +70,60 @@ endfunction()
 
 # /////////////////////////////////////////////////////////////
 macro(InstallFiles SrcPattern DstDir)
-	SET(__deps__ "")
 
-  string(FIND "${SrcPattern}" "/" __index__)
-  if(NOT "${__index__}"  EQUAL 0)
+	string(FIND "${SrcPattern}" "/" __index__)
+	if(NOT "${__index__}"  EQUAL 0)
 		set(SrcPattern ${CMAKE_CURRENT_SOURCE_DIR}/${SrcPattern})
 	endif()
-
+	
 	file (GLOB __sources__  ${SrcPattern})
-	string(MD5 __target__  "${__sources__}")
 	foreach(__src__ ${__sources__})
-	    get_filename_component(__name__ ${__src__} NAME)
-
-       # do not move from here
-		 if (CMAKE_CONFIGURATION_TYPES)
-			set(__dst__ "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/OpenVisus/${__name__}")
-		 else()
-		 	set(__dst__ "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus/${__name__}")
-		 endif()
-
-		 MESSAGE(STATUS "CMake will install [${__src__}] to ${__dst__}")
-
-	    set(__dep__ ${__target__}_${__name__})
-	    string(REPLACE "." "_" __dep__ "${__dep__}")
-	    ADD_CUSTOM_COMMAND(
-	        OUTPUT  ${__dst__}
-	        DEPENDS "${__src__}"
-	        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${__src__} ${__dst__})
-	    SET(__deps__ ${__deps__} ${__dst__})
+	
+		get_filename_component(__name__ ${__src__} NAME)
+		
+		# do not move from here, there is a problem with post install
+		if (CMAKE_CONFIGURATION_TYPES)
+			set(__dst__ "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/OpenVisus/${DstDir}/${__name__}")
+		else()
+			set(__dst__ "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus/${DstDir}/${__name__}")
+		endif()
+		
+		MESSAGE(STATUS "InstallFile ${__src__} ${__dst__}")
+		
+		# see https://stackoverflow.com/questions/13920072/how-to-always-run-command-when-building-regardless-of-any-dependency/43206544
+		string(MD5 __target__  "${__src__}")
+		add_custom_target(${__target__} ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${__name__}.fake)
+		set_target_properties(${__target__} PROPERTIES FOLDER HiddenTargets)	
+		
+		ADD_CUSTOM_COMMAND(
+			OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/${__name__}.fake
+			DEPENDS "${__src__}"
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${__src__} ${__dst__})
+			
 	endforeach()
-	add_custom_target(${__target__} ALL DEPENDS ${__deps__})
-	set_target_properties(${__target__} PROPERTIES FOLDER HiddenTargets)
+
+
 endmacro()
 
 
-
-
 # /////////////////////////////////////////////////////////////
-macro(InstallDirectory src dst_dir)
-	install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${src} DESTINATION ${InstallDir}/${dst_dir})
+macro(InstallDirectory SrcDir DstDir)
+
+	string(FIND "${SrcDir}" "/" __index__)
+	if(NOT "${__index__}"  EQUAL 0)
+		set(SrcDir ${CMAKE_CURRENT_SOURCE_DIR}/${SrcDir})
+	endif()
+	
+	# do not move from here, there is a problem with post install
+	if (CMAKE_CONFIGURATION_TYPES)
+		set(__dst__ "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/OpenVisus/${DstDir}")
+	else()
+		set(__dst__ "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus/${DstDir}")
+	endif()	
+	
+	
+	MESSAGE(STATUS "InstallDirectory ${SrcDir} ${__dst__}")
+	install(DIRECTORY ${SrcDir} DESTINATION ${__dst__})
 endmacro()
 
 # ///////////////////////////////////////////////////
@@ -254,7 +269,7 @@ macro(FindQtLibrary)
 	elseif (EXISTS "${Qt5_HOME}/lib/qt5/plugin")
 		set(Qt5_PLUGIN_PATH "${Qt5_HOME}/lib/qt5/plugin")
 	else()
-		MESSAGE(WARNING "cannot find Qt5 plugins")
+		MESSAGE(WARNING "cannot find Qt5 plugins Qt5_HOME=${Qt5_HOME}")
 		ForceUnset(Qt5_PLUGIN_PATH)
 	endif()
 	

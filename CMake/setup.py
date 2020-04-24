@@ -18,18 +18,33 @@ PROJECT_VERSION="1.3.78"
 
 # ////////////////////////////////////////////////////////////////////
 def findFilesInCurrentDirectory():
+	
 	# this are cached directories that should not be part of OpenVisus distribution
 	for it in ('./build','./__pycache__','./.git','./{}.egg-info'.format(PROJECT_NAME)):
 		shutil.rmtree(it, ignore_errors=True)
 	files=[]	
+	
 	for dirpath, __dirnames__, filenames in os.walk("."):
 		for it in filenames:
 			filename= os.path.abspath(os.path.join(dirpath, it))
 			extension=os.path.splitext(filename)[1]
-			if filename.startswith(os.path.abspath('./dist')): continue
-			if "__pycache__" in filename: continue	    
-			if WIN32 and extension==".ilk": continue # ignore Visual studio incremental link files 
-			if WIN32 and extension==".pdb": continue # otherwise dist is too big  
+			
+			# ignore any file in dist
+			if filename.startswith(os.path.abspath('./dist')): 
+				continue
+			
+			# remove any cache	
+			if "__pycache__" in filename: 
+				continue	    
+			
+			# ignore Visual studio incremental link files 
+			if WIN32 and extension==".ilk": 
+				continue 
+				
+			# otherwise dist is too big  
+			if WIN32 and extension==".pdb": 
+				continue 
+			
 			files.append(filename)
 	return files
 				
