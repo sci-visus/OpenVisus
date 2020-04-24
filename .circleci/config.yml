@@ -35,7 +35,7 @@ jobs:
       - image: quay.io/pypa/manylinux1_x86_64
         environment:
           PYTHON_VERSION: 3.6
-          PYTHON_EXECUTABLE: usr/local/bin/python3.6
+          PYTHON_EXECUTABLE: /usr/local/bin/python3.6
           Qt5_DIR: /opt/qt59 
     steps:
       - checkout
