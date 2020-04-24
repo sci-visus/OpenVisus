@@ -9,6 +9,7 @@ set -e
 # stop of the first command that fails with pipe (|)
 set -o pipefail
 
+
 if [ "$(uname)" == "Darwin" ]; then 
 	OSX=1 
 fi
@@ -146,26 +147,7 @@ if (( 1 == 1  )) ; then
 	${InstallDir}/visus.sh
 fi
 
-# ______________________________________________
-if [[ "${TRAVIS_TAG}" != ""  ]] ; then
 
-	${PYTHON_EXECUTABLE} -m pip install setuptools wheel --upgrade 
-	
-	PLATFORM_TAG=manylinux2010_x86_64
-	if (( OSX == 1 )) ; then
-		PLATFORM_TAG=macosx_10_9_x86_64
-	fi		
-	
-	pushd ${InstallDir}	
-	rm -Rf ./dist/*OpenVisus-*.whl 
-	${PYTHON_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=${PLATFORM_TAG}
-	${PYTHON_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing ${InstallDir}/dist/OpenVisus-*.whl
-	popd
-
-fi
-
-# fix permission in case I'm running inside docker
-chmod -R a+rwx $(pwd)
 
 
 
