@@ -456,6 +456,7 @@ macro(GenerateScript template_filename script_filename target_filename)
 	endif()
 	
 	if (WIN32)
+		string(REPLACE "\\" "/" target_filename "${target_filename}")
 		string(REPLACE "\${TARGET_FILENAME}" "${target_filename}.exe" content  "${content}")
 	
 	elseif (APPLE)
