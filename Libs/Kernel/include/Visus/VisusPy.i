@@ -60,6 +60,7 @@ For support : support@visus.net
 import os,sys,platform
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 
+# //////////////////////////////////////////////////////
 def AddSysPath(value, bBegin=False):
 
 	if not os.path.isdir(value):

@@ -126,13 +126,13 @@ if (1)
 	InstallDirectory(scripts                                  .)
 
 	if (VISUS_PYTHON)
-			InstallFiles(CMake/__init__.py         .)
-			InstallFiles(CMake/__main__.py         .)
-			InstallFiles(CMake/PyDataset.py        .)
-			InstallFiles(CMake/PyScriptingNode.py  .)
-			InstallFiles(CMake/PyUtils.py          .)
-			InstallFiles(CMake/PyViewer.py         .)
-			InstallFiles(CMake/setup.py            .)
+		InstallFiles(CMake/__init__.py         .)
+		InstallFiles(CMake/__main__.py         .)
+		InstallFiles(CMake/PyDataset.py        .)
+		InstallFiles(CMake/PyScriptingNode.py  .)
+		InstallFiles(CMake/PyUtils.py          .)
+		InstallFiles(CMake/PyViewer.py         .)
+		InstallFiles(CMake/setup.py            .)
 	endif()
 
 	# copy needed windows *.dll
@@ -140,9 +140,9 @@ if (1)
 		if (OpenMP_FOUND)
 			set(CMAKE_INSTALL_OPENMP_LIBRARIES 1)
 		endif()	
-		set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION ${InstallDir}/bin)
+		set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION "${InstallDir}/bin")
 		include(InstallRequiredSystemLibraries)
-		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ${InstallDir}/bin)	
+		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION "${InstallDir}/bin")	
 	endif()
 
 	# ____________________________________________
@@ -150,19 +150,17 @@ if (1)
 	
 		# fix the problem with <CONFIG> inside
 		string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" PostInstallDir  "${InstallDir}")
-		
-		if (WIN32)
+		 
 
+		if (WIN32)
 				install(CODE "
 					execute_process(
-						COMMAND ${Qt5_HOME}/bin/windeployqt.exe bin/visusviewer.exe --libdir ./bin --plugindir ./bin/qt/plugins --no-translations
+						COMMAND ${Qt5_HOME}/bin/windeployqt.exe bin/visusviewer.exe 
+							--libdir    ./bin/qt/bin
+							--plugindir ./bin/qt/plugins 
+							--no-translations
 					WORKING_DIRECTORY ${PostInstallDir})
 				")
-				
-				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/iconengines    ./bin/qt/plugins/)
-				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/platforms      ./bin/qt/plugins/)
-				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/printsupport   ./bin/qt/plugins/)
-				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/styles         ./bin/qt/plugins/)	
 				
 		elseif (APPLE)
 		
@@ -177,10 +175,10 @@ if (1)
 					endif()
 				")
 				
-				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/iconengines    ./bin/qt/plugins/)
-				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/platforms      ./bin/qt/plugins/)
-				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/printsupport   ./bin/qt/plugins/)
-				InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/styles         ./bin/qt/plugins/)			
+				InstallDirectoryIfExists("${Qt5_PLUGIN_PATH}/iconengines"    ./bin/qt/plugins/)
+				InstallDirectoryIfExists("${Qt5_PLUGIN_PATH}/platforms"      ./bin/qt/plugins/)
+				InstallDirectoryIfExists("${Qt5_PLUGIN_PATH}/printsupport"   ./bin/qt/plugins/)
+				InstallDirectoryIfExists("${Qt5_PLUGIN_PATH}/styles"         ./bin/qt/plugins/)			
 				
 		else()
 		
@@ -194,7 +192,7 @@ if (1)
 			InstallFiles("${Qt5_HOME}/lib/libQt5OpenGL.so*"      ./bin/qt/lib)	
 
 			# need to copy all, otherwise I will have problems
-			InstallDirectory(${Qt5_PLUGIN_PATH}                  ./bin/qt/) 
+			InstallDirectory("${Qt5_PLUGIN_PATH}"                ./bin/qt/) 
 
 			# fix rpaths
 			install(CODE "
@@ -218,9 +216,8 @@ endif()
 # //////////////////////////////////////////////////////////////
 # *** use-pyqt (to call after INSTALL, create scripts and forse use of PyQt) ***
 if (VISUS_PYTHON)
-	add_custom_target(use-pyqt COMMAND ${PYTHON_EXECUTABLE} -u -m OpenVisus use-pyqt)
+	add_custom_target(use-pyqt ${CMAKE_COMMAND} -E env PYTHONPATH=${InstallDir}/.. ${PYTHON_EXECUTABLE} -u -m OpenVisus use-pyqt)
 	set_property(TARGET use-pyqt PROPERTY FOLDER CMakePredefinedTargets)
-	set_property(TARGET use-pyqt APPEND PROPERTY ENVIRONMENT "PYTHONPATH=${InstallDir}/..")
 endif()
 
 

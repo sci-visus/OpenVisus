@@ -2,7 +2,6 @@ import sys
 import traceback
 from PyUtils import *
 
-
 """
 Fix the problem about shared library path finding
 
@@ -17,7 +16,6 @@ seems not to work. SO the only viable solution seems to be to modify the Rpath
 on linux sys.path does not seem to work. I didnt' check if LD_LIBRARY_PATH
 is working or not. To be coherent with OSX I'm using the rpath
 """
-
 
 # ///////////////////////////////////////
 class AppleDeploy:
@@ -319,13 +317,22 @@ if __name__ == '__main__':
 			print("Using current Pyqt5",CURRENT_QT_VERSION)
 		else:
 			print("Installing a new PyQt5")
-			packagename="PyQt5=="+"{}.{}".format(QT_VERSION.split(".")[0],QT_VERSION.split(".")[1])
-			if not PipInstall(packagename,["--ignore-installed"]):
+
+			def InstallPyQt5():
+				QT_MAJOR_VERSION,QT_MINOR_VERSION=QT_VERSION.split(".")[0:2]
+				versions=[]
+				versions+=["{}".format(QT_VERSION)]
+				versions+=["{}.{}".format(QT_MAJOR_VERSION,QT_MINOR_VERSION)]
+				versions+=["{}.{}.{}".format(QT_MAJOR_VERSION,QT_MINOR_VERSION,N) for N in reversed(range(1,10))]
+				for version in versions:
+					packagename="PyQt5=="+version
+					if PipInstall(packagename,["--ignore-installed"]):
+						PipInstall("PyQt5-sip",["--ignore-installed"])
+						print("Installed",packagename)
+						return True 
 				raise Exception("Cannot install PyQt5")
-			print("Installed",packagename)
-	
-			PipInstall("PyQt5-sip",["--ignore-installed"])
-		
+
+			InstallPyQt5()
 
 		Qt5_DIR=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.join(os.path.dirname(PyQt5.__file__),'Qt'))"]).strip()
 		print("Qt5_DIR",Qt5_DIR)
@@ -334,7 +341,7 @@ if __name__ == '__main__':
 			raise Exception("internal error")
 			
 		# avoid conflicts removing any Qt file
-		RemoveFiles("bin/qt*")		
+		RemoveDirectory("bin/qt")		
 			
 		# for windowss see VisusGui.i (%pythonbegin section, I'm using sys.path)
 		if WIN32:

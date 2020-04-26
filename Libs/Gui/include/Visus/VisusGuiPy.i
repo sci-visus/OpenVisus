@@ -32,18 +32,18 @@ using namespace Visus;
 
 this_dir=os.path.dirname(os.path.realpath(__file__))
 
+
 # using embedded Qt5?
-if os.path.isdir(os.path.join(this_dir,"bin","Qt")):
-	AddSysPath(os.path.join(this_dir,"bin"),bBegin=True)
-	os.environ["QT_PLUGIN_PATH"]= os.path.join(this_dir,"bin","Qt","plugins")
+if os.path.isdir(os.path.join(this_dir,"bin","qt")):
+	QT5_DIR=os.path.join(this_dir,"bin","qt")
 
 # using PyQt5
-else:
+else: 
 	import PyQt5
-	PYQT5_DIR=os.path.dirname(PyQt5.__file__)
-	AddSysPath(os.path.join(PYQT5_DIR,"Qt","bin"),bBegin=True)
-	AddSysPath(os.path.join(PYQT5_DIR,"Qt","lib"),bBegin=True)
-	os.environ["QT_PLUGIN_PATH"]= os.path.join(PYQT5_DIR,"Qt","plugins")
+	QT5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"qt")
+
+AddSysPath(os.path.join(QT5_DIR,"bin"),bBegin=True)
+os.environ["QT_PLUGIN_PATH"]= os.path.join(QT5_DIR,"plugins")
 %}
 
 %import <Visus/VisusKernelPy.i>

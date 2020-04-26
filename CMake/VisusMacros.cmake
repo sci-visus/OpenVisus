@@ -76,29 +76,25 @@ macro(InstallFiles SrcPattern DstDir)
 		set(SrcPattern ${CMAKE_CURRENT_SOURCE_DIR}/${SrcPattern})
 	endif()
 	
-	file (GLOB __sources__  ${SrcPattern})
+	file (GLOB __sources__  "${SrcPattern}")
 	foreach(__src__ ${__sources__})
 	
 		get_filename_component(__name__ ${__src__} NAME)
 		
 		# do not move from here, there is a problem with post install
-		if (CMAKE_CONFIGURATION_TYPES)
-			set(__dst__ "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/OpenVisus/${DstDir}/${__name__}")
-		else()
-			set(__dst__ "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus/${DstDir}/${__name__}")
-		endif()
+		set(__dst__ "${InstallDir}/${DstDir}/${__name__}")
 		
 		MESSAGE(STATUS "InstallFile ${__src__} ${__dst__}")
 		
 		# see https://stackoverflow.com/questions/13920072/how-to-always-run-command-when-building-regardless-of-any-dependency/43206544
 		string(MD5 __target__  "${__src__}")
-		add_custom_target(${__target__} ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${__name__}.fake)
+		add_custom_target(${__target__} ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${__name__}.fake")
 		set_target_properties(${__target__} PROPERTIES FOLDER HiddenTargets)	
 		
 		ADD_CUSTOM_COMMAND(
-			OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/${__name__}.fake
+			OUTPUT  "${CMAKE_CURRENT_BINARY_DIR}/${__name__}.fake"
 			DEPENDS "${__src__}"
-			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${__src__} ${__dst__})
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different "${__src__}" "${__dst__}")
 			
 	endforeach()
 
@@ -109,21 +105,17 @@ endmacro()
 # /////////////////////////////////////////////////////////////
 macro(InstallDirectory SrcDir DstDir)
 
-	string(FIND "${SrcDir}" "/" __index__)
-	if(NOT "${__index__}"  EQUAL 0)
-		set(SrcDir ${CMAKE_CURRENT_SOURCE_DIR}/${SrcDir})
+	string(FIND "${SrcDir}" "/"  __index_sep1_)
+	string(FIND "${SrcDir}" "\\" __index_sep2_)
+	
+	# if not absolute path...
+	if(NOT "${__index_sep1_}"  EQUAL 0 AND NOT "${__index_sep2_}"  EQUAL 0)
+		set(SrcDir "${CMAKE_CURRENT_SOURCE_DIR}/${SrcDir}")
 	endif()
 	
-	# do not move from here, there is a problem with post install
-	if (CMAKE_CONFIGURATION_TYPES)
-		set(__dst__ "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/OpenVisus/${DstDir}")
-	else()
-		set(__dst__ "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus/${DstDir}")
-	endif()	
-	
-	
-	MESSAGE(STATUS "InstallDirectory ${SrcDir} ${__dst__}")
-	install(DIRECTORY ${SrcDir} DESTINATION ${__dst__})
+	MESSAGE(STATUS "InstallDirectory ${SrcDir} ${DstDir}")
+	install(DIRECTORY "${SrcDir}" DESTINATION "${InstallDir}/${DstDir}")
+
 endmacro()
 
 # ///////////////////////////////////////////////////
@@ -453,6 +445,8 @@ macro(GenerateScript template_filename script_filename target_filename)
 	file(READ "${template_filename}${SCRIPT_EXT}" content) 
 	
 	string(REPLACE "\${PYTHON_EXECUTABLE}" "${PYTHON_EXECUTABLE}" content "${content}")
+	string(REPLACE "\${PYTHON_VERSION_MAJOR}" "${PYTHON_VERSION_MAJOR}" content "${content}")
+	string(REPLACE "\${PYTHON_VERSION_MINOR}" "${PYTHON_VERSION_MINOR}" content "${content}")
 	string(REPLACE "\${PYTHON_VERSION}" "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}" content "${content}")
 
 	if (VISUS_GUI)

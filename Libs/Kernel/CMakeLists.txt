@@ -205,30 +205,24 @@ file(GLOB RootFiles
 	../../README.md*)
 source_group("" FILES   ${RootFiles})
 
-file(GLOB CMakeFiles    
-	../../CMake/*.py
-	../../CMake/*.cmake
-	../../CMake/script.*
-	../../scripts/*
-)
+file(GLOB ScriptsFiles ../../scripts/*)
+source_group("scripts" FILES   ${ScriptsFiles})
+
+file(GLOB CMakeFiles ../../CMake/*)
 source_group("CMake" FILES   ${CMakeFiles})
 
 file(GLOB PyExamples ../../Samples/python/*.py)
 source_group("Python\\Samples" FILES   ${PyExamples})
 
-file(GLOB CondaFiles ../../conda/openvisus/*)
-source_group("conda" FILES   ${CondaFiles})
-
 file(GLOB Sources 
 	${RootFiles}
 	${PyFiles} 
-	${CMakeFiles} 
+	${CMakeFiles}
+	${ScriptsFiles}
 	${PyExamples}
 	${MMFiles}
-	${CondaFiles}
 	include/Visus/*.* 
-	src/*.cpp src/*.hxx
-)
+	src/*.cpp src/*.hxx)
 
 AddLibrary(VisusKernel SHARED ${Sources})
 

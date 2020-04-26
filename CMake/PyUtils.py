@@ -84,8 +84,6 @@ def WriteTextFile(filename,content):
 	file.write(content) 
 	file.close() 		
 
-
-
 # /////////////////////////////////////////////////////////////////////////
 # glob(,recursive=True) is not supported in python 2.x
 # see https://stackoverflow.com/questions/2186525/use-a-glob-to-find-files-recursively-in-python
@@ -102,10 +100,6 @@ def PipInstall(packagename,extra_args=[]):
 	print("# Executing",cmd)
 	return_code=subprocess.call(cmd)
 	return return_code==0
-
-
-
-
 
 # ////////////////////////////////////////////////////////////////////////////////
 def Assert(condition):
@@ -173,8 +167,6 @@ def KillProcess(process):
 	except:
 		pass	
 	
-
-
 # /////////////////////////////////////////////////////////////////////////
 def ExecuteCommand(cmd):	
 	"""
@@ -218,6 +210,11 @@ def RunJobsInParallel(jobs, advance_callback=None, nthreads=8):
 
 		if advance_callback:
 				advance_callback(len(results))
+
+# /////////////////////////////////////////////////////////////////////////
+def RemoveDirectory(dir):
+	shutil.rmtree(os.path.abspath(dir),ignore_errors=True)		
+
 
 # /////////////////////////////////////////////////////////////////////////
 def RemoveFiles(pattern):
