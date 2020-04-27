@@ -162,24 +162,18 @@ if (1)
 				")
 				
 		elseif (APPLE)
-		
+			
 				install(CODE "
 					MESSAGE(STATUS \"Executing post install command ${PYTHON_EXECUTABLE} -u -m OpenVisus post-install\")
 					set(ENV{PYTHONPATH} \"${PostInstallDir}/../\")
-					execute_process(COMMAND ${PYTHON_EXECUTABLE} -u -m OpenVisus post-install 
+					execute_process(COMMAND ${PYTHON_EXECUTABLE} -u -m OpenVisus post-install ${Qt5_HOME}
 						RESULT_VARIABLE __retcode__
-						WORKING_DIRECTORY \"${PostInstallDir}\"
-					)
+						WORKING_DIRECTORY \"${PostInstallDir}\")
 					MESSAGE(STATUS \"  retcode: \${__retcode__} \")
 					if(NOT \"\${__retcode__}\" STREQUAL \"0\")
 						message(FATAL_ERROR \"Post install failed\")
 					endif()
 				")
-				
-				InstallDirectoryIfExists("${Qt5_PLUGIN_PATH}/iconengines"    ./bin/qt/plugins/)
-				InstallDirectoryIfExists("${Qt5_PLUGIN_PATH}/platforms"      ./bin/qt/plugins/)
-				InstallDirectoryIfExists("${Qt5_PLUGIN_PATH}/printsupport"   ./bin/qt/plugins/)
-				InstallDirectoryIfExists("${Qt5_PLUGIN_PATH}/styles"         ./bin/qt/plugins/)	
 				
 		else()
 		
@@ -194,7 +188,6 @@ if (1)
 
 			InstallDirectory("${Qt5_PLUGIN_PATH}"                ./bin/qt/) 			
 
-			# fix rpaths
 			install(CODE "
 				MESSAGE(STATUS \"Executing ${CMAKE_SOURCE_DIR}/scripts/set_rpath.sh\")
 				execute_process(COMMAND bash ${CMAKE_SOURCE_DIR}/scripts/set_rpath.sh RESULT_VARIABLE __retcode__ WORKING_DIRECTORY \"${PostInstallDir}\")	

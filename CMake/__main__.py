@@ -18,20 +18,34 @@ OSX:
 
 
 # ///////////////////////////////////////
-class MyAppleDeploy:
+class MyDeploy:
 
 	
 	# constructor
 	def __init__(self):
 		pass
 
+	# showDeps
+	def showDeps(self):
+		
+		deps={}
+		for filename in self.findAllBinaries():
+			for dep in self.extractDeps(filename):
+				if not dep in deps:
+					deps[dep]=True
+					
+		v=[it for it in deps.keys()]
+		v.sort()
+		for it in v:
+			print(it)
+		
 
-	# __findAllBinaries
-	def __findAllBinaries(self):	
+	# findAllBinaries
+	def findAllBinaries(self):	
 		ret=[]
 		
-		ret+=RecursiveFindFiles('.', '*.so')
-		ret+=RecursiveFindFiles('.', '*.dylib')
+		ret+=RecursiveFindFiles(".","*.so")
+		ret+=RecursiveFindFiles(".","*.dylib")
 		
 		# apps
 		for it in glob.glob("bin/*.app"):
@@ -47,8 +61,8 @@ class MyAppleDeploy:
 
 		return ret
   
-	# __extractDeps
-	def __extractDeps(self,filename):
+	# extractDeps
+	def extractDeps(self,filename):
 		output=GetCommandOutput(['otool', '-L' , filename])
 		lines=output.split('\n')[1:]
 		deps=[line.strip().split(' ', 1)[0].strip() for line in lines]
@@ -57,16 +71,16 @@ class MyAppleDeploy:
 		deps=[dep for dep in deps if os.path.basename(filename)!=os.path.basename(dep)]
 		return deps
 	
-	# __findLocal
-	def __findLocal(self,filename):
+	# findLocal
+	def findLocal(self,filename):
 		key=os.path.basename(filename)
 		return self.locals[key] if key in self.locals else None
 				
-	# __addLocal
-	def __addLocal(self,filename):
+	# addLocal
+	def addLocal(self,filename):
 		
 		# already added 
-		if self.__findLocal(filename): 
+		if self.findLocal(filename): 
 			return
 		
 		key=os.path.basename(filename)
@@ -75,15 +89,15 @@ class MyAppleDeploy:
 		
 		self.locals[key]=filename
 		
-		for dep in self.__extractDeps(filename):
-			self.__addGlobal(dep)
+		for dep in self.extractDeps(filename):
+			self.addGlobal(dep)
 				
 		
-	# __addGlobal
-	def __addGlobal(self,dep):
+	# addGlobal
+	def addGlobal(self,dep):
 		
 		# it's already a local
-		if self.__findLocal(dep):
+		if self.findLocal(dep):
 			return
 		
 		# wrong file
@@ -108,30 +122,37 @@ class MyAppleDeploy:
 			framework_dir=dep.split(".framework")[0]+".framework"
 			CopyDirectory(framework_dir,"bin")
 			filename="bin/" + os.path.basename(framework_dir) + dep.split(".framework")[1]
-			self.__addLocal(filename) # now a global becomes a local one
+			self.addLocal(filename) # now a global becomes a local one
 			return
 			
 		if dep.endswith(".dylib") or dep.endswith(".so"):
 			filename="bin/" + os.path.basename(dep)
 			CopyFile(dep,filename)
-			self.__addLocal(filename) # now a global becomes a local one
+			self.addLocal(filename) # now a global becomes a local one
 			return 
 		
 		raise Exception("Unknonw dependency %s file file" % (dep,))	
 			
 
-	# copyExternalDependenciesAndFixRPaths
-	def copyExternalDependenciesAndFixRPaths(self):
+	# run
+	def run(self, Qt5_HOME):
+		
+			# copy plugins
+		CopyDirectory(Qt5_HOME + "/plugins/iconengines"   ,"./bin/qt/plugins")
+		CopyDirectory(Qt5_HOME + "/plugins/platforms"     ,"./bin/qt/plugins")
+		CopyDirectory(Qt5_HOME + "/plugins/rintsupport"   ,"./bin/qt/plugins")
+		CopyDirectory(Qt5_HOME + "/plugins/styles"        ,"./bin/qt/plugins")
+			
 
 		self.locals={}
 		
-		for filename in self.__findAllBinaries():
-			self.__addLocal(filename)
+		for filename in self.findAllBinaries():
+			self.addLocal(filename)
 			
-		# note: __findAllBinaries need to be re-executed
-		for filename in self.__findAllBinaries():
+		# note: findAllBinaries need to be re-executed
+		for filename in self.findAllBinaries():
 			
-			deps=self.__extractDeps(filename)
+			deps=self.extractDeps(filename)
 			
 			if False:
 				print("")
@@ -153,7 +174,7 @@ class MyAppleDeploy:
 
 			# example QtOpenGL.framework/Versions/5/QtOpenGL
 			for dep in deps:
-				local=self.__findLocal(dep)
+				local=self.findLocal(dep)
 				if local: 
 					ExecuteCommand(['install_name_tool','-change',dep,"@rpath/"+ getRPathBaseName(local),filename])
 
@@ -164,40 +185,46 @@ class MyAppleDeploy:
 			curr=os.path.dirname(os.path.realpath(filename))
 			N=len(curr.split("/"))-len(root.split("/"))	
 			ExecuteCommand(['install_name_tool','-add_rpath','@loader_path' +  ("/.." * N) + "/bin",filename])
-		
+
 
 	# addRPath
 	def addRPath(self,value):
-		for filename in self.__findAllBinaries():
+		for filename in self.findAllBinaries():
 			ExecuteCommand(["install_name_tool","-add_rpath",value,filename])	
 		
-
 
 
 # ////////////////////////////////////////////////////////////////////////////////////////////////
 if __name__ == '__main__':
 
-	this_dir=ThisDir(__file__)
-	os.chdir(this_dir)
-
 	action=sys.argv[1]
 
 	# _____________________________________________
 	if action=="dirname":
+		this_dir=ThisDir(__file__)
+		os.chdir(this_dir)		
 		print(this_dir)
 		sys.exit(0)
 	
 	# _____________________________________________
+	if action=="show-deps":		
+		MyDeploy().showDeps()	
+		sys.exit(0)
+		
+	# _____________________________________________
 	if action=="post-install":	
 		print("Executing",action,"cwd",os.getcwd(),"args",sys.argv)
 		if not APPLE: raise Exception("not supported")
-		MyAppleDeploy().copyExternalDependenciesAndFixRPaths()	
+		d=MyDeploy()
+		d.run(sys.argv[2])	
+		d.showDeps()
 		print("done",action)
 		sys.exit(0)
 
 	# _____________________________________________
 	if action=="use-pyqt":
-
+		this_dir=ThisDir(__file__)
+		os.chdir(this_dir)
 		print("Executing",action,"cwd",os.getcwd(),"args",sys.argv)
 
 		QT_VERSION = ReadTextFile("QT_VERSION")

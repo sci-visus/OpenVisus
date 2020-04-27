@@ -12,16 +12,18 @@ try:
 except:
 	pass
 
-from OpenVisus import *
-
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
 LINUX=not APPLE and not WIN32
 
-
 # ////////////////////////////////////////////////////////////////////////////////
 def ThisDir(file):
 	return os.path.dirname(os.path.abspath(file))
+
+# ////////////////////////////////////////////////////////////////////////////////
+def Assert(condition):
+	if not condition:
+		raise Exception("Assert failed")
 
 
 # /////////////////////////////////////////////////////////////////////////
@@ -104,12 +106,6 @@ def PipInstall(packagename,extra_args=[]):
 	print("# Executing",cmd)
 	return_code=subprocess.call(cmd)
 	return return_code==0
-
-# ////////////////////////////////////////////////////////////////////////////////
-def Assert(condition):
-	if not condition:
-		raise Exception("Assert failed")
-
 
 # ////////////////////////////////////////////////////////////////////////////////
 def ParseDouble(value,default_value=0.0):
@@ -271,8 +267,6 @@ def SwapRedBlue(img):
 	ret[:,:,0],ret[:,:,2]=img[:,:,2],img[:,:,0]
 	return ret
 	
-
-
 # //////////////////////////////////////////////
 def SplitChannels(data):
 	N=len(data.shape)
