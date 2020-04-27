@@ -114,10 +114,10 @@ add_subdirectory(Executable)
 # install
 if (1)
 
-	InstallFiles(LICENSE                                      .)
-	InstallFiles(README.md                                    .)
-	InstallFiles(CMake/OpenVisusConfig.cmake                  .)
-	InstallFiles(datasets/visus.config                        .)
+	InstallFile(LICENSE                                      .)
+	InstallFile(README.md                                    .)
+	InstallFile(CMake/OpenVisusConfig.cmake                  .)
+	InstallFile(datasets/visus.config                        .)
 
 	InstallDirectory(Copyrights                               .)
 	InstallDirectory(Samples                                  .)
@@ -126,13 +126,13 @@ if (1)
 	InstallDirectory(scripts                                  .)
 
 	if (VISUS_PYTHON)
-		InstallFiles(CMake/__init__.py         .)
-		InstallFiles(CMake/__main__.py         .)
-		InstallFiles(CMake/PyDataset.py        .)
-		InstallFiles(CMake/PyScriptingNode.py  .)
-		InstallFiles(CMake/PyUtils.py          .)
-		InstallFiles(CMake/PyViewer.py         .)
-		InstallFiles(CMake/setup.py            .)
+		InstallFile(CMake/__init__.py         .)
+		InstallFile(CMake/__main__.py         .)
+		InstallFile(CMake/PyDataset.py        .)
+		InstallFile(CMake/PyScriptingNode.py  .)
+		InstallFile(CMake/PyUtils.py          .)
+		InstallFile(CMake/PyViewer.py         .)
+		InstallFile(CMake/setup.py            .)
 	endif()
 
 	# copy needed windows *.dll
@@ -142,7 +142,7 @@ if (1)
 		endif()	
 		set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION "${InstallDir}/bin")
 		include(InstallRequiredSystemLibraries)
-		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION "${InstallDir}/bin")	
+		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION "${InstallDir}/bin")		
 	endif()
 
 	# ____________________________________________
@@ -151,7 +151,6 @@ if (1)
 		# fix the problem with <CONFIG> inside
 		string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" PostInstallDir  "${InstallDir}")
 		 
-
 		if (WIN32)
 				install(CODE "
 					execute_process(
@@ -164,11 +163,13 @@ if (1)
 				
 		elseif (APPLE)
 		
-				# macdeployqt does not allow to choose the 'layout' of the app
 				install(CODE "
 					MESSAGE(STATUS \"Executing post install command ${PYTHON_EXECUTABLE} -u -m OpenVisus post-install\")
 					set(ENV{PYTHONPATH} \"${PostInstallDir}/../\")
-					execute_process(COMMAND ${PYTHON_EXECUTABLE} -u -m OpenVisus post-install RESULT_VARIABLE __retcode__)
+					execute_process(COMMAND ${PYTHON_EXECUTABLE} -u -m OpenVisus post-install 
+						RESULT_VARIABLE __retcode__
+						WORKING_DIRECTORY \"${PostInstallDir}\"
+					)
 					MESSAGE(STATUS \"  retcode: \${__retcode__} \")
 					if(NOT \"\${__retcode__}\" STREQUAL \"0\")
 						message(FATAL_ERROR \"Post install failed\")
@@ -178,7 +179,7 @@ if (1)
 				InstallDirectoryIfExists("${Qt5_PLUGIN_PATH}/iconengines"    ./bin/qt/plugins/)
 				InstallDirectoryIfExists("${Qt5_PLUGIN_PATH}/platforms"      ./bin/qt/plugins/)
 				InstallDirectoryIfExists("${Qt5_PLUGIN_PATH}/printsupport"   ./bin/qt/plugins/)
-				InstallDirectoryIfExists("${Qt5_PLUGIN_PATH}/styles"         ./bin/qt/plugins/)			
+				InstallDirectoryIfExists("${Qt5_PLUGIN_PATH}/styles"         ./bin/qt/plugins/)	
 				
 		else()
 		
@@ -191,8 +192,7 @@ if (1)
 			InstallFiles("${Qt5_HOME}/lib/libQt5XcbQpa.so*"      ./bin/qt/lib)
 			InstallFiles("${Qt5_HOME}/lib/libQt5OpenGL.so*"      ./bin/qt/lib)	
 
-			# need to copy all, otherwise I will have problems
-			InstallDirectory("${Qt5_PLUGIN_PATH}"                ./bin/qt/) 
+			InstallDirectory("${Qt5_PLUGIN_PATH}"                ./bin/qt/) 			
 
 			# fix rpaths
 			install(CODE "

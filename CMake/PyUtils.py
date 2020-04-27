@@ -1,6 +1,10 @@
-import os,sys,glob,threading,platform,sysconfig,re,time,subprocess, errno, fnmatch
-import shutil
-import numpy
+import os,sys,glob,threading,platform,sysconfig,re,time,subprocess, errno, fnmatch, shutil
+
+# not fundamental
+try:
+	import numpy
+except:
+	pass
 
 # not fundamental
 try:

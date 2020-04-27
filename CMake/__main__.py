@@ -1,50 +1,25 @@
 import sys
 import traceback
+
 from PyUtils import *
 
+	
 """
-Fix the problem about shared library path finding
+Linux:
+	QT_DEBUG_PLUGINS=1 LD_DEBUG=libs,files  ./visusviewer.sh
+	LD_DEBUG=libs,files ldd bin/visus
+	readelf -d bin/visus
 
-on windows: it seems sufficient to modify the sys.path before importing the module.
-Example (see __init__.py):
-
-on osx sys.path does not seem to work. Even changing the DYLIB_LIBRARY_PATH
-seems not to work. SO the only viable solution seems to be to modify the Rpath
-(see AppleDeploy)
-
-
-on linux sys.path does not seem to work. I didnt' check if LD_LIBRARY_PATH
-is working or not. To be coherent with OSX I'm using the rpath
+OSX:
+	otool -L libname.dylib
+	otool -l libVisusGui.dylib  | grep -i "rpath"
+	DYLD_PRINT_LIBRARIES=1 QT_DEBUG_PLUGINS=1 visusviewer.app/Contents/MacOS/visusviewer
 """
+
 
 # ///////////////////////////////////////
-class AppleDeploy:
-	
-	"""
-	see https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/RPATH-handling
-	
-	NOTE: !!!! DYLD_LIBRARY_PATH seems to be disabled in Python dlopen for security reasons  !!!!
+class MyAppleDeploy:
 
-	(*) DYLD_LIBRARY_PATH - an environment variable which holds a list of directories
-
-	(*) RPATH - a list of directories which is linked into the executable.
-	    These can contain @loader_path and @executable_path.
-	    To see the rpath type: 
-
-	(*) builtin directories - /lib /usr/lib
-
-	(*) DYLD_FALLBACK_LIBRARY_PATH - an environment variable which holds a list of directories
-
-
-	To check :
-
-		otool -L libname.dylib
-		otool -l libVisusGui.dylib  | grep -i "rpath"
-
-	To debug loading 
-
-	DYLD_PRINT_LIBRARIES=1 QT_DEBUG_PLUGINS=1 visusviewer.app/Contents/MacOS/visusviewer
-	"""
 	
 	# constructor
 	def __init__(self):
@@ -189,92 +164,13 @@ class AppleDeploy:
 			curr=os.path.dirname(os.path.realpath(filename))
 			N=len(curr.split("/"))-len(root.split("/"))	
 			ExecuteCommand(['install_name_tool','-add_rpath','@loader_path' +  ("/.." * N) + "/bin",filename])
-
+		
 
 	# addRPath
 	def addRPath(self,value):
 		for filename in self.__findAllBinaries():
 			ExecuteCommand(["install_name_tool","-add_rpath",value,filename])	
 		
-		
-		
-# ///////////////////////////////////////
-
-"""
-If a shared object dependency does not contain a slash, then it is
-searched for in the following order:
-
--  Using the directories specified in the DT_RPATH dynamic section
-attribute of the binary if present and DT_RUNPATH attribute does
-not exist.  Use of DT_RPATH is deprecated.
-
--  Using the environment variable LD_LIBRARY_PATH, unless the
-executable is being run in secure-execution mode (see below), in
-which case this variable is ignored.
-
--  Using the directories specified in the DT_RUNPATH dynamic section
-attribute of the binary if present.  Such directories are searched
-only to find those objects required by DT_NEEDED (direct
-dependencies) entries and do not apply to those objects' children,
-which must themselves have their own DT_RUNPATH entries.  This is
-unlike DT_RPATH, which is applied to searches for all children in
-the dependency tree.
-
--  From the cache file /etc/ld.so.cache, which contains a compiled
-list of candidate shared objects previously found in the augmented
-library path.  If, however, the binary was linked with the -z
-nodeflib linker option, shared objects in the default paths are
-skipped.  Shared objects installed in hardware capability
-directories (see below) are preferred to other shared objects.
-
--  In the default path /lib, and then /usr/lib.  (On some 64-bit
-architectures, the default paths for 64-bit shared objects are
-/lib64, and then /usr/lib64.)  If the binary was linked with the
--z nodeflib linker option, this step is skipped.
-
-Rpath token expansion:
-
-The dynamic linker understands certain token strings in an rpath
-specification (DT_RPATH or DT_RUNPATH).  Those strings are
-substituted as follows:
-
-$ORIGIN (or equivalently ${ORIGIN})
-This expands to the directory containing the program or shared
-object.  Thus, an application located in somedir/app could be
-compiled with
-
-	gcc -Wl,-rpath,'$ORIGIN/../lib'
-
-	so that it finds an associated shared object in somedir/lib no
-	matter where somedir is located in the directory hierarchy.
-	This facilitates the creation of "turn-key" applications that
-	do not need to be installed into special directories, but can
-	instead be unpacked into any directory and still find their
-	own shared objects.
-
-$LIB (or equivalently ${LIB})
-This expands to lib or lib64 depending on the architecture
-(e.g., on x86-64, it expands to lib64 and on x86-32, it
-expands to lib).
-
-$PLATFORM (or equivalently ${PLATFORM})
-This expands to a string corresponding to the processor type
-of the host system (e.g., "x86_64").  On some architectures,
-the Linux kernel doesn't provide a platform string to the
-dynamic linker.  The value of this string is taken from the
-AT_PLATFORM value in the auxiliary vector (see getauxval(3)).	
-
-To debug
-
-QT_DEBUG_PLUGINS=1 LD_DEBUG=libs,files  ./visusviewer.sh
-
-LD_DEBUG=libs,files ldd bin/visus
-
-# this shows the rpath
-readelf -d bin/visus
-
-"""
-	
 
 
 
@@ -295,7 +191,7 @@ if __name__ == '__main__':
 	if action=="post-install":	
 		print("Executing",action,"cwd",os.getcwd(),"args",sys.argv)
 		if not APPLE: raise Exception("not supported")
-		AppleDeploy().copyExternalDependenciesAndFixRPaths()	
+		MyAppleDeploy().copyExternalDependenciesAndFixRPaths()	
 		print("done",action)
 		sys.exit(0)
 
@@ -347,7 +243,7 @@ if __name__ == '__main__':
 		if WIN32:
 			pass
 		elif APPLE:	
-			RemoveFiles("bin/libQt*")	
+			RemoveFiles("bin/Qt*")	
 			AppleDeploy().addRPath(os.path.join(Qt5_DIR,"lib"))
 		else:
 			script=ThisDir(__file__) + "/scripts/set_rpath.sh"

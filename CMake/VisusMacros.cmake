@@ -69,33 +69,36 @@ endfunction()
 
 
 # /////////////////////////////////////////////////////////////
+macro(InstallFile Src DstDir)
+
+	string(FIND "${Src}" "/"  __index_sep1_)
+	string(FIND "${Src}" "\\" __index_sep2_)
+	
+	# if not absolute path...
+	if(NOT "${__index_sep1_}"  EQUAL 0 AND NOT "${__index_sep2_}"  EQUAL 0)	
+		set(Src ${CMAKE_CURRENT_SOURCE_DIR}/${Src})
+	endif()
+	
+	INSTALL(FILES ${Src} DESTINATION "${InstallDir}/${DstDir}")
+
+endmacro()
+
+
+
+# /////////////////////////////////////////////////////////////
 macro(InstallFiles SrcPattern DstDir)
 
-	string(FIND "${SrcPattern}" "/" __index__)
-	if(NOT "${__index__}"  EQUAL 0)
+	string(FIND "${SrcPattern}" "/"  __index_sep1_)
+	string(FIND "${SrcPattern}" "\\" __index_sep2_)
+	
+	# if not absolute path...
+	if(NOT "${__index_sep1_}"  EQUAL 0 AND NOT "${__index_sep2_}"  EQUAL 0)	
 		set(SrcPattern ${CMAKE_CURRENT_SOURCE_DIR}/${SrcPattern})
 	endif()
 	
 	file (GLOB __sources__  "${SrcPattern}")
 	foreach(__src__ ${__sources__})
-	
-		get_filename_component(__name__ ${__src__} NAME)
-		
-		# do not move from here, there is a problem with post install
-		set(__dst__ "${InstallDir}/${DstDir}/${__name__}")
-		
-		MESSAGE(STATUS "InstallFile ${__src__} ${__dst__}")
-		
-		# see https://stackoverflow.com/questions/13920072/how-to-always-run-command-when-building-regardless-of-any-dependency/43206544
-		string(MD5 __target__  "${__src__}")
-		add_custom_target(${__target__} ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${__name__}.fake")
-		set_target_properties(${__target__} PROPERTIES FOLDER HiddenTargets)	
-		
-		ADD_CUSTOM_COMMAND(
-			OUTPUT  "${CMAKE_CURRENT_BINARY_DIR}/${__name__}.fake"
-			DEPENDS "${__src__}"
-			COMMAND ${CMAKE_COMMAND} -E copy_if_different "${__src__}" "${__dst__}")
-			
+		InstallFile(${__src__} ${DstDir})
 	endforeach()
 
 
@@ -113,8 +116,7 @@ macro(InstallDirectory SrcDir DstDir)
 		set(SrcDir "${CMAKE_CURRENT_SOURCE_DIR}/${SrcDir}")
 	endif()
 	
-	MESSAGE(STATUS "InstallDirectory ${SrcDir} ${DstDir}")
-	install(DIRECTORY "${SrcDir}" DESTINATION "${InstallDir}/${DstDir}")
+	INSTALL(DIRECTORY "${SrcDir}" DESTINATION "${InstallDir}/${DstDir}")
 
 endmacro()
 
@@ -145,7 +147,7 @@ macro(SetupCommonTargetOptions Name)
 	elseif (APPLE)
 		target_compile_options(${Name} PRIVATE -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
 		set_target_properties(${Name} PROPERTIES MACOSX_BUNDLE TRUE) 
-		set_target_properties(${Name} PROPERTIES MACOSX_RPATH 0) # disable rpath
+		set_target_properties(${Name} PROPERTIES MACOSX_RPATH 0) # disable rpath 
 	else()
 		target_compile_options(${Name} PRIVATE -D_FILE_OFFSET_BITS=64)
 		target_compile_options(${Name} PRIVATE -Wno-attributes)	
@@ -462,11 +464,14 @@ macro(GenerateScript template_filename script_filename target_filename)
 	elseif (APPLE)
 		get_filename_component(__name_we__ ${target_filename} NAME_WE)
 		string(REPLACE "\${TARGET_FILENAME}" "${target_filename}.app/Contents/MacOS/${__name_we__}" content  "${content}")
+		
 	else()
 		string(REPLACE "\${TARGET_FILENAME}" "${target_filename}" content  "${content}")
 	endif()
 	
 	file(GENERATE OUTPUT "${script_filename}${SCRIPT_EXT}" CONTENT "${content}")
+	
+	
 endmacro()
 
 
