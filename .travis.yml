@@ -63,9 +63,16 @@ matrix:
 script:
   - |
     cd "${TRAVIS_BUILD_DIR}"
+    
+    if [[ "${TRAVIS_TAG}" != "" ]] ; then
+       PYPI_DEPLOY=1
+       CONDA_DEPLOY=1
+    fi    
+    
     if [ "$(uname)" == "Darwin" ]; then 
       gem install xcpretty 
-      ./scripts/build_travis.sh
+      ./scripts/build.sh
+      
     else
       sudo docker run -ti \
        -v $(pwd):/root/OpenVisus \
@@ -79,7 +86,8 @@ script:
        -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
        -e BUILD_CONDA=${BUILD_CONDA} \
        visus/travis-image\
-       /bin/bash -c "./scripts/build_travis.sh"     
+       /bin/bash -c "./scripts/build.sh"
+       
     fi
 
 

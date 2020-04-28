@@ -191,7 +191,7 @@ Build the repository:
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-./scripts/build.sh
+# configure & generate using CMake
 ```
 
 To test if it's working:
@@ -208,8 +208,7 @@ Build the repository:
 
 ```
 git clone https://github.com/sci-visus/OpenVisus
-cd OpenVisus
-./scripts/build.sh
+# configure & generate using CMake
 ```
 
 To test if it's working:

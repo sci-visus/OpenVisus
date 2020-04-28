@@ -15,7 +15,7 @@ jobs:
       - checkout
       - run: 
           name: Build OpenVisus
-          command: ./scripts/build_travis.sh
+          command: ./scripts/build.sh
   
   linux-3.7:
     docker:
@@ -28,7 +28,7 @@ jobs:
       - checkout
       - run: 
           name: Build OpenVisus
-          command: ./scripts/build_travis.sh
+          command: ./scripts/build.sh
             
   linux-3.6:
     docker:
@@ -41,7 +41,7 @@ jobs:
       - checkout
       - run: 
           name: Build OpenVisus
-          command: ./scripts/build_travis.sh   
+          command: ./scripts/build.sh   
 
 workflows:
   version: 2

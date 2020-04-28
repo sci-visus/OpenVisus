@@ -146,8 +146,11 @@ macro(SetupCommonTargetOptions Name)
 		target_compile_options(${Name} PRIVATE -DWIN32_LEAN_AND_MEAN)		
 	elseif (APPLE)
 		target_compile_options(${Name} PRIVATE -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
-		set_target_properties(${Name} PROPERTIES MACOSX_BUNDLE TRUE) 
-		set_target_properties(${Name} PROPERTIES MACOSX_RPATH 0) # disable rpath 
+		
+		# see https://stackoverflow.com/questions/57343408/cmake-dragndrop-framework-rpath-for-qt-not-set-when-targeting-package
+		set_target_properties(${Name} PROPERTIES MACOSX_BUNDLE TRUE)
+		set_target_properties(${Name} PROPERTIES MACOSX_RPATH  TRUE)
+	
 	else()
 		target_compile_options(${Name} PRIVATE -D_FILE_OFFSET_BITS=64)
 		target_compile_options(${Name} PRIVATE -Wno-attributes)	
@@ -157,10 +160,57 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(FindPythonLibrary)
 
-	SetIfNotDefined(PYTHON_VERSION 3)
+	if (DEFINED PYTHON_VERSION)
+		find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
+	else()
+		find_package(PythonInterp 3 REQUIRED)
+	endif() 
+
+	message(STATUS "PYTHON_EXECUTABLE ${PYTHON_EXECUTABLE}")
+	message(STATUS "PYTHON_VERSION_MAJOR ${PYTHON_VERSION_MAJOR}")
+	message(STATUS "PYTHON_VERSION_MINOR ${PYTHON_VERSION_MINOR}")
+	message(STATUS "PYTHON_VERSION_STRING ${PYTHON_VERSION_STRING}")
 	
-	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
-	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)	
+	ForceUnset(PYTHON_INCLUDE_DIR)
+	execute_process(COMMAND ${PYTHON_EXECUTABLE} -c 
+		"import sysconfig;print(sysconfig.get_paths()['include'])" 
+		OUTPUT_VARIABLE PYTHON_INCLUDE_DIR
+		OUTPUT_STRIP_TRAILING_WHITESPACE)
+		
+	message(STATUS "PYTHON_INCLUDE_DIR ${PYTHON_INCLUDE_DIR}")
+	
+	if (NOT WIN32)
+	
+		execute_process(COMMAND ${PYTHON_EXECUTABLE} -c 
+			"import sysconfig,os;print(sysconfig.get_config_var('LIBDIR'))" 
+			OUTPUT_VARIABLE PYTHON_LIBDIR
+			OUTPUT_STRIP_TRAILING_WHITESPACE)	
+		MESSAGE(STATUS "PYTHON_LIBDIR ${PYTHON_LIBDIR}")
+		
+		if (APPLE)
+			set(PYTHON_LIBRARY "${PYTHON_LIBDIR}/libpython${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}m.dylib")
+			if(NOT EXISTS ${PYTHON_LIBRARY})
+				set(PYTHON_LIBRARY ${PYTHON_LIBDIR}/libpython${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.dylib)
+			endif()
+			
+		else()
+			execute_process(COMMAND ${PYTHON_EXECUTABLE} -c 
+				"import sysconfig,os;print(sysconfig.get_config_var('LDLIBRARY'))"  
+				OUTPUT_VARIABLE PYTHON_LDLIBRARY
+				OUTPUT_STRIP_TRAILING_WHITESPACE)
+			set(PYTHON_LIBRARY ${PYTHON_LIBDIR}/${PYTHON_LDLIBRARY})
+			
+		endif()
+		
+		if(NOT EXISTS ${PYTHON_LIBRARY})
+			MESSAGE(FATAL "cannot guess PYTHON_LIBRARY")
+		endif()		
+		
+		message(STATUS "PYTHON_LIBRARY ${PYTHON_LIBRARY}")
+	
+	endif()
+
+	find_package(PythonLibs ${PYTHON_VERSION_STRING} REQUIRED)	
 	
 	add_library(OpenVisus::Python SHARED IMPORTED GLOBAL)
 	set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
@@ -183,10 +233,6 @@ macro(FindPythonLibrary)
 	else()
 		set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
 	endif()
-
-	message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
-	message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
-	message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
 		
 endmacro()
 
@@ -256,26 +302,15 @@ macro(FindQtLibrary)
 	mark_as_advanced(Qt5OpenGL_DIR)
 	mark_as_advanced(Qt5Widgets_DIR)	
 
-	get_filename_component(Qt5_HOME "${Qt5_DIR}/../../.." REALPATH)
-
-	if (EXISTS "${Qt5_HOME}/plugins")
-		set(Qt5_PLUGIN_PATH "${Qt5_HOME}/plugins")
-	elseif (EXISTS "${Qt5_HOME}/lib/qt5/plugin")
-		set(Qt5_PLUGIN_PATH "${Qt5_HOME}/lib/qt5/plugin")
-	else()
-		MESSAGE(WARNING "cannot find Qt5 plugins Qt5_HOME=${Qt5_HOME}")
-		ForceUnset(Qt5_PLUGIN_PATH)
-	endif()
+	get_filename_component(Qt5_HOME "${Qt5_DIR}/../../.." ABSOLUTE)
 	
 	if (WIN32)
 		string(REPLACE "\\" "/" Qt5_DIR         "${Qt5_DIR}")
 		string(REPLACE "\\" "/" Qt5_HOME        "${Qt5_HOME}")
-		string(REPLACE "\\" "/" Qt5_PLUGIN_PATH "${Qt5_PLUGIN_PATH}")
 	endif()	
 
 	MESSAGE(STATUS "Qt5_DIR        ${Qt5_DIR}")
 	MESSAGE(STATUS "Qt5_HOME       ${Qt5_HOME}")
-	MESSAGE(STATUS "Qt5_PLUGIN_PATH ${Qt5_PLUGIN_PATH}")
 endmacro()
 
 # ///////////////////////////////////////////////////
@@ -449,7 +484,6 @@ macro(GenerateScript template_filename script_filename target_filename)
 	string(REPLACE "\${PYTHON_EXECUTABLE}" "${PYTHON_EXECUTABLE}" content "${content}")
 	string(REPLACE "\${PYTHON_VERSION_MAJOR}" "${PYTHON_VERSION_MAJOR}" content "${content}")
 	string(REPLACE "\${PYTHON_VERSION_MINOR}" "${PYTHON_VERSION_MINOR}" content "${content}")
-	string(REPLACE "\${PYTHON_VERSION}" "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}" content "${content}")
 
 	if (VISUS_GUI)
 		string(REPLACE "\${VISUS_GUI}" "1" content "${content}")

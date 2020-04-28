@@ -61,21 +61,16 @@ endmacro()
 # ///////////////////////////////////////////////////////////////
 macro(AddOpenVisusPythonLibraries OpenVisus_DIR)
 
-	if (EXISTS "${OpenVisus_DIR}/PYTHON_VERSION")
+	SET(VISUS_PYTHON  "1" CACHE INTERNAL "VISUS_PYTHON")
 
-		SET(VISUS_PYTHON  "1" CACHE INTERNAL "VISUS_PYTHON")
+	# force the version to be the same
+	file(READ ${OpenVisus_DIR}/PYTHON_VERSION_STRING PYTHON_VERSION_STRING) 
+	string(STRIP ${PYTHON_VERSION_STRING} PYTHON_VERSION_STRING)
 
-		# force the version to be the same
-		file(READ ${OpenVisus_DIR}/PYTHON_VERSION PYTHON_VERSION) 
-		string(STRIP ${PYTHON_VERSION} PYTHON_VERSION)
-
-		FindPythonLibrary()
-		AddImportedOpenVisusLibrary(${OpenVisus_DIR} OpenVisus::Kernel "OpenVisus::Python")
-		set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_COMPILE_DEFINITIONS VISUS_PYTHON=1)
-	else()
-		ForceUnset(VISUS_PYTHON)
-		AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Kernel "")
-	endif()
+	FindPythonLibrary()
+	
+	AddImportedOpenVisusLibrary(${OpenVisus_DIR} OpenVisus::Kernel "OpenVisus::Python")
+	set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_COMPILE_DEFINITIONS VISUS_PYTHON=1)
 
 	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Dataflow "OpenVisus::Kernel")
 	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::XIdx     "OpenVisus::Kernel")

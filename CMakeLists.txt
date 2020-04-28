@@ -86,7 +86,7 @@ endif()
 
 if (VISUS_PYTHON)
 	FindPythonLibrary()
-	file(GENERATE OUTPUT ${InstallDir}/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+	file(GENERATE OUTPUT ${InstallDir}/PYTHON_VERSION_STRING CONTENT "${PYTHON_VERSION_STRING}")
 endif()
 
 if (VISUS_GUI)
@@ -132,6 +132,7 @@ if (1)
 		InstallFile(CMake/PyScriptingNode.py  .)
 		InstallFile(CMake/PyUtils.py          .)
 		InstallFile(CMake/PyViewer.py         .)
+		InstallFile(CMake/PyDeploy.py         .)
 		InstallFile(CMake/setup.py            .)
 	endif()
 
@@ -142,7 +143,7 @@ if (1)
 		endif()	
 		set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION "${InstallDir}/bin")
 		include(InstallRequiredSystemLibraries)
-		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION "${InstallDir}/bin")		
+		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION "${InstallDir}/bin")
 	endif()
 
 	# ____________________________________________
@@ -150,52 +151,15 @@ if (1)
 	
 		# fix the problem with <CONFIG> inside
 		string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" PostInstallDir  "${InstallDir}")
-		 
-		if (WIN32)
-				install(CODE "
-					execute_process(
-						COMMAND ${Qt5_HOME}/bin/windeployqt.exe bin/visusviewer.exe 
-							--libdir    ./bin/qt/bin
-							--plugindir ./bin/qt/plugins 
-							--no-translations
-					WORKING_DIRECTORY ${PostInstallDir})
-				")
-				
-		elseif (APPLE)
-			
-				install(CODE "
-					MESSAGE(STATUS \"Executing post install command ${PYTHON_EXECUTABLE} -u -m OpenVisus post-install\")
-					set(ENV{PYTHONPATH} \"${PostInstallDir}/../\")
-					execute_process(COMMAND ${PYTHON_EXECUTABLE} -u -m OpenVisus post-install ${Qt5_HOME}
-						RESULT_VARIABLE __retcode__
-						WORKING_DIRECTORY \"${PostInstallDir}\")
-					MESSAGE(STATUS \"  retcode: \${__retcode__} \")
-					if(NOT \"\${__retcode__}\" STREQUAL \"0\")
-						message(FATAL_ERROR \"Post install failed\")
-					endif()
-				")
-				
-		else()
-		
-			InstallFiles("${Qt5_HOME}/lib/libQt5Core.so*"        ./bin/qt/lib)
-			InstallFiles("${Qt5_HOME}/lib/libQt5DBus.so*"        ./bin/qt/lib)
-			InstallFiles("${Qt5_HOME}/lib/libQt5Gui.so*"         ./bin/qt/lib)
-			InstallFiles("${Qt5_HOME}/lib/libQt5Network.so*"     ./bin/qt/lib)
-			InstallFiles("${Qt5_HOME}/lib/libQt5Svg.so*"         ./bin/qt/lib)		
-			InstallFiles("${Qt5_HOME}/lib/libQt5Widgets.so*"     ./bin/qt/lib)
-			InstallFiles("${Qt5_HOME}/lib/libQt5XcbQpa.so*"      ./bin/qt/lib)
-			InstallFiles("${Qt5_HOME}/lib/libQt5OpenGL.so*"      ./bin/qt/lib)	
-
-			InstallDirectory("${Qt5_PLUGIN_PATH}"                ./bin/qt/) 			
-
-			install(CODE "
-				MESSAGE(STATUS \"Executing ${CMAKE_SOURCE_DIR}/scripts/set_rpath.sh\")
-				execute_process(COMMAND bash ${CMAKE_SOURCE_DIR}/scripts/set_rpath.sh RESULT_VARIABLE __retcode__ WORKING_DIRECTORY \"${PostInstallDir}\")	
-				if(NOT \"\${__retcode__}\" STREQUAL \"0\")
-						message(FATAL_ERROR \"Post install failed\")
-				endif()
-			")	
-		endif()
+		install(CODE "
+			execute_process(
+				COMMAND ${PYTHON_EXECUTABLE} -u ${CMAKE_SOURCE_DIR}/CMake/PyDeploy.py --my-deploy \"${Qt5_HOME}\"
+					RESULT_VARIABLE __retcode__
+					WORKING_DIRECTORY \"${PostInstallDir}\")
+			if(NOT \"\${__retcode__}\" STREQUAL \"0\")
+				message(FATAL_ERROR \"Post install failed\")
+			endif()
+		")
 	
 	endmacro()
 
@@ -212,85 +176,4 @@ if (VISUS_PYTHON)
 	add_custom_target(use-pyqt ${CMAKE_COMMAND} -E env PYTHONPATH=${InstallDir}/.. ${PYTHON_EXECUTABLE} -u -m OpenVisus use-pyqt)
 	set_property(TARGET use-pyqt PROPERTY FOLDER CMakePredefinedTargets)
 endif()
-
-
-# //////////////////////////////////////////////////////////////
-# *** RUN_TESTS (to call after INSTALL) ***
-if (VISUS_PYTHON)
-
-	enable_testing()
-
-	macro(AddOpenVisusTest Name)
-		add_test(NAME ${Name} ${ARGN})
-		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1")
-		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "PYTHONPATH=${InstallDir}/..")
-	endmacro()
-	
-	AddOpenVisusTest(VisusTestPyDataflow   COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/Dataflow.py"        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-	AddOpenVisusTest(VisusTestPyDataflow2  COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/Dataflow2.py"       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-	AddOpenVisusTest(VisusTestPyArray      COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/Array.py"           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-	AddOpenVisusTest(VisusTestPyIdx        COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/Idx.py"             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-	AddOpenVisusTest(VisusTestPyXIdx       COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/XIdx.py"            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-	
-	AddOpenVisusTest(VisusDataConversion1 COMMAND "${PYTHON_EXECUTABLE}"     "Samples/python/DataConversion1.py" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-	AddOpenVisusTest(VisusDataConversion2 COMMAND "${PYTHON_EXECUTABLE}"     "Samples/python/DataConversion2.py" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-
-	# disabled: takes too much time, in case you modify some core IDX class you can run it manually
-	# AddOpenVisusTest(NAME VisusTestIdx COMMAND "$<TARGET_FILE:visus>"     "." --test-idx --max-seconds 300     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-	
-	macro(AddOpenVisusGuiTest Name Filename)
-		add_custom_target(${Name} COMMAND ${CMAKE_COMMAND} -E env "PYTHONPATH=${InstallDir}/.." ${PYTHON_EXECUTABLE} -u \"${Filename}\" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-		set_property(TARGET ${Name} PROPERTY FOLDER CMakePredefinedTargets)
-	endmacro()
-	
-	# cannot "Stop in Visual Studio"
-	# AddOpenVisusGuiTest(TestViewer1  Samples/python/TestViewer1.py)
-	# AddOpenVisusGuiTest(TestViewer2  Samples/python/TestViewer2.py)
-	# AddOpenVisusGuiTest(VisibleHuman Samples/python/VisibleHuman.py)
-	
-endif()
-
-# //////////////////////////////////////////////////////////////
-# *** ExternalApps (dependent on install)
-if (1)
-
-	# external app
-	macro(AddOpenVisusExternalApp SourceDir)
-
-		get_filename_component(Name ${SourceDir} NAME_WE )
-
-		if (CMAKE_CONFIGURATION_TYPES)
-			set(CMAKE_GENERATOR_ARGUMENT -G"${CMAKE_GENERATOR}")
-			set(BinaryDir ${CMAKE_BINARY_DIR}/$<CONFIG>/ExternalApps/${Name})
-		else()
-			set(CMAKE_GENERATOR_ARGUMENT -G"\"${CMAKE_GENERATOR}\"")
-			set(BinaryDir ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/ExternalApps/${Name})
-		endif()
-
-		add_custom_target(${Name} 
-			COMMAND "${CMAKE_COMMAND}" 
-				"${CMAKE_GENERATOR_ARGUMENT}"  
-				-H"${SourceDir}/" 
-				-B"${BinaryDir}/" 
-				-DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} 
-				-DPYTHON_LIBRARY=${PYTHON_LIBRARY}
-				-DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIRS}
-				-DQt5_DIR="${Qt5_DIR}" 
-				-DOpenVisus_DIR=${InstallDir}
-			COMMAND "${CMAKE_COMMAND}"  --build "${BinaryDir}/"  --config ${CMAKE_BUILD_TYPE})
-
-		set_target_properties(${Name} PROPERTIES FOLDER CMakeTargets/)
-
-	endmacro()
-
-	if (VISUS_DB)
-		AddOpenVisusExternalApp(${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_query)
-	endif()
-
-	if (VISUS_GUI)
-		AddOpenVisusExternalApp(${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_viewer2d)
-	endif()
-
-endif()
-
 

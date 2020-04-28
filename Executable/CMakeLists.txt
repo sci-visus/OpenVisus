@@ -3,7 +3,7 @@ if (VISUS_DB)
 	add_subdirectory(visus)
 endif()
 
-if (VISUS_DB)
+if (NOT WIN32 AND NOT APPLE)
 	add_subdirectory(mod_visus)
 endif()
 
