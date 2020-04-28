@@ -28,23 +28,7 @@ conditions: v1
 matrix:
   fast_finish: true
   include:
-  
-    # ///////////////////////////////// linux (see scripts/build_travis.Dockerfile)
 
-    - os: linux
-      dist: trusty
-      env: ['PYTHON_VERSION=3.8', BUILD_CONDA=0] 
-    
-    - os: linux
-      dist: trusty
-      env: ['PYTHON_VERSION=3.7']
-
-    - os: linux
-      dist: trusty
-      env: ['PYTHON_VERSION=3.6']
-          
-
-    # ///////////////////////////////// osx
     - os: osx
       osx_image: xcode9.4
       compiler: clang
@@ -61,34 +45,11 @@ matrix:
       env: ['PYTHON_VERSION=3.6']
 
 script:
-  - |
+  - |    
+    gem install xcpretty 
     cd "${TRAVIS_BUILD_DIR}"
-    
-    if [[ "${TRAVIS_TAG}" != "" ]] ; then
-       PYPI_DEPLOY=1
-       CONDA_DEPLOY=1
-    fi    
-    
-    if [ "$(uname)" == "Darwin" ]; then 
-      gem install xcpretty 
-      ./scripts/build.sh
-      
-    else
-      sudo docker run -ti \
-       -v $(pwd):/root/OpenVisus \
-       -w /root/OpenVisus \
-       -e PYTHON_VERSION=${PYTHON_VERSION} \
-       -e PYTHON_EXECUTABLE=/usr/local/bin/python${PYTHON_VERSION} \
-       -e Qt5_DIR=/opt/qt59 \
-       -e TRAVIS_TAG=${TRAVIS_TAG} \
-       -e PYPI_USERNAME=${PYPI_USERNAME} \
-       -e PYPI_PASSWORD=${PYPI_PASSWORD} \
-       -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
-       -e BUILD_CONDA=${BUILD_CONDA} \
-       visus/travis-image\
-       /bin/bash -c "./scripts/build.sh"
-       
-    fi
+    PYPI_DEPLOY=${TRAVIS_TAG} CONDA_DEPLOY=${TRAVIS_TAG} ./scripts/build.sh
+
 
 
 

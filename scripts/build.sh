@@ -101,7 +101,7 @@ if (( BUILD_WHEEL == 1 )) ; then
 	WHEEL_FILENAME=dist/OpenVisus-*.whl
 	rm -Rf ./build
 		
-	if [[ "${PYPI_DEPLOY}" == "1"  && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then
+	if [[ "${PYPI_DEPLOY}" != ""  && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then
 		python -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing ${WHEEL_FILENAME}
 	fi
 fi
@@ -143,7 +143,7 @@ if (( BUILD_CONDA == 1 )) ; then
 	
 	fi
 	
-	if [[ "${CONDA_DEPLOY}" = "1"  && "${ANACONDA_TOKEN}" != "" ]] ; then
+	if [[ "${CONDA_DEPLOY}" != ""  && "${ANACONDA_TOKEN}" != "" ]] ; then
 		anaconda -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
 	fi
 

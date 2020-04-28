@@ -2,46 +2,41 @@ version: 2
 
 jobs:
 
+
   # ///////////////////////////////// manylinux
   linux-3.8:
     docker:
       - image: visus/travis-image
         environment:
           PYTHON_VERSION: 3.8
-          PYTHON_EXECUTABLE: /usr/local/bin/python3.8
-          Qt5_DIR: /opt/qt59 
           BUILD_CONDA: 0
     steps:
       - checkout
       - run: 
           name: Build OpenVisus
-          command: ./scripts/build.sh
+          command: PYPI_DEPLOY=${CIRCLE_TAG} CONDA_DEPLOY=${CIRCLE_TAG} ./scripts/build.sh
   
   linux-3.7:
     docker:
       - image: visus/travis-image
         environment:
           PYTHON_VERSION: 3.7
-          PYTHON_EXECUTABLE: /usr/local/bin/python3.7
-          Qt5_DIR: /opt/qt59 
     steps:
       - checkout
       - run: 
           name: Build OpenVisus
-          command: ./scripts/build.sh
+          command: PYPI_DEPLOY=${CIRCLE_TAG} CONDA_DEPLOY=${CIRCLE_TAG} ./scripts/build.sh
             
   linux-3.6:
     docker:
       - image: visus/travis-image
         environment:
           PYTHON_VERSION: 3.6
-          PYTHON_EXECUTABLE: /usr/local/bin/python3.6
-          Qt5_DIR: /opt/qt59 
     steps:
       - checkout
       - run: 
           name: Build OpenVisus
-          command: ./scripts/build.sh   
+          command: PYPI_DEPLOY=${CIRCLE_TAG} CONDA_DEPLOY=${CIRCLE_TAG} ./scripts/build.sh
 
 workflows:
   version: 2
