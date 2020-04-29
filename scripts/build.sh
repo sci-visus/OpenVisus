@@ -21,10 +21,6 @@ fi
 
 if [ "$(uname)" == "Darwin" ]; then 
 
-	CMAKE_OSX_SYSROOT=~/MacOSX-SDKs/MacOSX10.9.sdk
-	Qt5_DIR=/usr/local/opt/qt
-	PYTHON_EXECUTABLE=/usr/local/opt/python@${PYTHON_VERSION}/bin/python${PYTHON_VERSION}
-	
 	if [[ ! -x "$(command -v cmake)" ]] ; then
 		brew install cmake
 	fi
@@ -33,16 +29,32 @@ if [ "$(uname)" == "Darwin" ]; then
 		brew install swig
 	fi	
 	
+	PYTHON_EXECUTABLE=/usr/local/opt/python@${PYTHON_VERSION}/bin/python${PYTHON_VERSION}
 	if [ ! -f "${PYTHON_EXECUTABLE}" ]; then
 		brew install sashkab/python/python@${PYTHON_VERSION} 
 		${PYTHON_EXECUTABLE} -m pip install -q --upgrade pip  || true
 		${PYTHON_EXECUTABLE} -m pip install -q numpy setuptools wheel twine	 || true
 	fi
 	
-	if [ ! -d "${Qt5_DIR}" ] ; then
-		brew install "https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb"  
+	# 5.9.3 in order to be compatible with conda PyQt5 (very old so I need to do some tricks)
+	# NOTE important to keep both the link and real path
+	Qt5_DIR=/usr/local/opt/qt
+	if [ ! -d "/usr/local/Cellar/qt/5.9.3" ] ; then
+		pushd $( brew --prefix )/Homebrew/Library/Taps/homebrew/homebrew-core 
+		git checkout 13d52537d1e0e5f913de46390123436d220035f6 -- Formula/qt.rb 
+		cat Formula/qt.rb \
+			| sed -e 's|depends_on :mysql|depends_on "mysql-client"|g' \
+			| sed -e 's|depends_on :postgresql|depends_on "postgresql"|g' \
+			| sed -e 's|depends_on :macos => :mountain_lion|depends_on :macos => :sierra|g' \
+			> /tmp/qt.rb
+		cp /tmp/qt.rb Formula/qt.rb 
+		brew install qt 
+		brew link --force qt	
+		git checkout -f
+		popd	
 	fi
 	
+	CMAKE_OSX_SYSROOT=~/MacOSX-SDKs/MacOSX10.9.sdk
 	if [ ! -d "${CMAKE_OSX_SYSROOT}" ] ; then
 		pushd ~
 		git clone https://github.com/phracker/MacOSX-SDKs.git 
@@ -67,7 +79,13 @@ if [ "$(uname)" == "Darwin" ]; then
 	
 	mkdir -p build_travis
 	cd build_travis
-	cmake -GXcode -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} -DQt5_DIR=${Qt5_DIR} ../
+	
+	if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
+		cmake -GXcode -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} -DQt5_DIR=${Qt5_DIR} ../ | xcpretty -c
+	else
+		cmake -GXcode -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} -DQt5_DIR=${Qt5_DIR} ../
+	fi
+	
 	cmake --build ./ --target ALL_BUILD --config Release
 	cmake --build ./ --target install   --config Release
 
@@ -129,14 +147,12 @@ if (( BUILD_CONDA == 1 )) ; then
 	eval "$(conda shell.bash hook)" # see https://github.com/conda/conda/issues/8072
 	
 	conda install -y python=${PYTHON_VERSION}
-	conda install anaconda-client setuptools conda-build -y
-	
-	# remove my Qt (I need to be portable), note sometimes I have seg fault here
-	PYTHONPATH=$(pwd)/.. python -m OpenVisus use-pyqt || true 
 	
 	# create the conda disttribution
+	conda install conda-build -y
 	rm -Rf dist build __pycache_
-	rm -Rf $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
+	rm -Rf $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")	
+	PYTHONPATH=$(pwd)/.. python -m OpenVisus use-pyqt  
 	python setup.py -q bdist_conda 
 	CONDA_FILENAME=$(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
 	
@@ -147,6 +163,7 @@ if (( BUILD_CONDA == 1 )) ; then
 	done
 	
 	if [[ "${CONDA_DEPLOY}" != ""  && "${ANACONDA_TOKEN}" != ""  ]] ; then
+		conda install anaconda-client -y
 		anaconda -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
 	fi
 

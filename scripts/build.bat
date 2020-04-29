@@ -50,10 +50,8 @@ if "BUILD_CONDA" != "0" (
 	source ~/miniconda3/etc/profile.d/conda.sh
 	eval "$(conda shell.bash hook)" # see https://github.com/conda/conda/issues/8072
 	
-	conda install anaconda-client setuptools conda-build -y
-	
-	PYTHONPATH=$(pwd)/.. python -m OpenVisus use-pyqt 
-	
+	conda install conda-build -y
+	PYTHONPATH=$(pwd)/.. python -m OpenVisus use-pyqt
 	rmdir "dist"       /s /q
 	rmdir "build"      /s /q
 	rmdir "__pycache_" /s /q
@@ -72,6 +70,7 @@ if "BUILD_CONDA" != "0" (
 	python Samples/python/DataConversion2.py
 	
 	if "%APPVEYOR_REPO_TAG%" == "true" (
+		conda install anaconda-client -y
 		anaconda -t %ANACONDA_TOKEN% upload "%CONDA_BUILD_FILENAME%"
 	)
 

@@ -42,5 +42,6 @@ RUN bash python.conda.sh 3.8
 COPY scripts/install/httpd24.sh .
 RUN bash httpd24.sh
 
+# be careful if you change version, it could have problems with conda/pyqt in case you need it
 COPY scripts/install/qt59.sh .
 RUN bash qt59.sh 
