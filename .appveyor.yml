@@ -15,6 +15,7 @@ environment:
     secure: 6DHH80JPNRCtIYxWc/h88Q==   
   matrix:
     - PYTHON_VERSION: 38
+      BUILD_CONDA: 0
     - PYTHON_VERSION: 37
     - PYTHON_VERSION: 36    
  

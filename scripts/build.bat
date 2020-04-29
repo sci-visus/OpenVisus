@@ -42,10 +42,9 @@ if "%APPVEYOR_REPO_TAG%" == "true" (
 )
 
 
-if "true" == "true" (
+if "BUILD_CONDA" != "0" (
 
 	C:\Miniconda%PYTHON_VERSION%-x64
-	...
 
 	export PATH=~/miniconda3/bin:$PATH
 	source ~/miniconda3/etc/profile.d/conda.sh
@@ -61,8 +60,7 @@ if "true" == "true" (
 	rm -Rf $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
 	python setup.py -q bdist_conda 
 	CONDA_FILENAME=$(find C:\Miniconda%PYTHON_VERSION%-x64/conda-bld -iname "openvisus*.tar.bz2")
-	rm -Rf ./build
-	
+
 	conda install -y --force-reinstall %CONDA_FILENAME%
 	
 	python Samples/python/Array.py 
@@ -74,10 +72,7 @@ if "true" == "true" (
 	python Samples/python/DataConversion2.py
 	
 	if "%APPVEYOR_REPO_TAG%" == "true" (
-		anaconda -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
+		anaconda -t %ANACONDA_TOKEN% upload "%CONDA_BUILD_FILENAME%"
 	)
-	if [[ "${CONDA_DEPLOY}" != ""  && "${ANACONDA_TOKEN}" != "" ]] ; then
-		
-	fi
-	
+
 )
