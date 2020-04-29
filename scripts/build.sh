@@ -41,6 +41,7 @@ if [ "$(uname)" == "Darwin" ]; then
 	Qt5_DIR=/usr/local/opt/qt
 	if [ ! -d "/usr/local/Cellar/qt/5.9.3" ] ; then
 		pushd $( brew --prefix )/Homebrew/Library/Taps/homebrew/homebrew-core 
+		git fetch --unshallow || true
 		git checkout 13d52537d1e0e5f913de46390123436d220035f6 -- Formula/qt.rb 
 		cat Formula/qt.rb \
 			| sed -e 's|depends_on :mysql|depends_on "mysql-client"|g' \
