@@ -22,7 +22,7 @@ environment:
 build_script:
   - cmd: choco install -y --allow-empty-checksums swig 
   - cmd: cd %APPVEYOR_BUILD_FOLDER% 
-  - cmd: call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
+  - cmd: call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
   - cmd: .\scripts\build.bat 
 
 test: off

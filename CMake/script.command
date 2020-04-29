@@ -3,11 +3,11 @@
 this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 # change as needed
-PYTHON=${PYTHON:-python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}}
+PYTHON=${PYTHON:-python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}}
 
 if [[ ! -x ${PYTHON} ]] ; then
 	# this is brew default...
-	PYTHON=$(brew --prefix python@${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR})/bin/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}
+	PYTHON=$(brew --prefix python@${Python_VERSION_MAJOR}.${Python_VERSION_MINOR})/bin/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}
 fi
 
 export PYTHONPATH=$(${PYTHON} -c "import sys;print(sys.path)"):${PYTHONPATH}

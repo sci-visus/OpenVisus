@@ -3,7 +3,7 @@
 this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 # change as needed
-PYTHON=python${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR}
+PYTHON=python${Python_VERSION_MAJOR}${Python_VERSION_MINOR}
 
 export PYTHONPATH=$(${PYTHON} -c "import sys;print(sys.path)"):${PYTHONPATH}
 export LD_LIBRARY_PATH=$(${PYTHON} -c "import os,sysconfig;print(os.path.realpath(sysconfig.get_config_var('LIBDIR')))"):${LD_LIBRARY_PATH}

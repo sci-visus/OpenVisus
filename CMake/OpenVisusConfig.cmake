@@ -62,7 +62,7 @@ endmacro()
 macro(AddOpenVisusPythonLibraries OpenVisus_DIR)
 
 	find_package(Python COMPONENTS Interpreter Development)	
-	message(STATUS "PYTHON_EXECUTABLE     ${PYTHON_EXECUTABLE}")
+	message(STATUS "Python_EXECUTABLE     ${Python_EXECUTABLE}")
 	
 	set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_COMPILE_DEFINITIONS VISUS_PYTHON=1)
 

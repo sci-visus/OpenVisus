@@ -29,11 +29,11 @@ if [ "$(uname)" == "Darwin" ]; then
 		brew install swig
 	fi	
 	
-	PYTHON_EXECUTABLE=/usr/local/opt/python@${PYTHON_VERSION}/bin/python${PYTHON_VERSION}
-	if [ ! -f "${PYTHON_EXECUTABLE}" ]; then
+	Python_EXECUTABLE=/usr/local/opt/python@${PYTHON_VERSION}/bin/python${PYTHON_VERSION}
+	if [ ! -f "${Python_EXECUTABLE}" ]; then
 		brew install sashkab/python/python@${PYTHON_VERSION} 
-		${PYTHON_EXECUTABLE} -m pip install -q --upgrade pip  || true
-		${PYTHON_EXECUTABLE} -m pip install -q numpy setuptools wheel twine	 || true
+		${Python_EXECUTABLE} -m pip install -q --upgrade pip  || true
+		${Python_EXECUTABLE} -m pip install -q numpy setuptools wheel twine	 || true
 	fi
 	
 	# 5.9.3 in order to be compatible with conda PyQt5 (very old so I need to do some tricks)
@@ -81,9 +81,9 @@ if [ "$(uname)" == "Darwin" ]; then
 	cd build_travis
 	
 	if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
-		cmake -GXcode -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} -DQt5_DIR=${Qt5_DIR} ../ | xcpretty -c
+		cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} -DQt5_DIR=${Qt5_DIR} ../ | xcpretty -c
 	else
-		cmake -GXcode -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} -DQt5_DIR=${Qt5_DIR} ../
+		cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} -DQt5_DIR=${Qt5_DIR} ../
 	fi
 	
 	cmake --build ./ --target ALL_BUILD --config Release
@@ -93,8 +93,8 @@ else
 
 	mkdir -p build_travis
 	cd build_travis
-	PYTHON_EXECUTABLE=python${PYTHON_VERSION}
-	cmake -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DQt5_DIR=/opt/qt59 ../
+	Python_EXECUTABLE=python${PYTHON_VERSION}
+	cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=/opt/qt59 ../
 	cmake --build ./ --target all     --config Release
 	cmake --build ./ --target install --config Release
 
@@ -105,7 +105,7 @@ cd Release/OpenVisus
 # test
 Tests="Array.py Dataflow.py Dataflow2.py Idx.py XIdx.py DataConversion1.py DataConversion2.py" 
 for Test in ${Tests} ; do
-	PYTHONPATH=../ ${PYTHON_EXECUTABLE} Samples/python/${Test}
+	PYTHONPATH=../ ${Python_EXECUTABLE} Samples/python/${Test}
 done
 
 if [ "$(uname)" == "Darwin" ]; then
@@ -120,7 +120,7 @@ fi
 BUILD_WHEEL=${BUILD_WHEEL:-1}
 if (( BUILD_WHEEL == 1 )) ; then
 
-	${PYTHON_EXECUTABLE} -m pip install setuptools wheel --upgrade || true
+	${Python_EXECUTABLE} -m pip install setuptools wheel --upgrade || true
 	
 	if [ "$(uname)" == "Darwin" ]; then 
 		PLATFORM_TAG=macosx_10_9_x86_64
@@ -129,11 +129,11 @@ if (( BUILD_WHEEL == 1 )) ; then
 	fi	
 	
 	rm -Rf dist build __pycache__ 
-	${PYTHON_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=${PLATFORM_TAG}
+	${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=${PLATFORM_TAG}
 	WHEEL_FILENAME=dist/OpenVisus-*.whl
 		
 	if [[ "${PYPI_DEPLOY}" != ""  && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then
-		${PYTHON_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing ${WHEEL_FILENAME}
+		${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing ${WHEEL_FILENAME}
 	fi
 fi
 
@@ -152,7 +152,7 @@ if (( BUILD_CONDA == 1 )) ; then
 	conda install conda-build -y
 	rm -Rf dist build __pycache_
 	rm -Rf $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")	
-	PYTHONPATH=$(pwd)/.. python -m OpenVisus use-pyqt  
+	PYTHONPATH=$(pwd)/.. python -m OpenVisus use-pyqt || true # sometimes this crashes
 	python setup.py -q bdist_conda 
 	CONDA_FILENAME=$(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
 	

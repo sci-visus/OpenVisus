@@ -167,7 +167,7 @@ if (1)
 		string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" __OutputDir__  "${OutputDir}")
 		install(CODE "
 			execute_process(
-				COMMAND ${PYTHON_EXECUTABLE} -u ${CMAKE_SOURCE_DIR}/CMake/PyDeploy.py --my-deploy \"${Qt5_HOME}\"
+				COMMAND ${Python_EXECUTABLE} -u ${CMAKE_SOURCE_DIR}/CMake/PyDeploy.py --my-deploy \"${Qt5_HOME}\"
 					RESULT_VARIABLE __retcode__
 					WORKING_DIRECTORY \"${__OutputDir__}\")
 			if(NOT \"\${__retcode__}\" STREQUAL \"0\")
@@ -185,7 +185,7 @@ endif()
 # //////////////////////////////////////////////////////////////
 # *** use-pyqt (to call after INSTALL, create scripts and forse use of PyQt) ***
 if (1)
-	add_custom_target(use-pyqt ${CMAKE_COMMAND} -E env PYTHONPATH=${OutputDir}/.. ${PYTHON_EXECUTABLE} -u -m OpenVisus use-pyqt)
+	add_custom_target(use-pyqt ${CMAKE_COMMAND} -E env PYTHONPATH=${OutputDir}/.. ${Python_EXECUTABLE} -u -m OpenVisus use-pyqt)
 	set_property(TARGET use-pyqt PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 
@@ -204,9 +204,9 @@ macro(GenerateScript template_filename script_filename target_filename)
 
 	file(READ "${template_filename}${SCRIPT_EXT}" content) 
 	
-	string(REPLACE "\${PYTHON_EXECUTABLE}"    "${PYTHON_EXECUTABLE}"    content "${content}")
-	string(REPLACE "\${PYTHON_VERSION_MAJOR}" "${PYTHON_VERSION_MAJOR}" content "${content}")
-	string(REPLACE "\${PYTHON_VERSION_MINOR}" "${PYTHON_VERSION_MINOR}" content "${content}")
+	string(REPLACE "\${Python_EXECUTABLE}"    "${Python_EXECUTABLE}"    content "${content}")
+	string(REPLACE "\${Python_VERSION_MAJOR}" "${Python_VERSION_MAJOR}" content "${content}")
+	string(REPLACE "\${Python_VERSION_MINOR}" "${Python_VERSION_MINOR}" content "${content}")
 
 	if (VISUS_GUI)
 		string(REPLACE "\${VISUS_GUI}" "1" content "${content}")

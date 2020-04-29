@@ -1,30 +1,35 @@
 @echo on
 
 REM to test
-REM set PYTHON_VERSION=38
+REM set PYTHON_VERSION=37
+REM set Python_EXECUTABLE=C:\Python37\python.exe 
+REM set Qt5_DIR=D:\Qt\5.9.9\msvc2017_64\lib\cmake\Qt5
+REM set GENERATOR=Visual Studio 16 2019
 REM build.bat
 
-set PYTHON_EXECUTABLE=C:/Python%PYTHON_VERSION%-x64/python.exe 
+set Python_EXECUTABLE=C:\Python%PYTHON_VERSION%-x64\python.exe 
+set Qt5_DIR=C:\Qt\5.9\msvc2017_64\lib\cmake\Qt5
+set GENERATOR=Visual Studio 16 2019
 
-"%PYTHON_EXECUTABLE%" -m pip install numpy setuptools wheel twine --upgrade
+"%Python_EXECUTABLE%" -m pip install numpy setuptools wheel twine --upgrade
 
-mkdir build 
-cd build
+mkdir build_appveyor
+cd build_appveyor
 
-cmake.exe -G "Visual Studio 15 2017 Win64" -DQt5_DIR="C:\Qt\5.11\msvc2017_64\lib\cmake\Qt5" -DPYTHON_EXECUTABLE=%PYTHON_EXECUTABLE% ../
+cmake.exe -G "%GENERATOR%" -A "x64" -DQt5_DIR="%Qt5_DIR%" -DPython_EXECUTABLE=%Python_EXECUTABLE% ../
 cmake.exe --build . --target ALL_BUILD --config Release
 cmake.exe --build . --target INSTALL   --config Release
 
-cd build\Release\OpenVisus
+cd Release\OpenVisus
  
 set PYTHONPATH=..\
-%PYTHON_EXECUTABLE% Samples/python/Array.py 
-%PYTHON_EXECUTABLE% Samples/python/Dataflow.py 
-%PYTHON_EXECUTABLE% Samples/python/Dataflow2.py 
-%PYTHON_EXECUTABLE% Samples/python/Idx.py 
-%PYTHON_EXECUTABLE% Samples/python/XIdx.py 
-%PYTHON_EXECUTABLE% Samples/python/DataConversion1.py 
-%PYTHON_EXECUTABLE% Samples/python/DataConversion2.py
+"%Python_EXECUTABLE%" Samples/python/Array.py 
+"%Python_EXECUTABLE%" Samples/python/Dataflow.py 
+"%Python_EXECUTABLE%" Samples/python/Dataflow2.py 
+"%Python_EXECUTABLE%" Samples/python/Idx.py 
+"%Python_EXECUTABLE%" Samples/python/XIdx.py 
+"%Python_EXECUTABLE%" Samples/python/DataConversion1.py 
+"%Python_EXECUTABLE%" Samples/python/DataConversion2.py
 set PYTHONPATH=
 
 .\visus.bat
@@ -35,10 +40,10 @@ if "%APPVEYOR_REPO_TAG%" == "true" (
 	rmdir "dist"       /s /q
 	rmdir "build"      /s /q
 	rmdir "__pycache_" /s /q
-	"%PYTHON_EXECUTABLE%" setup.py -q bdist_wheel --python-tag=cp%PYTHON_VERSION% --plat-name=win_amd64
+	"%Python_EXECUTABLE%" setup.py -q bdist_wheel --python-tag=cp%PYTHON_VERSION% --plat-name=win_amd64
 
 	set HOME=%USERPROFILE% 
-	"%PYTHON_EXECUTABLE%" -m twine upload --username %PYPI_USERNAME% --password %PYPI_PASSWORD% --skip-existing  "dist/*.whl"
+	"%Python_EXECUTABLE%" -m twine upload --username %PYPI_USERNAME% --password %PYPI_PASSWORD% --skip-existing  "dist/*.whl"
 )
 
 

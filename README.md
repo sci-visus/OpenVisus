@@ -63,21 +63,21 @@ On a command prompt:
 
 ```
 REM change this as needed
-set PYTHON_EXECUTABLE=c:\Python38\python.exe
+set Python_EXECUTABLE=c:\Python38\python.exe
 
-%PYTHON_EXECUTABLE% -m pip install --user --no-cache numpy opencv-python OpenVisus
+%Python_EXECUTABLE% -m pip install --user --no-cache numpy opencv-python OpenVisus
 
 REM finilize the installation 
-%PYTHON_EXECUTABLE% -m OpenVisus configure 
+%Python_EXECUTABLE% -m OpenVisus configure 
 
-%PYTHON_EXECUTABLE% -m OpenVisus dirname
+%Python_EXECUTABLE% -m OpenVisus dirname
 cd \to\the\direttory\printed\by\above\command
 
 REM test python  examples 
-%PYTHON_EXECUTABLE% Samples\python\Array.py
-%PYTHON_EXECUTABLE% Samples\python\Dataflow.py
-%PYTHON_EXECUTABLE% Samples\python\Idx.py
-%PYTHON_EXECUTABLE% Samples\python\TestViewer1.py
+%Python_EXECUTABLE% Samples\python\Array.py
+%Python_EXECUTABLE% Samples\python\Dataflow.py
+%Python_EXECUTABLE% Samples\python\Idx.py
+%Python_EXECUTABLE% Samples\python\TestViewer1.py
 
 REM test OpenVisus viewer
 .\visusviewer.bat
@@ -162,7 +162,7 @@ git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 
 REM *** change path as needed *** 
-set PYTHON_EXECUTABLE=C:\Python37\python.exe
+set Python_EXECUTABLE=C:\Python37\python.exe
 set CMAKE_EXECUTABLE=C:\Program Files\CMake\bin\cmake.exe
 set QT5_DIR=c:\Qt\5.11.2\msvc2015_64\lib\cmake\Qt5
 .\CMake\build.bat

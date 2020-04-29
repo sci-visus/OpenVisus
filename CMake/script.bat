@@ -2,12 +2,12 @@
 set this_dir=%~dp0
 
 REM change as needed!
-set PYTHON=c:\python${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR}\python.exe
+set PYTHON=c:\python${Python_VERSION_MAJOR}${Python_VERSION_MINOR}\python.exe
 
 if NOT EXIST %PYTHON% (
-	set PYTHON="%LocalAppData%\Programs\Python\Python${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR}\python.exe"
+	set PYTHON="%LocalAppData%\Programs\Python\Python${Python_VERSION_MAJOR}${Python_VERSION_MINOR}\python.exe"
 	if NOT EXIST %PYTHON% (
-		echo "change the batch file to locate your python ${PYTHON_VERSION}"
+		echo "change the batch file to locate your python"
 		pause
 	)
 )
