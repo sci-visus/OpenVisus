@@ -51,22 +51,20 @@ if "BUILD_CONDA" != "0" (
 
 	%CONDA_DIR%\Scripts\activate.bat
 
-	conda install conda-build -y
+	conda install conda-build numpy -y
 	set PYTHONPATH=..\
 	python -m OpenVisus use-pyqt
 	set PYTHONPATH=
 	rmdir "dist"       /s /q
 	rmdir "build"      /s /q
 	rmdir "__pycache_" /s /q
-	rm -Rf $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
+	del %CONDA_DIR%\conda-bld\win-64\openvisus*.tar.bz2
 	python setup.py -q bdist_conda 
-	
-	cd /d %CONDA_DIR%\conda-bld\win-64
-	conda install -y numpy
-	conda install -y --force-reinstall openvisus*
-
+	python -c "import glob;open('conda_filename.txt', 'wt').write(str(glob.glob('%CONDA_DIR%/conda-bld/win-64/openvisus*.tar.bz2')[0]))"
+	set /P CONDA_FILENAME=<conda_filename.txt
+	echo %CONDA_FILENAME%
+	conda install -y --force-reinstall %CONDA_FILENAME%
 	cd /d %CONDA_DIR%\lib\site-packages\OpenVisus
-
 	python Samples/python/Array.py 
 	python Samples/python/Dataflow.py 
 	python Samples/python/Dataflow2.py 
@@ -77,8 +75,7 @@ if "BUILD_CONDA" != "0" (
 	
 	if "%APPVEYOR_REPO_TAG%" == "true" (
 		conda install anaconda-client -y
-		cd /d %CONDA_DIR%\conda-bld\win-64
-		anaconda -t %ANACONDA_TOKEN% upload openvisus*
+		anaconda -t %ANACONDA_TOKEN% upload %CONDA_FILENAME%
 	)
 
 )
