@@ -1,7 +1,12 @@
 #/bin/bash
 
-# Example:
+# To test, under osx:
 # PYTHON_VERSION=3.7 scripts/build.sh
+#
+# To test, under linux (assuming you want to use docker):
+# sudo docker run -ti -v $(pwd):/root/OpenVisus -w /root/OpenVisus visus/travis-image  /bin/bash
+# export PYTHON_VERSION=3.7 
+# scripts/build.sh
 
  # stop or error
 set -e
@@ -60,8 +65,6 @@ if [ "$(uname)" == "Darwin" ]; then
 	# install python inside conda
 	./scripts/install/python.conda.sh ${PYTHON_VERSION}
 	
-	
-	
 	mkdir -p build_travis
 	cd build_travis
 	cmake -GXcode -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} -DQt5_DIR=${Qt5_DIR} ../
@@ -107,10 +110,9 @@ if (( BUILD_WHEEL == 1 )) ; then
 		PLATFORM_TAG=manylinux2010_x86_64
 	fi	
 	
-	rm -Rf ./dist/*OpenVisus-*.whl 
+	rm -Rf dist build __pycache__ 
 	${PYTHON_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=${PLATFORM_TAG}
 	WHEEL_FILENAME=dist/OpenVisus-*.whl
-	rm -Rf ./build
 		
 	if [[ "${PYPI_DEPLOY}" != ""  && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then
 		${PYTHON_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing ${WHEEL_FILENAME}
@@ -119,7 +121,6 @@ fi
 
 # ////////////////////////////////////////////////////////////////////////
 BUILD_CONDA=${BUILD_CONDA:-1}
-
 if (( BUILD_CONDA == 1 )) ; then
 
 	# activate 
@@ -134,18 +135,18 @@ if (( BUILD_CONDA == 1 )) ; then
 	PYTHONPATH=$(pwd)/.. python -m OpenVisus use-pyqt || true 
 	
 	# create the conda disttribution
-	rm -Rf ./dist/* $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
+	rm -Rf dist build __pycache_
+	rm -Rf $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
 	python setup.py -q bdist_conda 
 	CONDA_FILENAME=$(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
-	rm -Rf ./build
 	
-	conda install -y ${CONDA_FILENAME}
+	conda install -y --force-reinstall ${CONDA_FILENAME}
 	
 	for Test in ${Tests} ; do
 		python $(python -m OpenVisus dirname)/Samples/python/${Test}
 	done
 	
-	if [[ "${CONDA_DEPLOY}" != ""  && "${ANACONDA_TOKEN}" != "" ]] ; then
+	if [[ "${CONDA_DEPLOY}" != ""  && "${ANACONDA_TOKEN}" != ""  ]] ; then
 		anaconda -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
 	fi
 

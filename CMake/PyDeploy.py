@@ -18,24 +18,7 @@ def ExecuteCommand(cmd):
 	# print("Executing command", cmd)
 	return subprocess.call(cmd, shell=False)
 	
-# /////////////////////////////////////////////////////////////////////////
-def CopyFile(src,dst):
-	
-	src=os.path.realpath(src) 
-	dst=os.path.realpath(dst)		
-	
-	if src==dst or not os.path.isfile(src):
-		return		
 
-	CreateDirectory(os.path.dirname(dst))
-	shutil.copyfile(src, dst)		
-	
-# /////////////////////////////////////////////////////////////////////////
-def CopyFiles(sources,dst):
-	for src in sources:
-		CopyFile(src,dst)
-	
-	
 	
 	# /////////////////////////////////////////////////////////////////////////
 def CreateDirectory(value):
@@ -102,19 +85,21 @@ def ShowDeps():
 def SetRPath(value):
 
 		for filename in glob.glob("*.so"):
-			ExecuteCommand(["patchelf"," --set-rpath",value, filename])
+			ExecuteCommand(["patchelf","--set-rpath",value, filename])
 		
 		for filename in glob.glob("bin/*.so"):
-			ExecuteCommand(["patchelf"," --set-rpath",value, filename])
+			ExecuteCommand(["patchelf","--set-rpath",value, filename])
 	
 		for filename in ("bin/visus","bin/visusviewer"):
-			ExecuteCommand(["patchelf"," --set-rpath",value, filename])
+			ExecuteCommand(["patchelf","--set-rpath",value, filename])
 	
 	
 
 # ///////////////////////////////////////////////
 # apple only
 def MyDeploy(Qt5_HOME):
+	
+	print("executing MyDeploy",Qt5_HOME)
 	
 	if not Qt5_HOME:
 		raise Exception("internal error")
@@ -188,9 +173,10 @@ def MyDeploy(Qt5_HOME):
 		
 		qt_deps=("Qt5Core","Qt5DBus","Qt5Gui","Qt5Network","Qt5Svg","Qt5Widgets","Qt5XcbQpa","Qt5OpenGL")
 		
+		CreateDirectory("bin/qt/lib")
 		for it in qt_deps:
-			files=glob.glob("{0}/lib/lib{1}.so*".format(Qt5_HOME,it))
-			CopyFiles(files,"./bin/qt/lib")
+			for file in glob.glob("{0}/lib/lib{1}.so*".format(Qt5_HOME,it)):
+				shutil.copy(file, "bin/qt/lib/")		
 			
 		CopyDirectory(Qt5_HOME+ "/plugins","./bin/qt") 		
 		SetRPath("$ORIGIN:$ORIGIN/bin:$ORIGIN/qt/lib")
