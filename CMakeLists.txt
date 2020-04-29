@@ -1,6 +1,11 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8) 
 
 # qt-related
+if(POLICY CMP0020)
+  cmake_policy(SET CMP0020 NEW)
+endif()
+
+# qt-related
 if (POLICY CMP0071)
   cmake_policy(SET CMP0071 OLD)
 endif()

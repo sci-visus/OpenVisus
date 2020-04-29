@@ -106,7 +106,7 @@ def MyDeploy(Qt5_HOME):
 		
 	if WIN32:
 
-		ExecuteCommand([Qt5_HOME + "/bin/windeployqt.exe", "bin/visusviewer.exe"
+		ExecuteCommand([Qt5_HOME + "/bin/windeployqt.exe", "bin/visusviewer.exe",
 				"--libdir","./bin/qt/bin",
 				"--plugindir","./bin/qt/plugins",
 				"--no-translations"])

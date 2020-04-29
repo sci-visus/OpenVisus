@@ -2,14 +2,16 @@
 
 REM to test
 REM set PYTHON_VERSION=37
-REM set Python_EXECUTABLE=C:\Python37\python.exe 
+REM set Python_EXECUTABLE=C:/Python37/python.exe 
 REM set Qt5_DIR=D:\Qt\5.9.9\msvc2017_64\lib\cmake\Qt5
 REM set GENERATOR=Visual Studio 16 2019
+REM set CONDA_DIR=C:\Miniconda%PYTHON_VERSION%-x64
 REM build.bat
 
-set Python_EXECUTABLE=C:\Python%PYTHON_VERSION%-x64\python.exe 
+set Python_EXECUTABLE=C:/Python%PYTHON_VERSION%-x64/python.exe 
 set Qt5_DIR=C:\Qt\5.9\msvc2017_64\lib\cmake\Qt5
 set GENERATOR=Visual Studio 16 2019
+set CONDA_DIR=C:\Miniconda%PYTHON_VERSION%-x64
 
 "%Python_EXECUTABLE%" -m pip install numpy setuptools wheel twine --upgrade
 
@@ -34,7 +36,6 @@ set PYTHONPATH=
 
 .\visus.bat
 
-
 if "%APPVEYOR_REPO_TAG%" == "true" (
 
 	rmdir "dist"       /s /q
@@ -49,21 +50,26 @@ if "%APPVEYOR_REPO_TAG%" == "true" (
 
 if "BUILD_CONDA" != "0" (
 
-	C:\Miniconda%PYTHON_VERSION%-x64
+	%CONDA_DIR%\Scripts\activate.bat
 
-	export PATH=~/miniconda3/bin:$PATH
-	source ~/miniconda3/etc/profile.d/conda.sh
-	eval "$(conda shell.bash hook)" # see https://github.com/conda/conda/issues/8072
-	
 	conda install conda-build -y
-	PYTHONPATH=$(pwd)/.. python -m OpenVisus use-pyqt
+	set PYTHONPATH=..\
+	python -m OpenVisus use-pyqt
+	set PYTHONPATH=
 	rmdir "dist"       /s /q
 	rmdir "build"      /s /q
 	rmdir "__pycache_" /s /q
 	rm -Rf $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
 	python setup.py -q bdist_conda 
-	CONDA_FILENAME=$(find C:\Miniconda%PYTHON_VERSION%-x64/conda-bld -iname "openvisus*.tar.bz2")
-
+	
+	
+	dir %CONDA_DIR%\conda-bld\win-64\*.tar.bz2"
+	for /d %%d in (%CONDA_DIR%\conda-bld\win-64\*.tar.bz2) do set __file__="%%d"
+	FOR /F "TOKENS=*" %%F IN ('') DO SET directoryName=%%~F
+	set __file__=dir %CONDA_DIR%\conda-bld\win-64\openvisus-*.tar.bz2
+	set CONDA_FILENAME=%CONDA_DIR%\conda-bld\win-64\openvisus-1.3.78-py37h39e3cac_0.tar.bz2
+	
+	conda install -y numpy
 	conda install -y --force-reinstall %CONDA_FILENAME%
 	
 	python Samples/python/Array.py 
@@ -76,7 +82,7 @@ if "BUILD_CONDA" != "0" (
 	
 	if "%APPVEYOR_REPO_TAG%" == "true" (
 		conda install anaconda-client -y
-		anaconda -t %ANACONDA_TOKEN% upload "%CONDA_BUILD_FILENAME%"
+		anaconda -t %ANACONDA_TOKEN% upload "%CONDA_FILENAME%"
 	)
 
 )

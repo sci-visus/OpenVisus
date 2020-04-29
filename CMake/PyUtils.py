@@ -101,7 +101,7 @@ def RecursiveFindFiles(rootdir='.', pattern='*'):
 
 # /////////////////////////////////////////////////////////////////////////
 def PipInstall(packagename,extra_args=[]):
-	cmd=[sys.executable,"-m","pip","install","--progress-bar","ofF","--user",packagename]
+	cmd=[sys.executable,"-m","pip","install","--progress-bar","off","--user",packagename]
 	if extra_args: cmd+=extra_args
 	print("# Executing",cmd)
 	return_code=subprocess.call(cmd)

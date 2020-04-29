@@ -165,7 +165,7 @@ if (( BUILD_CONDA == 1 )) ; then
 	
 	if [[ "${CONDA_DEPLOY}" != ""  && "${ANACONDA_TOKEN}" != ""  ]] ; then
 		conda install anaconda-client -y
-		anaconda -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
+		anaconda -t ${ANACONDA_TOKEN} upload "${CONDA_FILENAME}"
 	fi
 
 fi
