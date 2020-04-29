@@ -703,7 +703,9 @@ else()
 	add_definitions(-DOPENSSLDIR=\"${CMAKE_INSTALL_PREFIX}/etc/ssl\")
 endif()
 
-AddExternalLibrary(crypto ${CRYPTO_SRC})
+add_library(crypto STATIC ${CRYPTO_SRC})
+set_target_properties(crypto PROPERTIES FOLDER "ExternalLibs/")
+
 target_include_directories(crypto
 	PRIVATE
 		.

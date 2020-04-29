@@ -224,52 +224,42 @@ file(GLOB Sources
 	include/Visus/*.* 
 	src/*.cpp src/*.hxx)
 
-AddLibrary(VisusKernel SHARED ${Sources})
+add_library(VisusKernel SHARED ${Sources})
+set_target_properties(VisusKernel PROPERTIES FOLDER "")
+
+if (CMAKE_CONFIGURATION_TYPES)
+	target_compile_options(VisusKernel PUBLIC "$<$<CONFIG:Debug>:-DVISUS_DEBUG=1>")	
+elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
+	target_compile_options(VisusKernel PUBLIC -DVISUS_DEBUG=1)
+endif()
+
+if (WIN32)
+	target_compile_options(VisusKernel PUBLIC /bigobj)		
+	target_compile_options(VisusKernel PUBLIC -DPSAPI_VERSION=1)
+	target_compile_options(VisusKernel PUBLIC -DFD_SETSIZE=4096)
+	target_compile_options(VisusKernel PUBLIC -D_CRT_SECURE_NO_WARNINGS)
+	target_compile_options(VisusKernel PUBLIC -DWIN32_LEAN_AND_MEAN)		
+elseif (APPLE)
+	target_compile_options(VisusKernel PUBLIC -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
+	# see https://stackoverflow.com/questions/57343408/cmake-dragndrop-framework-rpath-for-qt-not-set-when-targeting-package
+
+else()
+	target_compile_options(VisusKernel PUBLIC -D_FILE_OFFSET_BITS=64)
+	target_compile_options(VisusKernel PUBLIC -Wno-attributes)	
+endif()
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs)
 
 target_link_libraries(VisusKernel PRIVATE cryptlite dtl lz4 tinyxml zlib zfp)
 
+target_link_libraries(VisusKernel PRIVATE FreeImage)
+target_link_libraries(VisusKernel PRIVATE curl)
+target_link_libraries(VisusKernel PUBLIC  Python::Module)
 
-# openmp
-if (VISUS_OPENMP)
+target_compile_definitions(VisusKernel  PUBLIC  VISUS_PYTHON=1)
+target_compile_definitions(VisusKernel  PRIVATE SWIG_TYPE_TABLE=OpenVisus)
 
-	find_package(OpenMP QUIET)
-
-	# note: to have OpenMP cmake support you need cmake version>=3.9
-	if (TARGET OpenMP::OpenMP_CXX)
-		MESSAGE(STATUS "OpenMP found (OpenMP::OpenMP_CXX)")
-		target_link_libraries(VisusKernel PUBLIC OpenMP::OpenMP_CXX)
-
-	# FindOpenMP.cmake seems broken, at least for me
-	# see https://iscinumpy.gitlab.io/post/omp-on-high-sierra/
-	elseif (APPLE AND EXISTS "/usr/local/opt/libomp/include/omp.h" AND EXISTS "/usr/local/opt/libomp/lib/libomp.a")
-		MESSAGE(STATUS "OpenMP found (brew version for APPLE)")
-		target_include_directories(VisusKernel   PUBLIC /usr/local/opt/libomp/include)
-		target_link_libraries(VisusKernel        PUBLIC /usr/local/opt/libomp/lib/libomp.a)
-		target_compile_options(VisusKernel       PUBLIC -Xpreprocessor -fopenmp)
-
-	endif()
-
-endif()
-
-if (VISUS_IMAGE)
-	target_compile_definitions(VisusKernel PUBLIC -DVISUS_IMAGE=1)
-	target_link_libraries(VisusKernel PRIVATE FreeImage)
-endif()
-
-if (VISUS_NET)
-	target_compile_definitions(VisusKernel PUBLIC -DVISUS_NET=1)
-	target_link_libraries(VisusKernel PRIVATE curl)
-endif()
-
-if (VISUS_PYTHON)
-	target_compile_definitions(VisusKernel  PUBLIC  -DVISUS_PYTHON=1)
-	target_compile_definitions(VisusKernel  PRIVATE SWIG_TYPE_TABLE=OpenVisus)
-else()
-	target_compile_definitions(VisusKernel PUBLIC -DVISUS_PYTHON=0)
-endif()
 
 if(WIN32)
 	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
@@ -287,6 +277,11 @@ else()
 	target_link_libraries(VisusKernel PUBLIC  pthread)
 
 endif()
+
+target_compile_definitions(VisusKernel  PRIVATE VISUS_BUILDING_VISUSKERNEL=1)
+target_include_directories(VisusKernel  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+
+INSTALL(DIRECTORY ./include/Visus DESTINATION ${OutputDir}/include/Kernel/)
 
 AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")

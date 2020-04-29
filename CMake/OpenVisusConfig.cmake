@@ -61,38 +61,23 @@ endmacro()
 # ///////////////////////////////////////////////////////////////
 macro(AddOpenVisusPythonLibraries OpenVisus_DIR)
 
-	SET(VISUS_PYTHON  "1" CACHE INTERNAL "VISUS_PYTHON")
-
-	# force the version to be the same
-	file(READ ${OpenVisus_DIR}/PYTHON_VERSION_STRING PYTHON_VERSION_STRING) 
-	string(STRIP ${PYTHON_VERSION_STRING} PYTHON_VERSION_STRING)
-
-	FindPythonLibrary()
+	find_package(Python COMPONENTS Interpreter Development)	
+	message(STATUS "PYTHON_EXECUTABLE     ${PYTHON_EXECUTABLE}")
 	
-	AddImportedOpenVisusLibrary(${OpenVisus_DIR} OpenVisus::Kernel "OpenVisus::Python")
 	set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_COMPILE_DEFINITIONS VISUS_PYTHON=1)
 
 	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Dataflow "OpenVisus::Kernel")
 	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::XIdx     "OpenVisus::Kernel")
 	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Db       "OpenVisus::Kernel")
 	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Nodes    "OpenVisus::Db")
-	
-	if (EXISTS "${OpenVisus_DIR}/QT_VERSION")
-		SET(VISUS_GUI  "1" CACHE INTERNAL "VISUS_PYTHON")
-		find_package(Qt5 OPTIONAL_COMPONENTS Core Widgets Gui OpenGL QUIET)
-		if (Qt5_FOUND)
-			if (WIN32)
-				string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
-			endif()
-			AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Gui       "OpenVisus::Kernel;Qt5::Core;Qt5::Widgets;Qt5::Gui;Qt5::OpenGL")
-			AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::GuiNodes  "OpenVisus::Gui;OpenVisus::Dataflow")
-			AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::AppKit    "OpenVisus::Gui;OpenVisus::Dataflow;OpenVisus::Nodes;OpenVisus::GuiNodes")
-		else()
-			message(STATUS "Qt5 not found, disabling it")
-		endif()
-	else()
-		ForceUnset(VISUS_GUI)
-	endif()
+
+	SET(VISUS_GUI "1" CACHE INTERNAL "VISUS_GUI")
+	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS ${Qt5_DIR} NO_DEFAULT_PATH)
+
+	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Gui       "OpenVisus::Kernel;Qt5::Core;Qt5::Widgets;Qt5::Gui;Qt5::OpenGL")
+	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::GuiNodes  "OpenVisus::Gui;OpenVisus::Dataflow")
+	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::AppKit    "OpenVisus::Gui;OpenVisus::Dataflow;OpenVisus::Nodes;OpenVisus::GuiNodes")
+
 
 endmacro()
 
@@ -104,7 +89,6 @@ if(OpenVisus_FOUND)
 		string(REPLACE "\\" "/" OpenVisus_DIR "${OpenVisus_DIR}")
 	endif()
 	message(STATUS "OpenVisus found in ${OpenVisus_DIR}")
-	include(${OpenVisus_DIR}/CMake/VisusMacros.cmake)
 	AddOpenVisusPythonLibraries(${OpenVisus_DIR})
 endif()
 

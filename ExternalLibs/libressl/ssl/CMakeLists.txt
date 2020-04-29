@@ -41,7 +41,10 @@ set(
 	tls13_key_schedule.c
 )
 
-AddExternalLibrary(ssl ${SSL_SRC})
+
+add_library(ssl STATIC ${SSL_SRC})
+set_target_properties(crypto PROPERTIES FOLDER "ExternalLibs/")
+
 target_include_directories(ssl PRIVATE . ../include/compat PUBLIC ../include)
 target_link_libraries(ssl crypto ${PLATFORM_LIBS})
 

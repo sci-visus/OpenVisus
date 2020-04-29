@@ -30,7 +30,9 @@ else()
 	add_definitions(-D_PATH_SSL_CA_FILE=\"${CMAKE_INSTALL_PREFIX}/etc/ssl/cert.pem\")
 endif()
 
-AddExternalLibrary(tls ${TLS_SRC})
+add_library(tls STATIC ${TLS_SRC})
+set_target_properties(tls PROPERTIES FOLDER "ExternalLibs/")
+
 target_include_directories(tls PRIVATE . ../include/compat PUBLIC ../include)
 target_link_libraries(tls ssl crypto ${PLATFORM_LIBS})
 

@@ -84,9 +84,9 @@ def ExtractDeps(filename):
 def ShowDeps():
 	all_deps={}
 	for filename in FindAllBinaries():
-		print(filename)
+		#print(filename)
 		for dep in ExtractDeps(filename):
-			print("\t",dep)
+			#print("\t",dep)
 			all_deps[dep]=1
 	all_deps=list(all_deps)
 	all_deps.sort()		

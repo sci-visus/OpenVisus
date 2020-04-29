@@ -1,6 +1,8 @@
 file(GLOB Sources *.h *.c)
 source_group("" FILES ${Sources})
-AddExternalLibrary(zlib ${Sources})
+
+add_library(zlib STATIC ${Sources})
+set_target_properties(zlib PROPERTIES FOLDER "ExternalLibs/")
 
 include(CheckTypeSize)
 check_type_size(off64_t OFF64_T)

@@ -53,17 +53,12 @@ For support : support@visus.net
 #include <sys/socket.h>
 #endif
 
-#if VISUS_NET
 #include <curl/curl.h>
-#endif 
 
 namespace Visus {
 
 String NetService::Defaults::proxy="";
 int    NetService::Defaults::proxy_port=0;
-
-#if VISUS_NET
-
 
 ///////////////////////////////////////////////////////////////////////////////////
 class CurlConnection
@@ -495,46 +490,35 @@ public:
 
 };
 
-#endif
 
 /////////////////////////////////////////////////////////////////////////////
 NetService::NetService(int nconnections_,bool bVerbose) 
   : nconnections(nconnections_),verbose(bVerbose)
 {
-#if VISUS_NET
   this->pimpl = new Pimpl(this);
   this->pimpl->start();
-#else
-  ThrowException("VISUS_NET not enabled");
-#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////
 NetService::~NetService()
 {
-#if VISUS_NET
   pimpl->stop();
   delete pimpl;
-#endif
 }
 
 
 /////////////////////////////////////////////////////////////////////////////
 void NetService::attach()
 {
-#if VISUS_NET
   int retcode = curl_global_init(CURL_GLOBAL_ALL) ;
   VisusReleaseAssert(retcode == 0);
-#endif
 }
 
 
 /////////////////////////////////////////////////////////////////////////////
 void NetService::detach()
 {
-#if VISUS_NET
   curl_global_cleanup();
-#endif
 }
 
 

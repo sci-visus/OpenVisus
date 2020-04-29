@@ -1,7 +1,9 @@
 
 FILE(GLOB Sources *.h *.cpp)
-AddExecutable(visus ${Sources})
-target_link_libraries(visus PUBLIC VisusDb)
+add_executable(visus ${Sources})
+target_link_libraries(visus PUBLIC VisusDb Python::Python)
+set_target_properties(visus PROPERTIES FOLDER "Executable/")
+
 
 
 

@@ -48,6 +48,7 @@ script:
   - |    
     gem install xcpretty 
     cd "${TRAVIS_BUILD_DIR}"
+    brew update 1>/dev/null 2>/dev/null || true
     PYPI_DEPLOY=${TRAVIS_TAG} CONDA_DEPLOY=${TRAVIS_TAG} ./scripts/build.sh
 
 

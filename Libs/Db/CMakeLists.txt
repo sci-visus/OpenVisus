@@ -77,8 +77,15 @@ source_group("Idx"      FILES ${IdxSources})
 
 file(GLOB Sources include/Visus/*.h include/Visus/*.i src/*.cpp)
 
-AddLibrary(VisusDb SHARED ${Sources})
+add_library(VisusDb SHARED ${Sources})
+set_target_properties(VisusDb PROPERTIES FOLDER "")
+
 target_link_libraries(VisusDb PUBLIC VisusKernel)
+
+target_compile_definitions(VisusDb  PRIVATE VISUS_BUILDING_VISUSDB=1)
+target_include_directories(VisusDb  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+
+INSTALL(DIRECTORY ./include/Visus DESTINATION ${OutputDir}/include/Db/)
 
 AddSwigLibrary(VisusDbPy VisusDb ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusDbPy.i 
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"

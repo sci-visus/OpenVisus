@@ -45,8 +45,16 @@ set(ViewSources
 source_group(""     FILES ${RootSources})
 source_group("View" FILES ${ViewSources})
 file(GLOB Sources include/Visus/*.h include/Visus/*.i src/*.cpp resources/*.glsl resources/*.qrc)
-AddLibrary(VisusAppKit SHARED ${Sources})
+
+add_library(VisusAppKit SHARED ${Sources})
+set_target_properties(VisusAppKit PROPERTIES FOLDER "")
+
 target_link_libraries(VisusAppKit PUBLIC VisusNodes VisusGuiNodes)
+
+target_compile_definitions(VisusAppKit  PRIVATE VISUS_BUILDING_VISUSAPPKIT=1)
+target_include_directories(VisusAppKit  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+
+INSTALL(DIRECTORY ./include/Visus DESTINATION ${OutputDir}/include/AppKit/)
 
 AddSwigLibrary(VisusAppKitPy VisusAppKit ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusAppKitPy.i 
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
