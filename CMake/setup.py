@@ -18,7 +18,7 @@ if __name__ == "__main__":
 			if "__pycache__" in filename: 
 				continue
 			
-			if os.path.splitext(filename)[1] in [".ilk",".pdb",".pyc",,".pyo"]: 
+			if os.path.splitext(filename)[1] in [".ilk",".pdb",".pyc",".pyo"]: 
 				continue
 				
 			files.append(filename)	

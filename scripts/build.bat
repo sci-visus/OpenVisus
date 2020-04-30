@@ -28,13 +28,12 @@ set PYTHONPATH=..\
 "%Python_EXECUTABLE%" Samples/python/XIdx.py 
 "%Python_EXECUTABLE%" Samples/python/DataConversion1.py 
 "%Python_EXECUTABLE%" Samples/python/DataConversion2.py
+"%Python_EXECUTABLE%" -m OpenVisus GENERATE-SCRIPTS qt5
 set PYTHONPATH=
 
-"%Python_EXECUTABLE%" -m OpenVisus GENERATE-SCRIPTS qt5
 .\visus.bat
 
 if "%APPVEYOR_REPO_TAG%" == "true" (
-	"%Python_EXECUTABLE%" -c "import shutil;shutil.rmtree('dist',ignore_errors=True);shutil.rmtree('build',ignore_errors=True);shutil.rmtree('__pycache_',ignore_errors=True)"
 	"%Python_EXECUTABLE%" setup.py -q bdist_wheel --python-tag=%PYTHON_TAG% --plat-name=win_amd64
 	"%Python_EXECUTABLE%" -m twine upload --username %PYPI_USERNAME% --password %PYPI_PASSWORD% --skip-existing  "dist/*.whl"
 )
@@ -45,17 +44,18 @@ if "BUILD_CONDA" != "0" (
 
 	conda install conda-build numpy -y
 	
+	REM remove qt5 and use conda pyqt
 	set PYTHONPATH=..\
 	python -m OpenVisus CONFIGURE
 	set PYTHONPATH=
 	
-	python -c "import shutil;shutil.rmtree('dist',ignore_errors=True);shutil.rmtree('build',ignore_errors=True);shutil.rmtree('__pycache_',ignore_errors=True)"
 	del %CONDA_DIR%\conda-bld\win-64\openvisus*.tar.bz2
 	python setup.py -q bdist_conda 
 	python -c "import glob;open('~conda_filename.txt', 'wt').write(str(glob.glob('%CONDA_DIR%/conda-bld/win-64/openvisus*.tar.bz2')[0]))"
 	set /P CONDA_FILENAME=<~conda_filename.txt
 	conda install -y --force-reinstall %CONDA_FILENAME%
 	cd /d %CONDA_DIR%\lib\site-packages\OpenVisus
+	
 	python Samples/python/Array.py 
 	python Samples/python/Dataflow.py 
 	python Samples/python/Dataflow2.py 
@@ -63,6 +63,7 @@ if "BUILD_CONDA" != "0" (
 	python Samples/python/XIdx.py 
 	python Samples/python/DataConversion1.py 
 	python Samples/python/DataConversion2.py
+	.\visus.bat
 	
 	if "%APPVEYOR_REPO_TAG%" == "true" (
 		conda install anaconda-client -y

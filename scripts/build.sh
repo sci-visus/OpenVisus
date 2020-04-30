@@ -103,21 +103,20 @@ fi
 
 cd Release/OpenVisus
 
-# test
+if [ "$(uname)" == "Darwin" ]; then
+	script_ext=".command"
+else
+	script_ext=".sh"
+fi
+
+PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus GENERATE-SCRIPTS qt5
+
+# tests
 Tests="Array.py Dataflow.py Dataflow2.py Idx.py XIdx.py DataConversion1.py DataConversion2.py" 
 for Test in ${Tests} ; do
 	PYTHONPATH=../ ${Python_EXECUTABLE} Samples/python/${Test}
 done
-
-
-PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus GENERATE-SCRIPTS qt5
-if [ "$(uname)" == "Darwin" ]; then
-	chmod a+x *.command
-	./visus.command
-else
-	chmod a+x *.sh
-	./visus.sh
-fi
+./visus${script_ext}
 
 # ////////////////////////////////////////////////////////////////////////
 BUILD_WHEEL=${BUILD_WHEEL:-1}
@@ -131,7 +130,6 @@ if (( BUILD_WHEEL == 1 )) ; then
 		PLATFORM_TAG=manylinux2010_x86_64
 	fi	
 	
-	rm -Rf dist build __pycache__ 
 	${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=${PLATFORM_TAG}
 	WHEEL_FILENAME=dist/OpenVisus-*.whl
 		
@@ -151,19 +149,22 @@ if (( BUILD_CONDA == 1 )) ; then
 	
 	conda install -y python=${PYTHON_VERSION}
 	
+	# remove Qt5 and use conda pyqt
+	PYTHONPATH=$(pwd)/.. python -m OpenVisus CONFIGURE 
+	
 	# create the conda disttribution
 	conda install conda-build -y
-	rm -Rf dist build __pycache_
 	rm -Rf $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")	
-	PYTHONPATH=$(pwd)/.. python -m OpenVisus CONFIGURE || true # sometimes this crashes
 	python setup.py -q bdist_conda 
 	CONDA_FILENAME=$(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
 	
 	conda install -y --force-reinstall ${CONDA_FILENAME}
 	
+	# tests
 	for Test in ${Tests} ; do
 		python $(python -m OpenVisus dirname)/Samples/python/${Test}
 	done
+	$(python -m OpenVisus dirname)/visus${script_ext}
 	
 	if [[ "${CONDA_DEPLOY}" != ""  && "${ANACONDA_TOKEN}" != ""  ]] ; then
 		conda install anaconda-client -y
