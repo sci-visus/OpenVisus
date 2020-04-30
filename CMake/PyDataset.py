@@ -1,9 +1,8 @@
 import os,sys
-
 import cv2,numpy
 
 from OpenVisus import *
-import OpenVisus.PyUtils
+from OpenVisus.PyImage import *
 
 
 # ////////////////////////////////////////////////////////////////////////////
@@ -231,7 +230,7 @@ class PyDataset(object):
 				new_size=(num_pixels[X],num_pixels[Y])
 				img=cv2.resize(img,new_size)
 
-			out_movie.writeFrame(PyUtils.SwapRedBlue(img))
+			out_movie.writeFrame(SwapRedBlue(img))
 			
 		out_movie.release()			
 		

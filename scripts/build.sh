@@ -109,6 +109,8 @@ for Test in ${Tests} ; do
 	PYTHONPATH=../ ${Python_EXECUTABLE} Samples/python/${Test}
 done
 
+
+PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus GENERATE-SCRIPTS qt5
 if [ "$(uname)" == "Darwin" ]; then
 	chmod a+x *.command
 	./visus.command
@@ -153,7 +155,7 @@ if (( BUILD_CONDA == 1 )) ; then
 	conda install conda-build -y
 	rm -Rf dist build __pycache_
 	rm -Rf $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")	
-	PYTHONPATH=$(pwd)/.. python -m OpenVisus use-pyqt || true # sometimes this crashes
+	PYTHONPATH=$(pwd)/.. python -m OpenVisus CONFIGURE || true # sometimes this crashes
 	python setup.py -q bdist_conda 
 	CONDA_FILENAME=$(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
 	

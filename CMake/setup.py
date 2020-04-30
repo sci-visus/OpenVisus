@@ -1,56 +1,28 @@
-import os
-import sys
-import shutil
-import platform
-import glob
-import atexit
-import setuptools
-
-WIN32=platform.system()=="Windows" or platform.system()=="win32"
-APPLE=platform.system()=="Darwin"
+import os,sys,shutil,platform,glob,atexit,setuptools,pathlib
 	
 PROJECT_NAME="OpenVisus"
-
-# use a number like 1.0.xxxx for travis testing
-# otherwise use a number greater than the one uploaded in pip
-# PROJECT_VERSION="1.0.1000"
 PROJECT_VERSION="1.3.78"
-
-# ////////////////////////////////////////////////////////////////////
-def findFilesInCurrentDirectory():
+if __name__ == "__main__":
 	
 	# this are cached directories that should not be part of OpenVisus distribution
-	for it in ('./build','./__pycache__','./.git','./{}.egg-info'.format(PROJECT_NAME)):
-		shutil.rmtree(it, ignore_errors=True)
+	shutil.rmtree('./build', ignore_errors=True)	
+	shutil.rmtree('./dist', ignore_errors=True)	
+	shutil.rmtree('./.git', ignore_errors=True)	
+	shutil.rmtree('./{}.egg-info'.format(PROJECT_NAME), ignore_errors=True)	
+
 	files=[]	
-	
 	for dirpath, __dirnames__, filenames in os.walk("."):
 		for it in filenames:
 			filename= os.path.abspath(os.path.join(dirpath, it))
-			extension=os.path.splitext(filename)[1]
 			
-			# ignore any file in dist
-			if filename.startswith(os.path.abspath('./dist')): 
+			if "__pycache__" in filename: 
 				continue
 			
-			# remove any cache	
-			if "__pycache__" in filename: 
-				continue	    
-			
-			# ignore Visual studio incremental link files 
-			if WIN32 and extension==".ilk": 
-				continue 
+			if os.path.splitext(filename)[1] in [".ilk",".pdb",".pyc",,".pyo"]: 
+				continue
 				
-			# otherwise dist is too big  
-			if WIN32 and extension==".pdb": 
-				continue 
-			
-			files.append(filename)
-	return files
-				
+			files.append(filename)	
 
-# ////////////////////////////////////////////////////////////////////
-if __name__ == "__main__":
 	setuptools.setup(
 	  name = PROJECT_NAME,
 	  description = "ViSUS multiresolution I/O, analysis, and visualization system",
@@ -60,7 +32,7 @@ if __name__ == "__main__":
 	  author_email="support@visus.net",
 	  packages=[PROJECT_NAME],
 	  package_dir={PROJECT_NAME:'.'},
-	  package_data={PROJECT_NAME: findFilesInCurrentDirectory()},
+	  package_data={PROJECT_NAME: files},
 	  platforms=['Linux', 'OS-X', 'Windows'],
 	  license = "BSD",
 	  install_requires=["numpy"])

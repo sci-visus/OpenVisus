@@ -152,9 +152,11 @@ if (1)
 	Install(FILES CMake/PyDataset.py           DESTINATION ${OutputDir}/.)
 	Install(FILES CMake/PyScriptingNode.py     DESTINATION ${OutputDir}/.)
 	Install(FILES CMake/PyUtils.py             DESTINATION ${OutputDir}/.)
+	Install(FILES CMake/PyImage.py             DESTINATION ${OutputDir}/.)
 	Install(FILES CMake/PyViewer.py            DESTINATION ${OutputDir}/.)
-	Install(FILES CMake/PyDeploy.py            DESTINATION ${OutputDir}/.)
+
 	Install(FILES CMake/setup.py               DESTINATION ${OutputDir}/.)
+	Install(FILES CMake/deploy.py              DESTINATION ${OutputDir}/.)
 
 	# copy needed windows *.dll
 	if (WIN32)
@@ -169,10 +171,11 @@ if (1)
 	# ____________________________________________
 	macro(CMakePostInstall)
 		get_filename_component(Qt5_HOME "${Qt5_DIR}/../../.." ABSOLUTE)
+		string(REPLACE "\\" "/" __Python_EXECUTABLE__  "${Python_EXECUTABLE}")
 		string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" __OutputDir__  "${OutputDir}")
 		install(CODE "
 			execute_process(
-				COMMAND ${Python_EXECUTABLE} -u ${CMAKE_SOURCE_DIR}/CMake/PyDeploy.py --my-deploy \"${Qt5_HOME}\"
+				COMMAND ${__Python_EXECUTABLE__} -u ${CMAKE_SOURCE_DIR}/CMake/deploy.py POST_INSTALL \"${Qt5_HOME}\"
 					RESULT_VARIABLE __retcode__
 					WORKING_DIRECTORY \"${__OutputDir__}\")
 			if(NOT \"\${__retcode__}\" STREQUAL \"0\")
@@ -188,55 +191,12 @@ if (1)
 endif()
 
 # //////////////////////////////////////////////////////////////
-# *** use-pyqt (to call after INSTALL, create scripts and forse use of PyQt) ***
+# *** CONFIGURE (to call after INSTALL, create scripts and forse use of PyQt) ***
 if (1)
-	add_custom_target(use-pyqt ${CMAKE_COMMAND} -E env PYTHONPATH=${OutputDir}/.. ${Python_EXECUTABLE} -u -m OpenVisus use-pyqt)
-	set_property(TARGET use-pyqt PROPERTY FOLDER CMakePredefinedTargets)
+	add_custom_target(CONFIGURE ${CMAKE_COMMAND} -E env PYTHONPATH=${OutputDir}/.. ${Python_EXECUTABLE} -u -m OpenVisus CONFIGURE)
+	set_property(TARGET CONFIGURE PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 
 
-# ///////////////////////////////////////////////////
-# scripts
-macro(GenerateScript template_filename script_filename target_filename)
 
-	if (WIN32)
-		set(SCRIPT_EXT ".bat")
-	elseif (APPLE)	
-		set(SCRIPT_EXT ".command")
-	else()
-		set(SCRIPT_EXT ".sh")
-	endif()
 
-	file(READ "${template_filename}${SCRIPT_EXT}" content) 
-	
-	string(REPLACE "\${Python_EXECUTABLE}"    "${Python_EXECUTABLE}"    content "${content}")
-	string(REPLACE "\${Python_VERSION_MAJOR}" "${Python_VERSION_MAJOR}" content "${content}")
-	string(REPLACE "\${Python_VERSION_MINOR}" "${Python_VERSION_MINOR}" content "${content}")
-
-	if (VISUS_GUI)
-		string(REPLACE "\${VISUS_GUI}" "1" content "${content}")
-	else()
-		string(REPLACE "\${VISUS_GUI}" "0" content "${content}")
-	endif()
-	
-	if (WIN32)
-		string(REPLACE "\\" "/" target_filename "${target_filename}")
-		string(REPLACE "\${TARGET_FILENAME}" "${target_filename}.exe" content  "${content}")
-	
-	elseif (APPLE)
-		get_filename_component(__name_we__ ${target_filename} NAME_WE)
-		string(REPLACE "\${TARGET_FILENAME}" "${target_filename}.app/Contents/MacOS/${__name_we__}" content  "${content}")
-		
-	else()
-		string(REPLACE "\${TARGET_FILENAME}" "${target_filename}" content  "${content}")
-	endif()
-	
-	file(GENERATE OUTPUT "${script_filename}${SCRIPT_EXT}" CONTENT "${content}")
-	
-endmacro()
-
-GenerateScript("${CMAKE_CURRENT_SOURCE_DIR}/CMake/script" ${OutputDir}/visus       bin/visus)
-
-if (VISUS_GUI)
-	GenerateScript(${CMAKE_CURRENT_SOURCE_DIR}/CMake/script ${OutputDir}/visusviewer bin/visusviewer)
-endif()

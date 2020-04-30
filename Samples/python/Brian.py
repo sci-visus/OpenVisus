@@ -3,6 +3,7 @@ import sys
 
 from OpenVisus           import *
 from OpenVisus.PyUtils   import *
+from OpenVisus.PyImage   import *
 from OpenVisus.PyDataset import *
 from OpenVisus.PyViewer  import *
 

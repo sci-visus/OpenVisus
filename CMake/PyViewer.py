@@ -12,6 +12,7 @@ from VisusGuiNodesPy import *
 from VisusAppKitPy   import *
 
 from OpenVisus.PyUtils import *
+from OpenVisus.PyImage import *
 from OpenVisus.PyScriptingNode import *
 
 # ////////////////////////////////////////////////////////////////
