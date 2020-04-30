@@ -110,14 +110,22 @@ else
 	script_ext=".sh"
 fi
 
-PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus GENERATE-SCRIPTS qt5
 
-# tests
-Tests="Array.py Dataflow.py Dataflow2.py Idx.py XIdx.py DataConversion1.py DataConversion2.py" 
-for Test in ${Tests} ; do
-	PYTHONPATH=../ ${Python_EXECUTABLE} Samples/python/${Test}
-done
-./visus${script_ext}
+# ////////////////////////////////////////////////////////////////////////
+DO_TESTS=${DO_TESTS:-1}
+if (( DO_TESTS == 1 )) ; then
+
+	Tests="Array.py Dataflow.py Dataflow2.py Idx.py XIdx.py DataConversion1.py DataConversion2.py" 
+	for Test in ${Tests} ; do
+		PYTHONPATH=../ ${Python_EXECUTABLE} Samples/python/${Test}
+	done
+
+	PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus GENERATE-SCRIPTS qt5
+
+	./visus${script_ext}
+
+fi
+
 
 # ////////////////////////////////////////////////////////////////////////
 BUILD_WHEEL=${BUILD_WHEEL:-1}
@@ -149,11 +157,17 @@ if (( BUILD_CONDA == 1 )) ; then
 	eval "$(conda shell.bash hook)" # see https://github.com/conda/conda/issues/8072
 	
 	conda install -y python=${PYTHON_VERSION}
+
+	# if I don't do this, I get some random crash
+	conda uninstall -y pyqt || true
 	
-	# remove Qt5 and use conda pyqt
-	PYTHONPATH=$(pwd)/.. python -m OpenVisus CONFIGURE 
-	
-	# create the conda disttribution
+	# remove Qt5 and use conda pyqt (note sometimes some step crashes, for this reason I split the CONFIGURE in single tasks)
+	PYTHONPATH=$(pwd)/.. python -m OpenVisus REMOVE-QT5
+	PYTHONPATH=$(pwd)/.. python -m OpenVisus INSTALL-PYQT5
+	PYTHONPATH=$(pwd)/.. python -m OpenVisus LINK-PYQT5 || true # this crashes on linux (after the sys.exit(0), so I should be fine)
+	PYTHONPATH=$(pwd)/.. python -m OpenVisus GENERATE-SCRIPTS pyqt5
+
+	# create the conda distribution
 	conda install conda-build -y
 	rm -Rf $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")	
 	python setup.py -q bdist_conda 

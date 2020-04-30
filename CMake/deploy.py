@@ -198,11 +198,15 @@ def PostInstall(Qt5_HOME):
 
 # ////////////////////////////////////////////////
 def RemoveQt5():
+	print("Removing Qt5...")
 	shutil.rmtree("bin/qt",ignore_errors=True)	
 
 
 # ////////////////////////////////////////////////
 def InstallPyQt5(needed):
+
+	print("Installing PyQt5...",needed)
+
 	major,minor=needed.split('.')[0:2]
 
 	current=[0,0,0]
@@ -243,7 +247,17 @@ def AddRPath(value):
 # ////////////////////////////////////////////////
 def LinkPyQt5():
 
-	PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip()
+	print("Linking to PyQt5...")
+
+	try:
+		import PyQt5
+		PyQt5_HOME=os.path.dirname(PyQt5.__file__)
+	
+	except:
+		# this should cover the case where I just installed PyQt5
+		PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip()
+
+	
 	print("PyQt5_HOME",PyQt5_HOME)
 	if not os.path.isdir(PyQt5_HOME):
 		print("Error directory does not exists")
@@ -260,11 +274,10 @@ def LinkPyQt5():
 
 
 
-
 # /////////////////////////////////////////////////////////////////////////
 __scripts={}
 
-__scripts["WIN32"]=r"""
+__scripts["WIN32-nogui"]=r"""
 cd %~dp0
 set PYTHON=${Python_EXECUTABLE}
 set PATH=%PYTHON%\..;%PATH%;.\bin
@@ -291,7 +304,7 @@ set QT_PLUGIN_PATH=%Qt5_DIR%\plugins
 "${TARGET_FILENAME}" %*
 """
 
-__scripts["APPLE"]=r"""
+__scripts["APPLE-nogui"]=r"""
 #!/bin/bash
 cd $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 PYTHON=${Python_EXECUTABLE}
@@ -319,12 +332,13 @@ export Qt5_DIR=$("${PYTHON}" -c "import os,PyQt5; print(os.path.dirname(PyQt5.__
 export QT_PLUGIN_PATH=${Qt5_DIR}/plugins
 ${TARGET_FILENAME} "$@"
 """
-__scripts["LINUX"]=__scripts["APPLE"].replace("DYLD_LIBRARY_PATH","LD_LIBRARY_PATH")
+__scripts["LINUX-nogui"]=__scripts["APPLE-nogui"].replace("DYLD_LIBRARY_PATH","LD_LIBRARY_PATH")
 __scripts["LINUX-qt5"]=__scripts["APPLE-qt5"].replace("DYLD_LIBRARY_PATH","LD_LIBRARY_PATH")
 __scripts["LINUX-pyqt5"]=__scripts["APPLE-pyqt5"].replace("DYLD_LIBRARY_PATH","LD_LIBRARY_PATH")
 
 # /////////////////////////////////////////////////////////////////////////
 def GenerateScript(script_filename, target_filename, content):
+	print("Generate script",script_filename,target_filename)
 	content=content.replace("${Python_EXECUTABLE}"   , sys.executable)
 	content=content.replace("${Python_VERSION_MAJOR}", str(sys.version_info[0]))
 	content=content.replace("${Python_VERSION_MINOR}", str(sys.version_info[1]))
@@ -336,14 +350,16 @@ def GenerateScript(script_filename, target_filename, content):
 
 # ////////////////////////////////////////////////
 def GenerateScripts(gui_lib):
+
+	print("Generating scripts","gui_lib","...")
 	if WIN32:
-		GenerateScript("visus.bat","bin\\visus.exe",__scripts["WIN32"])
+		GenerateScript("visus.bat","bin\\visus.exe",__scripts["WIN32-nogui"])
 		GenerateScript("visusviewer.bat","bin\\visusviewer.exe",__scripts["WIN32-" + gui_lib])
 	elif APPLE:
-		GenerateScript("visus.command","bin/visus.app/Contents/MacOS/visus",__scripts["APPLE"])
+		GenerateScript("visus.command","bin/visus.app/Contents/MacOS/visus",__scripts["APPLE-nogui"])
 		GenerateScript("visusviewer.command","bin/visusviewer.app/Contents/MacOS/visusviewer",__scripts["APPLE-"+gui_lib])
 	else:
-		GenerateScript("visus.sh","bin/visus",__scripts["LINUX"])
+		GenerateScript("visus.sh","bin/visus",__scripts["LINUX-nogui"])
 		GenerateScript("visusviewer.sh","bin/visusviewer",__scripts["LINUX-"+gui_lib])
 
 # ////////////////////////////////////////////////
@@ -351,36 +367,50 @@ def Main():
 
 	action=sys.argv[1].upper()
 
+	if action=="DIRNAME":
+		print(os.path.dirname(__file__))
+		sys.exit(0)
+	
+	print("executing",action,"os.getcwd()",os.getcwd())
+
 	# _____________________________________________
 	if action=="POST_INSTALL":
 		Qt5_HOME=sys.argv[2]
-		print("executing",action,"os.getcwd()",os.getcwd(),"Qt5_HOME",Qt5_HOME)
 		PostInstall(Qt5_HOME)	
 		GenerateScripts("qt5")
-		sys.exit(0)
-
-	# _____________________________________________
-	if action=="DIRNAME":
-		print(os.path.dirname(__file__))
+		print(action,"done")
 		sys.exit(0)
 
 	# _____________________________________________
 	if action=="GENERATE-SCRIPTS":
-		this_dir=os.path.dirname(__file__)
-		os.chdir(this_dir)
-		print("Executing",action)
 		GenerateScripts(sys.argv[2])
+		print(action,"done")
+		sys.exit(0)
+
+	# _____________________________________________
+	if action=="REMOVE-QT5":
+		RemoveQt5()
+		print(action,"done")
+		sys.exit(0)
+	# _____________________________________________
+	if action=="INSTALL-PYQT5":
+		InstallPyQt5(ReadTextFile("QT_VERSION"))
+		print(action,"done")
+		sys.exit(0)
+
+	# _____________________________________________
+	if action=="LINK-PYQT5":
+		LinkPyQt5()
+		print(action,"done")
 		sys.exit(0)
 
 	# _____________________________________________
 	if action=="CONFIGURE":
-		this_dir=os.path.dirname(__file__)
-		os.chdir(this_dir)
-		print("Executing",action)
 		RemoveQt5()
 		InstallPyQt5(ReadTextFile("QT_VERSION"))
 		LinkPyQt5()
 		GenerateScripts("pyqt5")
+		print(action,"done")
 		sys.exit(0)
 
 	print("EXCEPTION Unknown argument",action)
