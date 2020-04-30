@@ -81,13 +81,14 @@ if [ "$(uname)" == "Darwin" ]; then
 	mkdir -p build_travis
 	cd build_travis
 	
+	cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} -DQt5_DIR=${Qt5_DIR} ../
+	
 	if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
-		cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} -DQt5_DIR=${Qt5_DIR} ../ | xcpretty -c
+		cmake --build ./ --target ALL_BUILD --config Release | xcpretty -c
 	else
-		cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} -DQt5_DIR=${Qt5_DIR} ../
+		cmake --build ./ --target ALL_BUILD --config Release
 	fi
 	
-	cmake --build ./ --target ALL_BUILD --config Release
 	cmake --build ./ --target install   --config Release
 
 else

@@ -331,6 +331,9 @@ def GenerateScript(script_filename, target_filename, content):
 	content=content.replace("${Python_VERSION_MINOR}", str(sys.version_info[1]))
 	content=content.replace("${TARGET_FILENAME}"   , target_filename)
 	WriteTextFile(script_filename , content)
+	os.chmod(script_filename, 0o777)
+
+
 
 # ////////////////////////////////////////////////
 def GenerateScripts(gui_lib):
