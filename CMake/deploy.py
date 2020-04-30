@@ -254,9 +254,9 @@ def LinkPyQt5():
 		return
 
 	if APPLE:
-		AddRPath(PyQt5_HOME,'Qt/lib')
+		AddRPath(os.path.join(PyQt5_HOME,'Qt/lib'))
 	else:
-		SetRPath("$ORIGIN:$ORIGIN/bin:" + PyQt5_HOME,'Qt/lib')
+		SetRPath("$ORIGIN:$ORIGIN/bin:" + os.path.join(PyQt5_HOME,'Qt/lib'))
 		
 	print("done",action)
 
