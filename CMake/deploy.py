@@ -257,8 +257,7 @@ def LinkPyQt5():
 		AddRPath(os.path.join(PyQt5_HOME,'Qt/lib'))
 	else:
 		SetRPath("$ORIGIN:$ORIGIN/bin:" + os.path.join(PyQt5_HOME,'Qt/lib'))
-		
-	print("done",action)
+
 
 
 
