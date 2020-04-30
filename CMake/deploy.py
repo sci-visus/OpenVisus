@@ -208,11 +208,11 @@ def InstallPyQt5(needed):
 	current=[0,0,0]
 	try:
 		from PyQt5 import Qt
+		current=str(Qt.qVersion()).split('.')
 	except:
 	  pass
 	
-	current=str(Qt.qVersion()).split('.')
-
+	
 	if major==current[0] and minor==current[1]:
 		print("installed Pyqt5",current,"is compatible with",needed)
 		return
