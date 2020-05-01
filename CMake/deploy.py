@@ -393,7 +393,7 @@ def Main():
 
 	# _____________________________________________
 	if action=="test":
-		for filename in ["Array.py","Dataflow.py","Dataflow2.py","Idx.py","XIdx.py","DataConversion1.py","DataConversion2.py"]:
+		for filename in ["Array.py","Dataflow.py","Dataflow2.py","Idx.py"]: # ,"XIdx.py" ,"DataConversion1.py","DataConversion2.py"
 			ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", filename)],bVerbose=True) 
 		sys.exit(0)
 
