@@ -362,6 +362,14 @@ def GenerateScripts(gui_lib):
 		GenerateScript("visus.sh","bin/visus",__scripts["LINUX-nogui"])
 		GenerateScript("visusviewer.sh","bin/visusviewer",__scripts["LINUX-"+gui_lib])
 
+def GetScriptExtention(base):
+	if WIN32:
+		return ".bat"
+	elif APPLE:
+		return ".command"
+	else
+		return ".sh"
+
 # ////////////////////////////////////////////////
 def Main():
 
@@ -372,9 +380,15 @@ def Main():
 	if action=="dirname":
 		print(this_dir)
 		sys.exit(0)
+
+	# _____________________________________________
+	if action=="convert":
+		ExecuteCommand(["cmd" if WIN32 else "bash",os.path.join(this_dir, "visus" + GetScriptExtention())] + sys.argv[2:], bVerbose=True)
+		sys.exit(0)
 	
 	# _____________________________________________
 	if action=="viewer":
+		ExecuteCommand(["cmd" if WIN32 else "bash",os.path.join(this_dir, "visusviewer" + GetScriptExtention())] + sys.argv[2:], bVerbose=True)
 		if WIN32:
 			cmd=["cmd","visusviewer.bat"]
 		else:
@@ -429,7 +443,7 @@ def Main():
 		RemoveQt5()
 		InstallPyQt5(ReadTextFile("QT_VERSION"))
 		LinkPyQt5()
-		GenerateScripts("pyqt5")
+		GenerateScripts(sys.argv[2] if len(sys.argv>=3) else "pyqt5")
 		print(action,"done")
 		sys.exit(0)
 

@@ -193,7 +193,7 @@ endif()
 # //////////////////////////////////////////////////////////////
 # *** CONFIGURE (to call after INSTALL, create scripts and forse use of PyQt) ***
 if (1)
-	add_custom_target(CONFIGURE ${CMAKE_COMMAND} -E env PYTHONPATH=${OutputDir}/.. ${Python_EXECUTABLE} -u -m OpenVisus configure)
+	add_custom_target(CONFIGURE ${CMAKE_COMMAND} -E env PYTHONPATH=${OutputDir}/.. ${Python_EXECUTABLE} -u -m OpenVisus configure qt5)
 	set_property(TARGET CONFIGURE PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 

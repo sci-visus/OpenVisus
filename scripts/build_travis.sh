@@ -4,17 +4,14 @@ set -e  # stop or error
 set -x  # very verbose
 
 gem install xcpretty 
-
-brew update 1>/dev/null 2>/dev/null || true
-
-# install cmake and swig (could be they are already installed)
+brew update 1>/dev/null 2>/dev/null         || true
 brew install cmake  1>/dev/null 2>/dev/null || true
 brew install swig   1>/dev/null 2>/dev/null || true
 
 # install python
 if (( 1 == 1 )) ; then
 	brew install sashkab/python/python@${PYTHON_VERSION} 
-	export Python_EXECUTABLE==$(brew --prefix python@${PYTHON_VERSION})/bin/python${PYTHON_VERSION}
+	export Python_EXECUTABLE=/usr/local/opt/python@${PYTHON_VERSION}/bin/python${PYTHON_VERSION}
 	${Python_EXECUTABLE} -m pip install -q --upgrade pip                		|| true
 	${Python_EXECUTABLE} -m pip install -q numpy setuptools wheel twine --upgrade   || true
 fi
@@ -47,28 +44,24 @@ if (( 1 == 1 )) ; then
 	popd
 fi
 
-# build OpenVisus
-mkdir -p build_travis
-cd build_travis
-	
+mkdir build_travis && cd build_travis
 cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} ../
 cmake --build ./ --target ALL_BUILD --config Release | xcpretty -c
 cmake --build ./ --target install --config Release
 
-# tests
-cd build_travis/Release/OpenVisus
-PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
-./visus.command
+PYTHONPATH=./Release ${Python_EXECUTABLE} -m OpenVisus test
+PYTHONPATH=./Release ${Python_EXECUTABLE} -m OpenVisus convert
 
 # wheel
 if [[ "${TRAVIS_TAG}" != "" ]] ; then
 	${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=macosx_10_9_x86_64
-	WHEEL_FILENAME=dist/OpenVisus-*.whl
-	${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing ${WHEEL_FILENAME}
+	${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing dist/OpenVisus-*.whl
 fi
 
 # conda 
 if [[ "${PYTHON_VERSION}" == "3.6" || "${PYTHON_VERSION}" == "3.7" ]] ; then
+
+	cd build_travis/Release/OpenVisus
 
 	pushd ${HOME}
 	curl -L --insecure --retry 3 "https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh" -O		
@@ -82,15 +75,18 @@ if [[ "${PYTHON_VERSION}" == "3.6" || "${PYTHON_VERSION}" == "3.7" ]] ; then
 	conda config  --set changeps1 no --set anaconda_upload no
 	conda update  --yes conda anaconda-client python=${PYTHON_VERSION} numpy 
 
-	# build openvisus conda
-	cd build_travis/Release/OpenVisus
-	"${TRAVIS_BUILD_DIR}"/scripts/build_conda.sh
+	PYTHONPATH=../.. python -m OpenVisus configure pyqt5
+	conda install conda-build -y
+	rm -Rf $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")	
+	python setup.py -q bdist_conda 
 
-	# upload only if there is a tag
+	conda install -y --force-reinstall $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
+	python -m OpenVisus test
+	python -m OpenVisus convert
+
 	if [[ "${TRAVIS_TAG}" != "" ]] ; then
 		conda install anaconda-client -y
-		CONDA_FILENAME=$(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
-		anaconda -t ${ANACONDA_TOKEN} upload "${CONDA_FILENAME}"
+		anaconda -t ${ANACONDA_TOKEN} upload $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
 	fi
 fi
 

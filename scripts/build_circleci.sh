@@ -7,29 +7,25 @@ set -x  # very verbose
 export PYTHON_EXECUTABLE=python${PYTHON_VERSION}  
 export Qt5_DIR=/opt/qt59
 
-mkdir -p build_circleci
-cd build_circleci
-	
+mkdir build_circleci && cd build_circleci
 cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} ../
 cmake --build ./ --target all     --config Release
 cmake --build ./ --target install --config Release
 
-# tests
-cd build_circleci/Release/OpenVisus
-PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
-./visus.sh 
-
+PYTHONPATH=./Release ${Python_EXECUTABLE} -m OpenVisus test
+PYTHONPATH=./Release ${Python_EXECUTABLE} -m OpenVisus convert
 
 # wheel
 if [[ "${CIRCLE_TAG}" !="" ]] ; then
 	${Python_EXECUTABLE} -m pip install setuptools wheel --upgrade || true
 	${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=manylinux2010_x86_64
-	WHEEL_FILENAME=dist/OpenVisus-*.whl
-	${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing ${WHEEL_FILENAME}
+	${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing dist/OpenVisus-*.whl
 fi
 
 # conda 
 if [[ "${PYTHON_VERSION}" == "3.6" || "${PYTHON_VERSION}" == "3.7" ]] ; then
+
+	cd build_circleci/Release/OpenVisus
 
 	# install conda
 	pushd ${HOME}
@@ -44,15 +40,25 @@ if [[ "${PYTHON_VERSION}" == "3.6" || "${PYTHON_VERSION}" == "3.7" ]] ; then
 	conda config  --set changeps1 no --set anaconda_upload no
 	conda update  --yes conda anaconda-client python=${PYTHON_VERSION} numpy
 
-	# build openvisus conda
-	cd build_circleci/Release/OpenVisus
-	${TRAVIS_BUILD_DIR}/scripts/build_conda.sh
+	# I get some random crashes here, so I'm using more actions than a simple configure here..
+	conda uninstall -y pyqt || true
+	PYTHONPATH=../ python -m OpenVisus remove-qt5
+	PYTHONPATH=../ python -m OpenVisus install-pyqt5
+	PYTHONPATH=../ python -m OpenVisus link-pyqt5 || true # this crashes on linux (after the sys.exit(0), so I should be fine)
+	PYTHONPATH=../ python -m OpenVisus generate-scripts pyqt5
+
+	conda install conda-build -y
+	rm -Rf $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")	
+	python setup.py -q bdist_conda 
+
+	conda install -y --force-reinstall $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
+	python -m OpenVisus test
+	python -m OpenVisus convert
 
 	# upload only if there is a tag
 	if [[ "${CIRCLE_TAG}" != "" ]] ; then
 		conda install anaconda-client -y
-		CONDA_FILENAME=$(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
-		anaconda -t ${ANACONDA_TOKEN} upload "${CONDA_FILENAME}"
+		anaconda -t ${ANACONDA_TOKEN} upload $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
 	fi
 fi
 

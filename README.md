@@ -57,9 +57,7 @@ Table of content:
 
 [Linux compilation](#linux-compilation)
 
-
 ## PIP distribution
-
 
 Type:
 

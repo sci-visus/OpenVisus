@@ -12,13 +12,10 @@ cmake.exe -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="C:\Qt\5.9\msvc2017_64\l
 cmake.exe --build . --target ALL_BUILD            --config Release
 cmake.exe --build . --target INSTALL              --config Release
 
-cd Release\OpenVisus
-
- 
-set PYTHONPATH=..\
+set PYTHONPATH=Release
 python -m OpenVisus test
+python -m OpenVisus convert
 set PYTHONPATH=
-.\visus.bat
 
 if "%APPVEYOR_REPO_TAG%" == "true" (
 	set PYTHON_TAG=cp%PYTHON_VERSION%
@@ -32,14 +29,15 @@ if "PYTHON_VERSION" == "37" ( set BUILD_CONDA=1 )
 
 if "BUILD_CONDA" == "1" (
 
+	cd Release\OpenVisus
+
 	set CONDA_DIR=C:\Miniconda%PYTHON_VERSION%-x64
 	%CONDA_DIR%\Scripts\activate.bat
 
 	conda install conda-build numpy -y
 	
-	REM remove qt5 and use conda pyqt
 	set PYTHONPATH=..\
-	python -m OpenVisus CONFIGURE
+	python -m OpenVisus configure pyqt5
 	set PYTHONPATH=
 	
 	del %CONDA_DIR%\conda-bld\win-64\openvisus*.tar.bz2
@@ -50,7 +48,7 @@ if "BUILD_CONDA" == "1" (
 	cd /d %CONDA_DIR%\lib\site-packages\OpenVisus
 
 	python -m OpenVisus test
-	visus.bat
+	python -m OpenVisus convert
 	
 	if "%APPVEYOR_REPO_TAG%" == "true" (
 		conda install anaconda-client -y
