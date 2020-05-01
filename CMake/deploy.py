@@ -13,6 +13,8 @@ OSX:
 	DYLD_PRINT_LIBRARIES=1 QT_DEBUG_PLUGINS=1 visusviewer.app/Contents/MacOS/visusviewer
 """
 
+this_dir=os.path.dirname(__file__)
+
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
 
@@ -347,6 +349,15 @@ def GenerateScript(script_filename, target_filename, content):
 	os.chmod(script_filename, 0o777)
 
 
+# ////////////////////////////////////////////////
+def GetScriptExtention():
+	if WIN32:
+		return ".bat"
+	elif APPLE:
+		return ".command"
+	else:
+		return ".sh"
+
 
 # ////////////////////////////////////////////////
 def GenerateScripts(gui_lib):
@@ -362,23 +373,28 @@ def GenerateScripts(gui_lib):
 		GenerateScript("visus.sh","bin/visus",__scripts["LINUX-nogui"])
 		GenerateScript("visusviewer.sh","bin/visusviewer",__scripts["LINUX-"+gui_lib])
 
-def GetScriptExtention(base):
-	if WIN32:
-		return ".bat"
-	elif APPLE:
-		return ".command"
-	else:
-		return ".sh"
+
+
 
 # ////////////////////////////////////////////////
 def Main():
 
+	if len(sys.argv)==1:
+		return
+
 	action=sys.argv[1]
-	this_dir=os.path.dirname(__file__)
 
 	# _____________________________________________
 	if action=="dirname":
 		print(this_dir)
+		sys.exit(0)
+
+	print(sys.executable,"-m","OpenVisus", sys.argv)
+
+	# _____________________________________________
+	if action=="test":
+		for filename in ["Array.py","Dataflow.py","Dataflow2.py","Idx.py","XIdx.py","DataConversion1.py","DataConversion2.py"]:
+			ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", filename)],bVerbose=True) 
 		sys.exit(0)
 
 	# _____________________________________________
@@ -391,17 +407,9 @@ def Main():
 		ExecuteCommand(["cmd" if WIN32 else "bash",os.path.join(this_dir, "visusviewer" + GetScriptExtention())] + sys.argv[2:], bVerbose=True)
 		sys.exit(0)
 
-	os.chdir(this_dir)
-	print("executing",action,"os.getcwd()",os.getcwd())
-
-	# _____________________________________________
-	if action=="test":
-		for filename in ["Array.py","Dataflow.py","Dataflow2.py","Idx.py","XIdx.py","DataConversion1.py","DataConversion2.py"]:
-			ExecuteCommand([sys.executable,os.path.join("Samples","python",filename)],bVerbose=True) 
-		sys.exit(0)
-
 	# _____________________________________________
 	if action=="post-install":
+		os.chdir(this_dir)
 		Qt5_HOME=sys.argv[2]
 		PostInstall(Qt5_HOME)	
 		GenerateScripts("qt5")
@@ -410,29 +418,34 @@ def Main():
 
 	# _____________________________________________
 	if action=="generate-scripts":
+		os.chdir(this_dir)
 		GenerateScripts(sys.argv[2])
 		print(action,"done")
 		sys.exit(0)
 
 	# _____________________________________________
 	if action=="remove-qt5":
+		os.chdir(this_dir)
 		RemoveQt5()
 		print(action,"done")
 		sys.exit(0)
 	# _____________________________________________
 	if action=="install-pyqt5":
+		os.chdir(this_dir)
 		InstallPyQt5(ReadTextFile("QT_VERSION"))
 		print(action,"done")
 		sys.exit(0)
 
 	# _____________________________________________
 	if action=="link-qt5":
+		os.chdir(this_dir)
 		LinkPyQt5()
 		print(action,"done")
 		sys.exit(0)
 
 	# _____________________________________________
 	if action=="configure":
+		os.chdir(this_dir)
 		RemoveQt5()
 		InstallPyQt5(ReadTextFile("QT_VERSION"))
 		LinkPyQt5()
@@ -440,7 +453,7 @@ def Main():
 		print(action,"done")
 		sys.exit(0)
 
-	print("EXCEPTION Unknown argument",action)
+	print("Wrong arguments",sys.argv)
 	sys.exit(-1)
   
 # //////////////////////////////////////////
