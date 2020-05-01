@@ -367,7 +367,7 @@ def GetScriptExtention(base):
 		return ".bat"
 	elif APPLE:
 		return ".command"
-	else
+	else:
 		return ".sh"
 
 # ////////////////////////////////////////////////
@@ -389,13 +389,6 @@ def Main():
 	# _____________________________________________
 	if action=="viewer":
 		ExecuteCommand(["cmd" if WIN32 else "bash",os.path.join(this_dir, "visusviewer" + GetScriptExtention())] + sys.argv[2:], bVerbose=True)
-		if WIN32:
-			cmd=["cmd","visusviewer.bat"]
-		else:
-			cmd=["bash","visusviewer.command" if APPLE else "visusviewer.sh"]
-		cmd+=sys.argv[2:]
-		cmd[1]=os.path.join(this_dir, cmd[1])
-		ExecuteCommand(cmd, bVerbose=True)
 		sys.exit(0)
 
 	os.chdir(this_dir)
