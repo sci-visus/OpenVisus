@@ -9,12 +9,11 @@ jobs:
       - image: visus/travis-image
         environment:
           PYTHON_VERSION: 3.8
-          BUILD_CONDA: 0
     steps:
       - checkout
       - run: 
           name: Build OpenVisus
-          command: PYPI_DEPLOY=${CIRCLE_TAG} CONDA_DEPLOY=${CIRCLE_TAG} ./scripts/build.sh
+          command: scripts/build_circleci.sh
   
   linux-3.7:
     docker:
@@ -25,7 +24,7 @@ jobs:
       - checkout
       - run: 
           name: Build OpenVisus
-          command: PYPI_DEPLOY=${CIRCLE_TAG} CONDA_DEPLOY=${CIRCLE_TAG} ./scripts/build.sh
+          command: scripts/build_circleci.sh
             
   linux-3.6:
     docker:
@@ -36,7 +35,7 @@ jobs:
       - checkout
       - run: 
           name: Build OpenVisus
-          command: PYPI_DEPLOY=${CIRCLE_TAG} CONDA_DEPLOY=${CIRCLE_TAG} ./scripts/build.sh
+          command: scripts/build_circleci.sh
 
 workflows:
   version: 2

@@ -50,8 +50,8 @@ def GetCommandOutput(cmd):
 	return output.strip()
 	
 # /////////////////////////////////////////////////////////////////////////
-def ExecuteCommand(cmd):	
-	# print("Executing command", cmd)
+def ExecuteCommand(cmd,bVerbose=False):	
+	if bVerbose: print("Executing command", cmd)
 	return subprocess.call(cmd, shell=False)
 	
 
@@ -101,13 +101,13 @@ def ShowDeps():
 def SetRPath(value):
 
 	for filename in glob.glob("*.so"):
-		ExecuteCommand(["patchelf","--set-rpath",value, filename])
+		ExecuteCommand(["patchelf","--set-rpath",value, filename],bVerbose=True)
 		
 	for filename in glob.glob("bin/*.so"):
-		ExecuteCommand(["patchelf","--set-rpath",value, filename])
+		ExecuteCommand(["patchelf","--set-rpath",value, filename],bVerbose=True)
 	
 	for filename in ("bin/visus","bin/visusviewer"):
-		ExecuteCommand(["patchelf","--set-rpath",value, filename])
+		ExecuteCommand(["patchelf","--set-rpath",value, filename],bVerbose=True)
 	
 
 # ///////////////////////////////////////////////
@@ -122,7 +122,7 @@ def PostInstall(Qt5_HOME):
 		ExecuteCommand([Qt5_HOME + "/bin/windeployqt.exe", "bin/visusviewer.exe",
 				"--libdir","./bin/qt/bin",
 				"--plugindir","./bin/qt/plugins",
-				"--no-translations"])
+				"--no-translations"],bVerbose=True)
 				
 	elif APPLE:
 		
@@ -242,7 +242,7 @@ def InstallPyQt5(needed):
 # ///////////////////////////////////////////////
 def AddRPath(value):
 	for filename in FindAllBinaries():
-		ExecuteCommand(["install_name_tool","-add_rpath",value,filename])				
+		ExecuteCommand(["install_name_tool","-add_rpath",value,filename],bVerbose=True)				
 	
 # ////////////////////////////////////////////////
 def LinkPyQt5():
@@ -365,16 +365,36 @@ def GenerateScripts(gui_lib):
 # ////////////////////////////////////////////////
 def Main():
 
-	action=sys.argv[1].upper()
+	action=sys.argv[1]
+	this_dir=os.path.dirname(__file__)
 
-	if action=="DIRNAME":
-		print(os.path.dirname(__file__))
+	# _____________________________________________
+	if action=="dirname":
+		print(this_dir)
 		sys.exit(0)
 	
+	# _____________________________________________
+	if action=="viewer":
+		if WIN32:
+			cmd=["cmd","visusviewer.bat"]
+		else:
+			cmd=["bash","visusviewer.command" if APPLE else "visusviewer.sh"]
+		cmd+=sys.argv[2:]
+		cmd[1]=os.path.join(this_dir, cmd[1])
+		ExecuteCommand(cmd, bVerbose=True)
+		sys.exit(0)
+
+	os.chdir(this_dir)
 	print("executing",action,"os.getcwd()",os.getcwd())
 
 	# _____________________________________________
-	if action=="POST_INSTALL":
+	if action=="test":
+		for filename in ["Array.py","Dataflow.py","Dataflow2.py","Idx.py","XIdx.py","DataConversion1.py","DataConversion2.py"]:
+			ExecuteCommand([sys.executable,os.path.join("Samples","python",filename)],bVerbose=True) 
+		sys.exit(0)
+
+	# _____________________________________________
+	if action=="post-install":
 		Qt5_HOME=sys.argv[2]
 		PostInstall(Qt5_HOME)	
 		GenerateScripts("qt5")
@@ -382,30 +402,30 @@ def Main():
 		sys.exit(0)
 
 	# _____________________________________________
-	if action=="GENERATE-SCRIPTS":
+	if action=="generate-scripts":
 		GenerateScripts(sys.argv[2])
 		print(action,"done")
 		sys.exit(0)
 
 	# _____________________________________________
-	if action=="REMOVE-QT5":
+	if action=="remove-qt5":
 		RemoveQt5()
 		print(action,"done")
 		sys.exit(0)
 	# _____________________________________________
-	if action=="INSTALL-PYQT5":
+	if action=="install-pyqt5":
 		InstallPyQt5(ReadTextFile("QT_VERSION"))
 		print(action,"done")
 		sys.exit(0)
 
 	# _____________________________________________
-	if action=="LINK-PYQT5":
+	if action=="link-qt5":
 		LinkPyQt5()
 		print(action,"done")
 		sys.exit(0)
 
 	# _____________________________________________
-	if action=="CONFIGURE":
+	if action=="configure":
 		RemoveQt5()
 		InstallPyQt5(ReadTextFile("QT_VERSION"))
 		LinkPyQt5()

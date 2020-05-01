@@ -175,7 +175,7 @@ if (1)
 		string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" __OutputDir__  "${OutputDir}")
 		install(CODE "
 			execute_process(
-				COMMAND ${__Python_EXECUTABLE__} -u ${CMAKE_SOURCE_DIR}/CMake/deploy.py POST_INSTALL \"${Qt5_HOME}\"
+				COMMAND ${__Python_EXECUTABLE__} -u ${CMAKE_SOURCE_DIR}/CMake/deploy.py post-install \"${Qt5_HOME}\"
 					RESULT_VARIABLE __retcode__
 					WORKING_DIRECTORY \"${__OutputDir__}\")
 			if(NOT \"\${__retcode__}\" STREQUAL \"0\")
@@ -193,7 +193,7 @@ endif()
 # //////////////////////////////////////////////////////////////
 # *** CONFIGURE (to call after INSTALL, create scripts and forse use of PyQt) ***
 if (1)
-	add_custom_target(CONFIGURE ${CMAKE_COMMAND} -E env PYTHONPATH=${OutputDir}/.. ${Python_EXECUTABLE} -u -m OpenVisus CONFIGURE)
+	add_custom_target(CONFIGURE ${CMAKE_COMMAND} -E env PYTHONPATH=${OutputDir}/.. ${Python_EXECUTABLE} -u -m OpenVisus configure)
 	set_property(TARGET CONFIGURE PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 
