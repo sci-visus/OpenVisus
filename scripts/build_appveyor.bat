@@ -1,12 +1,13 @@
 @echo on
 
-set python=C:/Python%PYTHON_VERSION%-x64/python.exe 
-"%Python_EXECUTABLE%" -m pip install numpy setuptools wheel twine --upgrade
+set PATH=C:/Python%PYTHON_VERSION%-x64;%PATH%
+
+python -m pip install numpy setuptools wheel twine --upgrade
 
 mkdir build_appveyor
 cd build_appveyor
 
-cmake.exe -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="C:\Qt\5.9\msvc2017_64\lib\cmake\Qt5" -DPython_EXECUTABLE=%Python_EXECUTABLE% ../
+cmake.exe -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="C:\Qt\5.9\msvc2017_64\lib\cmake\Qt5" -DPython_EXECUTABLE=C:/Python%PYTHON_VERSION%-x64/python.exe  ../
 cmake.exe --build . --target ALL_BUILD            --config Release
 cmake.exe --build . --target INSTALL              --config Release
 
@@ -14,14 +15,14 @@ cd Release\OpenVisus
 
  
 set PYTHONPATH=..\
-"%Python_EXECUTABLE%" -m OpenVisus test
+python -m OpenVisus test
 set PYTHONPATH=
 .\visus.bat
 
 if "%APPVEYOR_REPO_TAG%" == "true" (
 	set PYTHON_TAG=cp%PYTHON_VERSION%
-	"%Python_EXECUTABLE%" setup.py -q bdist_wheel --python-tag=%PYTHON_TAG% --plat-name=win_amd64
-	"%Python_EXECUTABLE%" -m twine upload --username %PYPI_USERNAME% --password %PYPI_PASSWORD% --skip-existing  "dist/*.whl"
+	python setup.py -q bdist_wheel --python-tag=%PYTHON_TAG% --plat-name=win_amd64
+	python -m twine upload --username %PYPI_USERNAME% --password %PYPI_PASSWORD% --skip-existing  "dist/*.whl"
 )
 
 set BUILD_CONDA=0
