@@ -4,7 +4,7 @@ set -e  # stop or error
 set -x  # very verbose
 
 # see my manylinux image
-export PYTHON_EXECUTABLE=python${PYTHON_VERSION}  
+export Python_EXECUTABLE=python${PYTHON_VERSION}  
 export Qt5_DIR=/opt/qt59
 
 mkdir build_circleci && cd build_circleci
@@ -25,7 +25,7 @@ fi
 # conda 
 if [[ "${PYTHON_VERSION}" == "3.6" || "${PYTHON_VERSION}" == "3.7" ]] ; then
 
-	cd build_circleci/Release/OpenVisus
+	cd Release/OpenVisus
 
 	# install conda
 	pushd ${HOME}

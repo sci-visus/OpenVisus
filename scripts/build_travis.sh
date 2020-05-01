@@ -61,7 +61,7 @@ fi
 # conda 
 if [[ "${PYTHON_VERSION}" == "3.6" || "${PYTHON_VERSION}" == "3.7" ]] ; then
 
-	cd build_travis/Release/OpenVisus
+	cd Release/OpenVisus
 
 	pushd ${HOME}
 	curl -L --insecure --retry 3 "https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh" -O		
