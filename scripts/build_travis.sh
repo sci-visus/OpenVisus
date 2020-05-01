@@ -73,7 +73,7 @@ if [[ "${PYTHON_VERSION}" == "3.6" || "${PYTHON_VERSION}" == "3.7" ]] ; then
 	eval "$(conda shell.bash hook)" # see https://github.com/conda/conda/issues/8072
 
 	conda config  --set changeps1 no --set anaconda_upload no
-	conda update  --yes conda anaconda-client python=${PYTHON_VERSION} numpy 
+	conda update  --yes conda python=${PYTHON_VERSION} numpy 
 
 	PYTHONPATH=../.. python -m OpenVisus configure pyqt5
 	conda install conda-build -y

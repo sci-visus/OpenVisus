@@ -16,7 +16,7 @@ PYTHONPATH=./Release ${Python_EXECUTABLE} -m OpenVisus test
 PYTHONPATH=./Release ${Python_EXECUTABLE} -m OpenVisus convert
 
 # wheel
-if [[ "${CIRCLE_TAG}" !="" ]] ; then
+if [[ "${CIRCLE_TAG}" != "" ]] ; then
 	${Python_EXECUTABLE} -m pip install setuptools wheel --upgrade || true
 	${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=manylinux2010_x86_64
 	${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing dist/OpenVisus-*.whl
@@ -38,7 +38,7 @@ if [[ "${PYTHON_VERSION}" == "3.6" || "${PYTHON_VERSION}" == "3.7" ]] ; then
 	eval "$(conda shell.bash hook)" # see https://github.com/conda/conda/issues/8072
 	
 	conda config  --set changeps1 no --set anaconda_upload no
-	conda update  --yes conda anaconda-client python=${PYTHON_VERSION} numpy
+	conda update  --yes conda python=${PYTHON_VERSION} numpy
 
 	# I get some random crashes here, so I'm using more actions than a simple configure here..
 	conda uninstall -y pyqt || true
