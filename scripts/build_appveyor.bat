@@ -2,6 +2,7 @@
 
 set PATH=C:/Python%PYTHON_VERSION%-x64;%PATH%
 
+choco install -y --allow-empty-checksums swig
 python -m pip install numpy setuptools wheel twine --upgrade
 
 mkdir build_appveyor
