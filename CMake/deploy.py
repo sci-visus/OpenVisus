@@ -13,8 +13,6 @@ OSX:
 	DYLD_PRINT_LIBRARIES=1 QT_DEBUG_PLUGINS=1 visusviewer.app/Contents/MacOS/visusviewer
 """
 
-this_dir=os.path.dirname(__file__)
-
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
 
@@ -114,7 +112,7 @@ def SetRPath(value):
 
 # ///////////////////////////////////////////////
 # apple only
-def PostInstall(Qt5_HOME):
+def InstallQt5(Qt5_HOME):
 	
 	if not Qt5_HOME:
 		raise Exception("internal error")
@@ -382,6 +380,8 @@ def Main():
 	if len(sys.argv)==1:
 		return
 
+	this_dir=os.path.dirname(os.path.abspath(__file__))
+
 	action=sys.argv[1]
 
 	# _____________________________________________
@@ -389,7 +389,7 @@ def Main():
 		print(this_dir)
 		sys.exit(0)
 
-	print(sys.executable,"-m","OpenVisus", sys.argv)
+	print([sys.executable,"-m","OpenVisus"] + sys.argv)
 
 	# _____________________________________________
 	if action=="test":
@@ -408,10 +408,10 @@ def Main():
 		sys.exit(0)
 
 	# _____________________________________________
-	if action=="post-install":
+	if action=="install-qt5":
 		os.chdir(this_dir)
 		Qt5_HOME=sys.argv[2]
-		PostInstall(Qt5_HOME)	
+		InstallQt5(Qt5_HOME)	
 		GenerateScripts("qt5")
 		print(action,"done")
 		sys.exit(0)

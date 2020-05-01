@@ -126,11 +126,10 @@ mkdir build && cd build
 cmake -GXcode -DPython_EXECUTABLE=<string value here> -DQt5_DIR=<string value here> ../
 cmake --build ./ --target ALL_BUILD --config Release 
 cmake --build ./ --target install --config Release
-PYTHONPATH=$(pwd)/Release/  python -m OpenVisus test
-PYTHONPATH=$(pwd)/Release/  python -m OpenVisus convert
-PYTHONPATH=$(pwd)/Release/  python -m OpenVisus viewer
+PYTHONPATH=./Release  python -m OpenVisus test
+PYTHONPATH=./Release  python -m OpenVisus convert
+PYTHONPATH=./Release  python -m OpenVisus viewer
 ```
-
       
 ## Linux compilation
 
@@ -186,9 +185,9 @@ mkdir build && cd build
 cmake -DPython_EXECUTABLE=python3.7 -DQt5_DIR=/opt/qt59/lib/cmake/Qt5 ../
 cmake --build ./ --target all     --config Release
 cmake --build ./ --target install --config Release
-PYTHONPATH=$(pwd)/Release python3.7 -m OpenVisus test
-PYTHONPATH=$(pwd)/Release python3.7 -m OpenVisus convert
-PYTHONPATH=$(pwd)/Release python3.7 -m OpenVisus viewer
+PYTHONPATH=./Release python3.7 -m OpenVisus test
+PYTHONPATH=./Release python3.7 -m OpenVisus convert
+PYTHONPATH=./Release python3.7 -m OpenVisus viewer
 ```
 
 ## Commit, Continuous Integration deploy
