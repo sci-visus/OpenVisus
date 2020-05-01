@@ -76,6 +76,7 @@ python -m OpenVisus viewer
 Type:
 
 ```
+conda install numpy
 conda install -c visus openvisus
 python -m OpenVisus configure 
 python -m OpenVisus test

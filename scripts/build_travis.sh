@@ -7,8 +7,9 @@ gem install xcpretty
 
 brew update 1>/dev/null 2>/dev/null || true
 
-# install cmake and swig
-brew install cmake swig
+# install cmake and swig (could be they are already installed)
+brew install cmake  1>/dev/null 2>/dev/null || true
+brew install swig   1>/dev/null 2>/dev/null || true
 
 # install python
 if (( 1 == 1 )) ; then
