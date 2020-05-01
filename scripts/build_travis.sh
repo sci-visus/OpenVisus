@@ -21,14 +21,14 @@ fi
 if (( 1 == 1 )) ; then
 	export Qt5_DIR=/usr/local/opt/qt
 
-	pushd $( brew --prefix )/Homebrew/Library/Taps/homebrew/homebrew-core 
+	pushd $(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core 
 	git fetch --unshallow || true
 	git checkout 13d52537d1e0e5f913de46390123436d220035f6 -- Formula/qt.rb 
 	cat Formula/qt.rb \
 		| sed -e 's|depends_on :mysql|depends_on "mysql-client"|g' \
 		| sed -e 's|depends_on :postgresql|depends_on "postgresql"|g' \
 		| sed -e 's|depends_on :macos => :mountain_lion|depends_on :macos => :sierra|g' \
-		> /tmp/qt.rbscripts/build.sh
+		> /tmp/qt.rb
 	cp /tmp/qt.rb Formula/qt.rb 
 	brew install qt 
 	brew link --force qt	

@@ -65,6 +65,7 @@ Type:
 python -m pip install numpy OpenVisus
 python -m OpenVisus configure 
 python -m OpenVisus test
+python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
@@ -78,6 +79,7 @@ conda install numpy
 conda install -c visus openvisus
 python -m OpenVisus configure 
 python -m OpenVisus test
+python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
@@ -104,6 +106,7 @@ cmake --build . --target ALL_BUILD --config Release
 cmake --build . --target INSTALL   --config Release
 set PYTHON_PATH=.\Release
 python -m OpenVisus test
+python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
@@ -124,6 +127,7 @@ cmake -GXcode -DPython_EXECUTABLE=<string value here> -DQt5_DIR=<string value he
 cmake --build ./ --target ALL_BUILD --config Release 
 cmake --build ./ --target install --config Release
 PYTHONPATH=$(pwd)/Release/  python -m OpenVisus test
+PYTHONPATH=$(pwd)/Release/  python -m OpenVisus convert
 PYTHONPATH=$(pwd)/Release/  python -m OpenVisus viewer
 ```
 
@@ -183,9 +187,9 @@ cmake -DPython_EXECUTABLE=python3.7 -DQt5_DIR=/opt/qt59/lib/cmake/Qt5 ../
 cmake --build ./ --target all     --config Release
 cmake --build ./ --target install --config Release
 PYTHONPATH=$(pwd)/Release python3.7 -m OpenVisus test
+PYTHONPATH=$(pwd)/Release python3.7 -m OpenVisus convert
 PYTHONPATH=$(pwd)/Release python3.7 -m OpenVisus viewer
 ```
-
 
 ## Commit, Continuous Integration deploy
 
