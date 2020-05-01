@@ -46,7 +46,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${OutputDir}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OutputDir}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OutputDir}/lib)
 
-find_package(Python COMPONENTS Interpreter Development)	
+find_package(Python COMPONENTS Interpreter Development REQUIRED)	
 
 option(VISUS_GUI "Enable VisusGui" ON)
 message(STATUS "VISUS_GUI ${VISUS_GUI}")

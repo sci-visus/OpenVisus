@@ -96,7 +96,9 @@ else
 	mkdir -p build_travis
 	cd build_travis
 	Python_EXECUTABLE=python${PYTHON_VERSION}
-	cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=/opt/qt59 ../
+
+	Qt5_DIR=${Qt5_DIR:-/opt/qt59}
+	cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} ../
 	cmake --build ./ --target all     --config Release
 	cmake --build ./ --target install --config Release
 
