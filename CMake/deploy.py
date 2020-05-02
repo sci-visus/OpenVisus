@@ -229,7 +229,6 @@ def InstallPyQt5(needed):
 	except:
 	  pass
 	
-	
 	if major==current[0] and minor==current[1]:
 		print("installed Pyqt5",current,"is compatible with",needed)
 		return
@@ -434,7 +433,9 @@ def Main():
 	# _____________________________________________
 	if action=="install-pyqt5":
 		os.chdir(this_dir)
-		InstallPyQt5(ReadTextFile("QT_VERSION"))
+		QT_VERSION=ReadTextFile("QT_VERSION")
+		print("QT_VERSION",QT_VERSION)
+		InstallPyQt5(QT_VERSION)
 		print(action,"done")
 		sys.exit(0)
 
@@ -449,7 +450,9 @@ def Main():
 	if action=="configure":
 		os.chdir(this_dir)
 		RemoveQt5()
-		InstallPyQt5(ReadTextFile("QT_VERSION"))
+		QT_VERSION=ReadTextFile("QT_VERSION")
+		print("QT_VERSION",QT_VERSION)
+		InstallPyQt5(QT_VERSION)
 		LinkPyQt5()
 		GenerateScripts(sys.argv[2] if len(sys.argv>=3) else "pyqt5")
 		print(action,"done")

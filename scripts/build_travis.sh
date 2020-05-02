@@ -30,7 +30,7 @@ if (( 1 == 1 )) ; then
 		| sed -e 's|depends_on :macos => :mountain_lion|depends_on :macos => :sierra|g' \
 		> /tmp/qt.rb
 	cp /tmp/qt.rb Formula/qt.rb 
-	brew install qt 
+	brew install --force qt 
 	brew link --force qt	
 	git checkout -f
 	popd	
