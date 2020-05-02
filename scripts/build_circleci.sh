@@ -27,18 +27,20 @@ if [[ "${PYTHON_VERSION}" == "3.6" || "${PYTHON_VERSION}" == "3.7" ]] ; then
 
 	cd Release/OpenVisus
 
-	# install conda
-	pushd ${HOME}
-	curl -L --insecure --retry 3 "https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh" -O		
-	bash ./Miniconda3-latest-Linux-x86_64.sh -b # b stands for silent mode
-	popd
+	if [[ ! -d  ${HOME}/miniconda3 ]]; then 
+		pushd ${HOME}
+		curl -L --insecure --retry 3 "https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh" -O		
+		bash ./Miniconda3-latest-Linux-x86_64.sh -b # b stands for silent mode
+		popd
+	fi
 
 	export PATH=~/miniconda3/bin:$PATH
 	source ~/miniconda3/etc/profile.d/conda.sh
-	eval "$(conda shell.bash hook)" # see https://github.com/conda/conda/issues/8072
+	hash -r
 	
-	conda config  --set changeps1 no --set anaconda_upload no
-	conda update  --yes conda python=${PYTHON_VERSION} numpy
+	conda config  --set changeps1 no --set anaconda_upload no --set always_yes yes
+	conda update   -q conda 
+	consta install -q python=${PYTHON_VERSION} numpy
 
 	# I get some random crashes here, so I'm using more actions than a simple configure here..
 	conda uninstall -y pyqt || true

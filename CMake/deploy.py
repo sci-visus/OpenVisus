@@ -49,8 +49,21 @@ def GetCommandOutput(cmd):
 	if sys.version_info >= (3, 0): output=output.decode("utf-8")
 	return output.strip()
 	
+# ////////////////////////////////////////////////
+def GetScriptExtention():
+	if WIN32:
+		return ".bat"
+	elif APPLE:
+		return ".command"
+	else:
+		return ".sh"	
+	
 # /////////////////////////////////////////////////////////////////////////
 def ExecuteCommand(cmd,bVerbose=False):	
+	
+	if not WIN32 and os.path.splitext(cmd[0])[1]==GetScriptExtention():
+		cmd=["bash"] + cmd
+	
 	if bVerbose: print("Executing command", cmd)
 	return subprocess.call(cmd, shell=False)
 	
@@ -347,14 +360,6 @@ def GenerateScript(script_filename, target_filename, content):
 	os.chmod(script_filename, 0o777)
 
 
-# ////////////////////////////////////////////////
-def GetScriptExtention():
-	if WIN32:
-		return ".bat"
-	elif APPLE:
-		return ".command"
-	else:
-		return ".sh"
 
 
 # ////////////////////////////////////////////////
@@ -370,9 +375,6 @@ def GenerateScripts(gui_lib):
 	else:
 		GenerateScript("visus.sh","bin/visus",__scripts["LINUX-nogui"])
 		GenerateScript("visusviewer.sh","bin/visusviewer",__scripts["LINUX-"+gui_lib])
-
-
-
 
 # ////////////////////////////////////////////////
 def Main():
@@ -399,7 +401,7 @@ def Main():
 
 	# _____________________________________________
 	if action=="convert":
-		ExecuteCommand(["cmd" if WIN32 else "bash",os.path.join(this_dir, "visus" + GetScriptExtention())] + sys.argv[2:], bVerbose=True)
+		ExecuteCommand([os.path.join(this_dir, "visus" + GetScriptExtention())] + sys.argv[2:], bVerbose=True)
 		sys.exit(0)
 	
 	# _____________________________________________
