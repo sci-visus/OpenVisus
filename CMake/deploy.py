@@ -144,16 +144,21 @@ def InstallQt5(Qt5_HOME):
 		Qt5_HOME_REAL=os.path.realpath(Qt5_HOME)
 		print("Qt5_HOME_REAL", Qt5_HOME_REAL)		
 		
-		qt_deps=("QtCore","QtDBus","QtGui","QtNetwork","QtPrintSupport","QtQml","QtQuick","QtSvg","QtWebSockets","QtWidgets","QtOpenGL")
-		qt_plugins=("iconengines","imageformats","platforms","printsupport","styles")
-	
 		# copy Qt5 frameworks
+		qt_deps=("QtCore","QtDBus","QtGui","QtNetwork","QtPrintSupport","QtQml","QtQuick","QtSvg","QtWebSockets","QtWidgets","QtOpenGL")
 		for it in qt_deps:
-			CopyDirectory(Qt5_HOME + "/lib/" + it + ".framework","./bin/qt/lib")
+			try:
+				CopyDirectory(Qt5_HOME + "/lib/" + it + ".framework","./bin/qt/lib")
+			except:
+				pass
 		
 			# copy Qt5 plugins 
+			qt_plugins=("iconengines","imageformats","platforms","printsupport","styles")
 		for it in qt_plugins:
-			CopyDirectory(Qt5_HOME + "/plugins/" + it ,"./bin/qt/plugins")
+			try:
+				CopyDirectory(Qt5_HOME + "/plugins/" + it ,"./bin/qt/plugins")
+			except:
+				pass
 			
 		# ShowDeps()
 	
