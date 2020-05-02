@@ -78,7 +78,7 @@ if [[ "${PYTHON_VERSION}" == "3.6" || "${PYTHON_VERSION}" == "3.7" ]] ; then
 	conda update   -q conda 
 	conda install  -q python=${PYTHON_VERSION} numpy 
 
-	PYTHONPATH=../.. python -m OpenVisus configure pyqt5
+	PYTHONPATH=../ python -m OpenVisus configure pyqt5
 	conda install conda-build -y
 	rm -Rf $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")	
 	python setup.py -q bdist_conda 
