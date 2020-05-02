@@ -18,8 +18,7 @@ python -m OpenVisus convert
 set PYTHONPATH=
 
 if "%APPVEYOR_REPO_TAG%" == "true" (
-	set PYTHON_TAG=cp%PYTHON_VERSION%
-	python setup.py -q bdist_wheel --python-tag=%PYTHON_TAG% --plat-name=win_amd64
+	python setup.py -q bdist_wheel --python-tag=cp%PYTHON_VERSION% --plat-name=win_amd64
 	python -m twine upload --username %PYPI_USERNAME% --password %PYPI_PASSWORD% --skip-existing  "dist/*.whl"
 )
 
