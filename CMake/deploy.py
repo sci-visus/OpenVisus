@@ -459,7 +459,7 @@ def Main():
 		print("QT_VERSION",QT_VERSION)
 		InstallPyQt5(QT_VERSION)
 		LinkPyQt5()
-		GenerateScripts(sys.argv[2] if len(sys.argv>=3) else "pyqt5")
+		GenerateScripts(sys.argv[2] if len(sys.argv)>=3 else "pyqt5")
 		print(action,"done")
 		sys.exit(0)
 
