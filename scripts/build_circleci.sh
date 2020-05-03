@@ -17,7 +17,6 @@ cd Release/OpenVisus
 PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
 PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert
 
-
 # wheel
 if [[ "${CIRCLE_TAG}" != "" ]] ; then
 	${Python_EXECUTABLE} -m pip install setuptools wheel --upgrade || true
@@ -27,8 +26,6 @@ fi
 
 # conda 
 if [[ "${PYTHON_VERSION}" == "3.6" || "${PYTHON_VERSION}" == "3.7" ]] ; then
-
-	cd Release/OpenVisus
 
 	if [[ ! -d  ${HOME}/miniconda3 ]]; then 
 		pushd ${HOME}
