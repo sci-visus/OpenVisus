@@ -197,9 +197,10 @@ Commit, tag the current commit and push to origin:
 
 ```
 TAG=...insert your tag number here...
-git commit -a -m "New tag"
-git tag -a $TAG -m "$TAG"
-git push origin $TAG
+
+git commit -a -m "New tag"  
+git tag $TAG  
+git push origin tag $TAG    
 git push origin
 ```
 
