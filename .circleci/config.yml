@@ -1,9 +1,7 @@
-version: 2
+version: 2.1
 
 jobs:
 
-
-  # ///////////////////////////////// manylinux
   linux-3.8:
     docker:
       - image: visus/travis-image
@@ -39,8 +37,17 @@ jobs:
 
 workflows:
   version: 2
-  OpenVisusWorkflow:
+  untagged-build:
     jobs:
-      - linux-3.8    
+      - linux-3.8   
+          filters:
+            tags:
+              only: /.*/ 
       - linux-3.7
+          filters:
+            tags:
+              only: /.*/
       - linux-3.6
+          filters:
+            tags:
+              only: /.*/
