@@ -12,8 +12,11 @@ cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} ../
 cmake --build ./ --target all     --config Release
 cmake --build ./ --target install --config Release
 
-PYTHONPATH=./Release ${Python_EXECUTABLE} -m OpenVisus test
-PYTHONPATH=./Release ${Python_EXECUTABLE} -m OpenVisus convert
+cd Release/OpenVisus
+
+PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
+PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert
+
 
 # wheel
 if [[ "${CIRCLE_TAG}" != "" ]] ; then

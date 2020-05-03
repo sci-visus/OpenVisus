@@ -49,8 +49,10 @@ cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} -DCM
 cmake --build ./ --target ALL_BUILD --config Release | xcpretty -c
 cmake --build ./ --target install --config Release
 
-PYTHONPATH=./Release ${Python_EXECUTABLE} -m OpenVisus test
-PYTHONPATH=./Release ${Python_EXECUTABLE} -m OpenVisus convert
+cd Release/OpenVisus
+
+PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
+PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert
 
 # wheel
 if [[ "${TRAVIS_TAG}" != "" ]] ; then
