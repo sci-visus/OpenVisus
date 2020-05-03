@@ -41,15 +41,15 @@ workflows:
   version: 2
   OpenVisusWorkflow:
     jobs:
-      - linux-3.8 
+      - linux-3.8:
           filters:
             tags:
               only: /.*/      
-      - linux-3.7
+      - linux-3.7:
           filters:
             tags:
               only: /.*/        
-      - linux-3.6
+      - linux-3.6:
           filters:
             tags:
               only: /.*/  
