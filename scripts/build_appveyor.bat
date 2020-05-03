@@ -12,7 +12,9 @@ cmake.exe -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="C:\Qt\5.9\msvc2017_64\l
 cmake.exe --build . --target ALL_BUILD            --config Release
 cmake.exe --build . --target INSTALL              --config Release
 
-set PYTHONPATH=Release
+cd Release\OpenVisus
+
+set PYTHONPATH=..\
 python -m OpenVisus test
 python -m OpenVisus convert
 set PYTHONPATH=
@@ -27,8 +29,6 @@ if "PYTHON_VERSION" == "36" ( set BUILD_CONDA=1 )
 if "PYTHON_VERSION" == "37" ( set BUILD_CONDA=1 )
 
 if "BUILD_CONDA" == "1" (
-
-	cd Release\OpenVisus
 
 	set CONDA_DIR=C:\Miniconda%PYTHON_VERSION%-x64
 	%CONDA_DIR%\Scripts\activate.bat

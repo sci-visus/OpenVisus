@@ -1,7 +1,7 @@
 import os,sys,shutil,platform,glob,atexit,setuptools,pathlib
 	
 PROJECT_NAME="OpenVisus"
-PROJECT_VERSION="1.3.91"
+PROJECT_VERSION="1.3.92"
 if __name__ == "__main__":
 	
 	# this are cached directories that should not be part of OpenVisus distribution
