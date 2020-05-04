@@ -5,8 +5,8 @@ set PATH=C:/Python%PYTHON_VERSION%-x64;%PATH%
 choco install -y --allow-empty-checksums swig
 python -m pip install numpy setuptools wheel twine --upgrade
 
-mkdir build_appveyor
-cd build_appveyor
+mkdir build_win
+cd build_win
 
 cmake.exe -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="C:\Qt\5.9\msvc2017_64\lib\cmake\Qt5" -DPython_EXECUTABLE=C:/Python%PYTHON_VERSION%-x64/python.exe  ../
 cmake.exe --build . --target ALL_BUILD            --config Release

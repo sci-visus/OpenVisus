@@ -1,6 +1,6 @@
 # example
 # TAG=visus/travis-image
-# sudo docker build --tag $TAG -f scripts/build_travis.Dockerfile .
+# sudo docker build --tag $TAG -f scripts/build_osx.Dockerfile .
 # sudo docker login 
 # sudo docker push $TAG
 #
