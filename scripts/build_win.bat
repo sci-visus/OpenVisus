@@ -27,7 +27,7 @@ if "%APPVEYOR_REPO_TAG%" == "true" (
 set BUILD_CONDA=0
 if "%PYTHON_VERSION%" == "36" ( set BUILD_CONDA=1 )
 if "%PYTHON_VERSION%" == "37" ( set BUILD_CONDA=1 )
-if "BUILD_CONDA" == "1" (
+if "%BUILD_CONDA%" == "1" (
 
 	set CONDA_DIR=C:\Miniconda%PYTHON_VERSION%-x64
 	%CONDA_DIR%\Scripts\activate.bat

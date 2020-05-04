@@ -45,7 +45,7 @@ if [[ "${PYTHON_VERSION}" == "3.6" || "${PYTHON_VERSION}" == "3.7" ]] ; then
 	hash -r
 	
 	conda config  --set changeps1 no --set anaconda_upload no --set always_yes yes
-	conda update   -q conda 
+	conda update  -q conda 
 	conda install -q python=${PYTHON_VERSION} numpy
 
 	# I get some random crashes here, so I'm using more actions than a simple configure here..
