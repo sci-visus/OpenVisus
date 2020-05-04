@@ -36,26 +36,74 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Viewer.h>
-#include <Visus/ApplicationInfo.h>
-#include <Visus/ModVisus.h>
+#ifndef VISUS_DATASETNODE_VIEW_H__
+#define VISUS_DATASETNODE_VIEW_H__
 
-////////////////////////////////////////////////////////////////////////
-int main(int argn,const char* argv[])
+#include <Visus/Gui.h>
+#include <Visus/Model.h>
+#include <Visus/DatasetNode.h>
+#include <Visus/GuiFactory.h>
+
+
+#include <QTextEdit>
+#include <QFontDatabase>
+#include <QTextEdit>
+
+namespace Visus {
+
+/////////////////////////////////////////////////////////
+class VISUS_GUI_API DatasetNodeView : 
+  public QFrame, 
+  public View<DatasetNode>
 {
-  using namespace Visus;
-  SetCommandLine(argn, argv);
-  GuiModule::createApplication();
-  GuiModule::attach();
+public:
 
-  {
-    UniquePtr<Viewer> viewer(new Viewer());
-    viewer->configureFromCommandLine(ApplicationInfo::args);
-    GuiModule::execApplication();
+  VISUS_NON_COPYABLE_CLASS(DatasetNodeView)
+
+  //constructor
+  DatasetNodeView(DatasetNode* model) {
+    bindModel(model);
   }
-  GuiModule::detach();
-  GuiModule::destroyApplication();
-  return 0;
-}
 
+  //destructor
+  virtual ~DatasetNodeView() {
+    bindModel(nullptr);
+  }
+
+  //bindModel
+  virtual void bindModel(DatasetNode* model) override 
+  {
+    if (this->model)
+    {
+      QUtils::clearQWidget(this);
+    }
+
+    View<ModelClass>::bindModel(model);
+
+    if (this->model)
+    {
+      auto textedit=GuiFactory::CreateTextEdit();
+
+      if (auto dataset=model->getDataset())
+      {
+        std::ostringstream out;
+        out<< dataset->getDatasetBody().toString()<<std::endl<<std::endl;
+        out<<"//Infos"<<std::endl;
+        out<<model->getDataset()->getDatasetInfos();
+
+        textedit->setText(out.str().c_str());
+      }
+
+      auto layout=new QVBoxLayout();
+      layout->addWidget(GuiFactory::CreateCheckBox(model->showBounds(),"Show bounds",[model](int value){model->setShowBounds(value);}));
+      layout->addWidget(textedit);
+      setLayout(layout);
+    }
+  }
+
+};
+
+} //namespace Visus
+
+#endif  //VISUS_DATASETNODE_VIEW_H__
 

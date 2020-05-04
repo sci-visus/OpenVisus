@@ -36,26 +36,99 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Viewer.h>
-#include <Visus/ApplicationInfo.h>
-#include <Visus/ModVisus.h>
+#ifndef VISUS_PYTHON_NODE_H__
+#define VISUS_PYTHON_NODE_H__
 
-////////////////////////////////////////////////////////////////////////
-int main(int argn,const char* argv[])
+#include <Visus/Gui.h>
+#include <Visus/DataflowNode.h>
+#include <Visus/GLObject.h>
+
+namespace Visus {
+
+///////////////////////////////////////////////////////////////
+class VISUS_GUI_API PythonNode : 
+  public Node
+
+#if !SWIG
+  ,public GLObject
+#endif
 {
-  using namespace Visus;
-  SetCommandLine(argn, argv);
-  GuiModule::createApplication();
-  GuiModule::attach();
+public:
 
-  {
-    UniquePtr<Viewer> viewer(new Viewer());
-    viewer->configureFromCommandLine(ApplicationInfo::args);
-    GuiModule::execApplication();
+  VISUS_NON_COPYABLE_CLASS(PythonNode)
+
+  Position node_bounds;
+
+  //constructor
+  PythonNode() {
   }
-  GuiModule::detach();
-  GuiModule::destroyApplication();
-  return 0;
-}
 
+  //destructor
+  virtual ~PythonNode() {
+  }
+
+  //getOsDependentTypeName (virtual so that I can override it in python)
+  virtual String getOsDependentTypeName() const override {
+    return "PythonNode";
+  }
+
+  //processInput 
+  virtual bool processInput() override{
+    return false;
+  }
+
+  //getBounds
+  virtual Position getBounds() override  {
+    return node_bounds;
+  }
+
+  //setBounds
+  void setBounds(Position value) {
+    this->node_bounds = value;
+  }
+
+public:
+
+  //replicate most of the API of GLOBject to expose them to python
+
+  //glGetRenderQueue
+  virtual int glGetRenderQueue() const override {
+    return GLObject::glGetRenderQueue();
+  }
+
+  //glSetRenderQueue
+  virtual void glSetRenderQueue(int value) override {
+    GLObject::glSetRenderQueue(value);
+  }
+
+  //glMousePressEvent
+  virtual void glMousePressEvent(const FrustumMap& map, QMouseEvent* evt) override {
+    GLObject::glMousePressEvent(map,evt);
+  }
+
+  //mouseMoveEvent
+  virtual void glMouseMoveEvent(const FrustumMap& map, QMouseEvent* evt) override {
+    GLObject::glMouseMoveEvent(map, evt);
+  }
+
+  //mouseReleaseEvent
+  virtual void glMouseReleaseEvent(const FrustumMap& map, QMouseEvent* evt) override {
+    GLObject::glMouseReleaseEvent(map, evt);
+  }
+
+  //wheelEvent
+  virtual void glWheelEvent(const FrustumMap& map, QWheelEvent* evt) override {
+    GLObject::glWheelEvent(map, evt);
+  }
+
+  //glRender
+  virtual void glRender(GLCanvas& gl) override {
+    //implement your own method here
+  }
+
+};
+
+} //namespace Visus
+
+#endif //VISUS_PYTHON_NODE_H__
 

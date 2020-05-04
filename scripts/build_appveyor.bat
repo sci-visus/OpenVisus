@@ -35,7 +35,7 @@ if "BUILD_CONDA" == "1" (
 	conda install conda-build numpy -y
 	
 	set PYTHONPATH=..\
-	python -m OpenVisus configure pyqt5
+	python -m OpenVisus configure
 	set PYTHONPATH=
 	
 	del %CONDA_DIR%\conda-bld\win-64\openvisus*.tar.bz2

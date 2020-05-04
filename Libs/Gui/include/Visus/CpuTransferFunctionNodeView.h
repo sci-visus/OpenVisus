@@ -36,26 +36,60 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Viewer.h>
-#include <Visus/ApplicationInfo.h>
-#include <Visus/ModVisus.h>
+#ifndef VISUS_CPU_TRANSFER_FUNCTION_NODE_VIEW_H__
+#define VISUS_CPU_TRANSFER_FUNCTION_NODE_VIEW_H__
 
-////////////////////////////////////////////////////////////////////////
-int main(int argn,const char* argv[])
+#include <Visus/Gui.h>
+#include <Visus/CpuPaletteNode.h>
+#include <Visus/Model.h>
+#include <Visus/TransferFunctionView.h>
+
+#include <QFrame>
+
+namespace Visus {
+
+/////////////////////////////////////////////////////////////////////////////////////
+class VISUS_GUI_API CpuTransferFunctionNodeView : 
+  public QFrame, 
+  public View<CpuPaletteNode>
 {
-  using namespace Visus;
-  SetCommandLine(argn, argv);
-  GuiModule::createApplication();
-  GuiModule::attach();
+public:
 
-  {
-    UniquePtr<Viewer> viewer(new Viewer());
-    viewer->configureFromCommandLine(ApplicationInfo::args);
-    GuiModule::execApplication();
+  VISUS_NON_COPYABLE_CLASS(CpuTransferFunctionNodeView)
+
+  //constructor
+  CpuTransferFunctionNodeView(CpuPaletteNode* model) {
+    bindModel(model);
   }
-  GuiModule::detach();
-  GuiModule::destroyApplication();
-  return 0;
-}
+
+  //destructor
+  virtual ~CpuTransferFunctionNodeView() {
+    bindModel(nullptr);
+  }
+
+  //bindModel
+  virtual void bindModel(CpuPaletteNode* model) override 
+  {
+    if (this->model)
+    {
+      QUtils::clearQWidget(this);
+    }
+
+    View<ModelClass>::bindModel(model);
+
+    if (this->model)
+    {
+      TransferFunctionView* view=new TransferFunctionView(model->getTransferFunction().get());
+      auto layout=new QVBoxLayout();
+      layout->addWidget(view);
+      setLayout(layout);
+    }
+  }
+
+};
+
+} //namespace Visus
+
+#endif //VISUS_CPU_TRANSFER_FUNCTION_NODE_VIEW_H__
 
 

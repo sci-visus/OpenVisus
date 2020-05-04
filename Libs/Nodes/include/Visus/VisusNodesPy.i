@@ -23,7 +23,6 @@ using namespace Visus;
 %}
 
 %include <Visus/VisusPy.i>
-
 %import <Visus/VisusKernelPy.i>
 %import <Visus/VisusDataflowPy.i>
 %import <Visus/VisusDbPy.i>

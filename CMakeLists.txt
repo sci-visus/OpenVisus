@@ -52,16 +52,6 @@ find_package(Python COMPONENTS Interpreter Development REQUIRED)
 if (1)
 	find_package(SWIG 3.0 REQUIRED)
 	include(${SWIG_USE_FILE})
-
-	if (CMAKE_CONFIGURATION_TYPES)
-		set(SWIG_OUTFILE_DIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}) # this is for generated C++ and header files
-	else()
-		set(SWIG_OUTFILE_DIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
-	endif()
-
-	set(CMAKE_SWIG_OUTDIR ${SWIG_OUTFILE_DIR}/OpenVisus) # this is for *.py generated files
-	set(CMAKE_SWIG_FLAGS "")
-	set (UseSWIG_TARGET_NAME_PREFERENCE STANDARD)
 endif()
 
 option(VISUS_GUI "Enable VisusGui" ON)
@@ -73,6 +63,17 @@ endif()
 
 # ///////////////////////////////////////////////////
 macro(AddSwigLibrary NamePy WrappedLib SwigFile)
+
+	if (CMAKE_CONFIGURATION_TYPES)
+		set(SWIG_OUTFILE_DIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}) # this is for generated C++ and header files
+	else()
+		set(SWIG_OUTFILE_DIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+	endif()
+
+	set(CMAKE_SWIG_OUTDIR ${SWIG_OUTFILE_DIR}/OpenVisus) # this is for *.py generated files
+	set (UseSWIG_TARGET_NAME_PREFERENCE STANDARD)
+	set(CMAKE_SWIG_FLAGS "")
+	#set(CMAKE_SWIG_FLAGS -interface;${NamePy}) # important for good name generation id Debug mode (https://gitlab.kitware.com/cmake/cmake/issues/18771)
 
 	# set_property(SOURCE ${SwigFile} PROPERTY SWIG_MODULE_NAME ${NamePy}) prevents rebuild every time make is called (? scrgiorgio sommented for now)
 	set_source_files_properties(${SwigFile} PROPERTIES CPLUSPLUS ON)
@@ -138,7 +139,7 @@ if (1)
 		# mportant: I didn't find a way to set PYTHONPATH here inside install(CODE), so I'm using directly the WORKING_DIRECTORY (without the module)
 		install(CODE "
 			execute_process(
-				COMMAND ${__Python_EXECUTABLE__} -u deploy.py install-qt5 \"${Qt5_HOME}\"
+				COMMAND ${__Python_EXECUTABLE__} -u deploy.py install-qt5 \"${Qt5_HOME}\" \${CMAKE_INSTALL_CONFIG_NAME}
 					RESULT_VARIABLE __retcode__
 					WORKING_DIRECTORY \"${__OutputDir__}\")
 			if(NOT \"\${__retcode__}\" STREQUAL \"0\")
@@ -156,7 +157,7 @@ endif()
 # //////////////////////////////////////////////////////////////
 # *** CONFIGURE (to call after INSTALL, create scripts and forse use of PyQt) ***
 if (1)
-	add_custom_target(CONFIGURE ${CMAKE_COMMAND} -E env PYTHONPATH=${OutputDir}/.. ${Python_EXECUTABLE} -u -m OpenVisus configure qt5)
+	add_custom_target(CONFIGURE ${CMAKE_COMMAND} -E env PYTHONPATH=${OutputDir}/.. ${Python_EXECUTABLE} -u -m OpenVisus configure)
 	set_property(TARGET CONFIGURE PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 

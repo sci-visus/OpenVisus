@@ -36,26 +36,72 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Viewer.h>
-#include <Visus/ApplicationInfo.h>
-#include <Visus/ModVisus.h>
+#ifndef __VISUS_STATISTICS_NODE_VIEW_H
+#define __VISUS_STATISTICS_NODE_VIEW_H
 
-////////////////////////////////////////////////////////////////////////
-int main(int argn,const char* argv[])
+#include <Visus/Gui.h>
+#include <Visus/StatisticsNode.h>
+#include <Visus/Model.h>
+#include <Visus/ArrayStatisticsView.h>
+
+namespace Visus {
+
+/////////////////////////////////////////////////////////
+class VISUS_GUI_API StatisticsNodeView :
+  public QFrame,
+  public BaseStatisticsNodeView
 {
-  using namespace Visus;
-  SetCommandLine(argn, argv);
-  GuiModule::createApplication();
-  GuiModule::attach();
+public:
 
-  {
-    UniquePtr<Viewer> viewer(new Viewer());
-    viewer->configureFromCommandLine(ApplicationInfo::args);
-    GuiModule::execApplication();
+  VISUS_NON_COPYABLE_CLASS(StatisticsNodeView)
+
+  //constructor
+  StatisticsNodeView(StatisticsNode* model) {
+    bindModel(model);
   }
-  GuiModule::detach();
-  GuiModule::destroyApplication();
-  return 0;
-}
 
+  //destructor
+  virtual ~StatisticsNodeView() {
+    bindModel(nullptr);
+  }
+
+  //bindModel
+  virtual void bindModel(StatisticsNode* model) override
+  {
+    if (this->model)
+    {
+      QUtils::clearQWidget(this);
+      widgets=Widgets();
+    }
+
+    View<ModelClass>::bindModel(model);
+
+    if (this->model)
+    {
+      QVBoxLayout* layout=new QVBoxLayout();
+      layout->addWidget(widgets.stats=new ArrayStatisticsView());
+      setLayout(layout);
+    }
+  }
+
+private:
+
+  class Widgets
+  {
+  public:
+    ArrayStatisticsView* stats=nullptr;
+  };
+  Widgets widgets;
+
+  //newStatsAvailable
+  virtual void newStatsAvailable(const Statistics& value) override {
+    if (widgets.stats)
+      widgets.stats->setStatistics(value);
+  }
+
+};
+
+} //namespace Visus
+
+#endif //__VISUS_STATISTICS_NODE_VIEW_H
 

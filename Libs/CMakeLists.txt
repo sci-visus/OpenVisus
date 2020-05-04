@@ -7,7 +7,6 @@ add_subdirectory(Nodes)
 
 if (VISUS_GUI)
 	add_subdirectory(Gui)
-	add_subdirectory(AppKit)
 endif()
   
 if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/Slam/CMakeLists.txt)

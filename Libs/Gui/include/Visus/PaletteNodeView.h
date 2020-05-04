@@ -36,26 +36,83 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Viewer.h>
-#include <Visus/ApplicationInfo.h>
-#include <Visus/ModVisus.h>
+#ifndef VISUS_PALETTE_NODE_VIEW_H__
+#define VISUS_PALETTE_NODE_VIEW_H__
 
-////////////////////////////////////////////////////////////////////////
-int main(int argn,const char* argv[])
+#include <Visus/Gui.h>
+#include <Visus/PaletteNode.h>
+#include <Visus/Model.h>
+#include <Visus/TransferFunctionView.h>
+
+#include <QFrame>
+
+namespace Visus {
+
+/////////////////////////////////////////////////////////////////////////////////////
+class VISUS_GUI_API PaletteNodeView : 
+  public QFrame, 
+  public BasePaletteNodeView
 {
-  using namespace Visus;
-  SetCommandLine(argn, argv);
-  GuiModule::createApplication();
-  GuiModule::attach();
+public:
 
-  {
-    UniquePtr<Viewer> viewer(new Viewer());
-    viewer->configureFromCommandLine(ApplicationInfo::args);
-    GuiModule::execApplication();
+  VISUS_NON_COPYABLE_CLASS(PaletteNodeView)
+
+  //constructor
+  PaletteNodeView(PaletteNode* model)  {
+    bindModel(model);
   }
-  GuiModule::detach();
-  GuiModule::destroyApplication();
-  return 0;
-}
 
+  //destructor
+  virtual ~PaletteNodeView() {
+    bindModel(nullptr);
+  }
+
+  //bindModel
+  virtual void bindModel(PaletteNode* model) override 
+  {
+    if (this->model)
+    {
+      widgets.palette->bindModel(nullptr);
+      QUtils::clearQWidget(this);
+      widgets=Widgets();
+    }
+
+    View<ModelClass>::bindModel(model);
+
+    if (this->model)
+    {
+      widgets.palette = new PaletteView();
+      widgets.palette->bindModel(model->getPalette().get());
+
+      auto layout = new QVBoxLayout();
+      layout->addWidget(widgets.palette);
+      setLayout(layout);
+    }
+  }
+
+private:
+
+  class Widgets
+  {
+  public:
+    PaletteView* palette=nullptr;
+  };
+
+  Widgets widgets;
+
+  //newStatsAvailable
+  virtual void newStatsAvailable(const Statistics& value) override {
+    if (widgets.palette)
+    {
+      widgets.palette->setInputStatistics(value);
+      widgets.palette->setOutputStatistics(value);
+    }
+  }
+
+};
+
+
+} //namespace Visus
+
+#endif //VISUS_PALETTE_NODE_VIEW_H__
 

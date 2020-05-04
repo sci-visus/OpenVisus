@@ -33,7 +33,7 @@ def Main(argv):
 	
 	SetCommandLine("__main__")
 	GuiModule.createApplication()
-	AppKitModule.attach()  	
+	GuiModule.attach()  	
 	
 	dataset=LoadDatasetPy(r"D:\GoogleSci\visus_dataset\male\visus.idx")
 	Assert(dataset)
@@ -73,7 +73,7 @@ def Main(argv):
 	
 	viewer.run()
 	
-	AppKitModule.detach()
+	GuiModule.detach()
 	print("ALL DONE")
 	sys.stdin.read(1)
 	sys.exit(0)	

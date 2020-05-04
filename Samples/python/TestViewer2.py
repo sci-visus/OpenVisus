@@ -11,10 +11,9 @@ from OpenVisus import *
 
 # on windows rememeber to INSTALL and CONFIGURE
 
-from OpenVisus.VisusGuiPy      import *
-from OpenVisus.VisusAppKitPy   import *
+from OpenVisusGui import *
 
-from OpenVisus.PyViewer        import *
+from OpenVisus.PyViewer import *
 
 import PyQt5
 from   PyQt5.QtCore    import *
@@ -91,10 +90,10 @@ def Main(argv):
 	"""
 	
 	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
-	# c:\Python37\python.exe Libs/AppKit/PyViewer.py	
+	# c:\Python37\python.exe Libs/Gui/PyViewer.py	
 	SetCommandLine("__main__")
 	GuiModule.createApplication()
-	AppKitModule.attach()  
+	GuiModule.attach()  
 	
 	VISUS_REGISTER_NODE_CLASS("MyPythonNode", "MyPythonNode", lambda : MyPythonNode())
 
@@ -120,7 +119,7 @@ def Main(argv):
 	 
 	GuiModule.execApplication()
 	viewer=None  
-	AppKitModule.detach()
+	GuiModule.detach()
 	print("All done")
 	sys.exit(0)
 

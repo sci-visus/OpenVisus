@@ -5,7 +5,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 FILE(GLOB Sources *.cpp *.h)
 add_executable(visusviewer ${Sources})
-target_link_libraries(visusviewer PUBLIC VisusAppKit Python::Python)
+target_link_libraries(visusviewer PUBLIC VisusGui Python::Python)
 set_target_properties(visusviewer PROPERTIES FOLDER "Executable/")
 
 if (APPLE)

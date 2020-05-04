@@ -37,7 +37,22 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/Gui.h>
-#include <Visus/DoubleSlider.h>
+
+#include <Visus/Viewer.h>
+#include <Visus/TransferFunction.h>
+#include <Visus/Nodes.h>
+#include <Visus/GLCameraNode.h>
+#include <Visus/IsoContourNode.h>
+#include <Visus/IsoContourRenderNode.h>
+#include <Visus/RenderArrayNode.h>
+#include <Visus/OSPRayRenderNode.h>
+#include <Visus/KdRenderArrayNode.h>
+#include <Visus/JTreeNode.h>
+#include <Visus/JTreeRenderNode.h>
+#include <Visus/VoxelScoopNode.h>
+#include <Visus/ScriptingNode.h>
+#include <Visus/PythonNode.h>
+#include <Visus/QDoubleSlider.h>
 #include <Visus/GLMaterial.h>
 #include <Visus/GLInfo.h>
 #include <Visus/GLCamera.h>
@@ -53,7 +68,9 @@ For support : support@visus.net
 #include <QDebug>
 #include <QApplication>
 
-void GuiInitResources() {
+#include <QDirIterator>
+
+void GuiInitResources(){
   Q_INIT_RESOURCE(Gui);
 }
 
@@ -63,132 +80,8 @@ void GuiCleanUpResources() {
 
 namespace Visus {
 
-////////////////////////////////////////////////////////
-void QUtils::clearQWidget(QWidget* widget)
-{
-  auto children = widget->children();
-  if (!children.empty())
-    qDeleteAll(children);
-
-  if (auto layout = widget->layout())
-  {
-    delete layout;
-    widget->setLayout(nullptr);
-  }
-}
-
-
-///////////////////////////////////////////////////////////////////////////////////
-void QUtils::RenderCheckerBoard(QPainter& painter,int x, int y, int width, int height, int checkWidth, int checkHeight, const Color& color1_, const Color& color2_)
-{
-  QRect area(x, y, width, height);
-  const QRect clipped = painter.viewport().intersected(area);
-
-  if (clipped.isEmpty())
-    return;
-
-  QColor color1 = QUtils::convert<QColor>(color1_);
-  QColor color2 = QUtils::convert<QColor>(color2_);
-
-  painter.save();
-  painter.setClipRect(clipped);
-
-  const int checkNumX = (clipped.x() - area.x()) / checkWidth;
-  const int checkNumY = (clipped.y() - area.y()) / checkHeight;
-  const int startX = area.x() + checkNumX * checkWidth;
-  const int startY = area.y() + checkNumY * checkHeight;
-  const int right  = clipped.right();
-  const int bottom = clipped.bottom();
-
-  for (int i = 0; i < 2; ++i)
-  {
-    const QColor& color = (i == ((checkNumX ^ checkNumY) & 1)) ? color1 : color2;
-    int cy = i;
-    for (int y = startY                          ; y < bottom; y += checkHeight   )
-    for (int x = startX + (cy++ & 1) * checkWidth; x < right ; x += checkWidth * 2)
-      painter.fillRect(QRect(x, y, checkWidth, checkHeight), color);
-  }
-
-  painter.restore();
-}
-
-
-///////////////////////////////////////////////////////////////////////////////////
-String QUtils::LoadTextFileFromResources(String name) 
-{
-  QFile file(name.c_str());
-  if(!file.open(QFile::ReadOnly | QFile::Text))
-  {
-    VisusAssert(false);
-    PrintInfo(" Could not open",name);
-    return "";
-  }
-
-  QTextStream in(&file);
-  auto content=in.readAll();
-  return cstring(content);
-}
 
 bool GuiModule::bAttached = false;
-
-///////////////////////////////////////////////////////////////////////////////////
-void GuiModule::attach()
-{
-  if (bAttached)  
-    return;
-  
-  PrintInfo("Attaching GuiModule...");
-
-  bAttached = true;
-
-  GuiInitResources();
-
-  KernelModule::attach();
-
-  GLSharedContext::allocSingleton();
-  GLInfo::allocSingleton();
-  GLDoWithContext::allocSingleton();
-  GLPhongShader::allocShaders();
-
-  //show qt resources
-#if 0
-  QDirIterator it(":", QDirIterator::Subdirectories);
-  while (it.hasNext()) {
-    qDebug() << it.next();
-  }
-#endif
-
-  auto config = getModuleConfig();
-
-  //simulate that the graphic card has a certain memory 
-  if (Int64 total = StringUtils::getByteSizeFromString(config->readString("Configuration/GLMemory/total", "0")))
-    GLInfo::getSingleton()->setOsTotalMemory(total);
-
-  PrintInfo("Attached GuiModule");
-}
-
-
-//////////////////////////////////////////////
-void GuiModule::detach()
-{
-  if (!bAttached)  
-    return;
-  
-  PrintInfo("Detaching GuiModule...");
-  
-  bAttached = false;
-
-  GuiCleanUpResources();
-
-  GLInfo::releaseSingleton();
-  GLDoWithContext::releaseSingleton();
-  GLSharedContext::releaseSingleton();
-  GLPhongShader::releaseShaders();
-
-  KernelModule::detach();
-
-  PrintInfo("Detached GuiModule");
-}
 
 //////////////////////////////////////////////
 static QApplication* qapp = nullptr;
@@ -198,7 +91,7 @@ void GuiModule::createApplication()
   QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
 
   VisusAssert(!qapp && CommandLine::argn != 0);
-  qapp=new QApplication(CommandLine::argn, (char**)CommandLine::argv);
+  qapp = new QApplication(CommandLine::argn, (char**)CommandLine::argv);
   qapp->setAttribute(Qt::AA_UseHighDpiPixmaps, true);
 
   //otherwise volume render looks bad on my old macbook pro
@@ -222,5 +115,162 @@ void GuiModule::destroyApplication()
   qapp = nullptr;
 }
 
-} //namespace Visus
 
+
+//////////////////////////////////////////////
+void GuiModule::attach()
+{
+  if (bAttached)  
+    return;
+  
+  PrintInfo("Attaching GuiModule...");
+
+  bAttached = true;
+
+  GuiInitResources();
+
+  //show qt resources
+#if 0
+  QDirIterator it(":", QDirIterator::Subdirectories);
+  while (it.hasNext()) {
+    qDebug() << it.next();
+  }
+#endif
+
+  KernelModule::attach();
+  NodesModule::attach();
+  DataflowModule::attach();
+
+  OSPRayRenderNode::initEngine();
+
+  VISUS_REGISTER_NODE_CLASS(GLCameraNode);
+  VISUS_REGISTER_NODE_CLASS(IsoContourNode);
+  VISUS_REGISTER_NODE_CLASS(IsoContourRenderNode);
+  VISUS_REGISTER_NODE_CLASS(RenderArrayNode);
+  VISUS_REGISTER_NODE_CLASS(OSPRayRenderNode);
+  VISUS_REGISTER_NODE_CLASS(KdRenderArrayNode);
+  VISUS_REGISTER_NODE_CLASS(JTreeNode);
+  VISUS_REGISTER_NODE_CLASS(JTreeRenderNode);
+  VISUS_REGISTER_NODE_CLASS(VoxelScoopNode);
+  VISUS_REGISTER_NODE_CLASS(ScriptingNode);
+  VISUS_REGISTER_NODE_CLASS(PythonNode);
+
+  GLSharedContext::allocSingleton();
+  GLInfo::allocSingleton();
+  GLDoWithContext::allocSingleton();
+  GLPhongShader::allocShaders();
+	IsoContourRenderNode::allocShaders();
+  KdRenderArrayNode::allocShaders();
+  RenderArrayNode::allocShaders();
+
+  auto config = getModuleConfig();
+
+  //simulate that the graphic card has a certain memory 
+  if (Int64 total = StringUtils::getByteSizeFromString(config->readString("Configuration/GLMemory/total", "0")))
+    GLInfo::getSingleton()->setOsTotalMemory(total);
+
+  ViewerPreferences::default_panels= config->readString("Configuration/VisusViewer/panels", "left center");
+  ViewerPreferences::default_show_logos = cbool(config->readString("Configuration/VisusViewer/show_logos", "true"));
+
+  PrintInfo("Attached GuiModule");
+
+}
+
+//////////////////////////////////////////////
+void GuiModule::detach()
+{
+  if (!bAttached)  
+    return;
+  
+  PrintInfo("Detaching GuiModule...");
+  
+  bAttached = false;
+
+  IsoContourRenderNode::releaseShaders();
+  KdRenderArrayNode::releaseShaders();
+  RenderArrayNode::releaseShaders();
+  GLPhongShader::releaseShaders();
+
+  GLInfo::releaseSingleton();
+  GLDoWithContext::releaseSingleton();
+  GLSharedContext::releaseSingleton();
+
+  GuiCleanUpResources();
+
+  OSPRayRenderNode::shutdownEngine();
+
+  NodesModule::detach();
+  DataflowModule::detach();
+  KernelModule::detach();
+
+  PrintInfo("Detached GuiModule");
+}
+
+
+////////////////////////////////////////////////////////
+void QUtils::clearQWidget(QWidget* widget)
+{
+  auto children = widget->children();
+  if (!children.empty())
+    qDeleteAll(children);
+
+  if (auto layout = widget->layout())
+  {
+    delete layout;
+    widget->setLayout(nullptr);
+  }
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////
+void QUtils::RenderCheckerBoard(QPainter& painter, int x, int y, int width, int height, int checkWidth, int checkHeight, const Color& color1_, const Color& color2_)
+{
+  QRect area(x, y, width, height);
+  const QRect clipped = painter.viewport().intersected(area);
+
+  if (clipped.isEmpty())
+    return;
+
+  QColor color1 = QUtils::convert<QColor>(color1_);
+  QColor color2 = QUtils::convert<QColor>(color2_);
+
+  painter.save();
+  painter.setClipRect(clipped);
+
+  const int checkNumX = (clipped.x() - area.x()) / checkWidth;
+  const int checkNumY = (clipped.y() - area.y()) / checkHeight;
+  const int startX = area.x() + checkNumX * checkWidth;
+  const int startY = area.y() + checkNumY * checkHeight;
+  const int right = clipped.right();
+  const int bottom = clipped.bottom();
+
+  for (int i = 0; i < 2; ++i)
+  {
+    const QColor& color = (i == ((checkNumX ^ checkNumY) & 1)) ? color1 : color2;
+    int cy = i;
+    for (int y = startY; y < bottom; y += checkHeight)
+      for (int x = startX + (cy++ & 1) * checkWidth; x < right; x += checkWidth * 2)
+        painter.fillRect(QRect(x, y, checkWidth, checkHeight), color);
+  }
+
+  painter.restore();
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////
+String QUtils::LoadTextFileFromResources(String name)
+{
+  QFile file(name.c_str());
+  if (!file.open(QFile::ReadOnly | QFile::Text))
+  {
+    VisusAssert(false);
+    PrintInfo(" Could not open", name);
+    return "";
+  }
+
+  QTextStream in(&file);
+  auto content = in.readAll();
+  return cstring(content);
+}
+
+} //namespace Visus

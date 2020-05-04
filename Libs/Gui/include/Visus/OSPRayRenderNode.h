@@ -36,26 +36,89 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Viewer.h>
-#include <Visus/ApplicationInfo.h>
-#include <Visus/ModVisus.h>
 
-////////////////////////////////////////////////////////////////////////
-int main(int argn,const char* argv[])
+#ifndef VISUS_OSPRAY_RENDERNODE_H
+#define VISUS_OSPRAY_RENDERNODE_H
+
+#include <Visus/Gui.h>
+#include <Visus/DataflowNode.h>
+#include <Visus/TransferFunction.h>
+
+#include <Visus/GLCanvas.h>
+
+namespace Visus {
+
+////////////////////////////////////////////////////////////////////
+class VISUS_GUI_API OSPRayRenderNode :
+  public Node,
+  public GLObject
 {
-  using namespace Visus;
-  SetCommandLine(argn, argv);
-  GuiModule::createApplication();
-  GuiModule::attach();
+public:
 
-  {
-    UniquePtr<Viewer> viewer(new Viewer());
-    viewer->configureFromCommandLine(ApplicationInfo::args);
-    GuiModule::execApplication();
+  VISUS_PIMPL_CLASS(OSPRayRenderNode)
+
+  //constructor
+  OSPRayRenderNode();
+
+  //destructor
+  virtual ~OSPRayRenderNode();
+
+  //initEngine
+  static void initEngine();
+
+  //shutdownEngine
+  static void shutdownEngine();
+
+  //getData
+  Array getData() const {
+    VisusAssert(VisusHasMessageLock()); return data;
   }
-  GuiModule::detach();
-  GuiModule::destroyApplication();
-  return 0;
-}
 
+  //getDataDimension
+  int getDataDimension() const {
+    VisusAssert(VisusHasMessageLock());
+    return (data.getWidth() > 1 ? 1 : 0) + (data.getHeight() > 1 ? 1 : 0) + (data.getDepth() > 1 ? 1 : 0);
+  }
+
+  //getDataBounds 
+  Position getDataBounds() {
+    VisusAssert(VisusHasMessageLock());
+    return (data.clipping.valid() ? data.clipping : data.bounds);
+  }
+
+  //getBounds 
+  virtual Position getBounds() override {
+    return getDataBounds();
+  }
+
+  //glRender
+  virtual void glRender(GLCanvas& gl) override;
+
+  //processInput
+  virtual bool processInput() override;
+
+public:
+
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
+
+private:
+
+  class MyGLObject; friend class MyGLObject;
+
+  SharedPtr<ReturnReceipt>    return_receipt;
+
+  Array                       data;
+  SharedPtr<Palette>          palette;
+  
+
+}; //end class
+
+
+} //namespace Visus
+
+#endif //VISUS_OSPRAY_RENDERNODE_H
 

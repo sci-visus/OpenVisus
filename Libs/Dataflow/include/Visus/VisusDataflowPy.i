@@ -11,7 +11,6 @@ using namespace Visus;
 %}
 
 %include <Visus/VisusPy.i>
-
 %import <Visus/VisusKernelPy.i>
 
 %shared_ptr(Visus::DataflowValue)

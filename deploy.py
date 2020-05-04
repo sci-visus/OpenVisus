@@ -125,7 +125,7 @@ def SetRPath(value):
 
 # ///////////////////////////////////////////////
 # apple only
-def InstallQt5(Qt5_HOME):
+def InstallQt5(Qt5_HOME="",bDebug=False):
 	
 	if not Qt5_HOME:
 		raise Exception("internal error")
@@ -133,6 +133,7 @@ def InstallQt5(Qt5_HOME):
 	if WIN32:
 
 		ExecuteCommand([Qt5_HOME + "/bin/windeployqt.exe", "bin/visusviewer.exe",
+				"--debug" if bDebug else "--release",
 				"--libdir","./bin/qt/bin",
 				"--plugindir","./bin/qt/plugins",
 				"--no-translations"],bVerbose=True)
@@ -280,7 +281,7 @@ def LinkPyQt5():
 		print("Error directory does not exists")
 		raise Exception("internal error")
 
-	# on windows it's enough to use sys.path (see VisusGui.i %pythonbegin section)
+	# on windows it's enough to use sys.path (see *.i %pythonbegin section)
 	if WIN32:
 		return
 
@@ -416,8 +417,7 @@ def Main():
 	# _____________________________________________
 	if action=="install-qt5":
 		os.chdir(this_dir)
-		Qt5_HOME=sys.argv[2]
-		InstallQt5(Qt5_HOME)	
+		InstallQt5(Qt5_HOME=sys.argv[2],bDebug="Debug" in sys.argv)	
 		GenerateScripts("qt5")
 		print(action,"done")
 		sys.exit(0)
@@ -459,7 +459,7 @@ def Main():
 		print("QT_VERSION",QT_VERSION)
 		InstallPyQt5(QT_VERSION)
 		LinkPyQt5()
-		GenerateScripts(sys.argv[2] if len(sys.argv)>=3 else "pyqt5")
+		GenerateScripts("pyqt5")
 		print(action,"done")
 		sys.exit(0)
 

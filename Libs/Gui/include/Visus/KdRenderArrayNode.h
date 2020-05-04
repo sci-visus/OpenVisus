@@ -36,26 +36,75 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Viewer.h>
-#include <Visus/ApplicationInfo.h>
-#include <Visus/ModVisus.h>
 
-////////////////////////////////////////////////////////////////////////
-int main(int argn,const char* argv[])
+#ifndef VISUS_RENDER_KD_ARRAY_NODE_H
+#define VISUS_RENDER_KD_ARRAY_NODE_H
+
+#include <Visus/Gui.h>
+#include <Visus/DataflowNode.h>
+#include <Visus/KdArray.h>
+#include <Visus/TransferFunction.h>
+
+#include <Visus/GLCanvas.h>
+
+namespace Visus {
+
+
+//////////////////////////////////////////////////////////////////////////////
+//Receive a KdArray data and display it as it is
+class VISUS_GUI_API KdRenderArrayNode : 
+  public Node, 
+  public GLObject 
 {
-  using namespace Visus;
-  SetCommandLine(argn, argv);
-  GuiModule::createApplication();
-  GuiModule::attach();
+public:
 
+  VISUS_NON_COPYABLE_CLASS(KdRenderArrayNode)
+
+  //constructor
+  KdRenderArrayNode() 
   {
-    UniquePtr<Viewer> viewer(new Viewer());
-    viewer->configureFromCommandLine(ApplicationInfo::args);
-    GuiModule::execApplication();
+    addInputPort("palette");
+    addInputPort("kdarray");
   }
-  GuiModule::detach();
-  GuiModule::destroyApplication();
-  return 0;
-}
 
+  //destructor
+  virtual ~KdRenderArrayNode() {
+  }
+
+  //getKdArray
+  SharedPtr<KdArray> getKdArray() const {
+    return kdarray;
+  }
+
+  //getBounds (in physic coordinates)
+  virtual Position getBounds() override
+  {
+    if (!kdarray) return Position::invalid();
+    return (kdarray->clipping.valid())? kdarray->clipping : Position(kdarray->bounds);
+  }
+
+  //from Node
+  virtual bool processInput() override;
+
+  //glRender
+  virtual void glRender(GLCanvas& gl) override;
+
+public:
+
+  //shaders
+  static void allocShaders();
+  static void releaseShaders();
+
+private:
+
+  SharedPtr<KdArray>    kdarray;
+
+  SharedPtr<Palette>    palette;
+  SharedPtr<GLTexture>  palette_texture;
+
+}; //end class
+
+} //namespace Visus
+
+#endif //VISUS_RENDER_KD_ARRAY_NODE_H
 
