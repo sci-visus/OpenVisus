@@ -44,6 +44,8 @@ For support : support@visus.net
 #include <Visus/TransferFunction.h>
 
 #include <Visus/GLCanvas.h>
+#include <Visus/Model.h>
+#include <Visus/GuiFactory.h>
 
 namespace Visus {
 
@@ -123,6 +125,45 @@ private:
 
 };
 
+
+/////////////////////////////////////////////////////////
+class VISUS_APPKIT_API IsoContourRenderNodeView :
+  public QFrame,
+  public View<IsoContourRenderNode>
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(IsoContourRenderNodeView)
+
+    //constructor
+    IsoContourRenderNodeView(IsoContourRenderNode* model) {
+    bindModel(model);
+  }
+
+  //destructor
+  virtual ~IsoContourRenderNodeView() {
+    bindModel(nullptr);
+  }
+
+  //bindModel
+  virtual void bindModel(IsoContourRenderNode* model) override
+  {
+    if (this->model)
+    {
+      QUtils::clearQWidget(this);
+    }
+
+    View<ModelClass>::bindModel(model);
+
+    if (this->model)
+    {
+      auto layout = new QVBoxLayout();
+      layout->addWidget(GuiFactory::CreateGLMaterialView(model->getMaterial(), [model](GLMaterial value) {model->setMaterial(value); }));
+      setLayout(layout);
+    }
+  }
+
+};
 
 } //namespace Visus
 

@@ -46,7 +46,6 @@ namespace Visus {
 #define JTREE_VERIFY_TREE 0
 #endif
 
-
 /////////////////////////////////////////////////////////////////////
 template <typename CppType>
 class BuildJTreeNodeUtils

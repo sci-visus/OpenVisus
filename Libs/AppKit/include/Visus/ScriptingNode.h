@@ -39,10 +39,14 @@ For support : support@visus.net
 #ifndef VISUS_SCRIPTING_NODE_H
 #define VISUS_SCRIPTING_NODE_H
 
-#include <Visus/Nodes.h>
+#include <Visus/AppKit.h>
 #include <Visus/DataflowNode.h>
 #include <Visus/Dataflow.h>
 #include <Visus/Array.h>
+#include <Visus/Model.h>
+#include <Visus/GuiFactory.h>
+
+#include <QTimer>
 
 #if VISUS_PYTHON
 #include <Visus/Python.h>
@@ -51,7 +55,7 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////
-class VISUS_NODES_API ScriptingNode : public Node
+class VISUS_APPKIT_API ScriptingNode : public Node
 {
 public:
 
@@ -168,7 +172,7 @@ private:
 
 
 ////////////////////////////////////////////////////////////
-class VISUS_NODES_API ScriptingNodeBaseView : public  View<ScriptingNode>
+class VISUS_APPKIT_API ScriptingNodeBaseView : public  View<ScriptingNode>
 {
 public:
 
@@ -185,6 +189,81 @@ public:
 
   //addPreset
   virtual void addPreset(String key, String code) = 0;
+
+};
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+class VISUS_APPKIT_API ScriptingNodeView :
+  public QFrame,
+  public ScriptingNodeBaseView
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(ScriptingNodeView)
+
+    class VISUS_APPKIT_API Widgets
+  {
+  public:
+    QTextEdit* txtCode = nullptr;
+    QTextEdit* txtOutput = nullptr;
+    QToolButton* btnRun = nullptr;
+    QComboBox* presets = nullptr;
+  };
+
+  Widgets widgets;
+
+  //constructor
+  ScriptingNodeView(ScriptingNode* model = nullptr);
+
+  //destructor
+  virtual ~ScriptingNodeView();
+
+  //clearPresets
+  virtual void clearPresets() override {
+    widgets.presets->clear();
+  }
+
+  //addPreset
+  virtual void addPreset(String key, String code) override {
+    widgets.presets->addItem(key.c_str());
+  }
+
+  //see https://stackoverflow.com/questions/1956407/how-to-redirect-stderr-in-python-via-python-c-api
+
+
+  //bindModel
+  virtual void bindModel(ScriptingNode* model) override;
+
+private:
+
+#if VISUS_PYTHON
+  PyObject* __stdout__ = nullptr;
+  PyObject* __stderr__ = nullptr;
+#endif
+
+  QTimer     output_timer;
+
+  //refreshGui
+  void refreshGui()
+  {
+    widgets.txtOutput->setText("");
+    widgets.txtCode->setText(model->getCode().c_str());
+  }
+
+  //modelChanged
+  virtual void modelChanged() override {
+    refreshGui();
+  }
+
+  //flushOutputs
+  void flushOutputs();
+
+  //showEvent
+  virtual  void showEvent(QShowEvent*) override;
+
+  //hideEvent
+  virtual void hideEvent(QHideEvent*) override;
 
 };
 

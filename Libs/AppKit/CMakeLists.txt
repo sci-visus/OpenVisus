@@ -19,7 +19,7 @@ SET(RootSources
 set(NodeSources
 	./include/Visus/GLCameraNode.h
 	./include/Visus/GLCameraNodeView.h
-	./src/GLCameraNode.cpp        grep -i G
+	./src/GLCameraNode.cpp       
 	./src/IsoContourNode.cpp    
 	./include/Visus/JTreeRenderNode.h 
 	./include/Visus/JTreeRenderNodeView.h   
@@ -40,6 +40,15 @@ set(NodeSources
 	./include/Visus/KdRenderArrayNode.h 
 	./src/KdRenderArrayNode.cpp   
 	./resources/KdRenderArrayShader.glsl
+	./include/Visus/JTreeNode.h  
+	./src/JTreeNode.cpp
+	./include/Visus/VoxelScoopNode.h  
+	./src/VoxelScoopNode.cpp
+	./include/Visus/VoxelScoopNodeView.h
+	./include/Visus/ScriptingNode.h  
+	./src/ScriptingNode.cpp
+	./include/Visus/ScriptingNodeView.h
+	./src/ScriptingNodeView.cpp	
 	./include/Visus/PythonNode.h  
 	./src/PythonNode.cpp
 )
@@ -63,17 +72,13 @@ set(ViewerSources
 	./src/DataflowFrameView.cpp
 	./include/Visus/DataflowTreeView.h
 	./src/DataflowTreeView.cpp
-	./include/Visus/ScriptingNodeView.h
-	./src/ScriptingNodeView.cpp	
 	./include/Visus/DatasetNodeView.h
 	./include/Visus/FieldNodeView.h
-	./include/Visus/FreeTransformView.h
 	./include/Visus/PaletteNodeView.h
 	./include/Visus/QueryNodeView.h
 	./include/Visus/StatisticsNodeView.h
 	./include/Visus/TimeNodeView.h
 	./include/Visus/TransferFunctionView.h 
-	./include/Visus/VoxelScoopNodeView.h
 	./include/Visus/ProcessArrayView.h
 )
 

@@ -22,6 +22,7 @@
 #include <Visus/IsoContourRenderNode.h>
 #include <Visus/RenderArrayNode.h>
 #include <Visus/KdRenderArrayNode.h>
+#include <Visus/ScriptingNode.h>
 #include <Visus/PythonNode.h>
 #include <Visus/GLCamera.h>
 #include <Visus/GLOrthoCamera.h>
@@ -53,6 +54,7 @@ using namespace Visus;
 %feature("director") Visus::OSPRayRenderNode;
 %feature("director") Visus::KdRenderArrayNode;
 %feature("director") Visus::JTreeRenderNode;
+%feature("director") Visus::ScriptingNode;
 %feature("director") Visus::PythonNode;
 
 %include <Visus/AppKit.h>
@@ -69,7 +71,7 @@ using namespace Visus;
 
 ///////////////////////////////////////////////////////////////
 //allow rendering inside main GLCanvas (problem of multi-inheritance Node and GLObject)
-%feature("director") Visus::PythonNode; 
+%include <Visus/ScriptingNode.h>
 %include <Visus/PythonNode.h>
 
 %include <Visus/Viewer.h>

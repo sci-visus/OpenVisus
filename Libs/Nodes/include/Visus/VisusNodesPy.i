@@ -14,7 +14,6 @@
 #include <Visus/FieldNode.h>
 #include <Visus/ModelViewNode.h>
 #include <Visus/PaletteNode.h>
-#include <Visus/ScriptingNode.h>
 #include <Visus/StatisticsNode.h>
 #include <Visus/TimeNode.h>
 #include <Visus/DatasetNode.h>
@@ -35,7 +34,6 @@ using namespace Visus;
 %feature("director") Visus::FieldNode;
 %feature("director") Visus::ModelViewNode;
 %feature("director") Visus::PaletteNode;
-%feature("director") Visus::ScriptingNode;
 %feature("director") Visus::StatisticsNode;
 %feature("director") Visus::TimeNode;
 %feature("director") Visus::DatasetNode;
@@ -46,7 +44,6 @@ using namespace Visus;
 %include <Visus/FieldNode.h>
 %include <Visus/ModelViewNode.h>
 %include <Visus/PaletteNode.h>
-%include <Visus/ScriptingNode.h>
 %include <Visus/StatisticsNode.h>
 %include <Visus/TimeNode.h>
 %include <Visus/DatasetNode.h>

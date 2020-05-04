@@ -43,7 +43,8 @@ For support : support@visus.net
 #include <Visus/AppKit.h>
 #include <Visus/DataflowNode.h>
 #include <Visus/TransferFunction.h>
-
+#include <Visus/Model.h>
+#include <Visus/GuiFactory.h>
 #include <Visus/GLCanvas.h>
 
 namespace Visus {
@@ -218,6 +219,59 @@ private:
 
 
 }; //end class
+
+
+/////////////////////////////////////////////////////////
+class VISUS_APPKIT_API RenderArrayNodeView :
+  public QFrame,
+  public View<RenderArrayNode>
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(RenderArrayNodeView)
+
+    //constructor
+    RenderArrayNodeView(RenderArrayNode* model = nullptr) {
+    if (model)
+      bindModel(model);
+  }
+
+  //destructor
+  virtual ~RenderArrayNodeView() {
+    bindModel(nullptr);
+  }
+
+  //bindModel
+  virtual void bindModel(RenderArrayNode* model) override
+  {
+    if (this->model)
+    {
+      QUtils::clearQWidget(this);
+    }
+
+    View<ModelClass>::bindModel(model);
+
+    if (this->model)
+    {
+      std::map< int, String> filter_options = {
+        {GL_LINEAR,"linear"},
+        {GL_NEAREST,"nearest"}
+      };
+
+      QFormLayout* layout = new QFormLayout();
+      layout->addRow("Enable lighting", GuiFactory::CreateCheckBox(model->lightingEnabled(), "", [model](int value) {model->setLightingEnabled(value); }));
+      layout->addRow("Minify filter", GuiFactory::CreateIntegerComboBoxWidget(model->minifyFilter(), filter_options, [model](int value) {model->setMinifyFilter(value); }));
+      layout->addRow("Magnify filter", GuiFactory::CreateIntegerComboBoxWidget(model->magnifyFilter(), filter_options, [model](int value) {model->setMagnifyFilter(value); }));
+      layout->addRow("Enable Palette", GuiFactory::CreateCheckBox(model->paletteEnabled(), "", [model](int value) {model->setPaletteEnabled(value); }));
+      layout->addRow("Use view direction", GuiFactory::CreateCheckBox(model->useViewDirection(), "", [model](int value) {model->setUseViewDirection(value); }));
+      layout->addRow("Max slices", GuiFactory::CreateIntegerTextBoxWidget(model->maxNumSlices(), [model](int value) {model->setMaxNumSlices(value); }));
+      setLayout(layout);
+    }
+  }
+
+};
+
+
 
 
 } //namespace Visus

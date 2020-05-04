@@ -477,6 +477,184 @@ void ScriptingNode::read(Archive& ar)
   ar.readText("code", code);
 }
 
+
+static CriticalSection     outputs_lock;
+static std::vector<String> outputs;
+
+////////////////////////////////////////////////////////////////
+#if VISUS_PYTHON
+static PyObject* WriteMethod(PyObject* self, PyObject* args)
+{
+  if (!PyTuple_Check(args))
+    return NULL;
+
+  {
+    ScopedLock lock(outputs_lock);
+    for (int I = 0, N = (int)PyTuple_Size(args); I < N; I++) {
+      auto obj = PyTuple_GetItem(args, I);
+      auto s = PythonEngine::convertToString(obj);
+      outputs.push_back(s);
+    }
+  }
+
+  auto ret = Py_None;
+  Py_INCREF(ret);
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////
+static PyObject* FlushMethod(PyObject* self, PyObject* args)
+{
+  auto ret = Py_None;
+  Py_INCREF(ret);
+  return ret;
+}
+
+
+static  PyMethodDef __methods__[3] =
+{
+  { "write", WriteMethod, METH_VARARGS, "doc for write" },
+  { "flush", FlushMethod, METH_VARARGS, "doc for flush" },
+  { 0, 0, 0, 0 } // sentinel
+};
+
+#if PY_MAJOR_VERSION >= 3
+static PyModuleDef RedirectOutputModule =
+{
+  PyModuleDef_HEAD_INIT,
+  "RedirectOutputModule",
+  "doc for RedirectOutputModule",
+  -1,
+  __methods__,
+};
+#endif
+
+#endif //
+////////////////////////////////////////////////////////////////////////
+ScriptingNodeView::ScriptingNodeView(ScriptingNode* model)
+{
+  VisusAssert(VisusHasMessageLock());
+
+  connect(&output_timer, &QTimer::timeout, [this]() {
+    flushOutputs();
+  });
+
+  output_timer.start(200);
+
+  if (model)
+    bindModel(model);
+}
+
+////////////////////////////////////////////////////////////////////////
+ScriptingNodeView::~ScriptingNodeView() {
+  bindModel(nullptr);
+}
+
+
+////////////////////////////////////////////////////////////////////////
+void ScriptingNodeView::showEvent(QShowEvent*)
+{
+#if VISUS_PYTHON
+
+  ScopedAcquireGil acquire_gil;
+  this->__stdout__ = PySys_GetObject((char*)"stdout");
+  this->__stderr__ = PySys_GetObject((char*)"stderr");
+#if PY_MAJOR_VERSION >= 3
+  auto redirect_module = PyModule_Create(&RedirectOutputModule);
+#else
+  auto redirect_module = Py_InitModule("RedirectOutputModule", __methods__);
+#endif
+
+  PySys_SetObject((char*)"stdout", redirect_module);
+  PySys_SetObject((char*)"stderr", redirect_module);
+
+#endif 
+}
+
+////////////////////////////////////////////////////////////////////////
+void ScriptingNodeView::hideEvent(QHideEvent*)
+{
+#if VISUS_PYTHON
+  ScopedAcquireGil acquire_gil;
+  PySys_SetObject((char*)"stdout", this->__stdout__);
+  PySys_SetObject((char*)"stderr", this->__stderr__);
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////
+void ScriptingNodeView::bindModel(ScriptingNode* model)
+{
+  if (this->model)
+  {
+    QUtils::clearQWidget(this);
+    widgets = Widgets();
+  }
+
+  ScriptingNodeBaseView::bindModel(model);
+
+  if (this->model)
+  {
+    QVBoxLayout* layout = new QVBoxLayout();
+
+    layout->addWidget(new QLabel("Input"));
+
+    //presets
+    auto presets = model->getPresets();
+
+    layout->addWidget(widgets.presets = GuiFactory::CreateComboBox(presets.empty() ? "" : presets[0], presets, [this](const String value) {
+      auto code = this->model->getPresetCode(value);
+      this->model->setCode(code);
+    }));
+
+    //code
+    layout->addWidget(widgets.txtCode = GuiFactory::CreateTextEdit());
+
+    {
+      auto row = (new QHBoxLayout());;
+
+      row->addWidget(widgets.btnRun = GuiFactory::CreateButton("Run", [this](bool) {
+        this->model->setCode(cstring(widgets.txtCode->toPlainText()));
+      }));
+
+      layout->addLayout(row);
+    }
+
+    layout->addWidget(new QLabel("Output"));
+
+    //output
+    layout->addWidget(widgets.txtOutput = GuiFactory::CreateTextEdit());
+
+    setLayout(layout);
+    refreshGui();
+  }
+}
+
+
+////////////////////////////////////////////////////////////////////////
+void ScriptingNodeView::flushOutputs()
+{
+  VisusAssert(VisusHasMessageLock());
+
+  ScopedLock lock(outputs_lock);
+  for (auto output : outputs)
+  {
+#if 1
+    widgets.txtOutput->moveCursor(QTextCursor::End);
+    widgets.txtOutput->insertPlainText(output.c_str());
+    //widgets.txtOutput->insertPlainText("\n");
+    widgets.txtOutput->moveCursor(QTextCursor::End);
+#else
+    widgets.txtOutput->setTextColor(QUtils::convert<QColor>(Colors::Red));
+    widgets.txtOutput->append(cstring("[", Time::now().getFormattedLocalTime(), "]").c_str());
+    widgets.txtOutput->setTextColor(QUtils::convert<QColor>(Colors::Black));
+    widgets.txtOutput->append(output.c_str());
+#endif
+  }
+
+  outputs.clear();
+}
+
 } //namespace Visus
 
 

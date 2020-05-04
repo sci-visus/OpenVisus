@@ -46,7 +46,10 @@ For support : support@visus.net
 #include <Visus/RenderArrayNode.h>
 #include <Visus/OSPRayRenderNode.h>
 #include <Visus/KdRenderArrayNode.h>
+#include <Visus/JTreeNode.h>
 #include <Visus/JTreeRenderNode.h>
+#include <Visus/VoxelScoopNode.h>
+#include <Visus/ScriptingNode.h>
 #include <Visus/PythonNode.h>
 
 #include <QDirIterator>
@@ -99,7 +102,10 @@ void AppKitModule::attach()
   VISUS_REGISTER_NODE_CLASS(RenderArrayNode);
   VISUS_REGISTER_NODE_CLASS(OSPRayRenderNode);
   VISUS_REGISTER_NODE_CLASS(KdRenderArrayNode);
+  VISUS_REGISTER_NODE_CLASS(JTreeNode);
   VISUS_REGISTER_NODE_CLASS(JTreeRenderNode);
+  VISUS_REGISTER_NODE_CLASS(VoxelScoopNode);
+  VISUS_REGISTER_NODE_CLASS(ScriptingNode);
   VISUS_REGISTER_NODE_CLASS(PythonNode);
 
   OSPRayRenderNode::initEngine(); 
