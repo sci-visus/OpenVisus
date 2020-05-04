@@ -81,7 +81,7 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 
 	swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
 	target_compile_definitions(${NamePy} PRIVATE SWIG_TYPE_TABLE=OpenVisus)
-	target_link_libraries(${NamePy} PUBLIC Python::Module)
+
 	target_link_libraries(${NamePy} PUBLIC ${WrappedLib})
 	set_target_properties(${NamePy} PROPERTIES FOLDER Swig/)
 
@@ -129,7 +129,7 @@ if (1)
 		endif()	
 		set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION "${OutputDir}/bin")
 		include(InstallRequiredSystemLibraries)
-		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ${OutputDir}/bin)
+		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION "${OutputDir}/bin")
 	endif()
 
 	# ____________________________________________

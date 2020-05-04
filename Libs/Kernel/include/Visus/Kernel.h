@@ -266,7 +266,7 @@ inline void ThrowExceptionEx(String file, int line, Args&&... args) {
 #endif 
 
 #if !defined(SWIG) && !defined(VisusAssert)
-#  if defined(VISUS_DEBUG)
+#  if defined(_DEBUG)
 #    define VisusAssert(_Expression) VisusReleaseAssert(_Expression)
 #  else
 #    define VisusAssert(_Expression) ((void)0) 
@@ -348,7 +348,7 @@ public:
 
 #endif
 
-#ifdef VISUS_DEBUG
+#ifdef _DEBUG
   #define VISUS_CLASS(className) \
     Visus::DetectMemoryLeaks<className> VISUS_JOIN_MACRO(__leak_detector__,__LINE__);\
     /*--*/

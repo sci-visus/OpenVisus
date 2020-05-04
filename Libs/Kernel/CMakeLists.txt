@@ -228,12 +228,6 @@ file(GLOB Sources
 add_library(VisusKernel SHARED ${Sources})
 set_target_properties(VisusKernel PROPERTIES FOLDER "")
 
-if (CMAKE_CONFIGURATION_TYPES)
-	target_compile_options(VisusKernel PUBLIC "$<$<CONFIG:Debug>:-DVISUS_DEBUG=1>")	
-elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
-	target_compile_options(VisusKernel PUBLIC -DVISUS_DEBUG=1)
-endif()
-
 if (WIN32)
 	target_compile_options(VisusKernel PUBLIC /bigobj)		
 	target_compile_options(VisusKernel PUBLIC -DPSAPI_VERSION=1)
@@ -256,7 +250,15 @@ target_link_libraries(VisusKernel PRIVATE cryptlite dtl lz4 tinyxml zlib zfp)
 
 target_link_libraries(VisusKernel PRIVATE FreeImage)
 target_link_libraries(VisusKernel PRIVATE curl)
-target_link_libraries(VisusKernel PUBLIC  Python::Module)
+
+if (WIN32)
+	# I'm always linking to python Release (most of wheel do not work in debug mode, like numpy)
+	target_include_directories(VisusKernel PUBLIC ${Python_INCLUDE_DIRS})
+	target_compile_definitions(VisusKernel PUBLIC SWIG_PYTHON_INTERPRETER_NO_DEBUG=1)
+	target_link_libraries(VisusKernel      PUBLIC ${Python_LIBRARY_RELEASE})
+else()
+	target_link_libraries(VisusKernel PUBLIC Python::Module)
+endif()
 
 target_compile_definitions(VisusKernel  PUBLIC  VISUS_PYTHON=1)
 target_compile_definitions(VisusKernel  PRIVATE SWIG_TYPE_TABLE=OpenVisus)

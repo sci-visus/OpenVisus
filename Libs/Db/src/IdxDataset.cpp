@@ -1765,7 +1765,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
     PrintWarning("The hzaddress_conversion_pointquery has not been created, so loc-by-loc queries will be a lot slower!!!!");
 
     //so you investigate why it's happening! .... I think only for the iphone could make sense....
-#if WIN32 && VISUS_DEBUG
+#if defined(WIN32) && defined(_DEBUG)
     VisusAssert(false);
 #endif
 
