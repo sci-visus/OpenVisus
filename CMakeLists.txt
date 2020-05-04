@@ -58,7 +58,7 @@ option(VISUS_GUI "Enable VisusGui" ON)
 message(STATUS "VISUS_GUI ${VISUS_GUI}")
 if (VISUS_GUI)
 	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS ${Qt5_DIR} NO_DEFAULT_PATH)
-	file(GENERATE OUTPUT ${OutputDir}/QT_VERSION CONTENT "${Qt5Core_VERSION_STRING}")
+	file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/QT_VERSION CONTENT "${Qt5Core_VERSION_STRING}")
 endif()
 
 # ///////////////////////////////////////////////////
@@ -107,19 +107,20 @@ add_subdirectory(Executable)
 # install
 if (1)
 
-	Install(FILES LICENSE                      DESTINATION ${OutputDir}/.)
-	Install(FILES README.md                    DESTINATION ${OutputDir}/.)
-	Install(FILES OpenVisusConfig.cmake        DESTINATION ${OutputDir}/.)
-	Install(FILES datasets/visus.config        DESTINATION ${OutputDir}/.)
+	Install(FILES LICENSE                      DESTINATION   ${OutputDir})
+	Install(FILES README.md                    DESTINATION   ${OutputDir})
+	Install(FILES OpenVisusConfig.cmake        DESTINATION   ${OutputDir})
+	Install(FILES datasets/visus.config        DESTINATION   ${OutputDir})
+	Install(FILES ${CMAKE_BINARY_DIR}/QT_VERSION DESTINATION ${OutputDir})
 
-	Install(DIRECTORY Copyrights               DESTINATION ${OutputDir}/.)
-	Install(DIRECTORY Samples                  DESTINATION ${OutputDir}/.)
-	Install(DIRECTORY CMake                    DESTINATION ${OutputDir}/.)
-	Install(DIRECTORY datasets                 DESTINATION ${OutputDir}/.)
-	Install(DIRECTORY scripts                  DESTINATION ${OutputDir}/.)
+	Install(DIRECTORY Copyrights               DESTINATION   ${OutputDir})
+	Install(DIRECTORY Samples                  DESTINATION   ${OutputDir})
+	Install(DIRECTORY CMake                    DESTINATION   ${OutputDir})
+	Install(DIRECTORY datasets                 DESTINATION   ${OutputDir})
+	Install(DIRECTORY scripts                  DESTINATION   ${OutputDir})
 	
-	Install(FILES     setup.py                 DESTINATION ${OutputDir}/.)
-	Install(FILES     deploy.py                DESTINATION ${OutputDir}/.)
+	Install(FILES     setup.py                 DESTINATION   ${OutputDir})
+	Install(FILES     deploy.py                DESTINATION   ${OutputDir})
 
 	# copy needed windows *.dll
 	if (WIN32)
