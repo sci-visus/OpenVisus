@@ -1,5 +1,10 @@
 #/bin/bash
 
+# to test:
+# sudo docker run --rm -it -v $(pwd):/root/OpenVisus -w /root/OpenVisus visus/travis-image /bin/bash 
+# export PYTHON_VERSION=3.7
+# ./scripts/build_linux.sh
+
 set -e  # stop or error
 set -x  # very verbose
 
