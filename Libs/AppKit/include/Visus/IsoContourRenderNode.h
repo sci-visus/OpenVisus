@@ -36,58 +36,66 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
+#ifndef VISUS_RENDER_ISOCONTOUR_NODE_H
+#define VISUS_RENDER_ISOCONTOUR_NODE_H
 
-#ifndef VISUS_RENDER_KD_ARRAY_NODE_H
-#define VISUS_RENDER_KD_ARRAY_NODE_H
-
-#include <Visus/GuiNodes.h>
-#include <Visus/DataflowNode.h>
-#include <Visus/KdArray.h>
+#include <Visus/AppKit.h>
+#include <Visus/IsoContourNode.h>
 #include <Visus/TransferFunction.h>
 
 #include <Visus/GLCanvas.h>
 
 namespace Visus {
 
-
-//////////////////////////////////////////////////////////////////////////////
-//Receive a KdArray data and display it as it is
-class VISUS_GUI_NODES_API KdRenderArrayNode : 
+//////////////////////////////////////////////////////////////
+class VISUS_APPKIT_API IsoContourRenderNode : 
   public Node, 
   public GLObject 
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(KdRenderArrayNode)
+  VISUS_NON_COPYABLE_CLASS(IsoContourRenderNode)
 
   //constructor
-  KdRenderArrayNode() 
-  {
-    addInputPort("palette");
-    addInputPort("kdarray");
-  }
+  IsoContourRenderNode();
 
   //destructor
-  virtual ~KdRenderArrayNode() {
-  }
-
-  //getKdArray
-  SharedPtr<KdArray> getKdArray() const {
-    return kdarray;
-  }
-
-  //getBounds (in physic coordinates)
-  virtual Position getBounds() override
-  {
-    if (!kdarray) return Position::invalid();
-    return (kdarray->clipping.valid())? kdarray->clipping : Position(kdarray->bounds);
-  }
-
-  //from Node
-  virtual bool processInput() override;
+  virtual ~IsoContourRenderNode();
 
   //glRender
   virtual void glRender(GLCanvas& gl) override;
+   
+  //getBounds
+  virtual Position getBounds() override {
+    return mesh? mesh->field.bounds : Position::invalid();
+  }
+
+  //getMaterial
+  GLMaterial getMaterial() const {
+    return material;
+  }
+
+  //setMaterial
+  void setMaterial(GLMaterial new_value);
+
+  //getPalette
+  SharedPtr<Palette> getPalette() const {
+    return palette;
+  }
+
+  //getPalette
+  void setPalette(SharedPtr<Palette> value);
+
+  //getMesh
+  SharedPtr<IsoContour> getMesh() const {
+    return mesh;
+  }
+
+  //setMesh
+  void setMesh(SharedPtr<IsoContour> value);
+
+  //dataflow
+  virtual bool processInput() override;
 
 public:
 
@@ -95,16 +103,32 @@ public:
   static void allocShaders();
   static void releaseShaders();
 
+
+public:
+
+  //execute
+  virtual void execute(Archive& ar) override;
+
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
+
 private:
 
-  SharedPtr<KdArray>    kdarray;
+  SharedPtr<IsoContour> mesh;
+  GLMaterial            material = GLMaterial::createRandom();
+  SharedPtr<Palette>    palette=Palette::getDefault("grayopaque");
 
-  SharedPtr<Palette>    palette;
-  SharedPtr<GLTexture>  palette_texture;
+};
 
-}; //end class
 
 } //namespace Visus
 
-#endif //VISUS_RENDER_KD_ARRAY_NODE_H
+
+#endif //VISUS_RENDER_ISOCONTOUR_NODE_H
+
+
+
 

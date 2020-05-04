@@ -192,7 +192,7 @@ PYTHONPATH=./Release python3.7 -m OpenVisus viewer
 
 ## Commit, Continuous Integration deploy
 
-Edit the file `CMake/setup.py` and increase the Tag version number.
+Edit the file `setup.py` and increase the Tag version number.
 Commit, tag the current commit and push to origin:
 
 ```

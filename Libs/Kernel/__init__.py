@@ -27,14 +27,3 @@ if os.path.isfile(os.path.join(this_dir,"VisusDataflowPy.py")) :
 if os.path.isfile(os.path.join(this_dir,"VisusNodesPy.py")) :
 	from VisusNodesPy import *
 
-# automatic import of VISUS_GUI is disabled
-if False:
-
-	if os.path.isfile(os.path.join(this_dir,"VisusGuiPy.py")) :
-		from VisusGuiPy import *
-
-	if os.path.isfile(os.path.join(this_dir,"VisusGuiNodesPy.py")) :
-		from VisusGuiNodesPy import *
-	
-	if os.path.isfile(os.path.join(this_dir,"VisusAppKitPy.py")) :
-		from VisusAppKitPy import *

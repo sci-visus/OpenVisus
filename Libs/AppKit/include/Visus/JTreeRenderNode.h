@@ -39,7 +39,7 @@ For support : support@visus.net
 #ifndef VISUS_JTREE_RENDER_NODE_H__
 #define VISUS_JTREE_RENDER_NODE_H__
 
-#include <Visus/GuiNodes.h>
+#include <Visus/AppKit.h>
 #include <Visus/DataflowNode.h>
 #include <Visus/Graph.h>
 #include <Visus/GLMesh.h>
@@ -49,7 +49,7 @@ namespace Visus {
 
 ////////////////////////////////////////////////////////////////////
 // Receive a FGraph data and display it as it is
-class VISUS_GUI_NODES_API JTreeRenderNode : 
+class VISUS_APPKIT_API JTreeRenderNode : 
   public Node, 
   public GLObject
 {

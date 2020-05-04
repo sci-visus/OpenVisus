@@ -1,7 +1,7 @@
 
 import sys, os
 
-from OpenVisus       import *
+from OpenVisus import *
 
 # IMPORTANT for WIndows
 # Mixing C++ Qt5 and PyQt5 won't work in Windows/DEBUG mode
@@ -12,7 +12,6 @@ from OpenVisus       import *
 # on windows rememeber to INSTALL and CONFIGURE
 
 from OpenVisus.VisusGuiPy      import *
-from OpenVisus.VisusGuiNodesPy import *
 from OpenVisus.VisusAppKitPy   import *
 
 from OpenVisus.PyViewer        import *
@@ -92,7 +91,7 @@ def Main(argv):
 	"""
 	
 	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
-	# c:\Python37\python.exe CMake/PyViewer.py	
+	# c:\Python37\python.exe Libs/AppKit/PyViewer.py	
 	SetCommandLine("__main__")
 	GuiModule.createApplication()
 	AppKitModule.attach()  

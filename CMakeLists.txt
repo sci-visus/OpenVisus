@@ -108,7 +108,7 @@ if (1)
 
 	Install(FILES LICENSE                      DESTINATION ${OutputDir}/.)
 	Install(FILES README.md                    DESTINATION ${OutputDir}/.)
-	Install(FILES CMake/OpenVisusConfig.cmake  DESTINATION ${OutputDir}/.)
+	Install(FILES OpenVisusConfig.cmake        DESTINATION ${OutputDir}/.)
 	Install(FILES datasets/visus.config        DESTINATION ${OutputDir}/.)
 
 	Install(DIRECTORY Copyrights               DESTINATION ${OutputDir}/.)
@@ -116,17 +116,9 @@ if (1)
 	Install(DIRECTORY CMake                    DESTINATION ${OutputDir}/.)
 	Install(DIRECTORY datasets                 DESTINATION ${OutputDir}/.)
 	Install(DIRECTORY scripts                  DESTINATION ${OutputDir}/.)
-
-	Install(FILES CMake/__init__.py            DESTINATION ${OutputDir}/.)
-	Install(FILES CMake/__main__.py            DESTINATION ${OutputDir}/.)
-	Install(FILES CMake/PyDataset.py           DESTINATION ${OutputDir}/.)
-	Install(FILES CMake/PyScriptingNode.py     DESTINATION ${OutputDir}/.)
-	Install(FILES CMake/PyUtils.py             DESTINATION ${OutputDir}/.)
-	Install(FILES CMake/PyImage.py             DESTINATION ${OutputDir}/.)
-	Install(FILES CMake/PyViewer.py            DESTINATION ${OutputDir}/.)
-
-	Install(FILES CMake/setup.py               DESTINATION ${OutputDir}/.)
-	Install(FILES CMake/deploy.py              DESTINATION ${OutputDir}/.)
+	
+	Install(FILES     setup.py                 DESTINATION ${OutputDir}/.)
+	Install(FILES     deploy.py                DESTINATION ${OutputDir}/.)
 
 	# copy needed windows *.dll
 	if (WIN32)

@@ -1,4 +1,4 @@
-import os,sys,shutil,platform,glob,atexit,setuptools,pathlib
+import os,sys,shutil,setuptools
 	
 PROJECT_NAME="OpenVisus"
 PROJECT_VERSION="1.3.92"

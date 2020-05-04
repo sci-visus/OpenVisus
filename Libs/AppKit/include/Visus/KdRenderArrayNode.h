@@ -36,99 +36,75 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef VISUS_PYTHON_NODE_H__
-#define VISUS_PYTHON_NODE_H__
 
-#include <Visus/GuiNodes.h>
+#ifndef VISUS_RENDER_KD_ARRAY_NODE_H
+#define VISUS_RENDER_KD_ARRAY_NODE_H
+
+#include <Visus/AppKit.h>
 #include <Visus/DataflowNode.h>
-#include <Visus/GLObject.h>
+#include <Visus/KdArray.h>
+#include <Visus/TransferFunction.h>
+
+#include <Visus/GLCanvas.h>
 
 namespace Visus {
 
-///////////////////////////////////////////////////////////////
-class VISUS_GUI_NODES_API PythonNode : 
-  public Node
 
-#if !SWIG
-  ,public GLObject
-#endif
+//////////////////////////////////////////////////////////////////////////////
+//Receive a KdArray data and display it as it is
+class VISUS_APPKIT_API KdRenderArrayNode : 
+  public Node, 
+  public GLObject 
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(PythonNode)
-
-  Position node_bounds;
+  VISUS_NON_COPYABLE_CLASS(KdRenderArrayNode)
 
   //constructor
-  PythonNode() {
+  KdRenderArrayNode() 
+  {
+    addInputPort("palette");
+    addInputPort("kdarray");
   }
 
   //destructor
-  virtual ~PythonNode() {
+  virtual ~KdRenderArrayNode() {
   }
 
-  //getOsDependentTypeName (virtual so that I can override it in python)
-  virtual String getOsDependentTypeName() const override {
-    return "PythonNode";
+  //getKdArray
+  SharedPtr<KdArray> getKdArray() const {
+    return kdarray;
   }
 
-  //processInput 
-  virtual bool processInput() override{
-    return false;
+  //getBounds (in physic coordinates)
+  virtual Position getBounds() override
+  {
+    if (!kdarray) return Position::invalid();
+    return (kdarray->clipping.valid())? kdarray->clipping : Position(kdarray->bounds);
   }
 
-  //getBounds
-  virtual Position getBounds() override  {
-    return node_bounds;
-  }
+  //from Node
+  virtual bool processInput() override;
 
-  //setBounds
-  void setBounds(Position value) {
-    this->node_bounds = value;
-  }
+  //glRender
+  virtual void glRender(GLCanvas& gl) override;
 
 public:
 
-  //replicate most of the API of GLOBject to expose them to python
+  //shaders
+  static void allocShaders();
+  static void releaseShaders();
 
-  //glGetRenderQueue
-  virtual int glGetRenderQueue() const override {
-    return GLObject::glGetRenderQueue();
-  }
+private:
 
-  //glSetRenderQueue
-  virtual void glSetRenderQueue(int value) override {
-    GLObject::glSetRenderQueue(value);
-  }
+  SharedPtr<KdArray>    kdarray;
 
-  //glMousePressEvent
-  virtual void glMousePressEvent(const FrustumMap& map, QMouseEvent* evt) override {
-    GLObject::glMousePressEvent(map,evt);
-  }
+  SharedPtr<Palette>    palette;
+  SharedPtr<GLTexture>  palette_texture;
 
-  //mouseMoveEvent
-  virtual void glMouseMoveEvent(const FrustumMap& map, QMouseEvent* evt) override {
-    GLObject::glMouseMoveEvent(map, evt);
-  }
-
-  //mouseReleaseEvent
-  virtual void glMouseReleaseEvent(const FrustumMap& map, QMouseEvent* evt) override {
-    GLObject::glMouseReleaseEvent(map, evt);
-  }
-
-  //wheelEvent
-  virtual void glWheelEvent(const FrustumMap& map, QWheelEvent* evt) override {
-    GLObject::glWheelEvent(map, evt);
-  }
-
-  //glRender
-  virtual void glRender(GLCanvas& gl) override {
-    //implement your own method here
-  }
-
-};
+}; //end class
 
 } //namespace Visus
 
-#endif //VISUS_PYTHON_NODE_H__
+#endif //VISUS_RENDER_KD_ARRAY_NODE_H
 

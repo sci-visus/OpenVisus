@@ -5,7 +5,6 @@ from OpenVisus import *
 
 if VISUS_GUI:
 	from VisusGuiPy      import *
-	from VisusGuiNodesPy import *
 	from VisusAppKitPy   import *
 
 def ASSERT(cond):

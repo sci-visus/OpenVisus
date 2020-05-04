@@ -1,6 +1,11 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
 <qresource>
+
+  <file>RenderArrayShader.glsl</file>
+  <file>KdRenderArrayShader.glsl</file>
+  <file>IsoContourShader.glsl</file>
+
   <file>sci.png</file>
   <file>visus.png</file>
   <file>document.png</file>

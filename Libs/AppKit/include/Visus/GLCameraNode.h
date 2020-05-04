@@ -36,38 +36,57 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef VISUS_GUI_NODES_H__
-#define VISUS_GUI_NODES_H__
+#ifndef VISUS_GLCAMERA_NODE_H__
+#define VISUS_GLCAMERA_NODE_H__
 
-#include <Visus/Kernel.h>
+#include <Visus/AppKit.h>
+#include <Visus/DataflowNode.h>
+#include <Visus/GLCamera.h>
 
 namespace Visus {
 
-#if SWIG || VISUS_STATIC_GUI_NODES_LIB
-  #define VISUS_GUI_NODES_API
-#else
-  #if VISUS_BUILDING_VISUSGUINODES
-    #define VISUS_GUI_NODES_API VISUS_SHARED_EXPORT
-  #else
-    #define VISUS_GUI_NODES_API VISUS_SHARED_IMPORT
-  #endif
-#endif
-
-class VISUS_GUI_NODES_API GuiNodesModule : public VisusModule
+  ////////////////////////////////////////////////////////////////////
+class VISUS_APPKIT_API GLCameraNode : public Node
 {
 public:
 
-  static bool bAttached;
+  VISUS_NON_COPYABLE_CLASS(GLCameraNode)
 
-  //attach
-  static void attach();
+  //constructor 
+  GLCameraNode(SharedPtr<GLCamera> glcamera= SharedPtr<GLCamera>());
 
-  //detach
-  static void detach();
-};
+  //destructor
+  virtual ~GLCameraNode();
+
+  //getGLCamera
+  SharedPtr<GLCamera> getGLCamera() const {
+    return glcamera;
+  }
+
+  //setGLCamera
+  void setGLCamera(SharedPtr<GLCamera> glcamera);
+
+public:
+
+  //execute
+  virtual void execute(Archive& ar) override;
+
+  //write
+  virtual void write(Archive& ar) const override;
+
+  ///read
+  virtual void read(Archive& ar) override;
+
+private:
+
+  SharedPtr<GLCamera> glcamera;
+  Slot<void()>        glcamera_begin_update_slot;
+  Slot<void()>        glcamera_end_update_slot;
+
+}; //end class
 
 } //namespace Visus
 
+#endif //VISUS_GLCAMERA_NODE_H__
 
-#endif //VISUS_NODES_H__
 

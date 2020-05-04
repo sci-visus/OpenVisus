@@ -40,7 +40,7 @@ For support : support@visus.net
 #ifndef VISUS_RENDER_ARRAYNODE_H
 #define VISUS_RENDER_ARRAYNODE_H
 
-#include <Visus/GuiNodes.h>
+#include <Visus/AppKit.h>
 #include <Visus/DataflowNode.h>
 #include <Visus/TransferFunction.h>
 
@@ -52,7 +52,7 @@ namespace Visus {
 
 
   ////////////////////////////////////////////////////////////////////
-class VISUS_GUI_NODES_API RenderArrayNode : 
+class VISUS_APPKIT_API RenderArrayNode : 
   public Node,
   public GLObject 
 {

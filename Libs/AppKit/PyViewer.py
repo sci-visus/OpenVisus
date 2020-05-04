@@ -8,7 +8,6 @@ import PyQt5.sip  as  sip
 
 from OpenVisus	     import *
 from VisusGuiPy	     import *
-from VisusGuiNodesPy import *
 from VisusAppKitPy   import *
 
 from OpenVisus.PyUtils import *

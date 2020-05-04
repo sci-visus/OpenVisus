@@ -36,57 +36,99 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef VISUS_GLCAMERA_NODE_H__
-#define VISUS_GLCAMERA_NODE_H__
+#ifndef VISUS_PYTHON_NODE_H__
+#define VISUS_PYTHON_NODE_H__
 
-#include <Visus/GuiNodes.h>
+#include <Visus/AppKit.h>
 #include <Visus/DataflowNode.h>
-#include <Visus/GLCamera.h>
+#include <Visus/GLObject.h>
 
 namespace Visus {
 
-  ////////////////////////////////////////////////////////////////////
-class VISUS_GUI_NODES_API GLCameraNode : public Node
+///////////////////////////////////////////////////////////////
+class VISUS_APPKIT_API PythonNode : 
+  public Node
+
+#if !SWIG
+  ,public GLObject
+#endif
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(GLCameraNode)
+  VISUS_NON_COPYABLE_CLASS(PythonNode)
 
-  //constructor 
-  GLCameraNode(SharedPtr<GLCamera> glcamera= SharedPtr<GLCamera>());
+  Position node_bounds;
 
-  //destructor
-  virtual ~GLCameraNode();
-
-  //getGLCamera
-  SharedPtr<GLCamera> getGLCamera() const {
-    return glcamera;
+  //constructor
+  PythonNode() {
   }
 
-  //setGLCamera
-  void setGLCamera(SharedPtr<GLCamera> glcamera);
+  //destructor
+  virtual ~PythonNode() {
+  }
+
+  //getOsDependentTypeName (virtual so that I can override it in python)
+  virtual String getOsDependentTypeName() const override {
+    return "PythonNode";
+  }
+
+  //processInput 
+  virtual bool processInput() override{
+    return false;
+  }
+
+  //getBounds
+  virtual Position getBounds() override  {
+    return node_bounds;
+  }
+
+  //setBounds
+  void setBounds(Position value) {
+    this->node_bounds = value;
+  }
 
 public:
 
-  //execute
-  virtual void execute(Archive& ar) override;
+  //replicate most of the API of GLOBject to expose them to python
 
-  //write
-  virtual void write(Archive& ar) const override;
+  //glGetRenderQueue
+  virtual int glGetRenderQueue() const override {
+    return GLObject::glGetRenderQueue();
+  }
 
-  ///read
-  virtual void read(Archive& ar) override;
+  //glSetRenderQueue
+  virtual void glSetRenderQueue(int value) override {
+    GLObject::glSetRenderQueue(value);
+  }
 
-private:
+  //glMousePressEvent
+  virtual void glMousePressEvent(const FrustumMap& map, QMouseEvent* evt) override {
+    GLObject::glMousePressEvent(map,evt);
+  }
 
-  SharedPtr<GLCamera> glcamera;
-  Slot<void()>        glcamera_begin_update_slot;
-  Slot<void()>        glcamera_end_update_slot;
+  //mouseMoveEvent
+  virtual void glMouseMoveEvent(const FrustumMap& map, QMouseEvent* evt) override {
+    GLObject::glMouseMoveEvent(map, evt);
+  }
 
-}; //end class
+  //mouseReleaseEvent
+  virtual void glMouseReleaseEvent(const FrustumMap& map, QMouseEvent* evt) override {
+    GLObject::glMouseReleaseEvent(map, evt);
+  }
+
+  //wheelEvent
+  virtual void glWheelEvent(const FrustumMap& map, QWheelEvent* evt) override {
+    GLObject::glWheelEvent(map, evt);
+  }
+
+  //glRender
+  virtual void glRender(GLCanvas& gl) override {
+    //implement your own method here
+  }
+
+};
 
 } //namespace Visus
 
-#endif //VISUS_GLCAMERA_NODE_H__
-
+#endif //VISUS_PYTHON_NODE_H__
 

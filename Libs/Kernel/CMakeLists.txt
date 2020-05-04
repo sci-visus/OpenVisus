@@ -29,6 +29,8 @@ source_group("" FILES
 	./include/Visus/Kernel.h 
 	./src/Kernel.cpp
 	./src/Kernel.mm
+	../../setup.py
+	../../deploy.py
 )
 
 source_group("Core" FILES
@@ -187,15 +189,16 @@ IF (WIN32 OR APPLE)
 	file(GLOB MMFiles src/*.mm)
 endif()
 
-
-file(GLOB PyFiles       
+file(GLOB PyFiles      
 	./include/Visus/swigpyrun.h  
 	./include/Visus/Python.h 
 	./src/Python.cpp)
 source_group("Python" FILES   ${PyFiles})
 
 
-file(GLOB RootFiles     
+file(GLOB RootFiles  
+	../../*.py  
+	./*.py 
 	../../.appveyor.yml
 	../../.travis.yml
 	../../.circleci/config.yml
@@ -208,8 +211,6 @@ source_group("" FILES   ${RootFiles})
 file(GLOB ScriptsFiles ../../scripts/*)
 source_group("scripts" FILES   ${ScriptsFiles})
 
-file(GLOB CMakeFiles ../../CMake/*)
-source_group("CMake" FILES   ${CMakeFiles})
 
 file(GLOB PyExamples ../../Samples/python/*.py)
 source_group("Python\\Samples" FILES   ${PyExamples})
@@ -217,10 +218,10 @@ source_group("Python\\Samples" FILES   ${PyExamples})
 file(GLOB Sources 
 	${RootFiles}
 	${PyFiles} 
-	${CMakeFiles}
 	${ScriptsFiles}
 	${PyExamples}
 	${MMFiles}
+	*.py
 	include/Visus/*.* 
 	src/*.cpp src/*.hxx)
 
@@ -282,6 +283,10 @@ target_compile_definitions(VisusKernel  PRIVATE VISUS_BUILDING_VISUSKERNEL=1)
 target_include_directories(VisusKernel  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
 
 INSTALL(DIRECTORY ./include/Visus DESTINATION ${OutputDir}/include/Kernel/)
+INSTALL(FILES ./__init__.py            DESTINATION ${OutputDir}/.)
+INSTALL(FILES ./__main__.py            DESTINATION ${OutputDir}/.)
+INSTALL(FILES ./PyUtils.py             DESTINATION ${OutputDir}/.)
+INSTALL(FILES ./PyImage.py             DESTINATION ${OutputDir}/.)
 
 AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")

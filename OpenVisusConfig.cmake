@@ -75,8 +75,7 @@ macro(AddOpenVisusPythonLibraries OpenVisus_DIR)
 	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS ${Qt5_DIR} NO_DEFAULT_PATH)
 
 	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Gui       "OpenVisus::Kernel;Qt5::Core;Qt5::Widgets;Qt5::Gui;Qt5::OpenGL")
-	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::GuiNodes  "OpenVisus::Gui;OpenVisus::Dataflow")
-	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::AppKit    "OpenVisus::Gui;OpenVisus::Dataflow;OpenVisus::Nodes;OpenVisus::GuiNodes")
+	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::AppKit    "OpenVisus::Gui;OpenVisus::Dataflow;OpenVisus::Nodes")
 
 
 endmacro()

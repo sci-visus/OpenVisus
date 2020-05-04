@@ -40,7 +40,14 @@ For support : support@visus.net
 #include <Visus/Viewer.h>
 #include <Visus/TransferFunction.h>
 #include <Visus/Nodes.h>
-#include <Visus/GuiNodes.h>
+#include <Visus/GLCameraNode.h>
+#include <Visus/IsoContourNode.h>
+#include <Visus/IsoContourRenderNode.h>
+#include <Visus/RenderArrayNode.h>
+#include <Visus/OSPRayRenderNode.h>
+#include <Visus/KdRenderArrayNode.h>
+#include <Visus/JTreeRenderNode.h>
+#include <Visus/PythonNode.h>
 
 #include <QDirIterator>
 
@@ -69,7 +76,8 @@ void AppKitModule::attach()
   AppKitInitResources();
 
   NodesModule::attach();
-  GuiNodesModule::attach();
+  GuiModule::attach();
+  DataflowModule::attach(); 	
 
   //show qt resources
 #if 0
@@ -80,6 +88,21 @@ void AppKitModule::attach()
 #endif
 
   auto config = getModuleConfig();
+  
+	IsoContourRenderNode::allocShaders();
+  KdRenderArrayNode::allocShaders();
+  RenderArrayNode::allocShaders();
+
+  VISUS_REGISTER_NODE_CLASS(GLCameraNode);
+  VISUS_REGISTER_NODE_CLASS(IsoContourNode);
+  VISUS_REGISTER_NODE_CLASS(IsoContourRenderNode);
+  VISUS_REGISTER_NODE_CLASS(RenderArrayNode);
+  VISUS_REGISTER_NODE_CLASS(OSPRayRenderNode);
+  VISUS_REGISTER_NODE_CLASS(KdRenderArrayNode);
+  VISUS_REGISTER_NODE_CLASS(JTreeRenderNode);
+  VISUS_REGISTER_NODE_CLASS(PythonNode);
+
+  OSPRayRenderNode::initEngine(); 
 
   ViewerPreferences::default_panels= config->readString("Configuration/VisusViewer/panels", "left center");
   ViewerPreferences::default_show_logos = cbool(config->readString("Configuration/VisusViewer/show_logos", "true"));
@@ -98,11 +121,17 @@ void AppKitModule::detach()
   
   bAttached = false;
 
+  IsoContourRenderNode::releaseShaders();
+  KdRenderArrayNode::releaseShaders();
+  RenderArrayNode::releaseShaders();
+
+  OSPRayRenderNode::shutdownEngine();
+
   AppKitCleanUpResources();
 
   NodesModule::detach();
-  GuiNodesModule::detach();
-
+  GuiModule::detach();
+  DataflowModule::detach();
 
   PrintInfo("Detached AppKitModule");
 }

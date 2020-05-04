@@ -87,7 +87,7 @@ if [[ "${PYTHON_VERSION}" == "3.6" || "${PYTHON_VERSION}" == "3.7" ]] ; then
 	python -m OpenVisus test
 	python -m OpenVisus convert
 
-	if [[ "${TRAVIS_TAG}" != "" ]] ; then
+	if [[ "${TRAVIS_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
 		conda install anaconda-client -y
 		anaconda -t ${ANACONDA_TOKEN} upload $(find ~/miniconda3/conda-bld -iname "openvisus*.tar.bz2")
 	fi

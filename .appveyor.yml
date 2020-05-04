@@ -9,12 +9,7 @@ notifications:
     on_build_status_changed: true  
    
 environment:
-  APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-  PYPI_USERNAME: scrgiorgio
-  PYPI_PASSWORD:
-    secure: 6DHH80JPNRCtIYxWc/h88Q==   
-  ANACONDA_TOKEN:
-    secure: AdYjELDqS93LWmtfVslTV92FpexrVDqxuhAdm9sJ+cXEaOYgC6y5lnYPWwmpFJW2
+  APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019  
   matrix:
     - PYTHON_VERSION: 38
     - PYTHON_VERSION: 37
@@ -25,5 +20,4 @@ build_script:
   - cmd: .\scripts\build_appveyor.bat 
 
 test: off
-
 

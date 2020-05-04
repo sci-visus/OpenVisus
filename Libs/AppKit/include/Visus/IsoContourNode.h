@@ -36,68 +36,99 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
+#ifndef VISUS_ISOCONTOUR_BUILD_NODE_H
+#define VISUS_ISOCONTOUR_BUILD_NODE_H
 
-#ifndef VISUS_OSPRAY_RENDERNODE_H
-#define VISUS_OSPRAY_RENDERNODE_H
-
-#include <Visus/GuiNodes.h>
-#include <Visus/DataflowNode.h>
+#include <Visus/AppKit.h>
+#include <Visus/Dataflow.h>
+#include <Visus/Range.h>
+#include <Visus/GLTexture.h>
+#include <Visus/GLMesh.h>
 #include <Visus/TransferFunction.h>
-
-#include <Visus/GLCanvas.h>
 
 namespace Visus {
 
 ////////////////////////////////////////////////////////////////////
-class VISUS_GUI_NODES_API OSPRayRenderNode :
-  public Node,
-  public GLObject
+class VISUS_APPKIT_API IsoContour : public GLMesh
 {
 public:
 
-  VISUS_PIMPL_CLASS(OSPRayRenderNode)
+  VISUS_NON_COPYABLE_CLASS(IsoContour)
+
+  Array                       field;
+  Array                       second_field; //this is used to color the surface 
+  Range                       range;        //field range
+  Array                       voxel_used;   // 1 if a voxel contributes to the isosurface; 0 otherwise
+
+  //cosntructor
+  IsoContour() {
+  }
+
+};
+
+///////////////////////////////////////////////////////////////////////////////////////
+class VISUS_APPKIT_API MarchingCube
+{
+public:
+
+
+  Array    data;
+  double   isovalue = 0;
+  bool     enable_vortex_used = false;
+  int      vertices_per_batch = 16 * 1024;
+  Aborted  aborted;
 
   //constructor
-  OSPRayRenderNode();
+  MarchingCube(Array data_,double isovalue_, Aborted aborted_=Aborted())
+    : data(data_),isovalue(isovalue_),aborted(aborted_) {
+  }
+
+  //run
+  SharedPtr<IsoContour> run();
+
+};
+
+////////////////////////////////////////////////////////////////////
+class VISUS_APPKIT_API IsoContourNode : public Node
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(IsoContourNode)
+
+  //constructor
+  IsoContourNode();
 
   //destructor
-  virtual ~OSPRayRenderNode();
-
-  //initEngine
-  static void initEngine();
-
-  //shutdownEngine
-  static void shutdownEngine();
-
-  //getData
-  Array getData() const {
-    VisusAssert(VisusHasMessageLock()); return data;
-  }
-
-  //getDataDimension
-  int getDataDimension() const {
-    VisusAssert(VisusHasMessageLock());
-    return (data.getWidth() > 1 ? 1 : 0) + (data.getHeight() > 1 ? 1 : 0) + (data.getDepth() > 1 ? 1 : 0);
-  }
-
-  //getDataBounds 
-  Position getDataBounds() {
-    VisusAssert(VisusHasMessageLock());
-    return (data.clipping.valid() ? data.clipping : data.bounds);
-  }
-
-  //getBounds 
-  virtual Position getBounds() override {
-    return getDataBounds();
-  }
-
-  //glRender
-  virtual void glRender(GLCanvas& gl) override;
+  virtual ~IsoContourNode();
 
   //processInput
   virtual bool processInput() override;
 
+  //getLastFieldRange
+  Range getLastFieldRange() const {
+    return last_field_range;
+  }
+
+  //setField
+  void setField(Array value) {
+    getInputPort("array")->writeValue(std::make_shared<Array>(value));
+    dataflow->needProcessInput(this);
+  }
+
+  //getIsoValue
+  double getIsoValue() const {
+    return isovalue;
+  }
+
+  //setIsoValue
+  void setIsoValue(double value) {
+    setProperty("SetIsoValue", this->isovalue, value);
+  }
+
 public:
+
+  //execute
+  virtual void execute(Archive& ar) override;
 
   //write
   virtual void write(Archive& ar) const override;
@@ -107,18 +138,25 @@ public:
 
 private:
 
-  class MyGLObject; friend class MyGLObject;
+  class MyJob;
 
-  SharedPtr<ReturnReceipt>    return_receipt;
+  Range last_field_range;
 
-  Array                       data;
-  SharedPtr<Palette>          palette;
-  
+  double isovalue=0;
+
+  //modelChanged
+  virtual void modelChanged() override {
+    if (dataflow)
+      dataflow->needProcessInput(this);
+  }
+
+  //messageHasBeenPublished
+  virtual void messageHasBeenPublished(DataflowMessage msg) override;
 
 }; //end class
 
-
 } //namespace Visus
 
-#endif //VISUS_OSPRAY_RENDERNODE_H
+#endif //VISUS_ISOCONTOUR_BUILD_NODE_H
+
 
