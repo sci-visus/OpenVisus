@@ -42,6 +42,11 @@ For support: support@visus.net
 
 * `windows` build status: [![Windows Build status](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master?svg=true)](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master)
 
+
+The mission of ViSUS.org is to provide support for the scientific community with Big Data, management, analysis and visualization tools.
+In this website we provide access to open source software tools and libraries such as the ViSUS framework and the PIDX library.
+These softwares are distributed under the permissive BSD license.
+
 Table of content:
 
 
