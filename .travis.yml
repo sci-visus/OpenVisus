@@ -38,6 +38,6 @@ script:
   - cd "${TRAVIS_BUILD_DIR}" 
   - export GIT_TAG=${TRAVIS_TAG}
   - scripts/build_osx.sh
-  - if (( ENABLE_CONDA == 1 )) ; then cd build_osx/Release/OpenVisus && scripts/build_conda.sh ; fi
+  - if (( ENABLE_CONDA == 1 )) ; then cd build_osx/Release/OpenVisus && ../../../scripts/build_conda.sh ; fi
     
 
