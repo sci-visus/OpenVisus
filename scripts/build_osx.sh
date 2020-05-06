@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 set -e  # stop or error
 set -x  # very verbose

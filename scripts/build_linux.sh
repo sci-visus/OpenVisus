@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 # to test:
 # sudo docker run --rm -it -v $(pwd):/root/OpenVisus -w /root/OpenVisus visus/travis-image /bin/bash 

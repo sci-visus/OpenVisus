@@ -23,7 +23,7 @@ jobs:
       - run: yum -y install openssh-clients git # workaround circleci's fallback git's "object not found" error w/ tag
       - checkout
       - run: GIT_TAG=${CIRCLE_TAG} scripts/build_linux.sh
-      - run: GIT_TAG=${CIRCLE_TAG} scripts/build_conda.sh
+      - run: cd build_linux/Release/OpenVisus && GIT_TAG=${CIRCLE_TAG} scripts/build_conda.sh
             
   linux-3.6:
     docker:
@@ -34,7 +34,7 @@ jobs:
       - run: yum -y install openssh-clients git # workaround circleci's fallback git's "object not found" error w/ tag
       - checkout
       - run: GIT_TAG=${CIRCLE_TAG} scripts/build_linux.sh
-      - run: GIT_TAG=${CIRCLE_TAG} scripts/build_conda.sh
+      - run: cd build_linux/Release/OpenVisus && GIT_TAG=${CIRCLE_TAG} scripts/build_conda.sh
 
 workflows:
   version: 2

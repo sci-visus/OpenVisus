@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 # to test:
 # cd build/Release/Openvisus diff 
