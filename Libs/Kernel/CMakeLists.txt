@@ -29,6 +29,7 @@ source_group("" FILES
 	./include/Visus/Kernel.h 
 	./src/Kernel.cpp
 	./src/Kernel.mm
+	../../OpenVisusConfig.cmake
 	../../setup.py
 	../../deploy.py
 )
@@ -204,6 +205,7 @@ file(GLOB RootFiles
 	../../CMakeLists.txt
 	../../ExternalLibs/CMakeLists.txt
 	../../Doxyfile.in
+	../../OpenVisusConfig.cmake
 	../../LICENCE
 	../../README.md*)
 source_group("" FILES   ${RootFiles})
@@ -294,15 +296,17 @@ else()
 endif()
 
 target_compile_definitions(VisusKernel  PRIVATE VISUS_BUILDING_VISUSKERNEL=1)
-target_include_directories(VisusKernel  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+target_include_directories(VisusKernel  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-INSTALL(DIRECTORY ./include/Visus DESTINATION ${OutputDir}/include/Kernel/)
-INSTALL(FILES ./__init__.py            DESTINATION ${OutputDir}/.)
-INSTALL(FILES ./__main__.py            DESTINATION ${OutputDir}/.)
-INSTALL(FILES ./PyUtils.py             DESTINATION ${OutputDir}/.)
-INSTALL(FILES ./PyImage.py             DESTINATION ${OutputDir}/.)
+INSTALL(DIRECTORY ./include/Visus       DESTINATION ${ConfigName}/${PROJECT_NAME}/include/Kernel)
+INSTALL(FILES     ./__init__.py         DESTINATION ${ConfigName}/${PROJECT_NAME}/)
+INSTALL(FILES     ./__main__.py         DESTINATION ${ConfigName}/${PROJECT_NAME}/)
+INSTALL(FILES     ./PyUtils.py          DESTINATION ${ConfigName}/${PROJECT_NAME}/)
+INSTALL(FILES     ./PyImage.py          DESTINATION ${ConfigName}/${PROJECT_NAME}/)
 
-AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
+if (VISUS_PYTHON)
+	AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
+endif()
 
 

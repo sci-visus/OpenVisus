@@ -397,6 +397,7 @@ def Main():
 		sys.exit(0)
 
 	print([sys.executable,"-m","OpenVisus"] + sys.argv)
+	print("this_dir",this_dir)
 
 	# _____________________________________________
 	if action=="test":

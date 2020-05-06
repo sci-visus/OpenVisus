@@ -103,7 +103,7 @@ file(GLOB Sources *.py include/Visus/*.h include/Visus/*.i src/*.cpp resources/*
 add_library(VisusGui SHARED ${Sources})
 target_compile_definitions(VisusGui  PRIVATE VISUS_BUILDING_VISUSGUI=1)
 target_compile_definitions(VisusGui  PRIVATE VISUS_OPENGL_ES=0)
-target_include_directories(VisusGui  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+target_include_directories(VisusGui  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 option(VISUS_OSPRAY "Enable ospray" OFF)
 if (VISUS_OSPRAY)
@@ -111,7 +111,7 @@ if (VISUS_OSPRAY)
 	target_link_libraries(VisusGui PUBLIC ospray::ospray ospcommon::ospcommon)
 endif()
 
-target_link_libraries(VisusGui PUBLIC VisusNodes VisusDataflow VisusKernel)
+target_link_libraries(VisusGui PUBLIC VisusNodes VisusDb VisusDataflow VisusXIdx VisusKernel)
 target_link_libraries(VisusGui PUBLIC Qt5::Core Qt5::Widgets Qt5::Gui Qt5::OpenGL)
 
 if (WIN32)
@@ -124,16 +124,17 @@ endif()
 
 set_target_properties(VisusGui PROPERTIES FOLDER "")
 
-INSTALL(DIRECTORY ./include/Visus         DESTINATION ${OutputDir}/include/Gui/)
-INSTALL(FILES     ./PyScriptingNode.py     DESTINATION ${OutputDir}/.)
-INSTALL(FILES     ./PyViewer.py            DESTINATION ${OutputDir}/.)
+INSTALL(DIRECTORY ./include/Visus          DESTINATION ${ConfigName}/${PROJECT_NAME}/include/Gui/)
+INSTALL(FILES     ./PyScriptingNode.py     DESTINATION ${ConfigName}/${PROJECT_NAME}/)
+INSTALL(FILES     ./PyViewer.py            DESTINATION ${ConfigName}/${PROJECT_NAME}/)
 
-AddSwigLibrary(OpenVisusGui VisusGui ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/OpenVisusGui.i 
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Idx/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Nodes/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Gui/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
-
+if (VISUS_PYTHON)
+	AddSwigLibrary(OpenVisusGui VisusGui ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/OpenVisusGui.i 
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include"
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Idx/include"
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Nodes/include"
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Gui/include"
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
+endif()

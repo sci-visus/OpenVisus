@@ -34,22 +34,32 @@ if (APPLE)
 endif()
 
 include(FindPackageHandleStandardArgs)
- 
+
+# see https://cmake.org/pipermail/cmake/2015-May/060700.html
+
 if (CMAKE_CONFIGURATION_TYPES)
-	set(OutputDir ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus)
+	set(ConfigName    $<CONFIG>)
+	set(IntConfigName ${CMAKE_CFG_INTDIR})
 else()
-	set(CMAKE_BUILD_TYPE "Release")
-	set(OutputDir ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus)
+
+	if (NOT DEFINED CMAKE_BUILD_TYPE)
+		set(CMAKE_BUILD_TYPE "Release")
+	endif()
+
+	set(ConfigName    ${CMAKE_BUILD_TYPE})
+	set(IntConfigName ${CMAKE_BUILD_TYPE})
 endif()
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${OutputDir}/bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OutputDir}/bin)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OutputDir}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_NAME}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_NAME}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_NAME}/lib)
+
+set (CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR} CACHE STRING "CMAKE_INSTALL_PREFIX" FORCE)
 
 option(VISUS_NET    "Enable VISUS_NET"    ON)
 option(VISUS_IMAGE  "Enable VISUS_IMAGE"  ON)
 option(VISUS_PYTHON "Enable VISUS_PYTHON" ON)
-option(VISUS_GUI    "Enable VisusGui"     ON)
+option(VISUS_GUI    "Enable VISUS_GUI"    ON)
 
 message(STATUS "VISUS_NET    ${VISUS_NET}")
 message(STATUS "VISUS_IMAGE  ${VISUS_IMAGE}")
@@ -64,11 +74,8 @@ if (VISUS_PYTHON)
 
 	macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 
-		if (CMAKE_CONFIGURATION_TYPES)
-			set(SWIG_OUTFILE_DIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}) # this is for generated C++ and header files
-		else()
-			set(SWIG_OUTFILE_DIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
-		endif()
+		# this is for generated C++ and header files
+		set(SWIG_OUTFILE_DIR ${CMAKE_BINARY_DIR}/${IntConfigName}) 
 
 		set(CMAKE_SWIG_OUTDIR ${SWIG_OUTFILE_DIR}/OpenVisus) # this is for *.py generated files
 		set (UseSWIG_TARGET_NAME_PREFERENCE STANDARD)
@@ -93,9 +100,9 @@ if (VISUS_PYTHON)
 	
 		# swig generated *.py file and *.so must be in the same OpenVisus/ root directoryc otherwise it won't work (since swig auto-generate "from . import _VisusKernelPy") 
 		set_target_properties(${NamePy} PROPERTIES 
-			LIBRARY_OUTPUT_DIRECTORY     ${OutputDir} 
-			RUNTIME_OUTPUT_DIRECTORY     ${OutputDir}
-			ARCHIVE_OUTPUT_DIRECTORY     ${OutputDir}/../swig) 
+			LIBRARY_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_NAME} 
+			RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_NAME}
+			ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/${ConfigName}/swig) 
 
 	endmacro()
 
@@ -103,7 +110,6 @@ endif()
 
 if (VISUS_GUI)
 	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS ${Qt5_DIR} NO_DEFAULT_PATH)
-	file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/QT_VERSION CONTENT "${Qt5Core_VERSION_STRING}")
 endif()
 
 
@@ -115,62 +121,56 @@ add_subdirectory(Executable)
 # install
 if (1)
 
-	Install(FILES LICENSE                      DESTINATION   ${OutputDir})
-	Install(FILES README.md                    DESTINATION   ${OutputDir})
-	Install(FILES OpenVisusConfig.cmake        DESTINATION   ${OutputDir})
-	Install(FILES datasets/visus.config        DESTINATION   ${OutputDir})
-	Install(FILES ${CMAKE_BINARY_DIR}/QT_VERSION DESTINATION ${OutputDir})
+	set(__qt_version_filename__ ${CMAKE_BINARY_DIR}/${ConfigName}/QT_VERSION)
+	file(GENERATE OUTPUT ${__qt_version_filename__} CONTENT "${Qt5Core_VERSION_STRING}")
 
-	Install(DIRECTORY Copyrights               DESTINATION   ${OutputDir} USE_SOURCE_PERMISSIONS)
-	Install(DIRECTORY Samples                  DESTINATION   ${OutputDir} USE_SOURCE_PERMISSIONS)
-	Install(DIRECTORY CMake                    DESTINATION   ${OutputDir} USE_SOURCE_PERMISSIONS)
-	Install(DIRECTORY datasets                 DESTINATION   ${OutputDir} USE_SOURCE_PERMISSIONS)
-	Install(DIRECTORY scripts                  DESTINATION   ${OutputDir} USE_SOURCE_PERMISSIONS)
-	
-	Install(FILES     setup.py                 DESTINATION   ${OutputDir})
-	Install(FILES     deploy.py                DESTINATION   ${OutputDir})
+	INSTALL(FILES LICENSE                        DESTINATION   ${ConfigName}/${PROJECT_NAME}/)
+	INSTALL(FILES README.md                      DESTINATION   ${ConfigName}/${PROJECT_NAME}/)
+	INSTALL(FILES datasets/visus.config          DESTINATION   ${ConfigName}/${PROJECT_NAME}/)
+	INSTALL(FILES ${__qt_version_filename__}     DESTINATION   ${ConfigName}/${PROJECT_NAME}/)
+	INSTALL(FILES setup.py                       DESTINATION   ${ConfigName}/${PROJECT_NAME}/)
+	INSTALL(FILES deploy.py                      DESTINATION   ${ConfigName}/${PROJECT_NAME}/)
+
+	INSTALL(DIRECTORY Copyrights                 DESTINATION   ${ConfigName}/${PROJECT_NAME} USE_SOURCE_PERMISSIONS)
+	INSTALL(DIRECTORY Samples                    DESTINATION   ${ConfigName}/${PROJECT_NAME} USE_SOURCE_PERMISSIONS)
+	INSTALL(DIRECTORY CMake                      DESTINATION   ${ConfigName}/${PROJECT_NAME} USE_SOURCE_PERMISSIONS)
+	INSTALL(DIRECTORY datasets                   DESTINATION   ${ConfigName}/${PROJECT_NAME} USE_SOURCE_PERMISSIONS)
+	INSTALL(DIRECTORY scripts                    DESTINATION   ${ConfigName}/${PROJECT_NAME} USE_SOURCE_PERMISSIONS)
 
 	# copy needed windows *.dll
 	if (WIN32)
-		if (OpenMP_FOUND)
-			set(CMAKE_INSTALL_OPENMP_LIBRARIES 1)
-		endif()	
-		set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION "${OutputDir}/bin")
+		set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION "${ConfigName}/${PROJECT_NAME}/bin")
 		include(InstallRequiredSystemLibraries)
-		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION "${OutputDir}/bin")
+		INSTALL(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION "${ConfigName}/${PROJECT_NAME}/bin/")
 	endif()
 
 	# ____________________________________________
 	macro(CMakePostInstall)
-
 		if (VISUS_GUI AND VISUS_PYTHON)
 			get_filename_component(Qt5_HOME "${Qt5_DIR}/../../.." ABSOLUTE)
 			string(REPLACE "\\" "/" __Python_EXECUTABLE__  "${Python_EXECUTABLE}")
-			string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" __OutputDir__  "${OutputDir}")
-			# mportant: I didn't find a way to set PYTHONPATH here inside install(CODE), so I'm using directly the WORKING_DIRECTORY (without the module)
-			install(CODE "
+			# mportant: I didn't find a way to set PYTHONPATH here inside INSTALL(CODE), so I'm using directly the WORKING_DIRECTORY (without the module)
+			INSTALL(CODE "
+				message(STATUS \"Executing post install....\")
 				execute_process(
 					COMMAND ${__Python_EXECUTABLE__} -u deploy.py install-qt5 \"${Qt5_HOME}\" \${CMAKE_INSTALL_CONFIG_NAME}
 						RESULT_VARIABLE __retcode__
-						WORKING_DIRECTORY \"${__OutputDir__}\")
+						WORKING_DIRECTORY \"${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${PROJECT_NAME} \")
 				if(NOT \"\${__retcode__}\" STREQUAL \"0\")
 					message(FATAL_ERROR \"Post install failed\")
 				endif()
 			")
 		endif()
-
 	endmacro()
 
-	
 	add_subdirectory(CMake/PostInstall)
 	
-
 endif()
 
 # //////////////////////////////////////////////////////////////
 # *** CONFIGURE (to call after INSTALL, create scripts and forse use of PyQt) ***
 if (VISUS_PYTHON)
-	add_custom_target(CONFIGURE ${CMAKE_COMMAND} -E env PYTHONPATH=${OutputDir}/.. ${Python_EXECUTABLE} -u -m OpenVisus configure)
+	add_custom_target(CONFIGURE ${CMAKE_COMMAND} -E env PYTHONPATH=${CMAKE_BINARY_DIR}/${ConfigName}/OpenVisus/.. ${Python_EXECUTABLE} -u -m OpenVisus configure)
 	set_property(TARGET CONFIGURE PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 

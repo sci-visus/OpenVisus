@@ -12,13 +12,16 @@ environment:
   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019  
   matrix:
     - PYTHON_VERSION: 38
+      BUILD_CONDA: 0 
     - PYTHON_VERSION: 37
+      BUILD_CONDA: 1 
     - PYTHON_VERSION: 36    
+      BUILD_CONDA: 1 
  
 build_script:
   - cmd: cd %APPVEYOR_BUILD_FOLDER% 
   - cmd: .\scripts\build_win.bat 
-  - cmd: if not "%PYTHON_VERSION%" == "38" ( .\scripts\build_conda.bat )
+  - cmd: if "%BUILD_CONDA%" == "1" ( .\scripts\build_conda.bat )
 
 test: off
 

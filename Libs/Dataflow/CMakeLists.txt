@@ -7,12 +7,14 @@ set_target_properties(VisusDataflow PROPERTIES FOLDER "")
 target_link_libraries(VisusDataflow PUBLIC VisusKernel)
 
 target_compile_definitions(VisusDataflow  PRIVATE VISUS_BUILDING_VISUSDATAFLOW=1)
-target_include_directories(VisusDataflow  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+target_include_directories(VisusDataflow  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-INSTALL(DIRECTORY ./include/Visus DESTINATION ${OutputDir}/include/Dataflow/)
+INSTALL(DIRECTORY ./include/Visus DESTINATION ${ConfigName}/${PROJECT_NAME}/include/Dataflow/)
 
-AddSwigLibrary(VisusDataflowPy VisusDataflow ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusDataflowPy.i
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
+if (VISUS_PYTHON)
+    AddSwigLibrary(VisusDataflowPy VisusDataflow ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusDataflowPy.i
+	    "-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
+	    "-I${CMAKE_CURRENT_SOURCE_DIR}/include")
+endif()
 
 
