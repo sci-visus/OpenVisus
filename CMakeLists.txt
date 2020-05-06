@@ -38,16 +38,20 @@ include(FindPackageHandleStandardArgs)
 # see https://cmake.org/pipermail/cmake/2015-May/060700.html
 
 if (CMAKE_CONFIGURATION_TYPES)
-	set(ConfigName    $<CONFIG>)
-	set(IntConfigName ${CMAKE_CFG_INTDIR})
+	set(ConfigName         $<CONFIG>)
+	set(IntConfigName      ${CMAKE_CFG_INTDIR})
+	set(InstallConfigName  \${CMAKE_INSTALL_CONFIG_NAME})
 else()
 
-	if (NOT DEFINED CMAKE_BUILD_TYPE)
+	if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
 		set(CMAKE_BUILD_TYPE "Release")
 	endif()
 
-	set(ConfigName    ${CMAKE_BUILD_TYPE})
-	set(IntConfigName ${CMAKE_BUILD_TYPE})
+	set(ConfigName         ${CMAKE_BUILD_TYPE})
+	set(IntConfigName      ${CMAKE_BUILD_TYPE})
+	set(InstallConfigName  ${CMAKE_BUILD_TYPE})
+
+	MESSAGE(STATUS "CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE}")
 endif()
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_NAME}/bin)
@@ -149,13 +153,14 @@ if (1)
 		if (VISUS_GUI AND VISUS_PYTHON)
 			get_filename_component(Qt5_HOME "${Qt5_DIR}/../../.." ABSOLUTE)
 			string(REPLACE "\\" "/" __Python_EXECUTABLE__  "${Python_EXECUTABLE}")
-			# mportant: I didn't find a way to set PYTHONPATH here inside INSTALL(CODE), so I'm using directly the WORKING_DIRECTORY (without the module)
+
+			# important: I didn't find a way to set PYTHONPATH here inside INSTALL(CODE), so I'm using directly the WORKING_DIRECTORY (without the module)
 			INSTALL(CODE "
-				message(STATUS \"Executing post install....\")
+				message(STATUS \"Executing post install InstallConfigName=${InstallConfigName}....\")
 				execute_process(
 					COMMAND ${__Python_EXECUTABLE__} -u deploy.py install-qt5 \"${Qt5_HOME}\" \${CMAKE_INSTALL_CONFIG_NAME}
 						RESULT_VARIABLE __retcode__
-						WORKING_DIRECTORY \"${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${PROJECT_NAME}\")
+						WORKING_DIRECTORY \"${CMAKE_BINARY_DIR}/${InstallConfigName}/${PROJECT_NAME}\")
 				if(NOT \"\${__retcode__}\" STREQUAL \"0\")
 					message(FATAL_ERROR \"Post install failed\")
 				endif()
