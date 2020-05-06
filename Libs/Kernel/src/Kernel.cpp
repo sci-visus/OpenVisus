@@ -96,6 +96,30 @@ For support : support@visus.net
 
 #include <clocale>
 
+#include "EncoderId.hxx"
+#include "EncoderLz4.hxx"
+#include "EncoderZip.hxx"
+#include "EncoderZfp.hxx"
+
+#include "ArrayPluginDevnull.hxx"
+#include "ArrayPluginRawArray.hxx"
+
+#if VISUS_IMAGE
+
+#  if WIN32
+#    include <WinSock2.h>
+#  elif __APPLE__
+#  else
+#    include <arpa/inet.h>
+#  endif
+
+#  include <FreeImage.h>
+
+#  include "ArrayPluginFreeimage.hxx"
+#  include "EncoderFreeImage.hxx"
+
+#endif
+
 //this solve a problem of old Linux distribution (like Centos 5)
 #if __GNUC__ && !__APPLE__
 	#include <arpa/inet.h>
@@ -436,17 +460,44 @@ void KernelModule::attach()
   NetSocket::Defaults::recv_buffer_size = config->readInt("Configuration/NetSocket/recv_buffer_size");
   NetSocket::Defaults::tcp_no_delay = config->readBool("Configuration/NetSocket/tcp_no_delay", "1");
 
+  //array plugins
+  {
+    ArrayPlugins::getSingleton()->values.push_back(std::make_shared<DevNullArrayPlugin>());
+    ArrayPlugins::getSingleton()->values.push_back(std::make_shared<RawArrayPlugin>());
+
+#if VISUS_IMAGE
+    ArrayPlugins::getSingleton()->values.push_back(std::make_shared<FreeImageArrayPlugin>());
+#endif
+  }
+
+  //encoders
+  {
+    Encoders::getSingleton()->registerEncoder("",    [](String specs) {return std::make_shared<IdEncoder>(specs); });
+    Encoders::getSingleton()->registerEncoder("raw", [](String specs) {return std::make_shared<IdEncoder>(specs); });
+    Encoders::getSingleton()->registerEncoder("bin", [](String specs) {return std::make_shared<IdEncoder>(specs); });
+    Encoders::getSingleton()->registerEncoder("lz4", [](String specs) {return std::make_shared<LZ4Encoder>(specs); });
+    Encoders::getSingleton()->registerEncoder("zip", [](String specs) {return std::make_shared<ZipEncoder>(specs); });
+    Encoders::getSingleton()->registerEncoder("zfp", [](String specs) {return std::make_shared<ZfpEncoder>(specs); });
+
+#if VISUS_IMAGE
+    Encoders::getSingleton()->registerEncoder("png", [](String specs) {return std::make_shared<FreeImageEncoder>(specs); });
+    Encoders::getSingleton()->registerEncoder("jpg", [](String specs) {return std::make_shared<FreeImageEncoder>(specs); });
+    Encoders::getSingleton()->registerEncoder("tif", [](String specs) {return std::make_shared<FreeImageEncoder>(specs); });
+#endif
+  }
+
   //test plugin
 #if 0
   auto lib = std::make_shared<SharedLibrary>();
   if (lib->load(SharedLibrary::getFilenameInBinaryDirectory("MyPlugin")))
   {
-    auto get_instance = (SharedPlugin* (*)())example.findSymbol("GetSharedPluginInstance");
+    auto get_instance = (SharedPlugin * (*)())example.findSymbol("GetSharedPluginInstance");
     VisusReleaseAssert(get_instance);
     auto plugin = get_instance();
     plugin->lib = lib;
   }
 #endif
+
 
   PrintInfo("Attached KernelModule");
 }

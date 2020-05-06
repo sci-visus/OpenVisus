@@ -44,18 +44,6 @@ For support : support@visus.net
 #include <Visus/Encoder.h>
 #include <Visus/NetService.h>
 
-#if WIN32
-#include <WinSock2.h>
-
-#elif __APPLE__
-
-#else
-#include <arpa/inet.h>
-
-#endif
-
-#include <FreeImage.h>
-
 namespace Visus {
 
 class VISUS_KERNEL_API FreeImageArrayPlugin : public ArrayPlugin

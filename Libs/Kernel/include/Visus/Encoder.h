@@ -93,7 +93,7 @@ private:
   std::vector< std::pair<String, Creator > > creators;
 
   //constructor
-  Encoders();
+  Encoders() {}
 
 };
 

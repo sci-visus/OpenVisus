@@ -195,7 +195,6 @@ file(GLOB PyFiles
 	./src/Python.cpp)
 source_group("Python" FILES   ${PyFiles})
 
-
 file(GLOB RootFiles  
 	../../*.py  
 	./*.py 
@@ -203,6 +202,7 @@ file(GLOB RootFiles
 	../../.travis.yml
 	../../.circleci/config.yml
 	../../CMakeLists.txt
+	../../ExternalLibs/CMakeLists.txt
 	../../Doxyfile.in
 	../../LICENCE
 	../../README.md*)
@@ -248,20 +248,32 @@ target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../..
 
 target_link_libraries(VisusKernel PRIVATE cryptlite dtl lz4 tinyxml zlib zfp)
 
-target_link_libraries(VisusKernel PRIVATE FreeImage)
-target_link_libraries(VisusKernel PRIVATE curl)
-
-if (WIN32)
-	# I'm always linking to python Release (most of wheel do not work in debug mode, like numpy)
-	target_include_directories(VisusKernel PUBLIC ${Python_INCLUDE_DIRS})
-	target_compile_definitions(VisusKernel PUBLIC SWIG_PYTHON_INTERPRETER_NO_DEBUG=1)
-	target_link_libraries(VisusKernel      PUBLIC ${Python_LIBRARY_RELEASE})
-else()
-	target_link_libraries(VisusKernel PUBLIC Python::Module)
+if (VISUS_NET)
+	target_compile_options(VisusKernel PRIVATE -DVISUS_NET=1)
+	target_link_libraries(VisusKernel PRIVATE curl)
 endif()
 
-target_compile_definitions(VisusKernel  PUBLIC  VISUS_PYTHON=1)
-target_compile_definitions(VisusKernel  PRIVATE SWIG_TYPE_TABLE=OpenVisus)
+if (VISUS_IMAGE)
+	target_compile_options(VisusKernel PRIVATE -DVISUS_IMAGE=1)
+	target_link_libraries(VisusKernel PRIVATE FreeImage)
+endif()
+
+
+if (VISUS_PYTHON)
+
+	if (WIN32)
+		# I'm always linking to python Release (most of wheel do not work in debug mode, like numpy)
+		target_include_directories(VisusKernel PUBLIC ${Python_INCLUDE_DIRS})
+		target_compile_definitions(VisusKernel PUBLIC SWIG_PYTHON_INTERPRETER_NO_DEBUG=1)
+		target_link_libraries(VisusKernel      PUBLIC ${Python_LIBRARY_RELEASE})
+	else()
+		target_link_libraries(VisusKernel PUBLIC Python::Module)
+	endif()
+
+	target_compile_definitions(VisusKernel  PUBLIC  VISUS_PYTHON=1)
+	target_compile_definitions(VisusKernel  PRIVATE SWIG_TYPE_TABLE=OpenVisus)
+
+endif()
 
 
 if(WIN32)

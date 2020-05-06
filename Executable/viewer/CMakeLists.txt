@@ -8,7 +8,7 @@ add_executable(visusviewer ${Sources})
 
 target_link_libraries(visusviewer PUBLIC VisusGui)
 
-if (NOT WIN32)
+if (VISUS_PYTHON AND NOT WIN32)
     target_link_libraries(visusviewer PUBLIC Python::Python)
 endif()
 

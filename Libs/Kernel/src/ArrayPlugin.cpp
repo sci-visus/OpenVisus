@@ -38,21 +38,9 @@ For support : support@visus.net
 
 #include <Visus/Array.h>
 
-#include "ArrayPluginDevnull.hxx"
-#include "ArrayPluginRawArray.hxx"
-#include "ArrayPluginFreeimage.hxx"
 
 namespace Visus {
 
-
 VISUS_IMPLEMENT_SINGLETON_CLASS(ArrayPlugins)
 
-///////////////////////////////////////////////////////////////////////////////
-ArrayPlugins::ArrayPlugins() {
-  this->values.push_back(std::make_shared<DevNullArrayPlugin>());
-  this->values.push_back(std::make_shared<RawArrayPlugin>());
-  this->values.push_back(std::make_shared<FreeImageArrayPlugin>());
-
-}
-
-}
+} //namespace Visus {

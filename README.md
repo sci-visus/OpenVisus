@@ -101,7 +101,7 @@ git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 mkdir build
 cd build
-cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="<FillHere>" -DPython_EXECUTABLE=<FillHere> ../
+cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="<FillHere>" -DPython_EXECUTABLE=<FillHere> ../ 
 cmake --build . --target ALL_BUILD --config Release
 cmake --build . --target INSTALL   --config Release
 set PYTHON_PATH=.\Release
@@ -110,6 +110,7 @@ python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
+See also `scripts\build_win.bat` for an example of build script.
 
 ## MacOSX compilation
 
@@ -130,6 +131,9 @@ PYTHONPATH=./Release  python -m OpenVisus test
 PYTHONPATH=./Release  python -m OpenVisus convert
 PYTHONPATH=./Release  python -m OpenVisus viewer
 ```
+      
+See also `scripts\build_osx.sh` for an example of build script.      
+      
       
 ## Linux compilation
 
@@ -189,6 +193,9 @@ PYTHONPATH=./Release python3.7 -m OpenVisus test
 PYTHONPATH=./Release python3.7 -m OpenVisus convert
 PYTHONPATH=./Release python3.7 -m OpenVisus viewer
 ```
+
+
+See also `scripts\build_linux.sh` for an example of build script.   
 
 ## Commit, Continuous Integration deploy
 

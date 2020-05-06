@@ -39,30 +39,12 @@ For support : support@visus.net
 #include <Visus/Encoder.h>
 #include <Visus/StringUtils.h>
 
-#include "EncoderId.hxx"
-#include "EncoderLz4.hxx"
-#include "EncoderZip.hxx"
-#include "EncoderZfp.hxx"
-#include "EncoderFreeImage.hxx"
+
 
 namespace Visus {
 
 VISUS_IMPLEMENT_SINGLETON_CLASS(Encoders)
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-Encoders::Encoders()
-{
-  registerEncoder(""   , [](String specs) {return std::make_shared<IdEncoder>(specs); });
-  registerEncoder("raw", [](String specs) {return std::make_shared<IdEncoder>(specs); });
-  registerEncoder("bin", [](String specs) {return std::make_shared<IdEncoder>(specs); });
-  registerEncoder("lz4", [](String specs) {return std::make_shared<LZ4Encoder>(specs); });
-  registerEncoder("zip", [](String specs) {return std::make_shared<ZipEncoder>(specs); });
-  registerEncoder("zfp", [](String specs) {return std::make_shared<ZfpEncoder>(specs); });
-
-  registerEncoder("png", [](String specs) {return std::make_shared<FreeImageEncoder>(specs); });
-  registerEncoder("jpg", [](String specs) {return std::make_shared<FreeImageEncoder>(specs); });
-  registerEncoder("tif", [](String specs) {return std::make_shared<FreeImageEncoder>(specs); });
-}
 
 ////////////////////////////////////////////////////////////////
 void Encoders::registerEncoder(String key, Creator creator)

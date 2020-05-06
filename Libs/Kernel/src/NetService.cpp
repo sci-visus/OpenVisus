@@ -47,13 +47,15 @@ For support : support@visus.net
 #include <list>
 #include <set>
 
-#if WIN32
-#include <winsock2.h>
-#else
-#include <sys/socket.h>
-#endif
 
-#include <curl/curl.h>
+#if VISUS_NET
+#  if WIN32
+#     include <winsock2.h>
+#  else
+#    include <sys/socket.h>
+#  endif
+#  include <curl/curl.h>
+#endif
 
 namespace Visus {
 
@@ -61,6 +63,7 @@ String NetService::Defaults::proxy="";
 int    NetService::Defaults::proxy_port=0;
 
 ///////////////////////////////////////////////////////////////////////////////////
+#if VISUS_NET
 class CurlConnection
 {
 public:
@@ -258,7 +261,6 @@ public:
   }
 
 };
-
 
 /////////////////////////////////////////////////////////////////////////////
 class NetService::Pimpl
@@ -492,8 +494,8 @@ public:
 
 
 /////////////////////////////////////////////////////////////////////////////
-NetService::NetService(int nconnections_,bool bVerbose) 
-  : nconnections(nconnections_),verbose(bVerbose)
+NetService::NetService(int nconnections_, bool bVerbose)
+  : nconnections(nconnections_), verbose(bVerbose)
 {
   this->pimpl = new Pimpl(this);
   this->pimpl->start();
@@ -502,7 +504,7 @@ NetService::NetService(int nconnections_,bool bVerbose)
 /////////////////////////////////////////////////////////////////////////////
 NetService::~NetService()
 {
-  pimpl->stop();
+  this->pimpl->stop();
   delete pimpl;
 }
 
@@ -510,7 +512,7 @@ NetService::~NetService()
 /////////////////////////////////////////////////////////////////////////////
 void NetService::attach()
 {
-  int retcode = curl_global_init(CURL_GLOBAL_ALL) ;
+  int retcode = curl_global_init(CURL_GLOBAL_ALL);
   VisusReleaseAssert(retcode == 0);
 }
 
@@ -529,7 +531,6 @@ Future<NetResponse> NetService::handleAsync(SharedPtr<NetRequest> request)
     request->statistics.enter_t1 = Time::now();
 
   ApplicationStats::num_net_jobs++;
-
   Promise<NetResponse> promise;
   {
     ScopedLock lock(this->waiting_lock);
@@ -539,11 +540,39 @@ Future<NetResponse> NetService::handleAsync(SharedPtr<NetRequest> request)
   return promise.get_future();
 }
 
+
+
+#else
+
+/////////////////////////////////////////////////////////////////////////////
+NetService::NetService(int nconnections_, bool bVerbose)
+  : nconnections(nconnections_), verbose(bVerbose){
+}
+
+NetService::~NetService() {
+}
+
+void NetService::attach() {
+}
+
+void NetService::detach(){
+}
+
+Future<NetResponse> NetService::handleAsync(SharedPtr<NetRequest> request)
+{
+  Promise<NetResponse> promise;
+  promise.set_value(NetResponse(HttpStatus::STATUS_SERVICE_UNAVAILABLE));
+  return promise.get_future();
+}
+
+#endif
+
 /////////////////////////////////////////////////////////////////////////////
 NetResponse NetService::getNetResponse(NetRequest request)
 {
-  return push(SharedPtr<NetService>(),request).get();
+  return push(SharedPtr<NetService>(), request).get();
 }
+
 
 /////////////////////////////////////////////////////////////////////////////
 Future<NetResponse> NetService::push(SharedPtr<NetService> service, NetRequest request)
@@ -559,27 +588,27 @@ Future<NetResponse> NetService::push(SharedPtr<NetService> service, NetRequest r
     NetResponse response = future.get();
 
     if (!response.isSuccessful() && !request.aborted())
-      PrintWarning("request",request.url,"failed",response.getErrorMessage());
+      PrintWarning("request", request.url, "failed", response.getErrorMessage());
 
     return future;
   }
 }
 
 /////////////////////////////////////////////////////////////////////////////
-void NetService::printStatistics(int connection_id,const NetRequest& request,const NetResponse& response)
+void NetService::printStatistics(int connection_id, const NetRequest& request, const NetResponse& response)
 {
   Int64 download = response.body ? response.body->c_size() : 0;
   Int64 upload = request.body ? request.body->c_size() : 0;
 
-  PrintInfo(  
+  PrintInfo(
     request.method,
     "connection", connection_id,
-    "wait",request.statistics.wait_msec,
+    "wait", request.statistics.wait_msec,
     "running", request.statistics.run_msec,
-    download ? cstring("download",StringUtils::getStringFromByteSize(download)," - ",cstring((int)(download / (request.statistics.run_msec / 1000.0) / 1024)), "kb/sec)") : String(""),
-    upload ?   cstring("updload" ,StringUtils::getStringFromByteSize(upload  )," - ",cstring((int)(upload   / (request.statistics.run_msec / 1000.0) / 1024)), "kb/sec)") : String(""),
-    "status",response.getStatusDescription(),
-    "url",request.url);
+    download ? cstring("download", StringUtils::getStringFromByteSize(download), " - ", cstring((int)(download / (request.statistics.run_msec / 1000.0) / 1024)), "kb/sec)") : String(""),
+    upload ? cstring("updload", StringUtils::getStringFromByteSize(upload), " - ", cstring((int)(upload / (request.statistics.run_msec / 1000.0) / 1024)), "kb/sec)") : String(""),
+    "status", response.getStatusDescription(),
+    "url", request.url);
 }
 
 } //namespace Visus
