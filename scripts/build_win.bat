@@ -24,34 +24,3 @@ if "%APPVEYOR_REPO_TAG%" == "true" (
 	python -m twine upload --username %PYPI_USERNAME% --password %PYPI_PASSWORD% --skip-existing  "dist/*.whl"
 )
 
-set BUILD_CONDA=0
-if "%PYTHON_VERSION%" == "36" ( set BUILD_CONDA=1 )
-if "%PYTHON_VERSION%" == "37" ( set BUILD_CONDA=1 )
-if "%BUILD_CONDA%" == "1" (
-
-	set CONDA_DIR=C:\Miniconda%PYTHON_VERSION%-x64
-	%CONDA_DIR%\Scripts\activate.bat
-
-	conda install conda-build numpy -y
-	
-	set PYTHONPATH=..\
-	python -m OpenVisus configure
-	set PYTHONPATH=
-	
-	del %CONDA_DIR%\conda-bld\win-64\openvisus*.tar.bz2
-	python setup.py -q bdist_conda 
-	python -c "import glob;open('~conda_filename.txt', 'wt').write(str(glob.glob('%CONDA_DIR%/conda-bld/win-64/openvisus*.tar.bz2')[0]))"
-	set /P CONDA_FILENAME=<~conda_filename.txt
-	conda install -y --force-reinstall %CONDA_FILENAME%
-	cd /d %CONDA_DIR%\lib\site-packages\OpenVisus
-
-	python -m OpenVisus test
-	python -m OpenVisus convert
-	
-	if "%APPVEYOR_REPO_TAG%" == "true" (
-		conda install anaconda-client -y
-		anaconda -t %ANACONDA_TOKEN% upload %CONDA_FILENAME%
-	)
-
-)
-

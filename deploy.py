@@ -445,7 +445,7 @@ def Main():
 		sys.exit(0)
 
 	# _____________________________________________
-	if action=="link-qt5":
+	if action=="link-pyqt5":
 		os.chdir(this_dir)
 		LinkPyQt5()
 		print(action,"done")

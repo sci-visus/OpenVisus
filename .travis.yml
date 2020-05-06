@@ -35,6 +35,9 @@ matrix:
       env: ['PYTHON_VERSION=3.6']
 
 script:
-  - cd "${TRAVIS_BUILD_DIR}" && GIT_TAG=${TRAVIS_TAG} scripts/build_osx.sh
+  - cd "${TRAVIS_BUILD_DIR}" 
+  - export GIT_TAG=${TRAVIS_TAG}
+  - scripts/build_osx.sh
+  - if [[ "${PYTHON_VERSION}" != "" ]] ; then scripts/build_conda.sh ; fi
     
 
