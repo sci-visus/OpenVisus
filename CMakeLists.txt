@@ -155,7 +155,7 @@ if (1)
 				execute_process(
 					COMMAND ${__Python_EXECUTABLE__} -u deploy.py install-qt5 \"${Qt5_HOME}\" \${CMAKE_INSTALL_CONFIG_NAME}
 						RESULT_VARIABLE __retcode__
-						WORKING_DIRECTORY \"${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${PROJECT_NAME} \")
+						WORKING_DIRECTORY \"${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${PROJECT_NAME}\")
 				if(NOT \"\${__retcode__}\" STREQUAL \"0\")
 					message(FATAL_ERROR \"Post install failed\")
 				endif()
