@@ -13,6 +13,11 @@ OSX:
 	DYLD_PRINT_LIBRARIES=1 QT_DEBUG_PLUGINS=1 visusviewer.app/Contents/MacOS/visusviewer
 """
 
+
+import sysconfig
+
+this_dir=os.path.dirname(os.path.abspath(__file__))
+
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
 
@@ -293,101 +298,128 @@ def LinkPyQt5():
 
 
 # /////////////////////////////////////////////////////////////////////////
-__scripts={}
-
-__scripts["WIN32-nogui"]=r"""
+__scripts={
+"WIN32-nogui" : r"""
 cd %~dp0
-set PYTHON=${Python_EXECUTABLE}
-set PATH=%PYTHON%\..;%PATH%;.\bin
-${TARGET_FILENAME}" %*
-"""
+set PATH=${__python__}\..;%PATH%;.\bin
+set PYTHONPATH=${__pythonpath__}
+${__target__}" %*
+""",
 
-__scripts["WIN32-qt5"]=r"""
+"WIN32-qt5": r"""
 cd %~dp0
-set PYTHON=${Python_EXECUTABLE}
-set PATH=%PYTHON%\..;%PATH%;.\bin 
-set Qt5_DIR=bin\Qt
-set PATH=%Qt5_DIR%\bin;%PATH%
-set QT_PLUGIN_PATH=%Qt5_DIR%\plugins
-"${TARGET_FILENAME}" %*
-"""
+set PATH=${__python__}\..;.\bin;bin\Qt\bin;%PATH%
+set PYTHONPATH=${__pythonpath__}
+set QT_PLUGIN_PATH=bin\Qt\plugins
+"${__target__}" %*
+""",
 
-__scripts["WIN32-pyqt5"]=r"""
+"WIN32-pyqt5": r"""
 cd %~dp0
-set PYTHON=${Python_EXECUTABLE}
-set PATH=%PYTHON%\..;%PATH%;.\bin
-for /f "usebackq tokens=*" %%G in (`%PYTHON% -c "import os,PyQt5; print(os.path.dirname(PyQt5.__file__))"`) do set Qt5_DIR=%%G\Qt
-set PATH=%Qt5_DIR%\bin;%PATH%
-set QT_PLUGIN_PATH=%Qt5_DIR%\plugins
-"${TARGET_FILENAME}" %*
-"""
+set PATH=${__python__}\..;.\bin;${__pyqt5_dir__}\Qt\bin;%PATH%
+set PYTHONPATH=${__pythonpath__}
+set QT_PLUGIN_PATH=${__pyqt5_dir__}\Qt\plugins
+"${__target__}" %*
+""",
 
-__scripts["APPLE-nogui"]=r"""
+"APPLE-nogui" : r"""
 #!/bin/bash
 cd $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-PYTHON=${Python_EXECUTABLE}
-export PYTHONPATH=$(${PYTHON} -c "import sys;print(sys.path)"):${PYTHONPATH}
-export LD_LIBRARY_PATH=$(${PYTHON} -c "import os,sysconfig;print(os.path.realpath(sysconfig.get_config_var('LIBDIR')))"):${DYLD_LIBRARY_PATH}
-${TARGET_FILENAME} "$@"
-"""
+export PYTHONPATH=${__pythonpath__}
+export LD_LIBRARY_PATH=${__libdir__}:${DYLD_LIBRARY_PATH}
+${__target__} "$@"
+""",
 
-__scripts["APPLE-qt5"]=r"""
+"APPLE-qt5" : r"""
 #!/bin/bash
 cd $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-PYTHON=${Python_EXECUTABLE}
-export PYTHONPATH=$(${PYTHON} -c "import sys;print(sys.path)"):${PYTHONPATH}
-export DYLD_LIBRARY_PATH=$(${PYTHON} -c "import os,sysconfig;print(os.path.realpath(sysconfig.get_config_var('LIBDIR')))"):${DYLD_LIBRARY_PATH}
-Qt5_DIR=$(pwd)/bin/qt QT_PLUGIN_PATH=${Qt5_DIR}/plugins ${TARGET_FILENAME} "$@"
-"""
+export PYTHONPATH=${__pythonpath__}
+export DYLD_LIBRARY_PATH=${__libdir__}:${DYLD_LIBRARY_PATH}
+export QT_PLUGIN_PATH=$(pwd)/bin/qt/plugins 
+${__target__} "$@"
+""",
 
-__scripts["APPLE-pyqt5"]=r"""
+"APPLE-pyqt5" : r"""
 #!/bin/bash
 cd $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-PYTHON=${Python_EXECUTABLE}
-export PYTHONPATH=$(${PYTHON} -c "import sys;print(sys.path)"):${PYTHONPATH}
-export DYLD_LIBRARY_PATH=$(${PYTHON} -c "import os,sysconfig;print(os.path.realpath(sysconfig.get_config_var('LIBDIR')))"):${DYLD_LIBRARY_PATH}
-export Qt5_DIR=$("${PYTHON}" -c "import os,PyQt5; print(os.path.dirname(PyQt5.__file__)+'/Qt')")
-export QT_PLUGIN_PATH=${Qt5_DIR}/plugins
-${TARGET_FILENAME} "$@"
+export PYTHONPATH=${__pythonpath__}
+export DYLD_LIBRARY_PATH=${__libdir__}:${DYLD_LIBRARY_PATH}
+export QT_PLUGIN_PATH=${__pyqt5_dir__}/Qt/plugins
+${__target__} "$@"
+""",
+
+"LINUX-nogui": r"""
+#!/bin/bash
+cd $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+export PYTHONPATH=${__pythonpath__}
+export LD_LIBRARY_PATH=${__libdir__}:${LD_LIBRARY_PATH}
+${__target__} "$@"
+""",
+
+"LINUX-qt5" : r"""
+#!/bin/bash
+cd $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+export PYTHONPATH=${__pythonpath__}
+export LD_LIBRARY_PATH=${__libdir__}:${LD_LIBRARY_PATH}
+export QT_PLUGIN_PATH=$(pwd)/bin/qt/plugins 
+${__target__} "$@"
+""",
+
+"LINUX-pyqt5": r"""
+#!/bin/bash
+cd $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+export PYTHONPATH=${__pythonpath__}
+export LD_LIBRARY_PATH=${__libdir__}:${LD_LIBRARY_PATH}
+export QT_PLUGIN_PATH=${__pyqt5_dir__}/Qt/plugins
+${__target__} "$@"
 """
-__scripts["LINUX-nogui"]=__scripts["APPLE-nogui"].replace("DYLD_LIBRARY_PATH","LD_LIBRARY_PATH")
-__scripts["LINUX-qt5"]=__scripts["APPLE-qt5"].replace("DYLD_LIBRARY_PATH","LD_LIBRARY_PATH")
-__scripts["LINUX-pyqt5"]=__scripts["APPLE-pyqt5"].replace("DYLD_LIBRARY_PATH","LD_LIBRARY_PATH")
+}
 
 # /////////////////////////////////////////////////////////////////////////
-def GenerateScript(script_filename, target_filename, content):
+def GenerateScript(script_filename, target_filename, gui_lib):
+	
+	if WIN32:
+		script_filename+=".bat"
+		target_filename=target_filename.replace("/","\\")+".exe"
+		content=__scripts["WIN32-"+gui_lib]
+	elif APPLE:
+		script_filename+=".command"
+		target_filename+=".app/Contents/MacOS/" +GetFilenameWithoutExtension(target_filename)
+		content=__scripts["APPLE-"+gui_lib]
+	else:
+		script_filename+=".sh"
+		content=__scripts["LINUX-"+gui_lib]
+	
 	print("Generate script",script_filename,target_filename)
-	content=content.replace("${Python_EXECUTABLE}"   , sys.executable)
-	content=content.replace("${Python_VERSION_MAJOR}", str(sys.version_info[0]))
-	content=content.replace("${Python_VERSION_MINOR}", str(sys.version_info[1]))
-	content=content.replace("${TARGET_FILENAME}"   , target_filename)
+	content=content.replace("${__python__}", sys.executable)
+	content=content.replace("${__target__}", target_filename)
+	
+	if True:
+		PYTHONPATH=sys.path
+		# PYTHONPATH.remove(this_dir)
+		content=content.replace("${__pythonpath__}", ':'.join(PYTHONPATH))
+	
+	if not WIN32:
+		content=content.replace("${__libdir__}", os.path.realpath(sysconfig.get_config_var('LIBDIR')))
+		
+	if gui_lib=="pyqt5":
+		import PyQt5
+		content=content.replace("${__pyqt5_dir__}", os.path.dirname(PyQt5.__file__))
+	
 	WriteTextFile(script_filename , content)
 	os.chmod(script_filename, 0o777)
 
-
-
-
 # ////////////////////////////////////////////////
 def GenerateScripts(gui_lib):
-
 	print("Generating scripts","gui_lib","...")
-	if WIN32:
-		GenerateScript("visus.bat","bin\\visus.exe",__scripts["WIN32-nogui"])
-		GenerateScript("visusviewer.bat","bin\\visusviewer.exe",__scripts["WIN32-" + gui_lib])
-	elif APPLE:
-		GenerateScript("visus.command","bin/visus.app/Contents/MacOS/visus",__scripts["APPLE-nogui"])
-		GenerateScript("visusviewer.command","bin/visusviewer.app/Contents/MacOS/visusviewer",__scripts["APPLE-"+gui_lib])
-	else:
-		GenerateScript("visus.sh","bin/visus",__scripts["LINUX-nogui"])
-		GenerateScript("visusviewer.sh","bin/visusviewer",__scripts["LINUX-"+gui_lib])
+	GenerateScript("visus","bin/visus","nogui")
+	GenerateScript("visusviewer","bin/visusviewer",gui_lib)
 
 # ////////////////////////////////////////////////
 def Main():
 
 	if len(sys.argv)==1:
 		return
-
-	this_dir=os.path.dirname(os.path.abspath(__file__))
 
 	action=sys.argv[1]
 
