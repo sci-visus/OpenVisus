@@ -3,12 +3,10 @@ version: 2
 commands:
 
   workaround:
-    description: "workaround circleci's fallback git's 'object not found' error w/ tag"
     steps:
       - run: yum -y install openssh-clients git 
 
   compile_openvisus:
-    description: "Compile openvisus"
     steps:
       - run: |
              export GIT_TAG=${CIRCLE_TAG} 
