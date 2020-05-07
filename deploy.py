@@ -397,7 +397,7 @@ def GenerateScript(script_filename, target_filename, gui_lib):
 	if True:
 		PYTHONPATH=sys.path
 		# PYTHONPATH.remove(this_dir)
-		content=content.replace("${__pythonpath__}", ':'.join(PYTHONPATH))
+		content=content.replace("${__pythonpath__}", os.pathsep.join(PYTHONPATH))
 	
 	if not WIN32:
 		content=content.replace("${__libdir__}", os.path.realpath(sysconfig.get_config_var('LIBDIR')))
