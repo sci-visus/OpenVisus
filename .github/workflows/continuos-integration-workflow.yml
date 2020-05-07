@@ -4,25 +4,27 @@ on: [push]
 
 jobs:
   build-for-linux:
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-latest 
     steps:
     - name: Checkout
       uses: actions/checkout@v1
-      
-    - name: compile
+    - name: compile-openvisus
       run: |
-        sudo apt-get update
-        sudo apt-get install -y wget bzip2 python3-pip libgsl-dev libboost-dev
-        sudo python3 -m pip install -U pip setuptools
-
+        docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e GIT_TAG=${CIRCLE_TAG} -e PYTHON_VERSION=3.8 visus/travis-image /bin/bash 
+        docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
+        docker exec mydocker /bin/bash -c "cd build_linux/Release/OpenVisus"
+        docker exec mydocker /bin/bash -c "bash .scripts/build_conda.sh"      
+        
   build-for-macos:
     runs-on: macos-latest
-
     steps:
     - name: Checkout
       uses: actions/checkout@v1
-
-    - name: compile
-      run: brew update && brew upgrade && brew install boost gsl hdf5 cmake python
+    - name: compile-openvisus
+      run: |
+        export PYTHON_VERSION=3.6
+        export GIT_TAG=${TRAVIS_TAG}
+        bash ./scripts/build_osx.sh
+        cd build_osx/Release/OpenVisus 
+        if [[ "${PYTHON_VERSION}" != "3.8" ]] ; then bash ./scripts/build_conda.sh ; fi      
 

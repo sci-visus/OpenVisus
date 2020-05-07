@@ -1,8 +1,18 @@
 import os,sys,shutil,setuptools
 	
 PROJECT_NAME="OpenVisus"
-PROJECT_VERSION="1.3.95"
+PROJECT_VERSION="1.3.96"
 if __name__ == "__main__":
+	
+	if len(sys.argv)>=2 and sys.argv[1]=="old-version":
+		print(PROJECT_VERSION)
+		sys.exit()
+		
+	if len(sys.argv)>=2 and sys.argv[1]=="new-version":
+		v=PROJECT_VERSION.split(".")
+		v[2]=str(int(v[2])+1)
+		print(".".join(v))
+		sys.exit()		
 	
 	# this are cached directories that should not be part of OpenVisus distribution
 	shutil.rmtree('./build', ignore_errors=True)	
