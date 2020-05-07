@@ -11,15 +11,14 @@ trigger:
 jobs:
 - job: Linux
   pool:
-    vmImage: 'visus/travis-image'
+    vmImage: 'ubuntu-latest'
   steps:
   - script: echo hello from Linux
   - bash: |
-      export PYTHON_VERSION: 3.6
-      export GIT_TAG=${CIRCLE_TAG} 
-      bash ./scripts/build_linux.sh
-      cd build_linux/Release/OpenVisus 
-      bash ./scripts/build_conda.sh
+        docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e GIT_TAG=${CIRCLE_TAG} -e PYTHON_VERSION=3.8 visus/travis-image /bin/bash 
+        docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
+        docker exec mydocker /bin/bash -c "cd build_linux/Release/OpenVisus"
+        docker exec mydocker /bin/bash -c "bash .scripts/build_conda.sh"        
       
 - job: MacOsx
   pool:
@@ -40,9 +39,9 @@ jobs:
   steps:
   - script: echo hello from Windows
   - script: |          
-         set Qt5_DIR=C:\\Qt\\5.9\\msvc2017_64\\lib\\cmake\\Qt5
-         set MINICONDA=C:\\Miniconda36-x64
-         set PYTHON_VERSION=3.6    
-         set Python_EXECUTABLE=C:\\Python36-x64\\python.exe
-         set PYTHON_TAG=cp36  
-         CALL scripts/build_win.bat
+        set Qt5_DIR=C:\\Qt\\5.9\\msvc2017_64\\lib\\cmake\\Qt5
+        set MINICONDA=C:\\Miniconda36-x64
+        set PYTHON_VERSION=3.6    
+        set Python_EXECUTABLE=C:\\Python36-x64\\python.exe
+        set PYTHON_TAG=cp36  
+        CALL scripts/build_win.bat
