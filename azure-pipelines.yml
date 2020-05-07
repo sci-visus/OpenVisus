@@ -1,0 +1,27 @@
+jobs:
+- job: Linux
+  pool:
+    vmImage: 'visus/travis-image'
+  steps:
+  - script: echo hello from Linux
+  - bash: |
+      export PYTHON_VERSION: 3.6
+      export GIT_TAG=${CIRCLE_TAG} 
+      bash ./scripts/build_linux.sh
+      cd build_linux/Release/OpenVisus 
+      bash ./scripts/build_conda.sh
+      
+- job: macOS1015
+  pool:
+    vmImage: 'macOS-10.15'
+  steps:
+  - script: echo hello from macOS 10.15
+  - bash: |
+      export PYTHON_VERSION=3.6
+      cd "${TRAVIS_BUILD_DIR}" 
+      export GIT_TAG=${TRAVIS_TAG}
+      bash ./scripts/build_osx.sh
+      cd build_osx/Release/OpenVisus 
+      bash ./scripts/build_conda.sh
+      
+      
