@@ -1,4 +1,4 @@
-version: '1.0.{build}'
+:version: '1.0.{build}'
 
 notifications:
   - provider: Email
@@ -15,13 +15,13 @@ environment:
   matrix:
     - PYTHON_VERSION: 3.6    
       Python_EXECUTABLE: C:\\Python36-x64\\python.exe
-      PYTHON_TAG=cp36
+      PYTHON_TAG: cp36
     - PYTHON_VERSION: 3.7
       Python_EXECUTABLE: C:\\Python37-x64\\python.exe
-      PYTHON_TAG=cp37
+      PYTHON_TAG: cp37
     - PYTHON_VERSION: 3.8
       Python_EXECUTABLE: C:\\Python38-x64\\python.exe
-      PYTHON_TAG=cp38
+      PYTHON_TAG: cp38
  
 build_script:
   - cd %APPVEYOR_BUILD_FOLDER% 
