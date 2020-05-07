@@ -1,18 +1,5 @@
 version: 2
 
-commands:
-
-  workaround:
-    steps:
-      - run: yum -y install openssh-clients git 
-
-  compile_openvisus:
-    steps:
-      - run: |
-             export GIT_TAG=${CIRCLE_TAG} 
-             bash ./scripts/build_linux.sh
-             cd build_linux/Release/OpenVisus 
-             bash ./scripts/build_conda.sh
 
 jobs:
 
@@ -22,9 +9,13 @@ jobs:
         environment:
           PYTHON_VERSION: 3.8
     steps:
-      - workaround
+      - run: yum -y install openssh-clients git 
       - checkout
-      - compile_openvisus
+      - run: |
+             export GIT_TAG=${CIRCLE_TAG} 
+             bash ./scripts/build_linux.sh
+             cd build_linux/Release/OpenVisus 
+             bash ./scripts/build_conda.sh
   
   linux-3.7:
     docker:
@@ -32,9 +23,13 @@ jobs:
         environment:
           PYTHON_VERSION: 3.7
     steps:
-      - workaround
+      - run: yum -y install openssh-clients git 
       - checkout
-      - compile_openvisus
+      - run: |
+             export GIT_TAG=${CIRCLE_TAG} 
+             bash ./scripts/build_linux.sh
+             cd build_linux/Release/OpenVisus 
+             bash ./scripts/build_conda.sh
             
   linux-3.6:
     docker:
@@ -42,9 +37,13 @@ jobs:
         environment:
           PYTHON_VERSION: 3.6
     steps:
-      - workaround
+      - run: yum -y install openssh-clients git 
       - checkout
-      - compile_openvisus
+      - run: |
+             export GIT_TAG=${CIRCLE_TAG} 
+             bash ./scripts/build_linux.sh
+             cd build_linux/Release/OpenVisus 
+             bash ./scripts/build_conda.sh
 
 workflows:
   version: 2
