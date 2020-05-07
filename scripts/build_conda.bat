@@ -4,7 +4,7 @@ CALL %CONDA_DIR%\Scripts\activate.bat
 CALL conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
 CALL conda update -q conda
 CALL conda env remove -n tmp
-CALL conda create -q -n tmp python=%PYTHON_VERSION% numpy
+CALL conda create -q -n tmp python=%PYTHON_VERSION:~0,1%.%PYTHON_VERSION:~2,1% %% numpy
 CALL conda activate tmp
 CALL conda install conda-build anaconda-client 
 
