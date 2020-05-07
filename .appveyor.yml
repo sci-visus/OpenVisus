@@ -24,10 +24,12 @@ environment:
       PYTHON_TAG: cp38
  
 build_script:
-  - cd %APPVEYOR_BUILD_FOLDER% 
-  - set PATH=%Python_EXECUTABLE%\..;%PATH%
+  - set PYTHONUNBUFFERED=1
   - choco install -y --allow-empty-checksums swig
+  - set PATH=%Python_EXECUTABLE%\..;%PATH%
   - python -m pip install numpy setuptools wheel twine --upgrade
+  
+  - cd %APPVEYOR_BUILD_FOLDER% 
   
   - mkdir build_win
   - cd build_win
@@ -36,7 +38,6 @@ build_script:
   - cmake.exe --build . --target INSTALL   --config Release
 
   - cd Release\OpenVisus
-  
   - set PYTHONPATH=..\
   - python -m OpenVisus test
   - python -m OpenVisus convert
@@ -47,11 +48,11 @@ build_script:
   
   - if "%PYTHON_VERSION%" == "3.8" appveyor exit
   
-  - CALL %MINICONDA%\Scripts\activate.bat
+  - set "PATH=%MINICONDA%\\Scripts;%MINICONDA%\\Library\\bin;%PATH%"
+  - call %MINICONDA%\Scripts\activate.bat
   - conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
   - conda update -q conda
   - conda env remove -n tmp
-  
   - conda create -q -n tmp python=%PYTHON_VERSION% numpy
   - conda activate tmp
   - conda install conda-build anaconda-client 
@@ -67,7 +68,6 @@ build_script:
   - python -c "import os,glob;open('~conda_filename.txt', 'wt').write(str(glob.glob('%MINICONDA%\\**\\openvisus*.tar.bz2', recursive=True)[0]))"
   - set /P CONDA_FILENAME=<~conda_filename.txt
   - echo "CONDA_FILENAME=%CONDA_FILENAME%"
-  
   - if "%APPVEYOR_REPO_TAG%" == "true" ( anaconda -t "%ANACONDA_TOKEN%" upload "%CONDA_FILENAME%" )
 
 test: off
