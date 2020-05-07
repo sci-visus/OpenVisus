@@ -1,4 +1,4 @@
-:version: '1.0.{build}'
+version: '1.0.{build}'
 
 notifications:
   - provider: Email
@@ -34,8 +34,9 @@ build_script:
   - cmake.exe -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR=%Qt5_DIR% -DPython_EXECUTABLE=%Python_EXECUTABLE%  ../
   - cmake.exe --build . --target ALL_BUILD --config Release
   - cmake.exe --build . --target INSTALL   --config Release
-  
+
   - cd Release\OpenVisus
+  
   - set PYTHONPATH=..\
   - python -m OpenVisus test
   - python -m OpenVisus convert
