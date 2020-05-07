@@ -11,6 +11,7 @@ jobs:
           PYTHON_VERSION: 3.8
     steps:
       - run: yum -y install openssh-clients git # workaround circleci's fallback git's "object not found" error w/ tag
+      - checkout
       - run: export GIT_TAG=${CIRCLE_TAG} 
       - run: ./scripts/build_linux.sh
       - run: cd build_linux/Release/OpenVisus 
