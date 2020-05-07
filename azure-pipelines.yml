@@ -18,7 +18,7 @@ jobs:
         docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e GIT_TAG=${CIRCLE_TAG} -e PYTHON_VERSION=3.8 visus/travis-image /bin/bash 
         docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
         docker exec mydocker /bin/bash -c "cd build_linux/Release/OpenVisus"
-        docker exec mydocker /bin/bash -c "bash .scripts/build_conda.sh"        
+        docker exec mydocker /bin/bash -c "bash ./scripts/build_conda.sh"        
       
 - job: MacOsx
   pool:
