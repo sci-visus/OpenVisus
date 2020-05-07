@@ -31,7 +31,7 @@ conda update -q conda
 conda env remove -n tmp || true
 conda create -q -n tmp python=${PYTHON_VERSION} numpy
 conda activate tmp
-conda install conda-build anaconda-client 
+conda install conda-build 
 
 # I get some random crashes here, so I'm using more actions than a simple configure here..
 # PYTHONPATH=../ python -m OpenVisus configure
@@ -50,6 +50,7 @@ python setup.py -q bdist_conda
 if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
 	CONDA_FILENAME=$(find ~/miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)
 	echo "CONDA_FILENAME ${CONDA_FILENAME}"
+	conda install anaconda-client 
 	anaconda -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
 fi
 

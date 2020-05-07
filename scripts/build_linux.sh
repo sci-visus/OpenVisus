@@ -2,7 +2,9 @@
 
 # to test:
 # sudo docker run --rm -it -v $(pwd):/root/OpenVisus -w /root/OpenVisus visus/travis-image /bin/bash 
-# PYTHON_VERSION=3.7 ./scripts/build_linux.sh
+# PYTHON_VERSION=3.8 ./scripts/build_linux.sh
+# cd build_linux/Release/OpenVisus
+# scripts/build_conda.sh
 
 set -e  # stop or error
 set -x  # very verbose

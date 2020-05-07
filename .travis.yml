@@ -22,22 +22,23 @@ matrix:
     - os: osx
       osx_image: xcode9.4
       compiler: clang
-      env: ['PYTHON_VERSION=3.8', 'ENABLE_CONDA=0'] 
+      env: ['PYTHON_VERSION=3.8'] 
 
     - os: osx
       osx_image: xcode9.4
       compiler: clang
-      env: ['PYTHON_VERSION=3.7', 'ENABLE_CONDA=1']
+      env: ['PYTHON_VERSION=3.7']
     
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
-      env: ['PYTHON_VERSION=3.6', 'ENABLE_CONDA=1']
+      env: ['PYTHON_VERSION=3.6']
 
 script:
   - cd "${TRAVIS_BUILD_DIR}" 
   - export GIT_TAG=${TRAVIS_TAG}
-  - scripts/build_osx.sh
-  - if (( ENABLE_CONDA == 1 )) ; then cd build_osx/Release/OpenVisus && ../../../scripts/build_conda.sh ; fi
+  - bash scripts/build_osx.sh
+  - cd build_osx/Release/OpenVisus 
+  - bash scripts/build_conda.sh 
     
 
