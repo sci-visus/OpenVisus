@@ -66,6 +66,13 @@ jobs:
         arch: 'win64_msvc2017_64'
         dir: '${{ github.workspace }}/Qt/'
         install-deps: 'true'
+        
+    # ____________________________________________
+    - name: compile-openvisus
+      shell: bash
+      run: |
+      	find / 2>/dev/null        
+        
     # ____________________________________________
     - name: Set up CPython
       uses: actions/setup-python@v2
