@@ -71,7 +71,7 @@ jobs:
     - name: compile-openvisus
       shell: bash
       run: |
-      	find / 2>/dev/null        
+           find / 2>/dev/null        
         
     # ____________________________________________
     - name: Set up CPython
