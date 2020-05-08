@@ -25,8 +25,8 @@ build_script:
          set MINICONDA_DIR=C:\Miniconda36-x64
          set "PATH=%MINICONDA_DIR%\Scripts;%MINICONDA_DIR%\Library\bin;%PATH%"
          call %MINICONDA_DIR%\Scripts\activate.bat
-         conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-         conda update -q conda  
+         conda config --set always_yes yes --set changeps1 no --set anaconda_upload no & exit 0
+         conda update -q conda  & exit 0
          CALL .\scripts\build_conda.bat
          choco install -y --allow-empty-checksums swig
          CALL .\scripts\build_win.bat
