@@ -1,3 +1,5 @@
+@echo on
+
 SETLOCAL EnableDelayedExpansion
   
 set PYTHONUNBUFFERED=1
