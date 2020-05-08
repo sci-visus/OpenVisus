@@ -14,19 +14,15 @@ environment:
   MINICONDA: C:\\Miniconda36-x64
   matrix:
     - PYTHON_VERSION: 3.6    
-      Python_EXECUTABLE: C:\\Python36-x64\\python.exe
-      PYTHON_TAG: cp36
     - PYTHON_VERSION: 3.7
-      Python_EXECUTABLE: C:\\Python37-x64\\python.exe
-      PYTHON_TAG: cp37
     - PYTHON_VERSION: 3.8
-      Python_EXECUTABLE: C:\\Python38-x64\\python.exe
-      PYTHON_TAG: cp38
  
 build_script:
   - |-
     cd %APPVEYOR_BUILD_FOLDER% 
     set PYTHONUNBUFFERED=1
+    set Python_EXECUTABLE=C:\Python%PYTHON_VERSION:~0,1%%PYTHON_VERSION:~2,1%-x64\\python.exe
+    set PYTHON_TAG=cp%PYTHON_VERSION:~0,1%%PYTHON_VERSION:~2,1%
 
     choco install -y --allow-empty-checksums swig
     set PATH=%Python_EXECUTABLE%\..;%PATH%
@@ -45,7 +41,15 @@ build_script:
     set PYTHONPATH=
   
     python setup.py -q bdist_wheel --python-tag=%PYTHON_TAG% --plat-name=win_amd64
-    if "%APPVEYOR_REPO_TAG%" == "true" ( python -m twine upload --username %PYPI_USERNAME% --password %PYPI_PASSWORD% --skip-existing  "dist/*.whl" )
+    
+    set GIT_TAG=""
+    git describe --tags --exact-match >tmp.txt 2>NUL
+    if ERRORLEVEL == 0 ( set /p GIT_TAG=<tmp.txt )
+    echo %GIT_TAG%
+    
+    if NOT "%GIT_TAG%" == "" ( 
+    	python -m twine upload --username %PYPI_USERNAME% --password %PYPI_PASSWORD% --skip-existing  "dist/*.whl" 
+    )
   
     if "%PYTHON_VERSION%" == "3.8" appveyor exit
       
@@ -69,7 +73,10 @@ build_script:
     python -c "import os,glob;open('~conda_filename.txt', 'wt').write(str(glob.glob('%MINICONDA%\\**\\openvisus*.tar.bz2', recursive=True)[0]))"
     set /P CONDA_FILENAME=<~conda_filename.txt
     echo "CONDA_FILENAME=%CONDA_FILENAME%"
-    if "%APPVEYOR_REPO_TAG%" == "true" ( anaconda -t "%ANACONDA_TOKEN%" upload "%CONDA_FILENAME%" )  
+    
+    if NOT "%GIT_TAG%" == "" ( 
+    	anaconda -t "%ANACONDA_TOKEN%" upload "%CONDA_FILENAME%" 
+    )  
 
 test: off
 
