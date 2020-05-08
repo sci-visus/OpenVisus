@@ -14,8 +14,7 @@ jobs:
       - run: |
              export GIT_TAG=${CIRCLE_TAG} 
              bash ./scripts/build_linux.sh
-             cd build_linux/Release/OpenVisus 
-             bash ./scripts/build_conda.sh
+             cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
 
   linux-3.7:
     docker:
@@ -28,8 +27,7 @@ jobs:
       - run: |
              export GIT_TAG=${CIRCLE_TAG} 
              bash ./scripts/build_linux.sh
-             cd build_linux/Release/OpenVisus 
-             bash ./scripts/build_conda.sh
+             cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
 
   linux-3.8:
     docker:
@@ -42,9 +40,7 @@ jobs:
       - run: |
              export GIT_TAG=${CIRCLE_TAG} 
              bash ./scripts/build_linux.sh
-             cd build_linux/Release/OpenVisus 
-             # bash ./scripts/build_conda.sh BROKEN
-  
+             # cd build_linux/Release/OpenVisus  && bash ./scripts/build_conda.sh BROKEN
 
 
 workflows:

@@ -59,7 +59,7 @@ PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
 PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert
 
 # wheel
-if [[ "${GIT_TAG}" != "" ]] ; then
+if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != ""  ]] ; then
 	${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=macosx_10_9_x86_64
 	${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing dist/OpenVisus-*.whl
 fi
