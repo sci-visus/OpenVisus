@@ -20,7 +20,8 @@ set PYTHONPATH=
 python setup.py -q bdist_wheel --python-tag=cp%PYTHON_VERSION% --plat-name=win_amd64
 echo "wheel produced"
 
-if "%GIT_TAG%" == "true" ( 
+git describe --tags --exact-match 2>NUL
+if ERRORLEVEL == 0 ( 
 	python -m twine upload --username %PYPI_USERNAME% --password %PYPI_PASSWORD% --skip-existing  "dist/*.whl" 
 )
 

@@ -3,43 +3,66 @@ version: 2
 
 jobs:
 
-  linux-3.6:
+  Linux36:
     docker:
       - image: visus/travis-image
-        environment:
-          PYTHON_VERSION: 3.6
     steps:
       - run: yum -y install openssh-clients git 
       - checkout
       - run: |
-             export GIT_TAG=${CIRCLE_TAG} 
+             export PYTHON_VERSION=3.6
              bash ./scripts/build_linux.sh
              cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
 
-  linux-3.7:
+  Linux37:
     docker:
       - image: visus/travis-image
-        environment:
-          PYTHON_VERSION: 3.7
     steps:
       - run: yum -y install openssh-clients git 
       - checkout
       - run: |
-             export GIT_TAG=${CIRCLE_TAG} 
+             export PYTHON_VERSION=3.7
              bash ./scripts/build_linux.sh
              cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
 
-  linux-3.8:
+  Linux38:
     docker:
       - image: visus/travis-image
         environment:
-          PYTHON_VERSION: 3.8
     steps:
       - run: yum -y install openssh-clients git 
       - checkout
       - run: |
-             export GIT_TAG=${CIRCLE_TAG} 
+             export PYTHON_VERSION=3.8
              bash ./scripts/build_linux.sh
+             # cd build_linux/Release/OpenVisus  && bash ./scripts/build_conda.sh BROKEN
+
+
+  MacOs36:
+    macos: 
+      xcode: 11.3.0 
+    steps:
+      - checkout
+      - run: |      
+             bash ./scripts/build_osx.sh
+             cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
+
+  MacOs37:
+    macos: 
+      xcode: 11.3.0 
+    steps:
+      - checkout
+      - run: |
+             bash ./scripts/build_osx.sh
+             cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
+
+  MacOs38:
+    macos: 
+      xcode: 11.3.0 
+    steps:
+      - checkout
+      - run: |
+             bash ./scripts/build_osx.sh
              # cd build_linux/Release/OpenVisus  && bash ./scripts/build_conda.sh BROKEN
 
 
@@ -47,17 +70,28 @@ workflows:
   version: 2
   OpenVisusWorkflow:
     jobs:
-      - linux-3.8:
+      - Linux38:
           filters:
             tags:
               only: /.*/      
-      - linux-3.7:
+      - Linux37:
           filters:
             tags:
               only: /.*/        
-      - linux-3.6:
+      - Linux36:
           filters:
             tags:
               only: /.*/  
-
+      - MacOs36:
+          filters:
+            tags:
+              only: /.*/      
+      - MacOs37:
+          filters:
+            tags:
+              only: /.*/        
+      - MacOs38:
+          filters:
+            tags:
+              only: /.*/  
 

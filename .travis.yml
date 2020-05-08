@@ -37,7 +37,6 @@ matrix:
 script:
    - |
      cd "${TRAVIS_BUILD_DIR}" 
-     export GIT_TAG=${TRAVIS_TAG}
      bash ./scripts/build_osx.sh
      cd build_osx/Release/OpenVisus 
      if [[ "${PYTHON_VERSION}" != "3.8" ]] ; then bash ./scripts/build_conda.sh ; fi

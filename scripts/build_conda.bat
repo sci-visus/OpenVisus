@@ -24,6 +24,7 @@ python -c "import glob;print(glob.glob(r'%MINICONDA_DIR%\**\openvisus*.tar.bz2',
 set /P CONDA_FILENAME=<tmp.txt
 echo "CONDA_FILENAME=%CONDA_FILENAME%"
 
-if "%GIT_TAG%" == "true" ( 
+git describe --tags --exact-match 2>NUL
+if ERRORLEVEL == 0 ( 
 	anaconda -t "%ANACONDA_TOKEN%" upload "%CONDA_FILENAME%" 
 )  

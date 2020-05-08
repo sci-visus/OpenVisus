@@ -38,14 +38,13 @@ For support: support@visus.net
 
 # ViSUS Visualization project  
 
-* `Windows` build status: [![Windows Build status](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master?svg=true)](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master)
-
-* `Apple`   build status: [![APPLE Build Status  ](https://travis-ci.com/sci-visus/visus.svg?token=yzpwCyVPupwSzFjgTCoA&branch=master)](https://travis-ci.com/sci-visus/visus)
-
-* `Linux`   build status [![Linux Build Status   ](https://circleci.com/gh/sci-visus/OpenVisus.svg?style=svg)](<LINK>)
+Appveyor: ![Appveyor](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master?svg=true) 
+Travis: ![Travis](https://travis-ci.org/sci-visus/OpenVisus.svg?branch=master)
+CircleCI: ![CircleCI](https://circleci.com/gh/sci-visus/OpenVisus.svg?style=svg) 
+Azure: ![Azure](https://dev.azure.com/scrgiorgio0653/scrgiorgio/_apis/build/status/sci-visus.OpenVisus)
+GitHub ![GitHub](https://github.com/sci-visus/OpenVisus/workflows/C/C++%20CI/badge.svg)
 
 Table of content:
-
 
 [PIP Distribution](#pip-distribution)
 
