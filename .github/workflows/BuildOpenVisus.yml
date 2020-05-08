@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
 
-	# ///////////////////////////////////////////////////////////////
+  # ///////////////////////////////////////////////////////////////
   BuildOnMacOs:
     runs-on: macos-latest
     strategy:
@@ -18,7 +18,7 @@ jobs:
         ./scripts/build_osx.sh
         if [[ "${{ matrix.python-version }}" != "3.8" ]] ; then cd build_osx/Release/OpenVisus  && bash ./scripts/build_conda.sh ; fi
 
-	# ///////////////////////////////////////////////////////////////
+  # ///////////////////////////////////////////////////////////////
   BuildOnLinux:
     runs-on: ubuntu-latest 
     strategy:
@@ -32,11 +32,11 @@ jobs:
         docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e PYTHON_VERSION=3.6 visus/travis-image /bin/bash 
         docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
         if [[ "${{ matrix.python-version }}" != "3.8" ]] ; 
-        	docker exec mydocker /bin/bash -c "cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh"      
+          docker exec mydocker /bin/bash -c "cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh"      
         fi
         
 
-	# ///////////////////////////////////////////////////////////////
+  # ///////////////////////////////////////////////////////////////
   BuildOnWindows:
     runs-on: windows-latest
     strategy:
@@ -122,7 +122,7 @@ jobs:
          PYTHONPATH=../ python -m OpenVisus test
          PYTHONPATH=../ python -m OpenVisus convert
   
-         rm -Rf $(find ~/Miniconda3 -iname "openvisus*.tar.bz2")	 
+         rm -Rf $(find ~/Miniconda3 -iname "openvisus*.tar.bz2")   
          python setup.py -q bdist_conda 
          CONDA_FILENAME=$(find ~/Miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)
          echo "CONDA_FILENAME ${CONDA_FILENAME}"
