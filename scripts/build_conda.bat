@@ -4,7 +4,6 @@ SETLOCAL EnableDelayedExpansion
 
 set PYTHONUNBUFFERED=1
 
-conda env remove -n tmp
 conda create -q -n tmp python=%PYTHON_VERSION:~0,1%.%PYTHON_VERSION:~1,1% numpy
 conda activate tmp
 conda install conda-build anaconda-client 
