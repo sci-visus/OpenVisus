@@ -22,9 +22,10 @@ build_script:
   - cmd: set Qt5_DIR=C:\Qt\5.9\msvc2017_64\lib\cmake\Qt5  
   - cmd: set MINICONDA_DIR=C:\Miniconda36-x64
   - cmd: set GIT_TAG="false"
-  - cmd: git describe --tags --exact-match >tmp.txt 2>NUL
+  - cmd: git describe --tags --exact-match 2>NUL
   - cmd: if ERRORLEVEL == 0 ( set GIT_TAG="true" )
   - cmd: if "%GIT_TAG%" == "true" ( echo "QUI" )
+  - cmd: echo "GIT_TAG %GIT_TAG%"
   - cmd: choco install -y --allow-empty-checksums swig
   - cmd: .\scripts\build_win.bat
   - cmd: if "%PYTHON_VERSION%" == "38" appveyor exit
