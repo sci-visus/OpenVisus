@@ -36,7 +36,7 @@ jobs:
         export PYTHON_VERSION=${{ matrix.python-version }}
         docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e PYTHON_VERSION=${PYTHON_VERSION} visus/travis-image /bin/bash 
         docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
-        if [[ "${PYTHON_VERSION}" != "3.8" ]] ; 
+        if [[ "${PYTHON_VERSION}" != "3.8" ]] ; then  
           docker exec mydocker /bin/bash -c "cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh"      
         fi
         
@@ -86,14 +86,14 @@ jobs:
            export PYTHON_VERSION=${{ matrix.python-version }} 
            echo ${PYTHON_VERSION}
            
-           # NOTE: Qt5_DIR  set by the action
+           export Qt5_DIR=${GITHUB_WORKSPACE}/Qt/5.9.2/win64_msvc2017_64/lib/cmake/Qt5
            echo $Qt5_DIR
          
            python -m pip install numpy setuptools wheel twine --upgrade
 
            mkdir -p build_win
            cd build_win
-           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR=${Qt5_DIR} -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} ../
+           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR=${Qt5_DIR} -DPython_EXECUTABLE=${Python_EXECUTABLE} ../
            cmake --build . --target ALL_BUILD --config Release
            cmake --build . --target INSTALL   --config Release
 
