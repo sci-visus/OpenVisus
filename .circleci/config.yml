@@ -3,6 +3,33 @@ version: 2
 
 jobs:
 
+  MacOs36:
+    macos: 
+      xcode: 11.3.0 
+    steps:
+      - checkout
+      - run: |      
+             bash ./scripts/build_osx.sh
+             cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
+
+  MacOs37:
+    macos: 
+      xcode: 11.3.0 
+    steps:
+      - checkout
+      - run: |
+             bash ./scripts/build_osx.sh
+             cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
+
+  MacOs38:
+    macos: 
+      xcode: 11.3.0 
+    steps:
+      - checkout
+      - run: |
+             bash ./scripts/build_osx.sh
+             # cd build_linux/Release/OpenVisus  && bash ./scripts/build_conda.sh BROKEN
+
   Linux36:
     docker:
       - image: visus/travis-image
@@ -38,38 +65,23 @@ jobs:
              # cd build_linux/Release/OpenVisus  && bash ./scripts/build_conda.sh BROKEN
 
 
-  MacOs36:
-    macos: 
-      xcode: 11.3.0 
-    steps:
-      - checkout
-      - run: |      
-             bash ./scripts/build_osx.sh
-             cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
-
-  MacOs37:
-    macos: 
-      xcode: 11.3.0 
-    steps:
-      - checkout
-      - run: |
-             bash ./scripts/build_osx.sh
-             cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
-
-  MacOs38:
-    macos: 
-      xcode: 11.3.0 
-    steps:
-      - checkout
-      - run: |
-             bash ./scripts/build_osx.sh
-             # cd build_linux/Release/OpenVisus  && bash ./scripts/build_conda.sh BROKEN
-
 
 workflows:
   version: 2
   OpenVisusWorkflow:
     jobs:
+      - MacOs36:
+          filters:
+            tags:
+              only: /.*/      
+      - MacOs37:
+          filters:
+            tags:
+              only: /.*/        
+      - MacOs38:
+          filters:
+            tags:
+              only: /.*/      
       - Linux38:
           filters:
             tags:
@@ -82,16 +94,5 @@ workflows:
           filters:
             tags:
               only: /.*/  
-      - MacOs36:
-          filters:
-            tags:
-              only: /.*/      
-      - MacOs37:
-          filters:
-            tags:
-              only: /.*/        
-      - MacOs38:
-          filters:
-            tags:
-              only: /.*/  
+
 
