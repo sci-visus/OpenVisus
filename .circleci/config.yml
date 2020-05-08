@@ -3,7 +3,7 @@ version: 2
 
 jobs:
 
-  Linux36:
+  linux-3.6:
     docker:
       - image: visus/travis-image
         environment:
@@ -16,7 +16,7 @@ jobs:
              bash ./scripts/build_linux.sh
              cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
 
-  Linux37:
+  linux-3.7:
     docker:
       - image: visus/travis-image
         environment:
@@ -29,7 +29,7 @@ jobs:
              bash ./scripts/build_linux.sh
              cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
 
-  Linux38:
+  linux-3.8:
     docker:
       - image: visus/travis-image
         environment:
@@ -47,17 +47,17 @@ workflows:
   version: 2
   OpenVisusWorkflow:
     jobs:
-      - Linux38:
+      - linux-3.8:
           filters:
             tags:
               only: /.*/      
-      - Linux37:
+      - linux-3.7:
           filters:
             tags:
               only: /.*/        
-      - Linux36:
+      - linux-3.6:
           filters:
             tags:
-              only: /.*/  
-
-
+              only: /.*/
+              
+              
