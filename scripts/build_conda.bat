@@ -4,11 +4,6 @@ SETLOCAL EnableDelayedExpansion
 
 set PYTHONUNBUFFERED=1
 
-set "PATH=%MINICONDA_DIR%\Scripts;%MINICONDA_DIR%\Library\bin;%PATH%"
-
-call %MINICONDA_DIR%\Scripts\activate.bat
-conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-conda update -q conda
 conda env remove -n tmp
 conda create -q -n tmp python=%PYTHON_VERSION:~0,1%.%PYTHON_VERSION:~1,1% numpy
 conda activate tmp
