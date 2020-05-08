@@ -1,7 +1,7 @@
 import os,sys,shutil,setuptools
 	
 PROJECT_NAME="OpenVisus"
-PROJECT_VERSION="1.3.97"
+PROJECT_VERSION="1.3.98"
 if __name__ == "__main__":
 	
 	if len(sys.argv)>=2 and sys.argv[1]=="old-version":
