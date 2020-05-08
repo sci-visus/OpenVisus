@@ -24,6 +24,7 @@ build_script:
   - cmd: set GIT_TAG="false"
   - cmd: git describe --tags --exact-match >tmp.txt 2>NUL
   - cmd: if ERRORLEVEL == 0 ( set GIT_TAG="true" )
+  - cmd: if "%GIT_TAG%" == "true" ( echo "QUI" )
   - cmd: choco install -y --allow-empty-checksums swig
   - cmd: .\scripts\build_win.bat
   - cmd: if "%PYTHON_VERSION%" == "38" appveyor exit
