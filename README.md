@@ -199,11 +199,11 @@ See also `scripts\build_linux.sh` for an example of build script.
 
 ## Commit, Continuous Integration deploy
 
-Edit the file `setup.py` and increase the Tag version number.
-Commit, tag the current commit and push to origin:
+
+Type:
 
 ```
-TAG=...insert your tag number here...
+TAG=$(python setup.py new-tag)
 git commit -a -m "New tag" && git tag -a $TAG -m "$TAG" && git push origin $TAG && git push origin
 ```
 
