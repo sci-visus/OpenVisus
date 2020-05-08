@@ -3,52 +3,29 @@ version: 2
 
 jobs:
 
-  MacOs36:
-    macos: 
-      xcode: 11.3.0 
-    steps:
-      - checkout
-      - run: |      
-             bash ./scripts/build_osx.sh
-             cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
-
-  MacOs37:
-    macos: 
-      xcode: 11.3.0 
-    steps:
-      - checkout
-      - run: |
-             bash ./scripts/build_osx.sh
-             cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
-
-  MacOs38:
-    macos: 
-      xcode: 11.3.0 
-    steps:
-      - checkout
-      - run: |
-             bash ./scripts/build_osx.sh
-             # cd build_linux/Release/OpenVisus  && bash ./scripts/build_conda.sh BROKEN
-
   Linux36:
     docker:
       - image: visus/travis-image
+        environment:
+          PYTHON_VERSION: 3.6
     steps:
       - run: yum -y install openssh-clients git 
       - checkout
       - run: |
-             export PYTHON_VERSION=3.6
+             export GIT_TAG=${CIRCLE_TAG} 
              bash ./scripts/build_linux.sh
              cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
 
   Linux37:
     docker:
       - image: visus/travis-image
+        environment:
+          PYTHON_VERSION: 3.7
     steps:
       - run: yum -y install openssh-clients git 
       - checkout
       - run: |
-             export PYTHON_VERSION=3.7
+             export GIT_TAG=${CIRCLE_TAG} 
              bash ./scripts/build_linux.sh
              cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
 
@@ -56,32 +33,20 @@ jobs:
     docker:
       - image: visus/travis-image
         environment:
+          PYTHON_VERSION: 3.8
     steps:
       - run: yum -y install openssh-clients git 
       - checkout
       - run: |
-             export PYTHON_VERSION=3.8
+             export GIT_TAG=${CIRCLE_TAG} 
              bash ./scripts/build_linux.sh
              # cd build_linux/Release/OpenVisus  && bash ./scripts/build_conda.sh BROKEN
-
 
 
 workflows:
   version: 2
   OpenVisusWorkflow:
     jobs:
-      - MacOs36:
-          filters:
-            tags:
-              only: /.*/      
-      - MacOs37:
-          filters:
-            tags:
-              only: /.*/        
-      - MacOs38:
-          filters:
-            tags:
-              only: /.*/      
       - Linux38:
           filters:
             tags:
