@@ -27,6 +27,9 @@ build_script:
          call %MINICONDA_DIR%\Scripts\activate.bat
          conda config --set always_yes yes --set changeps1 no --set anaconda_upload no & exit 0
          conda update -q conda  & exit 0
+         conda create -q -n tmp python=%PYTHON_VERSION:~0,1%.%PYTHON_VERSION:~1,1% numpy & exit 0
+         conda activate tmp & exit 0
+         conda install conda-build anaconda-client  & exit 0         
          CALL .\scripts\build_conda.bat
          choco install -y --allow-empty-checksums swig
          CALL .\scripts\build_win.bat

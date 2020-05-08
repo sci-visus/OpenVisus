@@ -2,10 +2,6 @@
 SETLOCAL EnableDelayedExpansion
 
 set PYTHONUNBUFFERED=1
-
-conda create -q -n tmp python=%PYTHON_VERSION:~0,1%.%PYTHON_VERSION:~1,1% numpy & exit 0
-conda activate tmp & exit 0
-conda install conda-build anaconda-client  & exit 0
   
 set PYTHONPATH=..\
 python -m OpenVisus configure
