@@ -3,7 +3,7 @@ name: C/C++ CI
 on: [push]
 
 jobs:
-  Linux-3.6:
+  Linux36:
     runs-on: ubuntu-latest 
     steps:
     - name: Checkout
@@ -15,7 +15,7 @@ jobs:
         docker exec mydocker /bin/bash -c "cd build_linux/Release/OpenVisus"
         docker exec mydocker /bin/bash -c "bash ./scripts/build_conda.sh"      
         
-  Linux-3.7:
+  Linux37:
     runs-on: ubuntu-latest 
     steps:
     - name: Checkout
@@ -27,7 +27,7 @@ jobs:
         docker exec mydocker /bin/bash -c "cd build_linux/Release/OpenVisus"
         docker exec mydocker /bin/bash -c "bash ./scripts/build_conda.sh"   
         
-  Linux-3.8:
+  Linux38:
     runs-on: ubuntu-latest 
     steps:
     - name: Checkout
@@ -39,7 +39,7 @@ jobs:
         docker exec mydocker /bin/bash -c "cd build_linux/Release/OpenVisus"
         # docker exec mydocker /bin/bash -c "bash ./scripts/build_conda.sh"                   
         
-  MacOsx3.6:
+  MacOs36:
     runs-on: macos-latest
     steps:
     - name: Checkout
@@ -51,7 +51,7 @@ jobs:
         cd build_osx/Release/OpenVisus 
         bash ./scripts/build_conda.sh
 
-  MacOsx3.7:
+  MacOs37:
     runs-on: macos-latest
     steps:
     - name: Checkout
@@ -63,7 +63,7 @@ jobs:
         cd build_osx/Release/OpenVisus  
         bash ./scripts/build_conda.sh    
         
-  MacOsx3.8:
+  MacOs38:
     runs-on: macos-latest
     steps:
     - name: Checkout

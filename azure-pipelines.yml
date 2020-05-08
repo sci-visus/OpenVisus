@@ -1,5 +1,4 @@
 
-
 trigger:
   branches:
     include:
@@ -9,7 +8,7 @@ trigger:
     - '*'
 
 jobs:
-- job: Linux-3.6
+- job: Linux36
   pool:
     vmImage: 'ubuntu-latest'
   steps:
@@ -22,7 +21,7 @@ jobs:
         
 
 jobs:
-- job: Linux-3.7
+- job: Linux37
   pool:
     vmImage: 'ubuntu-latest'
   steps:
@@ -35,7 +34,7 @@ jobs:
         
 
 jobs:
-- job: Linux-3.8
+- job: Linux38
   pool:
     vmImage: 'ubuntu-latest'
   steps:
@@ -46,7 +45,7 @@ jobs:
         docker exec mydocker /bin/bash -c "cd build_linux/Release/OpenVisus"
         # docker exec mydocker /bin/bash -c "bash ./scripts/build_conda.sh"   BROKEN                           
       
-- job: MacOsx-3.6
+- job: MacOs36
   pool:
     vmImage: 'macOS-10.15'
   steps:
@@ -58,7 +57,7 @@ jobs:
       bash ./scripts/build_conda.sh
       
       
-- job: MacOsx-3.7
+- job: MacOs37
   pool:
     vmImage: 'macOS-10.15'
   steps:
@@ -69,7 +68,7 @@ jobs:
       cd build_osx/Release/OpenVisus 
       bash ./scripts/build_conda.sh
       
-- job: MacOsx-3.6
+- job: MacOs38
   pool:
     vmImage: 'macOS-10.15'
   steps:
