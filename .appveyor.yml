@@ -17,6 +17,9 @@ environment:
  
 build_script:
   - |-
+  
+    SETLOCAL EnableDelayedExpansion
+  
     cd %APPVEYOR_BUILD_FOLDER% 
     
     set GIT_TAG="false"
