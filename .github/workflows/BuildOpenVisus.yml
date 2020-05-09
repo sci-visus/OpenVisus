@@ -17,38 +17,186 @@ jobs:
     - name: CompileOpenVisus
       run: |
       
-        export GIT_TAG=$(git describe --tags --exact-match)
+        set -e  # stop or error
+        set -x  # very verbose      
+      
+        export GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
         export PYTHON_VERSION=${{ matrix.python-version }}
-        ./scripts/build_osx.sh
-        
-    - name: BuildOpenVisusForConda
-      run: |   
-        if [[ "${PYTHON_VERSION}" != "3.8" ]] ; then 
-          cd build_osx/Release/OpenVisus  
-          bash ./scripts/build_conda.sh 
+             
+        gem install xcpretty 
+        brew update 1>/dev/null 2>/dev/null         || true
+        brew install cmake  1>/dev/null 2>/dev/null || true
+        brew install swig   1>/dev/null 2>/dev/null || true
+
+        # install python
+        if (( 1 == 1 )) ; then
+          brew install sashkab/python/python@${PYTHON_VERSION} 
+          export Python_EXECUTABLE=/usr/local/opt/python@${PYTHON_VERSION}/bin/python${PYTHON_VERSION}
+          ${Python_EXECUTABLE} -m pip install -q --upgrade pip                    || true
+          ${Python_EXECUTABLE} -m pip install -q numpy setuptools wheel twine --upgrade   || true
         fi
+
+        # install qt 5.9.3 in order to be compatible with conda PyQt5 (very old so I need to do some tricks)
+        # NOTE important to keep both the link and real path
+        if (( 1 == 1 )) ; then
+          export Qt5_DIR=/usr/local/opt/qt
+
+          pushd $(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core 
+          git fetch --unshallow || true
+          git checkout 13d52537d1e0e5f913de46390123436d220035f6 -- Formula/qt.rb 
+          cat Formula/qt.rb \
+            | sed -e 's|depends_on :mysql|depends_on "mysql-client"|g' \
+            | sed -e 's|depends_on :postgresql|depends_on "postgresql"|g' \
+            | sed -e 's|depends_on :macos => :mountain_lion|depends_on :macos => :sierra|g' \
+            > /tmp/qt.rb
+          cp /tmp/qt.rb Formula/qt.rb 
+          brew install --force qt 
+          brew link --force qt  
+          git checkout -f
+          popd  
+        fi
+          
+        # install osx 10.9 for portable binaries
+        if (( 1 == 1 )) ; then
+          export CMAKE_OSX_SYSROOT=~/MacOSX-SDKs/MacOSX10.9.sdk
+          pushd ${HOME}
+          git clone https://github.com/phracker/MacOSX-SDKs.git 
+          popd
+        fi
+
+        mkdir -p build_osx 
+        cd build_osx
+        cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} ../
+        cmake --build ./ --target ALL_BUILD --config Release --parallel 4 | xcpretty -c
+        cmake --build ./ --target install --config Release
+
+        cd Release/OpenVisus
+
+        PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
+        PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert
+
+        ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=macosx_10_9_x86_64
+          
+        if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != ""  ]] ; then
+          ${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing dist/OpenVisus-*.whl
+        fi
+        
+    # ____________________________________________
+    - name: InstallMiniconda 
+      uses: goanpeca/setup-miniconda@v1
+      with:
+        miniconda-version: 'latest'
+        activate-environment: tmp        
+        python-version: ${{ matrix.python-version }}
+
+    - name: CompileOpenVisusConda
+      run: |
+      
+	         if [[ "${PYTHON_VERSION}" != "3.8" ]] ; then
+	         
+	           cd build_osx/Release/OpenVisus  
+
+						 conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
+						 conda update -q conda
+
+						 conda env remove -n tmp || true
+						 conda create -q -n tmp python=${PYTHON_VERSION} numpy
+						 conda activate tmp
+						 conda install conda-build anaconda-client 
+
+						 conda uninstall pyqt || true
+						 PYTHONPATH=../ python -m OpenVisus remove-qt5
+						 PYTHONPATH=../ python -m OpenVisus install-pyqt5
+						 PYTHONPATH=../ python -m OpenVisus link-pyqt5 || true # this crashes on linux (after the sys.exit(0), so I should be fine)
+						 PYTHONPATH=../ python -m OpenVisus generate-scripts pyqt5
+						 PYTHONPATH=../ python -m OpenVisus test
+						 PYTHONPATH=../ python -m OpenVisus convert
+
+						 rm -Rf $(find ~/miniconda3 -iname "openvisus*.tar.bz2")	
+						 python setup.py -q bdist_conda 
+						 
+						 CONDA_FILENAME=$(find ~/miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)
+						 if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
+							 anaconda -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
+						 fi
+
+	        fi       
 
   # ///////////////////////////////////////////////////////////////
   BuildOnLinux:
     runs-on: ubuntu-latest 
+    container: visus/travis-image # using a docker image for portable binaries
     strategy:
       matrix:
         python-version: [ '3.6' ]       
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-      
+
     - name: CompileOpenVisus
       run: |
-        export PYTHON_VERSION=${{ matrix.python-version }}
-        docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e PYTHON_VERSION=${PYTHON_VERSION} visus/travis-image /bin/bash 
-        docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
-        
-    - name: BuildOpenVisusForConda
-      run: |  
-        if [[ "${PYTHON_VERSION}" != "3.8" ]] ; then  
-          docker exec mydocker /bin/bash -c "cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh"      
-        fi
+					 set -e  # stop or error
+					 set -x  # very verbose
+					
+	         export GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
+	         export PYTHON_VERSION=${{ matrix.python-version }}
+	        
+					 # see my manylinux image
+					 export Python_EXECUTABLE=python${PYTHON_VERSION}
+					 export Qt5_DIR=/opt/qt59
+
+					 mkdir -p build_linux && cd build_linux
+					 cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} ../
+					 cmake --build ./ --target all     --config Release --parallel 4
+					 cmake --build ./ --target install --config Release
+
+					 cd Release/OpenVisus
+
+					 PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
+					 PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert
+
+				   ${Python_EXECUTABLE} -m pip install setuptools wheel --upgrade || true
+					 ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=manylinux2010_x86_64
+						
+					 if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then
+						 ${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing dist/OpenVisus-*.whl
+					 fi
+
+    # ____________________________________________
+    - name: InstallMiniconda 
+      uses: goanpeca/setup-miniconda@v1
+      with:
+        miniconda-version: 'latest'
+        activate-environment: tmp        
+        python-version: ${{ matrix.python-version }}
+
+    - name: CompileOpenVisusConda
+      run: |
+	      	 cd build_linux/Release/OpenVisus 
+
+					 conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
+
+					 conda env remove -n tmp || true
+					 conda create -q -n tmp python=${PYTHON_VERSION} numpy
+					 conda activate tmp
+					 conda install conda-build anaconda-client 	
+ 
+					 conda uninstall pyqt || true
+					 PYTHONPATH=../ python -m OpenVisus remove-qt5
+					 PYTHONPATH=../ python -m OpenVisus install-pyqt5
+					 PYTHONPATH=../ python -m OpenVisus link-pyqt5 || true # this crashes on linux (after the sys.exit(0), so I should be fine)
+					 PYTHONPATH=../ python -m OpenVisus generate-scripts pyqt5
+					 PYTHONPATH=../ python -m OpenVisus test
+					 PYTHONPATH=../ python -m OpenVisus convert
+
+					 rm -Rf $(find ~/miniconda3 -iname "openvisus*.tar.bz2")	
+					 python setup.py -q bdist_conda 
+					
+					 CONDA_FILENAME=$(find ~/miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)
+					 if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
+						 anaconda -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
+					 fi
+
         
   # ///////////////////////////////////////////////////////////////
   BuildOnWindows:
@@ -106,13 +254,13 @@ jobs:
     - name: CompileOpenVisus
       shell: bash
       run: |
-      
            set -e  # stop or error
            set -x  # very verbose  
            
            export Python_EXECUTABLE=${pythonLocation}/python.exe
            export PYTHON_VERSION=${{ matrix.python-version }}
            export Qt5_DIR="${Qt5_Dir}/lib/cmake/Qt5"
+           export GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            
            echo PYTHON_VERSION    ${PYTHON_VERSION}
            echo Python_EXECUTABLE ${Python_EXECUTABLE}
@@ -135,7 +283,6 @@ jobs:
            python setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=win_amd64
            echo "wheel produced"
 
-           GIT_TAG=$(git describe --tags --exact-match)
            if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then
               python -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
            fi
@@ -150,24 +297,21 @@ jobs:
     - name: BuildOpenVisusForConda
       shell: bash -l {0}
       run: | 
-         conda info
-         conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 
-         conda update -q conda 
-         conda env remove -n tmp || true
-         conda create -q -n tmp python=${{ matrix.python-version }}  
-         conda activate tmp
-         conda install conda-build anaconda-client anaconda-client numpy     
+           conda info
+           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 
+           conda update -q conda 
+           conda env remove -n tmp || true
+           conda create -q -n tmp python=${{ matrix.python-version }}  
+           conda activate tmp
+           conda install conda-build anaconda-client numpy     
 
-         PYTHONPATH=../ python -m OpenVisus configure
-         PYTHONPATH=../ python -m OpenVisus test
-         PYTHONPATH=../ python -m OpenVisus convert
+           PYTHONPATH=../ python -m OpenVisus configure
+           PYTHONPATH=../ python -m OpenVisus test
+           PYTHONPATH=../ python -m OpenVisus convert
          
-          rm -Rf $(find ~/Miniconda3 -iname "openvisus*.tar.bz2")   
-          python setup.py -q bdist_conda 
-          CONDA_FILENAME=$(find ~/Miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)
-          echo "CONDA_FILENAME ${CONDA_FILENAME}"         
-  
-         if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
-
-            anaconda -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
-         fi
+           rm -Rf $(find ~/Miniconda3 -iname "openvisus*.tar.bz2")   
+           python setup.py -q bdist_conda 
+           CONDA_FILENAME=$(find ~/Miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)
+           if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
+              anaconda -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
+           fi
