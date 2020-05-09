@@ -57,7 +57,7 @@ jobs:
       uses: actions/cache@v1
       with:
         path: c:\ProgramData\Chocolate
-        key: CacheChocolatey
+        key: CacheChocolatey1
                   
     # ____________________________________________
     - name: Install CMake and Swig
@@ -65,20 +65,14 @@ jobs:
       with:
         args: install -y --allow-empty-checksums --no-progress cmake swig  
         
-     # ____________________________________________
-    - name: Test it
-      shell: bash
-      run: |
-           which cmake 
-           which swig
-     
+
     # ____________________________________________        
     - name: Cache Qt
       id: CacheQtStepId
       uses: actions/cache@v1
       with:
         path: C:\Qt
-        key: QtCache
+        key: QtCache1
 
     # ____________________________________________
     - name: Install Qt
@@ -91,13 +85,7 @@ jobs:
         install-deps: 'true'  
         dir: C:\
         cached: ${{ steps.CacheQtStepId.outputs.cache-hit }} # if it was cached or not (true | false)
-               
-    # ____________________________________________
-    - name: Test it
-      shell: bash
-      run: |
-           echo $Qt5_DIR
-        
+             
     # ____________________________________________
     - name: Set up CPython
       uses: actions/setup-python@v2
@@ -111,16 +99,17 @@ jobs:
       run: |
       
            set -e  # stop or error
-           set -x  # very verbose      
-      
+           set -x  # very verbose   
+           
            export Python_EXECUTABLE=${pythonLocation}/python.exe
-           echo ${Python_EXECUTABLE}
+           export PYTHON_VERSION=${{ matrix.python-version }}
+           export Qt5_DIR="${Qt5_DIR}/lib/cmake/Qt5"
            
-           export PYTHON_VERSION=${{ matrix.python-version }} 
-           echo ${PYTHON_VERSION}
-           
-           export Qt5_DIR="C:/Qt/Qt/5.9.2/msvc2017_64/lib/cmake/Qt5"
-           echo $Qt5_DIR
+           echo PYTHON_VERSION    ${PYTHON_VERSION}
+           echo Python_EXECUTABLE ${Python_EXECUTABLE}
+           echo Qt5_DIR           ${Qt5_DIR}
+           echo cmake             $(which cmake)
+           echo swig              $(which swig)
          
            python -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
 
