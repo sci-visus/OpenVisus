@@ -112,6 +112,7 @@ jobs:
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 
            conda install conda-build anaconda-client numpy     
 
+           pwd
            PYTHONPATH=../ python -m OpenVisus configure
            PYTHONPATH=../ python -m OpenVisus test
            PYTHONPATH=../ python -m OpenVisus convert
