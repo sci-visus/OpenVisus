@@ -9,7 +9,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        python-version: [ '3.6', '3.7', '3.8' ]      
+        python-version: [ '3.6' ]      
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest 
     strategy:
       matrix:
-        python-version: [ '3.6', '3.7', '3.8' ]       
+        python-version: [ '3.6' ]       
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -44,8 +44,9 @@ jobs:
   BuildOnWindows:
     runs-on: windows-latest
     strategy:
+    	max-parallel: 6
       matrix:
-        python-version: [ '3.6', '3.7', '3.8']  
+        python-version: [ '3.6']  
     steps:
     # ____________________________________________
     - name: Checkout
@@ -55,7 +56,7 @@ jobs:
     - name: Cache Chocolatey
       uses: actions/cache@v1
       with:
-        path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
+        path: c:\ProgramData\Chocolate
         key: CacheChocolatey
                   
     # ____________________________________________
@@ -70,11 +71,10 @@ jobs:
       run: |
            which cmake 
            which swig
-               
      
     # ____________________________________________        
     - name: Cache Qt
-      id: cache-qt
+      id: Cache-Qt
       uses: actions/cache@v1
       with:
         path: C:\Users\runneradmin\Qt
@@ -90,22 +90,21 @@ jobs:
         arch: 'win64_msvc2017_64'
         install-deps: 'true'  
         dir: C:\Users\runneradmin\Qt
-        cached: ${{ steps.cache-qt.outputs.cache-hit }}
+        cached: ${{ steps.Cache-Qt.outputs.cache-hit }}
                
     # ____________________________________________
     - name: Test it
       shell: bash
       run: |
            echo $Qt5_DIR
-           cmake 
-           swig
         
     # ____________________________________________
     - name: Set up CPython
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }} 
-        architecture: 'x64'    
+        architecture: 'x64'
+  
     # ____________________________________________
     - name: compile-openvisus
       shell: bash
