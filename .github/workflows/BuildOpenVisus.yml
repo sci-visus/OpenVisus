@@ -141,10 +141,10 @@ jobs:
       run: |      
            export PYTHON_VERSION=${{ matrix.python-version }}
            export  GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-           scripts/build_osx.h
+           ./scripts/build_osx.h
            if [[ "${PYTHON_VERSION}" != "3.8" ]] ; then 
              cd build/Release/OpenVisus
-             scripts/build_conda.h 
+             bash ./scripts/build_conda.h 
            fi
 
   # ///////////////////////////////////////////////////////////////
@@ -167,8 +167,8 @@ jobs:
            
            export PYTHON_VERSION=${{ matrix.python-version }}
            export  GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-           scripts/build_linux.h
+           ./scripts/build_linux.h
            if [[ "${PYTHON_VERSION}" != "3.8" ]] ; then 
              cd build/Release/OpenVisus
-             scripts/build_conda.h 
+             ./scripts/build_conda.h 
            fi
