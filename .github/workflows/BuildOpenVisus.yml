@@ -63,6 +63,14 @@ jobs:
       uses: crazy-max/ghaction-chocolatey@v1
       with:
         args: install -y --allow-empty-checksums --no-progress cmake swig  
+        
+     # ____________________________________________
+    - name: Test it
+      shell: bash
+      run: |
+           cmake 
+           swig
+               
      
     # ____________________________________________        
     - name: Cache Qt
@@ -80,7 +88,8 @@ jobs:
         host: 'windows'
         target: 'desktop'
         arch: 'win64_msvc2017_64'
-        install-deps: 'true'      
+        install-deps: 'true'  
+        dir: C:\Users\runneradmin\Qt
         cached: ${{ steps.cache-qt.outputs.cache-hit }}
                
     # ____________________________________________
