@@ -40,7 +40,6 @@ jobs:
           docker exec mydocker /bin/bash -c "cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh"      
         fi
         
-
   # ///////////////////////////////////////////////////////////////
   BuildOnWindows:
     runs-on: windows-latest
@@ -68,12 +67,6 @@ jobs:
         install-deps: 'true'
         
     # ____________________________________________
-    - name: compile-openvisus
-      shell: bash
-      run: |
-           find / 2>/dev/null        
-        
-    # ____________________________________________
     - name: Set up CPython
       uses: actions/setup-python@v2
       with:
@@ -96,7 +89,7 @@ jobs:
            export Qt5_DIR=${GITHUB_WORKSPACE}/Qt/5.9.2/win64_msvc2017_64/lib/cmake/Qt5
            echo $Qt5_DIR
          
-           python -m pip install numpy setuptools wheel twine --upgrade
+           python -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
 
            mkdir -p build_win
            cd build_win
@@ -137,12 +130,13 @@ jobs:
          PYTHONPATH=../ python -m OpenVisus configure
          PYTHONPATH=../ python -m OpenVisus test
          PYTHONPATH=../ python -m OpenVisus convert
+         
+          rm -Rf $(find ~/Miniconda3 -iname "openvisus*.tar.bz2")   
+          python setup.py -q bdist_conda 
+          CONDA_FILENAME=$(find ~/Miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)
+          echo "CONDA_FILENAME ${CONDA_FILENAME}"         
   
-         rm -Rf $(find ~/Miniconda3 -iname "openvisus*.tar.bz2")   
-         python setup.py -q bdist_conda 
-         CONDA_FILENAME=$(find ~/Miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)
-         echo "CONDA_FILENAME ${CONDA_FILENAME}"
-
          if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
+
             anaconda -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
          fi
