@@ -92,7 +92,7 @@ jobs:
     - name: CompileOpenVisusConda
       run: |
            if [[ "${PYTHON_VERSION}" != "3.8" ]] ; then
-           
+             
              cd build_osx/Release/OpenVisus  
 
              conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
@@ -118,7 +118,6 @@ jobs:
              if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
                anaconda -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
              fi
-
           fi       
 
   # ///////////////////////////////////////////////////////////////
