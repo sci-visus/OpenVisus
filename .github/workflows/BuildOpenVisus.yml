@@ -40,9 +40,8 @@ jobs:
       
     - name: CompileOpenVisus
       run: |
-      	export GIT_TAG=$(git describe --tags --exact-match)
         export PYTHON_VERSION=${{ matrix.python-version }}
-        docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e PYTHON_VERSION=${PYTHON_VERSION} -e GIT_TAG=$GIT_TAG visus/travis-image /bin/bash 
+        docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e PYTHON_VERSION=${PYTHON_VERSION} visus/travis-image /bin/bash 
         docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
         
     - name: BuildOpenVisusForConda
