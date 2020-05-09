@@ -74,10 +74,10 @@ jobs:
      
     # ____________________________________________        
     - name: Cache Qt
-      id: Cache-Qt
+      id: CacheQtStepId
       uses: actions/cache@v1
       with:
-        path: C:\Users\runneradmin\Qt
+        path: C:\Qt
         key: QtCache
 
     # ____________________________________________
@@ -89,8 +89,8 @@ jobs:
         target: 'desktop'
         arch: 'win64_msvc2017_64'
         install-deps: 'true'  
-        dir: C:\Users\runneradmin\Qt
-        cached: ${{ steps.Cache-Qt.outputs.cache-hit }}
+        dir: C:\
+        cached: ${{ steps.CacheQtStepId.outputs.cache-hit }} # if it was cached or not (true | false)
                
     # ____________________________________________
     - name: Test it
@@ -119,7 +119,7 @@ jobs:
            export PYTHON_VERSION=${{ matrix.python-version }} 
            echo ${PYTHON_VERSION}
            
-           export Qt5_DIR=${GITHUB_WORKSPACE}/Qt/5.9.2/win64_msvc2017_64/lib/cmake/Qt5
+           export Qt5_DIR="C:/Qt/Qt/5.9.2/msvc2017_64/lib/cmake/Qt5"
            echo $Qt5_DIR
          
            python -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
