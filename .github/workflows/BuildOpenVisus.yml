@@ -110,11 +110,9 @@ jobs:
            set -e  # stop or error
            set -x  # very verbose  
            
-           echo $Qt5_DIR 
-           
            export Python_EXECUTABLE=${pythonLocation}/python.exe
            export PYTHON_VERSION=${{ matrix.python-version }}
-           export Qt5_DIR="${Qt5_DIR}/lib/cmake/Qt5"
+           export Qt5_DIR="${Qt5_Dir}/lib/cmake/Qt5"
            
            echo PYTHON_VERSION    ${PYTHON_VERSION}
            echo Python_EXECUTABLE ${Python_EXECUTABLE}
