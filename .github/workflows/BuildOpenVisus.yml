@@ -68,8 +68,8 @@ jobs:
     - name: Test it
       shell: bash
       run: |
-           cmake 
-           swig
+           which cmake 
+           which swig
                
      
     # ____________________________________________        
