@@ -7,8 +7,6 @@
 set -e  # stop or error
 set -x  # very verbose
 
-export GIT_TAG=${GIT_TAG:-}
-
 OSX=0
 if [[ "$(uname)" == "Darwin" ]] ; then OSX=1 ; fi
 
@@ -31,7 +29,7 @@ conda update -q conda
 conda env remove -n tmp || true
 conda create -q -n tmp python=${PYTHON_VERSION} numpy
 conda activate tmp
-conda install conda-build 
+conda install conda-build anaconda-client 
 
 # I get some random crashes here, so I'm using more actions than a simple configure here..
 # PYTHONPATH=../ python -m OpenVisus configure
@@ -45,12 +43,10 @@ PYTHONPATH=../ python -m OpenVisus convert
 
 rm -Rf $(find ~/miniconda3 -iname "openvisus*.tar.bz2")	
 python setup.py -q bdist_conda 
+CONDA_FILENAME=$(find ~/miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)
 
 # upload only if there is a tag (see https://anaconda.org/ViSUS/settings/access)
 if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
-	CONDA_FILENAME=$(find ~/miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)
-	echo "CONDA_FILENAME ${CONDA_FILENAME}"
-	conda install anaconda-client 
 	anaconda -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
 fi
 

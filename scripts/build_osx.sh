@@ -3,9 +3,9 @@
 set -e  # stop or error
 set -x  # very verbose
 
-export Python_EXECUTABLE=${Python_EXECUTABLE:-}  
-export Qt5_DIR=${Qt5_DIR:-}
-export GIT_TAG=${GIT_TAG:-}
+# input 
+#  PYTHON_VERSION
+#  GIT_TAG
 
 gem install xcpretty 
 brew update 1>/dev/null 2>/dev/null         || true
@@ -13,7 +13,7 @@ brew install cmake  1>/dev/null 2>/dev/null || true
 brew install swig   1>/dev/null 2>/dev/null || true
 
 # install python
-if [[ "${Python_EXECUTABLE}" == "" ]] ; then
+if (( 1 == 1 )) ; then
 	brew install sashkab/python/python@${PYTHON_VERSION} 
 	export Python_EXECUTABLE=/usr/local/opt/python@${PYTHON_VERSION}/bin/python${PYTHON_VERSION}
 	${Python_EXECUTABLE} -m pip install -q --upgrade pip                		|| true
@@ -22,7 +22,7 @@ fi
 
 # install qt 5.9.3 in order to be compatible with conda PyQt5 (very old so I need to do some tricks)
 # NOTE important to keep both the link and real path
-if [[ "${Qt5_DIR}" == "" ]] ; then
+if (( 1 == 1 )) ; then
 	export Qt5_DIR=/usr/local/opt/qt
 
 	pushd $(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core 
@@ -58,7 +58,6 @@ cd Release/OpenVisus
 PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
 PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert
 
-# wheel
 if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != ""  ]] ; then
 	${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=macosx_10_9_x86_64
 	${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing dist/OpenVisus-*.whl
