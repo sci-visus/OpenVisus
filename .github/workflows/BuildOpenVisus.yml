@@ -54,7 +54,16 @@ jobs:
     - name: Install CMake and Swig
       uses: crazy-max/ghaction-chocolatey@v1
       with:
-        args: install -y --allow-empty-checksums cmake swig     
+        args: install -y --allow-empty-checksums cmake swig  
+     
+    # ____________________________________________        
+    - name: Cache Qt
+      id: cache-qt
+      uses: actions/cache@v1
+      with:
+        path: ../Qt
+        key: ${{ runner.os }}-QtCache
+
     # ____________________________________________
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
@@ -63,8 +72,14 @@ jobs:
         host: 'windows'
         target: 'desktop'
         arch: 'win64_msvc2017_64'
-        dir: '${{ github.workspace }}/Qt/'
-        install-deps: 'true'
+        install-deps: 'true'      
+        cached: ${{ steps.cache-qt.outputs.cache-hit }}
+               
+    # ____________________________________________
+    - name: Use Qt
+      shell: bash
+      run: |
+      	echo $Qt5_DIR
         
     # ____________________________________________
     - name: Set up CPython
