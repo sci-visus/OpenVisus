@@ -44,7 +44,7 @@ jobs:
   BuildOnWindows:
     runs-on: windows-latest
     strategy:
-    	max-parallel: 6
+      max-parallel: 6
       matrix:
         python-version: [ '3.6']  
     steps:
