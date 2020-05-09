@@ -91,7 +91,6 @@ jobs:
 
     - name: CompileOpenVisusConda
       run: |
-      
 	         if [[ "${PYTHON_VERSION}" != "3.8" ]] ; then
 	         
 	           cd build_osx/Release/OpenVisus  
