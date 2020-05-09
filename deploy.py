@@ -444,7 +444,7 @@ def Main():
 	
 	# _____________________________________________
 	if action=="viewer":
-		ExecuteCommand(["cmd" if WIN32 else "bash",os.path.join(this_dir, "visusviewer" + GetScriptExtention())] + sys.argv[2:], bVerbose=True)
+		ExecuteCommand([os.path.join(this_dir, "visusviewer" + GetScriptExtention())] + sys.argv[2:], bVerbose=True)
 		sys.exit(0)
 
 	# _____________________________________________
