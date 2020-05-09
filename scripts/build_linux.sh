@@ -8,7 +8,7 @@ export Python_EXECUTABLE=python${PYTHON_VERSION}
 export Qt5_DIR=/opt/qt59
 export GIT_TAG=${GIT_TAG:-}
 
-mkdir -p build_linux && cd build_linux
+mkdir -p build && cd build
 cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} ../
 cmake --build ./ --target all     --config Release --parallel 4
 cmake --build ./ --target install --config Release

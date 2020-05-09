@@ -48,7 +48,7 @@ if (( 1 == 1 )) ; then
 	popd
 fi
 
-mkdir -p build_osx && cd build_osx
+mkdir -p build && cd build
 cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} ../
 cmake --build ./ --target ALL_BUILD --config Release --parallel 4 | xcpretty -c
 cmake --build ./ --target install --config Release
