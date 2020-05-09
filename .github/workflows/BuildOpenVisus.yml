@@ -50,19 +50,27 @@ jobs:
     # ____________________________________________
     - name: Checkout
       uses: actions/checkout@v2
+      
+    # ____________________________________________      
+    - name: Cache Chocolatey
+      uses: actions/cache@v1
+      with:
+        path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
+        key: CacheChocolatey
+                  
     # ____________________________________________
     - name: Install CMake and Swig
       uses: crazy-max/ghaction-chocolatey@v1
       with:
-        args: install -y --allow-empty-checksums cmake swig  
+        args: install -y --allow-empty-checksums --no-progress cmake swig  
      
     # ____________________________________________        
     - name: Cache Qt
       id: cache-qt
       uses: actions/cache@v1
       with:
-        path: ../Qt
-        key: ${{ runner.os }}-QtCache
+        path: C:\Users\runneradmin\Qt
+        key: QtCache
 
     # ____________________________________________
     - name: Install Qt
@@ -76,10 +84,12 @@ jobs:
         cached: ${{ steps.cache-qt.outputs.cache-hit }}
                
     # ____________________________________________
-    - name: Use Qt
+    - name: Test it
       shell: bash
       run: |
            echo $Qt5_DIR
+           cmake 
+           swig
         
     # ____________________________________________
     - name: Set up CPython
