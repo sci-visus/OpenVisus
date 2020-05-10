@@ -1,11 +1,12 @@
-name: BuildOpenVIsus
+name: BuildOpenVisus
 
 on: [push]
 
 jobs:
         
   # ///////////////////////////////////////////////////////////////
-  MyJob:
+  BuildOpenVisusJob:
+  
     runs-on: ${{ matrix.os }}
     strategy:
       # max-parallel: 6
@@ -19,14 +20,14 @@ jobs:
       uses: actions/checkout@v2
       
     # ____________________________________________
-    - name: InstallCMakeAndSwig
+    - name: Install CMake, Swig on Windows
       uses: crazy-max/ghaction-chocolatey@v1
       if: matrix.os == 'windows-latest' 
       with:
         args: install -y --allow-empty-checksums --no-progress cmake swig  
         
     # ____________________________________________
-    - name: InstallQt
+    - name: Install Qt on Windows
       uses: jurplel/install-qt-action@v2
       if: matrix.os == 'windows-latest' 
       with:
@@ -38,7 +39,7 @@ jobs:
         dir: C:\
              
     # ____________________________________________
-    - name: SetupCPython
+    - name: Install CPython on Windows
       uses: actions/setup-python@v2
       if: matrix.os == 'windows-latest' 
       with:
@@ -46,7 +47,7 @@ jobs:
         architecture: 'x64'
 
     # ____________________________________________  
-    - name: InstallOSXPrerequisites
+    - name: Install CMake, Swig, CPython, Qt, 10.9 SDK on MacOs
       if: matrix.os == 'macos-latest' 
       run: |      
            set -e  # stop or error
@@ -90,9 +91,12 @@ jobs:
            fi     
 
     # ____________________________________________
-    - name: CompileOpenVisus
+    - name: Compile OpenVisus on Windows
       shell: bash
       if: matrix.os == 'windows-latest' 
+      env: 
+        PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
            set -e  # stop or error
            set -x  # very verbose  
@@ -123,57 +127,64 @@ jobs:
            fi               
       
     # ____________________________________________
-    - name: CompileOpenVisus
+    - name: Compile OpenVisus on MacOs
       shell: bash
       if: matrix.os == 'macos-latest' 
+      env: 
+        PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |   
            set -e  # stop or error
            set -x  # very verbose  
            
            PYTHON_VERSION=${{ matrix.python-version }}  
-           Python_EXECUTABLE=python@${PYTHON_VERSION} 
            CMAKE_OSX_SYSROOT=~/MacOSX-SDKs/MacOSX10.9.sdk
            Qt5_DIR=/usr/local/opt/qt 
         
            
-           ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
+           python${PYTHON_VERSION}  -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
            mkdir -p build
            cd build   
            
-           cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} ../
+           cmake -GXcode -DPython_EXECUTABLE=python${PYTHON_VERSION}  -DQt5_DIR=${Qt5_DIR} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release
               
            cd Release/OpenVisus
-           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
-           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert  
+           PYTHONPATH=../ python${PYTHON_VERSION}  -m OpenVisus test
+           PYTHONPATH=../ python${PYTHON_VERSION}  -m OpenVisus convert  
               
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then
               PLATFORM_NAME=macosx_10_9_x86_64
               PLATFORM_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}     
-              ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=${PLATFORM_TAG} --plat-name=${PLATFORM_NAME}         
-              ${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
+              python${PYTHON_VERSION} setup.py -q bdist_wheel --python-tag=${PLATFORM_TAG} --plat-name=${PLATFORM_NAME}         
+              python${PYTHON_VERSION} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
            fi   
   
     # ____________________________________________
-    - name: CompileOpenVisus
+    - name: Compile OpenVisus on Ubuntu
       shell: bash
       if: matrix.os == 'ubuntu-latest'
+      env: 
+        PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-           docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e PYTHON_VERSION=${{ matrix.python-version }} visus/travis-image /bin/bash 
+           docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e PYTHON_VERSION=${{ matrix.python-version }} -e PYPI_USERNAME -e PYPI_PASSWORD visus/travis-image /bin/bash 
            docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
 
     # ____________________________________________
-    - name: InstallMiniconda 
+    - name: Install Miniconda 
       uses: goanpeca/setup-miniconda@v1
       with:
         miniconda-version: 'latest'    
         python-version: ${{ matrix.python-version }}
         
     # ____________________________________________
-    - name: BuildOpenVisusForConda
+    - name: Build OpenVisus conda package
       if: matrix.python-version != '3.8' 
+      env: 
+        ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       shell: bash -l {0}
       run: | 
            set -e  # stop or error
@@ -206,14 +217,12 @@ jobs:
            PYTHONPATH=../ python -m OpenVisus test
            PYTHONPATH=../ python -m OpenVisus convert
          
-           rm -Rf $(find ~/Miniconda3 -iname "openvisus*.tar.bz2")   
-           python setup.py -q bdist_conda 
-           CONDA_FILENAME=$(find ~/Miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)
-           
+           # https://anaconda.org/ViSUS/settings/access
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
+              rm -Rf $(find ~/Miniconda3 -iname "openvisus*.tar.bz2")   
+              python setup.py -q bdist_conda 
+              CONDA_FILENAME=$(find ~/Miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)  
               anaconda -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
            fi
-
-
 
