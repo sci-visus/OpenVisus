@@ -1,0 +1,124 @@
+name: BuildOpenVisus
+
+on: [push]
+
+jobs:
+        
+  # ///////////////////////////////////////////////////////////////
+  BuildOpenVisusJob:
+  
+    runs-on: windows-latest
+    strategy:
+      # max-parallel: 6
+      matrix:
+        python-version: [ '3.6']  
+        
+    steps:
+    # ____________________________________________
+    - name: Checkout
+      uses: actions/checkout@v2
+      
+    # ____________________________________________
+    - name: Install CMake, Swig 
+      uses: crazy-max/ghaction-chocolatey@v1
+      if: matrix.os == 'windows-latest' 
+      with:
+        args: install -y --allow-empty-checksums --no-progress cmake swig  
+        
+    # ____________________________________________
+    - name: Install Qt 
+      uses: jurplel/install-qt-action@v2
+      if: matrix.os == 'windows-latest' 
+      with:
+        version: '5.9.2'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2017_64'
+        install-deps: 'true'  
+        dir: C:\
+             
+    # ____________________________________________
+    - name: Install CPython 
+      uses: actions/setup-python@v2
+      if: matrix.os == 'windows-latest' 
+      with:
+        python-version: ${{ matrix.python-version }} 
+        architecture: 'x64'
+
+
+    # ____________________________________________
+    - name: Compile OpenVisus 
+      shell: bash
+      if: matrix.os == 'windows-latest' 
+      env: 
+        PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+           set -e  # stop or error
+           set -x  # very verbose  
+           
+           PYTHON_VERSION=${{ matrix.python-version }}  
+           Python_EXECUTABLE=${pythonLocation}/python.exe
+           Qt5_DIR=${Qt5_Dir}/lib/cmake/Qt5
+
+           ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
+           
+           mkdir -p build
+           cd build    
+           
+           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_DIR}" -DPython_EXECUTABLE=${Python_EXECUTABLE} ../
+           cmake --build . --target ALL_BUILD --config Release
+           cmake --build . --target INSTALL   --config Release
+          
+           cd Release/OpenVisus
+           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
+           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert    
+                 
+           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
+           if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then
+              PLATFORM_NAME=win_amd64
+              PLATFORM_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}           
+              python setup.py -q bdist_wheel --python-tag=${PLATFORM_TAG} --plat-name=${PLATFORM_NAME}
+              python -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
+           fi               
+      
+    # ____________________________________________
+    - name: Install Miniconda 
+      uses: goanpeca/setup-miniconda@v1
+      with:
+        miniconda-version: 'latest'    
+        python-version: ${{ matrix.python-version }}
+        
+    # ____________________________________________
+    - name: Build OpenVisus conda package
+      if: matrix.python-version != '3.8' 
+      env: 
+        ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+      shell: bash -l {0}
+      run: | 
+           set -e  # stop or error
+           set -x  # very verbose   
+                 
+           PYTHON_VERSION=${{ matrix.python-version }}  
+      
+           conda activate
+           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
+           conda create -q -n tmp python=${PYTHON_VERSION} numpy
+           conda activate tmp   
+           conda install conda-build anaconda-client numpy     
+
+           cd build/Release/OpenVisus
+           PYTHONPATH=../ python -m OpenVisus configure
+           
+           PYTHONPATH=../ python -m OpenVisus test
+           PYTHONPATH=../ python -m OpenVisus convert
+         
+           # https://anaconda.org/ViSUS/settings/access
+           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
+           if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
+              rm -Rf $(find ~/Miniconda3 -iname "openvisus*.tar.bz2")   
+              python setup.py -q bdist_conda 
+              CONDA_FILENAME=$(find ~/Miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)  
+              anaconda -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
+           fi
+
