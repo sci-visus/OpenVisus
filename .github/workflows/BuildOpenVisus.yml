@@ -266,15 +266,14 @@ jobs:
               -w /root/OpenVisus \
               visus/travis-image \
               /bin/bash 
+              
+           docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
            
-           # I want docker to run as the current user to avoid file permissions problems
-           # https://vsupalov.com/docker-shared-permissions/
-           UID=$(id -u)
-           GID=$(id -g)
-           docker exec mydocker /bin/bash -c "addgroup --gid ${GID} mygroup"
-           docker exec mydocker /bin/bash -c "adduser --disabled-password --gecos '' --uid ${UID} --gid ${GID} myuser"
-           docker exec mydocker --user ${UID}:${GID} /bin/bash -c "./scripts/build_linux.sh"
-   
+           # fix permissions (see https://unix.stackexchange.com/questions/29902/unable-to-delete-file-even-when-running-as-root)
+           chattr -R -i -a     ./build
+           chown -R root:root  ./build
+           chmod -R a+rwx      ./build
+           
     # ____________________________________________
     - name: Install Miniconda 
       uses: goanpeca/setup-miniconda@v1
