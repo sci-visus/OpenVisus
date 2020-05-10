@@ -100,10 +100,9 @@ jobs:
            PYTHON_VERSION=${{ matrix.python-version }}  
            Python_EXECUTABLE=${pythonLocation}/python.exe
            Qt5_DIR=${Qt5_Dir}/lib/cmake/Qt5
-           PLATFORM_NAME=win_amd64
-           PLATFORM_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}
-           
+
            ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
+           
            mkdir -p build
            cd build    
            
@@ -114,11 +113,12 @@ jobs:
            cd Release/OpenVisus
            PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
            PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert    
-          
-           python setup.py -q bdist_wheel --python-tag=${PLATFORM_TAG} --plat-name=${PLATFORM_NAME}
-                       
+                 
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then
+              PLATFORM_NAME=win_amd64
+              PLATFORM_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}           
+              python setup.py -q bdist_wheel --python-tag=${PLATFORM_TAG} --plat-name=${PLATFORM_NAME}
               python -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
            fi               
       
@@ -134,8 +134,7 @@ jobs:
            Python_EXECUTABLE=python@${PYTHON_VERSION} 
            CMAKE_OSX_SYSROOT=~/MacOSX-SDKs/MacOSX10.9.sdk
            Qt5_DIR=/usr/local/opt/qt 
-           PLATFORM_NAME=macosx_10_9_x86_64
-           PLATFORM_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}           
+        
            
            ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
            mkdir -p build
@@ -149,11 +148,12 @@ jobs:
            PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
            PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert  
               
-           ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=${PLATFORM_TAG} --plat-name=${PLATFORM_NAME}
-
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then
-             ${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
+              PLATFORM_NAME=macosx_10_9_x86_64
+              PLATFORM_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}     
+              ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=${PLATFORM_TAG} --plat-name=${PLATFORM_NAME}         
+              ${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
            fi   
   
     # ____________________________________________
