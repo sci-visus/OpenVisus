@@ -55,27 +55,27 @@ jobs:
            set -e  # stop or error
            set -x  # very verbose  
 
-           which python
-           python -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
+           Python_EXECUTABLE=${pythonLocation}/python.exe
+           ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
            
            mkdir -p build
            cd build    
            
-           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=python.exe ../
+           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4 
            cmake --build . --target INSTALL   --config Release
           
            cd Release/OpenVisus
-           PYTHONPATH=../ python -m OpenVisus test
-           PYTHONPATH=../ python -m OpenVisus convert    
+           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
+           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert    
                  
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then
               PYTHON_VERSION=${{ matrix.python-version }}
               PLATFORM_NAME=win_amd64
               PLATFORM_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}           
-              python setup.py -q bdist_wheel --python-tag=${PLATFORM_TAG} --plat-name=${PLATFORM_NAME}
-              python -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
+              ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=${PLATFORM_TAG} --plat-name=${PLATFORM_NAME}
+              ${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
            fi               
       
     # ____________________________________________
