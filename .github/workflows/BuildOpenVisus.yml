@@ -143,7 +143,10 @@ jobs:
     - name: set environment variables
       uses: allenevans/set-env@v1.0.0
       with:
-        PYTHON_VERSION: ${{ matrix.python-version }}         
+        PYTHON_VERSION: ${{ matrix.python-version }}      
+        CMAKE_OSX_SYSROOT: ~/MacOSX-SDKs/MacOSX10.9.sdk   
+        Qt5_DIR: /usr/local/opt/qt   
+        Python_EXECUTABLE: /usr/local/opt/python@${{ matrix.python-version }}/bin/python${{ matrix.python-version }}           
       
     # ____________________________________________  
     - name: InstallOSXPrerequisites
@@ -154,8 +157,8 @@ jobs:
 
            if (( 1 == 1 )) ; then
            	brew install sashkab/python/python@${PYTHON_VERSION} 
-           	python${PYTHON_VERSION} -m pip install -q --upgrade pip                		|| true
-           	python${PYTHON_VERSION} -m pip install -q numpy setuptools wheel twine --upgrade   || true
+           	${Python_EXECUTABLE} -m pip install -q --upgrade pip                		|| true
+           	${Python_EXECUTABLE} -m pip install -q numpy setuptools wheel twine --upgrade   || true
            fi
 
            # install qt 5.9.3 in order to be compatible with conda PyQt5 (very old so I need to do some tricks)
@@ -183,14 +186,6 @@ jobs:
            	popd
            fi     
       
-    # ____________________________________________  
-    - name: set environment variables
-      uses: allenevans/set-env@v1.0.0
-      with:
-        CMAKE_OSX_SYSROOT: ~/MacOSX-SDKs/MacOSX10.9.sdk   
-        Qt5_DIR: /usr/local/opt/qt   
-        Python_EXECUTABLE: /usr/local/opt/python@${{ matrix.python-version }}/bin/python${{ matrix.python-version }}
-            
     # ____________________________________________  
     - name: CompileOpenVisus
       run: |      
