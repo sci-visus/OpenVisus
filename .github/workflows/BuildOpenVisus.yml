@@ -30,6 +30,13 @@ jobs:
         args: install -y --allow-empty-checksums --no-progress cmake swig  
         
     # ____________________________________________
+    - name: Install CPython 
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }} 
+        architecture: 'x64'        
+        
+    # ____________________________________________
     - name: Install Qt 
       uses: jurplel/install-qt-action@v2
       with:
@@ -37,13 +44,6 @@ jobs:
         arch: 'win64_msvc2017_64'
         install-deps: 'true'  
         dir: C:\
-             
-    # ____________________________________________
-    - name: Install CPython 
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }} 
-        architecture: 'x64'
 
     # ____________________________________________
     - name: Compile OpenVisus 
@@ -55,6 +55,7 @@ jobs:
            set -e  # stop or error
            set -x  # very verbose  
 
+           which python
            python -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
            
            mkdir -p build
@@ -94,11 +95,13 @@ jobs:
            set -e  # stop or error
            set -x  # very verbose   
                  
-           conda activate
-           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-           conda create -q -n tmp python=${{ matrix.python-version }} numpy
-           conda activate tmp   
-           conda install conda-build anaconda-client numpy     
+           conda activate 1>/dev/null
+           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 1>/dev/null
+           conda create -q -n tmp python=${{ matrix.python-version }} numpy 1>/dev/null
+           conda activate tmp 1>/dev/null
+           conda install conda-build anaconda-client numpy 1>/dev/null   
+           
+           which python 
 
            cd build/Release/OpenVisus
            PYTHONPATH=../ python -m OpenVisus configure
@@ -110,7 +113,7 @@ jobs:
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
               rm -Rf $(find ~/Miniconda3 -iname "openvisus*.tar.bz2")   
-              python setup.py -q bdist_conda 
+              python setup.py -q bdist_conda 1>/dev/null
               CONDA_FILENAME=$(find ~/Miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)  
               anaconda -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
            fi
@@ -205,11 +208,11 @@ jobs:
            set -e  # stop or error
            set -x  # very verbose   
                  
-           conda activate
-           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-           conda create -q -n tmp python=${{ matrix.python-version }}   numpy
-           conda activate tmp   
-           conda install conda-build anaconda-client numpy     
+           conda activate 1>/dev/null
+           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 1>/dev/null
+           conda create -q -n tmp python=${{ matrix.python-version }}   numpy 1>/dev/null
+           conda activate tmp    1>/dev/null
+           conda install conda-build anaconda-client numpy 1>/dev/null
 
            cd build/Release/OpenVisus
            PYTHONPATH=../ python -m OpenVisus configure
@@ -221,7 +224,7 @@ jobs:
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
               rm -Rf $(find ~/Miniconda3 -iname "openvisus*.tar.bz2")   
-              python setup.py -q bdist_conda 
+              python setup.py -q bdist_conda 1>/dev/null
               CONDA_FILENAME=$(find ~/Miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)  
               anaconda -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
            fi
@@ -269,11 +272,11 @@ jobs:
            set -e  # stop or error
            set -x  # very verbose   
                  
-           conda activate
-           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-           conda create -q -n tmp python=${{ matrix.python-version }} numpy
-           conda activate tmp   
-           conda install conda-build anaconda-client numpy     
+           conda activate 1>/dev/null
+           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 1>/dev/null
+           conda create -q -n tmp python=${{ matrix.python-version }} numpy 1>/dev/null
+           conda activate tmp 1>/dev/null
+           conda install conda-build anaconda-client numpy 1>/dev/null
 
            cd build/Release/OpenVisus
            
@@ -291,7 +294,7 @@ jobs:
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
               rm -Rf $(find ~/Miniconda3 -iname "openvisus*.tar.bz2")   
-              python setup.py -q bdist_conda 
+              python setup.py -q bdist_conda 1>/dev/null
               CONDA_FILENAME=$(find ~/Miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)  
               anaconda -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
            fi
