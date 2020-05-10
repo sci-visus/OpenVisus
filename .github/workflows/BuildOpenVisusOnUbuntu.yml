@@ -1,4 +1,4 @@
-name: BuildOpenVisus
+name: BuildOpenVisusOnUbuntu
 
 on: [push]
 

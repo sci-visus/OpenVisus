@@ -1,4 +1,4 @@
-name: BuildOpenVisus
+name: BuildOpenVisusOnWindows
 
 on: [push]
 
