@@ -20,7 +20,6 @@ jobs:
 
     # ____________________________________________  
     - name: Install CMake, Swig, CPython, Qt, 10.9 SDK 
-      if: matrix.os == 'macos-latest' 
       run: |      
            set -e  # stop or error
            set -x  # very verbose 
@@ -66,7 +65,6 @@ jobs:
     # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
-      if: matrix.os == 'macos-latest' 
       env: 
         PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}

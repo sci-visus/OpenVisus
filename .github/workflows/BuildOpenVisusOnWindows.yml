@@ -21,14 +21,12 @@ jobs:
     # ____________________________________________
     - name: Install CMake, Swig 
       uses: crazy-max/ghaction-chocolatey@v1
-      if: matrix.os == 'windows-latest' 
       with:
         args: install -y --allow-empty-checksums --no-progress cmake swig  
         
     # ____________________________________________
     - name: Install Qt 
       uses: jurplel/install-qt-action@v2
-      if: matrix.os == 'windows-latest' 
       with:
         version: '5.9.2'
         host: 'windows'
@@ -40,7 +38,6 @@ jobs:
     # ____________________________________________
     - name: Install CPython 
       uses: actions/setup-python@v2
-      if: matrix.os == 'windows-latest' 
       with:
         python-version: ${{ matrix.python-version }} 
         architecture: 'x64'
@@ -49,7 +46,6 @@ jobs:
     # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
-      if: matrix.os == 'windows-latest' 
       env: 
         PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}

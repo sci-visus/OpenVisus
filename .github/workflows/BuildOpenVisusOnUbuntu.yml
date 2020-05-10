@@ -21,7 +21,6 @@ jobs:
     # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
-      if: matrix.os == 'ubuntu-latest'
       env: 
         PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
