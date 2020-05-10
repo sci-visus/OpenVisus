@@ -56,6 +56,12 @@ jobs:
         python-version: ${{ matrix.python-version }} 
         architecture: 'x64'
   
+    # ____________________________________________  
+    - name: set environment variables
+      uses: allenevans/set-env@v1.0.0
+      with:
+        PYTHON_VERSION: ${{ matrix.python-version }}   
+  
     # ____________________________________________
     - name: CompileOpenVisus
       shell: bash
@@ -63,7 +69,6 @@ jobs:
            set -e  # stop or error
            set -x  # very verbose  
            
-           PYTHON_VERSION=${{ matrix.python-version }}
            Python_EXECUTABLE=${pythonLocation}/python.exe
            Qt5_DIR="${Qt5_Dir}/lib/cmake/Qt5"
            
@@ -105,14 +110,11 @@ jobs:
       run: | 
            conda activate
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-           conda update -q conda
-           conda create -q -n tmp python=${{ matrix.python-version }} numpy
-           conda activate tmp
-           conda install conda-build       
-           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 
+           conda create -q -n tmp python=${PYTHON_VERSION} numpy
+           conda activate tmp   
            conda install conda-build anaconda-client numpy     
 
-           pwd
+           cd build/Release/OpenVisus
            PYTHONPATH=../ python -m OpenVisus configure
            PYTHONPATH=../ python -m OpenVisus test
            PYTHONPATH=../ python -m OpenVisus convert
@@ -136,22 +138,91 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+     
+    # ____________________________________________  
+    - name: set environment variables
+      uses: allenevans/set-env@v1.0.0
+      with:
+        PYTHON_VERSION: ${{ matrix.python-version }}         
       
+    # ____________________________________________  
+    - name: InstallOSXPrerequisites
+      run: |      
+           brew update         1>/dev/null 2>/dev/null || true
+           brew install cmake  1>/dev/null 2>/dev/null || true
+           brew install swig   1>/dev/null 2>/dev/null || true
+
+           if (( 1 == 1 )) ; then
+           	brew install sashkab/python/python@${PYTHON_VERSION} 
+           	python${PYTHON_VERSION} -m pip install -q --upgrade pip                		|| true
+           	python${PYTHON_VERSION} -m pip install -q numpy setuptools wheel twine --upgrade   || true
+           fi
+
+           # install qt 5.9.3 in order to be compatible with conda PyQt5 (very old so I need to do some tricks)
+           # NOTE important to keep both the link and real path
+           if (( 1 == 1 )) ; then
+           	pushd $(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core 
+           	git fetch --unshallow || true
+           	git checkout 13d52537d1e0e5f913de46390123436d220035f6 -- Formula/qt.rb 
+           	cat Formula/qt.rb \
+           		| sed -e 's|depends_on :mysql|depends_on "mysql-client"|g' \
+           		| sed -e 's|depends_on :postgresql|depends_on "postgresql"|g' \
+           		| sed -e 's|depends_on :macos => :mountain_lion|depends_on :macos => :sierra|g' \
+           		> /tmp/qt.rb
+           	cp /tmp/qt.rb Formula/qt.rb 
+           	brew install --force qt 
+           	brew link --force qt	
+           	git checkout -f
+           	popd	
+           fi
+	
+           # install osx 10.9 for portable binaries
+           if (( 1 == 1 )) ; then
+           	pushd ~
+           	git clone https://github.com/phracker/MacOSX-SDKs.git 
+           	popd
+           fi     
+      
+    # ____________________________________________  
+    - name: set environment variables
+      uses: allenevans/set-env@v1.0.0
+      with:
+        CMAKE_OSX_SYSROOT: ~/MacOSX-SDKs/MacOSX10.9.sdk   
+        Qt5_DIR: /usr/local/opt/qt   
+        Python_EXECUTABLE: /usr/local/opt/python@${{ matrix.python-version }}/bin/python${{ matrix.python-version }}
+            
+    # ____________________________________________  
     - name: CompileOpenVisus
       run: |      
-           export PYTHON_VERSION=${{ matrix.python-version }}
-           export  GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            ./scripts/build_osx.h
-           if [[ "${PYTHON_VERSION}" != "3.8" ]] ; then 
-             cd build/Release/OpenVisus
-             bash ./scripts/build_conda.h 
-           fi
+
+    # ____________________________________________
+    - name: InstallMiniconda 
+      uses: goanpeca/setup-miniconda@v1
+      with:
+        miniconda-version: 'latest'    
+        python-version: ${{ matrix.python-version }}           
+           
+    # ____________________________________________
+    - name: BuildOpenVisusForConda
+      if: ${{ '${{ matrix.python-version }}' != '3.8' }}
+      shell: bash -l {0}
+      run: |      
+           conda activate
+           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
+           conda create -q -n tmp python=${PYTHON_VERSION} numpy
+           conda activate tmp   
+           conda install conda-build anaconda-client numpy         
+      
+      
+           cd build/Release/OpenVisus
+           bash ./scripts/build_conda.h
 
   # ///////////////////////////////////////////////////////////////
   BuildOnLinux:
   
     runs-on: ubuntu-latest 
-    container: visus/travis-image # using a docker image for portable binaries
+    container: ubuntu-latest
     strategy:
       matrix:
         python-version: [ '3.6' ]       
@@ -161,14 +232,30 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
+    # ____________________________________________  
+    - name: set environment variables
+      uses: allenevans/set-env@v1.0.0
+      with:
+        PYTHON_VERSION: ${{ matrix.python-version }} 
+        Python_EXECUTABLE: python${{ matrix.python-version }} 
+        Qt5_DIR: /opt/qt59
+
     # ____________________________________________
     - name: CompileOpenVisus
       run: |
-           
-           export PYTHON_VERSION=${{ matrix.python-version }}
-           export  GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-           ./scripts/build_linux.h
-           if [[ "${PYTHON_VERSION}" != "3.8" ]] ; then 
-             cd build/Release/OpenVisus
-             ./scripts/build_conda.h 
-           fi
+           docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e PYTHON_VERSION -e Python_EXECUTABLE -e Qt5_DIR -e ANACONDA_TOKEN visus/travis-image /bin/bash 
+           docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
+ 
+    # ____________________________________________
+    - name: InstallMiniconda 
+      uses: goanpeca/setup-miniconda@v1
+      with:
+        miniconda-version: 'latest'    
+        python-version: ${{ matrix.python-version }}     
+     
+    # ____________________________________________
+    - name: BuildOpenVisusForConda
+      if: ${{ '${{ matrix.python-version }}' != '3.8' }}
+      shell: bash -l {0}
+      run: |      
+           docker exec mydocker /bin/bash -c "cd build/Release/OpenVisus && bash ./scripts/build_conda.sh"      

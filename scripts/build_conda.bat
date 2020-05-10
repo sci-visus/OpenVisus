@@ -1,7 +1,5 @@
 @echo on
 SETLOCAL EnableDelayedExpansion
-
-set PYTHONUNBUFFERED=1
   
 set PYTHONPATH=..\
 python -m OpenVisus configure
