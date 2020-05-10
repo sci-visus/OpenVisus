@@ -258,8 +258,16 @@ jobs:
          PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
          PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-           PYTHON_VERSION=${{ matrix.python-version }}
-           docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e PYTHON_VERSION=${PYTHON_VERSION} -e PYPI_USERNAME -e PYPI_PASSWORD visus/travis-image /bin/bash 
+           
+           docker run -d -it --name mydocker \
+              -v $(pwd):/root/OpenVisus \
+              -w /root/OpenVisus \
+              -e PYTHON_VERSION=${{ matrix.python-version }} \
+              -e PYPI_USERNAME=${PYPI_USERNAME} \
+              -e PYPI_PASSWORD=${PYPI_PASSWORD} \
+              visus/travis-image \
+              /bin/bash 
+              
            docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
            
            # fix permissions (see https://unix.stackexchange.com/questions/29902/unable-to-delete-file-even-when-running-as-root)
