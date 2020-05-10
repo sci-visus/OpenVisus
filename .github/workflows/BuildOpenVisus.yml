@@ -175,7 +175,7 @@ jobs:
            	git checkout -f
            	popd	
            fi
-	
+           
            # install osx 10.9 for portable binaries
            if (( 1 == 1 )) ; then
            	pushd ~
@@ -208,13 +208,6 @@ jobs:
       if: ${{ '${{ matrix.python-version }}' != '3.8' }}
       shell: bash -l {0}
       run: |      
-           conda activate
-           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-           conda create -q -n tmp python=${PYTHON_VERSION} numpy
-           conda activate tmp   
-           conda install conda-build anaconda-client numpy         
-      
-      
            cd build/Release/OpenVisus
            bash ./scripts/build_conda.h
 
