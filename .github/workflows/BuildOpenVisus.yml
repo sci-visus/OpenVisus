@@ -14,12 +14,17 @@ jobs:
         python-version: [ '3.6']  
         
     steps:
+    
     # ____________________________________________
     - name: Checkout
       uses: actions/checkout@v2
       
     # ____________________________________________
-    - name: Install CMake, Swig 
+    - name: Install CMake
+      uses: lukka/get-cmake@latest
+      
+    # ____________________________________________
+    - name: Install Swig 
       uses: crazy-max/ghaction-chocolatey@v1
       with:
         args: install -y --allow-empty-checksums --no-progress cmake swig  
@@ -29,8 +34,6 @@ jobs:
       uses: jurplel/install-qt-action@v2
       with:
         version: '5.9.2'
-        host: 'windows'
-        target: 'desktop'
         arch: 'win64_msvc2017_64'
         install-deps: 'true'  
         dir: C:\
@@ -42,7 +45,6 @@ jobs:
         python-version: ${{ matrix.python-version }} 
         architecture: 'x64'
 
-
     # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
@@ -52,26 +54,23 @@ jobs:
       run: |
            set -e  # stop or error
            set -x  # very verbose  
-           
-           PYTHON_VERSION=${{ matrix.python-version }}  
-           Python_EXECUTABLE=${pythonLocation}/python.exe
-           Qt5_DIR=${Qt5_Dir}/lib/cmake/Qt5
 
-           ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
+           python -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
            
            mkdir -p build
            cd build    
            
-           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_DIR}" -DPython_EXECUTABLE=${Python_EXECUTABLE} ../
+           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=python.exe ../
            cmake --build . --target ALL_BUILD --config Release
            cmake --build . --target INSTALL   --config Release
           
            cd Release/OpenVisus
-           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
-           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert    
+           PYTHONPATH=../ python -m OpenVisus test
+           PYTHONPATH=../ python -m OpenVisus convert    
                  
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then
+              PYTHON_VERSION=${{ matrix.python-version }}
               PLATFORM_NAME=win_amd64
               PLATFORM_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}           
               python setup.py -q bdist_wheel --python-tag=${PLATFORM_TAG} --plat-name=${PLATFORM_NAME}
@@ -89,17 +88,15 @@ jobs:
     - name: Build OpenVisus conda package
       if: matrix.python-version != '3.8' 
       env: 
-        ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+         ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       shell: bash -l {0}
       run: | 
            set -e  # stop or error
            set -x  # very verbose   
                  
-           PYTHON_VERSION=${{ matrix.python-version }}  
-      
            conda activate
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-           conda create -q -n tmp python=${PYTHON_VERSION} numpy
+           conda create -q -n tmp python=${{ matrix.python-version }} numpy
            conda activate tmp   
            conda install conda-build anaconda-client numpy     
 
@@ -132,84 +129,63 @@ jobs:
     # ____________________________________________
     - name: Checkout
       uses: actions/checkout@v2
+      
+    # ____________________________________________
+    - name: Install CMake
+      uses: lukka/get-cmake@latest
+            
+    # ____________________________________________  
+    - name: Install Swig
+      run: brew install swig     
+           
+    # ____________________________________________
+    - name: Install CPython 
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}     
 
     # ____________________________________________  
-    - name: Install CMake, Swig, CPython, Qt, 10.9 SDK 
-      run: |      
-           set -e  # stop or error
-           set -x  # very verbose 
-           
-           PYTHON_VERSION=${{ matrix.python-version }}      
-      
-           brew update         1>/dev/null 2>/dev/null || true
-           brew install cmake  1>/dev/null 2>/dev/null || true
-           brew install swig   1>/dev/null 2>/dev/null || true
+    - name: Install 10.9 SDK 
+      run: cd /opt && git clone https://github.com/phracker/MacOSX-SDKs.git 
+              
+    # ____________________________________________
+    - name: Install Qt 
+      uses: jurplel/install-qt-action@v2
+      with:
+        version: '5.9.3'
+        target: 'desktop'
+        install-deps: 'true'  
+        dir: /opt
 
-           if (( 1 == 1 )) ; then
-             brew install sashkab/python/python@${PYTHON_VERSION} 1>/dev/null 
-             PYTHON_EXECUTABLE=$(brew --prefix python@${PYTHON_VERSION})/bin/python${PYTHON_VERSION}
-             ${PYTHON_EXECUTABLE} -m pip install -q --upgrade pip                            || true
-             ${PYTHON_EXECUTABLE} -m pip install -q numpy setuptools wheel twine --upgrade   || true
-           fi
-
-           # install qt 5.9.3 in order to be compatible with conda PyQt5 (very old so I need to do some tricks)
-           # NOTE important to keep both the link and real path
-           if (( 1 == 1 )) ; then
-             pushd $(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core 
-             git fetch --unshallow || true
-             git checkout 13d52537d1e0e5f913de46390123436d220035f6 -- Formula/qt.rb 
-             cat Formula/qt.rb \
-               | sed -e 's|depends_on :mysql|depends_on "mysql-client"|g' \
-               | sed -e 's|depends_on :postgresql|depends_on "postgresql"|g' \
-               | sed -e 's|depends_on :macos => :mountain_lion|depends_on :macos => :sierra|g' \
-               > /tmp/qt.rb
-             cp /tmp/qt.rb Formula/qt.rb 
-             brew install --force qt 
-             brew link --force qt  
-             git checkout -f
-             popd  
-           fi
-           
-           # install osx 10.9 for portable binaries
-           if (( 1 == 1 )) ; then
-             pushd ~
-             git clone https://github.com/phracker/MacOSX-SDKs.git 
-             popd
-           fi     
-      
     # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
       env: 
-        PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+         PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
+         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |   
            set -e  # stop or error
            set -x  # very verbose  
            
-           PYTHON_VERSION=${{ matrix.python-version }}  
-           PYTHON_EXECUTABLE=$(brew --prefix python@${PYTHON_VERSION})/bin/python${PYTHON_VERSION}
-           CMAKE_OSX_SYSROOT=~/MacOSX-SDKs/MacOSX10.9.sdk
-           Qt5_DIR=/usr/local/opt/qt 
-        
-           ${PYTHON_EXECUTABLE}  -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
+           python -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
            mkdir -p build
            cd build   
            
-           cmake -GXcode -DPython_EXECUTABLE=${PYTHON_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} ../
+           cmake -GXcode -DPython_EXECUTABLE=python -DQt5_DIR=${Qt5_Dir}/lib/cmake/Qt5 -DCMAKE_OSX_SYSROOT=/opt/MacOSX-SDKs/MacOSX10.9.sdk ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release
               
            cd Release/OpenVisus
-           PYTHONPATH=../ ${PYTHON_EXECUTABLE}  -m OpenVisus test
-           PYTHONPATH=../ ${PYTHON_EXECUTABLE}  -m OpenVisus convert  
+           PYTHONPATH=../ python  -m OpenVisus test
+           PYTHONPATH=../ python  -m OpenVisus convert  
               
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then
+              PYTHON_VERSION=${{ matrix.python-version }}  
               PLATFORM_NAME=macosx_10_9_x86_64
               PLATFORM_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}     
-              ${PYTHON_EXECUTABLE} setup.py -q bdist_wheel --python-tag=${PLATFORM_TAG} --plat-name=${PLATFORM_NAME}         
-              ${PYTHON_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
+              python setup.py -q bdist_wheel --python-tag=${PLATFORM_TAG} --plat-name=${PLATFORM_NAME}         
+              python -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
            fi   
   
     # ____________________________________________
@@ -229,11 +205,9 @@ jobs:
            set -e  # stop or error
            set -x  # very verbose   
                  
-           PYTHON_VERSION=${{ matrix.python-version }}  
-      
            conda activate
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-           conda create -q -n tmp python=${PYTHON_VERSION} numpy
+           conda create -q -n tmp python=${{ matrix.python-version }}   numpy
            conda activate tmp   
            conda install conda-build anaconda-client numpy     
 
@@ -271,11 +245,12 @@ jobs:
     - name: Compile OpenVisus 
       shell: bash
       env: 
-        PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+         PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
+         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
            docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e PYTHON_VERSION=${{ matrix.python-version }} -e PYPI_USERNAME -e PYPI_PASSWORD visus/travis-image /bin/bash 
            docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
+           docker exec mydocker /bin/bash -c "chmod -R a+rwx ./build"
 
     # ____________________________________________
     - name: Install Miniconda 
@@ -294,11 +269,9 @@ jobs:
            set -e  # stop or error
            set -x  # very verbose   
                  
-           PYTHON_VERSION=${{ matrix.python-version }}  
-      
            conda activate
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-           conda create -q -n tmp python=${PYTHON_VERSION} numpy
+           conda create -q -n tmp python=${{ matrix.python-version }} numpy
            conda activate tmp   
            conda install conda-build anaconda-client numpy     
 
