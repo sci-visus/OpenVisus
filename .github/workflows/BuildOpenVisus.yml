@@ -59,7 +59,7 @@ jobs:
            PLATFORM_NAME=win_amd64
            PLATFORM_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}      
            Python_EXECUTABLE=${pythonLocation}/python.exe
-           Qt5_DIR="${Qt5_Dir}/lib/cmake/Qt5
+           Qt5_DIR=${Qt5_Dir}/lib/cmake/Qt5
            
            ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
            
