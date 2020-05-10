@@ -21,14 +21,14 @@ jobs:
     # ____________________________________________
     - name: InstallCMakeAndSwig
       uses: crazy-max/ghaction-chocolatey@v1
-      if: ${{ '${{ matrix.os }}'== 'windows-latest' }}
+      if: matrix.os 'windows-latest' 
       with:
         args: install -y --allow-empty-checksums --no-progress cmake swig  
         
     # ____________________________________________
     - name: InstallQt
       uses: jurplel/install-qt-action@v2
-      if: ${{ '${{ matrix.os }}'== 'windows-latest' }}
+      if: matrix.os 'windows-latest' 
       with:
         version: '5.9.2'
         host: 'windows'
@@ -40,14 +40,14 @@ jobs:
     # ____________________________________________
     - name: SetupCPython
       uses: actions/setup-python@v2
-      if: ${{ '${{ matrix.os }}'== 'windows-latest' }}
+      if: matrix.os 'windows-latest' 
       with:
         python-version: ${{ matrix.python-version }} 
         architecture: 'x64'
 
     # ____________________________________________  
     - name: InstallOSXPrerequisites
-      if: ${{ '${{ matrix.os }}'== 'macos-latest' }}
+      if: matrix.os 'macos-latest' 
       run: |      
            set -e  # stop or error
            set -x  # very verbose 
@@ -92,7 +92,7 @@ jobs:
     # ____________________________________________
     - name: CompileOpenVisus
       shell: bash
-      if: ${{ '${{ matrix.os }}'== 'windows-latest' }}
+      if: matrix.os 'windows-latest' 
       run: |
            set -e  # stop or error
            set -x  # very verbose  
@@ -125,7 +125,7 @@ jobs:
     # ____________________________________________
     - name: CompileOpenVisus
       shell: bash
-      if: ${{ '${{ matrix.os }}'== 'macos-latest' }}
+      if: matrix.os 'macos-latest' 
       run: |   
            set -e  # stop or error
            set -x  # very verbose  
@@ -159,16 +159,9 @@ jobs:
     # ____________________________________________
     - name: CompileOpenVisus
       shell: bash
-      if: ${{ '${{ matrix.os }}'== 'ubuntu-latest' }}
+      if: ${{ '${{  }}' == 'ubuntu-latest' }}
       run: |
-           docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus \
-              -e PYTHON_VERSION=${{ matrix.python-version }}  \
-              -e Python_EXECUTABLE=python${{ matrix.python-version }}   \
-              -e Qt5_DIR=/opt/qt59 \
-              -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
-              visus/travis-image \
-              /bin/bash 
-           
+           docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e PYTHON_VERSION=${{ matrix.python-version }} visus/travis-image /bin/bash 
            docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
 
     # ____________________________________________

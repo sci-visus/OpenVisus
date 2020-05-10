@@ -3,6 +3,10 @@
 set -e  # stop or error
 set -x  # very verbose
 
+PYTHON_VERSION=${PYTHON_VERSION:-3.6}
+Python_EXECUTABLE=${Python_EXECUTABLE:-python${PYTHON_VERSION}}  
+Qt5_DIR=${Qt5_DIR:-/opt/qt59}
+
 ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null || true
 
 mkdir -p build 
