@@ -62,7 +62,7 @@ jobs:
            cd build    
            
            cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=python.exe ../
-           cmake --build . --target ALL_BUILD --config Release
+           cmake --build . --target ALL_BUILD --config Release --parallel 4 
            cmake --build . --target INSTALL   --config Release
           
            cd Release/OpenVisus
@@ -93,7 +93,7 @@ jobs:
       shell: bash -l {0}
       run: | 
            set -e  # stop or error
-           set -x  # very verbose   
+           # set -x  # very verbose   
                  
            conda activate 1>/dev/null
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 1>/dev/null
@@ -104,7 +104,7 @@ jobs:
            which python 
 
            cd build/Release/OpenVisus
-           PYTHONPATH=../ python -m OpenVisus configure
+           PYTHONPATH=../ python -m OpenVisus configure 1>/dev/null
            
            PYTHONPATH=../ python -m OpenVisus test
            PYTHONPATH=../ python -m OpenVisus convert
@@ -206,7 +206,7 @@ jobs:
       shell: bash -l {0}
       run: | 
            set -e  # stop or error
-           set -x  # very verbose   
+           # set -x  # very verbose   
                  
            conda activate 1>/dev/null
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 1>/dev/null
@@ -215,7 +215,7 @@ jobs:
            conda install conda-build anaconda-client numpy 1>/dev/null
 
            cd build/Release/OpenVisus
-           PYTHONPATH=../ python -m OpenVisus configure
+           PYTHONPATH=../ python -m OpenVisus configure 1>/dev/null
            
            PYTHONPATH=../ python -m OpenVisus test
            PYTHONPATH=../ python -m OpenVisus convert
@@ -253,7 +253,8 @@ jobs:
       run: |
            docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e PYTHON_VERSION=${{ matrix.python-version }} -e PYPI_USERNAME -e PYPI_PASSWORD visus/travis-image /bin/bash 
            docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
-           docker exec mydocker /bin/bash -c "chmod -R a+rwx ./build"
+           chown -R $USER ./build
+           chmod -R a+rwx ./build
 
     # ____________________________________________
     - name: Install Miniconda 
@@ -270,7 +271,7 @@ jobs:
       shell: bash -l {0}
       run: | 
            set -e  # stop or error
-           set -x  # very verbose   
+           # set -x  # very verbose   
                  
            conda activate 1>/dev/null
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 1>/dev/null
@@ -281,11 +282,11 @@ jobs:
            cd build/Release/OpenVisus
            
            # I get some random crashes in Linux, so I'm using more actions than a simple configure here..
-           conda uninstall pyqt || true
-           PYTHONPATH=../ python -m OpenVisus remove-qt5
-           PYTHONPATH=../ python -m OpenVisus install-pyqt5
-           PYTHONPATH=../ python -m OpenVisus link-pyqt5 || true # this crashes on linux (after the sys.exit(0), so I should be fine)
-           PYTHONPATH=../ python -m OpenVisus generate-scripts pyqt5
+           conda uninstall pyqt 1>/dev/null || true
+           PYTHONPATH=../ python -m OpenVisus remove-qt5 1>/dev/null
+           PYTHONPATH=../ python -m OpenVisus install-pyqt5 1>/dev/null
+           PYTHONPATH=../ python -m OpenVisus link-pyqt5 1>/dev/null || true # this crashes on linux (after the sys.exit(0), so I should be fine)
+           PYTHONPATH=../ python -m OpenVisus generate-scripts pyqt5 1>/dev/null
            
            PYTHONPATH=../ python -m OpenVisus test
            PYTHONPATH=../ python -m OpenVisus convert      
