@@ -60,9 +60,10 @@ jobs:
            brew install swig   1>/dev/null 2>/dev/null || true
 
            if (( 1 == 1 )) ; then
-             brew install sashkab/python/python@${PYTHON_VERSION} 
-             python@${PYTHON_VERSION} -m pip install -q --upgrade pip                            || true
-             python@${PYTHON_VERSION} -m pip install -q numpy setuptools wheel twine --upgrade   || true
+             brew install sashkab/python/python@${PYTHON_VERSION} 1>/dev/null 
+             PYTHON_EXECUTABLE=$(brew --prefix python@${PYTHON_VERSION})/bin/python${PYTHON_VERSION}
+             ${PYTHON_EXECUTABLE} -m pip install -q --upgrade pip                            || true
+             ${PYTHON_EXECUTABLE} -m pip install -q numpy setuptools wheel twine --upgrade   || true
            fi
 
            # install qt 5.9.3 in order to be compatible with conda PyQt5 (very old so I need to do some tricks)
@@ -138,28 +139,28 @@ jobs:
            set -x  # very verbose  
            
            PYTHON_VERSION=${{ matrix.python-version }}  
+           PYTHON_EXECUTABLE=$(brew --prefix python@${PYTHON_VERSION})/bin/python${PYTHON_VERSION}
            CMAKE_OSX_SYSROOT=~/MacOSX-SDKs/MacOSX10.9.sdk
            Qt5_DIR=/usr/local/opt/qt 
         
-           
-           python${PYTHON_VERSION}  -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
+           ${PYTHON_EXECUTABLE}  -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
            mkdir -p build
            cd build   
            
-           cmake -GXcode -DPython_EXECUTABLE=python${PYTHON_VERSION}  -DQt5_DIR=${Qt5_DIR} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} ../
+           cmake -GXcode -DPython_EXECUTABLE=${PYTHON_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release
               
            cd Release/OpenVisus
-           PYTHONPATH=../ python${PYTHON_VERSION}  -m OpenVisus test
-           PYTHONPATH=../ python${PYTHON_VERSION}  -m OpenVisus convert  
+           PYTHONPATH=../ ${PYTHON_EXECUTABLE}  -m OpenVisus test
+           PYTHONPATH=../ ${PYTHON_EXECUTABLE}  -m OpenVisus convert  
               
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then
               PLATFORM_NAME=macosx_10_9_x86_64
               PLATFORM_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}     
-              python${PYTHON_VERSION} setup.py -q bdist_wheel --python-tag=${PLATFORM_TAG} --plat-name=${PLATFORM_NAME}         
-              python${PYTHON_VERSION} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
+              ${PYTHON_EXECUTABLE} setup.py -q bdist_wheel --python-tag=${PLATFORM_TAG} --plat-name=${PLATFORM_NAME}         
+              ${PYTHON_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
            fi   
   
     # ____________________________________________
