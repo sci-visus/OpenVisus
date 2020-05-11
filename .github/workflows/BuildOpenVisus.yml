@@ -55,9 +55,7 @@ jobs:
            PYTHON_VERSION=${{ matrix.python-version }}
            Python_EXECUTABLE=${pythonLocation}/python.exe
            Qt5_DIR=${Qt5_Dir}/lib/cmake/Qt5
-           
-           uname          
-           
+
            ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
            
            mkdir -p build
@@ -140,8 +138,6 @@ jobs:
     # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
-      env: 
-
       run: |   
            set -e  # stop or error
            set -x  # very verbose  
@@ -209,6 +205,7 @@ jobs:
       
            docker run -d -it --name mydocker \
               -e PYTHON_VERSION=${{ matrix.python-version }} \
+              -e Qt5_DIR=/opt/qt59 \
               -e PYPI_USERNAME=${{ secrets.PYPI_USERNAME }} \
               -e PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }} \
               -v $(pwd):/root/OpenVisus \
