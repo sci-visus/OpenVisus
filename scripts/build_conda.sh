@@ -19,7 +19,7 @@ if (( LINUX_FIX_RANDOM_CRASH == 1 )) ; then
 
 	PYTHONPATH=../ python -m OpenVisus remove-qt5             1>/dev/null
 	PYTHONPATH=../ python -m OpenVisus install-pyqt5          1>/dev/null
-	PYTHONPATH=../ python -m OpenVisus link-pyqt5             1>/dev/null || true # this crashes on linux (after the sys.exit(0), so I should be fine)
+	PYTHONPATH=../ python -m OpenVisus link-pyqt5             1>/dev/null 2>/dev/null || true # this crashes on linux (after the sys.exit(0), so I should be fine)
 	PYTHONPATH=../ python -m OpenVisus generate-scripts pyqt5 1>/dev/null	
 	
 else
@@ -27,6 +27,9 @@ else
 	PYTHONPATH=../ python -m OpenVisus configure              1>/dev/null
 	 
 fi
+
+set -x  # very verbose
+export PYTHONUNBUFFERED=1
 
 PYTHONPATH=../ python -m OpenVisus test
 PYTHONPATH=../ python -m OpenVisus convert
