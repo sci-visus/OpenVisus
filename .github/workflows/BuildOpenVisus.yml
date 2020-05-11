@@ -48,20 +48,15 @@ jobs:
     # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
-      env: 
-        PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
            set -e  # stop or error
            set -x  # very verbose  
            
-           uname
-
            PYTHON_VERSION=${{ matrix.python-version }}
-           PLATFORM_NAME=win_amd64
-           PLATFORM_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}      
            Python_EXECUTABLE=${pythonLocation}/python.exe
            Qt5_DIR=${Qt5_Dir}/lib/cmake/Qt5
+           
+           uname          
            
            ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
            
@@ -77,10 +72,10 @@ jobs:
            PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert    
                  
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-           if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then
-     
-              ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=${PLATFORM_TAG} --plat-name=${PLATFORM_NAME}
-              ${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
+          
+           if [[ "${GIT_TAG}" != "" ]] ; then
+             ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=win_amd64
+             ${Python_EXECUTABLE} -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }}   --skip-existing  "dist/*.whl" 
            fi               
       
     # ____________________________________________
@@ -94,11 +89,11 @@ jobs:
     - name: Build OpenVisus conda package
       if: matrix.python-version != '3.8' 
       shell: bash -l {0}
-      run: 
-        export PYTHON_VERSION=${{ matrix.python-version }} 
-        export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} 
-        cd build/Release/OpenVisus 
-        ./scripts/build_conda.sh
+      run: |
+           export PYTHON_VERSION=${{ matrix.python-version }} 
+           export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} 
+           cd build/Release/OpenVisus 
+           ./scripts/build_conda.sh
 
         
   # ///////////////////////////////////////////////////////////////
@@ -130,7 +125,7 @@ jobs:
         python-version: ${{ matrix.python-version }}     
 
     # ____________________________________________  
-    - name: Install 10.9 SDK 
+    - name: Install SDK 10.9
       run: cd /opt && git clone https://github.com/phracker/MacOSX-SDKs.git 
               
     # ____________________________________________
@@ -146,18 +141,15 @@ jobs:
     - name: Compile OpenVisus 
       shell: bash
       env: 
-         PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
-         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+
       run: |   
            set -e  # stop or error
            set -x  # very verbose  
            
            PYTHON_VERSION=${{ matrix.python-version }}  
-           PLATFORM_NAME=macosx_10_9_x86_64
-           PLATFORM_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} 
-           Python_EXECUTABLE=${pythonLocation}/python    
-           Qt5_DIR=${Qt5_Dir}/lib/cmake/Qt5
-           CMAKE_OSX_SYSROOT=/opt/MacOSX-SDKs/MacOSX10.9.sdk
+           Python_EXECUTABLE=${pythonLocation}/python 
+           Qt5_DIR=${Qt5_Dir}/lib/cmake/Qt5
+           CMAKE_OSX_SYSROOT=/opt/MacOSX-SDKs/MacOSX10.9.sdk         
            
            ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
            mkdir -p build
@@ -173,8 +165,8 @@ jobs:
               
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then
-              ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=${PLATFORM_TAG} --plat-name=${PLATFORM_NAME}         
-              ${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
+              ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}  --plat-name=macosx_10_9_x86_64     
+              ${Python_EXECUTABLE} -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }}  --skip-existing  "dist/*.whl" 
            fi   
   
     # ____________________________________________
@@ -188,13 +180,11 @@ jobs:
     - name: Build OpenVisus conda package
       if: matrix.python-version != '3.8' 
       shell: bash -l {0}
-      run: 
-        export PYTHON_VERSION=${{ matrix.python-version }} 
-        export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} 
-        cd build/Release/OpenVisus 
-        ./scripts/build_conda.sh    
-      
-
+      run: |
+           export PYTHON_VERSION=${{ matrix.python-version }} 
+           export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} 
+           cd build/Release/OpenVisus 
+           ./scripts/build_conda.sh
        
   # ///////////////////////////////////////////////////////////////
   BuildOnUbuntuJob:
@@ -213,17 +203,14 @@ jobs:
     # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
-      env: 
-         PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
-         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
            set -e  # stop or error
            set -x  # very verbose        
       
            docker run -d -it --name mydocker \
               -e PYTHON_VERSION=${{ matrix.python-version }} \
-              -e PYPI_USERNAME=${PYPI_USERNAME} \
-              -e PYPI_PASSWORD=${PYPI_PASSWORD} \
+              -e PYPI_USERNAME=${{ secrets.PYPI_USERNAME }} \
+              -e PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }} \
               -v $(pwd):/root/OpenVisus \
               -w /root/OpenVisus \
               visus/travis-image \
@@ -232,7 +219,6 @@ jobs:
            docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
            
            # fix permissions (see https://unix.stackexchange.com/questions/29902/unable-to-delete-file-even-when-running-as-root)
-           ls -lF build/Release/OpenVisus
            sudo chown -R root:root  ./build
            sudo chmod -R a+rwx      ./build
            
@@ -247,9 +233,9 @@ jobs:
     - name: Build OpenVisus conda package
       if: matrix.python-version != '3.8' 
       shell: bash -l {0}
-      run: 
-        export PYTHON_VERSION=${{ matrix.python-version }} 
-        export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} 
-        cd build/Release/OpenVisus 
-        ./scripts/build_conda.sh
-
+      run: |
+           export PYTHON_VERSION=${{ matrix.python-version }} 
+           export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} 
+           cd build/Release/OpenVisus 
+           LINUX_FIX_RANDOM_CRASH=1 ./scripts/build_conda.sh
+           
