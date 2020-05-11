@@ -91,7 +91,7 @@ jobs:
            export PYTHON_VERSION=${{ matrix.python-version }} 
            export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} 
            cd build/Release/OpenVisus 
-           ./scripts/build_conda.sh
+           source ./scripts/build_conda.sh
 
         
   # ///////////////////////////////////////////////////////////////
@@ -180,7 +180,7 @@ jobs:
            export PYTHON_VERSION=${{ matrix.python-version }} 
            export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} 
            cd build/Release/OpenVisus 
-           ./scripts/build_conda.sh
+           source ./scripts/build_conda.sh
        
   # ///////////////////////////////////////////////////////////////
   BuildOnUbuntuJob:
@@ -233,6 +233,7 @@ jobs:
       run: |
            export PYTHON_VERSION=${{ matrix.python-version }} 
            export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} 
+           export LINUX_FIX_RANDOM_CRASH=1
            cd build/Release/OpenVisus 
-           LINUX_FIX_RANDOM_CRASH=1 ./scripts/build_conda.sh
+           source ./scripts/build_conda.sh
            
