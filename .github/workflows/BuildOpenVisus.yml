@@ -11,7 +11,7 @@ jobs:
     strategy:
       # max-parallel: 6
       matrix:
-        python-version: [ '3.5, '3.6', '3.7', '3.8' ]  
+        python-version: [ '3.5', '3.6', '3.7', '3.8' ]  
         
     steps:
     
@@ -101,7 +101,7 @@ jobs:
     strategy:
       # max-parallel: 6
       matrix:
-        python-version: ['3.5, '3.6', '3.7', '3.8' ]  
+        python-version: ['3.5', '3.6', '3.7', '3.8' ]  
         
     steps:
     # ____________________________________________
@@ -189,7 +189,7 @@ jobs:
     strategy:
       # max-parallel: 6
       matrix:
-        python-version: ['3.5, '3.6', '3.7', '3.8']  
+        python-version: ['3.5', '3.6', '3.7', '3.8']  
         
     steps:
     # ____________________________________________
