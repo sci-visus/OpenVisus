@@ -410,7 +410,7 @@ def GenerateScript(script_filename, target_filename, gui_lib):
 	
 	try:
 		os.chmod(script_filename, 0o777)
-	except
+	except:
 		pass
 
 # ////////////////////////////////////////////////
