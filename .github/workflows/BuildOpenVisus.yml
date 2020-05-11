@@ -160,7 +160,7 @@ jobs:
            PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert  
               
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-           if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then
+           if [[ "${GIT_TAG}" != ""  ]] ; then
               ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}  --plat-name=macosx_10_9_x86_64     
               ${Python_EXECUTABLE} -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }}  --skip-existing  "dist/*.whl" 
            fi   
