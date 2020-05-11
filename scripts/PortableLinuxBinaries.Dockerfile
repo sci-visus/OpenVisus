@@ -1,6 +1,6 @@
-# example
-# TAG=visus/travis-image
-# sudo docker build --tag $TAG -f scripts/build_osx.Dockerfile .
+
+# TAG=visus/portable-linux-binaries
+# sudo docker build --tag $TAG -f scripts/build_linux.Dockerfile .
 # sudo docker login 
 # sudo docker push $TAG
 #
@@ -30,14 +30,14 @@ COPY scripts/install/cpython.sh .
 RUN bash cpython.sh 3.8.2
 RUN bash cpython.sh 3.7.7
 RUN bash cpython.sh 3.6.10
+RUN bash cpython.sh 3.5.9
 
-COPY scripts/install/miniconda.sh .
-RUN bash miniconda.sh 
-
-COPY scripts/install/python.conda.sh .
-RUN bash python.conda.sh 3.6
-RUN bash python.conda.sh 3.7
-RUN bash python.conda.sh 3.8
+#COPY scripts/install/miniconda.sh .
+#RUN bash miniconda.sh 
+#COPY scripts/install/python.conda.sh .
+#RUN bash python.conda.sh 3.6
+#RUN bash python.conda.sh 3.7
+#RUN bash python.conda.sh 3.8
 
 COPY scripts/install/httpd24.sh .
 RUN bash httpd24.sh

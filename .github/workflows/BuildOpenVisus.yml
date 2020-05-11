@@ -210,7 +210,7 @@ jobs:
               -e PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }} \
               -v $(pwd):/root/OpenVisus \
               -w /root/OpenVisus \
-              visus/travis-image \
+              visus/portable-linux-binaries \
               /bin/bash 
               
            docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
