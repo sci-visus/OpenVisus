@@ -42,7 +42,8 @@ if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
   rm -Rf $(find ${CONDA} -iname "openvisus*.tar.bz2")  || true
   python setup.py -q bdist_conda 1>/dev/null
   CONDA_FILENAME=$(find ${CONDA} -iname "openvisus*.tar.bz2"  | head -n 1) 
-  anaconda -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
+  anaconda login --username ${CONDA_USERNAME} --password ${CONDA_PASSWORD}
+  anaconda --verbose upload "${CONDA_FILENAME}"
 fi
 
 
