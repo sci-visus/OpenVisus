@@ -38,11 +38,7 @@ For support: support@visus.net
 
 # ViSUS Visualization project  
 
-Appveyor: ![Appveyor](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master?svg=true) 
-Travis: ![Travis](https://travis-ci.org/sci-visus/OpenVisus.svg?branch=master)
-CircleCI: ![CircleCI](https://circleci.com/gh/sci-visus/OpenVisus.svg?style=svg) 
-Azure: ![Azure](https://dev.azure.com/scrgiorgio0653/scrgiorgio/_apis/build/status/sci-visus.OpenVisus)
-GitHub ![GitHub](https://github.com/sci-visus/OpenVisus/workflows/C/C++%20CI/badge.svg)
+![GitHub Actions](https://github.com/sci-visus/OpenVisus/workflows/BuildOpenVisus/badge.svg)
 
 Table of content:
 
