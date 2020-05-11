@@ -54,6 +54,8 @@ jobs:
       run: |
            set -e  # stop or error
            set -x  # very verbose  
+           
+           uname
 
            PYTHON_VERSION=${{ matrix.python-version }}
            PLATFORM_NAME=win_amd64
@@ -91,35 +93,12 @@ jobs:
     # ____________________________________________
     - name: Build OpenVisus conda package
       if: matrix.python-version != '3.8' 
-      env: 
-         ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       shell: bash -l {0}
-      run: | 
-           set -e  # stop or error
-           # set -x  # very verbose   
-                 
-           conda activate 1>/dev/null
-           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 1>/dev/null
-           conda create -q -n tmp python=${{ matrix.python-version }} numpy 1>/dev/null
-           conda activate tmp 1>/dev/null
-           conda install conda-build anaconda-client numpy 1>/dev/null   
-           
-           which python 
-
-           cd build/Release/OpenVisus
-           PYTHONPATH=../ python -m OpenVisus configure 1>/dev/null
-           
-           PYTHONPATH=../ python -m OpenVisus test
-           PYTHONPATH=../ python -m OpenVisus convert
-         
-           # https://anaconda.org/ViSUS/settings/access
-           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-           if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
-              rm -Rf $(find ~/Miniconda3 -iname "openvisus*.tar.bz2")   
-              python setup.py -q bdist_conda 1>/dev/null
-              CONDA_FILENAME=$(find ~/Miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)  
-              anaconda -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
-           fi
+      run: 
+        export PYTHON_VERSION=${{ matrix.python-version }} 
+        export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} 
+        cd build/Release/OpenVisus 
+        ./scripts/build_conda.sh
 
         
   # ///////////////////////////////////////////////////////////////
@@ -208,33 +187,13 @@ jobs:
     # ____________________________________________
     - name: Build OpenVisus conda package
       if: matrix.python-version != '3.8' 
-      env: 
-        ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       shell: bash -l {0}
-      run: | 
-           set -e  # stop or error
-           # set -x  # very verbose   
-                 
-           conda activate 1>/dev/null
-           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 1>/dev/null
-           conda create -q -n tmp python=${{ matrix.python-version }}   numpy 1>/dev/null
-           conda activate tmp    1>/dev/null
-           conda install conda-build anaconda-client numpy 1>/dev/null
-
-           cd build/Release/OpenVisus
-           PYTHONPATH=../ python -m OpenVisus configure 1>/dev/null
-           
-           PYTHONPATH=../ python -m OpenVisus test
-           PYTHONPATH=../ python -m OpenVisus convert
-         
-           # https://anaconda.org/ViSUS/settings/access
-           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-           if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
-              rm -Rf $(find ~/Miniconda3 -iname "openvisus*.tar.bz2")   
-              python setup.py -q bdist_conda 1>/dev/null
-              CONDA_FILENAME=$(find ~/Miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)  
-              anaconda -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
-           fi
+      run: 
+        export PYTHON_VERSION=${{ matrix.python-version }} 
+        export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} 
+        cd build/Release/OpenVisus 
+        ./scripts/build_conda.sh    
+      
 
        
   # ///////////////////////////////////////////////////////////////
@@ -258,6 +217,9 @@ jobs:
          PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
          PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
+           set -e  # stop or error
+           set -x  # very verbose        
+      
            docker run -d -it --name mydocker \
               -e PYTHON_VERSION=${{ matrix.python-version }} \
               -e PYPI_USERNAME=${PYPI_USERNAME} \
@@ -270,9 +232,9 @@ jobs:
            docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
            
            # fix permissions (see https://unix.stackexchange.com/questions/29902/unable-to-delete-file-even-when-running-as-root)
-           chattr -R -i -a     ./build
-           chown -R root:root  ./build
-           chmod -R a+rwx      ./build
+           ls -lF build/Release/OpenVisus
+           sudo chown -R root:root  ./build
+           sudo chmod -R a+rwx      ./build
            
     # ____________________________________________
     - name: Install Miniconda 
@@ -284,37 +246,10 @@ jobs:
     # ____________________________________________
     - name: Build OpenVisus conda package
       if: matrix.python-version != '3.8' 
-      env: 
-         ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       shell: bash -l {0}
-      run: | 
-           set -e  # stop or error
-           # set -x  # very verbose   
-                 
-           conda activate 1>/dev/null
-           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 1>/dev/null
-           conda create -q -n tmp python=${{ matrix.python-version }} numpy 1>/dev/null
-           conda activate tmp 1>/dev/null
-           conda install conda-build anaconda-client numpy 1>/dev/null
-
-           cd build/Release/OpenVisus
-           
-           # I get some random crashes in Linux, so I'm using more actions than a simple configure here..
-           conda uninstall pyqt 1>/dev/null || true
-           PYTHONPATH=../ python -m OpenVisus remove-qt5 1>/dev/null
-           PYTHONPATH=../ python -m OpenVisus install-pyqt5 1>/dev/null
-           PYTHONPATH=../ python -m OpenVisus link-pyqt5 1>/dev/null || true # this crashes on linux (after the sys.exit(0), so I should be fine)
-           PYTHONPATH=../ python -m OpenVisus generate-scripts pyqt5 1>/dev/null
-           
-           PYTHONPATH=../ python -m OpenVisus test
-           PYTHONPATH=../ python -m OpenVisus convert      
-         
-           # https://anaconda.org/ViSUS/settings/access
-           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-           if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
-              rm -Rf $(find ~/Miniconda3 -iname "openvisus*.tar.bz2")   
-              python setup.py -q bdist_conda 1>/dev/null
-              CONDA_FILENAME=$(find ~/Miniconda3 -iname "openvisus*.tar.bz2"  | head -n 1)  
-              anaconda -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
-           fi
+      run: 
+        export PYTHON_VERSION=${{ matrix.python-version }} 
+        export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} 
+        cd build/Release/OpenVisus 
+        ./scripts/build_conda.sh
 
