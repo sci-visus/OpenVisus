@@ -407,7 +407,11 @@ def GenerateScript(script_filename, target_filename, gui_lib):
 		content=content.replace("${__pyqt5_dir__}", os.path.dirname(PyQt5.__file__))
 	
 	WriteTextFile(script_filename , content)
-	os.chmod(script_filename, 0o777)
+	
+	try:
+		os.chmod(script_filename, 0o777)
+	except
+		pass
 
 # ////////////////////////////////////////////////
 def GenerateScripts(gui_lib):
