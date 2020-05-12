@@ -5,7 +5,9 @@ set -e  # stop or error
 export PYTHON_VERSION=${PYTHON_VERSION:-3.6}
 export PYTHONUNBUFFERED=1
      
+   
 conda activate                                                                1>/dev/null
+conda update -n base -c defaults conda                                        1>/dev/null
 conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 1>/dev/null
 conda create -q -n tmp python=${PYTHON_VERSION} numpy                         1>/dev/null
 conda activate tmp                                                            1>/dev/null
