@@ -88,12 +88,9 @@ jobs:
       if: matrix.python-version != '3.8' 
       shell: bash -l {0}
       run: |
-           export PYTHON_VERSION=${{ matrix.python-version }} 
-           export CONDA_USERNAME=${{ secrets.CONDA_USERNAME }} 
-           export CONDA_PASSWORD=${{ secrets.CONDA_PASSWORD }} 
            cd build/Release/OpenVisus 
            conda update -n base -c defaults conda
-           source ./scripts/build_conda.sh
+           ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} PYTHON_VERSION=${{ matrix.python-version }} ./scripts/build_conda.sh
 
         
   # ///////////////////////////////////////////////////////////////
@@ -179,12 +176,9 @@ jobs:
       if: matrix.python-version != '3.8' 
       shell: bash -l {0}
       run: |
-           export PYTHON_VERSION=${{ matrix.python-version }} 
-           export CONDA_USERNAME=${{ secrets.CONDA_USERNAME }} 
-           export CONDA_PASSWORD=${{ secrets.CONDA_PASSWORD }} 
            cd build/Release/OpenVisus 
            conda update -n base -c defaults conda
-           source ./scripts/build_conda.sh
+           ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} PYTHON_VERSION=${{ matrix.python-version }} ./scripts/build_conda.sh
        
   # ///////////////////////////////////////////////////////////////
   BuildOnUbuntuJob:
@@ -235,11 +229,7 @@ jobs:
       if: matrix.python-version != '3.8' 
       shell: bash -l {0}
       run: |
-           export PYTHON_VERSION=${{ matrix.python-version }} 
-           export CONDA_USERNAME=${{ secrets.CONDA_USERNAME }} 
-           export CONDA_PASSWORD=${{ secrets.CONDA_PASSWORD }} 
-           export LINUX_FIX_RANDOM_CRASH=1
            cd build/Release/OpenVisus 
            conda update -n base -c defaults conda
-           source ./scripts/build_conda.sh
+           ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} PYTHON_VERSION=${{ matrix.python-version }} LINUX_FIX_RANDOM_CRASH=1 ./scripts/build_conda.sh
            
