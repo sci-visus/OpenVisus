@@ -39,7 +39,7 @@ PYTHONPATH=../ python -m OpenVisus convert
 # https://anaconda.org/ViSUS/settings/access
 GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
 
-if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" !=  ]] ; then
+if [[ "${GIT_TAG}" != "" && "${ANACONDA_TOKEN}" != "" ]] ; then
   rm -Rf $(find ${CONDA} -iname "openvisus*.tar.bz2")  || true
   python setup.py -q bdist_conda 1>/dev/null
   CONDA_FILENAME=$(find ${CONDA} -iname "openvisus*.tar.bz2"  | head -n 1) 
