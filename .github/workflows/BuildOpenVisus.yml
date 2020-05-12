@@ -90,6 +90,7 @@ jobs:
       run: |
            cd build/Release/OpenVisus 
            conda update -n base -c defaults conda
+           chmod a+x ./scripts/build_conda.sh
            ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} PYTHON_VERSION=${{ matrix.python-version }} ./scripts/build_conda.sh
 
         
@@ -178,6 +179,7 @@ jobs:
       run: |
            cd build/Release/OpenVisus 
            conda update -n base -c defaults conda
+           chmod a+x ./scripts/build_conda.sh
            ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} PYTHON_VERSION=${{ matrix.python-version }} ./scripts/build_conda.sh
        
   # ///////////////////////////////////////////////////////////////
@@ -231,5 +233,6 @@ jobs:
       run: |
            cd build/Release/OpenVisus 
            conda update -n base -c defaults conda
+           chmod a+x ./scripts/build_conda.sh
            ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} PYTHON_VERSION=${{ matrix.python-version }} LINUX_FIX_RANDOM_CRASH=1 ./scripts/build_conda.sh
            
