@@ -308,78 +308,78 @@ def LinkPyQt5():
 # /////////////////////////////////////////////////////////////////////////
 __scripts={
 "WIN32-nogui" : r"""
-cd %~dp0
-set PATH=${__python__}\..;%PATH%;.\bin
+set this_dir=%~dp0
+set PATH=${__python__}\..;%this_dir%\bin;%PATH%
 set PYTHONPATH=${__pythonpath__}
-${__target__}" %*
+"%this_dir%\${__target__}" %*
 """,
 
 "WIN32-qt5": r"""
-cd %~dp0
-set PATH=${__python__}\..;.\bin;bin\Qt\bin;%PATH%
+set this_dir=%~dp0
+set PATH=${__python__}\..;%this_dir%\bin;%this_dir%\bin\Qt\bin;%PATH%
 set PYTHONPATH=${__pythonpath__}
-set QT_PLUGIN_PATH=bin\Qt\plugins
-"${__target__}" %*
+set QT_PLUGIN_PATH=%this_dir%\bin\Qt\plugins
+"%this_dir%\${__target__}" %*
 """,
 
 "WIN32-pyqt5": r"""
-cd %~dp0
-set PATH=${__python__}\..;.\bin;${__pyqt5_dir__}\Qt\bin;%PATH%
+set this_dir=%~dp0
+set PATH=${__python__}\..;%this_dir%\bin;${__pyqt5_dir__}\Qt\bin;%PATH%
 set PYTHONPATH=${__pythonpath__}
 set QT_PLUGIN_PATH=${__pyqt5_dir__}\Qt\plugins
-"${__target__}" %*
+"%this_dir%\${__target__}" %*
 """,
 
 "APPLE-nogui" : r"""
 #!/bin/bash
-cd $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+this_dir=$(dirname ${BASH_SOURCE[0]})
 export PYTHONPATH=${__pythonpath__}
-export LD_LIBRARY_PATH=${__libdir__}:${DYLD_LIBRARY_PATH}
-${__target__} "$@"
+export DYLD_LIBRARY_PATH=${__libdir__}:${DYLD_LIBRARY_PATH}
+${this_dir}/${__target__} "$@"
 """,
 
 "APPLE-qt5" : r"""
 #!/bin/bash
-cd $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+this_dir=$(dirname ${BASH_SOURCE[0]})
 export PYTHONPATH=${__pythonpath__}
 export DYLD_LIBRARY_PATH=${__libdir__}:${DYLD_LIBRARY_PATH}
 export QT_PLUGIN_PATH=$(pwd)/bin/qt/plugins 
-${__target__} "$@"
+${this_dir}/${__target__} "$@"
 """,
 
 "APPLE-pyqt5" : r"""
 #!/bin/bash
-cd $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+this_dir=$(dirname ${BASH_SOURCE[0]})
 export PYTHONPATH=${__pythonpath__}
 export DYLD_LIBRARY_PATH=${__libdir__}:${DYLD_LIBRARY_PATH}
 export QT_PLUGIN_PATH=${__pyqt5_dir__}/Qt/plugins
-${__target__} "$@"
+${this_dir}/${__target__} "$@"
 """,
 
 "LINUX-nogui": r"""
 #!/bin/bash
-cd $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+this_dir=$(dirname ${BASH_SOURCE[0]})
 export PYTHONPATH=${__pythonpath__}
 export LD_LIBRARY_PATH=${__libdir__}:${LD_LIBRARY_PATH}
-${__target__} "$@"
+${this_dir}/${__target__} "$@"
 """,
 
 "LINUX-qt5" : r"""
 #!/bin/bash
-cd $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+this_dir=$(dirname ${BASH_SOURCE[0]})
 export PYTHONPATH=${__pythonpath__}
 export LD_LIBRARY_PATH=${__libdir__}:${LD_LIBRARY_PATH}
 export QT_PLUGIN_PATH=$(pwd)/bin/qt/plugins 
-${__target__} "$@"
+${this_dir}/${__target__} "$@"
 """,
 
 "LINUX-pyqt5": r"""
 #!/bin/bash
-cd $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+this_dir=$(dirname ${BASH_SOURCE[0]})
 export PYTHONPATH=${__pythonpath__}
 export LD_LIBRARY_PATH=${__libdir__}:${LD_LIBRARY_PATH}
 export QT_PLUGIN_PATH=${__pyqt5_dir__}/Qt/plugins
-${__target__} "$@"
+${this_dir}/${__target__} "$@"
 """
 }
 

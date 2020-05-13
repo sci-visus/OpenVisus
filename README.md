@@ -57,7 +57,10 @@ Table of content:
 Type:
 
 ```
-python -m pip install numpy OpenVisus
+# optional 
+python -m pip uninstall OpenVisus
+
+python -m pip install OpenVisus # add --no-cache-dir to install the lastest version
 python -m OpenVisus configure 
 python -m OpenVisus test
 python -m OpenVisus convert
