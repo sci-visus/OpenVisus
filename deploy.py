@@ -233,19 +233,21 @@ def InstallPyQt5(needed):
 
 	major,minor=needed.split('.')[0:2]
 
-	current=[0,0,0]
-	try:
-		from PyQt5 import Qt
-		current=str(Qt.qVersion()).split('.')
-	except:
-	  pass
-	
-	if major==current[0] and minor==current[1]:
-		print("installed Pyqt5",current,"is compatible with",needed)
-		return
+	# disabled, I'm having problems with PyQt,PyQt-sip, sip
+	if False:
+		current=[0,0,0]
+		try:
+			from PyQt5 import Qt
+			current=str(Qt.qVersion()).split('.')
+		except:
+		  pass
+		
+		if major==current[0] and minor==current[1]:
+			print("installed Pyqt5",current,"is compatible with",needed)
+			return
 
-	print("Installing a new PyQt5 compatible with",needed)
-
+		print("Installing a new PyQt5 compatible with",needed)
+		
 	bIsConda=False
 	try:
 		import conda.cli
@@ -254,9 +256,15 @@ def InstallPyQt5(needed):
 		pass
 		
 	if bIsConda:
-		conda.cli.main('conda', 'install',  '-y', "pyqt={}.{}".format(major,minor))
+		conda.cli.main('conda', 'uninstall',  '-y', "pyqt")
+		conda.cli.main('conda', 'install',    '-y', "pyqt={}.{}".format(major,minor))
 	else:
-		cmd=[sys.executable,"-m","pip","install","--user","PyQt5~={}.{}.0".format(major,minor),"--progress-bar","off"]
+		cmd=[sys.executable,"-m","pip","uninstall","-y","sip","PyQt5","PyQt5-sip"]
+		print("# Executing",cmd)
+		if subprocess.call(cmd)!=0:
+			raise Exception("Cannot uninstall PyQt5")		
+		
+		cmd=[sys.executable,"-m","pip","install","--progress-bar","off","--no-cache-dir","PyQt5~={}.{}.0".format(major,minor)]
 		print("# Executing",cmd)
 		if subprocess.call(cmd)!=0:
 			raise Exception("Cannot install PyQt5")

@@ -203,3 +203,39 @@ git commit -a -m "New tag" && git tag -a $TAG -m "$TAG" && git push origin $TAG 
 ```
 
 
+##  VisusSlam
+
+On osx install brew dependencies:
+
+``` 
+brew install \
+  exiftool \
+  zbar \
+  https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb
+```
+
+Then install OpenVisus slam package:
+
+```  
+# OPTIONAL
+python -m pip install --upgrade pip
+
+python -m pip install numpy matplotlib pymap3d pytz pyzbar scikit-image scipy pysolar json-tricks  cmapy opencv-python opencv-contrib-python tifffile https://github.com/smarnach/pyexiftool/archive/v0.2.0.zip
+  
+python -m pip install OpenVisus
+python -m OpenVisus configure
+python -m OpenVisus test
+python -m OpenVisus slam "/Users/scrgiorgio/Desktop/TaylorGrant"
+```
+
+If you want to test inside Visual Studio, rememeber to do Cmake `INSTALL` and Cmake `CONFIGURE` only once.
+Then (IMPORTANT!) remove the installed `.\build\RelWithDebugInfo\OpenVisus\Slam` directory in order to make sure you are using your `.\Libs\Slam` local directory. !!!
+Right click on `VisusSlam` target and in `Debug tab` set the following:
+
+```
+Command: C:\Python37\python.exe
+Command Arguments: -m OpenVisus slam "D:\GoogleSci\visus_slam\TaylorGrant" (-m openvisus slam --pdim 3 "D:\GoogleSci\visus_dataset\male\RAW\Fullcolor\fullbody" if you are trying 3d stuff)
+Working directory: D:\projects\OpenVisus
+Environment: PYTHONPATH=D:\projects\OpenVisus\build\RelWithDebInfo;D:\projects\OpenVisus\Libs
+```
+
