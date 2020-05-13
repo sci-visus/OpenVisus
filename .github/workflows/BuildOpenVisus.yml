@@ -18,6 +18,14 @@ jobs:
     # ____________________________________________
     - name: Checkout
       uses: actions/checkout@v2
+  
+    # ____________________________________________
+    - name: Checkout submodules
+      uses: actions/checkout@v2
+      with:
+        repository: sci-visus/VisusSlam
+        token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
+        path: Libs/Slam    
       
     # ____________________________________________
     - name: Install CMake
@@ -61,7 +69,7 @@ jobs:
            mkdir -p build
            cd build    
            
-           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_DIR}" -DPython_EXECUTABLE=${Python_EXECUTABLE} ../
+           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_DIR}" -DPython_EXECUTABLE=${Python_EXECUTABLE} -DVISUS_SLAM=1 ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4 
            cmake --build . --target INSTALL   --config Release
           
@@ -109,6 +117,15 @@ jobs:
       uses: actions/checkout@v2
       
     # ____________________________________________
+    - name: Checkout submodules
+      uses: actions/checkout@v2
+      with:
+        repository: sci-visus/VisusSlam
+        token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
+        path: Libs/Slam    
+            
+      
+    # ____________________________________________
     - name: Install CMake
       uses: lukka/get-cmake@latest
             
@@ -151,7 +168,7 @@ jobs:
            mkdir -p build
            cd build   
            
-           cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} ../
+           cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} -DVISUS_SLAM=1 ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release
               
@@ -197,6 +214,15 @@ jobs:
       uses: actions/checkout@v2
       
     # ____________________________________________
+    - name: Checkout submodules
+      uses: actions/checkout@v2
+      with:
+        repository: sci-visus/VisusSlam
+        token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
+        path: Libs/Slam    
+            
+      
+    # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
       run: |
@@ -205,6 +231,7 @@ jobs:
       
            docker run -d -it --name mydocker \
               -e PYTHON_VERSION=${{ matrix.python-version }} \
+              -e VISUS_SLAM=1 \
               -e Qt5_DIR=/opt/qt59 \
               -e PYPI_USERNAME=${{ secrets.PYPI_USERNAME }} \
               -e PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }} \

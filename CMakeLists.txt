@@ -64,11 +64,13 @@ option(VISUS_NET    "Enable VISUS_NET"    ON)
 option(VISUS_IMAGE  "Enable VISUS_IMAGE"  ON)
 option(VISUS_PYTHON "Enable VISUS_PYTHON" ON)
 option(VISUS_GUI    "Enable VISUS_GUI"    ON)
+option(VISUS_SLAM   "Enable VISUS_SLAM"   OFF)
 
 message(STATUS "VISUS_NET    ${VISUS_NET}")
 message(STATUS "VISUS_IMAGE  ${VISUS_IMAGE}")
 message(STATUS "VISUS_PYTHON ${VISUS_PYTHON}")
 message(STATUS "VISUS_GUI    ${VISUS_GUI}")
+message(STATUS "VISUS_SLAM   ${VISUS_SLAM}")
 
 if (VISUS_PYTHON)
 	find_package(Python COMPONENTS Interpreter Development REQUIRED)

@@ -9,8 +9,7 @@ if (VISUS_GUI)
 	add_subdirectory(Gui)
 endif()
   
-if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/Slam/CMakeLists.txt)
-	message(STATUS "Enabled VisusSlam")
+if (VISUS_SLAM)
 	add_subdirectory(Slam)
 endif()
 
