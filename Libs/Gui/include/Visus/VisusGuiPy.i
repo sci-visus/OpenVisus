@@ -49,19 +49,20 @@ using namespace Visus;
 //__________________________________________________________
 %pythonbegin %{
 
+this_dir=os.path.dirname(os.path.realpath(__file__))
+
+if os.path.isdir(os.path.join(this_dir,"bin","qt")):
+	QT5_DIR=os.path.join(this_dir,"bin","qt")
+else: 
+	import PyQt5
+	QT5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"qt")
+
 # for windows I need to tell how to find Qt
 if WIN32:
-
-	this_dir=os.path.dirname(os.path.realpath(__file__))
-
-	if os.path.isdir(os.path.join(this_dir,"bin","qt")):
-		QT5_DIR=os.path.join(this_dir,"bin","qt")
-	else: 
-		import PyQt5
-		QT5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"qt")
-
 	AddSysPath(os.path.join(QT5_DIR,"bin"))
-	os.environ["QT_PLUGIN_PATH"]= os.path.join(QT5_DIR,"plugins")
+
+# I need to tell where to found Qt plugins
+os.environ["QT_PLUGIN_PATH"]= os.path.join(QT5_DIR,"plugins")
 %}
 
 
