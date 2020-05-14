@@ -135,7 +135,6 @@ if (1)
 	INSTALL(FILES datasets/visus.config          DESTINATION   ${ConfigName}/${PROJECT_NAME}/)
 	INSTALL(FILES ${__qt_version_filename__}     DESTINATION   ${ConfigName}/${PROJECT_NAME}/)
 	INSTALL(FILES setup.py                       DESTINATION   ${ConfigName}/${PROJECT_NAME}/)
-	INSTALL(FILES deploy.py                      DESTINATION   ${ConfigName}/${PROJECT_NAME}/)
 
 	INSTALL(DIRECTORY Copyrights                 DESTINATION   ${ConfigName}/${PROJECT_NAME} USE_SOURCE_PERMISSIONS)
 	INSTALL(DIRECTORY Samples                    DESTINATION   ${ConfigName}/${PROJECT_NAME} USE_SOURCE_PERMISSIONS)
@@ -160,7 +159,7 @@ if (1)
 			INSTALL(CODE "
 				message(STATUS \"Executing post install InstallConfigName=${InstallConfigName}....\")
 				execute_process(
-					COMMAND ${__Python_EXECUTABLE__} -u deploy.py install-qt5 \"${Qt5_HOME}\" \${CMAKE_INSTALL_CONFIG_NAME}
+					COMMAND ${__Python_EXECUTABLE__} -u __main__.py install-qt5 \"${Qt5_HOME}\" \${CMAKE_INSTALL_CONFIG_NAME}
 						RESULT_VARIABLE __retcode__
 						WORKING_DIRECTORY \"${CMAKE_BINARY_DIR}/${InstallConfigName}/${PROJECT_NAME}\")
 				if(NOT \"\${__retcode__}\" STREQUAL \"0\")

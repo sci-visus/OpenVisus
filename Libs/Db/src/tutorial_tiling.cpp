@@ -38,7 +38,8 @@ For support : support@visus.net
 
 #include <Visus/IdxDataset.h>
 
-using namespace Visus;
+
+namespace Visus {
 
 /////////////////////////////////////////////////////////////////////////////////////
 void TilingExample(IdxDataset* dataset)
@@ -133,3 +134,4 @@ void Tutorial_Tiling(String default_layout)
   TilingExample(dataset.get());
 }
 
+} //namespace Visus

@@ -1,4 +1,4 @@
-%module(directors="1") OpenVisusGui
+%module(directors="1") VisusGuiPy
 
 %{ 
 #include <Visus/Gui.h>
@@ -49,8 +49,9 @@ using namespace Visus;
 //__________________________________________________________
 %pythonbegin %{
 
-# windows does not have RPAT, but I can add some path to sys and it works!
+# for windows I need to tell how to find Qt
 if WIN32:
+
 	this_dir=os.path.dirname(os.path.realpath(__file__))
 
 	if os.path.isdir(os.path.join(this_dir,"bin","qt")):
@@ -59,7 +60,7 @@ if WIN32:
 		import PyQt5
 		QT5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"qt")
 
-	AddSysPath(os.path.join(QT5_DIR,"bin"),bBegin=True)
+	AddSysPath(os.path.join(QT5_DIR,"bin"))
 	os.environ["QT_PLUGIN_PATH"]= os.path.join(QT5_DIR,"plugins")
 %}
 

@@ -11,9 +11,8 @@ from OpenVisus import *
 
 # on windows rememeber to INSTALL and CONFIGURE
 
-from OpenVisusGui import *
-
-from OpenVisus.PyViewer import *
+from OpenVisus.VisusGuiPy import *
+from OpenVisus.PyViewer   import *
 
 import PyQt5
 from   PyQt5.QtCore    import *
@@ -116,9 +115,10 @@ def Main(argv):
 	# pynode will get the data from the query
 	query_node=viewer.findNodeByUUID("volume")
 	viewer.connectNodes(query_node, pynode)
-	 
+		 
 	GuiModule.execApplication()
-	viewer=None  
+	viewer=None
+
 	GuiModule.detach()
 	print("All done")
 	sys.exit(0)

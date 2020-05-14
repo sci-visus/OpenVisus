@@ -11,7 +11,7 @@ from OpenVisus import *
 
 # on windows rememeber to INSTALL and CONFIGURE
 
-from OpenVisusGui              import *
+from OpenVisus.VisusGuiPy      import *
 from OpenVisus.PyViewer        import *
 from OpenVisus.PyScriptingNode import *
 
@@ -27,20 +27,20 @@ def Main(argv):
 	GuiModule.attach()
 	
 	VISUS_REGISTER_NODE_CLASS("ScriptingNode", "PyScriptingNode", lambda : PyScriptingNode())
-	
+		
 	viewer=PyViewer()
 	viewer.open(r".\datasets\cat\gray.idx")
-	
+		
 	# ... with some little python scripting
 	viewer.setScriptingCode("\n".join([
 		"import numpy,cv2",
 		"print(type(input),input.shape,input.dtype)",
 		"output=cv2.Laplacian(input,cv2.CV_64F)"
 		]))
-	viewer.run()
-	
+		
 	GuiModule.execApplication()
-	viewer=None  
+	viewer=None
+
 	GuiModule.detach()
 	print("All done")
 	sys.exit(0)	

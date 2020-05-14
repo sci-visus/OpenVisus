@@ -292,8 +292,8 @@ public:
     return "Viewer";
   }
 
-  //configureFromCommandLine
-  void configureFromCommandLine(std::vector<String> args);
+  //configureFromArgs
+  void configureFromArgs(std::vector<String> args);
 
   //this is needed for swig
   void* c_ptr() {

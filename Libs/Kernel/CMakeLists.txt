@@ -31,7 +31,6 @@ source_group("" FILES
 	./src/Kernel.mm
 	../../OpenVisusConfig.cmake
 	../../setup.py
-	../../deploy.py
 )
 
 source_group("Core" FILES

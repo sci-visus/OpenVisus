@@ -261,6 +261,5 @@ jobs:
            cd build/Release/OpenVisus 
            export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} 
            export PYTHON_VERSION=${{ matrix.python-version }} 
-           export LINUX_FIX_RANDOM_CRASH=1 
            source ./scripts/build_conda.sh
            

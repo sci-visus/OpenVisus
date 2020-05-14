@@ -36,50 +36,48 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/IdxDataset.h>
+#ifndef __VISUS_DB_VISUS_CONVERT_H
+#define __VISUS_DB_VISUS_CONVERT_H
 
-using namespace Visus;
+#include <Visus/Db.h>
+#include <Visus/Dataset.h>
+#include <Visus/IdxFile.h>
 
-////////////////////////////////////////////////////////////////////////////////////
-//read specific region of Dataset from tutorial_1 "merging" partial results
-////////////////////////////////////////////////////////////////////////////////////
-void Tutorial_3(String default_layout)
+namespace Visus {
+
+VISUS_DB_API void SelfTestIdx(int max_seconds);
+
+
+//////////////////////////////////////////////////////////////////////////////
+class VISUS_DB_API VisusConvert
 {
-  auto dataset= LoadDataset("temp/tutorial_1.idx");
-  
-  BoxNi world_box=dataset->getLogicBox();
+public:
 
-  //any time you need to read/write data from/to a Dataset I need a Access
-  auto access=dataset->createAccess();
+  class VISUS_DB_API Step;
 
-  Field field=dataset->getDefaultField();
+  //constructor
+  VisusConvert();
 
-  //this is the maximum resolution of the Dataset 
+  //getHelp
+  String getHelp();
 
-  //in the bitmask "V012012012012" the very last bit of the bitmask is at position MaxH=12 
-  VisusReleaseAssert(dataset->getMaxResolution() ==12);
+  //exec
+  void run(std::vector<String> args);
 
-  //I want to read data from first slice Z=0
-  BoxNi slice_box=world_box.getZSlab(0,1);
+private:
 
-  //create and read data for resolutions [8,12] (12==MaxH which is the very last available on disk)
-  auto query=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-  query->logic_box=slice_box;
-  query->end_resolutions={8,12};
-  query->merge_mode=InsertSamples; 
+  std::map<String, std::function< SharedPtr<Step>() > > actions;
 
-  dataset->beginQuery(query);
-  VisusReleaseAssert(dataset->executeQuery(access, query));
-  VisusReleaseAssert(query->getCurrentResolution() == 8);
+  //addAction
+  void addAction(String name, std::function< SharedPtr<Step>()> fn) {
+    actions[name] = fn;
+  }
 
-  dataset->nextQuery(query);
-  VisusReleaseAssert(dataset->executeQuery(access, query));
-  VisusReleaseAssert(query->getCurrentResolution() == 12);
+};
 
-  //I can verify the data is correct
-  GetSamples<Uint32> SRC(query->buffer);
-  for (int I=0;I<16*16;I++) 
-    VisusReleaseAssert(SRC[I]==I);
-}
 
+} //namespace Visus
+
+
+#endif //__VISUS_DB_VISUS_CONVERT_H
 

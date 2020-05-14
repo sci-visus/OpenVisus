@@ -497,30 +497,26 @@ void Viewer::setScriptingCode(String value)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
-void Viewer::configureFromCommandLine(std::vector<String> args)
+void Viewer::configureFromArgs(std::vector<String> args)
 {
-  for (int I = 1; I<(int)args.size(); I++)
+  if (Utils::contains(args,String("--help")))
   {
-    if (args[I] == "--help")
-    {
-      PrintInfo("\n",
-        "visusviewer help:","\n",
-        "   --visus-config <path>                                                  - path to visus.config","\n",
-        "   --open <url>                                                           - opens the specified url or .idx volume", "\n",
-        "   --server                                                               - starts a standalone ViSUS Server on port 10000", "\n",
-        "   --fullscseen                                                           - starts in fullscreen mode", "\n",
-        "   --geometry \"<x> <y> <width> <height>\"                                - specify viewer windows size and location", "\n",
-        "   --zoom-to \"x1 y1 x2 y2\"                                              - set glcamera ortho params", "\n",
-        "   --network-rcv <port>                                                   - run powerwall slave", "\n",
-        "   --network-snd <slave_url> <split_ortho> <screen_bounds> <aspect_ratio> - add a slave to a powerwall master", "\n",
-        "   --split-ortho \"x y width height\"                                     - for taking snapshots", "\n",
-        "   --internal-network-test-(11|12|14|111)                                 - internal use only", "\n",
-        "\n",
-        "\n");
+    PrintInfo("\n",
+      "   --visus-config <path>                                                  - path to visus.config","\n",
+      "   --open <url>                                                           - opens the specified url or .idx volume", "\n",
+      "   --server                                                               - starts a standalone ViSUS Server on port 10000", "\n",
+      "   --fullscseen                                                           - starts in fullscreen mode", "\n",
+      "   --geometry \"<x> <y> <width> <height>\"                                - specify viewer windows size and location", "\n",
+      "   --zoom-to \"x1 y1 x2 y2\"                                              - set glcamera ortho params", "\n",
+      "   --network-rcv <port>                                                   - run powerwall slave", "\n",
+      "   --network-snd <slave_url> <split_ortho> <screen_bounds> <aspect_ratio> - add a slave to a powerwall master", "\n",
+      "   --split-ortho \"x y width height\"                                     - for taking snapshots", "\n",
+      "   --internal-network-test-(11|12|14|111)                                 - internal use only", "\n",
+      "\n",
+      "\n");
 
-      GuiModule::detach();
-      exit(0);
-    }
+    GuiModule::detach();
+    exit(0);
   }
 
   typedef Visus::Rectangle2d Rectangle2d;
@@ -542,7 +538,7 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
   bool bMinimal = false;
   String play_file;
 
-  for (int I = 1; I<(int)args.size(); I++)
+  for (int I = 0; I<(int)args.size(); I++)
   {
     if (args[I] == "--open")
     {

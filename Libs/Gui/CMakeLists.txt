@@ -129,7 +129,7 @@ INSTALL(FILES     ./PyScriptingNode.py     DESTINATION ${ConfigName}/${PROJECT_N
 INSTALL(FILES     ./PyViewer.py            DESTINATION ${ConfigName}/${PROJECT_NAME}/)
 
 if (VISUS_PYTHON)
-	AddSwigLibrary(OpenVisusGui VisusGui ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/OpenVisusGui.i 
+	AddSwigLibrary(VisusGuiPy VisusGui ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiPy.i 
 		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
 		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
 		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include"

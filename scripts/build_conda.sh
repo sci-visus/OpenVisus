@@ -14,21 +14,8 @@ conda install conda-build anaconda-client numpy                               1>
 
 which python
 
-# I get some random crashes in Linux, so I'm using more actions than a simple configure here..
-if (( LINUX_FIX_RANDOM_CRASH == 1 )) ; then
-	
-	conda uninstall pyqt 1>/dev/null 2>/dev/null || true
-
-	PYTHONPATH=../ python -m OpenVisus remove-qt5             1>/dev/null
-	PYTHONPATH=../ python -m OpenVisus install-pyqt5          1>/dev/null
-	PYTHONPATH=../ python -m OpenVisus link-pyqt5             1>/dev/null 2>/dev/null || true # this crashes on linux (after the sys.exit(0), so I should be fine)
-	PYTHONPATH=../ python -m OpenVisus generate-scripts pyqt5 1>/dev/null	
-	
-else
-
-	PYTHONPATH=../ python -m OpenVisus configure              1>/dev/null
-	 
-fi
+# this crashes on linux (after the sys.exit(0), so I should be fine)
+PYTHONPATH=../ python -m OpenVisus configure  1>/dev/null 2>/dev/null || true 
 
 set -x  # very verbose
 

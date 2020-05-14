@@ -1,10 +1,14 @@
 
-SET(RootSources
+FILE(GLOB RootSources
 	./PyDataset.py
 	./include/Visus/Db.h
 	./src/Db.cpp
 	./include/Visus/ModVisus.h
 	./src/ModVisus.cpp
+	src/tutorial*.cpp
+	src/SelfTest*.cpp
+	include/Visus/VisusConvert.h
+	src/VisusConvert.cpp
 )
 
 SET(QuerySources
@@ -55,19 +59,10 @@ SET(AccessSources
 )
 
 
-SET(IdxSources
-	include/Visus/IdxDataset.h
-	include/Visus/IdxDiskAccess.h
-	include/Visus/IdxFile.h
-	include/Visus/IdxHzOrder.h
-	include/Visus/IdxMultipleDataset.h              
-	src/IdxDataset.cpp        
-	src/IdxDiskAccess.cpp     
-	src/IdxFile.cpp           
-	src/IdxFilter.cpp         
-	src/IdxHzOrder.cpp        
-	src/IdxMultipleDataset.cpp
-	src/LogicSamples.cpp  
+FILE(GLOB IdxSources
+	include/Visus/Idx*.h          
+	src/Idx*.cpp   
+	src/LogicSamples.cpp 
 )
 
 source_group(""         FILES ${RootSources})

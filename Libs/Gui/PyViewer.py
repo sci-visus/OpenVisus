@@ -6,8 +6,8 @@ from   PyQt5.QtWidgets import *
 from   PyQt5.QtGui	 import *
 import PyQt5.sip  as  sip
 
-from OpenVisus	      import *
-from OpenVisusGui    import *
+from OpenVisus	           import *
+from OpenVisus.VisusGuiPy import *
 
 from OpenVisus.PyUtils import *
 from OpenVisus.PyImage import *

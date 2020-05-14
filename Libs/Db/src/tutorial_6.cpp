@@ -40,7 +40,7 @@ For support : support@visus.net
 #include <Visus/DatasetFilter.h>
 #include <Visus/File.h>
 
-using namespace Visus;
+namespace Visus {
 
 //////////////////////////////////////////////////////////////////////////////////////
 static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DType in_dtype,PointNi offset,int bitsperblock,String default_layout,String filter)
@@ -334,3 +334,5 @@ void Tutorial_6(String default_layout)
     dataset->removeFiles();
   }
 }
+
+} //namespace Visus

@@ -39,7 +39,7 @@ For support : support@visus.net
 #include <Visus/IdxDataset.h>
 #include <Visus/Encoder.h>
 
-using namespace Visus;
+namespace Visus {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 //TUTORIAL_1 create a dataset of dimension (16,16,16) and write some data
@@ -100,3 +100,5 @@ void Tutorial_1(String default_layout)
     VisusReleaseAssert(dataset->executeQuery(access,query));
   }
 }
+
+} //namespace Visus

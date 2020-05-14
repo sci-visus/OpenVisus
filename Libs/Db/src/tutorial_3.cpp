@@ -38,49 +38,50 @@ For support : support@visus.net
 
 #include <Visus/IdxDataset.h>
 
-using namespace Visus;
 
+namespace Visus {
 
-////////////////////////////////////////////////////////////////////////
-//read data from tutorial 1
-////////////////////////////////////////////////////////////////////////
-void Tutorial_2(String default_layout)
+////////////////////////////////////////////////////////////////////////////////////
+//read specific region of Dataset from tutorial_1 "merging" partial results
+////////////////////////////////////////////////////////////////////////////////////
+void Tutorial_3(String default_layout)
 {
-  //read Dataset from tutorial 1
-  auto dataset= LoadDataset("temp/tutorial_1.idx");
+  auto dataset = LoadDataset("temp/tutorial_1.idx");
 
-  BoxNi world_box=dataset->getLogicBox();
-
-  int pdim = 3;
-
-  //check the data has dimension (16,16,16)
-  VisusReleaseAssert(dataset->getDefaultField().dtype==(DTypes::UINT32)
-    &&  world_box.p1==PointNi(0,0,0)
-    &&  world_box.p2==PointNi(16,16,16));
+  BoxNi world_box = dataset->getLogicBox();
 
   //any time you need to read/write data from/to a Dataset I need a Access
-  auto access=dataset->createAccess();
-  
-  int cont=0;
-  for (int nslice=0;nslice<16;nslice++)
-  {
-    //this is the bounding box of the region I want to read (i.e. a single slice)
-    BoxNi slice_box=world_box.getZSlab(nslice,nslice+1);
+  auto access = dataset->createAccess();
 
-    //I should get a number of samples equals to the number of samples written in tutorial 1
-    auto query=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-    query->logic_box=slice_box;
-    dataset->beginQuery(query);
-    VisusReleaseAssert(query->isRunning());
-    VisusReleaseAssert(query->getNumberOfSamples()==PointNi(16,16,1));
+  Field field = dataset->getDefaultField();
 
-    //read data from disk
-    VisusReleaseAssert(dataset->executeQuery(access,query));
-    VisusReleaseAssert(query->buffer.c_size()==sizeof(int)*16*16);
+  //this is the maximum resolution of the Dataset 
 
-    GetSamples<Int32> Src(query->buffer);
-    for (int I=0;I<16*16;I++,cont++)
-      VisusReleaseAssert(Src[I]==cont);
-  }
+  //in the bitmask "V012012012012" the very last bit of the bitmask is at position MaxH=12 
+  VisusReleaseAssert(dataset->getMaxResolution() == 12);
+
+  //I want to read data from first slice Z=0
+  BoxNi slice_box = world_box.getZSlab(0, 1);
+
+  //create and read data for resolutions [8,12] (12==MaxH which is the very last available on disk)
+  auto query = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
+  query->logic_box = slice_box;
+  query->end_resolutions = { 8,12 };
+  query->merge_mode = InsertSamples;
+
+  dataset->beginQuery(query);
+  VisusReleaseAssert(dataset->executeQuery(access, query));
+  VisusReleaseAssert(query->getCurrentResolution() == 8);
+
+  dataset->nextQuery(query);
+  VisusReleaseAssert(dataset->executeQuery(access, query));
+  VisusReleaseAssert(query->getCurrentResolution() == 12);
+
+  //I can verify the data is correct
+  GetSamples<Uint32> SRC(query->buffer);
+  for (int I = 0; I < 16 * 16; I++)
+    VisusReleaseAssert(SRC[I] == I);
 }
 
+
+} //namespace Visus
