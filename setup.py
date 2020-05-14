@@ -1,7 +1,7 @@
 import os,sys,shutil,setuptools
 
 PROJECT_NAME="OpenVisus"
-PROJECT_VERSION="1.5.16"
+PROJECT_VERSION="1.5.17"
 
 
 if __name__ == "__main__":
