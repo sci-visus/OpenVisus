@@ -1,0 +1,63 @@
+version: 2
+
+
+jobs:
+
+  linux-3.6:
+    docker:
+      - image: visus/travis-image
+        environment:
+          PYTHON_VERSION: 3.6
+    steps:
+      - run: yum -y install openssh-clients git 
+      - checkout
+      - run: |
+             export GIT_TAG=${CIRCLE_TAG} 
+             bash ./scripts/build_linux.sh
+             cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
+
+  linux-3.7:
+    docker:
+      - image: visus/travis-image
+        environment:
+          PYTHON_VERSION: 3.7
+    steps:
+      - run: yum -y install openssh-clients git 
+      - checkout
+      - run: |
+             export GIT_TAG=${CIRCLE_TAG} 
+             bash ./scripts/build_linux.sh
+             cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh
+
+  linux-3.8:
+    docker:
+      - image: visus/travis-image
+        environment:
+          PYTHON_VERSION: 3.8
+    steps:
+      - run: yum -y install openssh-clients git 
+      - checkout
+      - run: |
+             export GIT_TAG=${CIRCLE_TAG} 
+             bash ./scripts/build_linux.sh
+             # cd build_linux/Release/OpenVisus  && bash ./scripts/build_conda.sh BROKEN
+
+
+workflows:
+  version: 2
+  OpenVisusWorkflow:
+    jobs:
+      - linux-3.8:
+          filters:
+            tags:
+              only: /.*/      
+      - linux-3.7:
+          filters:
+            tags:
+              only: /.*/        
+      - linux-3.6:
+          filters:
+            tags:
+              only: /.*/
+              
+              

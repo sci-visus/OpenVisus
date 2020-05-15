@@ -1,0 +1,66 @@
+
+trigger:
+  branches:
+    include:
+    - '*'
+  tags:
+    include:
+    - '*'
+
+jobs:
+  
+   - job: MacOs36
+     pool:
+       vmImage: 'macOS-10.15'
+     steps:
+     - bash: |
+         export PYTHON_VERSION=3.6
+         bash ./scripts/build_osx.sh
+         cd build_osx/Release/OpenVisus 
+         bash ./scripts/build_conda.sh
+   - job: MacOs37
+     pool:
+       vmImage: 'macOS-10.15'
+     steps:
+     - bash: |
+         export PYTHON_VERSION=3.7
+         bash ./scripts/build_osx.sh
+         cd build_osx/Release/OpenVisus 
+         bash ./scripts/build_conda.sh
+         
+   - job: MacOs38
+     pool:
+       vmImage: 'macOS-10.15'
+     steps:
+     - bash: |
+         export PYTHON_VERSION=3.8
+         bash ./scripts/build_osx.sh
+         cd build_osx/Release/OpenVisus 
+         # bash ./scripts/build_conda.sh BROKEN
+
+
+   - job: Linux36
+     pool:
+       vmImage: 'ubuntu-latest'
+     steps:
+     - bash: |
+           docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e PYTHON_VERSION=3.6 visus/travis-image /bin/bash 
+           docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
+           docker exec mydocker /bin/bash -c "cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh"   
+   - job: Linux37
+     pool:
+       vmImage: 'ubuntu-latest'
+     steps:
+     - bash: |
+           docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e PYTHON_VERSION=3.7 visus/travis-image /bin/bash 
+           docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
+           docker exec mydocker /bin/bash -c "cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh"        
+   - job: Linux38
+     pool:
+       vmImage: 'ubuntu-latest'
+     steps:
+     - bash: |
+           docker run -d -it --name mydocker -v $(pwd):/root/OpenVisus -w /root/OpenVisus -e PYTHON_VERSION=3.8 visus/travis-image /bin/bash 
+           docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
+           # docker exec mydocker /bin/bash -c "cd build_linux/Release/OpenVisus && bash ./scripts/build_conda.sh"   BROKEN      
+                                     
