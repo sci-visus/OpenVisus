@@ -242,7 +242,7 @@ def InstallPyQt5(needed):
 		if subprocess.call(cmd)!=0:
 			raise Exception("Cannot uninstall PyQt5")		
 		
-		cmd=[sys.executable,"-m","pip","install","--progress-bar","off","--no-cache-dir","PyQt5~={}.{}.0".format(major,minor)]
+		cmd=[sys.executable,"-m","pip","install","--progress-bar","off","--no-cache-dir","PyQt5~={}.{}.0".format(major,minor), "PyQt5-sip"]
 		print("# Executing",cmd)
 		if subprocess.call(cmd)!=0:
 			raise Exception("Cannot install PyQt5")
