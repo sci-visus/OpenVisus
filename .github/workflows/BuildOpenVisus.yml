@@ -191,7 +191,7 @@ jobs:
            set -e  # stop or error
            set -x  # very verbose        
       
-           docker run -it  \
+           docker run \
               -e PYTHON_VERSION=${{ matrix.python-version }} \
               -e VISUS_SLAM=1 \
               -e Qt5_DIR=/opt/qt59 \
