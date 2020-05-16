@@ -54,7 +54,7 @@ jobs:
 
     # ____________________________________________
     - name: Compile OpenVisus 
-      shell: bash
+      shell: bash -l {0}
       run: |
            conda activate                                                                1>/dev/null
            conda update -n base -c defaults conda                                        1>/dev/null
@@ -145,7 +145,7 @@ jobs:
         
     # ____________________________________________
     - name: Compile OpenVisus 
-      shell: bash
+      shell: bash -l {0}
       run: | 
            conda activate                                                                1>/dev/null
            conda update -n base -c defaults conda                                        1>/dev/null
@@ -209,7 +209,7 @@ jobs:
       
     # ____________________________________________
     - name: Compile OpenVisus 
-      shell: bash
+      shell: bash -l {0}
       run: |
            conda activate                                                                1>/dev/null
            conda update -n base -c defaults conda                                        1>/dev/null
@@ -245,3 +245,4 @@ jobs:
              CONDA_FILENAME=$(find ${CONDA} -iname "openvisus*.tar.bz2"  | head -n 1) 
              anaconda --verbose --show-traceback  -t ${{ secrets.ANACONDA_TOKEN }}  upload "${CONDA_FILENAME}"
            fi
+

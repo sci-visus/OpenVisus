@@ -4,6 +4,9 @@
 # sudo docker login 
 # sudo docker push $TAG
 #
+# to start interactively
+# sudo docker run -it visus/portable-linux-binaries /bin/bash
+#
 # if you see some errors in the build you can do:
 # sudo docker run --rm -it $TAG /bin/bash 
 
@@ -32,8 +35,8 @@ RUN bash cpython.sh 3.7.7
 RUN bash cpython.sh 3.6.10
 
 # COPY scripts/install/miniconda.sh .
-# RUN bash miniconda.sh 
 # COPY scripts/install/python.conda.sh .
+# RUN bash miniconda.sh 
 # RUN bash python.conda.sh 3.6
 # RUN bash python.conda.sh 3.7
 # RUN bash python.conda.sh 3.8
@@ -41,6 +44,16 @@ RUN bash cpython.sh 3.6.10
 COPY scripts/install/httpd24.sh .
 RUN bash httpd24.sh
 
-# be careful if you change version, it could have problems with conda/pyqt in case you need it
-COPY scripts/install/qt59.sh .
-RUN bash qt59.sh 
+RUN yum -y install xz \
+	libX11-devel libx11-xcb-devel libXrender-devel libXau-devel libXext-devel \
+	mesa-libGL-devel mesa-libGLU-devel \
+	fontconfig fontconfig-devel freetype freetype-devel
+
+#COPY scripts/install/qt512.sh .
+#RUN bash qt512.sh 
+
+#COPY scripts/install/qt59.sh .
+#RUN bash qt59.sh 
+
+
+
