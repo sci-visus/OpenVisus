@@ -8,10 +8,10 @@ jobs:
   Windows:
   
     runs-on: windows-latest
-    fail-fast: false 
     strategy:
       matrix:
-        python-version: [ '3.6', '3.7', '3.8' ]  
+        python-version: [ '3.6', '3.7', '3.8' ] 
+        fail-fast: false
         
     steps:
     
@@ -87,10 +87,10 @@ jobs:
   MacOs:
   
     runs-on: macos-latest
-    fail-fast: false 
     strategy:
       matrix:
         python-version: ['3.6', '3.7', '3.8' ]  
+        fail-fast: false 
         
     steps:
     # ____________________________________________
@@ -165,10 +165,10 @@ jobs:
   Ubuntu:
   
     runs-on: ubuntu-latest
-    fail-fast: false 
     strategy:
       matrix:
         python-version: ['3.6', '3.7', '3.8'] 
+        fail-fast: false 
         
     steps:
     # ____________________________________________
@@ -209,10 +209,10 @@ jobs:
   Conda-Windows:
   
     runs-on: windows-latest
-    fail-fast: false 
     strategy:
       matrix:
-        python-version: [ '3.6', '3.7']  
+        python-version: [ '3.6', '3.7'] 
+        fail-fast: false  
         
     steps:
     
@@ -293,10 +293,10 @@ jobs:
   Conda-MacOs:
   
     runs-on: macos-latest
-    fail-fast: false 
     strategy:
       matrix:
         python-version: ['3.6', '3.7']  
+        fail-fast: false 
         
     steps:
     # ____________________________________________
@@ -385,10 +385,10 @@ jobs:
   Conda-Ubuntu:
   
     runs-on: ubuntu-latest
-    fail-fast: false 
     strategy:
       matrix:
         python-version: ['3.6', '3.7']  
+        fail-fast: false 
         
     steps:
     # ____________________________________________
