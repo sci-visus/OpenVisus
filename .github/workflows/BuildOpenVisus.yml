@@ -9,7 +9,6 @@ jobs:
   
     runs-on: windows-latest
     strategy:
-      # max-parallel: 6
       matrix:
         python-version: [ '3.6', '3.7', '3.8' ]  
         
@@ -48,7 +47,7 @@ jobs:
     - name: Install Qt 
       uses: jurplel/install-qt-action@v2
       with:
-        version: '5.9.2'
+        version: '5.12.8'
         arch: 'win64_msvc2017_64'
         install-deps: 'true'  
         dir: C:\
@@ -84,30 +83,12 @@ jobs:
              ${Python_EXECUTABLE} -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }}   --skip-existing  "dist/*.whl" 
            fi               
       
-    # ____________________________________________
-    - name: Install Miniconda 
-      uses: goanpeca/setup-miniconda@v1
-      with:
-        miniconda-version: 'latest'    
-        python-version: ${{ matrix.python-version }}
-        
-    # ____________________________________________
-    - name: Build OpenVisus conda package
-      if: matrix.python-version != '3.8' 
-      shell: bash -l {0}
-      run: |
-           cd build/Release/OpenVisus 
-           export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} 
-           export PYTHON_VERSION=${{ matrix.python-version }} 
-           source ./scripts/build_conda.sh
 
-        
   # ///////////////////////////////////////////////////////////////
   BuildOnMacOsJob:
   
     runs-on: macos-latest
     strategy:
-      # max-parallel: 6
       matrix:
         python-version: ['3.6', '3.7', '3.8' ]  
         
@@ -123,8 +104,7 @@ jobs:
         repository: sci-visus/VisusSlam
         token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
         path: Libs/Slam    
-            
-      
+
     # ____________________________________________
     - name: Install CMake
       uses: lukka/get-cmake@latest
@@ -147,7 +127,7 @@ jobs:
     - name: Install Qt 
       uses: jurplel/install-qt-action@v2
       with:
-        version: '5.9.3'
+        version: '5.12.8'
         target: 'desktop'
         install-deps: 'true'  
         dir: /opt
@@ -181,32 +161,15 @@ jobs:
               ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}  --plat-name=macosx_10_9_x86_64     
               ${Python_EXECUTABLE} -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }}  --skip-existing  "dist/*.whl" 
            fi   
-  
-    # ____________________________________________
-    - name: Install Miniconda 
-      uses: goanpeca/setup-miniconda@v1
-      with:
-        miniconda-version: 'latest'    
-        python-version: ${{ matrix.python-version }}
-        
-    # ____________________________________________
-    - name: Build OpenVisus conda package
-      if: matrix.python-version != '3.8' 
-      shell: bash -l {0}
-      run: |
-           cd build/Release/OpenVisus 
-           export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} 
-           export PYTHON_VERSION=${{ matrix.python-version }} 
-           source ./scripts/build_conda.sh
+
        
   # ///////////////////////////////////////////////////////////////
   BuildOnUbuntuJob:
   
     runs-on: ubuntu-latest
     strategy:
-      # max-parallel: 6
       matrix:
-        python-version: ['3.6', '3.7', '3.8']  
+        python-version: ['3.6', '3.7', '3.8'] # TODO: replace Qt5.9.x with 5.12.x  
         
     steps:
     # ____________________________________________
@@ -221,7 +184,6 @@ jobs:
         token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
         path: Libs/Slam    
             
-      
     # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
@@ -229,7 +191,7 @@ jobs:
            set -e  # stop or error
            set -x  # very verbose        
       
-           docker run -d -it --name mydocker \
+           docker run -it  \
               -e PYTHON_VERSION=${{ matrix.python-version }} \
               -e VISUS_SLAM=1 \
               -e Qt5_DIR=/opt/qt59 \
@@ -238,28 +200,9 @@ jobs:
               -v $(pwd):/root/OpenVisus \
               -w /root/OpenVisus \
               visus/portable-linux-binaries \
-              /bin/bash 
-              
-           docker exec mydocker /bin/bash -c "./scripts/build_linux.sh"
+              /bin/bash -c "./scripts/build_linux.sh"
            
            # fix permissions (see https://unix.stackexchange.com/questions/29902/unable-to-delete-file-even-when-running-as-root)
            sudo chown -R root:root  ./build
            sudo chmod -R a+rwx      ./build
-           
-    # ____________________________________________
-    - name: Install Miniconda 
-      uses: goanpeca/setup-miniconda@v1
-      with:
-        miniconda-version: 'latest'    
-        python-version: ${{ matrix.python-version }}
-        
-    # ____________________________________________
-    - name: Build OpenVisus conda package
-      if: matrix.python-version != '3.8' 
-      shell: bash -l {0}
-      run: |
-           cd build/Release/OpenVisus 
-           export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} 
-           export PYTHON_VERSION=${{ matrix.python-version }} 
-           source ./scripts/build_conda.sh
            
