@@ -218,12 +218,15 @@ brew install \
 Then install OpenVisus slam package:
 
 ```  
-# OPTIONAL
+# OPTIONAL, make sure pip is updated
 python -m pip install --upgrade pip
 
-python -m pip install numpy matplotlib pymap3d pytz pyzbar scikit-image scipy pysolar json-tricks  cmapy opencv-python opencv-contrib-python tifffile https://github.com/smarnach/pyexiftool/archive/v0.2.0.zip
-  
-python -m pip install OpenVisus
+python -m pip install \
+	numpy matplotlib pymap3d pytz pyzbar scikit-image scipy pysolar json-tricks  \
+	cmapy opencv-python opencv-contrib-python tifffile https://github.com/smarnach/pyexiftool/archive/v0.2.0.zip
+ 
+python -m pip uninstall OpenVisus
+python -m pip install --no-cache-dir OpenVisus
 python -m OpenVisus configure
 python -m OpenVisus test
 python -m OpenVisus slam "/Users/scrgiorgio/Desktop/TaylorGrant"
