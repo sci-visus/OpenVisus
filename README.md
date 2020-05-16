@@ -202,15 +202,6 @@ PYTHONPATH=./Release python3.7 -m OpenVisus viewer
 
 See also `scripts\build_linux.sh` for an example of build script.   
 
-## Commit, Continuous Integration deploy
-
-
-Type:
-
-```
-TAG=$(python setup.py new-tag) 
-git commit -a -m "New tag" && git tag -a $TAG -m "$TAG" && git push origin $TAG && git push origin
-```
 
 
 ##  VisusSlam
@@ -248,4 +239,16 @@ Command Arguments: -m OpenVisus slam "D:\GoogleSci\visus_slam\TaylorGrant" (-m o
 Working directory: D:\projects\OpenVisus
 Environment: PYTHONPATH=D:\projects\OpenVisus\build\RelWithDebInfo;D:\projects\OpenVisus\Libs
 ```
+
+
+## Commit, Continuous Integration deploy
+
+
+Type:
+
+```
+TAG=$(python setup.py new-tag) 
+git commit -a -m "New tag" && git tag -a $TAG -m "$TAG" && git push origin $TAG && git push origin
+```
+
 
