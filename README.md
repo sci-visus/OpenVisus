@@ -65,7 +65,7 @@ Type:
 # optional 
 python -m pip uninstall OpenVisus
 
-python -m pip install OpenVisus # add --no-cache-dir to install the lastest version
+python -m pip install --no-cache-dir OpenVisus
 python -m OpenVisus configure 
 python -m OpenVisus test
 python -m OpenVisus convert
@@ -78,8 +78,10 @@ python -m OpenVisus viewer
 Type:
 
 ```
-conda install numpy
-conda install -c visus openvisus
+# optional
+conda uninstall -y openvisus
+
+conda install -y -c visus openvisus
 python -m OpenVisus configure 
 python -m OpenVisus test
 python -m OpenVisus convert

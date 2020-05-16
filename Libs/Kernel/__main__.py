@@ -242,8 +242,13 @@ def LinkPyQt5():
 
 	print("Linking to PyQt5...")
 
-	# this should cover the case where I just installed PyQt5
-	PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip()
+	try:
+		import PyQt5
+		PyQt5_HOME=os.path.dirname(PyQt5.__file__)
+
+	except:
+		# this should cover the case where I just installed PyQt5
+		PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip()
 
 	print("PyQt5_HOME",PyQt5_HOME)
 	if not os.path.isdir(PyQt5_HOME):
