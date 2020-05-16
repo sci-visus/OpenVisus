@@ -5,9 +5,10 @@ on: [push]
 jobs:
         
   # ///////////////////////////////////////////////////////////////
-  WindowsJob:
+  Windows:
   
     runs-on: windows-latest
+    fail-fast: false 
     strategy:
       matrix:
         python-version: [ '3.6', '3.7', '3.8' ]  
@@ -83,9 +84,10 @@ jobs:
       
 
   # ///////////////////////////////////////////////////////////////
-  MacOsJob:
+  MacOs:
   
     runs-on: macos-latest
+    fail-fast: false 
     strategy:
       matrix:
         python-version: ['3.6', '3.7', '3.8' ]  
@@ -160,9 +162,10 @@ jobs:
 
        
   # ///////////////////////////////////////////////////////////////
-  UbuntuJob:
+  Ubuntu:
   
     runs-on: ubuntu-latest
+    fail-fast: false 
     strategy:
       matrix:
         python-version: ['3.6', '3.7', '3.8'] 
@@ -203,9 +206,10 @@ jobs:
 
 
   # ///////////////////////////////////////////////////////////////
-  CondaWindowsJob:
+  Conda-Windows:
   
     runs-on: windows-latest
+    fail-fast: false 
     strategy:
       matrix:
         python-version: [ '3.6', '3.7']  
@@ -286,9 +290,10 @@ jobs:
 
         
   # ///////////////////////////////////////////////////////////////
-  CondaMacOsJob:
+  Conda-MacOs:
   
     runs-on: macos-latest
+    fail-fast: false 
     strategy:
       matrix:
         python-version: ['3.6', '3.7']  
@@ -377,9 +382,10 @@ jobs:
   
 
   # ///////////////////////////////////////////////////////////////
-  CondaUbuntuJob:
+  Conda-Ubuntu:
   
     runs-on: ubuntu-latest
+    fail-fast: false 
     strategy:
       matrix:
         python-version: ['3.6', '3.7']  
