@@ -119,7 +119,6 @@ def InstallQt5(Qt5_HOME="",bDebug=False):
 		raise Exception("internal error")
 		
 	if WIN32:
-
 		ExecuteCommand([Qt5_HOME + "/bin/windeployqt.exe", "bin/visusviewer.exe",
 				"--debug" if bDebug else "--release",
 				"--libdir","./bin/qt/bin",
@@ -211,21 +210,6 @@ def InstallPyQt5(needed):
 
 	major,minor=needed.split('.')[0:2]
 
-	# disabled, I'm having problems with PyQt,PyQt-sip, sip
-	if False:
-		current=[0,0,0]
-		try:
-			from PyQt5 import Qt
-			current=str(Qt.qVersion()).split('.')
-		except:
-		  pass
-		
-		if major==current[0] and minor==current[1]:
-			print("installed Pyqt5",current,"is compatible with",needed)
-			return
-
-		print("Installing a new PyQt5 compatible with",needed)
-		
 	bIsConda=False
 	try:
 		import conda.cli
@@ -258,15 +242,9 @@ def LinkPyQt5():
 
 	print("Linking to PyQt5...")
 
-	try:
-		import PyQt5
-		PyQt5_HOME=os.path.dirname(PyQt5.__file__)
-	
-	except:
-		# this should cover the case where I just installed PyQt5
-		PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip()
+	# this should cover the case where I just installed PyQt5
+	PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip()
 
-	
 	print("PyQt5_HOME",PyQt5_HOME)
 	if not os.path.isdir(PyQt5_HOME):
 		print("Error directory does not exists")
@@ -274,9 +252,8 @@ def LinkPyQt5():
 
 	# on windows it's enough to use sys.path (see *.i %pythonbegin section)
 	if WIN32:
-		return
-
-	if APPLE:
+		pass
+	elif APPLE:
 		AddRPath(os.path.join(PyQt5_HOME,'Qt/lib'))
 	else:
 		SetRPath("$ORIGIN:$ORIGIN/bin:" + os.path.join(PyQt5_HOME,'Qt/lib'))

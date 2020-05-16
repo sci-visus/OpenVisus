@@ -4,10 +4,15 @@ set -x # very verbose
 set -e # stop on error
 
 curl -L --insecure --retry 3  "http://download.qt.io/official_releases/qt/5.9/5.9.4/single/qt-everywhere-opensource-src-5.9.4.tar.xz" -O
+
 tar xvf qt-everywhere-opensource-src-5.9.4.tar.xz
+
 rm qt-everywhere-opensource-src-5.9.4.tar.xz
+
 pushd qt-everywhere-opensource-src-5.9.4
+
 sed -i "s/#define QTESTLIB_USE_PERF_EVENTS/#undef QTESTLIB_USE_PERF_EVENTS/g" qtbase/src/testlib/qbenchmark_p.h 
+
 ./configure \
 	-prefix /opt/qt59 \
 	-openssl \
@@ -39,8 +44,11 @@ sed -i "s/#define QTESTLIB_USE_PERF_EVENTS/#undef QTESTLIB_USE_PERF_EVENTS/g" qt
 	-skip winextras \
 	-skip x11extras \
 	-skip qtgamepad 
+
 make 
-make install 
+make install
+ 
 popd
+
 rm -Rf qt-everywhere-opensource-src-5.9.4
 

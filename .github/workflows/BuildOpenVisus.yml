@@ -61,14 +61,12 @@ jobs:
            
            PYTHON_VERSION=${{ matrix.python-version }}
            Python_EXECUTABLE=${pythonLocation}/python.exe
-           Qt5_DIR=${Qt5_Dir}/lib/cmake/Qt5
 
            ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
            
            mkdir -p build
-           cd build    
-           
-           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_DIR}" -DPython_EXECUTABLE=${Python_EXECUTABLE} -DVISUS_SLAM=1 ../
+           cd build
+           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} -DVISUS_SLAM=1 ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4 
            cmake --build . --target INSTALL   --config Release
           
@@ -141,14 +139,12 @@ jobs:
            
            PYTHON_VERSION=${{ matrix.python-version }}  
            Python_EXECUTABLE=${pythonLocation}/python 
-           Qt5_DIR=${Qt5_Dir}/lib/cmake/Qt5
-           CMAKE_OSX_SYSROOT=/opt/MacOSX-SDKs/MacOSX10.9.sdk         
            
            ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null 
            mkdir -p build
            cd build   
            
-           cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT} -DVISUS_SLAM=1 ../
+           cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" -DVISUS_SLAM=1 ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release
               
@@ -169,7 +165,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.6', '3.7', '3.8'] # TODO: replace Qt5.9.x with 5.12.x  
+        python-version: ['3.6', '3.7', '3.8'] 
         
     steps:
     # ____________________________________________
@@ -194,15 +190,15 @@ jobs:
            docker run \
               -e PYTHON_VERSION=${{ matrix.python-version }} \
               -e VISUS_SLAM=1 \
-              -e Qt5_DIR=/opt/qt59 \
+              -e Qt5_DIR=/opt/qt512 \
               -e PYPI_USERNAME=${{ secrets.PYPI_USERNAME }} \
               -e PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }} \
               -v $(pwd):/root/OpenVisus \
               -w /root/OpenVisus \
               visus/portable-linux-binaries \
               /bin/bash -c "./scripts/build_linux.sh"
-           
-           # fix permissions (see https://unix.stackexchange.com/questions/29902/unable-to-delete-file-even-when-running-as-root)
            sudo chown -R root:root  ./build
            sudo chmod -R a+rwx      ./build
+
+
            

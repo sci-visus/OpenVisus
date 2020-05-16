@@ -29,6 +29,7 @@ RUN bash  cmake.sh
 COPY scripts/install/swig.sh .
 RUN bash  swig.sh
 
+# python inside manylinux don't contain python shared library, so I need to compile by myself
 COPY scripts/install/cpython.sh .
 RUN bash cpython.sh 3.8.2
 RUN bash cpython.sh 3.7.7
@@ -49,11 +50,12 @@ RUN yum -y install xz \
 	mesa-libGL-devel mesa-libGLU-devel \
 	fontconfig fontconfig-devel freetype freetype-devel
 
-#COPY scripts/install/qt512.sh .
-#RUN bash qt512.sh 
+COPY scripts/install/qt59.sh .
+RUN bash qt59.sh 
 
-#COPY scripts/install/qt59.sh .
-#RUN bash qt59.sh 
+COPY scripts/install/qt512.sh .
+RUN bash qt512.sh 
+
 
 
 
