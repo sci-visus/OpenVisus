@@ -13,11 +13,9 @@ target_include_directories(VisusXIdx  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_S
 
 INSTALL(DIRECTORY ./include/Visus DESTINATION ${ConfigName}/${PROJECT_NAME}/include/XIdx/)
 
-if (VISUS_PYTHON)
-    AddSwigLibrary(VisusXIdxPy VisusXIdx ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusXIdx.i 
-	    "-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
-	    "-I${CMAKE_CURRENT_SOURCE_DIR}/include")
-endif()
+AddSwigLibrary(VisusXIdxPy VisusXIdx ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusXIdx.i 
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 
 

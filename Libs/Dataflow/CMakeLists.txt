@@ -11,10 +11,9 @@ target_include_directories(VisusDataflow  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRE
 
 INSTALL(DIRECTORY ./include/Visus DESTINATION ${ConfigName}/${PROJECT_NAME}/include/Dataflow/)
 
-if (VISUS_PYTHON)
-    AddSwigLibrary(VisusDataflowPy VisusDataflow ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusDataflowPy.i
-	    "-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
-	    "-I${CMAKE_CURRENT_SOURCE_DIR}/include")
-endif()
+
+AddSwigLibrary(VisusDataflowPy VisusDataflow ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusDataflowPy.i
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 

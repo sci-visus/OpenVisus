@@ -79,36 +79,37 @@ if (VISUS_PYTHON)
 	include(${SWIG_USE_FILE})	
 
 	macro(AddSwigLibrary NamePy WrappedLib SwigFile)
+		if (VISUS_PYTHON)
+			# this is for generated C++ and header files
+			set(SWIG_OUTFILE_DIR ${CMAKE_BINARY_DIR}/${IntConfigName}) 
 
-		# this is for generated C++ and header files
-		set(SWIG_OUTFILE_DIR ${CMAKE_BINARY_DIR}/${IntConfigName}) 
+			set(CMAKE_SWIG_OUTDIR ${SWIG_OUTFILE_DIR}/OpenVisus) # this is for *.py generated files
+			set (UseSWIG_TARGET_NAME_PREFERENCE STANDARD)
+			set(CMAKE_SWIG_FLAGS "")
+			#set(CMAKE_SWIG_FLAGS -interface;${NamePy}) # important for good name generation id Debug mode (https://gitlab.kitware.com/cmake/cmake/issues/18771)
 
-		set(CMAKE_SWIG_OUTDIR ${SWIG_OUTFILE_DIR}/OpenVisus) # this is for *.py generated files
-		set (UseSWIG_TARGET_NAME_PREFERENCE STANDARD)
-		set(CMAKE_SWIG_FLAGS "")
-		#set(CMAKE_SWIG_FLAGS -interface;${NamePy}) # important for good name generation id Debug mode (https://gitlab.kitware.com/cmake/cmake/issues/18771)
+			# set_property(SOURCE ${SwigFile} PROPERTY SWIG_MODULE_NAME ${NamePy}) prevents rebuild every time make is called (? scrgiorgio sommented for now)
+			set_source_files_properties(${SwigFile} PROPERTIES CPLUSPLUS ON)
+			set_source_files_properties(${SwigFile} PROPERTIES SWIG_FLAGS  "${ARGN};-threads;-extranative")
 
-		# set_property(SOURCE ${SwigFile} PROPERTY SWIG_MODULE_NAME ${NamePy}) prevents rebuild every time make is called (? scrgiorgio sommented for now)
-		set_source_files_properties(${SwigFile} PROPERTIES CPLUSPLUS ON)
-		set_source_files_properties(${SwigFile} PROPERTIES SWIG_FLAGS  "${ARGN};-threads;-extranative")
+			swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
+			target_compile_definitions(${NamePy} PRIVATE SWIG_TYPE_TABLE=OpenVisus)
 
-		swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
-		target_compile_definitions(${NamePy} PRIVATE SWIG_TYPE_TABLE=OpenVisus)
+			target_link_libraries(${NamePy} PUBLIC ${WrappedLib})
+			set_target_properties(${NamePy} PROPERTIES FOLDER Swig/)
 
-		target_link_libraries(${NamePy} PUBLIC ${WrappedLib})
-		set_target_properties(${NamePy} PROPERTIES FOLDER Swig/)
-
-		if (WIN32)
-			target_compile_definitions(${NamePy} PRIVATE /W0) # disable warnings
-		else()
-			set_target_properties(${NamePy} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
-		endif()
+			if (WIN32)
+				target_compile_definitions(${NamePy} PRIVATE /W0) # disable warnings
+			else()
+				set_target_properties(${NamePy} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
+			endif()
 	
-		# swig generated *.py file and *.so must be in the same OpenVisus/ root directoryc otherwise it won't work (since swig auto-generate "from . import _VisusKernelPy") 
-		set_target_properties(${NamePy} PROPERTIES 
-			LIBRARY_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_NAME} 
-			RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_NAME}
-			ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/${ConfigName}/swig) 
+			# swig generated *.py file and *.so must be in the same OpenVisus/ root directoryc otherwise it won't work (since swig auto-generate "from . import _VisusKernelPy") 
+			set_target_properties(${NamePy} PROPERTIES 
+				LIBRARY_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_NAME} 
+				RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_NAME}
+				ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/${ConfigName}/swig) 
+		endif()
 
 	endmacro()
 

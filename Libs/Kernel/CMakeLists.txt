@@ -303,9 +303,8 @@ INSTALL(FILES     ./__main__.py         DESTINATION ${ConfigName}/${PROJECT_NAME
 INSTALL(FILES     ./PyUtils.py          DESTINATION ${ConfigName}/${PROJECT_NAME}/)
 INSTALL(FILES     ./PyImage.py          DESTINATION ${ConfigName}/${PROJECT_NAME}/)
 
-if (VISUS_PYTHON)
-	AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
-endif()
+
+AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 

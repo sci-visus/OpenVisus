@@ -128,13 +128,11 @@ INSTALL(DIRECTORY ./include/Visus          DESTINATION ${ConfigName}/${PROJECT_N
 INSTALL(FILES     ./PyScriptingNode.py     DESTINATION ${ConfigName}/${PROJECT_NAME}/)
 INSTALL(FILES     ./PyViewer.py            DESTINATION ${ConfigName}/${PROJECT_NAME}/)
 
-if (VISUS_PYTHON)
-	AddSwigLibrary(VisusGuiPy VisusGui ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiPy.i 
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include"
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Idx/include"
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Nodes/include"
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Gui/include"
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
-endif()
+AddSwigLibrary(VisusGuiPy VisusGui ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiPy.i 
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Idx/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Nodes/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Gui/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
