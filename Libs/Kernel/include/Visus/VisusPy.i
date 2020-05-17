@@ -56,7 +56,7 @@ For support : support@visus.net
 //__________________________________________________________
 %pythonbegin %{
 
-import os,sys,platform
+import os,sys,platform,math
 
 __this_dir__= os.path.dirname(os.path.abspath(__file__))
 
