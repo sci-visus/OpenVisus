@@ -229,6 +229,7 @@ python -m pip uninstall OpenVisus
 python -m pip install --no-cache-dir OpenVisus
 python -m OpenVisus configure
 python -m OpenVisus test
+python -m pip install PyQtWebEngine
 python -m OpenVisus slam "/Users/scrgiorgio/Desktop/TaylorGrant"
 ```
 
