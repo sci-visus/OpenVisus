@@ -3,6 +3,7 @@ import os,sys
 from OpenVisus import *
 
 from OpenVisus.PyUtils   import *
+from OpenVisus.PyImage   import *
 from OpenVisus.PyDataset import *
 from OpenVisus.PyViewer  import *
 
@@ -44,7 +45,7 @@ def VisibleMale():
 	dataset=new_dataset	
 	
 	RGB, bounds=dataset.readData(region,-6)	
-	R,G,B=PyUtils.SplitChannels(RGB)
+	R,G,B=SplitChannels(RGB)
 	A=numpy.zeros(R.shape,dtype=R.dtype)
 	
 	# remove the blueish
@@ -66,7 +67,7 @@ def VisibleMale():
 	RGBA=InterleaveChannels([R,G,B,A])		
 		
 	#for Z in range(RGBA.shape[0]):
-	#	PyUtils.ShowImage(RGBA[Z,:,:,:]) 
+	#	ShowImage(RGBA[Z,:,:,:]) 
 	#	cv2.waitKey()		
 	
 	viewer=PyViewer()
@@ -91,7 +92,7 @@ def VisibleFemale():
 	region=head
 
 	RGB, bounds=dataset.readData(region,-6)	
-	R,G,B=PyUtils.SplitChannels(RGB)
+	R,G,B=SplitChannels(RGB)
 	A=numpy.zeros(R.shape,dtype=R.dtype)
 	
 	# remove the blueish
@@ -119,7 +120,7 @@ def VisibleFemale():
 	RGBA=InterleaveChannels([R,G,B,A])		
 		
 	#for Z in range(RGBA.shape[0]):
-	#	PyUtils.ShowImage(RGBA[Z,:,:,:]) 
+	#	ShowImage(RGBA[Z,:,:,:]) 
 	#	cv2.waitKey()		
 	
 	viewer=PyViewer()
@@ -138,14 +139,14 @@ def Main(argv):
 	
 	SetCommandLine("__main__")
 	GuiModule.createApplication()
-	AppKitModule.attach()  	
+	GuiModule.attach()  	
 	
 	#VisibleMale()
 	
 	# ConvertVisibleFemale
 	VisibleFemale()
 	
-	AppKitModule.detach()
+	GuiModule.detach()
 	print("ALL DONE")
 	sys.stdin.read(1)
 	sys.exit(0)	

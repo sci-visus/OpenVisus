@@ -48,10 +48,7 @@ For support : support@visus.net
 #include <Visus/KdQueryNode.h>
 #include <Visus/PaletteNode.h>
 #include <Visus/QueryNode.h>
-#include <Visus/JTreeNode.h>
-#include <Visus/VoxelScoopNode.h>
 
-#include <Visus/ScriptingNode.h>
 #include <Visus/StatisticsNode.h>
 #include <Visus/TimeNode.h>
 #include <Visus/ModelViewNode.h>
@@ -82,13 +79,9 @@ void NodesModule::attach()
   VISUS_REGISTER_NODE_CLASS(PaletteNode);
   VISUS_REGISTER_NODE_CLASS(QueryNode);
 
-  VISUS_REGISTER_NODE_CLASS(ScriptingNode);
   VISUS_REGISTER_NODE_CLASS(StatisticsNode);
   VISUS_REGISTER_NODE_CLASS(ModelViewNode);
   VISUS_REGISTER_NODE_CLASS(TimeNode);
-
-  VISUS_REGISTER_NODE_CLASS(VoxelScoopNode);
-  VISUS_REGISTER_NODE_CLASS(JTreeNode);
 
   PrintInfo("Attached NodesModule");
 }

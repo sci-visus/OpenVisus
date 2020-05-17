@@ -1,6 +1,6 @@
 
 
-set(FreeImage_SOURCES
+set(Sources
 	FreeImage/BitmapAccess.cpp
 	FreeImage/ColorLookup.cpp
 	FreeImage/FreeImage.cpp
@@ -793,7 +793,8 @@ set(FreeImage_SOURCES
 	DeprecationManager/DeprecationMgr.h
 )
 
-AddExternalLibrary(FreeImage ${FreeImage_SOURCES})
+add_library(FreeImage STATIC ${Sources})
+set_target_properties(FreeImage PROPERTIES FOLDER "ExternalLibs/")
 
 target_include_directories(FreeImage PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 

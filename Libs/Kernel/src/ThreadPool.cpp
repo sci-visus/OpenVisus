@@ -64,7 +64,7 @@ ThreadPool::~ThreadPool()
   for (auto thread : threads) 
     Thread::join(thread);
 
-  #ifdef VISUS_DEBUG
+  #ifdef _DEBUG
   {
     ScopedLock lock(this->lock);
     int total_jobs=(int)waiting.size()+(int)running.size();

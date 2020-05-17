@@ -45,7 +45,7 @@ For support : support@visus.net
 #include <Visus/KdQueryNode.h>
 #include <Visus/KdRenderArrayNode.h>
 #include <Visus/RenderArrayNode.h>
-#include <Visus/AppKit.h>
+#include <Visus/Gui.h>
 
 #include <QMainWindow>
 #include <QTimer>
@@ -284,7 +284,7 @@ int main(int argn,const char* argv[])
 {
   SetCommandLine(argn, argv);
   GuiModule::createApplication();
-  AppKitModule::attach();
+  GuiModule::attach();
 
   {
     auto win = new DavidWindow();
@@ -294,7 +294,7 @@ int main(int argn,const char* argv[])
     delete win;
   }
   
-  AppKitModule::detach();
+  GuiModule::detach();
   GuiModule::destroyApplication();
 
   return 0;

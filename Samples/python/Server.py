@@ -4,9 +4,7 @@ import cv2
 from OpenVisus import *
 
 if VISUS_GUI:
-	from VisusGuiPy      import *
-	from VisusGuiNodesPy import *
-	from VisusAppKitPy   import *
+	from OpenVisus.VisusGuiPy import *
 
 def ASSERT(cond):
 	if not cond: raise Exception("Assert failed")	
@@ -46,7 +44,7 @@ if __name__ == '__main__':
 	GuiModule.createApplication()
 	
 	if VISUS_GUI:
-		AppKitModule.attach()
+		GuiModule.attach()
 
 	DbModule.attach()
 	
@@ -63,7 +61,7 @@ if __name__ == '__main__':
 	srv1, srv2 = None, None
 	
 	if VISUS_GUI:
-		AppKitModule.detach()
+		GuiModule.detach()
 	
 	DbModule.detach()
 	sys.exit(0)

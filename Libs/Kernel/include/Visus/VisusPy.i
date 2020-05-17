@@ -56,30 +56,28 @@ For support : support@visus.net
 //__________________________________________________________
 %pythonbegin %{
 
-
 import os,sys,platform
+
+__this_dir__= os.path.dirname(os.path.abspath(__file__))
+
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
+if WIN32:
 
-def AddSysPath(value, bBegin=False):
+	# this is needed to find swig generated *.py file and DLLs
+	def AddSysPath(value):
+		os.environ['PATH'] = value + os.pathsep + os.environ['PATH']
+		sys.path.insert(0,value)
+		if hasattr(os,'add_dll_directory'): 
+			os.add_dll_directory(value) # this is needed for python 38  
 
-	if not os.path.isdir(value):
-		return
-	
-	if not value in sys.path:
-		if bBegin:
-			sys.path.insert(0,value)
-		else:
-			sys.path.append(value)
+	AddSysPath(__this_dir__)
+	AddSysPath(os.path.join(__this_dir__,"bin"))
 
-	# this is needed for windows/python 38  
-	if WIN32 and hasattr(os,'add_dll_directory'):
-		os.add_dll_directory(value)
+else:
 
-__this_dir__=os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
-__bin_dir__=os.path.abspath(os.path.join(__this_dir__,"bin"))
+	# this is needed to find swig generated *.py file
+	sys.path.append(__this_dir__)
 
-AddSysPath(__this_dir__)
-AddSysPath(__bin_dir__)
 %}
 
 // Nested class not currently supported

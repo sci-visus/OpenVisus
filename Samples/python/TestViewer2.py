@@ -1,7 +1,7 @@
 
 import sys, os
 
-from OpenVisus       import *
+from OpenVisus import *
 
 # IMPORTANT for WIndows
 # Mixing C++ Qt5 and PyQt5 won't work in Windows/DEBUG mode
@@ -11,11 +11,8 @@ from OpenVisus       import *
 
 # on windows rememeber to INSTALL and CONFIGURE
 
-from OpenVisus.VisusGuiPy      import *
-from OpenVisus.VisusGuiNodesPy import *
-from OpenVisus.VisusAppKitPy   import *
-
-from OpenVisus.PyViewer        import *
+from OpenVisus.VisusGuiPy import *
+from OpenVisus.PyViewer   import *
 
 import PyQt5
 from   PyQt5.QtCore    import *
@@ -92,10 +89,10 @@ def Main(argv):
 	"""
 	
 	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
-	# c:\Python37\python.exe CMake/PyViewer.py	
+	# c:\Python37\python.exe Libs/Gui/PyViewer.py	
 	SetCommandLine("__main__")
 	GuiModule.createApplication()
-	AppKitModule.attach()  
+	GuiModule.attach()  
 	
 	VISUS_REGISTER_NODE_CLASS("MyPythonNode", "MyPythonNode", lambda : MyPythonNode())
 
@@ -118,10 +115,11 @@ def Main(argv):
 	# pynode will get the data from the query
 	query_node=viewer.findNodeByUUID("volume")
 	viewer.connectNodes(query_node, pynode)
-	 
+		 
 	GuiModule.execApplication()
-	viewer=None  
-	AppKitModule.detach()
+	viewer=None
+
+	GuiModule.detach()
 	print("All done")
 	sys.exit(0)
 

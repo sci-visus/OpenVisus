@@ -1,4 +1,13 @@
 
+SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${ConfigName}/ExternalLib)
+
+if(WIN32)
+	add_compile_options("/W0")
+else()
+	add_compile_options("-w")
+	add_compile_options(-fvisibility=hidden) # this fixes the problem of static symbols conflicting with dynamic lib
+endif()
+
 add_subdirectory(cryptlite)
 add_subdirectory(dtl)
 add_subdirectory(lz4)

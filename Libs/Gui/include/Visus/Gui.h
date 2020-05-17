@@ -62,10 +62,6 @@ namespace Visus {
   #endif
 #endif
 
-#ifndef VISUS_OPENGL_ES
-#define VISUS_OPENGL_ES 0
-#endif
-
 class VISUS_GUI_API GuiModule : public VisusModule
 {
 public:
@@ -87,6 +83,7 @@ public:
   //destroyApplication
   static void destroyApplication();
 };
+
 
 //having the same function name between two modules seems not to work (one will overwrite the second)
 #if !SWIG
@@ -112,7 +109,7 @@ inline double cint(QString value) {
 #if !SWIG
 namespace QUtils {
 
-template <typename DstType,typename SrcType>
+template <typename DstType, typename SrcType>
 DstType convert(const SrcType& r);
 
 template <> inline Color convert(const QColor& c) {
@@ -124,7 +121,7 @@ template <> inline Color convert(const QRgb& c) {
 }
 
 template <> inline QRgb convert(const Color& c) {
-  return qRgba((int)(255.0*c.getRed()), (int)(255.0*c.getGreen()), (int)(255.0*c.getBlue()), (int)(255.0*c.getAlpha()));
+  return qRgba((int)(255.0 * c.getRed()), (int)(255.0 * c.getGreen()), (int)(255.0 * c.getBlue()), (int)(255.0 * c.getAlpha()));
 }
 
 template <> inline QColor convert(const Color& c) {
@@ -132,52 +129,52 @@ template <> inline QColor convert(const Color& c) {
 }
 
 template <> inline QPoint convert(const Point2i& p) {
-  return QPoint(p[0],p[1]);
+  return QPoint(p[0], p[1]);
 }
 
 template <> inline QPointF convert(const Point2d& p) {
-  return QPointF(p[0],p[1]);
+  return QPointF(p[0], p[1]);
 }
 
 template <> inline Point2d convert(const QPointF& p) {
-  return Point2d(p.x(),p.y());
+  return Point2d(p.x(), p.y());
 }
 
 template <> inline Point2d convert(const QPoint& p) {
-  return Point2d(p.x(),p.y());
+  return Point2d(p.x(), p.y());
 }
 
 template <> inline Point2i convert(const QPoint& p) {
-  return Point2i(p.x(),p.y());
+  return Point2i(p.x(), p.y());
 }
 
 template <> inline QRect convert(const Rectangle2d& r) {
-  return QRect((int)r.x,(int)r.y,(int)r.width,(int)r.height);
+  return QRect((int)r.x, (int)r.y, (int)r.width, (int)r.height);
 }
 
 template <> inline QRectF convert(const Rectangle2d& r) {
-  return QRect(r.x,r.y,r.width,r.height);
+  return QRect(r.x, r.y, r.width, r.height);
 }
 
 template <> inline Rectangle2d convert(const QRect& r) {
-  return Rectangle2d(r.x(),r.y(),r.width(),r.height());
+  return Rectangle2d(r.x(), r.y(), r.width(), r.height());
 }
 
 template <> inline Rectangle2d convert(const QRectF& r) {
-  return Rectangle2d(r.x(),r.y(),r.width(),r.height());
+  return Rectangle2d(r.x(), r.y(), r.width(), r.height());
 }
 
 
 template <> inline QTransform convert(const Matrix& T) {
   VisusAssert(T.getSpaceDim() == 3);
   return QTransform(
-    T(0,0),T(0,1),T(0,2),
-    T(1,0),T(1,1),T(1,2),
-    T(2,0),T(2,1),T(2,2));
+    T(0, 0), T(0, 1), T(0, 2),
+    T(1, 0), T(1, 1), T(1, 2),
+    T(2, 0), T(2, 1), T(2, 2));
 }
 
 //RenderCheckerBoard
-VISUS_GUI_API void RenderCheckerBoard(QPainter& g,int x, int y, int width, int height, int checkWidth, int checkHeight, const Color& color1_, const Color& color2_);
+VISUS_GUI_API void RenderCheckerBoard(QPainter& g, int x, int y, int width, int height, int checkWidth, int checkHeight, const Color& color1_, const Color& color2_);
 
 //ResourceTextFileContent
 VISUS_GUI_API String LoadTextFileFromResources(String name);
@@ -193,4 +190,5 @@ VISUS_GUI_API void clearQWidget(QWidget* widget);
 
 
 #endif //VISUS_GUI_H__
+
 

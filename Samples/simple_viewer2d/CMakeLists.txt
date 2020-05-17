@@ -12,6 +12,6 @@ endif()
 
 file(GLOB Sources *.h *.cpp)
 add_executable(simple_viewer2d ${EXECUTABLE_TYPE} ${Sources})
-target_link_libraries(simple_viewer2d PUBLIC OpenVisus::AppKit)
+target_link_libraries(simple_viewer2d PUBLIC OpenVisus::Gui)
 
   

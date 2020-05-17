@@ -1,9 +1,14 @@
 
-SET(RootSources
+FILE(GLOB RootSources
+	./PyDataset.py
 	./include/Visus/Db.h
 	./src/Db.cpp
 	./include/Visus/ModVisus.h
 	./src/ModVisus.cpp
+	src/tutorial*.cpp
+	src/SelfTest*.cpp
+	include/Visus/VisusConvert.h
+	src/VisusConvert.cpp
 )
 
 SET(QuerySources
@@ -54,19 +59,10 @@ SET(AccessSources
 )
 
 
-SET(IdxSources
-	include/Visus/IdxDataset.h
-	include/Visus/IdxDiskAccess.h
-	include/Visus/IdxFile.h
-	include/Visus/IdxHzOrder.h
-	include/Visus/IdxMultipleDataset.h              
-	src/IdxDataset.cpp        
-	src/IdxDiskAccess.cpp     
-	src/IdxFile.cpp           
-	src/IdxFilter.cpp         
-	src/IdxHzOrder.cpp        
-	src/IdxMultipleDataset.cpp
-	src/LogicSamples.cpp  
+FILE(GLOB IdxSources
+	include/Visus/Idx*.h          
+	src/Idx*.cpp   
+	src/LogicSamples.cpp 
 )
 
 source_group(""         FILES ${RootSources})
@@ -75,12 +71,22 @@ source_group("Dataset"  FILES ${DatasetSources})
 source_group("Query"    FILES ${QuerySources})
 source_group("Idx"      FILES ${IdxSources})
 
-file(GLOB Sources include/Visus/*.h include/Visus/*.i src/*.cpp)
+file(GLOB Sources *.py include/Visus/*.h include/Visus/*.i src/*.cpp)
 
-AddLibrary(VisusDb SHARED ${Sources})
+add_library(VisusDb SHARED ${Sources})
+set_target_properties(VisusDb PROPERTIES FOLDER "")
+
 target_link_libraries(VisusDb PUBLIC VisusKernel)
 
-AddSwigLibrary(VisusDbPy VisusDb ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusDbPy.i 
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_compile_definitions(VisusDb  PRIVATE VISUS_BUILDING_VISUSDB=1)
+target_include_directories(VisusDb  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+
+INSTALL(DIRECTORY ./include/Visus   DESTINATION ${ConfigName}/${PROJECT_NAME}/include/Db/)
+INSTALL(FILES     ./PyDataset.py    DESTINATION ${ConfigName}/${PROJECT_NAME}/)
+
+if (VISUS_PYTHON)
+	AddSwigLibrary(VisusDbPy VisusDb ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusDbPy.i 
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
+endif()
 

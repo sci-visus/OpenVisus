@@ -1,5 +1,4 @@
-
-AddExternalLibrary(curl  
+set(Sources 	
 	../include/curl/curl.h
 	../include/curl/curlver.h
 	../include/curl/easy.h
@@ -64,6 +63,9 @@ AddExternalLibrary(curl
 	vtls/polarssl.c vtls/polarssl_threadlock.c vtls/axtls.c               
 	vtls/cyassl.c vtls/schannel.c vtls/darwinssl.c vtls/gskit.c           
 	vtls/mbedtls.c)
+	
+add_library(curl STATIC ${Sources})
+set_target_properties(curl PROPERTIES FOLDER "ExternalLibs/")
 
 target_link_libraries(curl PRIVATE crypto ssl tls)
 

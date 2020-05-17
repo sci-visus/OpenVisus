@@ -59,7 +59,7 @@ Array ArrayUtils::loadImage(String url,std::vector<String> args)
     {
       ret.url=url;
 
-      #ifdef VISUS_DEBUG
+      #ifdef _DEBUG
       PrintInfo(url,"loaded","dtype",ret.dtype,"dims",ret.dims);
       #endif
       

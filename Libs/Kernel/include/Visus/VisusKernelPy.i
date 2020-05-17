@@ -115,54 +115,103 @@ Visus::Array& operator/= (Visus::Array& other)       {*self=ArrayUtils::div(*sel
 Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*self,coeff); return *self;}
 
 %pythoncode %{
-   
-   # ////////////////////////////////////////////////////////
-   def __rmul__(self, v):
-      return self.__mul__(v)
 
-   # ////////////////////////////////////////////////////////
-   def toNumPy(src,bShareMem=False,bSqueeze=False):
-      import numpy
-      if not src.dtype.valid(): return numpy.zeros(0) 
-      N=src.dtype.ncomponents()
-      dtype=src.dtype.get(0)
-      shape=list(reversed([src.dims[I] for I in range(src.dims.getPointDim())]))
-      if N>1 : shape.append(N)
-      if bSqueeze: shape=[it for it in shape if it>1]
-      typestr=("|" if dtype.getBitSize()==8 else "<") + ("f" if dtype.isDecimal() else ("u" if dtype.isUnsigned() else "i")) + str(int(dtype.getBitSize()/8))
-      class numpy_holder(object): pass
-      holder = numpy_holder()
-      holder.__array_interface__ = {'strides': None,'shape': tuple(shape), 'typestr': typestr, 'data': (int(src.c_address()), False), 'version': 3 }
-      ret = numpy.array(holder, copy=not bShareMem) 
-      return ret
-   toNumPy = staticmethod(toNumPy)
-   
-   # ////////////////////////////////////////////////////////
-   def fromNumPy(src,TargetDim=0,bShareMem=False):
-      import numpy
-      if src.shape==(0,): return Array()
-      if src.__array_interface__["strides"] is not None: 
-        if bShareMem: raise Exception("numpy array is not memory contiguous")
-        src=numpy.ascontiguousarray(src)
-      shape=src.__array_interface__["shape"]
-      shape=tuple(reversed(shape))
-      dims=PointNi.one(len(shape))
-      for I in range(dims.getPointDim()): dims.set(I,shape[I])   
-      typestr=src.__array_interface__["typestr"]
-      dtype=DType(typestr[1]=="u", typestr[1]=="f", int(typestr[2])*8)
-      c_address=str(src.__array_interface__["data"][0])
-      ret=Array(dims,dtype,c_address,bShareMem)
+# ////////////////////////////////////////////////////////
+def __rmul__(self, v):
+    return self.__mul__(v)
 
-      if TargetDim!=0: 
-        # example (3,512,512) uint8 -> (512,512) uint8[3]
-        dims=PointNi.one(TargetDim)
-        for I in range(TargetDim): 
-          dims.set(I,ret.dims[ret.dims.getPointDim()-TargetDim+I])
+# ////////////////////////////////////////////////////////
+def toNumPy(src, bShareMem=False, bSqueeze=False):
 
-        ret.resize(dims,DType(int(ret.dims.innerProduct()/dims.innerProduct()),ret.dtype), "Array::fromNumPy",0)
+	import numpy
 
-      return ret
-   fromNumPy = staticmethod(fromNumPy)
+	# invalid arrray is a zero numpy,0 is "shape"
+	if not src.dtype.valid(): 
+		return numpy.zeros(0, dtype=numpy.float) 
+
+	# dtype  (<: little-endian, >: big-endian, |: not-relevant) ; integer providing the number of bytes  ; i (integer) u (unsigned integer) f (floating point)
+	atomic_dtype=src.dtype.get(0)
+	typestr="".join([
+		"|" if atomic_dtype.getBitSize()==8 else "<",
+		"f" if atomic_dtype.isDecimal() else ("u" if atomic_dtype.isUnsigned() else "i"),
+		str(int(atomic_dtype.getBitSize()/8))
+	])  
+
+	# shape (can be multi components)
+	shape=list(reversed([src.dims[I] for I in range(src.dims.getPointDim())]))
+	if src.dtype.ncomponents()>1 : 
+		shape.append(src.dtype.ncomponents())
+
+	# no real data, just keep the "dimensions" of the data
+	if 0 in shape:
+
+		return numpy.array(shape, dtype=numpy.dtype(typestr))
+
+	else:
+
+		if bSqueeze: 
+			shape=[it for it in shape if it>1]
+
+		class MyNumPyHolder(object): 
+			pass
+
+		holder = MyNumPyHolder()
+		  
+		holder.__array_interface__ = {
+			'strides': None,
+			'shape': tuple(shape), 
+			'typestr': typestr, 
+			'data': (int(src.c_address()), False),  # The second entry in the tuple is a read-only flag (true means the data area is read-only).
+			'version': 3 
+		}
+
+		return numpy.array(holder, copy=False if bShareMem else True) 
+
+toNumPy = staticmethod(toNumPy)
+
+# ////////////////////////////////////////////////////////
+def fromNumPy(src, TargetDim=0, bShareMem=False):
+
+	import numpy
+
+	# is not memory contigous...
+	bContiguos = src.__array_interface__["strides"] is None
+	if not bContiguos: 
+		  
+		if bShareMem: 
+			raise Exception("Cannot share memory since the original numpy array is not memory contiguous")
+			
+		src=numpy.ascontiguousarray(src)
+		  
+	# dtype
+	typestr = src.__array_interface__["typestr"]
+	dtype=DType(typestr[1]=="u", typestr[1]=="f", int(typestr[2])*8)
+
+	# shape (reversed!)
+	shape   = src.__array_interface__["shape"]
+	shape=tuple(reversed(shape)) 
+	pdim=len(shape)
+	dims=PointNi.one(pdim)
+	for I in range(pdim):  
+		dims.set(I,shape[I]) 
+
+	if dims.innerProduct() == 0:
+		ret=Array(dims, dtype)
+
+	else:
+		c_address=str(src.__array_interface__["data"][0]) # [0] element is the address
+		ret=Array(dims, dtype, c_address, bShareMem)
+
+	# example (3,512,512) uint8 TargetDim=2 -> (512,512) uint8[3]
+	if TargetDim > 0 and ret.dims.getPointDim() > TargetDim:
+		v=ret.dims.toVector()
+		A=math.prod(v[0:len(v)-TargetDim]) # first remaining elements
+		B=PointNi(v[-TargetDim:]) # last 'TargetDim' elements
+		ret.resize(B,DType(A,ret.dtype), "Array::fromNumPy",0)
+
+	return ret
+
+fromNumPy = staticmethod(fromNumPy)
 %}
 
 }; //%extend Visus::Array {

@@ -44,16 +44,19 @@ For support : support@visus.net
 int main(int argn,const char* argv[])
 {
   using namespace Visus;
+
   SetCommandLine(argn, argv);
   GuiModule::createApplication();
-  AppKitModule::attach();
+  GuiModule::attach();
 
   {
     UniquePtr<Viewer> viewer(new Viewer());
-    viewer->configureFromCommandLine(ApplicationInfo::args);
+    auto args = std::vector<String>(ApplicationInfo::args.begin() + 1, ApplicationInfo::args.end());
+    viewer->configureFromArgs(args);
     GuiModule::execApplication();
   }
-  AppKitModule::detach();
+
+  GuiModule::detach();
   GuiModule::destroyApplication();
   return 0;
 }

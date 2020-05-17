@@ -51,6 +51,7 @@ class IdxBoxQueryHzAddressConversion;
 class IdxPointQueryHzAddressConversion;
 #endif
 
+
   //////////////////////////////////////////////////////////////////////
 class VISUS_DB_API IdxDataset  : public Dataset 
 {

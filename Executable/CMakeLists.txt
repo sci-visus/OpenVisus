@@ -1,13 +1,11 @@
 
-if (VISUS_DB)
-	add_subdirectory(visus)
-endif()
+add_subdirectory(visus)
 
-if (VISUS_DB)
+if (NOT WIN32 AND NOT APPLE)
 	add_subdirectory(mod_visus)
 endif()
 
-if (VISUS_APPKIT)
+if (VISUS_GUI)
   add_subdirectory(viewer)
 endif()
 

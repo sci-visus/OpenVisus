@@ -83,7 +83,7 @@ public:
 
   VISUS_DECLARE_SINGLETON_CLASS(ArrayPlugins)
 
-    std::vector< SharedPtr<ArrayPlugin> > values;
+  std::vector< SharedPtr<ArrayPlugin> > values;
 
   //destructor
   ~ArrayPlugins() {}
@@ -91,7 +91,7 @@ public:
 private:
 
   //singleton class 
-  ArrayPlugins();
+  ArrayPlugins() {}
 
 };
 

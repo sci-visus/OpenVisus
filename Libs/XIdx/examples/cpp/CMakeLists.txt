@@ -4,8 +4,8 @@
 
 #target_link_libraries(validate ${LIBXML2_LIBRARIES})
 
-AddExecutable(write write.cpp)
-target_link_libraries(write PUBLIC VisusXIdx)
+add_executable(write write.cpp)
+target_link_libraries(write PUBLIC VisusXIdx Python::Python)
 
-AddExecutable(read read.cpp)
-target_link_libraries(read PUBLIC VisusXIdx)
+add_executable(read read.cpp)
+target_link_libraries(read PUBLIC VisusXIdx Python::Python)

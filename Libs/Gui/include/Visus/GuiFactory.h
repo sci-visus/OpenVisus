@@ -43,7 +43,7 @@ For support : support@visus.net
 #include <Visus/GLMaterial.h>
 #include <Visus/Point.h>
 #include <Visus/Box.h>
-#include <Visus/DoubleSlider.h>
+#include <Visus/QDoubleSlider.h>
 
 #include <functional>
 
@@ -226,13 +226,13 @@ namespace GuiFactory
   }
 
   //CreateDoubleSliderWidget
-  inline DoubleSlider* CreateDoubleSliderWidget(double value,Range range,std::function<void(double)> callback=std::function<void(double)>())
+  inline QDoubleSlider* CreateDoubleSliderWidget(double value,Range range,std::function<void(double)> callback=std::function<void(double)>())
   {
-    auto ret=new DoubleSlider();
+    auto ret=new QDoubleSlider();
     ret->setRange(range);
     ret->setValue(value);
     if (callback)
-      DoubleSlider::connect(ret, &DoubleSlider::doubleValueChanged, callback);
+      QDoubleSlider::connect(ret, &QDoubleSlider::doubleValueChanged, callback);
     return ret;
   }
   

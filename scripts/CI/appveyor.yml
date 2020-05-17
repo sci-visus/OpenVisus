@@ -1,0 +1,48 @@
+version: '1.0.{build}'
+
+notifications:
+  - provider: Email
+    to:
+      - scrgiorgio@gmail.com
+    on_build_success: true
+    on_build_failure: true
+    on_build_status_changed: true  
+   
+environment:
+  APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019  
+  matrix:
+    - PYTHON_VERSION: 36    
+    - PYTHON_VERSION: 37
+    - PYTHON_VERSION: 38
+ 
+build_script:
+  - cmd: |
+         @echo on
+         SETLOCAL EnableDelayedExpansion
+         
+         cd %APPVEYOR_BUILD_FOLDER% 
+         
+         set Python_EXECUTABLE=C:\Python%PYTHON_VERSION%-x64\python.exe
+         set Qt5_DIR=C:\Qt\5.9\msvc2017_64\lib\cmake\Qt5
+           
+         choco install -y --allow-empty-checksums swig
+         
+         .\scripts\build_win.bat
+         
+         if "%PYTHON_VERSION%" == "38" appveyor exit
+         
+         set MINICONDA_DIR=C:\Miniconda36-x64
+         set "PATH=%MINICONDA_DIR%\Scripts;%MINICONDA_DIR%\Library\bin;%PATH%"
+         call %MINICONDA_DIR%\Scripts\activate.bat
+         
+         conda config --set always_yes yes --set changeps1 no --set anaconda_upload no & exit 0
+         conda update -q conda  & exit 0
+         
+         conda create -q -n tmp python=%PYTHON_VERSION:~0,1%.%PYTHON_VERSION:~1,1% numpy & exit 0
+         conda activate tmp & exit 0
+         conda install conda-build anaconda-client & exit 0    
+              
+         .\scripts\build_conda.bat         
+  
+test: off
+

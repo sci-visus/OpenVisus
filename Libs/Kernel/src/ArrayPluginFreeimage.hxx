@@ -44,18 +44,6 @@ For support : support@visus.net
 #include <Visus/Encoder.h>
 #include <Visus/NetService.h>
 
-#if WIN32
-#include <WinSock2.h>
-
-#elif __APPLE__
-
-#else
-#include <arpa/inet.h>
-
-#endif
-
-#include <FreeImage.h>
-
 namespace Visus {
 
 class VISUS_KERNEL_API FreeImageArrayPlugin : public ArrayPlugin
@@ -404,7 +392,7 @@ private:
           *dst_p++ = *src_p++;
         }
       }
-#ifdef VISUS_DEBUG
+#ifdef _DEBUG
       PrintInfo("load done dtype",dst.dtype,"FREE_IMAGE_TYPE(FIT_BITMAP/8)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
@@ -426,7 +414,7 @@ private:
           *dst_p++ = *src_p++;
         }
       }
-#ifdef VISUS_DEBUG
+#ifdef _DEBUG
       PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_BITMAP/16)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
@@ -451,7 +439,7 @@ private:
         }
       }
 
-#ifdef VISUS_DEBUG
+#ifdef _DEBUG
       PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_BITMAP/24)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
@@ -477,7 +465,7 @@ private:
         }
       }
 
-#ifdef VISUS_DEBUG
+#ifdef _DEBUG
       PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_BITMAP/32)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
@@ -498,7 +486,7 @@ private:
         }
       }
 
-#ifdef VISUS_DEBUG
+#ifdef _DEBUG
       PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_UINT16)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
@@ -519,7 +507,7 @@ private:
         }
       }
 
-#ifdef VISUS_DEBUG
+#ifdef _DEBUG
       PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_INT16)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
@@ -540,7 +528,7 @@ private:
         }
       }
 
-#ifdef VISUS_DEBUG
+#ifdef _DEBUG
       PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_UINT32)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
@@ -560,7 +548,7 @@ private:
           *dst_p++ = *src_p++;
         }
       }
-#ifdef VISUS_DEBUG
+#ifdef _DEBUG
       PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_INT32)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
@@ -580,7 +568,7 @@ private:
           *dst_p++ = *src_p++;
         }
       }
-#ifdef VISUS_DEBUG
+#ifdef _DEBUG
       PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_FLOAT)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
@@ -600,7 +588,7 @@ private:
           *dst_p++ = *src_p++;
         }
       }
-#ifdef VISUS_DEBUG
+#ifdef _DEBUG
       PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_DOUBLE)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
@@ -622,7 +610,7 @@ private:
           *dst_p++ = src_p->i;
         }
       }
-#ifdef VISUS_DEBUG
+#ifdef _DEBUG
       PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_COMPLEX)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
@@ -645,7 +633,7 @@ private:
           *dst_p++ = src_p->blue;
         }
       }
-#ifdef VISUS_DEBUG
+#ifdef _DEBUG
       PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_RGB16)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
@@ -668,7 +656,7 @@ private:
           *dst_p++ = src_p->blue;
         }
       }
-#ifdef VISUS_DEBUG
+#ifdef _DEBUG
       PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_RGBF)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
@@ -692,7 +680,7 @@ private:
           *dst_p++ = src_p->alpha;
         }
       }
-#ifdef VISUS_DEBUG
+#ifdef _DEBUG
       PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_RGBA16)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
@@ -716,7 +704,7 @@ private:
           *dst_p++ = src_p->alpha;
         }
       }
-#ifdef VISUS_DEBUG
+#ifdef _DEBUG
       PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_RGBAF)","in",(int)t1.elapsedMsec(),"msec");
 #endif 
       return dst;

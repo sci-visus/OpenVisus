@@ -1,0 +1,44 @@
+language: cpp
+
+sudo: required
+
+git:
+  submodules: false
+
+services:
+  - docker
+
+notifications:
+  email:
+    recipients:
+      - scrgiorgio@gmail.com
+    on_success: always
+    on_failure: always 
+
+matrix:
+  fast_finish: true
+  include:
+    
+    - os: osx
+      osx_image: xcode9.4 
+      compiler: clang
+      env: ['PYTHON_VERSION=3.6']
+
+    - os: osx
+      osx_image: xcode9.4
+      compiler: clang
+      env: ['PYTHON_VERSION=3.7']
+
+    - os: osx
+      osx_image: xcode9.4
+      compiler: clang
+      env: ['PYTHON_VERSION=3.8'] 
+
+script:
+   - |
+     cd "${TRAVIS_BUILD_DIR}" 
+     bash ./scripts/build_osx.sh
+     cd build_osx/Release/OpenVisus 
+     if [[ "${PYTHON_VERSION}" != "3.8" ]] ; then bash ./scripts/build_conda.sh ; fi
+    
+

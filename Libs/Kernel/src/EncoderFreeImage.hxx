@@ -42,11 +42,6 @@ For support : support@visus.net
 #include <Visus/Kernel.h>
 #include <Visus/Encoder.h>
 
-#if WIN32
-#include <WinSock2.h>
-#endif
-#include <FreeImage.h>
-
 namespace Visus {
 
 //////////////////////////////////////////////////////////////////////////

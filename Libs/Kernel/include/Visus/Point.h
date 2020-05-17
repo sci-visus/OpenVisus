@@ -1189,7 +1189,7 @@ public:
       return 0;
 
     //check overflow
-#ifdef VISUS_DEBUG
+#ifdef _DEBUG
     T __acc__ = 1;
     for (int I = 0; I < pdim; I++)
       if (!Utils::safe_mul(__acc__, __acc__, get(I)))
