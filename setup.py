@@ -1,7 +1,7 @@
 import os,sys,shutil,setuptools
 
 PROJECT_NAME="OpenVisus"
-PROJECT_VERSION="2.1.5"
+PROJECT_VERSION="2.1.6"
 
 this_dir=os.path.dirname(os.path.abspath(__file__))
 
@@ -70,6 +70,12 @@ def DoSetup():
 
 		johnnydep PyQt5-sip~=12.7.0 -> empty
 		"""
+
+		def ReadTextFile(filename):
+			file = open(filename, "r") 
+			ret=file.read().strip()
+			file.close()
+			return ret
 
 		QT_VERSION=ReadTextFile("QT_VERSION")
 		print("QT_VERSION",QT_VERSION)
