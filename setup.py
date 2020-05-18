@@ -1,7 +1,7 @@
 import os,sys,shutil,setuptools
 
 PROJECT_NAME="OpenVisus"
-PROJECT_VERSION="2.1.4"
+PROJECT_VERSION="2.1.5"
 
 this_dir=os.path.dirname(os.path.abspath(__file__))
 
@@ -48,7 +48,7 @@ def DoSetup():
 	# dependency on numpy
 	install_requires+=["numpy"]
 
-	if not isConda:
+	if not bIsConda:
 
 		#dependency from PyQt5
 		"""
