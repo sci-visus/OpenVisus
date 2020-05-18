@@ -57,6 +57,9 @@ Table of content:
 
 [Linux compilation](#linux-compilation)
 
+
+
+
 ## PIP distribution
 
 Type:
@@ -68,6 +71,10 @@ python -m OpenVisus test
 python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
+
+
+
+
 
 
 ## Conda distribution
@@ -82,6 +89,9 @@ python -m OpenVisus test
 python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
+
+
+
 
 
 ## Windows compilation
@@ -103,14 +113,19 @@ mkdir build
 cd build
 cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="<FillHere>" -DPython_EXECUTABLE=<FillHere> ../ 
 cmake --build . --target ALL_BUILD --config Release
-cmake --build . --target INSTALL   --config Release
-set PYTHON_PATH=.\Release
+
+set PYTHON_PATH=.\Release\
+python -m OpenVisus configure
 python -m OpenVisus test
 python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
 See also `scripts\build_win.bat` for an example of build script.
+
+
+
+
 
 ## MacOSX compilation
 
@@ -121,20 +136,28 @@ Install the following presequisites (for example using brew): `swig cmake python
 Build the repository (change as needed):
 
 ```
+Python_EXECUTABLE=$(brew --prefix python3)/bin/python3
+Qt5_DIR=$(brew --prefix qt5)/lib/cmake/Qt5
+
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-mkdir build && cd build
-cmake -GXcode -DPython_EXECUTABLE=<string value here> -DQt5_DIR=<string value here> ../
+mkdir build 
+cd build
+
+cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} ../
 cmake --build ./ --target ALL_BUILD --config Release 
-cmake --build ./ --target install --config Release
-PYTHONPATH=./Release  python -m OpenVisus test
-PYTHONPATH=./Release  python -m OpenVisus convert
-PYTHONPATH=./Release  python -m OpenVisus viewer
+
+PYTHONPATH=./Release  ${Python_EXECUTABLE} -m OpenVisus configure
+PYTHONPATH=./Release  ${Python_EXECUTABLE} -m OpenVisus test
+PYTHONPATH=./Release  ${Python_EXECUTABLE} -m OpenVisus convert
+PYTHONPATH=./Release  ${Python_EXECUTABLE} -m OpenVisus viewer
 ```
       
 See also `scripts\build_osx.sh` for an example of build script.      
-      
-      
+
+
+
+
 ## Linux compilation
 
 We are showing as an example how to build OpenVisus on Ubuntu 16.
@@ -183,19 +206,26 @@ sudo apt-get install -Y qt59base qt59imageformats
 Compile OpenVisus:
 
 ```
+export Python_EXECUTABLE=python3.7
+export Qt5_DIR=/opt/qt59/lib/cmake/Qt5
+
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-mkdir build && cd build
-cmake -DPython_EXECUTABLE=python3.7 -DQt5_DIR=/opt/qt59/lib/cmake/Qt5 ../
+mkdir build 
+cd build
+cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} ../
 cmake --build ./ --target all     --config Release
-cmake --build ./ --target install --config Release
-PYTHONPATH=./Release python3.7 -m OpenVisus test
-PYTHONPATH=./Release python3.7 -m OpenVisus convert
-PYTHONPATH=./Release python3.7 -m OpenVisus viewer
+
+PYTHONPATH=build/Release ${Python_EXECUTABLE} -m OpenVisus configure
+PYTHONPATH=build/Release ${Python_EXECUTABLE} -m OpenVisus test
+PYTHONPATH=build/Release ${Python_EXECUTABLE} -m OpenVisus convert
+PYTHONPATH=build/Release ${Python_EXECUTABLE} -m OpenVisus viewer
 ```
 
-
 See also `scripts\build_linux.sh` for an example of build script.   
+
+
+
 
 
 
@@ -220,7 +250,7 @@ python -m OpenVisus test
 python -m OpenVisus slam
 ```
 
-If you want to test inside Visual Studio, rememeber to do Cmake `INSTALL` and Cmake `CONFIGURE` only once.
+If you want to test inside Visual Studio, rememeber to do Cmake `CONFIGURE` only once.
 Then (IMPORTANT!) remove the installed `.\build\RelWithDebugInfo\OpenVisus\Slam` directory in order to make sure you are using your `.\Libs\Slam` local directory. !!!
 Right click on `VisusSlam` target and in `Debug tab` set the following:
 
@@ -230,6 +260,10 @@ Command Arguments: -m OpenVisus slam "D:\GoogleSci\visus_slam\TaylorGrant" (-m o
 Working directory: D:\projects\OpenVisus
 Environment: PYTHONPATH=D:\projects\OpenVisus\build\RelWithDebInfo;D:\projects\OpenVisus\Libs
 ```
+
+
+
+
 
 
 ## Commit, Continuous Integration deploy

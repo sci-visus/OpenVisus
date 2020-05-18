@@ -68,10 +68,10 @@ jobs:
            mkdir -p build
            cd build
            cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} -DVISUS_SLAM=1 ../
-           cmake --build . --target ALL_BUILD --config Release --parallel 4 
-           cmake --build . --target INSTALL   --config Release
+           cmake --build . --target ALL_BUILD --config Release --parallel 4
           
            cd Release/OpenVisus
+           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus configure
            PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
            PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert    
                  
@@ -148,9 +148,9 @@ jobs:
            
            cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" -DVISUS_SLAM=1 ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
-           cmake --build ./ --target install   --config Release
               
            cd Release/OpenVisus
+           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus configure
            PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
            PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert  
               
@@ -272,7 +272,6 @@ jobs:
            cd build
            cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=$(which python) -DVISUS_SLAM=1 ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4 
-           cmake --build . --target INSTALL   --config Release
           
            cd Release/OpenVisus
            PYTHONPATH=../ python -m OpenVisus configure
@@ -364,7 +363,6 @@ jobs:
            cd build
            cmake -GXcode -DPython_EXECUTABLE=$(which python) -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" -DVISUS_SLAM=1 ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
-           cmake --build ./ --target install   --config Release
           
            cd Release/OpenVisus
            PYTHONPATH=../ python -m OpenVisus configure  
