@@ -203,13 +203,9 @@ def InstallQt5(Qt5_HOME="",bDebug=False):
 
 
 # ////////////////////////////////////////////////
-def UsePyQt5():
-
-	QT_VERSION=ReadTextFile("QT_VERSION")
-	print("QT_VERSION",QT_VERSION)
+def UsePyQt5(QT_VERSION):
 
 	print("Installing PyQt5...",QT_VERSION)
-
 	major,minor=QT_VERSION.split('.')[0:2]
 
 	try:
@@ -319,9 +315,11 @@ def Main():
 	# _____________________________________________
 	if action=="configure":
 		os.chdir(this_dir)
+		QT_VERSION=ReadTextFile("QT_VERSION")
+		print("QT_VERSION",QT_VERSION)
 		print("Removing Qt5...")
 		shutil.rmtree("bin/qt",ignore_errors=True)	
-		UsePyQt5()
+		UsePyQt5(QT_VERSION)
 		print(action,"done")
 		sys.exit(0)
 
