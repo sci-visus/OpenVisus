@@ -1,7 +1,7 @@
 import os,sys,shutil,setuptools
 
 PROJECT_NAME="OpenVisus"
-PROJECT_VERSION="2.1.7"
+PROJECT_VERSION="2.1.8"
 
 this_dir=os.path.dirname(os.path.abspath(__file__))
 
@@ -102,7 +102,7 @@ def DoSetup():
 				"opencv-python", 
 				"opencv-contrib-python", 
 				"tifffile", 
-				"https://github.com/smarnach/pyexiftool/archive/v0.2.0.zip"
+				"pyexiftool"
 			]
 
 	setuptools.setup(
