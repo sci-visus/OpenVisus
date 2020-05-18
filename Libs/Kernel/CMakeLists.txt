@@ -30,7 +30,6 @@ source_group("" FILES
 	./src/Kernel.cpp
 	./src/Kernel.mm
 	../../OpenVisusConfig.cmake
-	../../setup.py
 	../../.github/workflows/BuildOpenVisus.yml
 )
 
@@ -299,6 +298,7 @@ target_include_directories(VisusKernel  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT
 CopyToBinaryDirectory(TARGET VisusKernel DIRECTORY ./include/Visus  DESTINATION ./include/Kernel/Visus)
 CopyToBinaryDirectory(TARGET VisusKernel FILES __init__.py          DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusKernel FILES __main__.py          DESTINATION ./)
+CopyToBinaryDirectory(TARGET VisusKernel FILES setup.py             DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusKernel FILES PyUtils.py           DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusKernel FILES PyImage.py           DESTINATION ./)
 

@@ -238,7 +238,7 @@ Environment: PYTHONPATH=D:\projects\OpenVisus\build\RelWithDebInfo;D:\projects\O
 Type:
 
 ```
-TAG=$(python setup.py new-tag) 
+TAG=$(python Libs/Kernel/setup.py new-tag) 
 git commit -a -m "New tag" && git tag -a $TAG -m "$TAG" && git push origin $TAG && git push origin
 ```
 

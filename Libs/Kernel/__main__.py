@@ -140,8 +140,8 @@ def InstallQt5(Qt5_HOME="",bDebug=False):
 			except:
 				pass
 		
-			# copy Qt5 plugins 
-			qt_plugins=("iconengines","imageformats","platforms","printsupport","styles")
+		# copy Qt5 plugins 
+		qt_plugins=("iconengines","imageformats","platforms","printsupport","styles")
 		for it in qt_plugins:
 			try:
 				CopyDirectory(Qt5_HOME + "/plugins/" + it ,"./bin/qt/plugins")
