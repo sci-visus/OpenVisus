@@ -215,7 +215,6 @@ def UsePyQt5(QT_VERSION):
 		bIsConda=False
 		
 	if bIsConda:
-		conda.cli.main('conda', 'uninstall',  '-y', "pyqt")
 		conda.cli.main('conda', 'install',    '-y', "pyqt={}.{}".format(major,minor))
 		# do I need PyQtWebEngine for conda? considers Qt is 5.9 (very old)
 		# it has webengine and sip included

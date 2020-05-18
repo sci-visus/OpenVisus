@@ -199,9 +199,7 @@ source_group("Python" FILES   ${PyFiles})
 file(GLOB RootFiles  
 	../../*.py  
 	./*.py 
-	../../.appveyor.yml
-	../../.travis.yml
-	../../.circleci/config.yml
+	../../.github/workflows/BuildOpenVisus.yml
 	../../CMakeLists.txt
 	../../ExternalLibs/CMakeLists.txt
 	../../Doxyfile.in
