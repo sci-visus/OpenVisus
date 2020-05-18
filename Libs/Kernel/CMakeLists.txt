@@ -298,11 +298,11 @@ endif()
 target_compile_definitions(VisusKernel  PRIVATE VISUS_BUILDING_VISUSKERNEL=1)
 target_include_directories(VisusKernel  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-InstallDirectory(./include/Visus  ./include/Kernel)
-CopyFilesToBinaryDirectory(__init__.py          ./)
-CopyFilesToBinaryDirectory(__main__.py          ./)
-CopyFilesToBinaryDirectory(PyUtils.py           ./)
-CopyFilesToBinaryDirectory(PyImage.py           ./)
+CopyToBinaryDirectory(TARGET VisusKernel DIRECTORY ./include/Visus  DESTINATION ./include/Kernel/Visus)
+CopyToBinaryDirectory(TARGET VisusKernel FILES __init__.py          DESTINATION ./)
+CopyToBinaryDirectory(TARGET VisusKernel FILES __main__.py          DESTINATION ./)
+CopyToBinaryDirectory(TARGET VisusKernel FILES PyUtils.py           DESTINATION ./)
+CopyToBinaryDirectory(TARGET VisusKernel FILES PyImage.py           DESTINATION ./)
 
 if (VISUS_PYTHON)
 	AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 

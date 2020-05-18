@@ -11,7 +11,7 @@ target_link_libraries(VisusXIdx PUBLIC VisusKernel)
 target_compile_definitions(VisusXIdx  PRIVATE VISUS_BUILDING_VISUSXIDX=1)
 target_include_directories(VisusXIdx  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-InstallDirectory(./include/Visus ./include/XIdx/)
+CopyToBinaryDirectory(TARGET VisusXIdx DIRECTORY ./include/Visus DESTINATION ./include/XIdx/Visus)
 
 if (VISUS_PYTHON)
     AddSwigLibrary(VisusXIdxPy VisusXIdx ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusXIdx.i 

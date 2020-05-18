@@ -122,9 +122,9 @@ endif()
 
 set_target_properties(VisusGui PROPERTIES FOLDER "")
 
-InstallDirectory(./include/Visus ./include/Gui/)
-CopyFilesToBinaryDirectory(PyScriptingNode.py     ./)
-CopyFilesToBinaryDirectory(PyViewer.py            ./)
+CopyToBinaryDirectory(TARGET VisusGui DIRECTORY ./include/Visus    DESTINATION ./include/Gui/Visus)
+CopyToBinaryDirectory(TARGET VisusGui FILES PyScriptingNode.py     DESTINATION ./)
+CopyToBinaryDirectory(TARGET VisusGui FILES PyViewer.py            DESTINATION ./)
 
 if (VISUS_PYTHON)
 	AddSwigLibrary(VisusGuiPy VisusGui ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiPy.i 

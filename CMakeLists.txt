@@ -119,34 +119,50 @@ if (VISUS_GUI)
 endif()
 
 # //////////////////////////////////////////////////////////////
-macro(CopyFilesToBinaryDirectory src dst)
+# see https://stackoverflow.com/questions/23327687/how-to-write-a-cmake-function-with-more-than-one-parameter-groups
 
-	# doing this to keep dependencies
-	foreach(__it__ ${src})
+include(CMakeParseArguments)
 
-		set(__src__ ${__it__})
+function(CopyToBinaryDirectory)
 
-		if(NOT IS_ABSOLUTE ${__src__})
-			set(__src__ ${CMAKE_CURRENT_SOURCE_DIR}/${__src__})
+    cmake_parse_arguments(
+        PARSED_ARGS 
+        "" # boolean args
+        "TARGET;DESTINATION;DIRECTORY" #1-argument
+        "FILES" # multiple args
+        ${ARGN}
+    )
+
+	if (PARSED_ARGS_FILES)
+		foreach(__it__ ${PARSED_ARGS_FILES})
+			set(__src__ ${__it__})
+			if(NOT IS_ABSOLUTE ${__src__})
+				set(__src__ ${CMAKE_CURRENT_SOURCE_DIR}/${__src__})
+			endif()
+			get_filename_component(__name__ ${__src__} NAME)
+			add_custom_command(
+				TARGET ${PARSED_ARGS_TARGET} POST_BUILD
+				COMMAND ${CMAKE_COMMAND} -E echo copy_if_different ${__src__} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}${__name__}
+				COMMAND ${CMAKE_COMMAND} -E      copy_if_different ${__src__} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}${__name__})
+		endforeach()
+	endif()
+
+	if (PARSED_ARGS_DIRECTORY)
+
+		if(NOT IS_ABSOLUTE ${PARSED_ARGS_DIRECTORY})
+			set(PARSED_ARGS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${PARSED_ARGS_DIRECTORY})
 		endif()
 
-		get_filename_component(__name__ ${__src__} NAME)
-		set(__dst__ ${CMAKE_BINARY_DIR}/${IntConfigName}/${PROJECT_NAME}/${dst}${__name__})
-
-		MESSAGE(STATUS "Installing file ${__src__} -> ${__dst__}")
-
 		add_custom_command(
-			OUTPUT ${__dst__}
-			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${__src__} ${__dst__}
-			MAIN_DEPENDENCY ${__src__})
+			TARGET ${PARSED_ARGS_TARGET} POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E echo "copy_directory ${PARSED_ARGS_DIRECTORY} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}"
+			COMMAND ${CMAKE_COMMAND} -E       copy_directory ${PARSED_ARGS_DIRECTORY} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}
+		)
+	endif()
 
-	endforeach()
-endmacro()
+endfunction()
 
-# //////////////////////////////////////////////////////////////
-macro(InstallDirectory src dst)
-	INSTALL(DIRECTORY ${src} DESTINATION   ${ConfigName}/${PROJECT_NAME}/${dst} USE_SOURCE_PERMISSIONS)
-endmacro()
+
 
 add_subdirectory(ExternalLibs)
 add_subdirectory(Libs)
@@ -159,23 +175,25 @@ if (1)
 	set(__qt_version_filename__ ${CMAKE_BINARY_DIR}/QT_VERSION)
 	file(GENERATE OUTPUT ${__qt_version_filename__} CONTENT "${Qt5Core_VERSION_STRING}")
 
-	CopyFilesToBinaryDirectory(LICENSE                           ./)
-	CopyFilesToBinaryDirectory(README.md                         ./)
-	CopyFilesToBinaryDirectory(datasets/visus.config             ./)
-	CopyFilesToBinaryDirectory(${__qt_version_filename__}        ./)
-	CopyFilesToBinaryDirectory(setup.py                          ./)
+	add_custom_target(CopyRootFiles ALL)
 
-	InstallDirectory(Copyrights                    ./)
-	InstallDirectory(Samples                       ./)
-	InstallDirectory(CMake                         ./)
-	InstallDirectory(datasets                      ./)
-	InstallDirectory(scripts                       ./)
+	CopyToBinaryDirectory(TARGET CopyRootFiles FILES LICENSE                       DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyRootFiles FILES README.md                     DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyRootFiles FILES datasets/visus.config         DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyRootFiles FILES ${__qt_version_filename__}    DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyRootFiles FILES setup.py                      DESTINATION ./)
+
+	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY Copyrights                DESTINATION ./Copyrights)
+	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY Samples                   DESTINATION ./Samples)
+	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY CMake                     DESTINATION ./CMake)
+	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY datasets                  DESTINATION ./datasets)
+	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY scripts                   DESTINATION ./scripts)
 
 	# copy needed windows *.dll
 	if (WIN32)
 		set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION "${ConfigName}/${PROJECT_NAME}/bin")
 		include(InstallRequiredSystemLibraries)
-		CopyFilesToBinaryDirectory("${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}" ./bin/)
+		CopyToBinaryDirectory(TARGET CopyRootFiles FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ./bin/)
 	endif()
 
 	# ____________________________________________
