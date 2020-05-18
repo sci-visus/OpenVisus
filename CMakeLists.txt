@@ -118,6 +118,35 @@ if (VISUS_GUI)
 	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS ${Qt5_DIR} NO_DEFAULT_PATH)
 endif()
 
+# //////////////////////////////////////////////////////////////
+macro(CopyFilesToBinaryDirectory src dst)
+
+	# doing this to keep dependencies
+	foreach(__it__ ${src})
+
+		set(__src__ ${__it__})
+
+		if(NOT IS_ABSOLUTE ${__src__})
+			set(__src__ ${CMAKE_CURRENT_SOURCE_DIR}/${__src__})
+		endif()
+
+		get_filename_component(__name__ ${__src__} NAME)
+		set(__dst__ ${CMAKE_BINARY_DIR}/${IntConfigName}/${PROJECT_NAME}/${dst}${__name__})
+
+		MESSAGE(STATUS "Installing file ${__src__} -> ${__dst__}")
+
+		add_custom_command(
+			OUTPUT ${__dst__}
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${__src__} ${__dst__}
+			MAIN_DEPENDENCY ${__src__})
+
+	endforeach()
+endmacro()
+
+# //////////////////////////////////////////////////////////////
+macro(InstallDirectory src dst)
+	INSTALL(DIRECTORY ${src} DESTINATION   ${ConfigName}/${PROJECT_NAME}/${dst} USE_SOURCE_PERMISSIONS)
+endmacro()
 
 add_subdirectory(ExternalLibs)
 add_subdirectory(Libs)
@@ -127,26 +156,26 @@ add_subdirectory(Executable)
 # install
 if (1)
 
-	set(__qt_version_filename__ ${CMAKE_BINARY_DIR}/${ConfigName}/QT_VERSION)
+	set(__qt_version_filename__ ${CMAKE_BINARY_DIR}/QT_VERSION)
 	file(GENERATE OUTPUT ${__qt_version_filename__} CONTENT "${Qt5Core_VERSION_STRING}")
 
-	INSTALL(FILES LICENSE                        DESTINATION   ${ConfigName}/${PROJECT_NAME}/)
-	INSTALL(FILES README.md                      DESTINATION   ${ConfigName}/${PROJECT_NAME}/)
-	INSTALL(FILES datasets/visus.config          DESTINATION   ${ConfigName}/${PROJECT_NAME}/)
-	INSTALL(FILES ${__qt_version_filename__}     DESTINATION   ${ConfigName}/${PROJECT_NAME}/)
-	INSTALL(FILES setup.py                       DESTINATION   ${ConfigName}/${PROJECT_NAME}/)
+	CopyFilesToBinaryDirectory(LICENSE                           ./)
+	CopyFilesToBinaryDirectory(README.md                         ./)
+	CopyFilesToBinaryDirectory(datasets/visus.config             ./)
+	CopyFilesToBinaryDirectory(${__qt_version_filename__}        ./)
+	CopyFilesToBinaryDirectory(setup.py                          ./)
 
-	INSTALL(DIRECTORY Copyrights                 DESTINATION   ${ConfigName}/${PROJECT_NAME} USE_SOURCE_PERMISSIONS)
-	INSTALL(DIRECTORY Samples                    DESTINATION   ${ConfigName}/${PROJECT_NAME} USE_SOURCE_PERMISSIONS)
-	INSTALL(DIRECTORY CMake                      DESTINATION   ${ConfigName}/${PROJECT_NAME} USE_SOURCE_PERMISSIONS)
-	INSTALL(DIRECTORY datasets                   DESTINATION   ${ConfigName}/${PROJECT_NAME} USE_SOURCE_PERMISSIONS)
-	INSTALL(DIRECTORY scripts                    DESTINATION   ${ConfigName}/${PROJECT_NAME} USE_SOURCE_PERMISSIONS)
+	InstallDirectory(Copyrights                    ./)
+	InstallDirectory(Samples                       ./)
+	InstallDirectory(CMake                         ./)
+	InstallDirectory(datasets                      ./)
+	InstallDirectory(scripts                       ./)
 
 	# copy needed windows *.dll
 	if (WIN32)
 		set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION "${ConfigName}/${PROJECT_NAME}/bin")
 		include(InstallRequiredSystemLibraries)
-		INSTALL(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION "${ConfigName}/${PROJECT_NAME}/bin/")
+		CopyFilesToBinaryDirectory("${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}" ./bin/)
 	endif()
 
 	# ____________________________________________

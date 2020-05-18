@@ -81,8 +81,8 @@ target_link_libraries(VisusDb PUBLIC VisusKernel)
 target_compile_definitions(VisusDb  PRIVATE VISUS_BUILDING_VISUSDB=1)
 target_include_directories(VisusDb  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-INSTALL(DIRECTORY ./include/Visus   DESTINATION ${ConfigName}/${PROJECT_NAME}/include/Db/)
-INSTALL(FILES     ./PyDataset.py    DESTINATION ${ConfigName}/${PROJECT_NAME}/)
+InstallDirectory(./include/Visus  ./include/Db/)
+CopyFilesToBinaryDirectory(PyDataset.py ./)
 
 if (VISUS_PYTHON)
 	AddSwigLibrary(VisusDbPy VisusDb ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusDbPy.i 

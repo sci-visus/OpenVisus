@@ -24,7 +24,6 @@
 #include <Visus/RenderArrayNode.h>
 #include <Visus/KdRenderArrayNode.h>
 #include <Visus/ScriptingNode.h>
-#include <Visus/PythonNode.h>
 
 #include <Visus/Viewer.h>
 
@@ -82,7 +81,6 @@ os.environ["QT_PLUGIN_PATH"]= os.path.join(QT5_DIR,"plugins")
 %feature("director") Visus::KdRenderArrayNode;
 %feature("director") Visus::JTreeRenderNode;
 %feature("director") Visus::ScriptingNode;
-%feature("director") Visus::PythonNode;
 
 %shared_ptr(Visus::IsoContour)
 %shared_ptr(Visus::GLMesh)
@@ -105,7 +103,6 @@ os.environ["QT_PLUGIN_PATH"]= os.path.join(QT5_DIR,"plugins")
 %include <Visus/RenderArrayNode.h>
 %include <Visus/KdRenderArrayNode.h>
 %include <Visus/ScriptingNode.h>
-%include <Visus/PythonNode.h>
 
 %include <Visus/Viewer.h>
 

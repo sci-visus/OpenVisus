@@ -45,6 +45,7 @@ For support : support@visus.net
 #include <Visus/Array.h>
 #include <Visus/Model.h>
 #include <Visus/GuiFactory.h>
+#include <Visus/GLObject.h>
 
 #include <QTimer>
 
@@ -56,17 +57,24 @@ namespace Visus {
 
 ////////////////////////////////////////////////////////////
 class VISUS_GUI_API ScriptingNode : public Node
+#if !SWIG
+  , public GLObject
+#endif
 {
 public:
 
   VISUS_NON_COPYABLE_CLASS(ScriptingNode)
-
 
   //constructor
   ScriptingNode();
 
   //destructor
   virtual ~ScriptingNode();
+
+  //getOsDependentTypeName (virtual so that I can override it in python)
+  virtual String getOsDependentTypeName() const override {
+    return "ScriptingNode";
+  }
 
   //getCode
   String getCode() {
@@ -114,11 +122,56 @@ public:
 
   //getBounds
   virtual Position getBounds() override {
-    return this->bounds;
+    return this->node_bounds;
+  }
+
+  //setBounds
+  virtual void setBounds(Position value) {
+    this->node_bounds = value;
   }
 
   static ScriptingNode* castFrom(Node* obj) {
     return dynamic_cast<ScriptingNode*>(obj);
+  }
+
+
+public:
+
+  //replicate most of the API of GLOBject to expose them to python
+
+  //glGetRenderQueue
+  virtual int glGetRenderQueue() const override {
+    return GLObject::glGetRenderQueue();
+  }
+
+  //glSetRenderQueue
+  virtual void glSetRenderQueue(int value) override {
+    GLObject::glSetRenderQueue(value);
+  }
+
+  //glMousePressEvent
+  virtual void glMousePressEvent(const FrustumMap& map, QMouseEvent* evt) override {
+    GLObject::glMousePressEvent(map, evt);
+  }
+
+  //mouseMoveEvent
+  virtual void glMouseMoveEvent(const FrustumMap& map, QMouseEvent* evt) override {
+    GLObject::glMouseMoveEvent(map, evt);
+  }
+
+  //mouseReleaseEvent
+  virtual void glMouseReleaseEvent(const FrustumMap& map, QMouseEvent* evt) override {
+    GLObject::glMouseReleaseEvent(map, evt);
+  }
+
+  //wheelEvent
+  virtual void glWheelEvent(const FrustumMap& map, QWheelEvent* evt) override {
+    GLObject::glWheelEvent(map, evt);
+  }
+
+  //glRender
+  virtual void glRender(GLCanvas& gl) override {
+    //implement your own method here
   }
 
 public:
@@ -153,7 +206,7 @@ private:
 
   DType     last_dtype;
 
-  Position  bounds;
+  Position  node_bounds;
 
 #if VISUS_PYTHON
   SharedPtr<PythonEngine> engine;

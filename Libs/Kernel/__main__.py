@@ -177,7 +177,6 @@ def InstallQt5(Qt5_HOME="",bDebug=False):
 			ExecuteCommand(["install_name_tool","-add_rpath","@loader_path/../../..",filename])			
 			ExecuteCommand(["install_name_tool","-add_rpath","@loader_path/../../../qt/lib",filename])			
 				
-			
 		# fir rpath for Qt5 frameworks
 		for filename in ["%s/Versions/Current/%s" % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("bin/qt/lib/*.framework")]:
 			ExecuteCommand(["install_name_tool","-add_rpath","@loader_path/../../..",filename])	
@@ -204,41 +203,56 @@ def InstallQt5(Qt5_HOME="",bDebug=False):
 
 
 # ////////////////////////////////////////////////
-def InstallPyQt5(needed):
+def UsePyQt5():
 
-	print("Installing PyQt5...",needed)
+	QT_VERSION=ReadTextFile("QT_VERSION")
+	print("QT_VERSION",QT_VERSION)
 
-	major,minor=needed.split('.')[0:2]
+	print("Installing PyQt5...",QT_VERSION)
 
-	bIsConda=False
+	major,minor=QT_VERSION.split('.')[0:2]
+
 	try:
 		import conda.cli
 		bIsConda=True
 	except:
-		pass
+		bIsConda=False
 		
 	if bIsConda:
 		conda.cli.main('conda', 'uninstall',  '-y', "pyqt")
 		conda.cli.main('conda', 'install',    '-y', "pyqt={}.{}".format(major,minor))
-	else:
-		cmd=[sys.executable,"-m","pip","uninstall","-y","sip","PyQt5","PyQt5-sip"]
-		print("# Executing",cmd)
-		if subprocess.call(cmd)!=0:
-			raise Exception("Cannot uninstall PyQt5")		
-		
-		cmd=[sys.executable,"-m","pip","install","--progress-bar","off","--no-cache-dir","PyQt5~={}.{}.0".format(major,minor), "PyQt5-sip"]
-		print("# Executing",cmd)
-		if subprocess.call(cmd)!=0:
-			raise Exception("Cannot install PyQt5")
-	
+		# do I need PyQtWebEngine for conda? considers Qt is 5.9 (very old)
+		# it has webengine and sip included
+	else: 
 
-# ///////////////////////////////////////////////
-def AddRPath(value):
-	for filename in FindAllBinaries():
-		ExecuteCommand(["install_name_tool","-add_rpath",value,filename],bVerbose=True)				
-	
-# ////////////////////////////////////////////////
-def LinkPyQt5():
+		"""
+		python -m pip install johnnydep
+
+		johnnydep PyQt5~=5.14.0	-> PyQt5-sip<13,>=12.7
+		johnnydep PyQt5~=5.13.0	-> PyQt5_sip<13,>=4.19.19
+		johnnydep PyQt5~=5.12.0 -> PyQt5_sip<13,>=4.19.14
+		johnnydep PyQt5~=5.11.0 -> empty
+		johnnydep PyQt5~=5.10.0 -> empty
+		johnnydep PyQt5~=5.9.0  -> empty
+
+		johnnydep PyQtWebEngine~=5.14.0 -> PyQt5>=5.14 
+		johnnydep PyQtWebEngine~=5.13.0 -> PyQt5>=5.13
+		johnnydep PyQtWebEngine~=5.12.0 -> PyQt5>=5.12
+		johnnydep PyQtWebEngine~=5.11.0 -> does not exist
+		johnnydep PyQtWebEngine~=5.10.0 -> does not exist
+		johnnydep PyQtWebEngine~=5.19.0 -> does not exist
+
+		johnnydep PyQt5-sip~=12.7.0 -> empty
+		"""
+
+		cmd=[sys.executable,"-m", "pip", "install", "--progress-bar", "off", "PyQt5~={}.{}.0".format(major,minor)]
+
+		if int(major)==5 and int(minor)>=12:
+			cmd+=["PyQtWebEngine~={}.{}.0".format(major,minor)]
+			cmd+=["PyQt5-sip<13,>=12.7"] 
+
+		print("Executing",cmd)
+		subprocess.call(cmd)
 
 	print("Linking to PyQt5...")
 
@@ -263,6 +277,11 @@ def LinkPyQt5():
 	else:
 		SetRPath("$ORIGIN:$ORIGIN/bin:" + os.path.join(PyQt5_HOME,'Qt/lib'))
 
+# ///////////////////////////////////////////////
+def AddRPath(value):
+	for filename in FindAllBinaries():
+		ExecuteCommand(["install_name_tool","-add_rpath",value,filename],bVerbose=True)				
+	
 
 # ////////////////////////////////////////////////
 def Main():
@@ -300,12 +319,9 @@ def Main():
 	# _____________________________________________
 	if action=="configure":
 		os.chdir(this_dir)
-		QT_VERSION=ReadTextFile("QT_VERSION")
-		print("QT_VERSION",QT_VERSION)
 		print("Removing Qt5...")
 		shutil.rmtree("bin/qt",ignore_errors=True)	
-		InstallPyQt5(QT_VERSION)
-		LinkPyQt5()
+		UsePyQt5()
 		print(action,"done")
 		sys.exit(0)
 

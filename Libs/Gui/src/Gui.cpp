@@ -51,7 +51,6 @@ For support : support@visus.net
 #include <Visus/JTreeRenderNode.h>
 #include <Visus/VoxelScoopNode.h>
 #include <Visus/ScriptingNode.h>
-#include <Visus/PythonNode.h>
 #include <Visus/QDoubleSlider.h>
 #include <Visus/GLMaterial.h>
 #include <Visus/GLInfo.h>
@@ -153,7 +152,6 @@ void GuiModule::attach()
   VISUS_REGISTER_NODE_CLASS(JTreeRenderNode);
   VISUS_REGISTER_NODE_CLASS(VoxelScoopNode);
   VISUS_REGISTER_NODE_CLASS(ScriptingNode);
-  VISUS_REGISTER_NODE_CLASS(PythonNode);
 
   GLSharedContext::allocSingleton();
   GLInfo::allocSingleton();

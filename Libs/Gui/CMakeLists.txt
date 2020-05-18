@@ -60,9 +60,7 @@ set(NodeSources
 	./include/Visus/ScriptingNode.h  
 	./src/ScriptingNode.cpp
 	./include/Visus/ScriptingNodeView.h
-	./src/ScriptingNodeView.cpp	
-	./include/Visus/PythonNode.h  
-	./src/PythonNode.cpp
+	./src/ScriptingNodeView.cpp
 )
 
 
@@ -124,9 +122,9 @@ endif()
 
 set_target_properties(VisusGui PROPERTIES FOLDER "")
 
-INSTALL(DIRECTORY ./include/Visus          DESTINATION ${ConfigName}/${PROJECT_NAME}/include/Gui/)
-INSTALL(FILES     ./PyScriptingNode.py     DESTINATION ${ConfigName}/${PROJECT_NAME}/)
-INSTALL(FILES     ./PyViewer.py            DESTINATION ${ConfigName}/${PROJECT_NAME}/)
+InstallDirectory(./include/Visus ./include/Gui/)
+CopyFilesToBinaryDirectory(PyScriptingNode.py     ./)
+CopyFilesToBinaryDirectory(PyViewer.py            ./)
 
 if (VISUS_PYTHON)
 	AddSwigLibrary(VisusGuiPy VisusGui ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiPy.i 

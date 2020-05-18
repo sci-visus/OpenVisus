@@ -35,21 +35,21 @@ class MyWidget(QWidget):
 
 
 # ///////////////////////////////////////////////////////////
-class MyPythonNode(PythonNode):
+class MyScriptingNode(ScriptingNode):
 
 	# __init__
 	def __init__(self):
-		PythonNode.__init__(self)
-		self.setName("MyPythonNode")
+		ScriptingNode.__init__(self)
+		self.setName("MyScriptingNode")
 		self.addInputPort("array")
-    
+
 	# getTypeName
 	def getTypeName(self):    
-		return "MyPythonNode"
-    
+		return "MyScriptingNode"
+
 	# getOsDependentTypeName
 	def getOsDependentTypeName(self):
-		return "MyPythonNode"
+		return "MyScriptingNode"
 
 	# glRender
 	def glRender(self, gl):
@@ -78,7 +78,7 @@ class MyPythonNode(PythonNode):
 
 	# processInput
 	def processInput(self):
-		return PythonNode.processInput(self)
+		return ScriptingNode.processInput(self)
 
 		
 # //////////////////////////////////////////////
@@ -94,7 +94,7 @@ def Main(argv):
 	GuiModule.createApplication()
 	GuiModule.attach()  
 	
-	VISUS_REGISTER_NODE_CLASS("MyPythonNode", "MyPythonNode", lambda : MyPythonNode())
+	VISUS_REGISTER_NODE_CLASS("MyScriptingNode", "MyScriptingNode", lambda : MyScriptingNode())
 
 	viewer=Viewer()
 	viewer.open("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1") 
@@ -107,7 +107,7 @@ def Main(argv):
 	root=viewer.getRoot()
 	world_box=viewer.getWorldBox()
 
-	pynode=MyPythonNode()
+	pynode=MyScriptingNode()
 	pynode.glSetRenderQueue(999)
 	pynode.setBounds(Position(world_box))
 	viewer.addNode(root,pynode)

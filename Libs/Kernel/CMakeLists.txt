@@ -31,6 +31,7 @@ source_group("" FILES
 	./src/Kernel.mm
 	../../OpenVisusConfig.cmake
 	../../setup.py
+	../../.github/workflows/BuildOpenVisus.yml
 )
 
 source_group("Core" FILES
@@ -297,11 +298,11 @@ endif()
 target_compile_definitions(VisusKernel  PRIVATE VISUS_BUILDING_VISUSKERNEL=1)
 target_include_directories(VisusKernel  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-INSTALL(DIRECTORY ./include/Visus       DESTINATION ${ConfigName}/${PROJECT_NAME}/include/Kernel)
-INSTALL(FILES     ./__init__.py         DESTINATION ${ConfigName}/${PROJECT_NAME}/)
-INSTALL(FILES     ./__main__.py         DESTINATION ${ConfigName}/${PROJECT_NAME}/)
-INSTALL(FILES     ./PyUtils.py          DESTINATION ${ConfigName}/${PROJECT_NAME}/)
-INSTALL(FILES     ./PyImage.py          DESTINATION ${ConfigName}/${PROJECT_NAME}/)
+InstallDirectory(./include/Visus  ./include/Kernel)
+CopyFilesToBinaryDirectory(__init__.py          ./)
+CopyFilesToBinaryDirectory(__main__.py          ./)
+CopyFilesToBinaryDirectory(PyUtils.py           ./)
+CopyFilesToBinaryDirectory(PyImage.py           ./)
 
 if (VISUS_PYTHON)
 	AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 

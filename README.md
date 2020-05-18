@@ -62,10 +62,7 @@ Table of content:
 Type:
 
 ```
-# optional 
-python -m pip uninstall OpenVisus
-
-python -m pip install --no-cache-dir OpenVisus
+python -m pip install --no-cache-dir --upgrade --force-reinstall OpenVisus
 python -m OpenVisus configure 
 python -m OpenVisus test
 python -m OpenVisus convert
@@ -78,9 +75,7 @@ python -m OpenVisus viewer
 Type:
 
 ```
-# optional
-conda uninstall -y openvisus
-
+conda uninstall -y openvisus # optional
 conda install -y -c visus openvisus
 python -m OpenVisus configure 
 python -m OpenVisus test
@@ -217,20 +212,12 @@ brew install \
 
 Then install OpenVisus slam package:
 
-```  
-# OPTIONAL, make sure pip is updated
-python -m pip install --upgrade pip
-
-python -m pip install \
-	numpy matplotlib pymap3d pytz pyzbar scikit-image scipy pysolar json-tricks  \
-	cmapy opencv-python opencv-contrib-python tifffile https://github.com/smarnach/pyexiftool/archive/v0.2.0.zip
- 
-python -m pip uninstall OpenVisus
-python -m pip install --no-cache-dir OpenVisus
+``` 
+python -m pip install --upgrade pip # make sure pip is updated
+python -m pip install --no-cache-dir --upgrade --force-reinstall OpenVisus
 python -m OpenVisus configure
 python -m OpenVisus test
-python -m pip install PyQtWebEngine
-python -m OpenVisus slam "/Users/scrgiorgio/Desktop/TaylorGrant"
+python -m OpenVisus slam
 ```
 
 If you want to test inside Visual Studio, rememeber to do Cmake `INSTALL` and Cmake `CONFIGURE` only once.

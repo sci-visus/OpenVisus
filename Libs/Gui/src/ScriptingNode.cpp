@@ -242,7 +242,7 @@ bool ScriptingNode::processInput()
 
   guessPresets(*input);
 
-  this->bounds = input->bounds;
+  this->node_bounds = input->bounds;
 
   //pass throught
 #if VISUS_PYTHON
