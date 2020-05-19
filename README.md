@@ -135,8 +135,9 @@ Make sure you have command line toos:
 sudo xcode-select --install || sudo xcode-select --reset
 ```
 
-Install the following presequisites (for example using brew): ```
+Install the following presequisites (for example using brew): 
 
+```
 swig cmake python3.x qt5
 ```
 
