@@ -4,9 +4,9 @@ import os, sys, glob, subprocess, platform, shutil, sysconfig, re
 
 """
 Linux:
+	readelf -d bin/visus
 	QT_DEBUG_PLUGINS=1 LD_DEBUG=libs,files  ./visusviewer.sh
 	LD_DEBUG=libs,files ldd bin/visus
-	readelf -d bin/visus
 
 OSX:
 	otool -L libname.dylib
@@ -36,7 +36,7 @@ def GetCommandOutput(cmd,shell=False):
 
 # /////////////////////////////////////////////////////////////////////////
 def ExecuteCommand(cmd):	
-	print("Executing command", cmd)
+	print("Executing command", " ".join(cmd))
 	return subprocess.call(cmd, shell=False)
 
 

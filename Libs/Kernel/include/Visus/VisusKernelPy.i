@@ -8,7 +8,6 @@
 #include <Visus/File.h>
 #include <Visus/Time.h>
 #include <Visus/TransferFunction.h>
-#include <Visus/StringTree.h>
 #include <Visus/Ray.h>
 #include <Visus/Frustum.h>
 
@@ -47,7 +46,6 @@ using namespace Visus;
 %include <Visus/Aborted.h>
 %include <Visus/StringTree.h>
 
-%include <Visus/StringTree.h>
 %include <Visus/Color.h>
 %include <Visus/Point.h> 
 

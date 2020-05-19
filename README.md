@@ -57,9 +57,13 @@ Table of content:
 
 [Linux compilation](#linux-compilation)
 
+[VisusSlam](#visus-slam)
+
+[Commit CI](#commit-ci)
 
 
 
+<!--//////////////////////////////////////////////////////////////////////// -->
 ## PIP distribution
 
 Type:
@@ -72,11 +76,7 @@ python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
-
-
-
-
-
+<!--//////////////////////////////////////////////////////////////////////// -->
 ## Conda distribution
 
 Type:
@@ -90,10 +90,7 @@ python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
-
-
-
-
+<!--//////////////////////////////////////////////////////////////////////// -->
 ## Windows compilation
 
 Install git, cmake and swig.  
@@ -129,7 +126,7 @@ python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
-
+<!--//////////////////////////////////////////////////////////////////////// -->
 ## MacOSX compilation
 
 Make sure you have command line toos:
@@ -169,7 +166,7 @@ python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
-
+<!--//////////////////////////////////////////////////////////////////////// -->
 ## Linux compilation
 
 We are showing as an example how to build OpenVisus on Ubuntu 16.
@@ -206,28 +203,35 @@ Install apache developer files (OPTIONAL for mod_visus):
 sudo apt-get install -y libapr1 libapr1-dev libaprutil1 libaprutil1-dev apache2-dev
 ```
 
-Install qt5 (5.9 or another version):
+Install qt5 (5.12 or another version):
 
 ```
-sudo add-apt-repository -y ppa:beineri/opt-qt592-xenial
+#sudo add-apt-repository -y ppa:beineri/opt-qt592-xenial
+#sudo apt update
+#sudo apt-get install -y qt59base qt59imageformats
+
+sudo add-apt-repository -y ppa:beineri/opt-qt-5.12.8-xenial
 sudo apt update
-sudo apt-get install -Y qt59base qt59imageformats
+sudo apt-get install -y qt512base qt512imageformats
 ```
 
 
-Compile OpenVisus:
+Compile OpenVisus (change as needed):
 
 ```
-export Python_EXECUTABLE=python3.7
-export Qt5_DIR=/opt/qt59/lib/cmake/Qt5
-alias python=${Python_EXECUTABLE}
-
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
+
+export Python_EXECUTABLE=python3.7
+export Qt5_DIR=/opt/qt512/lib/cmake/Qt5 
+alias python=${Python_EXECUTABLE}
+
 mkdir build 
 cd build
 cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} -DVISUS_SLAM=0 ../
-cmake --build ./ --target all     --config Release
+cmake --build ./ --target all --config Release --parallel 4 
+
+python -m pip install --upgrade pip
 
 export PYTHONPATH=./Release
 python -m OpenVisus test
@@ -236,30 +240,20 @@ python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
-
-
-
-
+<!--//////////////////////////////////////////////////////////////////////// -->
 ##  VisusSlam
 
 On osx install prerequisites:
 
 ``` 
 brew install exiftool zbar 
+```
 
+Install python dependencies:
+
+```
 python -m pip install --upgrade pip
-python -m pip install \
-   matplotlib \
-   pymap3d \
-   pytz \
-   pyzbar \
-   scikit-image \
-   scipy \
-   pysolar \
-   json-tricks \
-   cmapy \
-   tifffile \
-   pyexiftool
+python -m pip install matplotlib pymap3d pytz pyzbar scikit-image scipy pysolar json-tricks cmapy tifffile pyexiftool opencv-python opencv-contrib-python
 ```
 
 Then install OpenVisus slam package:
@@ -270,36 +264,21 @@ python -m pip install --no-cache-dir --upgrade --force-reinstall OpenVisus
 python -m OpenVisus configure
 python -m OpenVisus test
    
-# make sure there is no conflict between opencv2/Qt and PyQt5
+# ON MACOS ONLY, you may need to solve conflicts between Qt embedded in opencv2 and PyQt5 we are going to use:
 python -m pip uninstall -y opencv-python          opencv-contrib-python
 python -m pip install      opencv-python-headless opencv-contrib-python-headless 
 
 python -m OpenVisus slam
 ```
 
-If you want to test inside Visual Studio, rememeber to do Cmake `CONFIGURE` only once.
-Then (IMPORTANT!) remove the installed `.\build\RelWithDebugInfo\OpenVisus\Slam` directory in order to make sure you are using your `.\Libs\Slam` local directory. !!!
-Right click on `VisusSlam` target and in `Debug tab` set the following:
 
-```
-Command: C:\Python37\python.exe
-Command Arguments: -m OpenVisus slam "D:\GoogleSci\visus_slam\TaylorGrant" (-m openvisus slam --pdim 3 "D:\GoogleSci\visus_dataset\male\RAW\Fullcolor\fullbody" if you are trying 3d stuff)
-Working directory: D:\projects\OpenVisus
-Environment: PYTHONPATH=D:\projects\OpenVisus\build\RelWithDebInfo;D:\projects\OpenVisus\Libs
-```
-
-
-
-
-
-
-## Commit, Continuous Integration deploy
-
+<!--//////////////////////////////////////////////////////////////////////// -->
+## Commit CI
 
 Type:
 
 ```
-TAG=$(python Libs/Kernel/setup.py new-tag) 
+TAG=$(python Libs/Kernel/setup.py new-tag) && echo ${TAG}
 git commit -a -m "New tag" && git tag -a $TAG -m "$TAG" && git push origin $TAG && git push origin
 ```
 
