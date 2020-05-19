@@ -57,6 +57,13 @@ Table of content:
 
 [Linux compilation](#linux-compilation)
 
+[VisusSlam](#visus-slam)
+
+[Commit CI](#commit-ci)
+
+
+
+<!--//////////////////////////////////////////////////////////////////////// -->
 ## PIP distribution
 
 Type:
@@ -69,7 +76,7 @@ python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
-
+<!--//////////////////////////////////////////////////////////////////////// -->
 ## Conda distribution
 
 Type:
@@ -83,10 +90,15 @@ python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
-
+<!--//////////////////////////////////////////////////////////////////////// -->
 ## Windows compilation
 
-Install git, cmake and swig.  The fastest way is to use `chocolatey` (example: `choco install -y git cmake swig`).
+Install git, cmake and swig.  
+The fastest way is to use `chocolatey`:
+
+```
+choco install -y git cmake swig
+```
 
 Install Python3.x.
 
@@ -95,46 +107,67 @@ Install Qt5 (http://download.qt.io/official_releases/online_installers/qt-unifie
 To compile OpenVisus (change as needed):
 
 ```
+set Python_EXECUTABLE=<FillHere>
+set Qt5_DIR=</FillHere>
+
 python -m pip install numpy
 
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 mkdir build
 cd build
-cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="<FillHere>" -DPython_EXECUTABLE=<FillHere> ../ 
+cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR=%Qt5_DIR% -DPython_EXECUTABLE=%Python_EXECUTABLE% ../ 
 cmake --build . --target ALL_BUILD --config Release
-cmake --build . --target INSTALL   --config Release
+
 set PYTHON_PATH=.\Release
 python -m OpenVisus test
+python -m OpenVisus configure
 python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
-See also `scripts\build_win.bat` for an example of build script.
-
+<!--//////////////////////////////////////////////////////////////////////// -->
 ## MacOSX compilation
 
-Make sure you have command line toos (`sudo xcode-select --install || sudo xcode-select --reset`):
+Make sure you have command line toos:
 
-Install the following presequisites (for example using brew): `swig cmake python3.x qt5`.
+```
+sudo xcode-select --install || sudo xcode-select --reset
+```
+
+Install the following presequisites (for example using brew): 
+
+```
+swig cmake python3.x qt5
+```
 
 Build the repository (change as needed):
 
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-mkdir build && cd build
-cmake -GXcode -DPython_EXECUTABLE=<string value here> -DQt5_DIR=<string value here> ../
-cmake --build ./ --target ALL_BUILD --config Release 
-cmake --build ./ --target install --config Release
-PYTHONPATH=./Release  python -m OpenVisus test
-PYTHONPATH=./Release  python -m OpenVisus convert
-PYTHONPATH=./Release  python -m OpenVisus viewer
+
+# update submodules
+git pull --recurse-submodules
+
+Python_ROOT_DIR=$(brew --prefix python3)
+Qt5_DIR=$(brew --prefix qt5)/lib/cmake/Qt5
+alias python=${Python_ROOT_DIR}/bin/python3
+
+mkdir build 
+cd build
+
+cmake -GXcode -DPython_ROOT_DIR=${Python_ROOT_DIR} -DQt5_DIR=${Qt5_DIR} -DVISUS_SLAM=0 ../
+cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
+
+export PYTHONPATH=$(pwd)/Release
+python -m OpenVisus test
+python -m OpenVisus configure
+python -m OpenVisus convert
+python -m OpenVisus viewer
 ```
-      
-See also `scripts\build_osx.sh` for an example of build script.      
-      
-      
+
+<!--//////////////////////////////////////////////////////////////////////// -->
 ## Linux compilation
 
 We are showing as an example how to build OpenVisus on Ubuntu 16.
@@ -145,7 +178,7 @@ Install prerequisites:
 sudo apt install -y patchelf swig
 ```
 
-Install a recent cmake. For example
+Install a recent cmake. For example:
 
 ```
 wget https://github.com/Kitware/CMake/releases/download/v3.17.2/cmake-3.17.2-Linux-x86_64.sh
@@ -171,74 +204,82 @@ Install apache developer files (OPTIONAL for mod_visus):
 sudo apt-get install -y libapr1 libapr1-dev libaprutil1 libaprutil1-dev apache2-dev
 ```
 
-Install qt5 (note: we are using most of the time the version 5.9 because it's the only one compatible with conda/pyqt):
+Install qt5 (5.12 or another version):
 
 ```
-sudo add-apt-repository -y ppa:beineri/opt-qt592-xenial
+#sudo add-apt-repository -y ppa:beineri/opt-qt592-xenial
+#sudo apt update
+#sudo apt-get install -y qt59base qt59imageformats
+
+sudo add-apt-repository -y ppa:beineri/opt-qt-5.12.8-xenial
 sudo apt update
-sudo apt-get install -Y qt59base qt59imageformats
+sudo apt-get install -y qt512base qt512imageformats
 ```
 
 
-Compile OpenVisus:
+Compile OpenVisus (change as needed):
 
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-mkdir build && cd build
-cmake -DPython_EXECUTABLE=python3.7 -DQt5_DIR=/opt/qt59/lib/cmake/Qt5 ../
-cmake --build ./ --target all     --config Release
-cmake --build ./ --target install --config Release
-PYTHONPATH=./Release python3.7 -m OpenVisus test
-PYTHONPATH=./Release python3.7 -m OpenVisus convert
-PYTHONPATH=./Release python3.7 -m OpenVisus viewer
+
+export Python_EXECUTABLE=python3.7
+export Qt5_DIR=/opt/qt512/lib/cmake/Qt5 
+alias python=${Python_EXECUTABLE}
+
+mkdir build 
+cd build
+cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} -DVISUS_SLAM=0 ../
+cmake --build ./ --target all --config Release --parallel 4 
+
+python -m pip install --upgrade pip
+
+export PYTHONPATH=./Release
+python -m OpenVisus test
+python -m OpenVisus configure
+python -m OpenVisus convert
+python -m OpenVisus viewer
 ```
 
-
-See also `scripts\build_linux.sh` for an example of build script.   
-
-
-
+<!--//////////////////////////////////////////////////////////////////////// -->
 ##  VisusSlam
 
-On osx install brew dependencies:
+On osx install prerequisites:
 
 ``` 
-brew install \
-  exiftool \
-  zbar \
-  https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb
+brew install exiftool zbar 
+```
+
+Install python dependencies:
+
+```
+python -m pip install --upgrade pip
+python -m pip install matplotlib pymap3d pytz pyzbar scikit-image scipy pysolar json-tricks cmapy tifffile pyexiftool opencv-python opencv-contrib-python
 ```
 
 Then install OpenVisus slam package:
 
 ``` 
-python -m pip install --upgrade pip # make sure pip is updated
 python -m pip install --no-cache-dir --upgrade --force-reinstall OpenVisus
+
 python -m OpenVisus configure
 python -m OpenVisus test
+   
+# ON MACOS ONLY, you may need to solve conflicts between Qt embedded in opencv2 and PyQt5 we are going to use:
+python -m pip uninstall -y opencv-python          opencv-contrib-python
+python -m pip install      opencv-python-headless opencv-contrib-python-headless 
+
 python -m OpenVisus slam
 ```
 
-If you want to test inside Visual Studio, rememeber to do Cmake `INSTALL` and Cmake `CONFIGURE` only once.
-Then (IMPORTANT!) remove the installed `.\build\RelWithDebugInfo\OpenVisus\Slam` directory in order to make sure you are using your `.\Libs\Slam` local directory. !!!
-Right click on `VisusSlam` target and in `Debug tab` set the following:
 
-```
-Command: C:\Python37\python.exe
-Command Arguments: -m OpenVisus slam "D:\GoogleSci\visus_slam\TaylorGrant" (-m openvisus slam --pdim 3 "D:\GoogleSci\visus_dataset\male\RAW\Fullcolor\fullbody" if you are trying 3d stuff)
-Working directory: D:\projects\OpenVisus
-Environment: PYTHONPATH=D:\projects\OpenVisus\build\RelWithDebInfo;D:\projects\OpenVisus\Libs
-```
-
-
-## Commit, Continuous Integration deploy
-
+<!--//////////////////////////////////////////////////////////////////////// -->
+## Commit CI
 
 Type:
 
 ```
-TAG=$(python Libs/Kernel/setup.py new-tag) 
+TAG=$(python Libs/Kernel/setup.py new-tag) && echo ${TAG}
 git commit -a -m "New tag" && git tag -a $TAG -m "$TAG" && git push origin $TAG && git push origin
 ```
 

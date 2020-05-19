@@ -127,23 +127,27 @@ function(CopyToBinaryDirectory)
 
     cmake_parse_arguments(
         PARSED_ARGS 
-        "" # boolean args
-        "TARGET;DESTINATION;DIRECTORY" #1-argument
-        "FILES" # multiple args
-        ${ARGN}
-    )
+        ""                             # boolean args
+        "TARGET;DESTINATION;DIRECTORY" # 1-argument
+        "FILES"                        # multiple args
+        ${ARGN})
 
 	if (PARSED_ARGS_FILES)
 		foreach(__it__ ${PARSED_ARGS_FILES})
+		
 			set(__src__ ${__it__})
+		
 			if(NOT IS_ABSOLUTE ${__src__})
 				set(__src__ ${CMAKE_CURRENT_SOURCE_DIR}/${__src__})
 			endif()
+		
 			get_filename_component(__name__ ${__src__} NAME)
+		
 			add_custom_command(
 				TARGET ${PARSED_ARGS_TARGET} POST_BUILD
 				COMMAND ${CMAKE_COMMAND} -E echo copy_if_different ${__src__} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}${__name__}
 				COMMAND ${CMAKE_COMMAND} -E      copy_if_different ${__src__} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}${__name__})
+		
 		endforeach()
 	endif()
 
@@ -158,11 +162,10 @@ function(CopyToBinaryDirectory)
 			COMMAND ${CMAKE_COMMAND} -E echo "copy_directory ${PARSED_ARGS_DIRECTORY} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}"
 			COMMAND ${CMAKE_COMMAND} -E       copy_directory ${PARSED_ARGS_DIRECTORY} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}
 		)
+		
 	endif()
 
 endfunction()
-
-
 
 add_subdirectory(ExternalLibs)
 add_subdirectory(Libs)
@@ -177,16 +180,15 @@ if (1)
 
 	add_custom_target(CopyRootFiles ALL)
 
-	CopyToBinaryDirectory(TARGET CopyRootFiles FILES LICENSE                       DESTINATION ./)
-	CopyToBinaryDirectory(TARGET CopyRootFiles FILES README.md                     DESTINATION ./)
-	CopyToBinaryDirectory(TARGET CopyRootFiles FILES datasets/visus.config         DESTINATION ./)
-	CopyToBinaryDirectory(TARGET CopyRootFiles FILES ${__qt_version_filename__}    DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     LICENSE                    DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     README.md                  DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     datasets/visus.config      DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     ${__qt_version_filename__} DESTINATION ./)
 
-	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY Copyrights                DESTINATION ./Copyrights)
-	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY Samples                   DESTINATION ./Samples)
-	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY CMake                     DESTINATION ./CMake)
-	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY datasets                  DESTINATION ./datasets)
-	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY scripts                   DESTINATION ./scripts)
+	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY Copyrights                 DESTINATION ./Copyrights)
+	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY Samples                    DESTINATION ./Samples)
+	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY datasets                   DESTINATION ./datasets)
+	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY scripts                    DESTINATION ./scripts)
 
 	# copy needed windows *.dll
 	if (WIN32)
@@ -194,28 +196,6 @@ if (1)
 		include(InstallRequiredSystemLibraries)
 		CopyToBinaryDirectory(TARGET CopyRootFiles FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ./bin/)
 	endif()
-
-	# ____________________________________________
-	macro(CMakePostInstall)
-		if (VISUS_GUI AND VISUS_PYTHON)
-			get_filename_component(Qt5_HOME "${Qt5_DIR}/../../.." ABSOLUTE)
-			string(REPLACE "\\" "/" __Python_EXECUTABLE__  "${Python_EXECUTABLE}")
-
-			# important: I didn't find a way to set PYTHONPATH here inside INSTALL(CODE), so I'm using directly the WORKING_DIRECTORY (without the module)
-			INSTALL(CODE "
-				message(STATUS \"Executing post install InstallConfigName=${InstallConfigName}....\")
-				execute_process(
-					COMMAND ${__Python_EXECUTABLE__} -u __main__.py install-qt5 \"${Qt5_HOME}\" \${CMAKE_INSTALL_CONFIG_NAME}
-						RESULT_VARIABLE __retcode__
-						WORKING_DIRECTORY \"${CMAKE_BINARY_DIR}/${InstallConfigName}/${PROJECT_NAME}\")
-				if(NOT \"\${__retcode__}\" STREQUAL \"0\")
-					message(FATAL_ERROR \"Post install failed\")
-				endif()
-			")
-		endif()
-	endmacro()
-
-	add_subdirectory(CMake/PostInstall)
 	
 endif()
 

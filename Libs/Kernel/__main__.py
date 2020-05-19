@@ -1,12 +1,12 @@
-import os, sys, glob, subprocess, platform, shutil, sysconfig
+import os, sys, glob, subprocess, platform, shutil, sysconfig, re
 
 # *** NOTE: this file must be self-contained ***
 
 """
 Linux:
+	readelf -d bin/visus
 	QT_DEBUG_PLUGINS=1 LD_DEBUG=libs,files  ./visusviewer.sh
 	LD_DEBUG=libs,files ldd bin/visus
-	readelf -d bin/visus
 
 OSX:
 	otool -L libname.dylib
@@ -16,14 +16,6 @@ OSX:
 
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
-
-# /////////////////////////////////////////////////////////////////////////
-def CreateDirectory(value):
-	try: 
-		os.makedirs(value)
-	except OSError:
-		if not os.path.isdir(value):
-			raise
 
 # /////////////////////////////////////////////////////////////////////////
 def ReadTextFile(filename):
@@ -37,174 +29,88 @@ def GetFilenameWithoutExtension(filename):
 	return os.path.splitext(os.path.basename(filename))[0]
 
 # /////////////////////////////////////////////////////////////////////////
-def GetCommandOutput(cmd):
-	output=subprocess.check_output(cmd)
-	if sys.version_info >= (3, 0): output=output.decode("utf-8")
+def GetCommandOutput(cmd,shell=False):
+	print("Executing command", cmd)
+	output=subprocess.check_output(cmd, shell = shell, universal_newlines=True)
 	return output.strip()
 
-	
 # /////////////////////////////////////////////////////////////////////////
-def ExecuteCommand(cmd,bVerbose=False):	
-	
-	def GetScriptExtention():
-		if WIN32: return ".bat"
-		if APPLE: return ".command"
-		return ".sh"
-
-	if not WIN32 and os.path.splitext(cmd[0])[1]==GetScriptExtention():
-		cmd=["bash"] + cmd
-	
-	if bVerbose: print("Executing command", cmd)
+def ExecuteCommand(cmd):	
+	print("Executing command", " ".join(cmd))
 	return subprocess.call(cmd, shell=False)
 
-# /////////////////////////////////////////////////////////////////////////
-def CopyDirectory(src,dst):
-	src=os.path.realpath(src)
-	CreateDirectory(dst)
-	dst=dst+"/" + os.path.basename(src)
-	shutil.rmtree(dst,ignore_errors=True) # remove old
-	shutil.copytree(src, dst, symlinks=True)	
+
+# ////////////////////////////////////////////////
+def SetRPath(filename,value):
 	
-# /////////////////////////////////////////////////////////////////////////
-def FindAllBinaries():
-	files=[]
-	files+=glob.glob("**/*.so", recursive=True)
-	files+=glob.glob("**/*.dylib", recursive=True)
-	files+=["%s/Versions/Current/%s" % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("**/*.framework", recursive=True)]
-	files+=["%s/Contents/MacOS/%s"   % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("**/*.app",       recursive=True)]		
-	return files	
+	if APPLE:
+
+		def GetRPaths(filename):
+			try:
+				lines  = GetCommandOutput("otool -l '%s' | grep -A2 LC_RPATH | grep path " % filename, shell=True).splitlines()
+			except:
+				return []
+				
+			path_re = re.compile("^\s*path (.*) \(offset \d*\)$")
+			return [path_re.search(line).group(1).strip() for line in lines]
+			
+		for it in GetRPaths(filename):
+			ExecuteCommand(["install_name_tool","-delete_rpath",it, filename])
 	
-# /////////////////////////////////////////////////////////////////////////
+		for it in value.split(":"):
+			ExecuteCommand(["install_name_tool","-add_rpath", it, filename])
+			
+		print(filename,GetRPaths(filename))
+
+	else:
+		ExecuteCommand(["patchelf","--set-rpath",value, filename])			
+				
+
+# ////////////////////////////////////////////////
 def ExtractDeps(filename):
 	output=GetCommandOutput(['otool', '-L' , filename])
 	deps=[line.strip().split(' ', 1)[0].strip() for line in output.split('\n')[1:]]
 	deps=[dep for dep in deps if os.path.basename(filename)!=os.path.basename(dep)] # remove any reference to myself
 	return deps
 	
-# /////////////////////////////////////////////////////////////////////////
-def ShowDeps():
+# ////////////////////////////////////////////////
+def ShowDeps(all_bins):
 	all_deps={}
-	for filename in FindAllBinaries():
-		#print(filename)
+	for filename in all_bins:
 		for dep in ExtractDeps(filename):
-			#print("\t",dep)
 			all_deps[dep]=1
 	all_deps=list(all_deps)
-	all_deps.sort()		
+	all_deps.sort()	
 	
+				
 	print("\nAll dependencies....")
 	for filename in all_deps:
-		print(filename)				
-		
-	return all_deps
-	
-# ////////////////////////////////////////////////
-def SetRPath(value):
-
-	for filename in glob.glob("*.so"):
-		ExecuteCommand(["patchelf","--set-rpath",value, filename],bVerbose=True)
-		
-	for filename in glob.glob("bin/*.so"):
-		ExecuteCommand(["patchelf","--set-rpath",value, filename],bVerbose=True)
-	
-	for filename in ("bin/visus","bin/visusviewer"):
-		ExecuteCommand(["patchelf","--set-rpath",value, filename],bVerbose=True)
-	
-
-# ///////////////////////////////////////////////
-# apple only
-def InstallQt5(Qt5_HOME="",bDebug=False):
-	
-	if not Qt5_HOME:
-		raise Exception("internal error")
-		
-	if WIN32:
-		ExecuteCommand([Qt5_HOME + "/bin/windeployqt.exe", "bin/visusviewer.exe",
-				"--debug" if bDebug else "--release",
-				"--libdir","./bin/qt/bin",
-				"--plugindir","./bin/qt/plugins",
-				"--no-translations"],bVerbose=True)
-				
-	elif APPLE:
-		
-		print("Qt5_HOME",Qt5_HOME)
-		
-		Qt5_HOME_REAL=os.path.realpath(Qt5_HOME)
-		print("Qt5_HOME_REAL", Qt5_HOME_REAL)		
-		
-		# copy Qt5 frameworks
-		qt_deps=("QtCore","QtDBus","QtGui","QtNetwork","QtPrintSupport","QtQml","QtQuick","QtSvg","QtWebSockets","QtWidgets","QtOpenGL")
-		for it in qt_deps:
-			try:
-				CopyDirectory(Qt5_HOME + "/lib/" + it + ".framework","./bin/qt/lib")
-			except:
-				pass
-		
-		# copy Qt5 plugins 
-		qt_plugins=("iconengines","imageformats","platforms","printsupport","styles")
-		for it in qt_plugins:
-			try:
-				CopyDirectory(Qt5_HOME + "/plugins/" + it ,"./bin/qt/plugins")
-			except:
-				pass
-			
-		# ShowDeps()
-	
-		# remove Qt absolute path
-		for filename in FindAllBinaries():
-			ExecuteCommand(["chmod","u+rwx",filename])
-			
-			for qt_dep in qt_deps:
-				ExecuteCommand(["install_name_tool","-change",Qt5_HOME      + "/lib/{0}.framework/Versions/5/{0}".format(qt_dep), "@rpath/{0}.framework/Versions/5/{0}".format(qt_dep),filename])
-				ExecuteCommand(["install_name_tool","-change",Qt5_HOME_REAL + "/lib/{0}.framework/Versions/5/{0}".format(qt_dep), "@rpath/{0}.framework/Versions/5/{0}".format(qt_dep),filename])			
-				
-		# fix rpath on OpenVisus swig libraries
-		for filename in glob.glob("*.so"):
-			ExecuteCommand([ "install_name_tool","-delete_rpath",os.getcwd()+"/bin",filename])
-			ExecuteCommand([ "install_name_tool","-add_rpath","@loader_path/bin",filename])
-			ExecuteCommand([ "install_name_tool","-add_rpath","@loader_path/bin/qt/lib",filename])
-			
-		# fix rpath for OpenVius dylibs
-		for filename in glob.glob("bin/*.dylib"):		
-			ExecuteCommand(["install_name_tool","-delete_rpath",os.getcwd()+"/bin",	filename])	
-			ExecuteCommand(["install_name_tool","-add_rpath","@loader_path",filename])	
-			ExecuteCommand(["install_name_tool","-add_rpath","@loader_path/qt/lib",filename])	
-				
-	
-		# fix rpath for OpenVisus apps
-		for filename in ["%s/Contents/MacOS/%s"   % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("bin/*.app")]:
-			ExecuteCommand(["install_name_tool","-delete_rpath",os.getcwd()+"/bin",filename])			
-			ExecuteCommand(["install_name_tool","-add_rpath","@loader_path/../../..",filename])			
-			ExecuteCommand(["install_name_tool","-add_rpath","@loader_path/../../../qt/lib",filename])			
-				
-		# fir rpath for Qt5 frameworks
-		for filename in ["%s/Versions/Current/%s" % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("bin/qt/lib/*.framework")]:
-			ExecuteCommand(["install_name_tool","-add_rpath","@loader_path/../../..",filename])	
-		
-		# fix rpath for Qt5 plugins (assuming 2-level plugins)
-		for filename in glob.glob("bin/qt/plugins/**/*.dylib", recursive=True):
-			ExecuteCommand(["install_name_tool","-add_rpath","@loader_path/../../..",filename])			
-			
-		ShowDeps()		
-		
-	else:
-		
-		qt_deps=("Qt5Core","Qt5DBus","Qt5Gui","Qt5Network","Qt5Svg","Qt5Widgets","Qt5XcbQpa","Qt5OpenGL")
-		
-		CreateDirectory("bin/qt/lib")
-		for it in qt_deps:
-			for file in glob.glob("{0}/lib/lib{1}.so*".format(Qt5_HOME,it)):
-				shutil.copy(file, "bin/qt/lib/")		
-			
-		CopyDirectory(Qt5_HOME+ "/plugins","./bin/qt") 		
-		SetRPath("$ORIGIN:$ORIGIN/bin:$ORIGIN/qt/lib")
-	
-
-
+		print(filename)	
 
 # ////////////////////////////////////////////////
-def UsePyQt5(QT_VERSION):
+def UsePyQt5():
+	
+	"""
+	python -m pip install johnnydep
 
+	johnnydep PyQt5~=5.14.0	-> PyQt5-sip<13,>=12.7
+	johnnydep PyQt5~=5.13.0	-> PyQt5_sip<13,>=4.19.19
+	johnnydep PyQt5~=5.12.0 -> PyQt5_sip<13,>=4.19.14
+	johnnydep PyQt5~=5.11.0 -> empty
+	johnnydep PyQt5~=5.10.0 -> empty
+	johnnydep PyQt5~=5.9.0  -> empty
+
+	johnnydep PyQtWebEngine~=5.14.0 -> PyQt5>=5.14 
+	johnnydep PyQtWebEngine~=5.13.0 -> PyQt5>=5.13
+	johnnydep PyQtWebEngine~=5.12.0 -> PyQt5>=5.12
+	johnnydep PyQtWebEngine~=5.11.0 -> does not exist
+	johnnydep PyQtWebEngine~=5.10.0 -> does not exist
+	johnnydep PyQtWebEngine~=5.19.0 -> does not exist
+
+	johnnydep PyQt5-sip~=12.7.0 -> empty
+	"""
+
+	QT_VERSION=ReadTextFile("QT_VERSION")
 	print("Installing PyQt5...",QT_VERSION)
 	major,minor=QT_VERSION.split('.')[0:2]
 
@@ -215,30 +121,12 @@ def UsePyQt5(QT_VERSION):
 		bIsConda=False
 		
 	if bIsConda:
+		
 		conda.cli.main('conda', 'install',    '-y', "pyqt={}.{}".format(major,minor))
 		# do I need PyQtWebEngine for conda? considers Qt is 5.9 (very old)
 		# it has webengine and sip included
+
 	else: 
-
-		"""
-		python -m pip install johnnydep
-
-		johnnydep PyQt5~=5.14.0	-> PyQt5-sip<13,>=12.7
-		johnnydep PyQt5~=5.13.0	-> PyQt5_sip<13,>=4.19.19
-		johnnydep PyQt5~=5.12.0 -> PyQt5_sip<13,>=4.19.14
-		johnnydep PyQt5~=5.11.0 -> empty
-		johnnydep PyQt5~=5.10.0 -> empty
-		johnnydep PyQt5~=5.9.0  -> empty
-
-		johnnydep PyQtWebEngine~=5.14.0 -> PyQt5>=5.14 
-		johnnydep PyQtWebEngine~=5.13.0 -> PyQt5>=5.13
-		johnnydep PyQtWebEngine~=5.12.0 -> PyQt5>=5.12
-		johnnydep PyQtWebEngine~=5.11.0 -> does not exist
-		johnnydep PyQtWebEngine~=5.10.0 -> does not exist
-		johnnydep PyQtWebEngine~=5.19.0 -> does not exist
-
-		johnnydep PyQt5-sip~=12.7.0 -> empty
-		"""
 
 		cmd=[sys.executable,"-m", "pip", "install", "--progress-bar", "off", "PyQt5~={}.{}.0".format(major,minor)]
 
@@ -246,10 +134,7 @@ def UsePyQt5(QT_VERSION):
 			cmd+=["PyQtWebEngine~={}.{}.0".format(major,minor)]
 			cmd+=["PyQt5-sip<13,>=12.7"] 
 
-		print("Executing",cmd)
-		subprocess.call(cmd)
-
-	print("Linking to PyQt5...")
+		ExecuteCommand(cmd)
 
 	try:
 		import PyQt5
@@ -259,24 +144,43 @@ def UsePyQt5(QT_VERSION):
 		# this should cover the case where I just installed PyQt5
 		PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip()
 
-	print("PyQt5_HOME",PyQt5_HOME)
+	print("Linking PyQt5_HOME",PyQt5_HOME)
+	
 	if not os.path.isdir(PyQt5_HOME):
 		print("Error directory does not exists")
 		raise Exception("internal error")
 
 	# on windows it's enough to use sys.path (see *.i %pythonbegin section)
-	if WIN32:
-		pass
-	elif APPLE:
-		AddRPath(os.path.join(PyQt5_HOME,'Qt/lib'))
-	else:
-		SetRPath("$ORIGIN:$ORIGIN/bin:" + os.path.join(PyQt5_HOME,'Qt/lib'))
+	if not WIN32:
+		
+		if APPLE:		
 
-# ///////////////////////////////////////////////
-def AddRPath(value):
-	for filename in FindAllBinaries():
-		ExecuteCommand(["install_name_tool","-add_rpath",value,filename],bVerbose=True)				
-	
+			dylibs=glob.glob("bin/*.dylib")
+			so=glob.glob("*.so")
+			apps=["%s/Contents/MacOS/%s"   % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("bin/*.app")]
+			all_bins=so + dylibs + apps
+			
+			# remove any reference to absolute Qt (it happens with brew which has absolute path), make it relocable with rpath as is in PyQt5
+			for filename in all_bins:
+				lines  = GetCommandOutput("otool -L %s | grep 'lib/Qt.*\.framework' | awk '{print $1;}'" % filename, shell=True).splitlines()
+				for Old in lines:
+					New="@rpath/Qt" + Old.split("lib/Qt")[1]
+					ExecuteCommand(["install_name_tool","-change", Old, New, filename])	
+					
+			QtLib=os.path.join(PyQt5_HOME,'Qt/lib')
+
+			for filename in so + dylibs:
+				SetRPath(filename, "@loader_path/:@loader_path/bin:" + QtLib)
+				
+			for filename in apps:
+				SetRPath(filename, "@loader_path/:@loader_path/../../../:" + QtLib)
+						
+			ShowDeps(all_bins)
+				
+		else:
+			
+			for filename in glob.glob("*.so") + glob.glob("bin/*.so") + ["bin/visus","bin/visusviewer"]:
+				SetRPath(filename,"$ORIGIN:$ORIGIN/bin:" + os.path.join(PyQt5_HOME,'Qt/lib'))
 
 # ////////////////////////////////////////////////
 def Main():
@@ -298,34 +202,16 @@ def Main():
 	print("this_dir",this_dir)
 
 	# _____________________________________________
-	if action=="install-qt5":
-		os.chdir(this_dir)
-		InstallQt5(Qt5_HOME=sys.argv[2],bDebug="Debug" in sys.argv)
-		print(action,"done")
-		sys.exit(0)
-
-	# _____________________________________________
-	if action=="remove-qt5":
-		os.chdir(this_dir)
-		print("Removing Qt5...")
-		shutil.rmtree("bin/qt",ignore_errors=True)	
-		print(action,"done")
-
-	# _____________________________________________
 	if action=="configure":
 		os.chdir(this_dir)
-		QT_VERSION=ReadTextFile("QT_VERSION")
-		print("QT_VERSION",QT_VERSION)
-		print("Removing Qt5...")
-		shutil.rmtree("bin/qt",ignore_errors=True)	
-		UsePyQt5(QT_VERSION)
+		UsePyQt5()
 		print(action,"done")
 		sys.exit(0)
 
 	# _____________________________________________
 	if action=="test":
 		for filename in ["Array.py","Dataflow.py","Dataflow2.py","Idx.py"]: # ,"XIdx.py" ,"DataConversion1.py","DataConversion2.py"
-			ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", filename)],bVerbose=True) 
+			ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", filename)]) 
 		sys.exit(0)
 
 	# _____________________________________________
@@ -380,17 +266,17 @@ def Main():
 
 	# _____________________________________________
 	if action=="viewer1":
-		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "TestViewer1.py")],bVerbose=True) 
+		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "TestViewer1.py")]) 
 		sys.exit(0)
 
 	# _____________________________________________
 	if action=="viewer2":
-		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "TestViewer2.py")],bVerbose=True) 
+		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "TestViewer2.py")]) 
 		sys.exit(0)
 
 	# _____________________________________________
 	if action=="visible-human":
-		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "VisibleHuman.py")],bVerbose=True) 
+		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "VisibleHuman.py")]) 
 		sys.exit(0)
 
 	# _____________________________________________
@@ -409,6 +295,7 @@ def Main():
 	print("Wrong arguments",sys.argv)
 	sys.exit(-1)
   
+
 # //////////////////////////////////////////
 if __name__ == "__main__":
 	Main()

@@ -8,7 +8,6 @@
 #include <Visus/File.h>
 #include <Visus/Time.h>
 #include <Visus/TransferFunction.h>
-#include <Visus/StringTree.h>
 #include <Visus/Ray.h>
 #include <Visus/Frustum.h>
 
@@ -47,7 +46,6 @@ using namespace Visus;
 %include <Visus/Aborted.h>
 %include <Visus/StringTree.h>
 
-%include <Visus/StringTree.h>
 %include <Visus/Color.h>
 %include <Visus/Point.h> 
 
@@ -205,7 +203,8 @@ def fromNumPy(src, TargetDim=0, bShareMem=False):
 	# example (3,512,512) uint8 TargetDim=2 -> (512,512) uint8[3]
 	if TargetDim > 0 and ret.dims.getPointDim() > TargetDim:
 		v=ret.dims.toVector()
-		A=math.prod(v[0:len(v)-TargetDim]) # first remaining elements
+		A=1
+		for it in v[0:len(v)-TargetDim]: A*=it # first remaining elements
 		B=PointNi(v[-TargetDim:]) # last 'TargetDim' elements
 		ret.resize(B,DType(A,ret.dtype), "Array::fromNumPy",0)
 
