@@ -143,7 +143,7 @@ def toNumPy(src, bShareMem=False, bSqueeze=False):
 	# no real data, just keep the "dimensions" of the data
 	if 0 in shape:
 
-		return numpy.array(shape, dtype=numpy.dtype(typestr))
+		return numpy.zeros(shape, dtype=numpy.dtype(typestr))
 
 	else:
 
