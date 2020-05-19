@@ -87,24 +87,6 @@ def DoSetup():
 			install_requires+=["PyQtWebEngine~={}.{}.0".format(major,minor)]
 			install_requires+=["PyQt5-sip<13,>=12.7"] 
 
-		# dependencies for Slam
-		if os.path.isdir(os.path.join(this_dir,"Slam")):
-			install_requires+=[
-				"matplotlib", 
-				"pymap3d", 
-				"pytz", 
-				"pyzbar", 
-				"scikit-image", 
-				"scipy", 
-				"pysolar", 
-				"json-tricks",
-				"cmapy", 
-				"opencv-python", 
-				"opencv-contrib-python", 
-				"tifffile", 
-				"pyexiftool"
-			]
-
 	setuptools.setup(
 	  name = PROJECT_NAME,
 	  description = "ViSUS multiresolution I/O, analysis, and visualization system",

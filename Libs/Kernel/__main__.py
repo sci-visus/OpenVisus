@@ -29,15 +29,63 @@ def GetFilenameWithoutExtension(filename):
 	return os.path.splitext(os.path.basename(filename))[0]
 
 # /////////////////////////////////////////////////////////////////////////
-def GetCommandOutput(cmd):
-	output=subprocess.check_output(cmd)
-	if sys.version_info >= (3, 0): output=output.decode("utf-8")
+def GetCommandOutput(cmd,shell=False):
+	print("Executing command", cmd)
+	output=subprocess.check_output(cmd, shell = shell, universal_newlines=True)
 	return output.strip()
 
 # /////////////////////////////////////////////////////////////////////////
 def ExecuteCommand(cmd):	
 	print("Executing command", cmd)
 	return subprocess.call(cmd, shell=False)
+
+
+# ////////////////////////////////////////////////
+def SetRPath(filename,value):
+	
+	if APPLE:
+
+		def GetRPaths(filename):
+			try:
+				lines  = GetCommandOutput("otool -l '%s' | grep -A2 LC_RPATH | grep path " % filename, shell=True).splitlines()
+			except:
+				return []
+				
+			path_re = re.compile("^\s*path (.*) \(offset \d*\)$")
+			return [path_re.search(line).group(1).strip() for line in lines]
+			
+		for it in GetRPaths(filename):
+			ExecuteCommand(["install_name_tool","-delete_rpath",it, filename])
+	
+		for it in value.split(":"):
+			ExecuteCommand(["install_name_tool","-add_rpath", it, filename])
+			
+		print(filename,GetRPaths(filename))
+
+	else:
+		ExecuteCommand(["patchelf","--set-rpath",value, filename])			
+				
+
+# ////////////////////////////////////////////////
+def ExtractDeps(filename):
+	output=GetCommandOutput(['otool', '-L' , filename])
+	deps=[line.strip().split(' ', 1)[0].strip() for line in output.split('\n')[1:]]
+	deps=[dep for dep in deps if os.path.basename(filename)!=os.path.basename(dep)] # remove any reference to myself
+	return deps
+	
+# ////////////////////////////////////////////////
+def ShowDeps(all_bins):
+	all_deps={}
+	for filename in all_bins:
+		for dep in ExtractDeps(filename):
+			all_deps[dep]=1
+	all_deps=list(all_deps)
+	all_deps.sort()	
+	
+				
+	print("\nAll dependencies....")
+	for filename in all_deps:
+		print(filename)	
 
 # ////////////////////////////////////////////////
 def UsePyQt5():
@@ -107,45 +155,32 @@ def UsePyQt5():
 		
 		if APPLE:		
 
-			def SetRPath(filename,value):
-	
-				def GetRPath(filename):
-					command = "otool -l '%s' | grep -A2 LC_RPATH | grep path " % filename
-					result  = subprocess.check_output(command, shell = True, universal_newlines=True)
-					path_re = re.compile("^\s*path (.*) \(offset \d*\)$")
-					return [path_re.search(line).group(1).strip() for line in result.splitlines()]
-					
-				def RemoveRPath(filename,value):
-					ExecuteCommand(["install_name_tool","-delete_rpath",value, filename])
-					
-				def AddRPath(filename,value):
-					ExecuteCommand(["install_name_tool","-add_rpath", value, filename])
-						
-				for it in GetRPath(filename):
-					RemoveRPath(filename,it)
-			
-				for it in value.split(":"):
-					AddRPath(filename,it)
-					
-				print(filename,GetRPath(filename))
-				
+			dylibs=glob.glob("bin/*.dylib")
+			so=glob.glob("*.so")
 			apps=["%s/Contents/MacOS/%s"   % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("bin/*.app")]
+			all_bins=so + dylibs + apps
+			
+			# remove any reference to absolute Qt (it happens with brew which has absolute path), make it relocable with rpath as is in PyQt5
+			for filename in all_bins:
+				lines  = GetCommandOutput("otool -L %s | grep 'lib/Qt.*\.framework' | awk '{print $1;}'" % filename, shell=True).splitlines()
+				for Old in lines:
+					New="@rpath/Qt" + Old.split("lib/Qt")[1]
+					ExecuteCommand(["install_name_tool","-change", Old, New, filename])	
+					
+			QtLib=os.path.join(PyQt5_HOME,'Qt/lib')
 
-			value="@loader_path/:@loader_path/bin:@loader_path/../../..:" + os.path.join(PyQt5_HOME,'Qt/lib')
-
-			for filename in glob.glob("*.so") + glob.glob("bin/*.dylib") + apps:
-				SetRPath(filename,value)
+			for filename in so + dylibs:
+				SetRPath(filename, "@loader_path/:@loader_path/bin:" + QtLib)
+				
+			for filename in apps:
+				SetRPath(filename, "@loader_path/:@loader_path/../../../:" + QtLib)
+						
+			ShowDeps(all_bins)
 				
 		else:
 			
-			def SetRPath(filename,value):
-				ExecuteCommand(["patchelf","--set-rpath",value, filename])			
-			
-			
-			value="$ORIGIN:$ORIGIN/bin:" + os.path.join(PyQt5_HOME,'Qt/lib')
-			
 			for filename in glob.glob("*.so") + glob.glob("bin/*.so") + ["bin/visus","bin/visusviewer"]:
-				SetRPath(filename,value)
+				SetRPath(filename,"$ORIGIN:$ORIGIN/bin:" + os.path.join(PyQt5_HOME,'Qt/lib'))
 
 # ////////////////////////////////////////////////
 def Main():

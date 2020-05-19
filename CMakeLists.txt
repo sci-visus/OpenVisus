@@ -127,23 +127,27 @@ function(CopyToBinaryDirectory)
 
     cmake_parse_arguments(
         PARSED_ARGS 
-        "" # boolean args
-        "TARGET;DESTINATION;DIRECTORY" #1-argument
-        "FILES" # multiple args
-        ${ARGN}
-    )
+        ""                             # boolean args
+        "TARGET;DESTINATION;DIRECTORY" # 1-argument
+        "FILES"                        # multiple args
+        ${ARGN})
 
 	if (PARSED_ARGS_FILES)
 		foreach(__it__ ${PARSED_ARGS_FILES})
+		
 			set(__src__ ${__it__})
+		
 			if(NOT IS_ABSOLUTE ${__src__})
 				set(__src__ ${CMAKE_CURRENT_SOURCE_DIR}/${__src__})
 			endif()
+		
 			get_filename_component(__name__ ${__src__} NAME)
+		
 			add_custom_command(
 				TARGET ${PARSED_ARGS_TARGET} POST_BUILD
 				COMMAND ${CMAKE_COMMAND} -E echo copy_if_different ${__src__} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}${__name__}
 				COMMAND ${CMAKE_COMMAND} -E      copy_if_different ${__src__} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}${__name__})
+		
 		endforeach()
 	endif()
 
@@ -158,11 +162,10 @@ function(CopyToBinaryDirectory)
 			COMMAND ${CMAKE_COMMAND} -E echo "copy_directory ${PARSED_ARGS_DIRECTORY} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}"
 			COMMAND ${CMAKE_COMMAND} -E       copy_directory ${PARSED_ARGS_DIRECTORY} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}
 		)
+		
 	endif()
 
 endfunction()
-
-
 
 add_subdirectory(ExternalLibs)
 add_subdirectory(Libs)
@@ -177,15 +180,15 @@ if (1)
 
 	add_custom_target(CopyRootFiles ALL)
 
-	CopyToBinaryDirectory(TARGET CopyRootFiles FILES LICENSE                       DESTINATION ./)
-	CopyToBinaryDirectory(TARGET CopyRootFiles FILES README.md                     DESTINATION ./)
-	CopyToBinaryDirectory(TARGET CopyRootFiles FILES datasets/visus.config         DESTINATION ./)
-	CopyToBinaryDirectory(TARGET CopyRootFiles FILES ${__qt_version_filename__}    DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     LICENSE                    DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     README.md                  DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     datasets/visus.config      DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     ${__qt_version_filename__} DESTINATION ./)
 
-	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY Copyrights                DESTINATION ./Copyrights)
-	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY Samples                   DESTINATION ./Samples)
-	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY datasets                  DESTINATION ./datasets)
-	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY scripts                   DESTINATION ./scripts)
+	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY Copyrights                 DESTINATION ./Copyrights)
+	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY Samples                    DESTINATION ./Samples)
+	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY datasets                   DESTINATION ./datasets)
+	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY scripts                    DESTINATION ./scripts)
 
 	# copy needed windows *.dll
 	if (WIN32)
