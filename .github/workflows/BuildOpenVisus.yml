@@ -71,7 +71,7 @@ jobs:
            cmake --build . --target ALL_BUILD --config Release --parallel 4
           
            cd Release/OpenVisus
-           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus configure
+           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus configure 
            PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
            PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert    
                  
@@ -435,7 +435,7 @@ jobs:
            conda install conda-build anaconda-client numpy                               1>/dev/null  
            
            cd build/Release/OpenVisus
-           PYTHONPATH=../ python -m OpenVisus configure || true
+           PYTHONPATH=../ python -m OpenVisus configure || true # segmentation fault problem
            PYTHONPATH=../ python -m OpenVisus test
            PYTHONPATH=../ python -m OpenVisus convert
 
