@@ -72,13 +72,10 @@ message(STATUS "VISUS_PYTHON ${VISUS_PYTHON}")
 message(STATUS "VISUS_GUI    ${VISUS_GUI}")
 message(STATUS "VISUS_SLAM   ${VISUS_SLAM}")
 
-if (VISUS_PYTHON)
-	find_package(Python COMPONENTS Interpreter Development REQUIRED)
+# //////////////////////////////////////////////////////////
+macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 
-	find_package(SWIG 3.0 REQUIRED)
-	include(${SWIG_USE_FILE})	
-
-	macro(AddSwigLibrary NamePy WrappedLib SwigFile)
+	if (VISUS_PYTHON)
 
 		# this is for generated C++ and header files
 		set(SWIG_OUTFILE_DIR ${CMAKE_BINARY_DIR}/${IntConfigName}) 
@@ -110,8 +107,14 @@ if (VISUS_PYTHON)
 			RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_NAME}
 			ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/${ConfigName}/swig) 
 
-	endmacro()
+	endif()
 
+endmacro()
+
+if (VISUS_PYTHON)
+	find_package(Python COMPONENTS Interpreter Development REQUIRED)
+	find_package(SWIG 3.0 REQUIRED)
+	include(${SWIG_USE_FILE})	
 endif()
 
 if (VISUS_GUI)
@@ -200,7 +203,7 @@ if (1)
 endif()
 
 # //////////////////////////////////////////////////////////////
-# *** CONFIGURE (to call after INSTALL, create scripts and forse use of PyQt) ***
+# *** CONFIGURE (force use of PyQt) ***
 if (VISUS_PYTHON)
 	add_custom_target(CONFIGURE ${CMAKE_COMMAND} -E env PYTHONPATH=${CMAKE_BINARY_DIR}/${ConfigName}/OpenVisus/.. ${Python_EXECUTABLE} -u -m OpenVisus configure)
 	set_property(TARGET CONFIGURE PROPERTY FOLDER CMakePredefinedTargets)

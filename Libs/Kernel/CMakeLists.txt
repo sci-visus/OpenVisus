@@ -302,9 +302,7 @@ CopyToBinaryDirectory(TARGET VisusKernel FILES setup.py             DESTINATION 
 CopyToBinaryDirectory(TARGET VisusKernel FILES PyUtils.py           DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusKernel FILES PyImage.py           DESTINATION ./)
 
-if (VISUS_PYTHON)
-	AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
-endif()
+AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 

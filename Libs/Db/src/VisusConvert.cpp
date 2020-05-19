@@ -2085,54 +2085,52 @@ String VisusConvert::getHelp()
   return out.str();
 }
 
+static String TrimDash(String value) {
+  while (!value.empty() && value[0] == '-')
+    value = value.substr(1);
+  return value;
+}
+
 
 //////////////////////////////////////////////////////////////////////////////
-void VisusConvert::run(std::vector<String> args)
+void VisusConvert::runFromArgs(std::vector<String> args)
 {
-  if (args.size() <= 1)
+  if (args.empty())
   {
     PrintInfo(getHelp());
-    return;
-  }
-
-  auto action = args[1];
-  while (!action.empty() && action[0] == '-')
-    action = action.substr(1);
-
-  if (args[1] == "help" )
-  {
-    PrintInfo(getHelp());
-    return;
-  }
-
-  if (args[1] == "server")
-  {
-    auto modvisus = new ModVisus();
-    modvisus->configureDatasets();
-    NetServer server(10000, modvisus);
-    server.runInThisThread();
-    return;
-  }
-
-  if (action == "test-idx")
-  {
-    SelfTestIdx(300);
     return;
   }
 
   std::vector< std::vector<String> > steps;
   Array data;
 
-  for (int I = 1; I < (int)args.size(); I++)
+  for (auto arg : args)
   {
-    String arg = args[I];
+    String name = TrimDash(StringUtils::toLower(arg));
 
-    String name = StringUtils::toLower(arg);
-    while (name[0] == '-')
-      name = name.substr(1);
+    if (name == "help")
+    {
+      PrintInfo(getHelp());
+      return;
+    }
+
+    if (name == "server")
+    {
+      auto modvisus = new ModVisus();
+      modvisus->configureDatasets();
+      NetServer server(10000, modvisus);
+      server.runInThisThread();
+      return;
+    }
+
+    if (name == "test-idx")
+    {
+      SelfTestIdx(300);
+      return;
+    }
 
     //begin of a new command
-    if (actions.find(name) != actions.end())
+    if (bool bNewActions = (actions.find(name) != actions.end()))
       steps.push_back({ name });
 
     //just ignore up to a good action (needed for for example for --disable-write-locks)
@@ -2143,7 +2141,6 @@ void VisusConvert::run(std::vector<String> args)
   for (auto step : steps)
   {
     String name = step[0];
-
     auto action = actions[name]();
 
     PrintInfo("//*** STEP ", name, "***");

@@ -126,13 +126,12 @@ CopyToBinaryDirectory(TARGET VisusGui DIRECTORY ./include/Visus    DESTINATION .
 CopyToBinaryDirectory(TARGET VisusGui FILES PyScriptingNode.py     DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusGui FILES PyViewer.py            DESTINATION ./)
 
-if (VISUS_PYTHON)
-	AddSwigLibrary(VisusGuiPy VisusGui ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiPy.i 
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include"
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Idx/include"
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Nodes/include"
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Gui/include"
-		"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
-endif()
+
+AddSwigLibrary(VisusGuiPy VisusGui ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiPy.i 
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Idx/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Nodes/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Gui/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")

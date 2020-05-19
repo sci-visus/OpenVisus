@@ -49,17 +49,17 @@ int main(int argn, const char* argv[])
   SetCommandLine(argn, argv);
   DbModule::attach();
 
-  VisusConvert convert;
+  auto args = std::vector<String>(ApplicationInfo::args.begin() + 1, ApplicationInfo::args.end());
 
   if (ApplicationInfo::debug)
   {
-    convert.run(ApplicationInfo::args);
+    VisusConvert().runFromArgs(args);
   }
   else
   {
     try
     {
-      convert.run(ApplicationInfo::args);
+      VisusConvert().runFromArgs(args);
     }
     catch (std::exception& ex)
     {

@@ -61,8 +61,8 @@ public:
   //getHelp
   String getHelp();
 
-  //exec
-  void run(std::vector<String> args);
+  //runFromArgs
+  void runFromArgs(std::vector<String> args);
 
 private:
 

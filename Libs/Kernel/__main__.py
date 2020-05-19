@@ -198,7 +198,7 @@ def Main():
 		print(this_dir)
 		sys.exit(0)
 
-	print([sys.executable,"-m","OpenVisus"] + sys.argv)
+	print("sys.argv",sys.argv)
 	print("this_dir",this_dir)
 
 	# _____________________________________________
@@ -235,22 +235,26 @@ def Main():
 
 	# _____________________________________________
 	if action=="convert":
+
 		# example: python -m OpenVisus convert ...
 		from OpenVisus.VisusKernelPy import SetCommandLine
 		from OpenVisus.VisusDbPy     import DbModule,VisusConvert
-		os.chdir(this_dir)
+		
 		SetCommandLine("__main__")
 		DbModule.attach()
 		convert=VisusConvert()
-		convert.run(sys.argv[2:])
+		# example: ...main.py sys.argv[1]==convert ..
+		convert.runFromArgs(sys.argv[2:])
 		DbModule.detach()
 		sys.exit(0)
 
 	# _____________________________________________
 	if action=="viewer":
+
 		# example: python -m OpenVisus viewer ....
 		from OpenVisus.VisusKernelPy import SetCommandLine
 		from OpenVisus.VisusGuiPy    import GuiModule, Viewer
+
 		os.chdir(this_dir)
 		SetCommandLine("__main__")
 		GuiModule.createApplication()
