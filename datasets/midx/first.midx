@@ -10,17 +10,16 @@
     <!-- NOTE: since this avg is time independent and I want to cache in the same time slot, I'm overriding the time -->
     <name value="myavg?time=0"/>
     <code>
-      <![CDATA[
-        args=[];
-        for (var T=0;T<=9;T++)
-        {
-          args[args.length]=input.A["temperature?time="+T];
-          args[args.length]=input.B["temperature?time="+T];
-          args[args.length]=input.C["temperature?time="+T];
-          args[args.length]=input.D["temperature?time="+T];
-        }
-        output=Visus.Array.avg(args);
-      ]]>
+<![CDATA[
+args=[];
+for T in range(9):
+  args.append(input.A["temperature?time="+str(T)]);
+  args.append(input.B["temperature?time="+str(T)]);
+  args.append(input.C["temperature?time="+str(T)]);
+  args.append(input.D["temperature?time="+str(T)]);
+
+output=ArrayUtils.average(args);
+]]>
     </code>
   </field>
   
