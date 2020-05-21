@@ -40,7 +40,7 @@ if __name__ == '__main__':
 	(2) Open a viewer which connect to the server in order to show some idx files
 	"""
 	
-	SetCommandLine("__main__")
+	SetCommandLine(sys.argv)
 	GuiModule.createApplication()
 	
 	if VISUS_GUI:

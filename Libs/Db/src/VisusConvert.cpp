@@ -262,45 +262,6 @@ public:
 
 };
 
-///////////////////////////////////////////////////////////////////////
-class StartVisusServer : public VisusConvert::Step
-{
-public:
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " [--port value]" << std::endl
-      << "Example: " << args[0] << " --port 10000 ";
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    int port = 10000;
-    for (int I = 1; I < (int)args.size(); I++)
-    {
-      if (args[I] == "--port" || args[I] == "-p")
-      {
-        port = cint(args[++I]);
-        continue;
-      }
-
-      ThrowException(args[0], "Invalid argument", args[I]);
-    }
-
-    auto modvisus = new ModVisus();
-    modvisus->configureDatasets();
-    NetServer netserver(port, modvisus);
-    netserver.runInThisThread();
-
-    return data;
-  }
-
-};
 
 ///////////////////////////////////////////////////////////
 class ApplyFilters : public VisusConvert::Step
@@ -1772,8 +1733,6 @@ public:
   }
 };
 
-
-
 ///////////////////////////////////////////////////////////////////////////////
 class TestIdxSlabSpeed : public VisusConvert::Step
 {
@@ -2034,7 +1993,6 @@ VisusConvert::VisusConvert()
 
   addAction("create", []() {return std::make_shared<CreateIdx>(); });
   addAction("zeros", []() {return std::make_shared<Zeros>(); });
-  addAction("server", []() {return std::make_shared<StartVisusServer>(); });
   addAction("minmax", []() {return std::make_shared<FixDatasetRange>(); });
   addAction("copy-dataset", []() {return std::make_shared<CopyDataset>(); });
   addAction("compress-dataset", []() {return std::make_shared<CompressDataset>(); });
@@ -2111,15 +2069,6 @@ void VisusConvert::runFromArgs(std::vector<String> args)
     if (name == "help")
     {
       PrintInfo(getHelp());
-      return;
-    }
-
-    if (name == "server")
-    {
-      auto modvisus = new ModVisus();
-      modvisus->configureDatasets();
-      NetServer server(10000, modvisus);
-      server.runInThisThread();
       return;
     }
 

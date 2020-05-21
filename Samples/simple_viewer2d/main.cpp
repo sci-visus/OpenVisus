@@ -36,6 +36,8 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
+#if 0
+
 #include <Visus/Kernel.h>
 #include <Visus/Dataflow.h>
 #include <Visus/DatasetNode.h>
@@ -301,3 +303,4 @@ int main(int argn,const char* argv[])
 }
 
 
+#endif

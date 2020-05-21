@@ -14,7 +14,6 @@
 using namespace Visus;
 %}
 
-
 %include <Visus/VisusPy.i>
 
 %shared_ptr(Visus::HeapMemory)
@@ -39,32 +38,28 @@ using namespace Visus;
 %template(MapStringString)                 std::map< std::string , std::string >;
 
 %include <Visus/Kernel.h>
-	%template(VectorInt64)                     std::vector<Visus::Int64>;
+	%template(VectorInt64)                 std::vector<Visus::Int64>;
+
 %include <Visus/StringMap.h>
 %include <Visus/HeapMemory.h>
 %include <Visus/Singleton.h>
 %include <Visus/Aborted.h>
 %include <Visus/StringTree.h>
-
 %include <Visus/Color.h>
-%include <Visus/Point.h> 
-
 %include <Visus/Path.h>
 %include <Visus/File.h>
 %include <Visus/Time.h>
 
+%include <Visus/Point.h> 
    %template(Point2i)    Visus::Point2<Visus::Int64>;
    %template(Point2f)    Visus::Point2<float>;
    %template(Point2d)    Visus::Point2<double>;
-
    %template(Point3i)    Visus::Point3<Visus::Int64>;
    %template(Point3f)    Visus::Point3<float>;
    %template(Point3d)    Visus::Point3<double>;
-
    %template(Point4i)    Visus::Point4<Visus::Int64>;
    %template(Point4f)    Visus::Point4<float>;
    %template(Point4d)    Visus::Point4<double>;
-   
    %template(PointNd)    Visus::PointN<double>;
    %template(PointNi)    Visus::PointN<Visus::Int64>;
 
@@ -72,12 +67,12 @@ using namespace Visus;
    %template(BoxNd)    Visus::BoxN<double>;
    %template(BoxNi)    Visus::BoxN<Visus::Int64>;
 
-
 %include <Visus/Quaternion.h> 
 %include <Visus/Matrix.h>
 %include <Visus/Polygon.h>
 %include <Visus/Position.h>
 %include <Visus/Quaternion.h>
+
 %include <Visus/Polygon.h>
    %template(VectorPoint2d)  std::vector<Visus::Point2d>;
   
@@ -87,10 +82,13 @@ using namespace Visus;
 
 %include <Visus/Range.h>
 %include <Visus/DType.h>
+
 %include <Visus/Field.h>
 	%template(VectorOfField) std::vector<Visus::Field>;
+
 %include <Visus/Array.h>
 	%template(VectorOfArray) std::vector<Visus::Array>;
+
 %include <Visus/ArrayUtils.h>
 %include <Visus/ArrayPlugin.h>
 

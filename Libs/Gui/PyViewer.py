@@ -9,7 +9,6 @@ import PyQt5.sip  as  sip
 from OpenVisus	           import *
 from OpenVisus.VisusGuiPy import *
 
-from OpenVisus.PyUtils import *
 from OpenVisus.PyImage import *
 from OpenVisus.PyScriptingNode import *
 

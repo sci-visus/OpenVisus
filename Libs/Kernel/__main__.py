@@ -1,4 +1,4 @@
-import os, sys, glob, subprocess, platform, shutil, sysconfig, re
+import os, sys, glob, subprocess, platform, shutil, sysconfig, re, argparse
 
 # *** NOTE: this file must be self-contained ***
 
@@ -210,20 +210,19 @@ def Main():
 
 	# _____________________________________________
 	if action=="test":
-		for filename in ["Array.py","Dataflow.py","Dataflow2.py","Idx.py"]: # ,"XIdx.py" ,"DataConversion1.py","DataConversion2.py"
-			ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", filename)]) 
-		sys.exit(0)
-
-	# _____________________________________________
-	if action=="server":
-
-		from OpenVisus.VisusKernelPy import NetServer
-		from OpenVisus.VisusDbPy import ModVisus
-		os.chdir(this_dir)
-		modvisus = ModVisus()
-		modvisus.configureDatasets()
-		server=NetServer(10000, modvisus)
-		server.runInThisThread()
+		for filename in [
+				"Samples/python/Array.py",
+				"Samples/python/Dataflow.py",
+				"Samples/python/Dataflow2.py",
+				"Samples/python/Idx.py",
+				"Samples/python/TestConvert.py",
+				#"Samples/python/TestViewer1.py",
+				#"Samples/python/TestViewer2.py",
+				"Samples/python/XIdx.py",
+			]: 
+			print("\n\n")
+			ExecuteCommand([sys.executable,os.path.join(this_dir, filename)]) 
+			print("\n\n")
 		sys.exit(0)
 
 	# _____________________________________________
@@ -240,13 +239,39 @@ def Main():
 		from OpenVisus.VisusKernelPy import SetCommandLine
 		from OpenVisus.VisusDbPy     import DbModule,VisusConvert
 		
-		SetCommandLine("__main__")
+		SetCommandLine(sys.argv)
 		DbModule.attach()
 		convert=VisusConvert()
 		# example: ...main.py sys.argv[1]==convert ..
 		convert.runFromArgs(sys.argv[2:])
 		DbModule.detach()
 		sys.exit(0)
+
+	# _____________________________________________
+	if action=="server":
+
+		# example
+		# -m OpenVisus server --port 10000
+
+		from OpenVisus.VisusKernelPy import NetServer
+		from OpenVisus.VisusDbPy import DbModule,ModVisus
+
+		os.chdir(this_dir)
+
+		DbModule.attach()
+		parser = argparse.ArgumentParser(description="server command.")
+		parser.add_argument("-p", "--port", type=int, help="Server port.", required=False,default=10000)
+		args = parser.parse_args(sys.argv[2:])
+
+		print("Running visus server on port",args.port)
+		modvisus = ModVisus()
+		modvisus.configureDatasets()
+		server=NetServer(args.port, modvisus)
+		server.runInThisThread()
+
+		DbModule.detach()
+		sys.exit(0)
+
 
 	# _____________________________________________
 	if action=="viewer":
@@ -256,7 +281,7 @@ def Main():
 		from OpenVisus.VisusGuiPy    import GuiModule, Viewer
 
 		os.chdir(this_dir)
-		SetCommandLine("__main__")
+		SetCommandLine(sys.argv)
 		GuiModule.createApplication()
 		GuiModule.attach()
 		viewer=Viewer()

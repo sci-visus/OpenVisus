@@ -90,7 +90,7 @@ def Main(argv):
 	
 	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
 	# c:\Python37\python.exe Libs/Gui/PyViewer.py	
-	SetCommandLine("__main__")
+	SetCommandLine(sys.argv)
 	GuiModule.createApplication()
 	GuiModule.attach()  
 	

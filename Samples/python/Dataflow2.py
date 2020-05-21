@@ -1,5 +1,8 @@
-from OpenVisus import *
+
 import time
+import unittest
+
+from OpenVisus import *
 
 # /////////////////////////////////////////////////
 class MyReceiverNode(Node):
@@ -83,21 +86,24 @@ class MyDataflow(Dataflow):
 	def processInput(self, node):
 		print('processInput')
 		super().processInput(node)
-
+		
+# ////////////////////////////////////////////////////////////////////////
+class MyTest(unittest.TestCase):
+  
+	def test1(self): 
+		dataflow = MyDataflow()
+		while dataflow.dispatchPublishedMessages():
+			print('dispatching messages')
+			
+		# wait threads to finish processing
+		dataflow.joinProcessing()		
 
 if __name__ == '__main__':
 
-	SetCommandLine("__main__")
+	SetCommandLine(sys.argv)
 	DbModule.attach()
 	NodesModule.attach()
 	VISUS_REGISTER_NODE_CLASS("MyReceiverNode","MyReceiverNode", lambda : MyReceiverNode())
-
-	dataflow = MyDataflow()
-	while dataflow.dispatchPublishedMessages():
-		print('dispatching messages')
-		
-	# wait threads to finish processing
-	dataflow.joinProcessing()
-
+	unittest.main(exit=True)
 	NodesModule.detach()
 	DbModule.detach()

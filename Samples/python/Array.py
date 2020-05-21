@@ -46,7 +46,6 @@ from OpenVisus import *
 # ////////////////////////////////////////////////////////////////////
 class MyTestCase(unittest.TestCase):
 
-
 	# test1: convert numpy->Array with no memory sharing
 	def test1(self):
 		width,height,ncomponents=5,4,3
@@ -102,7 +101,7 @@ class MyTestCase(unittest.TestCase):
 
 # ////////////////////////////////////////////////////////
 if __name__ == '__main__':
-	SetCommandLine("__main__")
+	SetCommandLine(sys.argv)
 	KernelModule.attach()
 	unittest.main(exit=True)
 	KernelModule.detach()

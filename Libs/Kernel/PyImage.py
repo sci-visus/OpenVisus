@@ -2,9 +2,6 @@ import os,sys,glob,threading,platform,sysconfig,re,time,subprocess, errno, fnmat
 
 import numpy,cv2
 
-from OpenVisus.PyUtils import *
-
-
 # ////////////////////////////////////////////////////////////////////////////////
 def FindImages(template="./**/*.*",recursive=True,image_extensions=('.jpg','.png','.tif','.bmp')):
 	
