@@ -8,7 +8,7 @@ Python_EXECUTABLE=$(which python${PYTHON_VERSION})
 Qt5_DIR=${Qt5_DIR:-/opt/qt59}
 VISUS_SLAM=${VISUS_SLAM:-0}
 
-${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine --upgrade 1>/dev/null || true
+${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow --upgrade 1>/dev/null || true
 
 mkdir -p build 
 cd build
