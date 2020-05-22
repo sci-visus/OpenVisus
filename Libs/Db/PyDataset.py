@@ -4,7 +4,6 @@ import inspect
 
 from OpenVisus import *
 
-
 # //////////////////////////////////////////////
 class PyDataset(object):
 	
@@ -14,7 +13,7 @@ class PyDataset(object):
 
 	# Create
 	@staticmethod
-	def Create(url,**args):
+	def Create(**args):
 		
 		dims,fields,data=None, None,None
 		
@@ -40,12 +39,21 @@ class PyDataset(object):
 		
 		for field in fields:
 			idx.fields.push_back(field)
+			
+		# is the user specifying filters?
+		if "filters" in args:
+			filters=args["filters"]
+			for I in range(idx.fields.size()):
+				idx.fields[I].filter=filters[I]
 
+		url=args["url"]
 		idx.save(url)
 
 		if data is not None:
 			db=PyDataset(url)
 			db.write(data)
+			
+		return PyDataset(url)
 
 	# __getattr__
 	def __getattr__(self,attr):
@@ -113,7 +121,7 @@ class PyDataset(object):
 		return self.db.createAccess()
 
 	# read
-	def read(self, logic_box=None, x=None, y=None, z=None, time=None, field=None, num_refinements=1, quality=0, max_resolution=None):
+	def read(self, logic_box=None, x=None, y=None, z=None, time=None, field=None, num_refinements=1, quality=0, max_resolution=None, disable_filters=False):
 		"""
 		db=PyDataset.Load(url)
 		
@@ -138,6 +146,9 @@ class PyDataset(object):
 			time = self.getDefaultTime()			
 
 		query = BoxQuery(self.db, field , time, ord('r'))
+		
+		if disable_filters:
+			query.disableFilters()
 		
 		if logic_box is None:
 			logic_box=self.getLogicBox(x,y,z)

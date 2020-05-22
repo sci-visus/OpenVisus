@@ -216,9 +216,10 @@ def Main():
 				"Samples/python/Dataflow2.py",
 				"Samples/python/Idx.py",
 				"Samples/python/TestConvert.py",
+				"Samples/python/XIdx.py",
+				"Samples/python/MinMax.py",
 				#"Samples/python/TestViewer1.py",
 				#"Samples/python/TestViewer2.py",
-				"Samples/python/XIdx.py",
 			]: 
 			print("\n\n")
 			ExecuteCommand([sys.executable,os.path.join(this_dir, filename)]) 

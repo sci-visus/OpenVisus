@@ -199,7 +199,7 @@ if (1)
 	set(__qt_version_filename__ ${CMAKE_BINARY_DIR}/QT_VERSION)
 	file(GENERATE OUTPUT ${__qt_version_filename__} CONTENT "${Qt5Core_VERSION_STRING}")
 
-	add_custom_target(CopyRootFiles ALL)
+	add_custom_target(CopyRootFiles ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/__fake__.h)
 
 	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     LICENSE                    DESTINATION ./)
 	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     README.md                  DESTINATION ./)

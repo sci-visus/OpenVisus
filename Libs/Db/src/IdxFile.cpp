@@ -229,7 +229,7 @@ void IdxFile::validate(String url)
       field.default_layout="hzorder";
     }
     //use "rowmajor" or "1" to force row major
-    else if (field.default_layout=="rowmajor" || field.default_layout=="1")
+    else if (field.default_layout=="rowmajor" || field.default_layout == "row_major" || field.default_layout=="1")
     {
       field.default_layout=""; //empty will mean rowmajor
     }
