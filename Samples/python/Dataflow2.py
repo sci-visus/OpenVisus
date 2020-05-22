@@ -100,4 +100,4 @@ class MyTest(unittest.TestCase):
 
 if __name__ == '__main__':
 	VISUS_REGISTER_NODE_CLASS("MyReceiverNode","MyReceiverNode", lambda : MyReceiverNode())
-	unittest.main(exit=True)
+	unittest.main(verbosity=2,exit=True)
