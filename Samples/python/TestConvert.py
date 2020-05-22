@@ -2,7 +2,6 @@
 import os,sys
 import unittest
 from PIL import Image
-import cv2 
 
 from OpenVisus import *
 
@@ -36,7 +35,7 @@ class MyTestCase(unittest.TestCase):
 
 	def testCreate2dDatasetFromNumPy(self):
 		url="tmp/data2d_from_numpy.idx"
-		data=cv2.imread('datasets/cat/rgb.png') 
+		data=numpy.asarray(Image.load('datasets/cat/rgb.png'))
 		PyDataset.Create(url=url, dim=2,data=data)
 		
 	def testCreate3dDatasetFromNumPy(self):
@@ -51,7 +50,7 @@ class MyTestCase(unittest.TestCase):
 			PyDataset.Create(url=url,dims=[width,height,depth],fields=fields)
 			db=PyDataset(url)
 
-			cat=cv2.imread('datasets/cat/rgb.png')
+			cat=numpy.asarray(Image.load('datasets/cat/rgb.png'))
 
 			def generateSlices():
 				for I in range(depth): 
