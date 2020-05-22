@@ -18,7 +18,7 @@ def AddChannel(value,num=1):
 	
 # OpenImage
 def OpenImage(url):
-	return numpy.asarray(Image.load(url))	
+	return numpy.asarray(Image.open(url))	
 	
 # save image
 def SaveImage(url,data, bSeparateChannels=False):
