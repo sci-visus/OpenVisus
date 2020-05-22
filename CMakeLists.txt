@@ -205,6 +205,7 @@ if (1)
 	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     README.md                  DESTINATION ./)
 	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     datasets/visus.config      DESTINATION ./)
 	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     ${__qt_version_filename__} DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     quick_tour.ipynb           DESTINATION ./)
 
 	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY Copyrights                 DESTINATION ./Copyrights)
 	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY Samples                    DESTINATION ./Samples)

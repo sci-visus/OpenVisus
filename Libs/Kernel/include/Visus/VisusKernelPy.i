@@ -219,3 +219,10 @@ fromNumPy = staticmethod(fromNumPy)
 
 %include <Visus/NetServer.h>
 
+%pythoncode %{
+import sys
+SetCommandLine(sys.argv)
+KernelModule.attach()
+%}
+
+

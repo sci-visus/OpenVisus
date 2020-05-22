@@ -22,10 +22,6 @@ def Main(argv):
 	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
 	# c:\Python37\python.exe Libs/Gui/PyViewer.py	
 	
-	SetCommandLine(sys.argv)
-	GuiModule.createApplication()
-	GuiModule.attach()
-	
 	VISUS_REGISTER_NODE_CLASS("ScriptingNode", "PyScriptingNode", lambda : PyScriptingNode())
 		
 	viewer=PyViewer()
@@ -41,7 +37,6 @@ def Main(argv):
 	GuiModule.execApplication()
 	viewer=None
 
-	GuiModule.detach()
 	print("All done")
 	sys.exit(0)	
 	

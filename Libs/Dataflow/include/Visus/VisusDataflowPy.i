@@ -86,3 +86,7 @@ def VISUS_REGISTER_NODE_CLASS(TypeName, PyTypeName, creator):
     print("Registering python class",TypeName,PyTypeName)
     NodeFactory.getSingleton().registerClass(TypeName, PyTypeName , PyNodeCreator(creator))
 %}
+
+%pythoncode %{
+DataflowModule.attach()
+%}

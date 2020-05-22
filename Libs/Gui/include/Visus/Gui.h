@@ -74,14 +74,8 @@ public:
   //detach
   static void detach();
 
-  //createApplication
-  static void createApplication();
-
   //execApplication
   static void execApplication();
-
-  //destroyApplication
-  static void destroyApplication();
 };
 
 

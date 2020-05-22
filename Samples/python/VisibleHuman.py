@@ -164,16 +164,11 @@ def Main(argv):
 	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
 	# c:\Python37\python.exe Samples\python\ExtractSlices.py
 	
-	SetCommandLine(sys.argv)
-	GuiModule.createApplication()
-	GuiModule.attach()  	
-	
 	#VisibleMale()
 	
 	# ConvertVisibleFemale
 	VisibleFemale()
 	
-	GuiModule.detach()
 	print("ALL DONE")
 	sys.stdin.read(1)
 	sys.exit(0)	

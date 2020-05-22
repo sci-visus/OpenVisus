@@ -55,7 +55,6 @@ using namespace Visus;
 **/
 int main(int argc, const char* argv[])
 {
-
   SetCommandLine(argc,argv);
   DbModule::attach();
 

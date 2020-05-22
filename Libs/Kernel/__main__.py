@@ -1,5 +1,7 @@
 import os, sys, glob, subprocess, platform, shutil, sysconfig, re, argparse
 
+from OpenVisus import *
+
 # *** NOTE: this file must be self-contained ***
 
 """
@@ -35,10 +37,12 @@ def GetCommandOutput(cmd,shell=False):
 	return output.strip()
 
 # /////////////////////////////////////////////////////////////////////////
-def ExecuteCommand(cmd):	
+def ExecuteCommand(cmd,shell=False,check_result=False):	
 	print("Executing command", " ".join(cmd))
-	return subprocess.call(cmd, shell=False)
-
+	if check_result:
+		return subprocess.check_call(cmd, shell=shell)
+	else:
+		return subprocess.call(cmd, shell=shell)
 
 # ////////////////////////////////////////////////
 def SetRPath(filename,value):
@@ -183,9 +187,9 @@ def UsePyQt5():
 				SetRPath(filename,"$ORIGIN:$ORIGIN/bin:" + os.path.join(PyQt5_HOME,'Qt/lib'))
 
 # ////////////////////////////////////////////////
-def Main():
+def Main(args):
 
-	action=sys.argv[1] if len(sys.argv)>=2 else ""
+	action=args[1] if len(args)>=2 else ""
 
 	# no arguments
 	if action=="":
@@ -198,7 +202,7 @@ def Main():
 		print(this_dir)
 		sys.exit(0)
 
-	print("sys.argv",sys.argv)
+	print("args",args)
 	print("this_dir",this_dir)
 
 	# _____________________________________________
@@ -210,25 +214,51 @@ def Main():
 
 	# _____________________________________________
 	if action=="test":
-		for filename in [
-				"Samples/python/Array.py",
-				"Samples/python/Dataflow.py",
-				"Samples/python/Dataflow2.py",
-				"Samples/python/Idx.py",
-				"Samples/python/TestConvert.py",
-				"Samples/python/XIdx.py",
-				"Samples/python/MinMax.py",
-				#"Samples/python/TestViewer1.py",
-				#"Samples/python/TestViewer2.py",
-			]: 
+		
+		os.chdir(this_dir)
+
+		tests=[]
+
+		if len(args)==2 or "default" in args or "all" in args:
+			tests+=[
+				["Samples/python/Array.py"],
+				["Samples/python/Dataflow.py"],
+				["Samples/python/Dataflow2.py"],
+				["Samples/python/Idx.py"],
+				["Samples/python/XIdx.py"],
+				["Samples/python/TestConvert.py"],
+				["Samples/python/MinMax.py"],
+				["Samples/python/Server.py"],
+			]
+
+		if "viewer" in args or "all" in args:
+			tests+=[
+				["-m","OpenVisus","viewer"],
+				["-m","OpenVisus","viewer1"],
+				["-m","OpenVisus","viewer2"]
+			]
+
+		# how can make this automatic?
+		#if "jupiter" in args or "all" in args:
+		#	tests+=[
+		#		["-m","jupyter","notebook","./quick_tour.ipynb"],
+		#		["-m","jupyter","notebook","./Samples/jupyter/Agricolture.ipynb"],
+		#		["-m","jupyter","notebook","./Samples/jupyter/Climate.ipynb"],
+		#		["-m","jupyter","notebook","./Samples/jupyter/ReadAndView.ipynb"]
+		#	]
+
+		if os.path.isdir("Slam") and ("slam" in args or "all" in args):
+			tests.append(["-m","OpenVisus","slam"])
+
+		for test in tests: 
 			print("\n\n")
-			ExecuteCommand([sys.executable,os.path.join(this_dir, filename)]) 
+			ExecuteCommand([sys.executable] + test,check_result=True) 
 			print("\n\n")
+
 		sys.exit(0)
 
 	# _____________________________________________
 	if action=="test-idx":
-		from OpenVisus.VisusDbPy import SelfTestIdx
 		os.chdir(this_dir)
 		SelfTestIdx(300)
 		sys.exit(0)
@@ -237,15 +267,9 @@ def Main():
 	if action=="convert":
 
 		# example: python -m OpenVisus convert ...
-		from OpenVisus.VisusKernelPy import SetCommandLine
-		from OpenVisus.VisusDbPy     import DbModule,VisusConvert
-		
-		SetCommandLine(sys.argv)
-		DbModule.attach()
 		convert=VisusConvert()
-		# example: ...main.py sys.argv[1]==convert ..
-		convert.runFromArgs(sys.argv[2:])
-		DbModule.detach()
+		# example: ...main.py args[1]==convert ..
+		convert.runFromArgs(args[2:])
 		sys.exit(0)
 
 	# _____________________________________________
@@ -254,43 +278,29 @@ def Main():
 		# example
 		# -m OpenVisus server --port 10000
 
-		from OpenVisus.VisusKernelPy import NetServer
-		from OpenVisus.VisusDbPy import DbModule,ModVisus
-
 		os.chdir(this_dir)
 
-		DbModule.attach()
 		parser = argparse.ArgumentParser(description="server command.")
 		parser.add_argument("-p", "--port", type=int, help="Server port.", required=False,default=10000)
-		args = parser.parse_args(sys.argv[2:])
+		args = parser.parse_args(args[2:])
 
 		print("Running visus server on port",args.port)
 		modvisus = ModVisus()
 		modvisus.configureDatasets()
 		server=NetServer(args.port, modvisus)
 		server.runInThisThread()
-
-		DbModule.detach()
 		sys.exit(0)
-
 
 	# _____________________________________________
 	if action=="viewer":
 
 		# example: python -m OpenVisus viewer ....
-		from OpenVisus.VisusKernelPy import SetCommandLine
-		from OpenVisus.VisusGuiPy    import GuiModule, Viewer
-
+		from VisusGuiPy import GuiModule,Viewer
 		os.chdir(this_dir)
-		SetCommandLine(sys.argv)
-		GuiModule.createApplication()
-		GuiModule.attach()
 		viewer=Viewer()
-		viewer.configureFromArgs(sys.argv[2:])
+		viewer.configureFromArgs(args[2:])
 		GuiModule.execApplication()
 		viewer=None
-		GuiModule.detach()
-		GuiModule.destroyApplication()
 		print("All done")
 		sys.exit(0)
 
@@ -322,13 +332,13 @@ def Main():
 		SlamMain()
 		sys.exit(0)	
 
-	print("Wrong arguments",sys.argv)
+	print("Wrong arguments",args)
 	sys.exit(-1)
   
 
 # //////////////////////////////////////////
 if __name__ == "__main__":
-	Main()
+	Main(sys.argv)
 
 
 

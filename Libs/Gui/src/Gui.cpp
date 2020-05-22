@@ -79,27 +79,8 @@ void GuiCleanUpResources() {
 
 namespace Visus {
 
-
 bool GuiModule::bAttached = false;
 
-//////////////////////////////////////////////
-static QApplication* qapp = nullptr;
-
-void GuiModule::createApplication()
-{
-  QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
-
-  VisusAssert(!qapp && CommandLine::argn != 0);
-  qapp = new QApplication(CommandLine::argn, (char**)CommandLine::argv);
-  qapp->setAttribute(Qt::AA_UseHighDpiPixmaps, true);
-
-  //otherwise volume render looks bad on my old macbook pro
-#if __APPLE__
-  auto format = QSurfaceFormat::defaultFormat();
-  format.setProfile(QSurfaceFormat::CoreProfile);
-  QSurfaceFormat::setDefaultFormat(format);
-#endif
-}
 
 //////////////////////////////////////////////
 void GuiModule::execApplication()
@@ -107,14 +88,7 @@ void GuiModule::execApplication()
   QApplication::exec();
 }
 
-
-void GuiModule::destroyApplication()
-{
-  delete qapp;
-  qapp = nullptr;
-}
-
-
+static bool bOwnedApp = false;
 
 //////////////////////////////////////////////
 void GuiModule::attach()
@@ -152,6 +126,22 @@ void GuiModule::attach()
   VISUS_REGISTER_NODE_CLASS(JTreeRenderNode);
   VISUS_REGISTER_NODE_CLASS(VoxelScoopNode);
   VISUS_REGISTER_NODE_CLASS(ScriptingNode);
+
+  if (!qApp)
+  {
+    QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+
+    new QApplication(CommandLine::argn, (char**)CommandLine::argv);
+    bOwnedApp = true;
+    qApp->setAttribute(Qt::AA_UseHighDpiPixmaps, true);
+
+    //otherwise volume render looks bad on my old macbook pro
+#if __APPLE__
+    auto format = QSurfaceFormat::defaultFormat();
+    format.setProfile(QSurfaceFormat::CoreProfile);
+    QSurfaceFormat::setDefaultFormat(format);
+#endif
+  }
 
   GLSharedContext::allocSingleton();
   GLInfo::allocSingleton();
@@ -200,6 +190,12 @@ void GuiModule::detach()
   NodesModule::detach();
   DataflowModule::detach();
   KernelModule::detach();
+
+  //is this needed?
+#if 0
+  if (bOwnedApp && qApp)
+    delete qApp;
+#endif
 
   PrintInfo("Detached GuiModule");
 }

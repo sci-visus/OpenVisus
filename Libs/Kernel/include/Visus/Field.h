@@ -79,7 +79,11 @@ public:
   StringMap params;
 
   //constructor
-  Field(String name_ = "", DType dtype_ = DType(),String default_layout_="") :name(name_), dtype(dtype_), default_layout(default_layout_){
+  Field(String name_ ="", DType dtype_ = DType(),String default_layout_="") :name(name_), dtype(dtype_), default_layout(default_layout_){
+  }
+
+  //constructor
+  Field(String name, String dtype, String default_layout = "") : Field(name,DType::fromString(dtype),default_layout) {
   }
 
   //valid

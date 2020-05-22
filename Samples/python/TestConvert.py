@@ -31,7 +31,7 @@ class MyTestCase(unittest.TestCase):
 		url="tmp/empty3d.idx"
 		dtype="uint8[3]"
 		width,height,depth=1025,512,256
-		field=Field("DATA",DType.fromString(dtype),"row_major")
+		field=Field("data",dtype,"row_major")
 		PyDataset.Create(url=url,dims=[width,height,depth],fields=[field])
 
 	def testCreate2dDatasetFromNumPy(self):
@@ -47,7 +47,7 @@ class MyTestCase(unittest.TestCase):
 	def testCreate3dDatasetFromSlices(self):
 			url="tmp/data3d_from_slices.idx"
 			width, height,depth=256,256,10
-			fields=[Field("DATA",DType.fromString("uint8[3]"),"row_major")]
+			fields=[Field("data","uint8[3]","row_major")]
 			PyDataset.Create(url=url,dims=[width,height,depth],fields=fields)
 			db=PyDataset(url)
 
@@ -69,7 +69,7 @@ class MyTestCase(unittest.TestCase):
 		width,height,depth=256,256,100
 		
 		url="tmp/create3d_and_read_stuff.idx"
-		field=Field("DATA",DType.fromString("uint8[3]"),"row_major")
+		field=Field("data","uint8[3]","row_major")
 		PyDataset.Create(url=url,dims=[width,height,depth],fields=[field])
 		
 		db=PyDataset(url)
@@ -91,7 +91,4 @@ class MyTestCase(unittest.TestCase):
 
 # ///////////////////////////////////////////////////////////
 if __name__ == '__main__':
-	SetCommandLine(sys.argv)
-	DbModule.attach()	
 	unittest.main(exit=True)
-	DbModule.detach()

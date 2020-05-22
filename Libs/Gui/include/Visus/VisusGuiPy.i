@@ -108,3 +108,7 @@ namespace Visus {
 	QWidget*  ToCppQtWidget   (PyObject* obj);
 	PyObject* FromCppQtWidget (void*     widget);
 }
+
+%pythoncode %{
+GuiModule.attach()
+%}

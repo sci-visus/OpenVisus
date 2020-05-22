@@ -276,7 +276,7 @@ void SetCommandLine(int argn, const char** argv)
 void SetCommandLine(std::vector<String> args)
 {
   static auto keep_in_memory = args;
-  static const int argn = args.size();
+  static const int argn = (int)args.size();
   static const char* argv[256];
   memset(argv, 0, sizeof(argv));
   for (int I = 0; I < args.size(); I++)

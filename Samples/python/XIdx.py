@@ -170,8 +170,5 @@ class TextXIdx(unittest.TestCase):
 
 	# ////////////////////////////////////////////////////////
 if __name__ == '__main__':
-	SetCommandLine(sys.argv)
-	XIdxModule.attach()
 	unittest.main(exit=True)
-	XIdxModule.detach()
 	print("All done")

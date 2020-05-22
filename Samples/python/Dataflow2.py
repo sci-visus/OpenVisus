@@ -99,11 +99,5 @@ class MyTest(unittest.TestCase):
 		dataflow.joinProcessing()		
 
 if __name__ == '__main__':
-
-	SetCommandLine(sys.argv)
-	DbModule.attach()
-	NodesModule.attach()
 	VISUS_REGISTER_NODE_CLASS("MyReceiverNode","MyReceiverNode", lambda : MyReceiverNode())
 	unittest.main(exit=True)
-	NodesModule.detach()
-	DbModule.detach()

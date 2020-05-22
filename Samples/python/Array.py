@@ -101,9 +101,6 @@ class MyTestCase(unittest.TestCase):
 
 # ////////////////////////////////////////////////////////
 if __name__ == '__main__':
-	SetCommandLine(sys.argv)
-	KernelModule.attach()
 	unittest.main(exit=True)
-	KernelModule.detach()
 
 

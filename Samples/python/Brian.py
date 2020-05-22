@@ -54,10 +54,6 @@ def Main(argv):
 	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
 	# c:\Python37\python.exe Samples\python\Brian.py
 	
-	SetCommandLine(sys.argv)
-	GuiModule.createApplication()
-	GuiModule.attach()  	
-	
 	db=PyDataset(r"D:\GoogleSci\visus_dataset\male\visus.idx")
 	Assert(db)
 
@@ -96,7 +92,6 @@ def Main(argv):
 	
 	viewer.run()
 	
-	GuiModule.detach()
 	print("ALL DONE")
 	sys.stdin.read(1)
 	sys.exit(0)	

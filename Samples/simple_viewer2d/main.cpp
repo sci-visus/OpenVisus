@@ -285,7 +285,6 @@ public:
 int main(int argn,const char* argv[])
 {
   SetCommandLine(argn, argv);
-  GuiModule::createApplication();
   GuiModule::attach();
 
   {
@@ -297,7 +296,6 @@ int main(int argn,const char* argv[])
   }
   
   GuiModule::detach();
-  GuiModule::destroyApplication();
 
   return 0;
 }

@@ -130,8 +130,5 @@ class MyTestCase(unittest.TestCase):
 
 # /////////////////////////////////////////////////////
 if __name__=="__main__":
-	SetCommandLine(sys.argv)
-	DbModule.attach()
 	unittest.main(exit=True)
 	TestFilters("datasets/minmax/noise.tif", "wavelet")	
-	DbModule.detach()
