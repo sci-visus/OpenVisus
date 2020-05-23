@@ -1,6 +1,5 @@
 
 import sys
-import cv2
 from OpenVisus import *
 
 
