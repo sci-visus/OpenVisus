@@ -76,6 +76,8 @@ python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
+Also give a look to [quick_tour](https://github.com/sci-visus/OpenVisus/blob/master/quick_tour.ipynb)
+
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## Conda distribution
 
@@ -88,6 +90,8 @@ python -m OpenVisus configure
 python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
+
+Also give a look to [quick_tour](https://github.com/sci-visus/OpenVisus/blob/master/quick_tour.ipynb)
 
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## Windows compilation

@@ -63,6 +63,24 @@ NetServer::~NetServer()
   }
 }
 
+//signalExit
+
+///////////////////////////////////////////////////////////////
+void NetServer::signalExit() {
+
+  this->bExitThread = true;
+}
+
+///////////////////////////////////////////////////////
+void NetServer::waitForExit() {
+
+  //in case I'm stuck on accept connection
+  NetSocket().connect(concatenate("http://127.0.0.1:", port));
+
+  if (this->thread && this->thread->joinable())
+    this->thread->join();
+}
+
 
 ///////////////////////////////////////////////////////////////
 bool NetServer::writeResponse(NetSocket* client, NetResponse response)
@@ -137,6 +155,9 @@ void NetServer::runInThisThread()
   }
   thread_pool.reset();
 }
+
+//waitForExit
+
 
 
 } //namespace Visus

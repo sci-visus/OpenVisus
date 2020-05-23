@@ -219,40 +219,37 @@ def Main(args):
 
 		tests=[]
 
+		def RunTest(cmd):
+			ExecuteCommand([sys.executable] + cmd,check_result=True) 
+
 		if len(args)==2 or "default" in args or "all" in args:
-			tests+=[
-				["Samples/python/Array.py"],
-				["Samples/python/Dataflow.py"],
-				["Samples/python/Dataflow2.py"],
-				["Samples/python/Idx.py"],
-				["Samples/python/XIdx.py"],
-				["Samples/python/TestConvert.py"],
-				["Samples/python/MinMax.py"],
-				["Samples/python/Server.py"],
-			]
+			RunTest(["Samples/python/Array.py"])
+			RunTest(["Samples/python/Dataflow.py"])
+			RunTest(["Samples/python/Dataflow2.py"])
+			RunTest(["Samples/python/Idx.py"])
+			RunTest(["Samples/python/XIdx.py"])
+			RunTest(["Samples/python/TestConvert.py"])
+			RunTest(["Samples/python/MinMax.py"])
+			RunTest(["-m","OpenVisus","server","--dataset","./datasets/cat/rgb.exit","--port","10000","--exit"])
 
 		if "viewer" in args or "all" in args:
-			tests+=[
-				["-m","OpenVisus","viewer"],
-				["-m","OpenVisus","viewer1"],
-				["-m","OpenVisus","viewer2"]
-			]
+			RunTest(["-m","OpenVisus","viewer"])
+			RunTest(["-m","OpenVisus","viewer1"])
+			RunTest(["-m","OpenVisus","viewer2"])
 
 		# how can make this automatic?
 		#if "jupiter" in args or "all" in args:
-		#	tests+=[
-		#		["-m","jupyter","notebook","./quick_tour.ipynb"],
-		#		["-m","jupyter","notebook","./Samples/jupyter/Agricolture.ipynb"],
-		#		["-m","jupyter","notebook","./Samples/jupyter/Climate.ipynb"],
-		#		["-m","jupyter","notebook","./Samples/jupyter/ReadAndView.ipynb"]
-		#	]
+		#	RunTest(["-m","jupyter","notebook","./quick_tour.ipynb"])
+		#	RunTest(["-m","jupyter","notebook","./Samples/jupyter/Agricolture.ipynb"])
+		#	RunTest(["-m","jupyter","notebook","./Samples/jupyter/Climate.ipynb"])
+		#	RunTest(["-m","jupyter","notebook","./Samples/jupyter/ReadAndView.ipynb"])
 
 		if os.path.isdir("Slam") and ("slam" in args or "all" in args):
-			tests.append(["-m","OpenVisus","slam"])
+			RunTest(["-m","OpenVisus","slam"])
 
 		for test in tests: 
 			print("\n\n")
-			ExecuteCommand([sys.executable] + test,check_result=True) 
+			
 			print("\n\n")
 
 		sys.exit(0)
@@ -282,13 +279,27 @@ def Main(args):
 
 		parser = argparse.ArgumentParser(description="server command.")
 		parser.add_argument("-p", "--port", type=int, help="Server port.", required=False,default=10000)
+		parser.add_argument("-d", "--dataset", type=str, help="Idx file", required=False,default="")
+		parser.add_argument("-e", "--exit", help="Exit immediately", action="store_true") # for debugging
 		args = parser.parse_args(args[2:])
 
-		print("Running visus server on port",args.port)
 		modvisus = ModVisus()
-		modvisus.configureDatasets()
+
+		# -m OpenVisus server --port 10000 [--dataset D:\projects\OpenVisus\datasets\cat\rgb.idx]
+		if args.dataset:
+			config=ConfigFile.fromString("<visus><datasets><dataset name='default' url='{}' permissions='public' /></datasets></visus>".format(args.dataset))
+		else:
+			config=DbModule.getModuleConfig()
+			
+		modvisus.configureDatasets(config)
 		server=NetServer(args.port, modvisus)
+		print("Running visus server on port",args.port)
+
+		if args.exit:
+			server.signalExit()
+
 		server.runInThisThread()
+		print("server done")
 		sys.exit(0)
 
 	# _____________________________________________
