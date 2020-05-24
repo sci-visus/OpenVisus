@@ -843,6 +843,10 @@ public:
   PointN() {
   }
 
+  //copy constructor
+  PointN(const PointN& other) : pdim(other.pdim), coords(other.coords) {
+  }
+
   //constructor
   explicit PointN(const std::vector<T>& v) {
     for (auto it : v)

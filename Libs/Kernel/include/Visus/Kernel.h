@@ -46,6 +46,7 @@ For support : support@visus.net
 #include <sstream>
 #include <atomic>
 #include <exception>
+#include <vector>
 
 //__________________________________________________________
 #if WIN32
@@ -232,11 +233,11 @@ VISUS_KERNEL_API void PrintLine(String file, int line, int severity, String msg)
 
 VISUS_KERNEL_API void RedirectLogTo(void(*)(String msg, void*), void* user_data = nullptr);
 
-//(default values for swig)
-VISUS_KERNEL_API void SetCommandLine(int argn = 0, const char** argv = nullptr);
+#if !SWIG
+VISUS_KERNEL_API void SetCommandLine(int argn, const char** argv);
+#endif
 
-//for swig
-VISUS_KERNEL_API void SetCommandLine(String value);
+VISUS_KERNEL_API void SetCommandLine(std::vector<String> args);
 
 //VisusAssertFailed
 VISUS_KERNEL_API void VisusAssertFailed(const char* file, int line, const char* expr);

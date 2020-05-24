@@ -58,3 +58,7 @@ using namespace Visus;
 %include <Visus/IdxMultipleDataset.h>
 
 %include <Visus/VisusConvert.h>
+
+%pythoncode %{
+DbModule.attach()
+%}

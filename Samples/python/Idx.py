@@ -64,7 +64,7 @@ class TestIdx(unittest.TestCase):
 		
 		idxfile=IdxFile();
 		idxfile.logic_box=BoxNi(dataset_box)
-		idxfile.fields.push_back(Field("myfield",DType.fromString("uint32")))
+		idxfile.fields.push_back(Field("myfield","uint32"))
 
 		idxfile.save(self.filename)
 		dataset=LoadDataset(self.filename)
@@ -161,7 +161,4 @@ class TestIdx(unittest.TestCase):
 
 # ////////////////////////////////////////////////////////
 if __name__ == '__main__':
-	SetCommandLine("__main__")
-	DbModule.attach()
-	unittest.main(exit=True)
-	DbModule.detach()
+	unittest.main(verbosity=2,exit=True)

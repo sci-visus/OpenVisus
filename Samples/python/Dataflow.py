@@ -128,10 +128,7 @@ class TestDataflow(unittest.TestCase):
 
 # ////////////////////////////////////////////////////////
 if __name__ == '__main__':
-	SetCommandLine("__main__")
-	DataflowModule.attach()
 	VISUS_REGISTER_NODE_CLASS("PyProducer", "PyProducer", lambda : PyProducer())
 	VISUS_REGISTER_NODE_CLASS("PyReceiver", "PyReceiver", lambda : PyReceiver())
-	unittest.main(exit=True)
-	DataflowModule.detach()
+	unittest.main(verbosity=2,exit=True)
 

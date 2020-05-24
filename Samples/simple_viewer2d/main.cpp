@@ -36,6 +36,8 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
+#if 0
+
 #include <Visus/Kernel.h>
 #include <Visus/Dataflow.h>
 #include <Visus/DatasetNode.h>
@@ -283,7 +285,6 @@ public:
 int main(int argn,const char* argv[])
 {
   SetCommandLine(argn, argv);
-  GuiModule::createApplication();
   GuiModule::attach();
 
   {
@@ -295,9 +296,9 @@ int main(int argn,const char* argv[])
   }
   
   GuiModule::detach();
-  GuiModule::destroyApplication();
 
   return 0;
 }
 
 
+#endif

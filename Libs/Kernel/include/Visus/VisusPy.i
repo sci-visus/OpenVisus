@@ -92,9 +92,6 @@ else:
 // warning : Nothing known about base class 'PositionRValue'
 #pragma SWIG nowarn=401 
 
-namespace Visus {}
-%apply long long  { Visus::Int64 };
-
 //this is needed to expose import_array
 %{
 #define SWIG_FILE_WITH_INIT

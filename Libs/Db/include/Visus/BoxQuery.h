@@ -166,6 +166,11 @@ public:
     return true;
   }
 
+  //disableFilters
+  void disableFilters() {
+    this->filter.enabled = false;
+  }
+
 private:
 
   int  cur_resolution = -1;

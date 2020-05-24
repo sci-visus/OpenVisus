@@ -76,6 +76,9 @@ public:
   //destructor
   virtual ~NetServer();
 
+  //signalExit
+  void signalExit();
+
   //setVerbose
   void setVerbose(int value) {
     this->verbose = value;
@@ -90,6 +93,9 @@ public:
       runInThisThread();
     });
   }
+
+  //waitForExit
+  void waitForExit();
 
 protected:
 

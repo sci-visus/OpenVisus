@@ -395,6 +395,8 @@ public:
     return SharedPtr<DatasetFilter>();
   }
 
+  //computeFilter
+  virtual void computeFilter(const Field& field, int window_size = 4096);
 
 public:
 

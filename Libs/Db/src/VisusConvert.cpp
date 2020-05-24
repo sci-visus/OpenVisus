@@ -262,122 +262,6 @@ public:
 
 };
 
-///////////////////////////////////////////////////////////////////////
-class StartVisusServer : public VisusConvert::Step
-{
-public:
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " [--port value]" << std::endl
-      << "Example: " << args[0] << " --port 10000 ";
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    int port = 10000;
-    for (int I = 1; I < (int)args.size(); I++)
-    {
-      if (args[I] == "--port" || args[I] == "-p")
-      {
-        port = cint(args[++I]);
-        continue;
-      }
-
-      ThrowException(args[0], "Invalid argument", args[I]);
-    }
-
-    auto modvisus = new ModVisus();
-    modvisus->configureDatasets();
-    NetServer netserver(port, modvisus);
-    netserver.runInThisThread();
-
-    return data;
-  }
-
-};
-
-///////////////////////////////////////////////////////////
-class ApplyFilters : public VisusConvert::Step
-{
-public:
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " <filename>" << std::endl
-      << "   [--window-size <int>]" << std::endl
-      << "   [--field <field>]" << std::endl
-      << "   [--time <time>]" << std::endl;
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    if (args.size() < 2)
-      ThrowException(args[0], "syntax error");
-
-    String filename = args[1];
-
-    auto dataset = LoadDataset(filename);
-
-    int window_size = 4096;
-    double time = dataset->getDefaultTime();
-    Field field = dataset->getDefaultField();
-
-    int pdim = dataset->getPointDim();
-    PointNi sliding_box = PointNi::one(pdim);
-
-    for (int I = 2; I < (int)args.size(); I++)
-    {
-      if (args[I] == "--window-size")
-      {
-        window_size = cint(args[++I]);
-
-        if (!Utils::isPowerOf2(window_size))
-          ThrowException(args[0], "window size must be power of two");
-
-        continue;
-      }
-
-      if (args[I] == "--field")
-      {
-        String fieldname = args[++I];
-        field = dataset->getFieldByName(fieldname);
-        if (!field.valid())
-          ThrowException(args[0], "Invalid --field", fieldname);
-
-        continue;
-      }
-
-      if (args[I] == "--time")
-      {
-        time = cdouble(args[++I]);
-        continue;
-      }
-
-      ThrowException(args[0], "unknown argument", args[I]);
-    }
-
-    //the filter will be applied using this sliding window
-    for (int D = 0; D < dataset->getPointDim(); D++)
-      sliding_box[D] = window_size;
-
-    auto access = dataset->createAccess();
-    auto filter = dataset->createFilter(field);
-    PrintInfo("starting conversion...");
-    filter->computeFilter(time, field, access, sliding_box);
-    return data;
-  }
-};
 
 ///////////////////////////////////////////////////////////
 class CopyDataset : public VisusConvert::Step
@@ -1772,8 +1656,6 @@ public:
   }
 };
 
-
-
 ///////////////////////////////////////////////////////////////////////////////
 class TestIdxSlabSpeed : public VisusConvert::Step
 {
@@ -2034,11 +1916,9 @@ VisusConvert::VisusConvert()
 
   addAction("create", []() {return std::make_shared<CreateIdx>(); });
   addAction("zeros", []() {return std::make_shared<Zeros>(); });
-  addAction("server", []() {return std::make_shared<StartVisusServer>(); });
   addAction("minmax", []() {return std::make_shared<FixDatasetRange>(); });
   addAction("copy-dataset", []() {return std::make_shared<CopyDataset>(); });
   addAction("compress-dataset", []() {return std::make_shared<CompressDataset>(); });
-  addAction("apply-filters", []() {return std::make_shared<ApplyFilters>(); });
   addAction("midx-to-idx", []() {return std::make_shared<ConvertMidxToIdx>(); });
 
   addAction("import", []() {return std::make_shared<ImportData>(); });
@@ -2111,15 +1991,6 @@ void VisusConvert::runFromArgs(std::vector<String> args)
     if (name == "help")
     {
       PrintInfo(getHelp());
-      return;
-    }
-
-    if (name == "server")
-    {
-      auto modvisus = new ModVisus();
-      modvisus->configureDatasets();
-      NetServer server(10000, modvisus);
-      server.runInThisThread();
       return;
     }
 

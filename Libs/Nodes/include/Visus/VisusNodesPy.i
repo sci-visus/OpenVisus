@@ -51,3 +51,6 @@ using namespace Visus;
 
 //not exposing anything, don't know if we need it
 
+%pythoncode %{
+NodesModule.attach()
+%}

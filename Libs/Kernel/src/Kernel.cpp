@@ -272,14 +272,19 @@ void SetCommandLine(int argn, const char** argv)
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////
-void SetCommandLine(String value)
+/////////////////////////////////////////////////////
+void SetCommandLine(std::vector<String> args)
 {
-  static String keep_in_memory = value;
-  static const int argn = 1;
-  static const char* argv[] = { keep_in_memory.c_str()};
+  static auto keep_in_memory = args;
+  static const int argn = (int)args.size();
+  static const char* argv[256];
+  memset(argv, 0, sizeof(argv));
+  for (int I = 0; I < args.size(); I++)
+    argv[I] = args[I].c_str();
+
   SetCommandLine(argn, argv);
 }
+
 
 /////////////////////////////////////////////////////
 bool VisusHasMessageLock()

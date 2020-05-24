@@ -197,7 +197,6 @@ def RunJobsInParallel(jobs, advance_callback=None, nthreads=8):
 				advance_callback(len(results))
 
 
-
 # /////////////////////////////////////////////////////////////////////////
 def RemoveFiles(pattern):
 	files=glob.glob(pattern)

@@ -1,3 +1,4 @@
+
 ```
 Copyright (c) 2010-2018 ViSUS L.L.C., 
 Scientific Computing and Imaging Institute of the University of Utah
@@ -71,10 +72,11 @@ Type:
 ```
 python -m pip install --no-cache-dir --upgrade --force-reinstall OpenVisus
 python -m OpenVisus configure 
-python -m OpenVisus test
 python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
+
+Also give a look to [quick_tour](https://github.com/sci-visus/OpenVisus/blob/master/quick_tour.ipynb)
 
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## Conda distribution
@@ -85,10 +87,11 @@ Type:
 conda uninstall -y openvisus # optional
 conda install -y -c visus openvisus
 python -m OpenVisus configure 
-python -m OpenVisus test
 python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
+
+Also give a look to [quick_tour](https://github.com/sci-visus/OpenVisus/blob/master/quick_tour.ipynb)
 
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## Windows compilation
@@ -120,7 +123,6 @@ cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR=%Qt5_DIR% -DPython_EXECUTABL
 cmake --build . --target ALL_BUILD --config Release
 
 set PYTHON_PATH=.\Release
-python -m OpenVisus test
 python -m OpenVisus configure
 python -m OpenVisus convert
 python -m OpenVisus viewer
@@ -161,7 +163,6 @@ cmake -GXcode -DPython_ROOT_DIR=${Python_ROOT_DIR} -DQt5_DIR=${Qt5_DIR} -DVISUS_
 cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
 
 export PYTHONPATH=$(pwd)/Release
-python -m OpenVisus test
 python -m OpenVisus configure
 python -m OpenVisus convert
 python -m OpenVisus viewer
@@ -235,7 +236,6 @@ cmake --build ./ --target all --config Release --parallel 4
 python -m pip install --upgrade pip
 
 export PYTHONPATH=./Release
-python -m OpenVisus test
 python -m OpenVisus configure
 python -m OpenVisus convert
 python -m OpenVisus viewer
@@ -263,7 +263,6 @@ Then install OpenVisus slam package:
 python -m pip install --no-cache-dir --upgrade --force-reinstall OpenVisus
 
 python -m OpenVisus configure
-python -m OpenVisus test
    
 # ON MACOS ONLY, you may need to solve conflicts between Qt embedded in opencv2 and PyQt5 we are going to use:
 python -m pip uninstall -y opencv-python          opencv-contrib-python

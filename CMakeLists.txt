@@ -170,6 +170,24 @@ function(CopyToBinaryDirectory)
 
 endfunction()
 
+# //////////////////////////////////////////////////////////////
+function(AssignSourceGroup)
+	foreach(_it_ IN ITEMS ${ARGN})
+		file(RELATIVE_PATH _group_ "${CMAKE_CURRENT_SOURCE_DIR}" "${_it_}")
+		get_filename_component(_group_ "${_group_}" PATH)
+		string(REPLACE "../"  ""   _group_  "${_group_}")
+		string(REPLACE "../"  ""   _group_  "${_group_}")
+		string(REPLACE "../"  ""   _group_  "${_group_}")
+		
+		string(REPLACE  "/"  "\\"  _group_  "${_group_}")
+		
+		source_group("${_group_}" FILES "${_it_}")
+		
+		
+		MESSAGE(STATUS "${_group_}     ${_it_}")
+	endforeach()
+endfunction()
+
 add_subdirectory(ExternalLibs)
 add_subdirectory(Libs)
 add_subdirectory(Executable)
@@ -187,6 +205,7 @@ if (1)
 	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     README.md                  DESTINATION ./)
 	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     datasets/visus.config      DESTINATION ./)
 	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     ${__qt_version_filename__} DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     quick_tour.ipynb           DESTINATION ./)
 
 	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY Copyrights                 DESTINATION ./Copyrights)
 	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY Samples                    DESTINATION ./Samples)

@@ -185,15 +185,12 @@ source_group("Misc" FILES
 	./include/Visus/Annotation.h
 	./src/Annotation.cpp)
 
-IF (WIN32 OR APPLE)
-	file(GLOB MMFiles src/*.mm)
-endif()
 
 file(GLOB PyFiles      
 	./include/Visus/swigpyrun.h  
 	./include/Visus/Python.h 
 	./src/Python.cpp)
-source_group("Python" FILES   ${PyFiles})
+source_group("Python" FILES ${PyFiles})
 
 file(GLOB RootFiles  
 	../../*.py  
@@ -207,22 +204,26 @@ file(GLOB RootFiles
 	../../README.md*)
 source_group("" FILES   ${RootFiles})
 
-file(GLOB ScriptsFiles ../../scripts/*)
-source_group("scripts" FILES   ${ScriptsFiles})
+file(GLOB_RECURSE ScriptsFiles ../../scripts/*)
+AssignSourceGroup(${ScriptsFiles})
 
+file(GLOB_RECURSE  SamplesFiles  ../../Samples/*)
+AssignSourceGroup(${SamplesFiles})
 
-file(GLOB PyExamples ../../Samples/python/*.py)
-source_group("Python\\Samples" FILES   ${PyExamples})
+IF (WIN32 OR APPLE)
+	file(GLOB MMFiles src/*.mm)
+endif()
 
 file(GLOB Sources 
 	${RootFiles}
 	${PyFiles} 
 	${ScriptsFiles}
-	${PyExamples}
+	${SamplesFiles}
 	${MMFiles}
 	*.py
-	include/Visus/*.* 
-	src/*.cpp src/*.hxx)
+	include/Visus/*.*  
+	src/*.hxx
+	src/*.cpp)
 
 add_library(VisusKernel SHARED ${Sources})
 set_target_properties(VisusKernel PROPERTIES FOLDER "")

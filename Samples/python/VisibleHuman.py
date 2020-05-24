@@ -2,23 +2,44 @@ import os,sys
 
 from OpenVisus import *
 
-from OpenVisus.PyUtils   import *
 from OpenVisus.PyImage   import *
-from OpenVisus.PyDataset import *
 from OpenVisus.PyViewer  import *
 
 
 # //////////////////////////////////////////////
-def ExportSideBySideMovies(old_dataset,new_dataset):
+def ExportSlicesToMovie(out_movie, db, axis,preserve_ratio=True):
+		
+	offsets=range(db.getLogicBox().p1[axis],db.getLogicBox().p2[axis],1):
+
+	for offset in offsets:
+
+		img,logic_box,physic_box=db.readSlice(axis, offset)
+			
+		# resize to preserve the right ratio
+		if preserve_ratio:
+			density=[float(logic_box.size()[I])/float(physic_box.size()[I]) for I in range(3)]
+			max_density=max(density)
+			num_pixels=[int(physic_box.size()[I] * max_density) for I in range(3)]
+			perm=((1,2,0),(0,2,1),(0,1,2))
+			X,Y=perm[axis][0],perm[axis][1]				
+			new_size=(num_pixels[X],num_pixels[Y])
+			img=cv2.resize(img,new_size)
+
+		out_movie.writeFrame(SwapRedBlue(img))
+			
+	out_movie.release()
+
+# //////////////////////////////////////////////
+def ExportSideBySideMovies(old_dataset,new_db):
 	
-	old_dataset.exportSlicesToMovie(PyMovie("All_z0.avi"), axis=2)
-	new_dataset.exportSlicesToMovie(PyMovie("All_z1.avi"), axis=2)
+	ExportSlicesToMovie(PyMovie("All_z0.avi"), old_dataset, axis=2)
+	ExportSlicesToMovie(PyMovie("All_z1.avi"), new_db, axis=2)
 
-	old_dataset.exportSlicesToMovie(PyMovie("All_x0.avi"), axis=0)
-	new_dataset.exportSlicesToMovie(PyMovie("All_x1.avi"), axis=0)
+	ExportSlicesToMovie(PyMovie("All_x0.avi"), old_dataset, axis=0)
+	ExportSlicesToMovie(PyMovie("All_x1.avi"), new_db, axis=0)
 
-	old_dataset.exportSlicesToMovie(PyMovie("All_y0.avi"), axis=1)
-	new_dataset.exportSlicesToMovie(PyMovie("All_y1.avi"), axis=1)
+	ExportSlicesToMovie(PyMovie("All_y0.avi"), old_dataset, axis=1)
+	ExportSlicesToMovie(PyMovie("All_y1.avi"), new_db, axis=1)
 
 	PyMovie("Up_x0.avi").compose([(PyMovie("All_x0.avi"),0.0,1.0, 0.0,0.4), (PyMovie("All_x1.avi"),0.0,1.0, 0.0,0.4) ])	
 	PyMovie("Dw_x0.avi").compose([(PyMovie("All_x0.avi"),0.0,1.0, 0.6,1.0), (PyMovie("All_x1.avi"),0.0,1.0, 0.6,1.0) ])	
@@ -29,10 +50,10 @@ def ExportSideBySideMovies(old_dataset,new_dataset):
 # /////////////////////////////////////////////////////////////////
 def VisibleMale():
 	
-	old_dataset=LoadDatasetPy(r"D:\GoogleSci\visus_dataset\male\visus.idx")
-	new_dataset=LoadDatasetPy(r"D:\GoogleSci\visus_dataset\male\RAW\Fullcolor\fullbody\VisusSlamFiles\visus.idx")
+	old_dataset=PyDataset(r"D:\GoogleSci\visus_dataset\male\visus.idx")
+	new_db=PyDataset(r"D:\GoogleSci\visus_dataset\male\RAW\Fullcolor\fullbody\VisusSlamFiles\visus.idx")
 	Assert(old_dataset)
-	Assert(new_dataset)
+	Assert(new_db)
 	
 	# ExportSideBySideMovies(old_dataset)
 	
@@ -42,9 +63,12 @@ def VisibleMale():
 	full=(0.00,1.00, 0.00,1.00, 0.00,1.00)
 	region=full
 	
-	dataset=new_dataset	
-	
-	RGB, bounds=dataset.readData(region,-6)	
+	db=new_db	
+
+	logic_box=db.getLogicBox(x=region[0:2],y==region[2:4],z==region[4:6])
+	RGB=db.read(logic_box,quality=-6)	
+	bounds=db.getBounds(logic_box)
+
 	R,G,B=SplitChannels(RGB)
 	A=numpy.zeros(R.shape,dtype=R.dtype)
 	
@@ -82,8 +106,8 @@ def VisibleMale():
 # /////////////////////////////////////////////////////////////////
 def VisibleFemale():
 	
-	dataset=LoadDatasetPy(r"D:\GoogleSci\visus_dataset\female\visus.idx")
-	Assert(dataset)
+	db=PyDataset(r"D:\GoogleSci\visus_dataset\female\visus.idx")
+	Assert(db)
 
 	# ExportSideBySideMovies(old_dataset)
 	
@@ -91,7 +115,10 @@ def VisibleFemale():
 	head=(0,1, 0,1, 0,0.1)
 	region=head
 
-	RGB, bounds=dataset.readData(region,-6)	
+	logic_box=db.getLogicBox(x=region[0:2],y==region[2:4],z==region[4:6])
+
+	RGB =db.read(logic_box=logic_box,quality=G-6)	
+	bounds=db.getBounds(logic_box)
 	R,G,B=SplitChannels(RGB)
 	A=numpy.zeros(R.shape,dtype=R.dtype)
 	
@@ -137,16 +164,11 @@ def Main(argv):
 	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
 	# c:\Python37\python.exe Samples\python\ExtractSlices.py
 	
-	SetCommandLine("__main__")
-	GuiModule.createApplication()
-	GuiModule.attach()  	
-	
 	#VisibleMale()
 	
 	# ConvertVisibleFemale
 	VisibleFemale()
 	
-	GuiModule.detach()
 	print("ALL DONE")
 	sys.stdin.read(1)
 	sys.exit(0)	

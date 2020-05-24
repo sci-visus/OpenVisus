@@ -36,6 +36,8 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
+#if 0
+
 #include <Visus/IdxDataset.h>
 #include <Visus/ApplicationInfo.h>
 
@@ -53,7 +55,6 @@ using namespace Visus;
 **/
 int main(int argc, const char* argv[])
 {
-
   SetCommandLine(argc,argv);
   DbModule::attach();
 
@@ -169,3 +170,4 @@ int main(int argc, const char* argv[])
   return 0;
 }
 
+#endif
