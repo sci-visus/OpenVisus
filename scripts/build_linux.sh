@@ -16,9 +16,11 @@ cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} ../
 cmake --build ./ --target all     --config Release --parallel 4
 
 cd Release/OpenVisus
-PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus configure || true # segmentation fault problem
-PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
-PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert
+
+export PYTHONPATH=../
+${Python_EXECUTABLE} -m OpenVisus configure || true # segmentation fault problem
+${Python_EXECUTABLE} -m OpenVisus test
+${Python_EXECUTABLE} -m OpenVisus convert
 
 GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
 if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then

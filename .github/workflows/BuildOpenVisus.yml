@@ -70,10 +70,12 @@ jobs:
            cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4
           
-           cd Release/OpenVisus
-           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus configure 
-           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
-           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert    
+           cd Release/OpenVisus\
+
+           export PYTHONPATH=../
+           ${Python_EXECUTABLE} -m OpenVisus configure 
+           ${Python_EXECUTABLE} -m OpenVisus test
+           ${Python_EXECUTABLE} -m OpenVisus convert    
                  
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
           
@@ -150,9 +152,11 @@ jobs:
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
               
            cd Release/OpenVisus
-           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus configure
-           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus test
-           PYTHONPATH=../ ${Python_EXECUTABLE} -m OpenVisus convert  
+
+           export PYTHONPATH=../
+           ${Python_EXECUTABLE} -m OpenVisus configure
+           ${Python_EXECUTABLE} -m OpenVisus test
+           ${Python_EXECUTABLE} -m OpenVisus convert  
               
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != ""  ]] ; then
@@ -273,9 +277,11 @@ jobs:
            cmake --build . --target ALL_BUILD --config Release --parallel 4 
           
            cd Release/OpenVisus
-           PYTHONPATH=../ python -m OpenVisus configure
-           PYTHONPATH=../ python -m OpenVisus test
-           PYTHONPATH=../ python -m OpenVisus convert
+
+           export PYTHONPATH=../
+           python -m OpenVisus configure
+           python -m OpenVisus test
+           python -m OpenVisus convert
 
            # https://anaconda.org/ViSUS/settings/access
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
@@ -364,9 +370,11 @@ jobs:
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
           
            cd Release/OpenVisus
-           PYTHONPATH=../ python -m OpenVisus configure  
-           PYTHONPATH=../ python -m OpenVisus test
-           PYTHONPATH=../ python -m OpenVisus convert
+
+           export PYTHONPATH=../ 
+           python -m OpenVisus configure  
+           python -m OpenVisus test
+           python -m OpenVisus convert
 
            # https://anaconda.org/ViSUS/settings/access
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
@@ -433,9 +441,11 @@ jobs:
            conda install conda-build anaconda-client numpy pillow jupyter matplotlib     1>/dev/null 
            
            cd build/Release/OpenVisus
-           PYTHONPATH=../ python -m OpenVisus configure || true # segmentation fault problem
-           PYTHONPATH=../ python -m OpenVisus test
-           PYTHONPATH=../ python -m OpenVisus convert
+
+           export PYTHONPATH=../ 
+           python -m OpenVisus configure || true # segmentation fault problem
+           python -m OpenVisus test
+           python -m OpenVisus convert
 
            # https://anaconda.org/ViSUS/settings/access
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)

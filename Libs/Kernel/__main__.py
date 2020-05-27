@@ -218,7 +218,7 @@ def Main(args):
 		os.chdir(this_dir)
 
 		parser = argparse.ArgumentParser(description="test command.")
-		parser.add_argument("--type",type=str, help="Type of  tests to enable", default="default") 
+		parser.add_argument("--type",type=str, help="Type of  tests to enable", default="default,jupyter") 
 		args = parser.parse_args(args[2:])
 
 		def RunTest(cmd):
