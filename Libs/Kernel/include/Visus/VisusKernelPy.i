@@ -221,7 +221,7 @@ fromNumPy = staticmethod(fromNumPy)
 
 #if VISUS_SLAM
 	%{ 
-	#include <VisusSlam.h>
+	#include <slam.h>
 	%}
 
 	%feature("director") Visus::Slam;
@@ -232,7 +232,7 @@ fromNumPy = staticmethod(fromNumPy)
 	%template(VectorOfMatch)      std::vector<Visus::Match>;
 	%template(VectorOfKeyPoint)   std::vector<Visus::KeyPoint>;
 
-	%include <VisusSlam.h>
+	%include <slam.h>
 #endif 
 
 %pythoncode %{

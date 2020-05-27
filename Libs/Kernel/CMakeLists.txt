@@ -25,7 +25,7 @@ if (NOT (WIN32 OR APPLE))
   endif()
 endif()
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../Slam/VisusSlam.cpp")
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp/slam.cpp")
 	set(VISUS_SLAM 1)
 endif()
 
@@ -219,8 +219,8 @@ IF (WIN32 OR APPLE)
 endif()
 
 if (VISUS_SLAM)
-	file(GLOB SlamSources ../Slam/*.h ../Slam/*.cpp)
-	source_group("Slam" FILES ${SlamSources})
+	file(GLOB SlamCppSources ../slamcpp/*.h ../slamcpp/*.cpp)
+	source_group("slamcpp" FILES ${SlamCppSources})
 endif()
 
 file(GLOB Sources 
@@ -229,7 +229,7 @@ file(GLOB Sources
 	${ScriptsFiles}
 	${SamplesFiles}
 	${MMFiles}
-	${SlamSources}
+	${SlamCppSources}
 	*.py
 	include/Visus/*.*  
 	src/*.hxx
@@ -318,7 +318,7 @@ set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SO
 
 if (VISUS_SLAM)
 	# for convenience I'm adding swig slam python code to VisusKernelPy
-	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS  "-I${CMAKE_CURRENT_SOURCE_DIR}/../Slam")
+	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS  "-I${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp")
 	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS  "-DVISUS_SLAM=1")
 endif()
 
@@ -326,11 +326,11 @@ AddSwigLibrary(VisusKernelPy VisusKernel ${SwigFile})
 
 if (VISUS_SLAM)
 
-	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../Slam)
-	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../Slam/ExternalLibs/eigen)
-	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../Slam/ExternalLibs/g2o)
+	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp)
+	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp/ExternalLibs/eigen)
+	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp/ExternalLibs/g2o)
 	
-	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../Slam/ExternalLibs ${CMAKE_BINARY_DIR}/Slam/ExternalLibs)
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp/ExternalLibs ${CMAKE_BINARY_DIR}/slamcpp/ExternalLibs)
 
 	target_link_libraries(VisusKernel PRIVATE 	
 		g2o_core 
@@ -347,5 +347,5 @@ if (VISUS_SLAM)
 		g2o_types_slam3d_addons)
 
 	target_compile_definitions(VisusKernelPy PRIVATE VISUS_SLAM=1)
-	target_include_directories(VisusKernelPy PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../Slam)
+	target_include_directories(VisusKernelPy PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp)
 endif()

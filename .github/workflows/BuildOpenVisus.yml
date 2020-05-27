@@ -25,7 +25,7 @@ jobs:
       with:
         repository: sci-visus/slamcpp
         token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
-        path: Libs/Slam    
+        path: Libs/slampp    
       
     # ____________________________________________
     - name: Install CMake
@@ -103,7 +103,7 @@ jobs:
       with:
         repository: sci-visus/slamcpp
         token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
-        path: Libs/Slam    
+        path: Libs/slampp    
 
     # ____________________________________________
     - name: Install CMake
@@ -181,7 +181,7 @@ jobs:
       with:
         repository: sci-visus/slamcpp
         token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
-        path: Libs/Slam    
+        path: Libs/slampp    
             
     # ____________________________________________
     - name: Compile OpenVisus 
@@ -225,7 +225,7 @@ jobs:
       with:
         repository: sci-visus/slamcpp
         token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
-        path: Libs/Slam    
+        path: Libs/slampp    
       
     # ____________________________________________
     - name: Install CMake
@@ -307,7 +307,7 @@ jobs:
       with:
         repository: sci-visus/slamcpp
         token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
-        path: Libs/Slam    
+        path: Libs/slampp    
             
       
     # ____________________________________________
@@ -398,7 +398,7 @@ jobs:
       with:
         repository: sci-visus/slamcpp
         token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
-        path: Libs/Slam    
+        path: Libs/slampp    
           
     # ____________________________________________
     - name: Install Miniconda 

@@ -244,9 +244,6 @@ def Main(args):
 		#	RunTest(["-m","jupyter","notebook","./Samples/jupyter/Climate.ipynb"])
 		#	RunTest(["-m","jupyter","notebook","./Samples/jupyter/ReadAndView.ipynb"])
 
-		if os.path.isdir("Slam") and ("slam" in args or "all" in args):
-			RunTest(["-m","OpenVisus","slam"])
-
 		for test in tests: 
 			print("\n\n")
 			
