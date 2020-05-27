@@ -13,9 +13,8 @@ target_include_directories(VisusXIdx  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_S
 
 CopyToBinaryDirectory(TARGET VisusXIdx DIRECTORY ./include/Visus DESTINATION ./include/XIdx/Visus)
 
-AddSwigLibrary(VisusXIdxPy VisusXIdx ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusXIdx.i 
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
-
-
+set(SwigFile ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusXIdx.i)
+set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
+set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/include")
+AddSwigLibrary(VisusXIdxPy VisusXIdx ${SwigFile})
 

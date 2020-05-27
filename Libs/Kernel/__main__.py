@@ -330,24 +330,6 @@ def Main(args):
 		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "VisibleHuman.py")]) 
 		sys.exit(0)
 
-	# _____________________________________________
-	if action=="slam":
-		# -m OpenVisus slam D:\GoogleSci\visus_slam\TaylorGrant (Generic)
-		# -m OpenVisus slam D:\GoogleSci\visus_slam\Alfalfa     (Generic)
-		# -m OpenVisus slam D:\GoogleSci\visus_slam\RedEdge     (micasense)
-		# -m OpenVisus slam "D:\GoogleSci\visus_slam\Agricultural_image_collections\AggieAir uav Micasense example\test" (micasense)
-		from OpenVisus.Slam.Slam2D import Main as SlamMain
-		SlamMain(args[2:])
-		sys.exit(0)	
-
-	# _____________________________________________
-	if action=="slam3d":
-		# example: python -m OpenVisus slam3d  D:\GoogleSci\visus_dataset\male\RAW\Fullcolor\fullbody
-		from OpenVisus.Slam.Slam3D import Main as SlamMain
-		SlamMain(args[2:])
-		sys.exit(0)	
-
-
 	print("Wrong arguments",args)
 	sys.exit(-1)
   

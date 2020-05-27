@@ -23,7 +23,7 @@ jobs:
     - name: Checkout submodules
       uses: actions/checkout@v2
       with:
-        repository: sci-visus/VisusSlam
+        repository: sci-visus/slamcpp
         token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
         path: Libs/Slam    
       
@@ -67,7 +67,7 @@ jobs:
            
            mkdir -p build
            cd build
-           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} -DVISUS_SLAM=1 ../
+           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4
           
            cd Release/OpenVisus
@@ -101,7 +101,7 @@ jobs:
     - name: Checkout submodules
       uses: actions/checkout@v2
       with:
-        repository: sci-visus/VisusSlam
+        repository: sci-visus/slamcpp
         token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
         path: Libs/Slam    
 
@@ -146,7 +146,7 @@ jobs:
            mkdir -p build
            cd build   
            
-           cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" -DVISUS_SLAM=1 ../
+           cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
               
            cd Release/OpenVisus
@@ -179,7 +179,7 @@ jobs:
     - name: Checkout submodules
       uses: actions/checkout@v2
       with:
-        repository: sci-visus/VisusSlam
+        repository: sci-visus/slamcpp
         token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
         path: Libs/Slam    
             
@@ -192,7 +192,6 @@ jobs:
       
            docker run \
               -e PYTHON_VERSION=${{ matrix.python-version }} \
-              -e VISUS_SLAM=1 \
               -e Qt5_DIR=/opt/qt512 \
               -e PYPI_USERNAME=${{ secrets.PYPI_USERNAME }} \
               -e PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }} \
@@ -224,7 +223,7 @@ jobs:
     - name: Checkout submodules
       uses: actions/checkout@v2
       with:
-        repository: sci-visus/VisusSlam
+        repository: sci-visus/slamcpp
         token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
         path: Libs/Slam    
       
@@ -270,7 +269,7 @@ jobs:
            
            mkdir -p build 
            cd build
-           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=$(which python) -DVISUS_SLAM=1 ../
+           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=$(which python) ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4 
           
            cd Release/OpenVisus
@@ -306,7 +305,7 @@ jobs:
     - name: Checkout submodules
       uses: actions/checkout@v2
       with:
-        repository: sci-visus/VisusSlam
+        repository: sci-visus/slamcpp
         token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
         path: Libs/Slam    
             
@@ -361,7 +360,7 @@ jobs:
 
            mkdir -p build 
            cd build
-           cmake -GXcode -DPython_EXECUTABLE=$(which python) -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" -DVISUS_SLAM=1 ../
+           cmake -GXcode -DPython_EXECUTABLE=$(which python) -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
           
            cd Release/OpenVisus
@@ -397,7 +396,7 @@ jobs:
     - name: Checkout submodules
       uses: actions/checkout@v2
       with:
-        repository: sci-visus/VisusSlam
+        repository: sci-visus/slamcpp
         token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
         path: Libs/Slam    
           
@@ -418,7 +417,6 @@ jobs:
      
            docker run \
               -e PYTHON_VERSION=${{ matrix.python-version }} \
-              -e VISUS_SLAM=1 \
               -e Qt5_DIR=/opt/qt59 \
               -v $(pwd):/root/OpenVisus \
               -w /root/OpenVisus \

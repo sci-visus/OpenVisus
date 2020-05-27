@@ -64,13 +64,11 @@ option(VISUS_NET    "Enable VISUS_NET"    ON)
 option(VISUS_IMAGE  "Enable VISUS_IMAGE"  ON)
 option(VISUS_PYTHON "Enable VISUS_PYTHON" ON)
 option(VISUS_GUI    "Enable VISUS_GUI"    ON)
-option(VISUS_SLAM   "Enable VISUS_SLAM"   OFF)
 
 message(STATUS "VISUS_NET    ${VISUS_NET}")
 message(STATUS "VISUS_IMAGE  ${VISUS_IMAGE}")
 message(STATUS "VISUS_PYTHON ${VISUS_PYTHON}")
 message(STATUS "VISUS_GUI    ${VISUS_GUI}")
-message(STATUS "VISUS_SLAM   ${VISUS_SLAM}")
 
 # //////////////////////////////////////////////////////////
 macro(AddSwigLibrary NamePy WrappedLib SwigFile)
@@ -82,13 +80,15 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 
 		set(CMAKE_SWIG_OUTDIR ${SWIG_OUTFILE_DIR}/OpenVisus) # this is for *.py generated files
 		set (UseSWIG_TARGET_NAME_PREFERENCE STANDARD)
-		set(CMAKE_SWIG_FLAGS "")
-		#set(CMAKE_SWIG_FLAGS -interface;${NamePy}) # important for good name generation id Debug mode (https://gitlab.kitware.com/cmake/cmake/issues/18771)
+
+		set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-threads;-extranative")
+
+		# important for good name generation id Debug mode (https://gitlab.kitware.com/cmake/cmake/issues/18771)
+		# set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-interface;${NamePy}")
 
 		# set_property(SOURCE ${SwigFile} PROPERTY SWIG_MODULE_NAME ${NamePy}) prevents rebuild every time make is called (? scrgiorgio sommented for now)
 		set_source_files_properties(${SwigFile} PROPERTIES CPLUSPLUS ON)
-		set_source_files_properties(${SwigFile} PROPERTIES SWIG_FLAGS  "${ARGN};-threads;-extranative")
-
+		
 		swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
 		target_compile_definitions(${NamePy} PRIVATE SWIG_TYPE_TABLE=OpenVisus)
 
@@ -182,9 +182,6 @@ function(AssignSourceGroup)
 		string(REPLACE  "/"  "\\"  _group_  "${_group_}")
 		
 		source_group("${_group_}" FILES "${_it_}")
-		
-		
-		MESSAGE(STATUS "${_group_}     ${_it_}")
 	endforeach()
 endfunction()
 

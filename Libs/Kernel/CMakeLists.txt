@@ -25,6 +25,10 @@ if (NOT (WIN32 OR APPLE))
   endif()
 endif()
 
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../Slam/VisusSlam.cpp")
+	set(VISUS_SLAM 1)
+endif()
+
 source_group("" FILES
 	./include/Visus/Kernel.h 
 	./src/Kernel.cpp
@@ -214,12 +218,18 @@ IF (WIN32 OR APPLE)
 	file(GLOB MMFiles src/*.mm)
 endif()
 
+if (VISUS_SLAM)
+	file(GLOB SlamSources ../Slam/*.h ../Slam/*.cpp)
+	source_group("Slam" FILES ${SlamSources})
+endif()
+
 file(GLOB Sources 
 	${RootFiles}
 	${PyFiles} 
 	${ScriptsFiles}
 	${SamplesFiles}
 	${MMFiles}
+	${SlamSources}
 	*.py
 	include/Visus/*.*  
 	src/*.hxx
@@ -303,7 +313,39 @@ CopyToBinaryDirectory(TARGET VisusKernel FILES setup.py             DESTINATION 
 CopyToBinaryDirectory(TARGET VisusKernel FILES PyUtils.py           DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusKernel FILES PyImage.py           DESTINATION ./)
 
-AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
+set(SwigFile ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i)
+set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/include")
 
+if (VISUS_SLAM)
+	# for convenience I'm adding swig slam python code to VisusKernelPy
+	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS  "-I${CMAKE_CURRENT_SOURCE_DIR}/../Slam")
+	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS  "-DVISUS_SLAM=1")
+endif()
 
+AddSwigLibrary(VisusKernelPy VisusKernel ${SwigFile})
+
+if (VISUS_SLAM)
+
+	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../Slam)
+	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../Slam/ExternalLibs/eigen)
+	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../Slam/ExternalLibs/g2o)
+	
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../Slam/ExternalLibs ${CMAKE_BINARY_DIR}/Slam/ExternalLibs)
+
+	target_link_libraries(VisusKernel PRIVATE 	
+		g2o_core 
+		g2o_solver_eigen 
+		g2o_stuff 
+		g2o_types_data 
+		g2o_types_icp 
+		g2o_types_sba 
+		g2o_types_sclam2d 
+		g2o_types_sim3 
+		g2o_types_slam2d 
+		g2o_types_slam2d_addons 
+		g2o_types_slam3d 
+		g2o_types_slam3d_addons)
+
+	target_compile_definitions(VisusKernelPy PRIVATE VISUS_SLAM=1)
+	target_include_directories(VisusKernelPy PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../Slam)
+endif()
