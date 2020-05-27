@@ -311,7 +311,6 @@ CopyToBinaryDirectory(TARGET VisusKernel FILES __init__.py          DESTINATION 
 CopyToBinaryDirectory(TARGET VisusKernel FILES __main__.py          DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusKernel FILES setup.py             DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusKernel FILES PyUtils.py           DESTINATION ./)
-CopyToBinaryDirectory(TARGET VisusKernel FILES PyImage.py           DESTINATION ./)
 
 set(SwigFile ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i)
 set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/include")
