@@ -1,7 +1,7 @@
 import sys
 
 from OpenVisus.VisusKernelPy   import *
-from OpenVisus.PyUtils         import *
+from OpenVisus.utils           import *
 
 from OpenVisus.VisusXIdxPy     import *
 XIdxModule.attach()

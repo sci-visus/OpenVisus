@@ -193,16 +193,14 @@ source_group("Misc" FILES
 file(GLOB PyFiles      
 	./include/Visus/swigpyrun.h  
 	./include/Visus/Python.h 
-	./src/Python.cpp)
+	./src/Python.cpp
+	*.py)
 source_group("Python" FILES ${PyFiles})
 
 file(GLOB RootFiles  
-	../../*.py  
-	./*.py 
 	../../.github/workflows/BuildOpenVisus.yml
 	../../CMakeLists.txt
 	../../ExternalLibs/CMakeLists.txt
-	../../Doxyfile.in
 	../../OpenVisusConfig.cmake
 	../../LICENCE
 	../../README.md*)
@@ -310,7 +308,7 @@ CopyToBinaryDirectory(TARGET VisusKernel DIRECTORY ./include/Visus  DESTINATION 
 CopyToBinaryDirectory(TARGET VisusKernel FILES __init__.py          DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusKernel FILES __main__.py          DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusKernel FILES setup.py             DESTINATION ./)
-CopyToBinaryDirectory(TARGET VisusKernel FILES PyUtils.py           DESTINATION ./)
+CopyToBinaryDirectory(TARGET VisusKernel FILES utils.py             DESTINATION ./)
 
 set(SwigFile ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i)
 set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/include")

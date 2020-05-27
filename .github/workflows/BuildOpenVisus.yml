@@ -63,7 +63,7 @@ jobs:
            PYTHON_VERSION=${{ matrix.python-version }}
            Python_EXECUTABLE=${pythonLocation}/python.exe
 
-           ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow --upgrade 1>/dev/null 
+           ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow jupyter --upgrade 1>/dev/null 
            
            mkdir -p build
            cd build
@@ -142,7 +142,7 @@ jobs:
            PYTHON_VERSION=${{ matrix.python-version }}  
            Python_EXECUTABLE=${pythonLocation}/python 
            
-           ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow --upgrade 1>/dev/null 
+           ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow jupyter --upgrade 1>/dev/null 
            mkdir -p build
            cd build   
            
@@ -262,7 +262,7 @@ jobs:
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 1>/dev/null
            conda create -q -n tmp python=${{ matrix.python-version }} numpy              1>/dev/null
            conda activate tmp                                                            1>/dev/null
-           conda install conda-build anaconda-client numpy  pillow                       1>/dev/null 
+           conda install conda-build anaconda-client numpy  pillow jupyter               1>/dev/null 
            
            set -e  # stop or error
            set -x  # very verbose   
@@ -353,7 +353,7 @@ jobs:
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 1>/dev/null
            conda create -q -n tmp python=${{ matrix.python-version }} numpy              1>/dev/null
            conda activate tmp                                                            1>/dev/null
-           conda install conda-build anaconda-client numpy pillow                        1>/dev/null  
+           conda install conda-build anaconda-client numpy pillow jupyter                1>/dev/null  
            
            set -e  # stop or error
            set -x  # very verbose   
@@ -430,7 +430,7 @@ jobs:
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 1>/dev/null
            conda create -q -n tmp python=${{ matrix.python-version }} numpy              1>/dev/null
            conda activate tmp                                                            1>/dev/null
-           conda install conda-build anaconda-client numpy pillow                        1>/dev/null 
+           conda install conda-build anaconda-client numpy pillow jupyter                1>/dev/null 
            
            cd build/Release/OpenVisus
            PYTHONPATH=../ python -m OpenVisus configure || true # segmentation fault problem

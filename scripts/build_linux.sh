@@ -7,7 +7,7 @@ PYTHON_VERSION=${PYTHON_VERSION:-3.6}
 Python_EXECUTABLE=$(which python${PYTHON_VERSION})
 Qt5_DIR=${Qt5_DIR:-/opt/qt59}
 
-${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow --upgrade 1>/dev/null || true
+${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow jupyter --upgrade 1>/dev/null || true
 
 mkdir -p build 
 cd build
