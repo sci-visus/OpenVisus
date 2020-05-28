@@ -206,7 +206,7 @@ def Main(args):
 	print("this_dir",this_dir)
 
 	# _____________________________________________
-	if action=="configure":
+	if action=="configure" or action=="use-pyqt5":
 		os.chdir(this_dir)
 		UsePyQt5()
 		print(action,"done")

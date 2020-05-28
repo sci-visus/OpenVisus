@@ -52,6 +52,8 @@ Table of content:
 
 [Conda Distribution](#conda-distribution)
 
+[Minimal compilation](#minimal-compilation)
+
 [Windows compilation](#windows-compilation)
 
 [MacOSX compilation](#macosx-compilation)
@@ -59,7 +61,6 @@ Table of content:
 [Linux compilation](#linux-compilation)
 
 [Commit CI](#commit-ci)
-
 
 
 <!--//////////////////////////////////////////////////////////////////////// -->
@@ -90,6 +91,23 @@ python -m OpenVisus viewer
 ```
 
 Also give a look to [quick_tour](https://github.com/sci-visus/OpenVisus/blob/master/quick_tour.ipynb)
+
+<!--//////////////////////////////////////////////////////////////////////// -->
+
+## Minimal compilation
+
+Just do:
+
+```
+git clone https://github.com/sci-visus/OpenVisus
+cd OpenVisus
+mkdir build
+cd build
+cmake -DVISUS_PYTHON=0 -DVISUS_NET=0 -DVISUS_IMAGE=0 -DVISUS_GUI=0 -DVISUS_MODVISUS=0 ../
+
+# replace all with ALL_BUILD on Windows
+cmake --build ./ --target all --config Release --parallel 4 
+```
 
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## Windows compilation
@@ -158,7 +176,7 @@ mkdir build
 cd build
 
 cmake -GXcode -DPython_ROOT_DIR=${Python_ROOT_DIR} -DQt5_DIR=${Qt5_DIR} ../
-cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
+cmake --build ./ --target all --config Release --parallel 4 
 
 export PYTHONPATH=$(pwd)/Release
 python -m OpenVisus configure
@@ -228,6 +246,7 @@ alias python=${Python_EXECUTABLE}
 
 mkdir build 
 cd build
+
 cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} ../
 cmake --build ./ --target all --config Release --parallel 4 
 

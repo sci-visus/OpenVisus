@@ -10,23 +10,29 @@ if (POLICY CMP0071)
   cmake_policy(SET CMP0071 OLD)
 endif()
 
-# see https://cmake.org/cmake/help/git-stage/policy/CMP0086.html
+# swig related 
 if (POLICY CMP0086)
   cmake_policy(SET CMP0086 OLD)
 endif()
 
+# swig related
 if (POLICY CMP0078)
-  cmake_policy(SET CMP0078 OLD) #controls names of SWIG targets
+  cmake_policy(SET CMP0078 OLD) 
 endif()
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)  
+
+# disable incremental linking for windows
 SET(MSVC_INCREMENTAL_DEFAULT OFF)
+
 
 PROJECT(OpenVisus) 
 
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# c++ standard
+set(CMAKE_CXX_STANDARD              11)
+set(CMAKE_CXX_STANDARD_REQUIRED     ON)
 
 if (APPLE)
 	set(CMAKE_MACOSX_BUNDLE TRUE)
@@ -60,15 +66,27 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_N
 
 set (CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR} CACHE STRING "CMAKE_INSTALL_PREFIX" FORCE)
 
-option(VISUS_NET    "Enable VISUS_NET"    ON)
-option(VISUS_IMAGE  "Enable VISUS_IMAGE"  ON)
-option(VISUS_PYTHON "Enable VISUS_PYTHON" ON)
-option(VISUS_GUI    "Enable VISUS_GUI"    ON)
+set(VISUS_DEFAULT_NET      ON)
+set(VISUS_DEFAULT_IMAGE    ON)
+set(VISUS_DEFAULT_PYTHON   ON)
+set(VISUS_DEFAULT_GUI      ON)
+set(VISUS_DEFAULT_MODVISUS ON)
 
-message(STATUS "VISUS_NET    ${VISUS_NET}")
-message(STATUS "VISUS_IMAGE  ${VISUS_IMAGE}")
-message(STATUS "VISUS_PYTHON ${VISUS_PYTHON}")
-message(STATUS "VISUS_GUI    ${VISUS_GUI}")
+if (WIN32 OR APPLE)
+	set(VISUS_DEFAULT_MODVISUS OFF)
+endif()
+
+option(VISUS_NET    "Enable VISUS_NET"      ${VISUS_DEFAULT_NET})
+option(VISUS_IMAGE  "Enable VISUS_IMAGE"    ${VISUS_DEFAULT_IMAGE})
+option(VISUS_PYTHON "Enable VISUS_PYTHON"   ${VISUS_DEFAULT_PYTHON})
+option(VISUS_GUI    "Enable VISUS_GUI"      ${VISUS_DEFAULT_GUI})
+option(VISUS_GUI    "Enable VISUS_MODVISUS" ${VISUS_DEFAULT_MODVISUS})
+
+message(STATUS "VISUS_NET       ${VISUS_NET}")
+message(STATUS "VISUS_IMAGE     ${VISUS_IMAGE}")
+message(STATUS "VISUS_PYTHON    ${VISUS_PYTHON}")
+message(STATUS "VISUS_GUI       ${VISUS_GUI}")
+message(STATUS "VISUS_MODVISUS  ${VISUS_MODVISUS}")
 
 # //////////////////////////////////////////////////////////
 macro(AddSwigLibrary NamePy WrappedLib SwigFile)
@@ -178,9 +196,7 @@ function(AssignSourceGroup)
 		string(REPLACE "../"  ""   _group_  "${_group_}")
 		string(REPLACE "../"  ""   _group_  "${_group_}")
 		string(REPLACE "../"  ""   _group_  "${_group_}")
-		
 		string(REPLACE  "/"  "\\"  _group_  "${_group_}")
-		
 		source_group("${_group_}" FILES "${_it_}")
 	endforeach()
 endfunction()
@@ -190,7 +206,7 @@ add_subdirectory(Libs)
 add_subdirectory(Executable)
 
 # //////////////////////////////////////////////////////////////
-# install
+# install-like step
 if (1)
 
 	set(__qt_version_filename__ ${CMAKE_BINARY_DIR}/QT_VERSION)
@@ -218,10 +234,10 @@ if (1)
 	
 endif()
 
-# //////////////////////////////////////////////////////////////
-# *** CONFIGURE (force use of PyQt) ***
-if (VISUS_PYTHON)
-	add_custom_target(CONFIGURE ${CMAKE_COMMAND} -E env PYTHONPATH=${CMAKE_BINARY_DIR}/${ConfigName}/OpenVisus/.. ${Python_EXECUTABLE} -u -m OpenVisus configure)
+
+# configure-step i.e. force use of PyQt to mix Qt5 and PyyQt5 ***
+if (VISUS_PYTHON AND VISUS_GUI)
+	add_custom_target(CONFIGURE ${CMAKE_COMMAND} -E env PYTHONPATH=${CMAKE_BINARY_DIR}/${ConfigName}/OpenVisus/.. ${Python_EXECUTABLE} -u -m OpenVisus use-pyqt5)
 	set_property(TARGET CONFIGURE PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 

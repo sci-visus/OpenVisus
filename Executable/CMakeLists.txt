@@ -1,7 +1,7 @@
 
 add_subdirectory(visus)
 
-if (NOT WIN32 AND NOT APPLE)
+if (VISUS_MODVISUS)
 	add_subdirectory(mod_visus)
 endif()
 
