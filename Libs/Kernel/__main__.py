@@ -217,12 +217,17 @@ def Main(args):
 		
 		os.chdir(this_dir)
 
-		tests=[]
+		parser = argparse.ArgumentParser(description="test command.")
+		parser.add_argument("--type",type=str, help="Type of  tests to enable", default="default") 
+		args = parser.parse_args(args[2:])
 
 		def RunTest(cmd):
-			ExecuteCommand([sys.executable] + cmd,check_result=True) 
+			return ExecuteCommand([sys.executable] + cmd,check_result=True) 
 
-		if len(args)==2 or "default" in args or "all" in args:
+		def RunJupyterTest(filename):
+			return RunTest(["-m","jupyter","nbconvert","--execute",filename])
+
+		if "all" in args.type or "default" in args.type:
 			RunTest(["Samples/python/Array.py"])
 			RunTest(["Samples/python/Dataflow.py"])
 			RunTest(["Samples/python/Dataflow2.py"])
@@ -232,25 +237,18 @@ def Main(args):
 			RunTest(["Samples/python/MinMax.py"])
 			RunTest(["-m","OpenVisus","server","--dataset","./datasets/cat/rgb.exit","--port","10000","--exit"])
 
-		if "viewer" in args or "all" in args:
+		if "all" in args.type or "viewer" in args.type:
 			RunTest(["-m","OpenVisus","viewer"])
 			RunTest(["-m","OpenVisus","viewer1"])
 			RunTest(["-m","OpenVisus","viewer2"])
 
-		# how can make this automatic?
-		#if "jupiter" in args or "all" in args:
-		#	RunTest(["-m","jupyter","notebook","./quick_tour.ipynb"])
-		#	RunTest(["-m","jupyter","notebook","./Samples/jupyter/Agricolture.ipynb"])
-		#	RunTest(["-m","jupyter","notebook","./Samples/jupyter/Climate.ipynb"])
-		#	RunTest(["-m","jupyter","notebook","./Samples/jupyter/ReadAndView.ipynb"])
+		if "all" in args.type or "jupyter" in args.type:
+			RunJupyterTest("./quick_tour.ipynb")
+			RunJupyterTest("./Samples/jupyter/Agricolture.ipynb")
+			RunJupyterTest("./Samples/jupyter/Climate.ipynb")
 
-		if os.path.isdir("Slam") and ("slam" in args or "all" in args):
-			RunTest(["-m","OpenVisus","slam"])
-
-		for test in tests: 
-			print("\n\n")
-			
-			print("\n\n")
+			# disabled: dependency on ipyvolume 
+			# RunJupyterTest("./Samples/jupyter/ReadAndView.ipynb")
 
 		sys.exit(0)
 
@@ -329,24 +327,6 @@ def Main(args):
 	if action=="visible-human":
 		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "VisibleHuman.py")]) 
 		sys.exit(0)
-
-	# _____________________________________________
-	if action=="slam":
-		# -m OpenVisus slam D:\GoogleSci\visus_slam\TaylorGrant (Generic)
-		# -m OpenVisus slam D:\GoogleSci\visus_slam\Alfalfa     (Generic)
-		# -m OpenVisus slam D:\GoogleSci\visus_slam\RedEdge     (micasense)
-		# -m OpenVisus slam "D:\GoogleSci\visus_slam\Agricultural_image_collections\AggieAir uav Micasense example\test" (micasense)
-		from OpenVisus.Slam.Slam2D import Main as SlamMain
-		SlamMain(args[2:])
-		sys.exit(0)	
-
-	# _____________________________________________
-	if action=="slam3d":
-		# example: python -m OpenVisus slam3d  D:\GoogleSci\visus_dataset\male\RAW\Fullcolor\fullbody
-		from OpenVisus.Slam.Slam3D import Main as SlamMain
-		SlamMain(args[2:])
-		sys.exit(0)	
-
 
 	print("Wrong arguments",args)
 	sys.exit(-1)

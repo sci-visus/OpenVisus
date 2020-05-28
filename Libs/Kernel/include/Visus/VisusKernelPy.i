@@ -219,6 +219,22 @@ fromNumPy = staticmethod(fromNumPy)
 
 %include <Visus/NetServer.h>
 
+#if VISUS_SLAM
+	%{ 
+	#include <slam.h>
+	%}
+
+	%feature("director") Visus::Slam;
+
+	%apply SWIGTYPE* DISOWN {Visus::Camera* disown};
+
+	%template(VectorOfCamera)     std::vector<Visus::Camera*>;
+	%template(VectorOfMatch)      std::vector<Visus::Match>;
+	%template(VectorOfKeyPoint)   std::vector<Visus::KeyPoint>;
+
+	%include <slam.h>
+#endif 
+
 %pythoncode %{
 import sys
 SetCommandLine(sys.argv)

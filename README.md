@@ -58,8 +58,6 @@ Table of content:
 
 [Linux compilation](#linux-compilation)
 
-[VisusSlam](#visus-slam)
-
 [Commit CI](#commit-ci)
 
 
@@ -159,7 +157,7 @@ alias python=${Python_ROOT_DIR}/bin/python3
 mkdir build 
 cd build
 
-cmake -GXcode -DPython_ROOT_DIR=${Python_ROOT_DIR} -DQt5_DIR=${Qt5_DIR} -DVISUS_SLAM=0 ../
+cmake -GXcode -DPython_ROOT_DIR=${Python_ROOT_DIR} -DQt5_DIR=${Qt5_DIR} ../
 cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
 
 export PYTHONPATH=$(pwd)/Release
@@ -230,7 +228,7 @@ alias python=${Python_EXECUTABLE}
 
 mkdir build 
 cd build
-cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} -DVISUS_SLAM=0 ../
+cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} ../
 cmake --build ./ --target all --config Release --parallel 4 
 
 python -m pip install --upgrade pip
@@ -239,38 +237,7 @@ export PYTHONPATH=./Release
 python -m OpenVisus configure
 python -m OpenVisus convert
 python -m OpenVisus viewer
-```
-
-<!--//////////////////////////////////////////////////////////////////////// -->
-##  VisusSlam
-
-On osx install prerequisites:
-
-``` 
-brew install exiftool zbar 
-```
-
-Install python dependencies:
-
-```
-python -m pip install --upgrade pip
-python -m pip install matplotlib pymap3d pytz pyzbar scikit-image scipy pysolar json-tricks cmapy tifffile pyexiftool opencv-python opencv-contrib-python
-```
-
-Then install OpenVisus slam package:
-
-``` 
-python -m pip install --no-cache-dir --upgrade --force-reinstall OpenVisus
-
-python -m OpenVisus configure
-   
-# ON MACOS ONLY, you may need to solve conflicts between Qt embedded in opencv2 and PyQt5 we are going to use:
-python -m pip uninstall -y opencv-python          opencv-contrib-python
-python -m pip install      opencv-python-headless opencv-contrib-python-headless 
-
-python -m OpenVisus slam
-```
-
+``
 
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## Commit CI

@@ -12,12 +12,13 @@ target_include_directories(VisusNodes  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_
 
 CopyToBinaryDirectory(TARGET VisusNodes DIRECTORY ./include/Visus DESTINATION ./include/Nodes/Visus)
 
+set(SwigFile ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusNodesPy.i)
+set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
+set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include")
+set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include")
+set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Idx/include")
+set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/include")
+AddSwigLibrary(VisusNodesPy VisusNodes ${SwigFile})
 
-AddSwigLibrary(VisusNodesPy VisusNodes ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusNodesPy.i 
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Idx/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 

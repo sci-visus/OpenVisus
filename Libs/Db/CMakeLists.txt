@@ -84,7 +84,7 @@ target_include_directories(VisusDb  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOU
 CopyToBinaryDirectory(TARGET VisusDb DIRECTORY ./include/Visus  DESTINATION ./include/Db/Visus)
 CopyToBinaryDirectory(TARGET VisusDb FILES PyDataset.py         DESTINATION ./)
 
-AddSwigLibrary(VisusDbPy VisusDb ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusDbPy.i 
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
-
+set(SwigFile ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusDbPy.i)
+set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
+set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/include")
+AddSwigLibrary(VisusDbPy VisusDb ${SwigFile})

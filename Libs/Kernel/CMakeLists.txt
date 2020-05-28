@@ -25,6 +25,10 @@ if (NOT (WIN32 OR APPLE))
   endif()
 endif()
 
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp/slam.cpp")
+	set(VISUS_SLAM 1)
+endif()
+
 source_group("" FILES
 	./include/Visus/Kernel.h 
 	./src/Kernel.cpp
@@ -189,16 +193,14 @@ source_group("Misc" FILES
 file(GLOB PyFiles      
 	./include/Visus/swigpyrun.h  
 	./include/Visus/Python.h 
-	./src/Python.cpp)
+	./src/Python.cpp
+	*.py)
 source_group("Python" FILES ${PyFiles})
 
 file(GLOB RootFiles  
-	../../*.py  
-	./*.py 
 	../../.github/workflows/BuildOpenVisus.yml
 	../../CMakeLists.txt
 	../../ExternalLibs/CMakeLists.txt
-	../../Doxyfile.in
 	../../OpenVisusConfig.cmake
 	../../LICENCE
 	../../README.md*)
@@ -214,12 +216,18 @@ IF (WIN32 OR APPLE)
 	file(GLOB MMFiles src/*.mm)
 endif()
 
+if (VISUS_SLAM)
+	file(GLOB SlamCppSources ../slamcpp/*.h ../slamcpp/*.cpp)
+	source_group("slamcpp" FILES ${SlamCppSources})
+endif()
+
 file(GLOB Sources 
 	${RootFiles}
 	${PyFiles} 
 	${ScriptsFiles}
 	${SamplesFiles}
 	${MMFiles}
+	${SlamCppSources}
 	*.py
 	include/Visus/*.*  
 	src/*.hxx
@@ -300,10 +308,41 @@ CopyToBinaryDirectory(TARGET VisusKernel DIRECTORY ./include/Visus  DESTINATION 
 CopyToBinaryDirectory(TARGET VisusKernel FILES __init__.py          DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusKernel FILES __main__.py          DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusKernel FILES setup.py             DESTINATION ./)
-CopyToBinaryDirectory(TARGET VisusKernel FILES PyUtils.py           DESTINATION ./)
-CopyToBinaryDirectory(TARGET VisusKernel FILES PyImage.py           DESTINATION ./)
+CopyToBinaryDirectory(TARGET VisusKernel FILES utils.py             DESTINATION ./)
 
-AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
+set(SwigFile ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i)
+set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/include")
 
+if (VISUS_SLAM)
+	# for convenience I'm adding swig slam python code to VisusKernelPy
+	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS  "-I${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp")
+	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS  "-DVISUS_SLAM=1")
+endif()
 
+AddSwigLibrary(VisusKernelPy VisusKernel ${SwigFile})
+
+if (VISUS_SLAM)
+
+	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp)
+	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp/ExternalLibs/eigen)
+	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp/ExternalLibs/g2o)
+	
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp/ExternalLibs ${CMAKE_BINARY_DIR}/slamcpp/ExternalLibs)
+
+	target_link_libraries(VisusKernel PRIVATE 	
+		g2o_core 
+		g2o_solver_eigen 
+		g2o_stuff 
+		g2o_types_data 
+		g2o_types_icp 
+		g2o_types_sba 
+		g2o_types_sclam2d 
+		g2o_types_sim3 
+		g2o_types_slam2d 
+		g2o_types_slam2d_addons 
+		g2o_types_slam3d 
+		g2o_types_slam3d_addons)
+
+	target_compile_definitions(VisusKernelPy PRIVATE VISUS_SLAM=1)
+	target_include_directories(VisusKernelPy PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp)
+endif()
