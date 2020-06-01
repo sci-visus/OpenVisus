@@ -6,6 +6,10 @@ FIND_PACKAGE_HANDLE_STANDARD_ARGS(OpenVisus DEFAULT_MSG OpenVisus_DIR)
 
 if(OpenVisus_FOUND)
 
+  if(EXISTS "${OpenVisus_DIR}/QT_VERSION")
+   option(VISUS_GUI default 1)
+  endif()
+
 	if (WIN32)
 		string(REPLACE "\\" "/" OpenVisus_DIR "${OpenVisus_DIR}")
 	endif()

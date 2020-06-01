@@ -209,8 +209,10 @@ add_subdirectory(Executable)
 # install-like step
 if (1)
 
-	set(__qt_version_filename__ ${CMAKE_BINARY_DIR}/QT_VERSION)
-	file(GENERATE OUTPUT ${__qt_version_filename__} CONTENT "${Qt5Core_VERSION_STRING}")
+	if(VISUS_GUI)
+		set(__qt_version_filename__ ${CMAKE_BINARY_DIR}/QT_VERSION)
+		file(GENERATE OUTPUT ${__qt_version_filename__} CONTENT "${Qt5Core_VERSION_STRING}")
+	endif()
 
 	add_custom_target(CopyRootFiles ALL)
 
