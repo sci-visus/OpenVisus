@@ -1,9 +1,3 @@
-import sys
-import io
-import boto3
-import zlib
-import multiprocessing 
-
 """
 Copy a local dataset to Amazon S3.
 
@@ -21,6 +15,13 @@ Default region name [None]: us-east-1
 Default output format [None]:
 """
 
+import sys
+import io
+import boto3
+import zlib
+import multiprocessing 
+
+
 from OpenVisus import *
 
 #idx="D:/GoogleSci/visus_dataset/david_subsampled/visus.idx"
@@ -29,7 +30,7 @@ from OpenVisus import *
 # bucket_name='david-subsampled'
 
 idx="D:/GoogleSci/visus_dataset/2kbit1/zip/rowmajor/visus.idx"
-layout=""
+layout="" # row major (!)
 acl='public-read'
 bucket_name='2kbit1'
 

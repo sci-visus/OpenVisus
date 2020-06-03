@@ -973,314 +973,6 @@ public:
 };
 
 ///////////////////////////////////////////////////////////
-class DumpData : public VisusConvert::Step
-{
-public:
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << std::endl;
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    if (args.size() != 1)
-      ThrowException(args[0], "syntax error");
-
-    PrintInfo("Buffer dims", data.dims, "dtype", data.dtype);
-
-    Uint8* SRC = data.c_ptr();
-    Int64 N = data.c_size();
-    std::ostringstream out;
-
-    for (int I = 0; I < N; I++)
-    {
-      out << std::setfill('0') << std::hex << "0x" << std::setw(2) << (int)(*SRC++);
-      if (I != N - 1) out << ",";
-      if ((I % 16) == 15) out << std::endl;
-    }
-    out << std::endl;
-    out << std::endl;
-    PrintInfo("\n");
-    return data;
-  }
-};
-
-///////////////////////////////////////////////////////////
-class ReadWriteBlock : public VisusConvert::Step
-{
-public:
-
-  //constructor
-  ReadWriteBlock(bool bWriting_) : bWriting(bWriting_) {
-  }
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " <filename>" << std::endl
-      << "   [--block <int>]" << std::endl
-      << "   [--field <field>]" << std::endl
-      << "   [--time <time>]" << std::endl;
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    if (args.size() < 2)
-      ThrowException(args[0], "syntax error");
-
-    String url = args[1];
-
-    auto dataset = LoadDataset(url);
-
-    BigInt block_id = 0;
-    Field  field = dataset->getDefaultField();
-    double time = dataset->getDefaultTime();
-
-    for (int I = 2; I < (int)args.size(); I++)
-    {
-      if (args[I] == "--block")
-      {
-        block_id = cbigint(args[++I]);
-        continue;
-      }
-
-      if (args[I] == "--field")
-      {
-        String fieldname = args[++I];
-        field = dataset->getFieldByName(fieldname);
-        if (!field.valid())
-          ThrowException(args[0], "specified field", fieldname, "is wrong");
-        continue;
-      }
-
-      if (args[I] == "--time")
-      {
-        double time = cdouble(args[++I]);
-        if (!dataset->getTimesteps().containsTimestep(time))
-          ThrowException(args[0], "specified time", time, "is wrong");
-        continue;
-      }
-
-      ThrowException(args[0], "Invalid argument", args[I]);
-    }
-
-    PrintInfo("url", url, "block", block_id, "field", field.name, "time", time);
-
-    auto access = dataset->createAccessForBlockQuery();
-
-    auto block_query = std::make_shared<BlockQuery>(dataset.get(), field, time, block_id * (((Int64)1) << access->bitsperblock), (block_id + 1) * (((Int64)1) << access->bitsperblock), bWriting ? 'w' : 'r', Aborted());
-    ApplicationStats::io.reset();
-
-    auto t1 = Time::now();
-
-    Array ret;
-    if (bWriting)
-    {
-      access->beginWrite();
-      bool bOk = dataset->executeBlockQueryAndWait(access, block_query);
-      access->endWrite();
-      if (!bOk)
-        ThrowException(args[0], "Failed to write block");
-      ret = data;
-    }
-    else
-    {
-      access->beginRead();
-      bool bOk = dataset->executeBlockQueryAndWait(access, block_query);
-      access->endRead();
-      if (!bOk)
-        ThrowException(args[0], "Failed to write block");
-      ret = block_query->buffer;
-    }
-
-    auto nopen = (int)ApplicationStats::io.nopen;
-    auto rbytes = (int)ApplicationStats::io.rbytes;
-    auto wbytes = (int)ApplicationStats::io.wbytes;
-
-    PrintInfo(bWriting ? "Wrote" : "Read", "block", block_id, "in msec", t1.elapsedMsec(),
-      "nopen", nopen,
-      "rbytes", StringUtils::getStringFromByteSize(rbytes),
-      "wbytes", StringUtils::getStringFromByteSize(wbytes));
-    ApplicationStats::io.reset();
-    return ret;
-  }
-
-private:
-
-  bool bWriting;
-};
-
-///////////////////////////////////////////////////////////
-class CloudCopyBlob : public VisusConvert::Step
-{
-public:
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " <url> <dst_url>" << std::endl
-      << "Example: " << args[0] << " http://atlantis.sci.utah.edu/mod_visus?readdataset=2kbit1  http://visus.blob.core.windows.net/2kbit1/visus.idx?password=XXXXX";
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    if (args.size() != 3)
-      ThrowException(args[0], "syntax error");
-
-    String src_url = args[1];
-    String dst_url = args[2];
-
-    auto src_storage = CloudStorage::createInstance(src_url);
-    auto dst_storage = CloudStorage::createInstance(dst_url);
-
-    auto net = std::make_shared<NetService>(1);
-
-    CloudStorageBlob blob;
-    if (src_storage)
-    {
-      auto blob_name = Url(src_url).getPath();
-      blob = src_storage->getBlob(net, blob_name, Aborted()).get();
-      if (!blob.valid())
-        ThrowException(args[0], " Cloud Storage getBlob", src_url, "failed");
-    }
-    else
-    {
-      auto body = Utils::loadBinaryDocument(src_url);
-      if (!body)
-        ThrowException(args[0], "Utils::loadBinaryDocument", src_url, "failed");
-
-      blob.body = body;
-    }
-
-    if (dst_storage)
-    {
-      auto blob_name = Url(dst_url).getPath();
-      if (!dst_storage->addBlob(net, blob_name, blob, Aborted()).get())
-        ThrowException(args[0], "Cloud Storage addBlob", dst_url, "failed");
-    }
-    else
-    {
-      Utils::saveBinaryDocument(dst_url, blob.body);
-    }
-
-    return data;
-  }
-};
-
-///////////////////////////////////////////////////////////
-class CloudDeleteBlob : public VisusConvert::Step
-{
-public:
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " <url>" << std::endl
-      << "Example: " << args[0] << " http://visus.blob.core.windows.net/2kbit1/visus.idx?password=XXXXX";
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    if (args.size() != 2)
-      ThrowException(args[0], "syntax error");
-
-    auto net = std::make_shared<NetService>(1);
-
-    Url url = args[1];
-    auto cloud = CloudStorage::createInstance(url);
-    if (!cloud->deleteBlob(net, url.getPath(), Aborted()).get())
-      ThrowException(args[0], "cannot delete blob", url.toString());
-    return data;
-  }
-};
-
-//////////////////////////////////////////////////////////////////////////////
-class CloudSelfTest : public VisusConvert::Step
-{
-public:
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " url" << std::endl
-      << "Example: " << args[0] << " http://visus.s3.amazonaws.com?username=AKIAILLJI7ANO6Y2XJNA&password=XXXXXXXXX"
-      << "Example: " << args[0] << " http://visus.blob.core.windows.net?access_key=XXXXXX"
-      << "Example: " << args[0] << " https://www.googleapis.com?client_id=XXXX&client_secret=YYYY&refresh_token=ZZZZZZ";
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    Url url(args[1]);
-
-    if (!url.valid())
-      ThrowException(args[0], args[1], "is not a valid url");
-
-    auto net = std::make_shared<NetService>(1);
-
-    auto cloud = CloudStorage::createInstance(url);
-
-    //simple blob for testing
-    auto blob = CloudStorageBlob();
-    blob.body = Utils::loadBinaryDocument("datasets/cat/gray.png"); VisusReleaseAssert(blob.body);
-    blob.metadata.setValue("example-meta-data", "visus-meta-data");
-
-    {
-      String blob_name = "/testing-cloud-storage/my/blob/name/visus.png";
-      bool bOk = cloud->addBlob(net, blob_name, blob, Aborted()).get();
-      VisusReleaseAssert(bOk);
-
-      auto check_blob = cloud->getBlob(net, blob_name, Aborted()).get();
-
-      bOk = cloud->deleteBlob(net, blob_name, Aborted()).get();
-      VisusReleaseAssert(bOk);
-    }
-
-    Int64 MSEC_ADD = 0, MSEC_GET = 0;
-    for (int I = 0; ; I++)
-    {
-      String blob_name = concatenate("/testing-cloud-storage/speed/", "blob.", StringUtils::formatNumber("%04d", I), ".bin");
-      auto t1 = Time::now();
-      bool bOk = cloud->addBlob(net, blob_name, blob, Aborted()).get();
-      auto msec_add = t1.elapsedMsec(); MSEC_ADD += msec_add;
-      VisusReleaseAssert(bOk);
-
-      t1 = Time::now();
-      auto check_blob = cloud->getBlob(net, blob_name).get();
-      auto msec_get = t1.elapsedMsec(); MSEC_GET += msec_get;
-
-      check_blob.content_type = blob.content_type; //google changes the content_type
-      VisusReleaseAssert(check_blob == blob);
-
-      PrintInfo("Average msec_add", MSEC_ADD / (I + 1), "msec_get", MSEC_GET / (I + 1));
-    }
-
-    return data;
-  }
-};
-
-///////////////////////////////////////////////////////////
 class TestEncoderSpeed : public VisusConvert::Step
 {
 public:
@@ -1473,8 +1165,8 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     String filename = "temp.bin";
-    int blocksize = 64 * 1024;
-    int filesize = 1 * 1024 * 1024 * 1024;
+    Int64 blocksize = StringUtils::getByteSizeFromString("64kb");
+    Int64 filesize = StringUtils::getByteSizeFromString("1gb");
 
     for (int I = 1; I < (int)args.size(); I++)
     {
@@ -1512,7 +1204,7 @@ public:
       VisusReleaseAssert(bOk);
 
       Time t1 = Time::now();
-      int nwritten;
+      Int64 nwritten;
       for (nwritten = 0; (nwritten + blocksize) <= filesize; nwritten += blocksize)
       {
         if (!file.write(nwritten, blocksize, blockdata.c_ptr()))
@@ -1521,8 +1213,12 @@ public:
       file.close();
       double elapsed = t1.elapsedSec();
       int mbpersec = (int)(nwritten / (1024.0 * 1024.0 * elapsed));
+
       //do not remove, I can need it for read
-      //remove(filename.c_str());
+#if 0
+      remove(filename.c_str());
+#endif
+
       PrintInfo("write", mbpersec, "mb/sec filesize", filesize, "blocksize", blocksize, "nwritten", nwritten, "filename", filename);
     }
     else
@@ -1835,16 +1531,7 @@ VisusConvert::VisusConvert()
   addAction("resize", []() {return std::make_shared<ResizeData>(); });
   addAction("resample", []() {return std::make_shared<ResampleData>(); });
   addAction("get-component", []() {return std::make_shared<GetComponent>(); });
-  addAction("write-block", []() {return std::make_shared<ReadWriteBlock>(true); });
-  addAction("read-block", []() {return std::make_shared<ReadWriteBlock>(false); });
-  addAction("dump", []() {return std::make_shared<DumpData>(); });
 
-  //cloud
-  addAction("cloud-delete-blob", []() {return std::make_shared<CloudDeleteBlob>(); });
-  addAction("cloud-copy-blob", []() {return std::make_shared<CloudCopyBlob>(); });
-  addAction("cloud-self-test", []() {return std::make_shared<CloudSelfTest>(); });
-
-  //speed
   addAction("test-query-speed", []() {return std::make_shared<TestQuerySpeed>(); });
   addAction("test-file-write-speed", []() {return std::make_shared<TestFileReadWriteSpeed>(true); });
   addAction("test-file-read-speed", []() {return std::make_shared<TestFileReadWriteSpeed>(false); });

@@ -83,7 +83,7 @@ public:
 
   VISUS_CLASS(GoogleDriveStorage)
 
-    Url    url;
+  Url    url;
   String client_id;
   String client_secret;
   String refresh_token;
@@ -246,84 +246,6 @@ public:
     return ret;
   }
 
-
-  // addBlobRequest 
-  virtual Future<bool> addBlob(SharedPtr<NetService> service, String blob_name, CloudStorageBlob blob, Aborted aborted = Aborted()) override
-  {
-    auto ret = Promise<bool>().get_future();
-
-    auto index = blob_name.rfind('/');
-    if (index == String::npos)
-    {
-      VisusAssert(false);
-      ret.get_promise()->set_value("");
-      return ret;
-    }
-
-    auto container_name = blob_name.substr(0, index);
-
-    getContainerId(service, container_name,/*bCreate*/true, aborted).when_ready([this, service, ret, blob_name, blob, aborted](String container_id) {
-
-      if (container_id.empty())
-      {
-        ret.get_promise()->set_value(false);
-        return;
-      }
-
-      String name = StringUtils::split(blob_name, "/").back();
-
-      NetRequest request(Url(this->url.toString() + "/upload/drive/v3/files?uploadType=multipart"), "POST");
-      request.aborted = aborted;
-
-      String boundary = UUIDGenerator::getSingleton()->create();
-      request.setHeader("Expect", "");
-      request.setContentType("multipart/form-data; boundary=" + boundary);
-
-      //write multiparts
-      {
-        request.body = std::make_shared<HeapMemory>();
-
-        OutputBinaryStream out(*request.body);
-
-        //multipart 1
-        out << "--" << boundary << "\r\n";
-        out << "Content-Disposition: form-data; name=\"metadata\"\r\n";
-        out << "Content-Type: application/json;charset=UTF-8;\r\n";
-        out << "\r\n";
-        out << "{'name':'" << name << "','parents':['" << container_id << "'], 'properties': {";
-        bool need_sep = false;
-        for (auto it : blob.metadata)
-        {
-          out << (need_sep ? "," : "") << "'" << it.first << "': '" << it.second << "'";
-          need_sep = true;
-        }
-        out << "}}" << "\r\n";
-
-        //multipart2
-        out << "--" << boundary << "\r\n";
-        out << "Content-Disposition: form-data; name=\"file\"\r\n";
-        out << "Content-Type: " + blob.content_type + "\r\n";
-        out << "\r\n";
-        out << *blob.body << "\r\n";
-
-        //multipart end
-        out << "--" << boundary << "--";
-
-        request.setContentLength(request.body->c_size());
-      }
-
-      signRequest(request);
-
-      NetService::push(service, request).when_ready([ret](NetResponse response) {
-        ret.get_promise()->set_value(response.isSuccessful());
-      });
-
-
-    });
-
-    return ret;
-  }
-
   // getBlob 
   virtual Future<CloudStorageBlob> getBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
   {
@@ -423,63 +345,7 @@ public:
     return ret;
   }
 
-  // deleteBlob
-  virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
-  {
-    auto ret = Promise<bool>().get_future();
-
-    auto index = blob_name.rfind('/');
-    if (index == String::npos)
-    {
-      VisusAssert(false);
-      ret.get_promise()->set_value(false);
-      return ret;
-    }
-    auto container_name = blob_name.substr(0, index);
-
-    getContainerId(service, container_name,/*bCreate*/false, aborted).when_ready([this, ret, service, blob_name, aborted](String container_id) {
-
-      if (container_id.empty())
-        return ret.get_promise()->set_value(false);
-
-      String name = StringUtils::split(blob_name, "/").back();
-
-      NetRequest get_blob_id(this->url.toString() + "/drive/v3/files?q=name='" + name + "' and '" + container_id + "' in parents", "GET");
-      get_blob_id.aborted = aborted;
-      signRequest(get_blob_id);
-
-      NetService::push(service, get_blob_id).when_ready([this, service, ret, aborted](NetResponse response) {
-
-        if (!response.isSuccessful())
-        {
-          ret.get_promise()->set_value(false);
-          return;
-        }
-
-        auto json = nlohmann::json::parse(response.getTextBody());
-        auto blob_id = json["files"].size() ? json["files"].at(0)["id"].get<std::string>() : String();
-        if (blob_id.empty())
-        {
-          ret.get_promise()->set_value(false);
-          return;
-        }
-
-        NetRequest delete_blob(Url(this->url.toString() + "/drive/v3/files/" + blob_id), "DELETE");
-        delete_blob.aborted = aborted;
-        signRequest(delete_blob);
-
-        NetService::push(service, delete_blob).when_ready([ret](NetResponse response) {
-          ret.get_promise()->set_value(response.isSuccessful());
-        });
-
-      });
-    });
-
-    return ret;
-  }
-
 };
-
 
 }//namespace
 
