@@ -358,7 +358,7 @@ public:
 
       if (bool bPrintStats = false)
       {
-        PrintInfo("!!! BLOCK",BLOCK,"inside",(bBlockTotallyInsideSingle ? "yes" : "no"),
+        PrintInfo("BLOCK",BLOCK,"inside",(bBlockTotallyInsideSingle ? "yes" : "no"),
           "nopen",(Int64)ApplicationStats::io.nopen),
           "rbytes",StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.rbytes),
           "wbytes",StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.wbytes),

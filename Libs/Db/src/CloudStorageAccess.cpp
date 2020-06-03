@@ -52,7 +52,9 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
   this->url = config.readString("url", dataset->getUrl()); VisusAssert(url.valid());
   this->compression = config.readString("compression", "zip"); //zip compress more than lz4 for network.. 
-  this->filename_template = config.readString("filename_template", "$(prefix)/time_$(time)/$(field)/$(block).$(compression)");
+  this->layout = config.readString("layout", ""); //row major is default
+  this->filename_template = config.readString("filename_template", "/${time}/${field}/${block}");
+  this->reverse_filename = config.readBool("reverse_filename", false);
 
   this->config.write("url", url.toString());
 
@@ -74,17 +76,32 @@ String CloudStorageAccess::getFilename(Field field, double time, BigInt blockid)
 {
   String fieldname = StringUtils::removeSpaces(field.name);
   String ret = filename_template;
-  ret = StringUtils::replaceFirst(ret, "$(prefix)", this->url.getPath());
-  ret = StringUtils::replaceFirst(ret, "$(time)", StringUtils::onlyAlNum(int(time) == time ? cstring((int)time) : cstring(time)));
-  ret = StringUtils::replaceFirst(ret, "$(field)", fieldname.length() < 32 ? StringUtils::onlyAlNum(fieldname) : StringUtils::computeChecksum(fieldname));
-  ret = StringUtils::replaceFirst(ret, "$(block)", StringUtils::join(StringUtils::splitInChunks(StringUtils::formatNumber("%032x", blockid), 4), "/"));
-  ret = StringUtils::replaceFirst(ret, "$(compression)", compression);
 
   //backward compatible
-  if (StringUtils::contains(ret,"$(start_address)"))
-    ret = StringUtils::replaceFirst(ret, "$(start_address)", StringUtils::formatNumber("%020d", blockid << bitsperblock));
+  if (StringUtils::contains(ret, "$("))
+  {
+    ret = StringUtils::replaceFirst(ret, "$(prefix)", this->url.getPath());
+    ret = StringUtils::replaceFirst(ret, "$(time)", StringUtils::onlyAlNum(int(time) == time ? cstring((int)time) : cstring(time)));
+    ret = StringUtils::replaceFirst(ret, "$(field)", fieldname.length() < 32 ? StringUtils::onlyAlNum(fieldname) : StringUtils::computeChecksum(fieldname));
+    ret = StringUtils::replaceFirst(ret, "$(block)", StringUtils::join(StringUtils::splitInChunks(StringUtils::formatNumber("%032x", blockid), 4), "/"));
+    ret = StringUtils::replaceFirst(ret, "$(compression)", compression);
+    if (StringUtils::contains(ret, "$(start_address)"))
+      ret = StringUtils::replaceFirst(ret, "$(start_address)", StringUtils::formatNumber("%020d", blockid << bitsperblock));
+  }
+
+  // new format
+  if (StringUtils::contains(ret, "${"))
+  {
+    ret = StringUtils::replaceFirst(ret, "${time}", StringUtils::onlyAlNum(int(time) == time ? cstring((int)time) : cstring(time)));
+    ret = StringUtils::replaceFirst(ret, "${field}", fieldname.length() < 32 ? StringUtils::onlyAlNum(fieldname) : StringUtils::computeChecksum(fieldname));
+    ret = StringUtils::replaceFirst(ret, "${block}", StringUtils::formatNumber("%016x", blockid));
+  }
 
   VisusAssert(!StringUtils::contains(ret, "$"));
+
+  if (reverse_filename)
+    ret=StringUtils::reverse(ret);
+
   return ret;
 }
 
@@ -96,14 +113,10 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 
   cloud_storage->getBlob(netservice, Access::getFilename(query), query->aborted).when_ready([this, query](CloudStorageBlob blob) {
 
-    if (!blob.metadata.hasValue("visus-compression"))
-      blob.metadata.setValue("visus-compression", this->compression);
-
-    if (!blob.metadata.hasValue("visus-dtype"))
-      blob.metadata.setValue("visus-dtype", query->field.dtype.toString());
-
-    if (!blob.metadata.hasValue("visus-nsamples"))
-      blob.metadata.setValue("visus-nsamples", query->getNumberOfSamples().toString());
+    blob.metadata.setValue("visus-compression", this->compression);
+    blob.metadata.setValue("visus-dtype", query->field.dtype.toString());
+    blob.metadata.setValue("visus-nsamples", query->getNumberOfSamples().toString());
+    blob.metadata.setValue("visus-layout", this->layout);
 
     if (query->aborted() || !blob.valid())
       return readFailed(query);
@@ -135,17 +148,13 @@ void CloudStorageAccess::writeBlock(SharedPtr<BlockQuery> query)
   CloudStorageBlob blob;
   blob.body = encoded;
 
-  blob.metadata.setValue("visus-compression", compression);
-  blob.metadata.setValue("visus-nsamples"     , decoded.dims.toString());
-  blob.metadata.setValue("visus-dtype"        , decoded.dtype.toString());
-  blob.metadata.setValue("visus-layout"       , decoded.layout);
+  auto filename = Access::getFilename(query);
+  cloud_storage->addBlob(netservice, filename, blob, query->aborted).when_ready([this,query](bool bOk) {
 
-  cloud_storage->addBlob(netservice, Access::getFilename(query), blob, query->aborted).when_ready([this,query](NetResponse response) {
-
-    if (query->aborted() || !response.isSuccessful())
+    if (query->aborted() || !bOk)
       return writeFailed(query);
-
-    return writeOk(query);
+    else
+      return writeOk(query);
   });
 
 }

@@ -281,12 +281,8 @@ class PyDataset(object):
 			self.write(data , x=x, y=y, z=z,field=field,time=time)		
 
 
-				
 
 			
-			
-
-
 
 
 

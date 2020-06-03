@@ -549,63 +549,6 @@ PointNi Dataset::guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, 
 }
 
 
-////////////////////////////////////////////////
-void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield, double Wtime,
-                          Dataset* Rvf, SharedPtr<Access> Raccess, Field Rfield, double Rtime)
-{
-  if (Rfield.dtype!=Wfield.dtype)
-    ThrowException("Rfield",Rfield.name,"and","Wfield",Wfield.name,"have different dtype");
-
-  if ((1<<Raccess->bitsperblock)!=(1<<Waccess->bitsperblock))
-    ThrowException("nsamples per block of source and dest are not equal");
-
-  Time T1=Time::now();
-  Time t1=T1;
-
-  PrintInfo("Dataset::copyDataset");
-  PrintInfo("  Destination Wurl", Wvf->getUrl(), "Wfield", Wfield.name, "Wtime", Wtime);
-  PrintInfo("  Source      Rurl", Rvf->getUrl(), "Rfield", Rfield.name, "Rtime", Rtime);
-
-  auto num_blocks=std::min(
-    Wvf->getTotalNumberOfBlocks(),
-    Rvf->getTotalNumberOfBlocks());
-
-  Aborted aborted;
-
-  Raccess->beginRead();
-  Waccess->beginWrite();
-
-  for (BigInt block_id=0; block_id<num_blocks; block_id++)
-  {
-    //progress
-    if (t1.elapsedSec()>5)
-    {
-      auto perc=(100.0*block_id)/(double)num_blocks;
-      PrintInfo("block_id", block_id, "/",num_blocks,perc,"%");
-      t1=Time::now();
-    }
-
-    //don't care, could be the block missing
-    auto read_block = std::make_shared<BlockQuery>(Rvf, Rfield, Rtime, Raccess->getStartAddress(block_id), Raccess->getEndAddress(block_id), 'r', aborted);
-
-    if (!Rvf->executeBlockQueryAndWait(Raccess, read_block))
-      continue; 
-
-    auto write_block = std::make_shared<BlockQuery>(Wvf, Wfield, Wtime, Waccess->getStartAddress(block_id), Waccess->getEndAddress(block_id), 'w', aborted);
-    write_block->buffer = read_block->buffer;
-
-    if (!Wvf->executeBlockQueryAndWait(Waccess, write_block))
-    {
-      PrintInfo("FAILED to write block",block_id);
-      continue;
-    }
-  }
-
-  Raccess->endRead();
-  Waccess->endWrite();
-
-  PrintInfo("Done in",T1.elapsedSec(),"sec");
-}
 
 
 /////////////////////////////////////////////////////////

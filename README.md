@@ -71,7 +71,6 @@ Type:
 ```
 python -m pip install --no-cache-dir --upgrade --force-reinstall OpenVisus
 python -m OpenVisus configure 
-python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
@@ -86,7 +85,6 @@ Type:
 conda uninstall -y openvisus # optional
 conda install -y -c visus openvisus
 python -m OpenVisus configure 
-python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
@@ -140,7 +138,6 @@ cmake --build . --target ALL_BUILD --config Release
 
 set PYTHON_PATH=.\Release
 python -m OpenVisus configure
-python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
@@ -180,7 +177,6 @@ cmake --build ./ --target all --config Release --parallel 4
 
 export PYTHONPATH=$(pwd)/Release
 python -m OpenVisus configure
-python -m OpenVisus convert
 python -m OpenVisus viewer
 ```
 
@@ -254,7 +250,6 @@ python -m pip install --upgrade pip
 
 export PYTHONPATH=./Release
 python -m OpenVisus configure
-python -m OpenVisus convert
 python -m OpenVisus viewer
 ``
 

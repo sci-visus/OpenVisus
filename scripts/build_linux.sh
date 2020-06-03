@@ -20,7 +20,6 @@ cd Release/OpenVisus
 export PYTHONPATH=../
 ${Python_EXECUTABLE} -m OpenVisus configure || true # segmentation fault problem
 ${Python_EXECUTABLE} -m OpenVisus test
-${Python_EXECUTABLE} -m OpenVisus convert
 
 GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
 if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}" != "" && "${PYPI_PASSWORD}" != "" ]] ; then

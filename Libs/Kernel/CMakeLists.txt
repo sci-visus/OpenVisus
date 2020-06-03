@@ -40,7 +40,6 @@ source_group("" FILES
 source_group("Core" FILES
 	./include/Visus/Aborted.h
 	./include/Visus/Async.h
-	./include/Visus/BigInt.h
 	./include/Visus/ByteOrder.h
 	./src/ByteOrder.cpp	
 	./include/Visus/Color.h

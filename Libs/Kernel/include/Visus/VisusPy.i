@@ -37,6 +37,7 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 %begin %{
+
   #if _WIN32
     //this is needed if you dont' have python debug library
     #pragma warning(disable: 4101)

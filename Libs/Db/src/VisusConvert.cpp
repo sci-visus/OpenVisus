@@ -262,104 +262,6 @@ public:
 
 };
 
-
-///////////////////////////////////////////////////////////
-class CopyDataset : public VisusConvert::Step
-{
-public:
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " <filename.xml> OR" << std::endl
-      << " <src_dataset> <dst_dataset>" << std::endl
-      << "" << std::endl
-      << ""
-      << " XML file example (to specify access):" << std::endl
-      << " <CopyDataset>" << std::endl
-      << "   <src url='E:/google_sci/visus_dataset/2kbit1/lz4/rowmajor/visus.idx' />" << std::endl
-      << "   <dst url='E:/google_sci/visus_dataset/2kbit1/lz4/rowmajor/visus.idx'  >" << std::endl
-      << "     <access type = 'CloudStorageAccess' url='http://visus.s3.wasabisys.com/2kbit1?username=NOXCLNFH3Y64J3ET7Z4B&amp;password=XXXXXXX' />" << std::endl
-      << "   </dst>" << std::endl
-      << " </CopyDataset>" << std::endl;
-
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    String Surl; StringTree Sconfig;
-    String Durl; StringTree Dconfig;
-
-    if (args.size() == 2)
-    {
-      //xml file with url and xml for access creation
-      auto content = Utils::loadTextDocument(args[1]);
-      StringTree stree = StringTree::fromString(content);
-      if (!stree.valid())
-      {
-        VisusAssert(false);
-        return Array();
-      }
-
-      if (auto src = stree.getChild("src")) {
-        Surl = src->readString("url");
-        if (auto access = src->getChild("access"))
-          Sconfig = *access;
-      }
-
-      if (auto dst = stree.getChild("dst")) {
-        Durl = dst->readString("url");
-        if (auto access = dst->getChild("access"))
-          Dconfig = *access;
-      }
-    }
-    else if (args.size() == 3)
-    {
-      //simply source url and dest url
-      Surl = args[1]; Sconfig = StringTree();
-      Durl = args[2]; Dconfig = StringTree();
-    }
-    else
-    {
-      ThrowException(args[0], "syntax error, wrong arguments");
-    }
-
-    auto Svf = LoadDataset(Surl);
-    auto Dvf = LoadDataset(Durl);
-
-    if (Svf->getTimesteps() != Dvf->getTimesteps())
-      ThrowException(args[0], "Time range not compatible");
-
-    std::vector<double> timesteps = Svf->getTimesteps().asVector();
-
-    std::vector<Field> Sfields = Svf->getFields();
-    std::vector<Field> Dfields = Dvf->getFields();
-
-    if (Sfields.size() != Dfields.size())
-      ThrowException(args[0], "Fieldnames not compatible");
-
-    auto Saccess = Svf->createAccessForBlockQuery(Sconfig);
-    auto Daccess = Dvf->createAccessForBlockQuery(Dconfig);
-
-    for (int time_id = 0; time_id < (int)timesteps.size(); time_id++)
-    {
-      double timestep = timesteps[time_id];
-      for (int F = 0; F < (int)Sfields.size(); F++)
-      {
-        Dataset::copyDataset(
-          Dvf.get(), Daccess, Dfields[F], timestep,
-          Svf.get(), Saccess, Sfields[F], timestep);
-      }
-    }
-
-    return data;
-  }
-};
-
 ///////////////////////////////////////////////////////////
 class CompressDataset : public VisusConvert::Step
 {
@@ -1917,7 +1819,6 @@ VisusConvert::VisusConvert()
   addAction("create", []() {return std::make_shared<CreateIdx>(); });
   addAction("zeros", []() {return std::make_shared<Zeros>(); });
   addAction("minmax", []() {return std::make_shared<FixDatasetRange>(); });
-  addAction("copy-dataset", []() {return std::make_shared<CopyDataset>(); });
   addAction("compress-dataset", []() {return std::make_shared<CompressDataset>(); });
   addAction("midx-to-idx", []() {return std::make_shared<ConvertMidxToIdx>(); });
 

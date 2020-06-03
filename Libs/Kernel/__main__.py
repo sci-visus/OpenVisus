@@ -260,10 +260,7 @@ def Main(args):
 
 	# _____________________________________________
 	if action=="convert":
-
-		# example: python -m OpenVisus convert ...
 		convert=VisusConvert()
-		# example: ...main.py args[1]==convert ..
 		convert.runFromArgs(args[2:])
 		sys.exit(0)
 
@@ -300,6 +297,38 @@ def Main(args):
 		print("server done")
 		sys.exit(0)
 
+	if action=="copy-dataset":
+
+		parser = argparse.ArgumentParser(description="copy-dataset command.")
+		parser.add_argument("--src"       , type=str,   help="src dataset", required=True)
+		parser.add_argument("--dst"       , type=str,   help="dst dataset", required=True)
+		parser.add_argument("--src-time"  , type=float, help="src time",    required=False,default=None)
+		parser.add_argument("--dst-time"  , type=float, help="dst time",    required=False,default=None)
+		parser.add_argument("--src-field ", type=str,   help="src field",   required=False,default=None)
+		parser.add_argument("--dst-field" , type=str,   help="dst field",   required=False,default=None)
+		parser.add_argument("--src-access", type=str,   help="src access",  required=False,default=None)
+		parser.add_argument("--dst-access", type=str,   help="dst access",  required=False,default=None)
+		args = parser.parse_args(args[2:])
+
+		src=LoadDataset(args.src)
+		dst=LoadDataset(args.dst)
+
+		src_time=src.getDefaultTime() if args.src_time is None else args.src_time
+		dst_time=dst.getDefaultTime() if args.dst_time is None else args.dst_time   
+
+		src_field=src.getDefaultField() if args.src_field is None else args.src_field
+		dst_field=dst.getDefaultField() if args.dst_field is None else args.dst_field
+
+		Assert(src_field.dtype==dst_field.dtype)
+
+		src_access=src.createAccessForBlockQuery(StringTree.fromString(args.src_access))
+		dst_access=dst.createAccessForBlockQuery(StringTree.fromString(args.dst_access))
+
+		Dataset.copyDataset(
+			dst, src_access, dst_field, dst_time,
+			src, dst_access, src_field, src_time)
+
+
 	# _____________________________________________
 	if action=="viewer":
 
@@ -328,8 +357,13 @@ def Main(args):
 		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "VisibleHuman.py")]) 
 		sys.exit(0)
 
-	print("Wrong arguments",args)
-	sys.exit(-1)
+	# _____________________________________________
+	if True:
+		convert=VisusConvert()
+		convert.runFromArgs(args[1:])
+		sys.exit(0)
+
+
   
 
 # //////////////////////////////////////////

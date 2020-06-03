@@ -379,7 +379,11 @@ public:
   int  status;
 
   //default constructor
-  NetResponse(int status_=HttpStatus::STATUS_NONE,String errormsg="") : status(status_) {
+  NetResponse() : status(HttpStatus::STATUS_NONE) {
+  }
+
+  //default constructor
+  explicit NetResponse(int status_,String errormsg="") : status(status_) {
     if (!errormsg.empty()) 
       setErrorMessage(errormsg);
   }

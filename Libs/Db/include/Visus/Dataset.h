@@ -138,10 +138,6 @@ public:
   //cloneclone
   virtual SharedPtr<Dataset> clone() const = 0;
 
-  //copyDataset
-  static void copyDataset(
-    Dataset* Dvf, SharedPtr<Access> Daccess, Field Dfield, double Dtime,
-    Dataset* Svf, SharedPtr<Access> Saccess, Field Sfield, double Stime);
 
   //isServerMode
   bool isServerMode() const {
@@ -382,7 +378,8 @@ public:
 
   //executeBlockQueryAndWait
   bool executeBlockQueryAndWait(SharedPtr<Access> access, SharedPtr<BlockQuery> query) {
-    executeBlockQuery(access, query).get(); return query->ok();
+    executeBlockQuery(access, query).get(); 
+    return query->ok();
   }
 
   //convertBlockQueryToRowMajor

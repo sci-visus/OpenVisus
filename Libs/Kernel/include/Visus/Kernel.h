@@ -115,6 +115,9 @@ typedef float              Float32;
 typedef double             Float64;
 typedef long long          Int64;
 typedef unsigned long long Uint64;
+typedef Int64              BigInt;
+
+typedef std::string String;
 
 namespace Math {
   const double Pi = 3.14159265358979323846;
@@ -135,8 +138,6 @@ namespace Math {
   using UniquePtr = std::unique_ptr<T>;
   
 #endif
-
-typedef std::string String;
 
 VISUS_KERNEL_API inline String     cstring()                     { return ""; }
 VISUS_KERNEL_API inline String     cstring(bool    v)            { return v ? "True" : "False"; }
@@ -203,6 +204,16 @@ VISUS_KERNEL_API inline float      cfloat (const String& s) { return s.empty() ?
 VISUS_KERNEL_API inline double     cdouble(const String& s) { return s.empty() ? 0 : std::stod(s); }
 VISUS_KERNEL_API inline Int64      cint64 (const String& s) { return s.empty() ? 0 : std::stoll(s); }
 VISUS_KERNEL_API inline Uint64     cuint64(const String& s) { return s.empty() ? 0 : std::stoull(s); }
+
+//String->BigInt
+VISUS_KERNEL_API inline BigInt cbigint(const String& s) {
+  return cint64(s);
+}
+
+//BigInt->Int64
+VISUS_KERNEL_API inline Int64 cint64(const BigInt& value) {
+  return value;
+}
 
 template <typename Value>
 inline Value from_string(const std::string& s) {

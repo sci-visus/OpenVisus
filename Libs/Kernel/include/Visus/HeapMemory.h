@@ -118,6 +118,11 @@ public:
     memset(c_ptr(), value, (size_t)c_size());
   }
 
+  //toString
+  String toString() const {
+    return String((const char*)c_ptr(),(size_t)c_size());
+  }
+
   //base64Encode
   String base64Encode() const;
 

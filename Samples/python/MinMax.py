@@ -44,7 +44,6 @@ def TestFilters(img_filename, filter):
 
 	# this is the original image
 	noise=OpenImage(img_filename)
-	print("!!!!!",noise.dtype)
 
 	# create source dataset for comparison purpouse
 	src_db=PyDataset.Create(url="tmp/src.idx", dim=2, data=noise)
