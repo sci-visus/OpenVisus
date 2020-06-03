@@ -23,15 +23,13 @@ idx="D:/GoogleSci/visus_dataset/2kbit1/zip/rowmajor/visus.idx"
 layout="" # row major 
 bucket_name="2kbit1"
 
-	# change to point to your credential file
-	storage_client = storage.Client.from_service_account_json("./google_credentials.json")
+# change to point to your credential file
+storage_client = storage.Client.from_service_account_json("./google_credentials.json")
 
 # ///////////////////////////////////////////////////
 def Main():
 	
 	db=LoadDataset(idx)
-	
-
 	
 	try:
 		storage_client.create_bucket(bucket_name)
@@ -85,13 +83,13 @@ https://console.developers.google.com/apis/credentials
 ApplicationType: Desktop App
 Name: openvisus-client
 
-client_id="1001533940542-himtv2k3obtnk9qh3opbcvv2d2ars21m.apps.googleusercontent.com"
-client_secret="smCEeLHRC295I-9iaBYxQUBr"
+client_id="xxxxx"
+client_secret="yyyyy"
 
 Open the following URL in a browser:
-echo "https://accounts.google.com/o/oauth2/auth?client_id=$client_id&response_type=code&scope=https://www.googleapis.com/auth/devstorage.read_only&redirect_uri=urn:ietf:wg:oauth:2.0:oob"
+echo "https://accounts.google.com/o/oauth2/auth?client_id=${client_id}&response_type=code&scope=https://www.googleapis.com/auth/devstorage.read_only&redirect_uri=urn:ietf:wg:oauth:2.0:oob"
 
-authorization_code="4/0gHpYLRHpYW34WeZgd2sk4CW9SE2gqHpJbKdw3JY-uN_iqQKrIdAJSc"
+authorization_code="zzzzz"
 
 Generate a refresh token:
 
@@ -103,7 +101,7 @@ curl \
 	--data "grant_type=authorization_code" \
 	"https://www.googleapis.com/oauth2/v3/token"
 
-refresh_token="1//09vKz1FUz0zrbCgYIARAAGAkSNwF-L9Iri7Cj1zEH6B52SOPli5ucUVgNywbi0NVCUyTuz7X5yRvc6zrE5ZE3Ioua9QsnTOZpK4I"
+refresh_token="wwwww"
 
 To open the dataset in the viewer, add this to your visus.config:
 
