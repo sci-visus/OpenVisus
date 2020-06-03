@@ -1,9 +1,3 @@
-import sys
-import io
-import boto3
-import zlib
-import multiprocessing 
-
 """
 Copy a local dataset to Amazon S3.
 
@@ -21,6 +15,13 @@ Default region name [None]: us-east-1
 Default output format [None]:
 """
 
+import sys
+import io
+import boto3
+import zlib
+import multiprocessing 
+
+
 from OpenVisus import *
 
 #idx="D:/GoogleSci/visus_dataset/david_subsampled/visus.idx"
@@ -29,7 +30,7 @@ from OpenVisus import *
 # bucket_name='david-subsampled'
 
 idx="D:/GoogleSci/visus_dataset/2kbit1/zip/rowmajor/visus.idx"
-layout=""
+layout="" # row major (!)
 acl='public-read'
 bucket_name='2kbit1'
 
@@ -108,21 +109,22 @@ if __name__ == '__main__':
 	    multiprocessing.Pool(num_process).starmap(Uploader, [ (idx, blocks[I::num_process]) for I in range(num_process)])
 	print("Blocks uploaded")
 
-	print("""
-	Add this to your visus.config:
 
-	<dataset name='{bucket_name} on Amazon S3' url="https://{bucket_name}.s3.amazonaws.com/visus.idx" >
-	<access type='CloudStorageAccess' 
-	  url="https://{bucket_name}.s3.amazonaws.com" 
-	  chmod="r"
-	  compression="zip"
-	  layout="{layout}"
-	  filename_template="{filename_template}"
-	  reverse_filename="false" />
-	</dataset>
-	""".format(bucket_name=bucket_name,layout=layout,filename_template="/${time}/${field}/${block}"))
+"""
+To open the dataset in the viewer, add this to your visus.config:
 
+<dataset name='<bucket_name> on Amazon S3' url='http://<bucket_name>.s3.amazonaws.com/visus.idx?username=xxx&amp;password=yyy' >
+  <access type="CloudStorageAccess"
+  	url="http://<bucket_name>.s3.amazonaws.com?username=xxx&amp;password=yyy"
+  	chmod="r"
+  	compression="zip"
+		layout="hzorder"
+  	filename_template="/${time}/${field}/${block}"
+		reverse_filename="false"
+  />
+</dataset>
 
-	# Consider using reverse_filename=True' if you want to speed up the download from S3 
-	# see https://aws.amazon.com/blogs/aws/amazon-s3-performance-tips-tricks-seattle-hiring-event/
+Consider using reverse_filename=True' if you want to speed up the download from S3 
+see https://aws.amazon.com/blogs/aws/amazon-s3-performance-tips-tricks-seattle-hiring-event/
+"""
 

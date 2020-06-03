@@ -49,12 +49,6 @@ class AzureCloudStorage : public CloudStorage
 {
 public:
 
-  Url    url;
-  String account_name;
-  String access_key;
-
-  String container;
-
   //constructor
   AzureCloudStorage(Url url)
   {
@@ -62,7 +56,7 @@ public:
     VisusAssert(!access_key.empty());
     this->access_key = StringUtils::base64Decode(access_key);
 
-    this->account_name = url.getHostname().substr(0, url.getHostname().find('.'));
+    this->account_name = StringUtils::split(url.getHostname(),".")[0];
 
     this->url = url.getProtocol() + "://" + url.getHostname();
   }
@@ -70,6 +64,63 @@ public:
   //destructor
   virtual ~AzureCloudStorage() {
   }
+
+  // getBlob 
+  virtual Future<CloudStorageBlob> getBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
+  {
+    auto ret = Promise<CloudStorageBlob>().get_future();
+
+    NetRequest request(this->url.toString() + blob_name, "GET");
+    request.aborted = aborted;
+
+    if (!access_key.empty())
+      signRequest(request);
+
+    NetService::push(service, request).when_ready([ret](NetResponse response) {
+
+      if (!response.isSuccessful())
+      {
+        ret.get_promise()->set_value(CloudStorageBlob());
+        return;
+      }
+
+      //parse metadata
+      CloudStorageBlob blob;
+      String metatata_prefix = "x-ms-meta-";
+      for (auto it = response.headers.begin(); it != response.headers.end(); it++)
+      {
+        String name = it->first;
+        if (StringUtils::startsWith(name, metatata_prefix))
+        {
+          name = name.substr(metatata_prefix.length());
+
+          //trick: azure does not allow the "-" 
+          if (StringUtils::contains(name, "_"))
+            name = StringUtils::replaceAll(name, "_", "-");
+
+          blob.metadata.setValue(name, it->second);
+        }
+      }
+
+      blob.body = response.body;
+
+      auto content_type = response.getContentType();
+      if (!content_type.empty())
+        blob.content_type = content_type;
+
+      ret.get_promise()->set_value(blob);
+    });
+
+    return ret;
+  }
+
+private:
+
+  Url    url;
+  String account_name;
+  String access_key;
+
+  String container;
 
   //signRequest
   void signRequest(NetRequest& request)
@@ -86,7 +137,7 @@ public:
 
     char date_GTM[256];
     time_t t; time(&t);
-    struct tm *ptm = gmtime(&t);
+    struct tm* ptm = gmtime(&t);
     strftime(date_GTM, sizeof(date_GTM), "%a, %d %b %Y %H:%M:%S GMT", ptm);
 
     request.setHeader("x-ms-version", "2018-03-28");
@@ -135,177 +186,6 @@ public:
     signature = StringUtils::base64Encode(StringUtils::hmac_sha256(signature, this->access_key));
 
     request.setHeader("Authorization", "SharedKey " + account_name + ":" + signature);
-  }
-
-  //setContainer
-  Future<bool> addContainer(SharedPtr<NetService> service, String container, Aborted aborted = Aborted())
-  {
-    VisusAssert(!StringUtils::contains(container, "/"));
-
-    auto ret = Promise<bool>().get_future();
-
-    //I know it exists
-    if (container == this->container)
-    {
-      ret.get_promise()->set_value(true);
-      return ret;
-    }
-
-    NetRequest request(this->url.toString() + "/" + container, "PUT");
-    request.aborted = aborted;
-    request.url.params.setValue("restype", "container");
-    request.setContentLength(0);
-    //request.setHeader("x-ms-prop-publicaccess", "container"); IF YOU WANT PUBLIC
-    signRequest(request);
-
-    NetService::push(service, request).when_ready([this, ret, container](NetResponse response) {
-
-      bool bOk = response.isSuccessful() || /*bAlreadyExists*/(response.status == 409);
-      if (bOk)
-        this->container = container;
-      ret.get_promise()->set_value(bOk);
-    });
-
-    return ret;
-  }
-
-
-  // deleteContainer
-  Future<bool> deleteContainer(SharedPtr<NetService> service, String container, Aborted aborted = Aborted())
-  {
-    VisusAssert(!StringUtils::contains(container, "/"));
-    NetRequest request(this->url.toString() + "/" + container, "DELETE");
-    request.aborted = aborted;
-    request.url.params.setValue("restype", "container");
-    signRequest(request);
-
-    auto ret = Promise<bool>().get_future();
-
-    NetService::push(service, request).when_ready([this, container, ret](NetResponse response) {
-      bool bOk = response.isSuccessful();
-      if (bOk && container == this->container)
-        this->container = "";
-      ret.get_promise()->set_value(bOk);
-    });
-
-    return ret;
-  }
-
-  // addBlob
-  virtual Future<bool> addBlob(SharedPtr<NetService> service, String blob_name, CloudStorageBlob blob, Aborted aborted = Aborted()) override
-  {
-    auto ret = Promise<bool>().get_future();
-
-    auto index = blob_name.find("/");
-    if (index == String::npos) {
-      VisusAssert(false);
-      ret.get_promise()->set_value(false);
-      return ret;
-    }
-
-    String container = blob_name.substr(0, index);
-
-    addContainer(service, container, aborted).when_ready([this, ret, service, blob, blob_name, aborted](bool bOk)
-    {
-      if (!bOk)
-      {
-        ret.get_promise()->set_value(false);
-        return;
-      }
-
-      NetRequest request(this->url.toString() + blob_name, "PUT");
-      request.aborted = aborted;
-      request.body = blob.body;
-      request.setContentLength(blob.body->c_size());
-      request.setHeader("x-ms-blob-type", "BlockBlob");
-      request.setContentType(blob.content_type);
-
-      for (auto it : blob.metadata)
-      {
-        auto name = it.first;
-        auto value = it.second;
-
-        //name must be a C# variable name
-        VisusAssert(!StringUtils::contains(name, "_"));
-        if (StringUtils::contains(name, "-"))
-          name = StringUtils::replaceAll(name, "-", "_");
-
-        request.setHeader("x-ms-meta-" + name, value);
-      }
-
-      signRequest(request);
-
-      NetService::push(service, request).when_ready([ret](NetResponse response) {
-        ret.get_promise()->set_value(response.isSuccessful());
-      });
-
-    });
-
-    return ret;
-  }
-
-  // getBlob 
-  virtual Future<CloudStorageBlob> getBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
-  {
-    auto ret = Promise<CloudStorageBlob>().get_future();
-
-    NetRequest request(this->url.toString() + blob_name, "GET");
-    request.aborted = aborted;
-    signRequest(request);
-
-    NetService::push(service, request).when_ready([ret](NetResponse response) {
-
-      if (!response.isSuccessful())
-      {
-        ret.get_promise()->set_value(CloudStorageBlob());
-        return;
-      }
-
-      //parse metadata
-      CloudStorageBlob blob;
-      String metatata_prefix = "x-ms-meta-";
-      for (auto it = response.headers.begin(); it != response.headers.end(); it++)
-      {
-        String name = it->first;
-        if (StringUtils::startsWith(name, metatata_prefix))
-        {
-          name = name.substr(metatata_prefix.length());
-
-          //trick: azure does not allow the "-" 
-          if (StringUtils::contains(name, "_"))
-            name = StringUtils::replaceAll(name, "_", "-");
-
-          blob.metadata.setValue(name, it->second);
-        }
-      }
-
-      blob.body = response.body;
-
-      auto content_type = response.getContentType();
-      if (!content_type.empty())
-        blob.content_type = content_type;
-
-      ret.get_promise()->set_value(blob);
-    });
-
-    return ret;
-  }
-
-
-  // deleteBlob
-  virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted) override
-  {
-    auto ret = Promise<bool>().get_future();
-
-    NetRequest request(this->url.toString() + blob_name, "DELETE");
-    request.aborted = aborted;
-    signRequest(request);
-
-    NetService::push(service, request).when_ready([ret](NetResponse response) {
-      ret.get_promise()->set_value(response.isSuccessful());
-    });
-
-    return ret;
   }
 
 };

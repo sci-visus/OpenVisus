@@ -137,26 +137,7 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 ///////////////////////////////////////////////////////////////////////////////////////
 void CloudStorageAccess::writeBlock(SharedPtr<BlockQuery> query)
 {
-  VisusAssert((int)query->getNumberOfSamples().innerProduct()==(1<<bitsperblock));
-
-  auto decoded=query->buffer;
-  auto encoded=ArrayUtils::encodeArray(compression,decoded);
-  
-  if (!encoded)
-    return writeFailed(query);
-
-  CloudStorageBlob blob;
-  blob.body = encoded;
-
-  auto filename = Access::getFilename(query);
-  cloud_storage->addBlob(netservice, filename, blob, query->aborted).when_ready([this,query](bool bOk) {
-
-    if (query->aborted() || !bOk)
-      return writeFailed(query);
-    else
-      return writeOk(query);
-  });
-
+  return query->setFailed();
 }
 
 

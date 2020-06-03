@@ -54,13 +54,6 @@ public:
 
   VISUS_CLASS(AmazonCloudStorage)
 
-  String protocol;
-  String hostname;
-  String username;
-  String password;
-
-  String container;
-
   //constructor
   AmazonCloudStorage(Url url)
   {
@@ -76,73 +69,7 @@ public:
   virtual ~AmazonCloudStorage() {
   }
 
-  //signRequest
-  void signRequest(NetRequest& request)
-  {
-    String bucket = StringUtils::split(request.url.getHostname(), ".")[0];
-    VisusAssert(!bucket.empty());
 
-    //sign the request
-    if (!username.empty() && !password.empty())
-    {
-      char date_GTM[256];
-      time_t t; time(&t);
-      struct tm* ptm = gmtime(&t);
-      strftime(date_GTM, sizeof(date_GTM), "%a, %d %b %Y %H:%M:%S GMT", ptm);
-
-      String canonicalized_resource = "/" + bucket + request.url.getPath();
-
-      String canonicalized_headers;
-      {
-        std::ostringstream out;
-        for (auto it = request.headers.begin(); it != request.headers.end(); it++)
-        {
-          if (StringUtils::startsWith(it->first, "x-amz-"))
-            out << StringUtils::toLower(it->first) << ":" << it->second << "\n";
-        }
-        canonicalized_headers = out.str();
-      }
-
-      String signature = request.method + "\n";
-      signature += request.getHeader("Content-MD5") + "\n";
-      signature += request.getContentType() + "\n";
-      signature += String(date_GTM) + "\n";
-      signature += canonicalized_headers;
-      signature += canonicalized_resource;
-      signature = StringUtils::base64Encode(StringUtils::hmac_sha1(signature, password));
-      request.setHeader("Host", request.url.getHostname());
-      request.setHeader("Date", date_GTM);
-      request.setHeader("Authorization", "AWS " + username + ":" + signature);
-    }
-  }
-
-  // addBlob 
-  virtual Future<bool> addBlob(SharedPtr<NetService> service, String blob_name, CloudStorageBlob blob, Aborted aborted = Aborted()) override
-  {
-    auto ret = Promise<bool>().get_future();
-
-    //example /container_name/aaa/bbb/filename.pdf
-    VisusAssert(StringUtils::startsWith(blob_name, "/"));
-
-    NetRequest request(this->protocol + "://" + this->hostname + blob_name, "PUT");
-    request.aborted = aborted;
-    request.body = blob.body;
-    request.setContentLength(blob.body->c_size());
-    request.setContentType(blob.content_type);
-
-    //metadata
-    for (auto it : blob.metadata)
-      request.setHeader("x-amz-meta-" + it.first, it.second);
-
-    signRequest(request);
-
-    NetService::push(service, request).when_ready([ret](NetResponse response) {
-      bool bOk = response.isSuccessful();
-      ret.get_promise()->set_value(bOk);
-    });
-
-    return ret;
-  }
 
   // getBlob 
   virtual Future<CloudStorageBlob> getBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
@@ -184,22 +111,55 @@ public:
     return ret;
   }
 
-  // deleteBlob
-  virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
+
+private:
+
+  String protocol;
+  String hostname;
+  String username;
+  String password;
+
+  String container;
+
+  //signRequest
+  void signRequest(NetRequest& request)
   {
-    NetRequest request(this->protocol + "://" + this->hostname + blob_name, "DELETE");
-    request.aborted = aborted;
-    signRequest(request);
+    String bucket = StringUtils::split(request.url.getHostname(), ".")[0];
+    VisusAssert(!bucket.empty());
 
-    auto ret = Promise<bool>().get_future();
+    //sign the request
+    if (!username.empty() && !password.empty())
+    {
+      char date_GTM[256];
+      time_t t; time(&t);
+      struct tm* ptm = gmtime(&t);
+      strftime(date_GTM, sizeof(date_GTM), "%a, %d %b %Y %H:%M:%S GMT", ptm);
 
-    NetService::push(service, request).when_ready([ret](NetResponse response) {
-      ret.get_promise()->set_value(response.isSuccessful());
-    });
+      String canonicalized_resource = "/" + bucket + request.url.getPath();
 
-    return ret;
+      String canonicalized_headers;
+      {
+        std::ostringstream out;
+        for (auto it = request.headers.begin(); it != request.headers.end(); it++)
+        {
+          if (StringUtils::startsWith(it->first, "x-amz-"))
+            out << StringUtils::toLower(it->first) << ":" << it->second << "\n";
+        }
+        canonicalized_headers = out.str();
+      }
+
+      String signature = request.method + "\n";
+      signature += request.getHeader("Content-MD5") + "\n";
+      signature += request.getContentType() + "\n";
+      signature += String(date_GTM) + "\n";
+      signature += canonicalized_headers;
+      signature += canonicalized_resource;
+      signature = StringUtils::base64Encode(StringUtils::hmac_sha1(signature, password));
+      request.setHeader("Host", request.url.getHostname());
+      request.setHeader("Date", date_GTM);
+      request.setHeader("Authorization", "AWS " + username + ":" + signature);
+    }
   }
-
 };
 
 }//namespace

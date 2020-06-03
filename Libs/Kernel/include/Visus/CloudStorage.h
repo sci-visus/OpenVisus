@@ -107,14 +107,9 @@ public:
   //createInstance
   static SharedPtr<CloudStorage> createInstance(Url url);
   
-  //addBlob
-  virtual Future<bool> addBlob(SharedPtr<NetService> service, String name, CloudStorageBlob blob, Aborted aborted = Aborted())=0;
-
   //getBlob
   virtual Future<CloudStorageBlob> getBlob(SharedPtr<NetService> service, String name, Aborted aborted = Aborted()) = 0;
 
-  // deleteBlob
-  virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String name, Aborted aborted = Aborted()) = 0;
 
 };
 
