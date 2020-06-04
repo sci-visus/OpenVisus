@@ -56,7 +56,7 @@ class MyTestCase(unittest.TestCase):
 				for I in range(depth): 
 					yield cat
 
-			db.writeSlabs(generateSlices(),z=0)
+			db.writeSlabs(generateSlices(),z=0,max_memsize=4*1024*1024*1024)
 			
 			# read a slice in the middle
 			middle=int(depth/2)

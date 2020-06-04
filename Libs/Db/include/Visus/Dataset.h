@@ -467,6 +467,9 @@ public:
   //testQuerySpeed
   void testQuerySpeed(double time, Field field, int query_dim);
 
+  //testSlabSpeed
+  static void testSlabSpeed(String filename, PointNi dims, int num_slabs, String  dtype, String  layout);
+
 private:
 
   StringTree              dataset_body;

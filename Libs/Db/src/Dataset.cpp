@@ -664,4 +664,99 @@ void Dataset::testQuerySpeed(double time, Field field, int query_dim)
   PrintInfo("Test done in", T1.elapsedSec());
 }
 
+
+/////////////////////////////////////////////////////////
+void Dataset::testSlabSpeed(String filename, PointNi dims, int num_slabs, String  dtype, String  layout)
+{
+  int slices_per_slab = (int)dims[2] / num_slabs;
+
+  //create the idx file
+  {
+    IdxFile idxfile;
+    idxfile.logic_box = BoxNi(PointNi(3), dims);
+    Field field("myfield", DType::fromString(dtype));
+    field.default_compression = ""; // no compression (in writing I should not use compression)
+    field.default_layout = layout;
+    idxfile.fields.push_back(field);
+    idxfile.save(filename);
+  }
+
+  //now create a Dataset, save it and reopen from disk
+  auto dataset = LoadDataset(filename);
+
+  //any time you need to read/write data from/to a Dataset I need a Access
+  auto access = dataset->createAccess();
+
+  //for example I want to write data by slices
+  Int32 sample_id = 0;
+  double SEC = 0;
+
+  for (int Slab = 0; Slab < num_slabs; Slab++)
+  {
+    //this is the bounding box of the region I'm going to write
+    auto Z1 = Slab * slices_per_slab;
+    auto Z2 = Z1 + slices_per_slab;
+
+    BoxNi slice_box = dataset->getLogicBox().getZSlab(Z1, Z2);
+
+    //prepare the write query
+    auto write = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'w');
+    write->logic_box = slice_box;
+    dataset->beginQuery(write);
+    VisusReleaseAssert(write->isRunning());
+
+    int slab_num_samples = (int)(dims[0] * dims[1] * slices_per_slab);
+    VisusReleaseAssert(write->getNumberOfSamples().innerProduct() == slab_num_samples);
+
+    //fill the buffers with some fake data
+    {
+      Array buffer(write->getNumberOfSamples(), write->field.dtype);
+
+      VisusAssert(dtype == "int32");
+      GetSamples<Int32> samples(buffer);
+
+      for (int I = 0; I < slab_num_samples; I++)
+        samples[I] = sample_id++;
+
+      write->buffer = buffer;
+    }
+
+    //execute the writing
+    auto t1 = clock();
+    VisusReleaseAssert(dataset->executeQuery(access, write));
+    auto t2 = clock();
+    auto sec = (t2 - t1) / (float)CLOCKS_PER_SEC;
+    SEC += sec;
+    PrintInfo("Done", Slab, "of", num_slabs, "bbox ", slice_box.toString(/*bInterleave*/true), "in", sec, "sec");
+  }
+
+  PrintInfo("Wrote all slabs in", SEC, "sec");
+
+  //verify data
+  {
+    auto read = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
+    read->logic_box = dataset->getLogicBox();
+    dataset->beginQuery(read);
+    VisusReleaseAssert(read->isRunning());
+
+    Array buffer(read->getNumberOfSamples(), read->field.dtype);
+    buffer.fillWithValue(0);
+    read->buffer = buffer;
+
+    auto t1 = clock();
+    VisusReleaseAssert(dataset->executeQuery(access, read));
+    auto t2 = clock();
+    auto sec = (t2 - t1) / (float)CLOCKS_PER_SEC;
+
+    VisusAssert(dtype == "int32");
+    GetSamples<Int32> samples(buffer);
+
+    for (int I = 0, N = (int)dims.innerProduct(); I < N; I++)
+    {
+      if (samples[I] != I)
+        PrintInfo("Reading verification failed sample", I, "expecting", I, "got", samples[I]);
+    }
+  }
+}
+
 } //namespace Visus 

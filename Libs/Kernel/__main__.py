@@ -342,6 +342,20 @@ def Main(args):
 		sys.exit(0)
 
 	# _____________________________________________
+	if action=="test-slab-speed":
+		# example -m OpenVisus test-slab-speed --dataset "D:\temp\test\test.idx" --dims "1024 1024 1024" --num-slabs 128 --dtype "int32" --layout ""
+		os.chdir(this_dir)
+		parser = argparse.ArgumentParser(description="Test slab speed")
+		parser.add_argument("--dataset", type=str, help="Dataset", required=True)
+		parser.add_argument("--dims", type=str, help="Dataset dimension", required=True)
+		parser.add_argument("--num-slabs", type=int, help="Number of slabs", required=True)
+		parser.add_argument("--dtype", type=str, help="DType", required=True)
+		parser.add_argument("--layout", type=str, help="layourt", required=True)
+		args = parser.parse_args(args[2:])
+		Dataset.testSlabSpeed(args.dataset,PointNi.fromString(args.dims),args.num_slabs,args.dtype,args.layout)
+		sys.exit(0)
+
+	# _____________________________________________
 	if action=="convert":
 		convert=VisusConvert()
 		convert.runFromArgs(args[2:])

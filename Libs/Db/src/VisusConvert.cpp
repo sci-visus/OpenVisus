@@ -973,188 +973,6 @@ public:
 };
 
 
-
-///////////////////////////////////////////////////////////////////////////////
-class TestIdxSlabSpeed : public VisusConvert::Step
-{
-public:
-
-  //see https://github.com/sci-visus/visus/issues/126
-  /* Hana numbers (NOTE hana is using row major):
-    dims 512 x 512 x 512
-    num_slabs 128
-    dtype int32
-    Wrote all slabs in  8.337sec
-  */
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " [--dims       <dimensions>]" << std::endl
-      << " [--num-slabs  <value>]" << std::endl
-      << " [--dtype      <dtype>]" << std::endl
-      << " [--rowmajor   | --hzorder]" << std::endl
-      << "Example: " << args[0] << " --dims \"512 512 512\" --num-slabs 128 --dtype int32";
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    String filename = "./temp/TestIdxSlabSpeed/visus.idx";
-
-    auto dirname = Path(filename).getParent();
-    if (FileUtils::existsDirectory(dirname))
-    {
-      ThrowException("Please empty the directory", dirname);
-      return Array();
-    }
-
-    PointNi dims = PointNi(512, 512, 512);
-    int     num_slabs = 128;
-    String  dtype = "int32";
-    String  layout = "";
-
-    for (int I = 1; I < (int)args.size(); I++)
-    {
-      if (args[I] == "--dims")
-      {
-        dims = PointNi::fromString(args[++I]);
-        continue;
-      }
-
-      if (args[I] == "--num-slabs") {
-        num_slabs = cint(args[++I]);
-        VisusReleaseAssert((dims[2] % num_slabs) == 0);
-        continue;
-      }
-
-      if (args[I] == "--dtype")
-      {
-        dtype = args[++I];
-        continue;
-      }
-
-      if (args[I] == "--rowmajor")
-      {
-        layout = "rowmajor";
-        continue;
-      }
-
-      if (args[I] == "--hzorder")
-      {
-        layout = "hzorder";
-        continue;
-      }
-
-      ThrowException("Wrong argument ", args[I]);
-    }
-
-    int slices_per_slab = (int)dims[2] / num_slabs;
-
-    PrintInfo("--dims            ", dims);
-    PrintInfo("--num-slabs       ", num_slabs);
-    PrintInfo("--dtype           ", dtype);
-    PrintInfo("--slices-per-slab ", slices_per_slab);
-
-    //create the idx file
-    {
-      IdxFile idxfile;
-      idxfile.logic_box = BoxNi(PointNi(3), dims);
-      {
-        Field field("myfield", DType::fromString(dtype));
-        field.default_compression = ""; // no compression (in writing I should not use compression)
-        field.default_layout = layout;
-        idxfile.fields.push_back(field);
-      }
-      idxfile.save(filename);
-    }
-
-    //now create a Dataset, save it and reopen from disk
-    auto dataset = LoadDataset(filename);
-
-    //any time you need to read/write data from/to a Dataset I need a Access
-    auto access = dataset->createAccess();
-
-    //for example I want to write data by slices
-    Int32 sample_id = 0;
-    double SEC = 0;
-
-    for (int Slab = 0; Slab < num_slabs; Slab++)
-    {
-      //this is the bounding box of the region I'm going to write
-      auto Z1 = Slab * slices_per_slab;
-      auto Z2 = Z1 + slices_per_slab;
-
-      BoxNi slice_box = dataset->getLogicBox().getZSlab(Z1, Z2);
-
-      //prepare the write query
-      auto write = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'w');
-      write->logic_box = slice_box;
-      dataset->beginQuery(write);
-      VisusReleaseAssert(write->isRunning());
-
-      int slab_num_samples = (int)(dims[0] * dims[1] * slices_per_slab);
-      VisusReleaseAssert(write->getNumberOfSamples().innerProduct() == slab_num_samples);
-
-      //fill the buffers with some fake data
-      {
-        Array buffer(write->getNumberOfSamples(), write->field.dtype);
-
-        VisusAssert(dtype == "int32");
-        GetSamples<Int32> samples(buffer);
-
-        for (int I = 0; I < slab_num_samples; I++)
-          samples[I] = sample_id++;
-
-        write->buffer = buffer;
-      }
-
-      //execute the writing
-      auto t1 = clock();
-      VisusReleaseAssert(dataset->executeQuery(access, write));
-      auto t2 = clock();
-      auto sec = (t2 - t1) / (float)CLOCKS_PER_SEC;
-      SEC += sec;
-      PrintInfo("Done", Slab, "of", num_slabs, "bbox ", slice_box.toString(/*bInterleave*/true), "in", sec, "sec");
-    }
-
-    PrintInfo("Wrote all slabs in", SEC, "sec");
-
-    if (bool bVerify = true)
-    {
-      auto read = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-      read->logic_box = dataset->getLogicBox();
-      dataset->beginQuery(read);
-      VisusReleaseAssert(read->isRunning());
-
-      Array buffer(read->getNumberOfSamples(), read->field.dtype);
-      buffer.fillWithValue(0);
-      read->buffer = buffer;
-
-      auto t1 = clock();
-      VisusReleaseAssert(dataset->executeQuery(access, read));
-      auto t2 = clock();
-      auto sec = (t2 - t1) / (float)CLOCKS_PER_SEC;
-
-      VisusAssert(dtype == "int32");
-      GetSamples<Int32> samples(buffer);
-
-      for (int I = 0, N = (int)dims.innerProduct(); I < N; I++)
-      {
-        if (samples[I] != I)
-          PrintInfo("Reading verification failed sample", I, "expecting", I, "got", samples[I]);
-      }
-    }
-
-    return Array();
-  }
-
-};
-
-
 } //namespace Private
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1164,9 +982,6 @@ VisusConvert::VisusConvert()
 
   addAction("create", []() {return std::make_shared<CreateIdx>(); });
   addAction("zeros", []() {return std::make_shared<Zeros>(); });
-  addAction("minmax", []() {return std::make_shared<FixDatasetRange>(); });
-  addAction("compress-dataset", []() {return std::make_shared<CompressDataset>(); });
-  addAction("midx-to-idx", []() {return std::make_shared<ConvertMidxToIdx>(); });
 
   addAction("import", []() {return std::make_shared<ImportData>(); });
   addAction("export", []() {return std::make_shared<ExportData>(); });
@@ -1182,7 +997,9 @@ VisusConvert::VisusConvert()
   addAction("resample", []() {return std::make_shared<ResampleData>(); });
   addAction("get-component", []() {return std::make_shared<GetComponent>(); });
 
-  addAction("test-idx-slab-speed", []() {return std::make_shared<TestIdxSlabSpeed>(); });
+  addAction("minmax", []() {return std::make_shared<FixDatasetRange>(); });
+  addAction("compress-dataset", []() {return std::make_shared<CompressDataset>(); });
+  addAction("midx-to-idx", []() {return std::make_shared<ConvertMidxToIdx>(); });
 }
 
 //////////////////////////////////////////////////////////////////////////////
