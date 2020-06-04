@@ -1606,16 +1606,5 @@ void IdxMultipleDataset::nextQuery(SharedPtr<BoxQuery> QUERY)
   }
 }
 
-////////////////////////////////////////////////////////////////////////
-void IdxMultipleDataset::createIdxFile(String idx_filename, Field idx_field) const
-{
-  auto idxfile = this->idxfile;
-
-  idxfile.filename_template = ""; //force guess
-  idxfile.time_template = ""; //force guess
-  idxfile.fields.clear();
-  idxfile.fields.push_back(idx_field);
-  idxfile.save(idx_filename);
-}
 
 } //namespace Visus

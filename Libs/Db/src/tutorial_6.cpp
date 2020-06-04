@@ -68,7 +68,7 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
   idxfile.bitsperblock=bitsperblock;
   idxfile.save(filename);
 
-  auto dataset= LoadDataset<IdxDataset>(filename);
+  auto dataset= LoadIdxDataset(filename);
 
   auto access=dataset->createAccess();
   

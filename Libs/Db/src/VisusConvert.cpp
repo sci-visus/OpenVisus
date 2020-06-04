@@ -165,7 +165,7 @@ public:
       return data;
 
     //try to write data
-    auto dataset = LoadDataset<IdxDataset>(filename);
+    auto dataset = LoadIdxDataset(filename);
 
     //write all data to RAM
     auto ram_access = dataset->createRamAccess(/* no memory limit*/0);
@@ -262,78 +262,6 @@ public:
 
 };
 
-///////////////////////////////////////////////////////////////////////////////
-class ConvertMidxToIdx : public VisusConvert::Step
-{
-public:
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " <midx_filename> <idx_filename> [--tile-size value] [--field value]" << std::endl
-      << "Example: " << args[0] << " D:/Google Drive sci.utah.edu/visus_dataset/slam/Alfalfa/visus.midx D:/Google Drive sci.utah.edu/visus_dataset/slam/Alfalfa/visus.idx";
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    srand(0);
-
-    String midx_filename = args[1];
-    String idx_filename = args[2];
-    int TileSize = 4 * 1024;
-    String fieldname = "output=voronoi()";
-
-    for (int I = 1; I < args.size(); I++)
-    {
-      if (args[I] == "--tile-size")
-        TileSize = cint(args[++I]);
-
-      else if (args[I] == "--field")
-        fieldname = args[++I];
-    }
-
-    auto midx = std::dynamic_pointer_cast<IdxMultipleDataset>(LoadDataset(midx_filename));
-    auto midx_access = midx->createAccess();
-
-    midx->createIdxFile(idx_filename, Field("DATA", midx->getFieldByName(fieldname).dtype, "rowmajor"));
-
-    auto idx = LoadDataset<IdxDataset>(idx_filename);
-    auto idx_access = idx->createAccess();
-
-    auto tiles = midx->generateTiles(TileSize);
-
-    auto T1 = Time::now();
-    for (int TileId = 0; TileId < tiles.size(); TileId++)
-    {
-      auto tile = tiles[TileId];
-
-      auto t1 = Time::now();
-      auto buffer = midx->readFullResolutionData(midx_access, midx->getFieldByName(fieldname), midx->getDefaultTime(), tile);
-      int msec_read = (int)t1.elapsedMsec();
-      if (!buffer)
-        continue;
-
-      t1 = Time::now();
-      idx->writeFullResolutionData(idx_access, idx->getDefaultField(), idx->getDefaultTime(), buffer, tile);
-      int msec_write = (int)t1.elapsedMsec();
-
-      PrintInfo("done", TileId, "of", tiles.size(), "msec_read", msec_read, "msec_write", msec_write);
-
-      //ArrayUtils::saveImage(concatenate("tile_",TileId,".png"),read->buffer));
-    }
-
-    //finally compress
-    idx->compressDataset("zip");
-
-    PrintInfo("ALL DONE IN", T1.elapsedMsec());
-    return data;
-  }
-
-};
 
 ///////////////////////////////////////////////////////////
 class ImportData : public VisusConvert::Step
@@ -673,35 +601,6 @@ public:
 };
 
 ///////////////////////////////////////////////////////////
-class ComputeComponentRange : public VisusConvert::Step
-{
-public:
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " <expression>" << std::endl
-      << "Example: " << args[0] << " 0";
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    if (args.size() != 2)
-      ThrowException(args[0], "syntax error");
-
-    int C = cint(args[1]);
-    Range range = ArrayUtils::computeRange(data, C);
-    PrintInfo("Range of component", C, "is", range);
-
-    return data;
-  }
-};
-
-///////////////////////////////////////////////////////////
 class InterleaveData : public VisusConvert::Step
 {
 public:
@@ -729,39 +628,6 @@ public:
   }
 };
 
-///////////////////////////////////////////////////////////
-class PrintInfo : public VisusConvert::Step
-{
-public:
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " <filename>";
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    if (args.size() != 2)
-      ThrowException(args[0], "syntax error");
-
-    String filename = args[1];
-    StringTree info = ArrayUtils::statImage(filename);
-    if (!info.valid())
-      ThrowException(args[0], "Could not open", filename);
-
-    PrintInfo("\n", info);
-
-    auto dataset = LoadDataset(filename);
-    return data;
-  }
-};
-
-
 } //namespace Private
 
 //////////////////////////////////////////////////////////////////////////////
@@ -771,7 +637,6 @@ VisusConvert::VisusConvert()
 
   addAction("create", []() {return std::make_shared<CreateIdx>(); });
   addAction("zeros", []() {return std::make_shared<Zeros>(); });
-
   addAction("import", []() {return std::make_shared<ImportData>(); });
   addAction("export", []() {return std::make_shared<ExportData>(); });
   addAction("paste", []() {return std::make_shared<PasteData>(); });
@@ -779,14 +644,10 @@ VisusConvert::VisusConvert()
   addAction("smart-cast", []() {return std::make_shared<SmartCast>(); });
   addAction("crop", []() {return std::make_shared<CropData>(); });
   addAction("mirror", []() {return std::make_shared<MirrorData>(); });
-  addAction("compute-range", []() {return std::make_shared<ComputeComponentRange>(); });
-  addAction("info", []() {return std::make_shared<PrintInfo>(); });
   addAction("interleave", []() {return std::make_shared<InterleaveData>(); });
   addAction("resize", []() {return std::make_shared<ResizeData>(); });
   addAction("resample", []() {return std::make_shared<ResampleData>(); });
   addAction("get-component", []() {return std::make_shared<GetComponent>(); });
-
-  addAction("midx-to-idx", []() {return std::make_shared<ConvertMidxToIdx>(); });
 }
 
 //////////////////////////////////////////////////////////////////////////////

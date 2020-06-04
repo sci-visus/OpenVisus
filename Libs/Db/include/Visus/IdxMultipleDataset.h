@@ -126,11 +126,6 @@ public:
   //executeQuery
   virtual bool executeQuery(SharedPtr<Access> ACCESS,SharedPtr<BoxQuery> QUERY) override;
 
-public:
-
-  //createIdxFile
-  void createIdxFile(String idx_filename, Field idx_field) const;
-
 private:
 
   friend class QueryInputTerm;

@@ -539,12 +539,6 @@ VISUS_DB_API SharedPtr<Dataset> LoadDatasetEx(StringTree ar);
 
 VISUS_DB_API SharedPtr<Dataset> LoadDataset(String url);
 
-
-template <class T>
-inline SharedPtr<T> LoadDataset(String url) {
-  return std::dynamic_pointer_cast<T>(LoadDataset(url));
-}
-
 } //namespace Visus
 
 

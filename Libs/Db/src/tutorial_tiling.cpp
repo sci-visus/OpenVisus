@@ -129,7 +129,7 @@ void Tutorial_Tiling(String default_layout)
   idxfile.blocksperfile=1;
   idxfile.save(filename);
 
-  auto dataset= LoadDataset<IdxDataset>(filename);
+  auto dataset= LoadIdxDataset(filename);
 
   TilingExample(dataset.get());
 }

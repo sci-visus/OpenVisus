@@ -316,7 +316,7 @@ void SelfTestIdx(int max_seconds)
     //remove data from tutorial_1
     try
     {
-      auto dataset = LoadDataset<IdxDataset>("./temp/tutorial_1.idx");
+      auto dataset = LoadIdxDataset("./temp/tutorial_1.idx");
       dataset->removeFiles();
     }
     catch (...) {}
@@ -351,7 +351,7 @@ void SelfTestIdx(int max_seconds)
           }
           idxfile.save("./temp/temp.idx");
 
-          auto dataset = LoadDataset<IdxDataset>("./temp/temp.idx");
+          auto dataset = LoadIdxDataset("./temp/temp.idx");
 
           {
             SelfTest selftest(dataset.get());
@@ -388,7 +388,7 @@ void SelfTestIdx(int max_seconds)
 
       idxfile.save(idxfilename);
 
-      auto dataset = LoadDataset<IdxDataset>(idxfilename);
+      auto dataset = LoadIdxDataset(idxfilename);
 
       {
         SelfTest selftest(dataset.get());

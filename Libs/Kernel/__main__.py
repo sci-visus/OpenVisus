@@ -427,6 +427,7 @@ def CompressDataset(args):
 	parser.add_argument("--dataset"       , type=str,   help="dataset", required=True)
 	parser.add_argument("--compression"   , type=str,   help="compresson", required=True)
 	args = parser.parse_args(args)
+
 	db=LoadDataset(args.dataset)
 	Assert(db)
 	Assert(db.compressDataset(args.compression))
@@ -439,6 +440,62 @@ def RunViewer(args):
 	GuiModule.execApplication()
 	viewer=None
 	print("All done")
+
+# ////////////////////////////////////////////////
+def MidxToIdx(args):
+	parser = argparse.ArgumentParser(description="compress dataset")
+	parser.add_argument("--DATASET"   , type=str,   required=True)
+	parser.add_argument("--FIELD"     , type=str,   required=True,default="output=voronoi()")
+	parser.add_argument("--TILE-SIZE" , type=str,   required=False,default="4*1024")
+	parser.add_argument("--dataset"   , type=str,   required=True)
+	args = parser.parse_args(args)
+
+	args.TILE_SIZE=int(eval(args.TILE_SIZE))
+
+	DATASET = LoadIdxDataset(args.DATASET)
+	FIELD=DATASET.getFieldByName(args.FIELD)
+	TIME=DATASET.getDefaultTime()
+
+	# save the new idx file
+	idxfile=DATASET.idxfile
+	idxfile.filename_template = "" # //force guess
+	idxfile.time_template = ""     #force guess
+	idxfile.fields.clear()
+	idxfile.fields.push_back(Field("DATA", FIELD.dtype, "rowmajor")) # note that compression will is empty in writing (at the end I will compress)
+	print("!!!",args.dataset)
+	Assert(idxfile.save(args.dataset))
+
+	dataset = LoadIdxDataset(args.dataset)
+	Assert(dataset)
+	field=dataset.getDefaultField()
+	time=dataset.getDefaultTime()
+
+	ACCESS = DATASET.createAccess()
+	access = dataset.createAccess()
+
+	print("Generating tiles...",args.TILE_SIZE)
+	TILES = DATASET.generateTiles(args.TILE_SIZE)
+	TOT_TILES=TILES.size()
+	T1 = Time.now()
+	for TILE_ID in range(TOT_TILES):
+		TILE = TILES[TILE_ID]
+
+		print("Doing tile",TILE_ID,"/",TOT_TILES,"...")
+
+		t1 = Time.now()
+		buffer = DATASET.readFullResolutionData(ACCESS, FIELD, TIME, TILE)
+		msec_read = t1.elapsedMsec()
+		if not buffer: 
+			continue
+
+		t1 = Time.now()
+		dataset.writeFullResolutionData(access, field, time, buffer, TILE)
+		msec_write = t1.elapsedMsec()
+
+		print("done", TILE_ID, "/", TOT_TILES, "msec_read", msec_read, "msec_write", msec_write)
+
+	dataset.compressDataset("zip")
+	print("ALL DONE IN", T1.elapsedMsec())
 
 # ////////////////////////////////////////////////
 def Main(args):
@@ -476,59 +533,54 @@ def Main(args):
 		
 	# example python -m OpenVisus test-write-speed --filename "d:/~temp.bin" --blocksize "64*1024"
 	if action=="test-write-speed":
-		os.chdir(this_dir)
 		TestWriteSpeed(args[2:])
 		sys.exit(0)
 
 	if action=="test-read-speed":
-		os.chdir(this_dir)
 		TestReadSpeeds(args[2:])
 		sys.exit(0)
 
 	# example -m OpenVisus test-network-speed  --nconnections 1 --nrequests 100 --url "http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled" 
 	if action=="test-network-speed":
-		os.chdir(this_dir)
 		TestNetworkSpeed(args[2:])
 		sys.exit(0)
 		
 	# example -m OpenVisus test-query-speed --dataset "D:\GoogleSci\visus_dataset\2kbit1\zip\rowmajor\visus.idx" --query-dim 512
 	if action=="test-query-speed":
-		os.chdir(this_dir)
 		TestQuerySpeed(args[2:])
 		sys.exit(0)
 		
 	# example -m OpenVisus test-slab-speed --dataset "D:\temp\test\test.idx" --dims "1024 1024 1024" --num-slabs 128 --dtype "int32" --layout ""
 	if action=="test-slab-speed":
-		os.chdir(this_dir)
 		TestSlabSpeed(args[2:])
 		sys.exit(0)
 		
 	#example -m OpenVisus fix-range --dataset "D:\GoogleSci\visus_dataset\cat256\visus0.idx" 
 	if action=="fix-range":
-		os.chdir(this_dir)
 		FixRange(args[2:])
 		sys.exit(0)
 		
 	# example  -m OpenVisus server --port 10000
 	if action=="server":
-		os.chdir(this_dir)
 		RunServer(args[2:])
 		sys.exit(0)
 
 	if action=="copy-dataset":
-		os.chdir(this_dir)
 		CopyDataset(args[2:])
 		sys.exit(0)
 
 	# -m OpenVisus compress-dataset --dataset "D:\GoogleSci\visus_dataset\cat256\visus0.idx" --compression zip
 	if action=="compress-dataset":
-		os.chdir(this_dir)
 		CompressDataset(args[2:])
+		sys.exit(0)
+
+	# example: -m OpenVisus midx-to-idx --DATASET "D:\GoogleSci\visus_slam\TaylorGrant\VisusSlamFiles\visus.midx" --FIELD "output=voronoi()" --TILE-SIZE "4*1024" --dataset "tmp/test.idx"
+	if action=="midx-to-idx":
+		MidxToIdx(args[2:])
 		sys.exit(0)
 
 	# example: python -m OpenVisus viewer ....
 	if action=="viewer":
-		os.chdir(this_dir)
 		RunViewer(args[2:])
 		sys.exit(0)
 

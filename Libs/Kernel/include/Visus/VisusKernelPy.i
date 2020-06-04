@@ -65,8 +65,9 @@ using namespace Visus;
    %template(PointNi)    Visus::PointN<Visus::Int64>;
 
 %include <Visus/Box.h>
-   %template(BoxNd)    Visus::BoxN<double>;
-   %template(BoxNi)    Visus::BoxN<Visus::Int64>;
+   %template(BoxNd)        Visus::BoxN<double>;
+   %template(BoxNi)        Visus::BoxN<Visus::Int64>;
+   %template(VectorBoxNi)  std::vector<Visus::BoxNi>;
 
 %include <Visus/Quaternion.h> 
 %include <Visus/Matrix.h>
