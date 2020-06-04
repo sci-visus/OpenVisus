@@ -87,13 +87,13 @@ public:
 
 private:
 
-  typedef struct
+  class Pending
   {
-    int index=0;
+  public:
+    int index = 0;
     SharedPtr<BlockQuery> up_query;
     SharedPtr<BlockQuery> dw_query;
-  }
-  Pending;
+  };
 
   std::vector<Pending> pendings;
   CriticalSection      lock;

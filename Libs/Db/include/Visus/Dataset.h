@@ -470,7 +470,7 @@ public:
   //testSlabSpeed
   static void testSlabSpeed(String filename, PointNi dims, int num_slabs, String  dtype, String  layout);
 
-private:
+protected:
 
   StringTree              dataset_body;
   DatasetTimesteps        timesteps;

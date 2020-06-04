@@ -460,6 +460,7 @@ def MidxToIdx(args):
 	DATASET = LoadIdxDataset(args.DATASET)
 	FIELD=DATASET.getFieldByName(args.FIELD)
 	TIME=DATASET.getDefaultTime()
+	Assert(FIELD.valid())
 
 	# save the new idx file
 	idxfile=DATASET.idxfile
@@ -473,6 +474,7 @@ def MidxToIdx(args):
 	Assert(dataset)
 	field=dataset.getDefaultField()
 	time=dataset.getDefaultTime()
+	Assert(field.valid())
 
 	ACCESS = DATASET.createAccess()
 	access = dataset.createAccess()
@@ -523,7 +525,7 @@ def Main(args):
 		FixRange(action_args)
 		sys.exit(0)
 		
-	# example  -m OpenVisus server --port 10000
+	# example  -m OpenVisus server --port 10000 [--dataset D:\GoogleSci\visus_slam\TaylorGrant\VisusSlamFiles\visus.midx]
 	if action=="server":
 		RunServer(action_args)
 		sys.exit(0)

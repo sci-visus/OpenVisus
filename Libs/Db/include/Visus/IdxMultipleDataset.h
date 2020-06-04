@@ -93,9 +93,6 @@ public:
     down_datasets[name] = value;
   }
 
-  //computeDefaultFields
-  void computeDefaultFields();
-
 public:
 
   //read 
