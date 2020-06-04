@@ -420,6 +420,17 @@ def CopyDataset(args):
 		dst, src_access, dst_field, dst_time,
 		src, dst_access, src_field, src_time)
 
+
+# ////////////////////////////////////////////////
+def CompressDataset(args):
+	parser = argparse.ArgumentParser(description="compress dataset")
+	parser.add_argument("--dataset"       , type=str,   help="dataset", required=True)
+	parser.add_argument("--compression"   , type=str,   help="compresson", required=True)
+	args = parser.parse_args(args)
+	db=LoadDataset(args.dataset)
+	Assert(db)
+	Assert(db.compressDataset(args.compression))
+
 # ////////////////////////////////////////////////
 def RunViewer(args):
 	from VisusGuiPy import GuiModule,Viewer
@@ -506,7 +517,13 @@ def Main(args):
 
 	if action=="copy-dataset":
 		os.chdir(this_dir)
-		CopyDataset(args[2:]);
+		CopyDataset(args[2:])
+		sys.exit(0)
+
+	# -m OpenVisus compress-dataset --dataset "D:\GoogleSci\visus_dataset\cat256\visus0.idx" --compression zip
+	if action=="compress-dataset":
+		os.chdir(this_dir)
+		CompressDataset(args[2:])
 		sys.exit(0)
 
 	# example: python -m OpenVisus viewer ....

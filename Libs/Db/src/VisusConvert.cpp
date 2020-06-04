@@ -262,40 +262,6 @@ public:
 
 };
 
-///////////////////////////////////////////////////////////
-class CompressDataset : public VisusConvert::Step
-{
-public:
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " <dataset_filename> <compression>" << std::endl;
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    if (args.size() != 3)
-      ThrowException(args[0], "syntax error, needed 3 arguments");
-
-    String url = args[1];
-    auto dataset = LoadDataset(url);
-
-    String compression = args[2];
-
-    if (!dataset->compressDataset(compression))
-      ThrowException(args[0], "Compression failed");
-
-    return data;
-  }
-};
-
-
-
 ///////////////////////////////////////////////////////////////////////////////
 class ConvertMidxToIdx : public VisusConvert::Step
 {
@@ -820,7 +786,6 @@ VisusConvert::VisusConvert()
   addAction("resample", []() {return std::make_shared<ResampleData>(); });
   addAction("get-component", []() {return std::make_shared<GetComponent>(); });
 
-  addAction("compress-dataset", []() {return std::make_shared<CompressDataset>(); });
   addAction("midx-to-idx", []() {return std::make_shared<ConvertMidxToIdx>(); });
 }
 
