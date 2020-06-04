@@ -972,87 +972,6 @@ public:
   }
 };
 
-///////////////////////////////////////////////////////////
-class TestEncoderSpeed : public VisusConvert::Step
-{
-public:
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " <dataset> <compression_algorithm>" << std::endl
-      << "Example: " << args[0] << " F:/visus_dataset/2kbit1/hzorder/visus.idx zip";
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    if (args.size() != 3)
-      ThrowException(args[0], "syntax error");
-
-    String filename = args[1];
-    auto dataset = LoadDataset(filename);
-
-    String compression = args[2];
-
-    auto access = dataset->createAccessForBlockQuery();
-    auto field = dataset->getDefaultField();
-    auto time = dataset->getDefaultTime();
-
-    Time T1 = Time::now(), t1;
-    BigInt decoded_bytes = 0; double decode_sec = 0;
-    BigInt encoded_bytes = 0; double encode_sec = 0;
-
-    Aborted aborted;
-    access->beginRead();
-
-    for (BigInt block_id = 0, nblocks = dataset->getTotalNumberOfBlocks(); ; block_id = (block_id + 1) % nblocks)
-    {
-      auto read_block = std::make_shared<BlockQuery>(dataset.get(), field, time, access->getStartAddress(block_id), access->getEndAddress(block_id), 'r', aborted);
-
-      if (!dataset->executeBlockQueryAndWait(access, read_block))
-        continue;
-
-      auto block = read_block->buffer;
-
-      t1 = Time::now();
-      auto encoded = ArrayUtils::encodeArray(compression, block); VisusReleaseAssert(encoded);
-      encode_sec += t1.elapsedSec();
-      encoded_bytes += encoded->c_size();
-
-      t1 = Time::now();
-      auto decoded = ArrayUtils::decodeArray(compression, block.dims, block.dtype, encoded); VisusReleaseAssert(decoded);
-      decode_sec += t1.elapsedSec();
-      decoded_bytes += decoded.c_size();
-
-      VisusReleaseAssert(block.c_size() == decoded.c_size());
-      VisusReleaseAssert(memcmp(block.c_ptr(), decoded.c_ptr(), block.c_size()) == 0);
-
-      if (T1.elapsedSec() > 5)
-      {
-        auto encoded_mb = encoded_bytes / (1024 * 1024);
-        auto decoded_mb = decoded_bytes / (1024 * 1024);
-        auto ratio = 100.0 * (encoded_mb / (double)decoded_mb);
-
-        PrintInfo("Ratio", ratio, "%");
-        PrintInfo("Encoding MByte", encoded_mb, "sec", encode_sec, "MByte/sec", encoded_mb / encode_sec);
-        PrintInfo("Decoding MByte", decoded_mb, "sec", decode_sec, "MByte/sec", decoded_mb / decode_sec);
-        PrintInfo("");
-
-        T1 = Time::now();
-        //decoded_bytes = 0; decode_sec = 0;
-        //encoded_bytes = 0; encode_sec = 0;
-      }
-    }
-
-    access->endRead();
-
-    return data;
-  }
-};
 
 ///////////////////////////////////////////////////////////////////////
 class TestQuerySpeed : public VisusConvert::Step
@@ -1415,7 +1334,6 @@ VisusConvert::VisusConvert()
   addAction("get-component", []() {return std::make_shared<GetComponent>(); });
 
   addAction("test-query-speed", []() {return std::make_shared<TestQuerySpeed>(); });
-  addAction("test-encoder-speed", []() {return std::make_shared<TestEncoderSpeed>(); });
   addAction("test-idx-slab-speed", []() {return std::make_shared<TestIdxSlabSpeed>(); });
   addAction("test-network-speed", []() {return std::make_shared<TestNetworkSpeed>(); });
 }
