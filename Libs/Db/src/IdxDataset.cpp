@@ -1299,7 +1299,7 @@ void IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
     query->time = cdouble(query->field.getParam("time"));
 
   if (!getTimesteps().containsTimestep(query->time))
-    return query->setFailed("missing timestep");
+    return query->setFailed("wrong time");
 
   if (query->end_resolutions.empty())
     query->end_resolutions = { this->getMaxResolution() };
@@ -1691,7 +1691,7 @@ void IdxDataset::beginQuery(SharedPtr<PointQuery> query)
     query->time = cdouble(query->field.getParam("time"));
 
   if (!getTimesteps().containsTimestep(query->time))
-    return query->setFailed("missing timestep");
+    return query->setFailed("wrong time");
 
   if (query->end_resolution < 0)
     query->end_resolution = this->getMaxResolution();

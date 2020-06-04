@@ -86,6 +86,9 @@ public:
   Field(String name, String dtype, String default_layout = "") : Field(name,DType::fromString(dtype),default_layout) {
   }
 
+  //fromString
+  static Field fromString(String src);
+
   //valid
   inline bool valid() const{
     return this->dtype.valid();

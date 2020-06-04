@@ -31,23 +31,23 @@ class MyTestCase(unittest.TestCase):
 		dtype="uint8[3]"
 		width,height,depth=1025,512,256
 		field=Field("data",dtype,"row_major")
-		PyDataset.Create(url=url,dims=[width,height,depth],fields=[field])
+		CreateIdx(url=url,dims=[width,height,depth],fields=[field])
 
 	def testCreate2dDatasetFromNumPy(self):
 		url="tmp/data2d_from_numpy.idx"
 		data=numpy.asarray(Image.open('datasets/cat/rgb.png'))
-		PyDataset.Create(url=url, dim=2,data=data)
+		CreateIdx(url=url, dim=2,data=data)
 		
 	def testCreate3dDatasetFromNumPy(self):
 		url="tmp/data3d_from_numpy.idx"
 		data=numpy.zeros((100,100,100,3),dtype=numpy.float32) # depth,height,width,nchannels
-		PyDataset.Create(url=url, dim=3, data=data)
+		CreateIdx(url=url, dim=3, data=data)
 		
 	def testCreate3dDatasetFromSlices(self):
 			url="tmp/data3d_from_slices.idx"
 			width, height,depth=256,256,10
 			fields=[Field("data","uint8[3]","row_major")]
-			PyDataset.Create(url=url,dims=[width,height,depth],fields=fields)
+			CreateIdx(url=url,dims=[width,height,depth],fields=fields)
 			db=PyDataset(url)
 
 			cat=numpy.asarray(Image.open('datasets/cat/rgb.png'))
@@ -69,7 +69,7 @@ class MyTestCase(unittest.TestCase):
 		
 		url="tmp/create3d_and_read_stuff.idx"
 		field=Field("data","uint8[3]","row_major")
-		PyDataset.Create(url=url,dims=[width,height,depth],fields=[field])
+		CreateIdx(url=url,dims=[width,height,depth],fields=[field])
 		
 		db=PyDataset(url)
 		print(db.getDatasetBody().toString())

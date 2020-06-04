@@ -630,7 +630,7 @@ public:
     if (!dataset->getTimesteps().containsTimestep(query->time))
     {
       PrintInfo("Missing timestep",query->time, "for input['", concatenate(name, ".", field.name), "']...ignoring it");
-      query->setFailed("missing timestep");
+      query->setFailed("wrong time");
       return query;
     }
 

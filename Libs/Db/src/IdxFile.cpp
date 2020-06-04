@@ -246,13 +246,6 @@ void IdxFile::validate(String url)
     filename_template = guessFilenameTemplate(url);
 }
 
-//////////////////////////////////////////////////////////////////////////////
-static String parseRoundBracketArgument(String s,String name)
-{
-  String arg=StringUtils::nextToken(s,name+"(");
-  return arg.empty()?"":StringUtils::trim(StringUtils::split(arg,")")[0]);
-}
-
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -286,78 +279,8 @@ std::vector<Field> IdxFile::parseFields(String fields_content)
 
   for (int I=0;I<(int)v.size();I++)
   {
-    String sfield=v[I];
-    std::istringstream ss(sfield);
-
-    Field field;
-
-    //name
-    {
-      ss>>field.name;
-      if (field.name.empty())
-        return std::vector<Field>();
-    }
-
-    //dtype
-    {
-      String string_dtype;
-      ss>>string_dtype;
-      field.dtype=DType::fromString(string_dtype);
-      if (!field.dtype.valid()) 
-        return std::vector<Field>();
-    }
-
-    //description
-    field.description=parseRoundBracketArgument(sfield,"description");
-
-    //default_compression(algorithm)
-    {
-      auto& compression = field.default_compression;
-
-      if (compression.empty())
-        compression = parseRoundBracketArgument(sfield, "default_compression");
-
-      //compressed(algorithm)
-      if (compression.empty())
-        compression =parseRoundBracketArgument(sfield,"compressed");
-
-      //backward compatibility: compressed means zip
-      if (compression.empty() && StringUtils::contains(sfield, "compressed")) 
-        compression = "zip";
-    }
-
-    //default_layout
-    {
-      field.default_layout=parseRoundBracketArgument(sfield,"default_layout");
-
-      //backward compatible: format(...)
-      if (field.default_layout.empty())
-        field.default_layout=parseRoundBracketArgument(sfield,"format");
-    }
-
-    //default_value
-    {
-      field.default_value=cint(parseRoundBracketArgument(sfield,"default_value"));
-    }
-
-    //filter(...)
-    field.filter=parseRoundBracketArgument(sfield,"filter");
-
-    //min(...) max(...)
-    {
-      auto vmin = StringUtils::split(parseRoundBracketArgument(sfield,"min"));
-      auto vmax = StringUtils::split(parseRoundBracketArgument(sfield,"max"));
-      if (!vmin.empty() && !vmax.empty())
-      {
-        for (int C=0;C<field.dtype.ncomponents();C++) 
-        {
-          auto From=cdouble(vmin[C<vmin.size()? C : vmin.size()-1]);
-          auto To  =cdouble(vmax[C<vmax.size()? C : vmax.size()-1]);
-          field.setDTypeRange(Range(From,To,0),C);
-        }
-      }
-    }
-
+    auto field = Field::fromString(v[I]);
+    
     if (!field.valid())
       return std::vector<Field>();
 

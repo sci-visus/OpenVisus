@@ -36,7 +36,6 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/VisusConvert.h>
 #include <Visus/Encoder.h>
 #include <Visus/IdxDataset.h>
 

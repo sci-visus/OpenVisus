@@ -40,6 +40,90 @@ For support : support@visus.net
 
 namespace Visus {
 
+//////////////////////////////////////////////////////////////////////////////
+static String parseRoundBracketArgument(String s, String name)
+{
+  String arg = StringUtils::nextToken(s, name + "(");
+  return arg.empty() ? "" : StringUtils::trim(StringUtils::split(arg, ")")[0]);
+}
+
+  ////////////////////////////////////////////////////
+Field Field::fromString(String sfield)
+{
+  std::istringstream ss(sfield);
+
+  Field ret;
+
+  //name
+  {
+    ss >> ret.name;
+    if (ret.name.empty())
+      return Field();
+  }
+
+  //dtype
+  {
+    String string_dtype;
+    ss >> string_dtype;
+    ret.dtype = DType::fromString(string_dtype);
+    if (!ret.dtype.valid())
+      return Field();
+  }
+
+  //description
+  ret.description = parseRoundBracketArgument(sfield, "description");
+
+  //default_compression(algorithm)
+  {
+    auto& compression = ret.default_compression;
+
+    if (compression.empty())
+      compression = parseRoundBracketArgument(sfield, "default_compression");
+
+    //compressed(algorithm)
+    if (compression.empty())
+      compression = parseRoundBracketArgument(sfield, "compressed");
+
+    //backward compatibility: compressed means zip
+    if (compression.empty() && StringUtils::contains(sfield, "compressed"))
+      compression = "zip";
+  }
+
+  //default_layout
+  {
+    ret.default_layout = parseRoundBracketArgument(sfield, "default_layout");
+
+    //backward compatible: format(...)
+    if (ret.default_layout.empty())
+      ret.default_layout = parseRoundBracketArgument(sfield, "format");
+  }
+
+  //default_value
+  {
+    ret.default_value = cint(parseRoundBracketArgument(sfield, "default_value"));
+  }
+
+  //filter(...)
+  ret.filter = parseRoundBracketArgument(sfield, "filter");
+
+  //min(...) max(...)
+  {
+    auto vmin = StringUtils::split(parseRoundBracketArgument(sfield, "min"));
+    auto vmax = StringUtils::split(parseRoundBracketArgument(sfield, "max"));
+    if (!vmin.empty() && !vmax.empty())
+    {
+      for (int C = 0; C < ret.dtype.ncomponents(); C++)
+      {
+        auto From = cdouble(vmin[C < vmin.size() ? C : vmin.size() - 1]);
+        auto To = cdouble(vmax[C < vmax.size() ? C : vmax.size() - 1]);
+        ret.setDTypeRange(Range(From, To, 0), C);
+      }
+    }
+  }
+
+  return ret;
+}
+
 ////////////////////////////////////////////////////
 void Field::write(Archive& ar) const
 {

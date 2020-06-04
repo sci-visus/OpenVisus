@@ -190,42 +190,6 @@ def UsePyQt5():
 			for filename in glob.glob("*.so") + glob.glob("bin/*.so") + ["bin/visus","bin/visusviewer"]:
 				SetRPath(filename,"$ORIGIN:$ORIGIN/bin:" + os.path.join(PyQt5_HOME,'Qt/lib'))
 
-# ////////////////////////////////////////////////
-def Test(args):
-
-	parser = argparse.ArgumentParser(description="test command.")
-	parser.add_argument("--type",type=str, help="Type of  tests to enable", default="default") 
-	args = parser.parse_args(args)
-
-	def RunTest(cmd):
-		return ExecuteCommand([sys.executable] + cmd,check_result=True) 
-
-	def RunJupyterTest(filename):
-		return RunTest(["-m","jupyter","nbconvert","--execute",filename])
-
-	if "all" in args.type or "default" in args.type:
-		RunTest(["Samples/python/Array.py"])
-		RunTest(["Samples/python/Dataflow.py"])
-		RunTest(["Samples/python/Dataflow2.py"])
-		RunTest(["Samples/python/Idx.py"])
-		RunTest(["Samples/python/XIdx.py"])
-		RunTest(["Samples/python/TestConvert.py"])
-		RunTest(["Samples/python/MinMax.py"])
-		RunTest(["-m","OpenVisus","server","--dataset","./datasets/cat/rgb.exit","--port","10000","--exit"])
-
-	if "all" in args.type or "viewer" in args.type:
-		RunTest(["-m","OpenVisus","viewer"])
-		RunTest(["-m","OpenVisus","viewer1"])
-		RunTest(["-m","OpenVisus","viewer2"])
-
-	if "all" in args.type or "jupyter" in args.type:
-		RunJupyterTest("./quick_tour.ipynb")
-		RunJupyterTest("./Samples/jupyter/Agricolture.ipynb")
-		RunJupyterTest("./Samples/jupyter/Climate.ipynb")
-
-		# disabled: dependency on ipyvolume 
-		# RunJupyterTest("./Samples/jupyter/ReadAndView.ipynb")
-
 
 # ////////////////////////////////////////////////
 def TestWriteSpeed(args):
@@ -551,7 +515,30 @@ def Main(args):
 	# ___________________________________________________________________ test
 	if action=="test":
 		os.chdir(this_dir)
-		Test(action_args)
+		ExecuteCommand([sys.executable, "Samples/python/Array.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/Dataflow.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/Dataflow2.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/Idx.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/XIdx.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/TestConvert.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/MinMax.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "-m","OpenVisus","server","--dataset","./datasets/cat/rgb.exit","--port","10000","--exit"],check_result=True) 
+		sys.exit(0)
+
+	if action=="test-viewer":
+		os.chdir(this_dir)
+		ExecuteCommand([sys.executable, "-m","OpenVisus","viewer" ],check_result=True) 
+		ExecuteCommand([sys.executable, "-m","OpenVisus","viewer1"],check_result=True) 
+		ExecuteCommand([sys.executable, "-m","OpenVisus","viewer2"],check_result=True) 
+		sys.exit(0)
+
+	if action=="test-jupyter":
+		os.chdir(this_dir)
+		ExecuteCommand([sys.executable, "-m","jupyter","nbconvert","--execute","./quick_tour.ipynb"],check_result=True) 
+		ExecuteCommand([sys.executable, "-m","jupyter","nbconvert","--execute","./Samples/jupyter/Agricolture.ipynb"],check_result=True) 
+		ExecuteCommand([sys.executable, "-m","jupyter","nbconvert","--execute","./Samples/jupyter/Climate.ipynb"],check_result=True) 
+		# disabled: dependency on ipyvolume 
+		# ExecuteCommand([sys.executable, "-m","jupyter","nbconvert","--execute","./Samples/jupyter/ReadAndView.ipynb"],check_result=True) 
 		sys.exit(0)
 
 	if action=="test-idx":

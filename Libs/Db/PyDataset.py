@@ -4,6 +4,64 @@ import inspect
 
 from OpenVisus import *
 
+# //////////////////////////////////////////////////////////
+def CreateIdx(**args):
+
+	if not "url" in args:
+		raise Exception("url not specified")
+
+	url=args["url"]
+
+	idx=IdxFile()
+		
+	if "data" in args:
+		data=args["data"]
+		dim=int(args["dim"])
+		Assert(dim>=2) # you must specify the point dim since it could be that data has multiple components
+		buffer=Array.fromNumPy(data,TargetDim=dim)
+		idx.logic_box=BoxNi(PointNi.zero(dim),PointNi(buffer.dims))
+		N=1 if dim==len(data.shape) else data.shape[-1]
+		idx.fields.push_back(Field.fromString("DATA uint8[{}] default_layout(row_major)".format(N)))
+
+	else:
+		if not "dims" in args:
+			raise Exception("please specify dimensions")
+
+		dims=PointNi(args["dims"])
+		idx.logic_box=BoxNi(PointNi.zero(dims.getPointDim()),dims)
+
+	# add fields
+	if "fields" in args:
+		for field in  args["fields"]:
+			idx.fields.push_back(field)
+
+	# bitsperblock
+	if "bitsperblock" in args:
+		idx.bitsperblock=int(args["bitsperblock"])
+
+	# blocks per file
+	if "blocksperfile" in args:
+		idx.samplesperblock=int(args["blocksperfile"])
+		
+	# is the user specifying filters?
+	if "filters" in args:
+		filters=args["filters"]
+		for I in range(idx.fields.size()):
+			idx.fields[I].filter=filters[I]
+
+	if "time" in args:
+		A,B,time_template=args["time"]
+		idx.timesteps=DatasetTimesteps(A,B,1.0)
+		idx.time_template=time_template
+
+	idx.save(url)
+	db=PyDataset(url)
+
+	if "data" in args:
+		db.write(args["data"])
+			
+	return db
+
 # //////////////////////////////////////////////
 class PyDataset(object):
 	
@@ -14,46 +72,7 @@ class PyDataset(object):
 	# Create
 	@staticmethod
 	def Create(**args):
-		
-		dims,fields,data=None, None,None
-		
-		if "data" in args:
-			data=args["data"]
-			dim=int(args["dim"]); Assert(dim>=2)
-			buffer=Array.fromNumPy(data,TargetDim=dim, bShareMem=True)
-			field=Field("data",buffer.dtype,"row_major")
-			dims=buffer.dims
-			fields=[field]
-
-		if "dims" in args:
-			dims=args["dims"]
-
-		if "fields" in args:
-			fields=args["fields"]
-		
-		dims=PointNi(dims)
-		pdim=dims.getPointDim()
-
-		idx=IdxFile()
-		idx.logic_box=BoxNi(PointNi.zero(pdim),dims)
-		
-		for field in fields:
-			idx.fields.push_back(field)
-			
-		# is the user specifying filters?
-		if "filters" in args:
-			filters=args["filters"]
-			for I in range(idx.fields.size()):
-				idx.fields[I].filter=filters[I]
-
-		url=args["url"]
-		idx.save(url)
-
-		if data is not None:
-			db=PyDataset(url)
-			db.write(data)
-			
-		return PyDataset(url)
+		return CreateIdx(args)
 
 	# __getattr__
 	def __getattr__(self,attr):
@@ -111,10 +130,10 @@ class PyDataset(object):
 		if value is None:
 			return self.db.getDefaultField()
 
-		if isinstance(field,string):
-			return self.db.getFieldByName(name)
+		if isinstance(value,str):
+			return self.db.getFieldByName(value)
 			
-		return field
+		return value
 		
 	# createAccess
 	def createAccess(self):
@@ -234,7 +253,6 @@ class PyDataset(object):
 		
 		p1=PointNi([x,y,z][0:pdim])
 		query.logic_box=BoxNi(p1,p1+PointNi(dims))
-		print(data.shape,dims,query.logic_box.toString())
 		
 		query.end_resolutions.push_back(self.getMaxResolution())
 		

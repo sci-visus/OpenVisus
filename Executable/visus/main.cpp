@@ -37,7 +37,7 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/ApplicationInfo.h>
-#include <Visus/VisusConvert.h>
+#include <Visus/Db.h>
 
 using namespace Visus;
 
@@ -50,24 +50,6 @@ int main(int argn, const char* argv[])
   DbModule::attach();
 
   auto args = std::vector<String>(ApplicationInfo::args.begin() + 1, ApplicationInfo::args.end());
-
-  if (ApplicationInfo::debug)
-  {
-    VisusConvert().runFromArgs(args);
-  }
-  else
-  {
-    try
-    {
-      VisusConvert().runFromArgs(args);
-    }
-    catch (std::exception& ex)
-    {
-      PrintInfo("ERROR:",ex.what());
-      DbModule::detach();
-      return -1;
-    }
-  }
 
   PrintInfo("All done in ",T1.elapsedSec(),",seconds");
   DbModule::detach();

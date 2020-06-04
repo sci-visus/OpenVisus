@@ -46,7 +46,7 @@ def TestFilters(img_filename, filter):
 	noise=OpenImage(img_filename)
 
 	# create source dataset for comparison purpouse
-	src_db=PyDataset.Create(url="tmp/src.idx", dim=2, data=noise)
+	src_db=CreateIdx(url="tmp/src.idx", dim=2, data=noise)
 	SaveImage("tmp/src.full.tif", next(src_db.read()))
 
 	# read data coarse to fine
@@ -57,7 +57,7 @@ def TestFilters(img_filename, filter):
 
 	# create filter_level dataset
 	# in order to compute filters I need to have 2 channels (i.e. A B C D -> A0 B0 C0 D0 )
-	filter_db=PyDataset.Create(url="tmp/filter.idx", dim=src_db.getPointDim(), data=AddChannel(noise), filters=[filter])
+	filter_db=CreateIdx(url="tmp/filter.idx", dim=src_db.getPointDim(), data=AddChannel(noise), filters=[filter])
 	
 	# compute the filter fine to coarse
 	filter_db.computeFilter(filter_db.getDefaultField())
