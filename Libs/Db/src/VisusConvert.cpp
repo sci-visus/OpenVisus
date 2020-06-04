@@ -973,87 +973,6 @@ public:
 };
 
 
-///////////////////////////////////////////////////////////////////////
-class TestQuerySpeed : public VisusConvert::Step
-{
-public:
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " <filename> [--query-dim value]" << std::endl
-      << "Example: " << args[0] << " E:/google_sci/visus_dataset/2kbit1/zip/hzorder/visus.idx --query-dim 512";
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    if (args.size() < 2)
-      ThrowException(args[0], "syntax error");
-
-    String filename = args[1];
-    auto dataset = LoadDataset(filename);
-
-    int    query_dim = dataset->getPointDim() == 2 ? 2048 : 512;
-
-    for (int I = 2; I < (int)args.size(); I++)
-    {
-      if (args[I] == "--query-dim")
-      {
-        String s_query_dim = args[++I];
-
-        if (!StringUtils::tryParse(s_query_dim, query_dim) || query_dim <= 0)
-          ThrowException(args[0], "Invalid --query-dim ", s_query_dim);
-
-        continue;
-      }
-
-      ThrowException(args[0], "Invalid args", args[I]);
-    }
-
-    srand((unsigned int)Time::now().getTimeStamp());
-
-    PrintInfo("Testing query...");
-    auto access = dataset->createAccess();
-
-    auto tiles = dataset->generateTiles(query_dim);
-
-    Time T1 = Time::now();
-    Time Tstats = Time::now();
-
-    for (int TileId = 0; TileId < tiles.size(); TileId++)
-    {
-      auto tile = tiles[TileId];
-      auto buffer = dataset->readFullResolutionData(access, dataset->getDefaultField(), dataset->getDefaultTime(), tile);
-      if (!buffer)
-        continue;
-
-      PrintInfo("Done", TileId, "of", tiles.size());
-
-      if (Tstats.elapsedSec() > 3.0)
-      {
-        auto sec = Tstats.elapsedSec();
-
-        auto nopen = (int)ApplicationStats::io.nopen;
-        auto rbytes = (int)ApplicationStats::io.rbytes;
-        auto wbytes = (int)ApplicationStats::io.wbytes;
-
-        PrintInfo("ndone", TileId, "/", tiles.size(),
-          "io.nopen", nopen, "/", Int64(nopen / sec),
-          "io.rbytes", StringUtils::getStringFromByteSize(rbytes), StringUtils::getStringFromByteSize(Int64(rbytes / sec)),
-          "io.wbytes", StringUtils::getStringFromByteSize(wbytes), StringUtils::getStringFromByteSize(Int64(wbytes / sec)));
-        ApplicationStats::io.reset();
-        Tstats = Time::now();
-      }
-    }
-
-    PrintInfo("Test done in", T1.elapsedSec());
-    return data;
-  }
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 class TestIdxSlabSpeed : public VisusConvert::Step
@@ -1263,7 +1182,6 @@ VisusConvert::VisusConvert()
   addAction("resample", []() {return std::make_shared<ResampleData>(); });
   addAction("get-component", []() {return std::make_shared<GetComponent>(); });
 
-  addAction("test-query-speed", []() {return std::make_shared<TestQuerySpeed>(); });
   addAction("test-idx-slab-speed", []() {return std::make_shared<TestIdxSlabSpeed>(); });
 }
 

@@ -623,6 +623,45 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
   return ret;
 }
 
+/////////////////////////////////////////////////////////
+void Dataset::testQuerySpeed(double time, Field field, int query_dim)
+{
+  srand((unsigned int)Time::now().getTimeStamp());
 
+  auto access = this->createAccess();
+
+  auto tiles = this->generateTiles(query_dim);
+
+  Time T1 = Time::now();
+  Time Tstats = Time::now();
+
+  for (int TileId = 0; TileId < tiles.size(); TileId++)
+  {
+    auto tile = tiles[TileId];
+    auto buffer = this->readFullResolutionData(access, this->getDefaultField(), this->getDefaultTime(), tile);
+    if (!buffer)
+      continue;
+
+    PrintInfo("Done", TileId, "of", tiles.size());
+
+    if (Tstats.elapsedSec() > 3.0)
+    {
+      auto sec = Tstats.elapsedSec();
+
+      auto nopen = (int)ApplicationStats::io.nopen;
+      auto rbytes = (int)ApplicationStats::io.rbytes;
+      auto wbytes = (int)ApplicationStats::io.wbytes;
+
+      PrintInfo("ndone", TileId, "/", tiles.size(),
+        "io.nopen", nopen, "/", Int64(nopen / sec),
+        "io.rbytes", StringUtils::getStringFromByteSize(rbytes), StringUtils::getStringFromByteSize(Int64(rbytes / sec)),
+        "io.wbytes", StringUtils::getStringFromByteSize(wbytes), StringUtils::getStringFromByteSize(Int64(wbytes / sec)));
+      ApplicationStats::io.reset();
+      Tstats = Time::now();
+    }
+  }
+
+  PrintInfo("Test done in", T1.elapsedSec());
+}
 
 } //namespace Visus 

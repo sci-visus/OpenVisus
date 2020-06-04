@@ -464,6 +464,9 @@ public:
   //extractLevelImage
   Array extractLevelImage(SharedPtr<Access> access, Field field, double time, int H);
 
+  //testQuerySpeed
+  void testQuerySpeed(double time, Field field, int query_dim);
+
 private:
 
   StringTree              dataset_body;

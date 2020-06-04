@@ -326,6 +326,20 @@ def Main(args):
 		print("nrequests",args.nrequests)
 		print("urls\n","\n\t".join(args.url))
 		NetService.testSpeed(args.nconnections,args.nrequests,args.url)
+		sys.exit(0)
+
+	# _____________________________________________
+	if action=="test-query-speed":
+		# example -m OpenVisus test-query-speed --dataset "D:\GoogleSci\visus_dataset\2kbit1\zip\rowmajor\visus.idx" --query-dim 512
+		os.chdir(this_dir)
+		parser = argparse.ArgumentParser(description="Test query read speed")
+		parser.add_argument("--dataset", type=str, help="Dataset", required=True)
+		parser.add_argument("--query-dim", type=int, help="Query dimension", required=True)
+		args = parser.parse_args(args[2:])
+
+		db=LoadDataset(args.dataset)
+		db.testQuerySpeed(db.getDefaultTime(),db.getDefaultField(),args.query_dim)
+		sys.exit(0)
 
 	# _____________________________________________
 	if action=="convert":
