@@ -1235,76 +1235,6 @@ public:
 
 };
 
-//////////////////////////////////////////////////////////////////////////////
-class TestNetworkSpeed : public VisusConvert::Step
-{
-public:
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    return cstring(args[0],
-      "[--c nconnections] [--n nrequests] (url)+", "\n",
-      "Example: ", args[0], "--c 8 -n 1000 http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled");
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    int nconnections = 1;
-    int nrequests = 1;
-    std::vector<String> urls;
-
-    for (int I = 1; I < args.size(); I++)
-    {
-      if (args[I] == "-c")
-        nconnections = cint(args[++I]);
-
-      else if (args[I] == "-n")
-        nrequests = cint(args[++I]);
-
-      else
-        urls.push_back(args[I]);
-    }
-
-    PrintInfo("Concurrency", nconnections);
-    PrintInfo("nrequest", nrequests);
-    PrintInfo("urls");
-    for (auto url : urls)
-      PrintInfo("  ", url);
-
-    auto net = std::make_shared<NetService>(nconnections, false);
-
-    Time t1 = Time::now();
-
-    WaitAsync< Future<NetResponse> > wait_async;
-    for (int Id = 0; Id < nrequests; Id++)
-    {
-      NetRequest request(urls[Id % urls.size()]);
-      wait_async.pushRunning(NetService::push(net, request)).when_ready([Id](NetResponse response) {
-
-        if (response.status != HttpStatus::STATUS_OK)
-          PrintInfo("one request failed");
-
-        if (Id && (Id % 100) == 0)
-          PrintInfo("Done ", Id, "request");
-      });
-    }
-
-    wait_async.waitAllDone();
-
-    auto sec = t1.elapsedSec();
-
-    PrintInfo("All done in", sec, "sec");
-    PrintInfo(
-      "Num request/sec", double(nrequests) / sec,
-      "read", StringUtils::getStringFromByteSize(ApplicationStats::net.rbytes), "bytes/sec", double(ApplicationStats::net.rbytes) / (sec),
-      "write", StringUtils::getStringFromByteSize(ApplicationStats::net.wbytes), "bytes/sec", double(ApplicationStats::net.wbytes) / (sec));
-    ApplicationStats::net.reset();
-
-    return data;
-  }
-};
 
 } //namespace Private
 
@@ -1335,7 +1265,6 @@ VisusConvert::VisusConvert()
 
   addAction("test-query-speed", []() {return std::make_shared<TestQuerySpeed>(); });
   addAction("test-idx-slab-speed", []() {return std::make_shared<TestIdxSlabSpeed>(); });
-  addAction("test-network-speed", []() {return std::make_shared<TestNetworkSpeed>(); });
 }
 
 //////////////////////////////////////////////////////////////////////////////

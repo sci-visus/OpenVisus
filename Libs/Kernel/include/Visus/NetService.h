@@ -95,6 +95,9 @@ public:
   //getNetResponse
   static NetResponse getNetResponse(NetRequest request);
 
+  //testSpeed
+  static void testSpeed(int nconnections, int nrequests, std::vector<String> urls);
+
 private:
 
   typedef std::list< std::pair< SharedPtr<NetRequest> , Promise<NetResponse> > > Waiting;

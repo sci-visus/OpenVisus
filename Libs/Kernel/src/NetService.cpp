@@ -611,6 +611,36 @@ void NetService::printStatistics(int connection_id, const NetRequest& request, c
     "url", request.url);
 }
 
+/////////////////////////////////////////////////////////////////////////////
+void NetService::testSpeed(int nconnections, int nrequests, std::vector<String> urls)
+{
+  auto net = std::make_shared<NetService>(nconnections, false);
+
+  ApplicationStats::net.reset();
+
+  Time t1 = Time::now();
+
+  WaitAsync< Future<NetResponse> > wait_async;
+  for (int request_id = 0; request_id < nrequests; request_id++)
+  {
+    NetRequest request(urls[request_id % urls.size()]);
+    wait_async.pushRunning(NetService::push(net, request)).when_ready([request_id](NetResponse response) {
+      PrintInfo("Request", request_id, response.isSuccessful()? "ok":"error");
+    });
+  }
+
+  wait_async.waitAllDone();
+
+  auto sec = t1.elapsedSec();
+  PrintInfo("All done in", sec, "sec");
+  PrintInfo(
+    "Num request/sec", double(nrequests) / sec,
+    "read", StringUtils::getStringFromByteSize(ApplicationStats::net.rbytes), "bytes/sec", double(ApplicationStats::net.rbytes) / (sec),
+    "write", StringUtils::getStringFromByteSize(ApplicationStats::net.wbytes), "bytes/sec", double(ApplicationStats::net.wbytes) / (sec));
+
+  ApplicationStats::net.reset();
+}
+
 } //namespace Visus
 
 

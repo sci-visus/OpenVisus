@@ -10,6 +10,7 @@
 #include <Visus/TransferFunction.h>
 #include <Visus/Ray.h>
 #include <Visus/Frustum.h>
+#include <Visus/NetService.h>
 
 using namespace Visus;
 %}
@@ -213,6 +214,11 @@ fromNumPy = staticmethod(fromNumPy)
 
 }; //%extend Visus::Array {
 
+
+%include <Visus/NetMessage.h>
+%include <Visus/NetSocket.h>
+%include <Visus/NetService.h>
+%include <Visus/NetServer.h>
 	
 %shared_ptr(Visus::TransferFunction)
 %include <Visus/TransferFunction.h>

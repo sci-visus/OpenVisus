@@ -312,6 +312,22 @@ def Main(args):
 		sys.exit(0)
 
 	# _____________________________________________
+	if action=="test-network-speed":
+		# example -m OpenVisus test-network-speed  --nconnections 1 --nrequests 100 --url "http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled" 
+		os.chdir(this_dir)
+		parser = argparse.ArgumentParser(description="Test IO read speed")
+		parser.add_argument("--nconnections", type=int, help="Number of connections", required=False,default=8)
+		parser.add_argument("--nrequests", type=int, help="Number of Request", required=False,default=1000)
+		parser.add_argument("--url", action='append', help="Url", required=True)
+		args = parser.parse_args(args[2:])
+
+		print("NetService speed test")
+		print("nconnections",args.nconnections)
+		print("nrequests",args.nrequests)
+		print("urls\n","\n\t".join(args.url))
+		NetService.testSpeed(args.nconnections,args.nrequests,args.url)
+
+	# _____________________________________________
 	if action=="convert":
 		convert=VisusConvert()
 		convert.runFromArgs(args[2:])
