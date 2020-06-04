@@ -1,8 +1,12 @@
 import os, sys, glob, subprocess, platform, shutil, sysconfig, re, argparse
 
-from OpenVisus import *
+this_dir=os.path.dirname(os.path.abspath(__file__))
 
-# *** NOTE: this file must be self-contained ***
+if len(sys.argv)>=2 and sys.argv[1]=="dirname":
+	print(this_dir)
+	sys.exit(0)
+
+from OpenVisus import *
 
 """
 Linux:
@@ -191,7 +195,7 @@ def Test(args):
 
 	parser = argparse.ArgumentParser(description="test command.")
 	parser.add_argument("--type",type=str, help="Type of  tests to enable", default="default") 
-	args = parser.parse_args()
+	args = parser.parse_args(args)
 
 	def RunTest(cmd):
 		return ExecuteCommand([sys.executable] + cmd,check_result=True) 
@@ -450,6 +454,7 @@ def MidxToIdx(args):
 	parser.add_argument("--dataset"   , type=str,   required=True)
 	args = parser.parse_args(args)
 
+	# in case it's an expression
 	args.TILE_SIZE=int(eval(args.TILE_SIZE))
 
 	DATASET = LoadIdxDataset(args.DATASET)
@@ -462,8 +467,7 @@ def MidxToIdx(args):
 	idxfile.time_template = ""     #force guess
 	idxfile.fields.clear()
 	idxfile.fields.push_back(Field("DATA", FIELD.dtype, "rowmajor")) # note that compression will is empty in writing (at the end I will compress)
-	print("!!!",args.dataset)
-	Assert(idxfile.save(args.dataset))
+	idxfile.save(args.dataset)
 
 	dataset = LoadIdxDataset(args.dataset)
 	Assert(dataset)
@@ -479,9 +483,6 @@ def MidxToIdx(args):
 	T1 = Time.now()
 	for TILE_ID in range(TOT_TILES):
 		TILE = TILES[TILE_ID]
-
-		print("Doing tile",TILE_ID,"/",TOT_TILES,"...")
-
 		t1 = Time.now()
 		buffer = DATASET.readFullResolutionData(ACCESS, FIELD, TIME, TILE)
 		msec_read = t1.elapsedMsec()
@@ -500,20 +501,15 @@ def MidxToIdx(args):
 # ////////////////////////////////////////////////
 def Main(args):
 
-	action=args[1] if len(args)>=2 else ""
+	if not args:
+		return
 
-	# no arguments
-	if action=="":
-		sys.exit(0)
+	action=args[0].lower()
+	action_args=args[1:]
 
-	this_dir=os.path.dirname(os.path.abspath(__file__))
+	print("-m OpenVisus",action,action_args)
 
-	if action=="dirname":
-		print(this_dir)
-		sys.exit(0)
-
-	print("args",args)
-	print("this_dir",this_dir)
+	# ___________________________________________________________________ openvisus utils
 
 	if action=="configure" or action=="use-pyqt5":
 		os.chdir(this_dir)
@@ -521,9 +517,39 @@ def Main(args):
 		print(action,"done")
 		sys.exit(0)
 
+
+	#example -m OpenVisus fix-range --dataset "D:\GoogleSci\visus_dataset\cat256\visus0.idx" 
+	if action=="fix-range":
+		FixRange(action_args)
+		sys.exit(0)
+		
+	# example  -m OpenVisus server --port 10000
+	if action=="server":
+		RunServer(action_args)
+		sys.exit(0)
+
+	if action=="copy-dataset":
+		CopyDataset(action_args)
+		sys.exit(0)
+
+	# -m OpenVisus compress-dataset --dataset "D:\GoogleSci\visus_dataset\cat256\visus0.idx" --compression zip
+	if action=="compress-dataset":
+		CompressDataset(action_args)
+		sys.exit(0)
+
+	# example: -m OpenVisus midx-to-idx --DATASET "D:\GoogleSci\visus_slam\TaylorGrant\VisusSlamFiles\visus.midx" --FIELD "output=voronoi()" --TILE-SIZE "4*1024" --dataset "tmp/test.idx"
+	if action=="midx-to-idx":
+		MidxToIdx(action_args)
+		sys.exit(0)
+
+	if action=="convert":
+		VisusConvert().runFromArgs(action_args)
+		sys.exit(0)
+
+	# ___________________________________________________________________ test
 	if action=="test":
 		os.chdir(this_dir)
-		Test(args[2:])
+		Test(action_args)
 		sys.exit(0)
 
 	if action=="test-idx":
@@ -533,55 +559,33 @@ def Main(args):
 		
 	# example python -m OpenVisus test-write-speed --filename "d:/~temp.bin" --blocksize "64*1024"
 	if action=="test-write-speed":
-		TestWriteSpeed(args[2:])
+		TestWriteSpeed(action_args)
 		sys.exit(0)
 
 	if action=="test-read-speed":
-		TestReadSpeeds(args[2:])
+		TestReadSpeeds(action_args)
 		sys.exit(0)
 
 	# example -m OpenVisus test-network-speed  --nconnections 1 --nrequests 100 --url "http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled" 
 	if action=="test-network-speed":
-		TestNetworkSpeed(args[2:])
+		TestNetworkSpeed(action_args)
 		sys.exit(0)
 		
 	# example -m OpenVisus test-query-speed --dataset "D:\GoogleSci\visus_dataset\2kbit1\zip\rowmajor\visus.idx" --query-dim 512
 	if action=="test-query-speed":
-		TestQuerySpeed(args[2:])
+		TestQuerySpeed(action_args)
 		sys.exit(0)
 		
 	# example -m OpenVisus test-slab-speed --dataset "D:\temp\test\test.idx" --dims "1024 1024 1024" --num-slabs 128 --dtype "int32" --layout ""
 	if action=="test-slab-speed":
-		TestSlabSpeed(args[2:])
+		TestSlabSpeed(action_args)
 		sys.exit(0)
 		
-	#example -m OpenVisus fix-range --dataset "D:\GoogleSci\visus_dataset\cat256\visus0.idx" 
-	if action=="fix-range":
-		FixRange(args[2:])
-		sys.exit(0)
-		
-	# example  -m OpenVisus server --port 10000
-	if action=="server":
-		RunServer(args[2:])
-		sys.exit(0)
-
-	if action=="copy-dataset":
-		CopyDataset(args[2:])
-		sys.exit(0)
-
-	# -m OpenVisus compress-dataset --dataset "D:\GoogleSci\visus_dataset\cat256\visus0.idx" --compression zip
-	if action=="compress-dataset":
-		CompressDataset(args[2:])
-		sys.exit(0)
-
-	# example: -m OpenVisus midx-to-idx --DATASET "D:\GoogleSci\visus_slam\TaylorGrant\VisusSlamFiles\visus.midx" --FIELD "output=voronoi()" --TILE-SIZE "4*1024" --dataset "tmp/test.idx"
-	if action=="midx-to-idx":
-		MidxToIdx(args[2:])
-		sys.exit(0)
+	# ___________________________________________________________________ gui
 
 	# example: python -m OpenVisus viewer ....
 	if action=="viewer":
-		RunViewer(args[2:])
+		RunViewer(action_args)
 		sys.exit(0)
 
 	if action=="viewer1":
@@ -596,16 +600,8 @@ def Main(args):
 		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "VisibleHuman.py")]) 
 		sys.exit(0)
 
-	# forward to convert
-	args=args[2:] if action=="convert" else args[1:]
-	convert=VisusConvert()
-	convert.runFromArgs(args)
-	sys.exit(0)
+	raise Exception("unknown action",action)
 
 # //////////////////////////////////////////
 if __name__ == "__main__":
-	Main(sys.argv)
-
-
-
-
+	Main(sys.argv[1:])
