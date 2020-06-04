@@ -1136,124 +1136,6 @@ public:
   }
 };
 
-//////////////////////////////////////////////////////////////////////////////
-class TestFileReadWriteSpeed : public VisusConvert::Step
-{
-public:
-
-  bool bWriting;
-
-  //constructor
-  TestFileReadWriteSpeed(bool bWriting_) : bWriting(bWriting_) {
-  }
-
-  //destructor
-  virtual ~TestFileReadWriteSpeed() {
-  }
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " [--filename value] [--blocksize value] [--filesize value]" << std::endl
-      << "Example: " << args[0] << " --filename example.idx --blocksize 64KB --filesize 1MB";
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    String filename = "temp.bin";
-    Int64 blocksize = StringUtils::getByteSizeFromString("64kb");
-    Int64 filesize = StringUtils::getByteSizeFromString("1gb");
-
-    for (int I = 1; I < (int)args.size(); I++)
-    {
-      if (args[I] == "--filename")
-      {
-        filename = args[++I];
-        continue;
-      }
-
-      if (args[I] == "--blocksize")
-      {
-        blocksize = (int)StringUtils::getByteSizeFromString(args[++I]);
-        continue;
-      }
-
-      if (args[I] == "--filesize")
-      {
-        filesize = (int)StringUtils::getByteSizeFromString(args[++I]);
-        continue;
-      }
-
-      ThrowException("wrong argument ", args[I]);
-    }
-
-    if (bWriting)
-    {
-      FileUtils::removeFile(filename);
-
-      File file;
-      if (!file.createAndOpen(filename, "w"))
-        ThrowException(args[0], "TestWriteIO, file.open(", filename, ",\"wb\")", "failed");
-
-      Array blockdata;
-      bool bOk = blockdata.resize(blocksize, DTypes::UINT8, __FILE__, __LINE__);
-      VisusReleaseAssert(bOk);
-
-      Time t1 = Time::now();
-      Int64 nwritten;
-      for (nwritten = 0; (nwritten + blocksize) <= filesize; nwritten += blocksize)
-      {
-        if (!file.write(nwritten, blocksize, blockdata.c_ptr()))
-          ThrowException(args[0], "TestWriteIO write(...) failed");
-      }
-      file.close();
-      double elapsed = t1.elapsedSec();
-      int mbpersec = (int)(nwritten / (1024.0 * 1024.0 * elapsed));
-
-      //do not remove, I can need it for read
-#if 0
-      remove(filename.c_str());
-#endif
-
-      PrintInfo("write", mbpersec, "mb/sec filesize", filesize, "blocksize", blocksize, "nwritten", nwritten, "filename", filename);
-    }
-    else
-    {
-      File file;
-      if (!file.open(filename, "r"))
-        ThrowException(args[0], "file.open(", filename, ",'r')", "failed");
-
-      Array blockdata;
-      bool bOk = blockdata.resize(blocksize, DTypes::UINT8, __FILE__, __LINE__);
-      VisusReleaseAssert(bOk);
-      Time t1 = Time::now();
-      Int64 nread = 0;
-      int maxcont = 1000, cont = maxcont;
-      while (true)
-      {
-        if (!file.read(nread, blocksize, blockdata.c_ptr()))
-          break;
-
-        nread += blocksize;
-
-        if (!--cont)
-        {
-          cont = maxcont;
-          PrintInfo("read", (nread / (1024 * 1024)) / t1.elapsedSec(), "mb/sec", "blocksize", blocksize, "nread", nread / (1024 * 1024), "mb", "filename", filename);
-        }
-      }
-      file.close();
-      PrintInfo("read", (nread / (1024 * 1024)) / t1.elapsedSec(), " mb/sec", "blocksize", blocksize, "nread", nread / (1024 * 1024), "mb", "filename", filename);
-    }
-
-    return data;
-  }
-};
-
 ///////////////////////////////////////////////////////////////////////////////
 class TestIdxSlabSpeed : public VisusConvert::Step
 {
@@ -1533,8 +1415,6 @@ VisusConvert::VisusConvert()
   addAction("get-component", []() {return std::make_shared<GetComponent>(); });
 
   addAction("test-query-speed", []() {return std::make_shared<TestQuerySpeed>(); });
-  addAction("test-file-write-speed", []() {return std::make_shared<TestFileReadWriteSpeed>(true); });
-  addAction("test-file-read-speed", []() {return std::make_shared<TestFileReadWriteSpeed>(false); });
   addAction("test-encoder-speed", []() {return std::make_shared<TestEncoderSpeed>(); });
   addAction("test-idx-slab-speed", []() {return std::make_shared<TestIdxSlabSpeed>(); });
   addAction("test-network-speed", []() {return std::make_shared<TestNetworkSpeed>(); });
