@@ -187,6 +187,249 @@ def UsePyQt5():
 				SetRPath(filename,"$ORIGIN:$ORIGIN/bin:" + os.path.join(PyQt5_HOME,'Qt/lib'))
 
 # ////////////////////////////////////////////////
+def Test(args):
+
+	parser = argparse.ArgumentParser(description="test command.")
+	parser.add_argument("--type",type=str, help="Type of  tests to enable", default="default") 
+	args = parser.parse_args()
+
+	def RunTest(cmd):
+		return ExecuteCommand([sys.executable] + cmd,check_result=True) 
+
+	def RunJupyterTest(filename):
+		return RunTest(["-m","jupyter","nbconvert","--execute",filename])
+
+	if "all" in args.type or "default" in args.type:
+		RunTest(["Samples/python/Array.py"])
+		RunTest(["Samples/python/Dataflow.py"])
+		RunTest(["Samples/python/Dataflow2.py"])
+		RunTest(["Samples/python/Idx.py"])
+		RunTest(["Samples/python/XIdx.py"])
+		RunTest(["Samples/python/TestConvert.py"])
+		RunTest(["Samples/python/MinMax.py"])
+		RunTest(["-m","OpenVisus","server","--dataset","./datasets/cat/rgb.exit","--port","10000","--exit"])
+
+	if "all" in args.type or "viewer" in args.type:
+		RunTest(["-m","OpenVisus","viewer"])
+		RunTest(["-m","OpenVisus","viewer1"])
+		RunTest(["-m","OpenVisus","viewer2"])
+
+	if "all" in args.type or "jupyter" in args.type:
+		RunJupyterTest("./quick_tour.ipynb")
+		RunJupyterTest("./Samples/jupyter/Agricolture.ipynb")
+		RunJupyterTest("./Samples/jupyter/Climate.ipynb")
+
+		# disabled: dependency on ipyvolume 
+		# RunJupyterTest("./Samples/jupyter/ReadAndView.ipynb")
+
+
+# ////////////////////////////////////////////////
+def TestWriteSpeed(args):
+	parser = argparse.ArgumentParser(description="Test IO write speed")
+	parser.add_argument("--filename", type=str, help="Temporary filename", required=False,default="~temp.bin")
+	parser.add_argument("--blocksize", type=str, help="Block size", required=False,default="64*1024")
+	args = parser.parse_args(args)
+	args.blocksize=int(eval(args.blocksize))
+	print(action,"filename",args.filename, "blocksize",args.blocksize)
+
+	buffer=Array(args.blocksize, DType.fromString("uint8"))
+	if os.path.exists(args.filename):
+		os.remove(args.filename)
+	file=File()
+	Assert(file.createAndOpen(args.filename, "w"))
+	t1 = Time.now()
+	nwritten=0
+	cont=0
+	while True:
+		Assert(file.write(nwritten, args.blocksize, buffer.c_ptr()))
+		nwritten+=args.blocksize
+		cont+=1
+		if cont> 0 and (cont % 8196) == 0:
+			print(int(nwritten / (1024.0 * 1024.0 * t1.elapsedSec())), "MB/sec", int(nwritten/(1024*1024)),"MB")
+	file.close()
+
+# ////////////////////////////////////////////////
+def TestReadSpeed(args):
+	parser = argparse.ArgumentParser(description="Test IO read speed")
+	parser.add_argument("--filename", type=str, help="Temporary filename", required=False,default="~temp.bin")
+	parser.add_argument("--blocksize", type=str, help="Block size", required=False,default="64*1024")
+	args = parser.parse_args(args)
+	args.blocksize=int(eval(args.blocksize))
+	print(action,"filename",args.filename, "blocksize",args.blocksize)
+
+	file=File()
+	Assert(file.open(args.filename, "r"))
+	buffer=Array(args.blocksize, DType.fromString("uint8"))
+	t1 = Time.now()
+	nread,cont=0,0
+	while file.read(nread, args.blocksize, buffer.c_ptr()):
+		nread += args.blocksize
+		cont+=1
+		if cont> 0 and (cont % 8196) == 0:
+			print(int(nread / (1024.0 * 1024.0 * t1.elapsedSec())), " MB/sec", int(nread/(1024*1024)),"MB")
+	file.close()
+	print("nread",nread/(1024*1024),"MB")
+
+# ////////////////////////////////////////////////
+def TestNetworkSpeed(args):
+	parser = argparse.ArgumentParser(description="Test IO read speed")
+	parser.add_argument("--nconnections", type=int, help="Number of connections", required=False,default=8)
+	parser.add_argument("--nrequests", type=int, help="Number of Request", required=False,default=1000)
+	parser.add_argument("--url", action='append', help="Url", required=True)
+	args = parser.parse_args(args)
+
+	print("NetService speed test")
+	print("nconnections",args.nconnections)
+	print("nrequests",args.nrequests)
+	print("urls\n","\n\t".join(args.url))
+	NetService.testSpeed(args.nconnections,args.nrequests,args.url)
+
+# ////////////////////////////////////////////////
+def TestQuerySpeed(args):
+	parser = argparse.ArgumentParser(description="Test query read speed")
+	parser.add_argument("--dataset", type=str, help="Dataset", required=True)
+	parser.add_argument("--query-dim", type=int, help="Query dimension", required=True)
+	args = parser.parse_args(args)
+
+	db=LoadDataset(args.dataset)
+	db.testQuerySpeed(db.getDefaultTime(),db.getDefaultField(),args.query_dim)
+
+# ////////////////////////////////////////////////
+def TestSlabSpeed(args):
+	parser = argparse.ArgumentParser(description="Test slab speed")
+	parser.add_argument("--dataset", type=str, help="Dataset", required=True)
+	parser.add_argument("--dims", type=str, help="Dataset dimension", required=True)
+	parser.add_argument("--num-slabs", type=int, help="Number of slabs", required=True)
+	parser.add_argument("--dtype", type=str, help="DType", required=True)
+	parser.add_argument("--layout", type=str, help="layourt", required=True)
+	args = parser.parse_args(args)
+	Dataset.testSlabSpeed(args.dataset,PointNi.fromString(args.dims),args.num_slabs,args.dtype,args.layout)
+
+# ////////////////////////////////////////////////
+def FixRange(args):
+	parser = argparse.ArgumentParser(description="Fix IDX range")
+	parser.add_argument("--dataset", type=str, help="Dataset", required=True)
+	parser.add_argument("--time", type=float, help="Time", required=False)
+	parser.add_argument("--field", type=str, help="Field", required=False)
+	args = parser.parse_args(args)
+
+	db=LoadDataset(args.dataset)
+	Assert(db)
+
+	if args.time is None:
+		args.time=db.getDefaultTime()
+
+	if args.field is None:
+		args.field=db.getDefaultField().name
+
+	field=db.getFieldByName(args.field)
+
+	# compute the ranges
+	N = field.dtype.ncomponents()
+	ranges=[[+sys.float_info.max,-sys.float_info.max]] * N
+			
+	access = db.createAccessForBlockQuery()
+	access.beginRead()
+	for block_id in range(db.getTotalNumberOfBlocks()):
+
+		read_block = BlockQuery(db, field, args.time, access.getStartAddress(block_id), access.getEndAddress(block_id), ord('r'), Aborted())
+
+		if not db.executeBlockQueryAndWait(access, read_block):
+			continue
+
+		buffer=Array.toNumPy(read_block.buffer,bShareMem=True)
+
+		for C in range(N):
+			A=numpy.min(buffer[...,C] if N>1 else buffer)
+			B=numpy.max(buffer[...,C] if N>1 else buffer)
+			ranges[C][0]=min(ranges[C][0],A)
+			ranges[C][1]=max(ranges[C][1],B)
+
+	access.endRead()
+
+	print("Computed ranges", ranges)
+
+	# save the new idx file
+	idxfile=IdxFile()
+	idxfile.load(args.dataset)
+	for F in range(idxfile.fields.size()):
+		if idxfile.fields[F].name == field.name:
+			for C in range(N):
+				A=float(ranges[C][0])
+				B=float(ranges[C][1])
+				idxfile.fields[F].setDTypeRange(Range(A,B,float(0.0)), C)
+			idxfile.save(args.dataset)
+			return True
+			
+	raise Exception("cannot find field")
+
+# ////////////////////////////////////////////////
+def RunServer(args):
+	parser = argparse.ArgumentParser(description="server command.")
+	parser.add_argument("-p", "--port", type=int, help="Server port.", required=False,default=10000)
+	parser.add_argument("-d", "--dataset", type=str, help="Idx file", required=False,default="")
+	parser.add_argument("-e", "--exit", help="Exit immediately", action="store_true") # for debugging
+	args = parser.parse_args(args)
+
+	modvisus = ModVisus()
+
+	# -m OpenVisus server --port 10000 [--dataset D:\projects\OpenVisus\datasets\cat\rgb.idx]
+	if args.dataset:
+		config=ConfigFile.fromString("<visus><datasets><dataset name='default' url='{}' permissions='public' /></datasets></visus>".format(args.dataset))
+	else:
+		config=DbModule.getModuleConfig()
+			
+	modvisus.configureDatasets(config)
+	server=NetServer(args.port, modvisus)
+	print("Running visus server on port",args.port)
+
+	if args.exit:
+		server.signalExit()
+
+	server.runInThisThread()
+	print("server done")
+
+# ////////////////////////////////////////////////
+def CopyDataset(args):
+	parser = argparse.ArgumentParser(description="copy-dataset command.")
+	parser.add_argument("--src"       , type=str,   help="src dataset", required=True)
+	parser.add_argument("--dst"       , type=str,   help="dst dataset", required=True)
+	parser.add_argument("--src-time"  , type=float, help="src time",    required=False,default=None)
+	parser.add_argument("--dst-time"  , type=float, help="dst time",    required=False,default=None)
+	parser.add_argument("--src-field ", type=str,   help="src field",   required=False,default=None)
+	parser.add_argument("--dst-field" , type=str,   help="dst field",   required=False,default=None)
+	parser.add_argument("--src-access", type=str,   help="src access",  required=False,default=None)
+	parser.add_argument("--dst-access", type=str,   help="dst access",  required=False,default=None)
+	args = parser.parse_args(args)
+
+	src=LoadDataset(args.src)
+	dst=LoadDataset(args.dst)
+
+	src_time=src.getDefaultTime() if args.src_time is None else args.src_time
+	dst_time=dst.getDefaultTime() if args.dst_time is None else args.dst_time   
+
+	src_field=src.getDefaultField() if args.src_field is None else args.src_field
+	dst_field=dst.getDefaultField() if args.dst_field is None else args.dst_field
+
+	Assert(src_field.dtype==dst_field.dtype)
+
+	src_access=src.createAccessForBlockQuery(StringTree.fromString(args.src_access))
+	dst_access=dst.createAccessForBlockQuery(StringTree.fromString(args.dst_access))
+
+	Dataset.copyDataset(
+		dst, src_access, dst_field, dst_time,
+		src, dst_access, src_field, src_time)
+
+# ////////////////////////////////////////////////
+def RunViewer(args):
+	from VisusGuiPy import GuiModule,Viewer
+	viewer=Viewer()
+	viewer.configureFromArgs(args)
+	GuiModule.execApplication()
+	viewer=None
+	print("All done")
+
+# ////////////////////////////////////////////////
 def Main(args):
 
 	action=args[1] if len(args)>=2 else ""
@@ -197,7 +440,6 @@ def Main(args):
 
 	this_dir=os.path.dirname(os.path.abspath(__file__))
 
-	# _____________________________________________
 	if action=="dirname":
 		print(this_dir)
 		sys.exit(0)
@@ -205,263 +447,91 @@ def Main(args):
 	print("args",args)
 	print("this_dir",this_dir)
 
-	# _____________________________________________
 	if action=="configure" or action=="use-pyqt5":
 		os.chdir(this_dir)
 		UsePyQt5()
 		print(action,"done")
 		sys.exit(0)
 
-	# _____________________________________________
 	if action=="test":
-		
 		os.chdir(this_dir)
-
-		parser = argparse.ArgumentParser(description="test command.")
-		parser.add_argument("--type",type=str, help="Type of  tests to enable", default="default") 
-		args = parser.parse_args(args[2:])
-
-		def RunTest(cmd):
-			return ExecuteCommand([sys.executable] + cmd,check_result=True) 
-
-		def RunJupyterTest(filename):
-			return RunTest(["-m","jupyter","nbconvert","--execute",filename])
-
-		if "all" in args.type or "default" in args.type:
-			RunTest(["Samples/python/Array.py"])
-			RunTest(["Samples/python/Dataflow.py"])
-			RunTest(["Samples/python/Dataflow2.py"])
-			RunTest(["Samples/python/Idx.py"])
-			RunTest(["Samples/python/XIdx.py"])
-			RunTest(["Samples/python/TestConvert.py"])
-			RunTest(["Samples/python/MinMax.py"])
-			RunTest(["-m","OpenVisus","server","--dataset","./datasets/cat/rgb.exit","--port","10000","--exit"])
-
-		if "all" in args.type or "viewer" in args.type:
-			RunTest(["-m","OpenVisus","viewer"])
-			RunTest(["-m","OpenVisus","viewer1"])
-			RunTest(["-m","OpenVisus","viewer2"])
-
-		if "all" in args.type or "jupyter" in args.type:
-			RunJupyterTest("./quick_tour.ipynb")
-			RunJupyterTest("./Samples/jupyter/Agricolture.ipynb")
-			RunJupyterTest("./Samples/jupyter/Climate.ipynb")
-
-			# disabled: dependency on ipyvolume 
-			# RunJupyterTest("./Samples/jupyter/ReadAndView.ipynb")
-
+		Test(args[2:])
 		sys.exit(0)
 
-	# _____________________________________________
 	if action=="test-idx":
 		os.chdir(this_dir)
 		SelfTestIdx(300)
 		sys.exit(0)
-
-
-	# _____________________________________________
+		
+	# example python -m OpenVisus test-write-speed --filename "d:/~temp.bin" --blocksize "64*1024"
 	if action=="test-write-speed":
-		# example python -m OpenVisus test-write-speed --filename "d:/~temp.bin" --blocksize "64*1024"
 		os.chdir(this_dir)
-		parser = argparse.ArgumentParser(description="Test IO write speed")
-		parser.add_argument("--filename", type=str, help="Temporary filename", required=False,default="~temp.bin")
-		parser.add_argument("--blocksize", type=str, help="Block size", required=False,default="64*1024")
-		args = parser.parse_args(args[2:])
-		args.blocksize=int(eval(args.blocksize))
-		print(action,"filename",args.filename, "blocksize",args.blocksize)
-
-		buffer=Array(args.blocksize, DType.fromString("uint8"))
-		if os.path.exists(args.filename):
-			os.remove(args.filename)
-		file=File()
-		Assert(file.createAndOpen(args.filename, "w"))
-		t1 = Time.now()
-		nwritten=0
-		cont=0
-		while True:
-			Assert(file.write(nwritten, args.blocksize, buffer.c_ptr()))
-			nwritten+=args.blocksize
-			cont+=1
-			if cont> 0 and (cont % 8196) == 0:
-				print(int(nwritten / (1024.0 * 1024.0 * t1.elapsedSec())), "MB/sec", int(nwritten/(1024*1024)),"MB")
-		file.close()
+		TestWriteSpeed(args[2:])
 		sys.exit(0)
 
-	# _____________________________________________
 	if action=="test-read-speed":
 		os.chdir(this_dir)
-		parser = argparse.ArgumentParser(description="Test IO read speed")
-		parser.add_argument("--filename", type=str, help="Temporary filename", required=False,default="~temp.bin")
-		parser.add_argument("--blocksize", type=str, help="Block size", required=False,default="64*1024")
-		args = parser.parse_args(args[2:])
-		args.blocksize=int(eval(args.blocksize))
-		print(action,"filename",args.filename, "blocksize",args.blocksize)
-
-		file=File()
-		Assert(file.open(args.filename, "r"))
-		buffer=Array(args.blocksize, DType.fromString("uint8"))
-		t1 = Time.now()
-		nread,cont=0,0
-		while file.read(nread, args.blocksize, buffer.c_ptr()):
-			nread += args.blocksize
-			cont+=1
-			if cont> 0 and (cont % 8196) == 0:
-				print(int(nread / (1024.0 * 1024.0 * t1.elapsedSec())), " MB/sec", int(nread/(1024*1024)),"MB")
-		file.close()
-		print("nread",nread/(1024*1024),"MB")
+		TestReadSpeeds(args[2:])
 		sys.exit(0)
 
-	# _____________________________________________
+	# example -m OpenVisus test-network-speed  --nconnections 1 --nrequests 100 --url "http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled" 
 	if action=="test-network-speed":
-		# example -m OpenVisus test-network-speed  --nconnections 1 --nrequests 100 --url "http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled" 
 		os.chdir(this_dir)
-		parser = argparse.ArgumentParser(description="Test IO read speed")
-		parser.add_argument("--nconnections", type=int, help="Number of connections", required=False,default=8)
-		parser.add_argument("--nrequests", type=int, help="Number of Request", required=False,default=1000)
-		parser.add_argument("--url", action='append', help="Url", required=True)
-		args = parser.parse_args(args[2:])
-
-		print("NetService speed test")
-		print("nconnections",args.nconnections)
-		print("nrequests",args.nrequests)
-		print("urls\n","\n\t".join(args.url))
-		NetService.testSpeed(args.nconnections,args.nrequests,args.url)
+		TestNetworkSpeed(args[2:])
 		sys.exit(0)
-
-	# _____________________________________________
+		
+	# example -m OpenVisus test-query-speed --dataset "D:\GoogleSci\visus_dataset\2kbit1\zip\rowmajor\visus.idx" --query-dim 512
 	if action=="test-query-speed":
-		# example -m OpenVisus test-query-speed --dataset "D:\GoogleSci\visus_dataset\2kbit1\zip\rowmajor\visus.idx" --query-dim 512
 		os.chdir(this_dir)
-		parser = argparse.ArgumentParser(description="Test query read speed")
-		parser.add_argument("--dataset", type=str, help="Dataset", required=True)
-		parser.add_argument("--query-dim", type=int, help="Query dimension", required=True)
-		args = parser.parse_args(args[2:])
-
-		db=LoadDataset(args.dataset)
-		db.testQuerySpeed(db.getDefaultTime(),db.getDefaultField(),args.query_dim)
+		TestQuerySpeed(args[2:])
 		sys.exit(0)
-
-	# _____________________________________________
+		
+	# example -m OpenVisus test-slab-speed --dataset "D:\temp\test\test.idx" --dims "1024 1024 1024" --num-slabs 128 --dtype "int32" --layout ""
 	if action=="test-slab-speed":
-		# example -m OpenVisus test-slab-speed --dataset "D:\temp\test\test.idx" --dims "1024 1024 1024" --num-slabs 128 --dtype "int32" --layout ""
 		os.chdir(this_dir)
-		parser = argparse.ArgumentParser(description="Test slab speed")
-		parser.add_argument("--dataset", type=str, help="Dataset", required=True)
-		parser.add_argument("--dims", type=str, help="Dataset dimension", required=True)
-		parser.add_argument("--num-slabs", type=int, help="Number of slabs", required=True)
-		parser.add_argument("--dtype", type=str, help="DType", required=True)
-		parser.add_argument("--layout", type=str, help="layourt", required=True)
-		args = parser.parse_args(args[2:])
-		Dataset.testSlabSpeed(args.dataset,PointNi.fromString(args.dims),args.num_slabs,args.dtype,args.layout)
+		TestSlabSpeed(args[2:])
 		sys.exit(0)
-
-	# _____________________________________________
-	if action=="convert":
-		convert=VisusConvert()
-		convert.runFromArgs(args[2:])
+		
+	#example -m OpenVisus fix-range --dataset "D:\GoogleSci\visus_dataset\cat256\visus0.idx" 
+	if action=="fix-range":
+		os.chdir(this_dir)
+		FixRange(args[2:])
 		sys.exit(0)
-
-	# _____________________________________________
+		
+	# example  -m OpenVisus server --port 10000
 	if action=="server":
-
-		# example
-		# -m OpenVisus server --port 10000
-
 		os.chdir(this_dir)
-
-		parser = argparse.ArgumentParser(description="server command.")
-		parser.add_argument("-p", "--port", type=int, help="Server port.", required=False,default=10000)
-		parser.add_argument("-d", "--dataset", type=str, help="Idx file", required=False,default="")
-		parser.add_argument("-e", "--exit", help="Exit immediately", action="store_true") # for debugging
-		args = parser.parse_args(args[2:])
-
-		modvisus = ModVisus()
-
-		# -m OpenVisus server --port 10000 [--dataset D:\projects\OpenVisus\datasets\cat\rgb.idx]
-		if args.dataset:
-			config=ConfigFile.fromString("<visus><datasets><dataset name='default' url='{}' permissions='public' /></datasets></visus>".format(args.dataset))
-		else:
-			config=DbModule.getModuleConfig()
-			
-		modvisus.configureDatasets(config)
-		server=NetServer(args.port, modvisus)
-		print("Running visus server on port",args.port)
-
-		if args.exit:
-			server.signalExit()
-
-		server.runInThisThread()
-		print("server done")
+		RunServer(args[2:])
 		sys.exit(0)
 
 	if action=="copy-dataset":
-
-		parser = argparse.ArgumentParser(description="copy-dataset command.")
-		parser.add_argument("--src"       , type=str,   help="src dataset", required=True)
-		parser.add_argument("--dst"       , type=str,   help="dst dataset", required=True)
-		parser.add_argument("--src-time"  , type=float, help="src time",    required=False,default=None)
-		parser.add_argument("--dst-time"  , type=float, help="dst time",    required=False,default=None)
-		parser.add_argument("--src-field ", type=str,   help="src field",   required=False,default=None)
-		parser.add_argument("--dst-field" , type=str,   help="dst field",   required=False,default=None)
-		parser.add_argument("--src-access", type=str,   help="src access",  required=False,default=None)
-		parser.add_argument("--dst-access", type=str,   help="dst access",  required=False,default=None)
-		args = parser.parse_args(args[2:])
-
-		src=LoadDataset(args.src)
-		dst=LoadDataset(args.dst)
-
-		src_time=src.getDefaultTime() if args.src_time is None else args.src_time
-		dst_time=dst.getDefaultTime() if args.dst_time is None else args.dst_time   
-
-		src_field=src.getDefaultField() if args.src_field is None else args.src_field
-		dst_field=dst.getDefaultField() if args.dst_field is None else args.dst_field
-
-		Assert(src_field.dtype==dst_field.dtype)
-
-		src_access=src.createAccessForBlockQuery(StringTree.fromString(args.src_access))
-		dst_access=dst.createAccessForBlockQuery(StringTree.fromString(args.dst_access))
-
-		Dataset.copyDataset(
-			dst, src_access, dst_field, dst_time,
-			src, dst_access, src_field, src_time)
-
-
-	# _____________________________________________
-	if action=="viewer":
-
-		# example: python -m OpenVisus viewer ....
-		from VisusGuiPy import GuiModule,Viewer
 		os.chdir(this_dir)
-		viewer=Viewer()
-		viewer.configureFromArgs(args[2:])
-		GuiModule.execApplication()
-		viewer=None
-		print("All done")
+		CopyDataset(args[2:]);
 		sys.exit(0)
 
-	# _____________________________________________
+	# example: python -m OpenVisus viewer ....
+	if action=="viewer":
+		os.chdir(this_dir)
+		RunViewer(args[2:])
+		sys.exit(0)
+
 	if action=="viewer1":
 		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "TestViewer1.py")]) 
 		sys.exit(0)
 
-	# _____________________________________________
 	if action=="viewer2":
 		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "TestViewer2.py")]) 
 		sys.exit(0)
 
-	# _____________________________________________
 	if action=="visible-human":
 		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "VisibleHuman.py")]) 
 		sys.exit(0)
 
-	# _____________________________________________
-	if True:
-		convert=VisusConvert()
-		convert.runFromArgs(args[1:])
-		sys.exit(0)
-
-
-  
+	# forward to convert
+	args=args[2:] if action=="convert" else args[1:]
+	convert=VisusConvert()
+	convert.runFromArgs(args)
+	sys.exit(0)
 
 # //////////////////////////////////////////
 if __name__ == "__main__":
