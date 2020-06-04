@@ -508,6 +508,8 @@ def Main(args):
 		MidxToIdx(action_args)
 		sys.exit(0)
 
+	# !!!!!!!!!!!!! DEPRECATED !!!!!!!!!!!!!!!! (give a look to quick_tour)
+	# example: -m OpenVisus convert create tmp/visus.idx --box "0 511 0 511" --fields "scalar uint8 default_compression(lz4) + vector uint8[3] default_compression(lz4)" 
 	if action=="convert":
 		VisusConvert().runFromArgs(action_args)
 		sys.exit(0)
@@ -590,6 +592,8 @@ def Main(args):
 		sys.exit(0)
 
 	raise Exception("unknown action",action)
+
+
 
 # //////////////////////////////////////////
 if __name__ == "__main__":

@@ -7,6 +7,8 @@ FILE(GLOB RootSources
 	./src/ModVisus.cpp
 	src/tutorial*.cpp
 	src/SelfTest*.cpp
+	include/Visus/VisusConvert.h
+	src/VisusConvert.cpp
 )
 
 SET(QuerySources

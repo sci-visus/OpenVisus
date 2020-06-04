@@ -16,6 +16,7 @@
 #include <Visus/IdxDataset.h>
 #include <Visus/IdxMultipleDataset.h>
 #include <Visus/StringTree.h>
+#include <Visus/VisusConvert.h>
 
 #include <Visus/StringTree.h>
 
@@ -55,6 +56,8 @@ using namespace Visus;
 %include <Visus/IdxFile.h>
 %include <Visus/IdxDataset.h>
 %include <Visus/IdxMultipleDataset.h>
+
+%include <Visus/VisusConvert.h>
 
 %pythoncode %{
 DbModule.attach()
