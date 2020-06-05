@@ -78,8 +78,3 @@ using namespace Visus;
 %include <Visus/xidx_geometry.h>
 %include <Visus/xidx_spatial_domain.h>
 
-
-%pythoncode %{
-XIdxModule.attach()
-%}
-

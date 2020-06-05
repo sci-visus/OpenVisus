@@ -82,13 +82,6 @@ option(VISUS_PYTHON "Enable VISUS_PYTHON"   ${VISUS_DEFAULT_PYTHON})
 option(VISUS_GUI    "Enable VISUS_GUI"      ${VISUS_DEFAULT_GUI})
 option(VISUS_GUI    "Enable VISUS_MODVISUS" ${VISUS_DEFAULT_MODVISUS})
 
-message(STATUS "VISUS_NET       ${VISUS_NET}")
-message(STATUS "VISUS_IMAGE     ${VISUS_IMAGE}")
-message(STATUS "VISUS_PYTHON    ${VISUS_PYTHON}")
-message(STATUS "VISUS_GUI       ${VISUS_GUI}")
-message(STATUS "VISUS_MODVISUS  ${VISUS_MODVISUS}")
-
-
 if (VISUS_PYTHON)
 	find_package(Python COMPONENTS Interpreter Development REQUIRED)
 	find_package(SWIG 3.0 REQUIRED)

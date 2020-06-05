@@ -1,20 +1,22 @@
-import sys
+
 
 from OpenVisus.VisusKernelPy   import *
-from OpenVisus.utils           import *
-
 from OpenVisus.VisusXIdxPy     import *
-XIdxModule.attach()
-
 from OpenVisus.VisusDbPy       import *
-from OpenVisus.PyDataset       import *
-DbModule.attach()
-
-
 from OpenVisus.VisusDataflowPy import *
-DataflowModule.attach()
-
 from OpenVisus.VisusNodesPy    import *
+
+import sys
+SetCommandLine(sys.argv)
+
+KernelModule.attach()
+XIdxModule.attach()
+DbModule.attach()
+DataflowModule.attach()
 NodesModule.attach()
+
+from OpenVisus.utils           import *
+from OpenVisus.PyDataset       import *
+
 
 

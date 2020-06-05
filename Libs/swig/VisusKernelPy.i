@@ -242,10 +242,5 @@ fromNumPy = staticmethod(fromNumPy)
 	%include <slam.h>
 #endif 
 
-%pythoncode %{
-import sys
-SetCommandLine(sys.argv)
-KernelModule.attach()
-%}
 
 

@@ -50,7 +50,3 @@ using namespace Visus;
 %include <Visus/KdQueryNode.h>
 
 //not exposing anything, don't know if we need it
-
-%pythoncode %{
-NodesModule.attach()
-%}

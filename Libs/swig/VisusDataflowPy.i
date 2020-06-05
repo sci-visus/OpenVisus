@@ -62,7 +62,6 @@ PyObject* __asPythonObject() {
 }
 
 
-
 %include <Visus/DataflowModule.h>
 %include <Visus/DataflowMessage.h>
 %include <Visus/DataflowPort.h>
@@ -87,6 +86,3 @@ def VISUS_REGISTER_NODE_CLASS(TypeName, PyTypeName, creator):
     NodeFactory.getSingleton().registerClass(TypeName, PyTypeName , PyNodeCreator(creator))
 %}
 
-%pythoncode %{
-DataflowModule.attach()
-%}
