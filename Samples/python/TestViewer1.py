@@ -12,15 +12,12 @@ from OpenVisus import *
 # on windows rememeber to INSTALL and CONFIGURE
 
 from OpenVisus.VisusGuiPy      import *
-from OpenVisus.PyViewer        import *
-from OpenVisus.PyScriptingNode import *
+from OpenVisus.viewer          import *
+from OpenVisus.scripting_node  import *
 
 
 # //////////////////////////////////////////////
 def Main(argv):
-	
-	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
-	# c:\Python37\python.exe Libs/Gui/PyViewer.py	
 	
 	VISUS_REGISTER_NODE_CLASS("ScriptingNode", "PyScriptingNode", lambda : PyScriptingNode())
 		

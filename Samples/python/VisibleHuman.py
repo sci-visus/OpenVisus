@@ -1,7 +1,7 @@
 import os,sys
 
 from OpenVisus           import *
-from OpenVisus.PyViewer  import *
+from OpenVisus.viewer    import *
 
 # //////////////////////////////////////////////
 def SwapRedBlue(img):

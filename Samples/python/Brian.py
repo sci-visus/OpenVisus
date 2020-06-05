@@ -2,7 +2,7 @@ import os
 import sys
 
 from OpenVisus           import *
-from OpenVisus.PyViewer  import *
+from OpenVisus.viewer    import *
 
 # Scripting Node to remove the white-sh (TO TRY)
 """

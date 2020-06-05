@@ -15,8 +15,8 @@ DbModule.attach()
 DataflowModule.attach()
 NodesModule.attach()
 
-from OpenVisus.utils           import *
-from OpenVisus.PyDataset       import *
+from OpenVisus.utils         import *
+from OpenVisus.dataset       import *
 
 
 
