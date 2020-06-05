@@ -39,11 +39,11 @@ namespace Visus {
 using namespace Visus;
 %}
 
-%include <Visus/VisusPy.i>
-%import <Visus/VisusKernelPy.i>
-%import <Visus/VisusDataflowPy.i>
-%import <Visus/VisusDbPy.i>
-%import <Visus/VisusNodesPy.i>
+%include <VisusPy.i>
+%import <VisusKernelPy.i>
+%import <VisusDataflowPy.i>
+%import <VisusDbPy.i>
+%import <VisusNodesPy.i>
 
 //__________________________________________________________
 %pythonbegin %{

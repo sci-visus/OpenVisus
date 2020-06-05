@@ -22,10 +22,10 @@
 using namespace Visus;
 %}
 
-%include <Visus/VisusPy.i>
-%import <Visus/VisusKernelPy.i>
-%import <Visus/VisusDataflowPy.i>
-%import <Visus/VisusDbPy.i>
+%include <VisusPy.i>
+%import <VisusKernelPy.i>
+%import <VisusDataflowPy.i>
+%import <VisusDbPy.i>
 
 %include <Visus/Nodes.h>
 

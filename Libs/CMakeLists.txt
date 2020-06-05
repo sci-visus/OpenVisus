@@ -9,4 +9,7 @@ if (VISUS_GUI)
 	add_subdirectory(Gui)
 endif()
 
-  
+if (VISUS_PYTHON)
+	add_subdirectory(swig)
+endif()
+

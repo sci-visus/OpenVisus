@@ -1,6 +1,5 @@
 
 FILE(GLOB RootSources
-	./PyDataset.py
 	./include/Visus/Db.h
 	./src/Db.cpp
 	./include/Visus/ModVisus.h
@@ -8,8 +7,7 @@ FILE(GLOB RootSources
 	src/tutorial*.cpp
 	src/SelfTest*.cpp
 	include/Visus/VisusConvert.h
-	src/VisusConvert.cpp
-)
+	src/VisusConvert.cpp)
 
 SET(QuerySources
 	./include/Visus/LogicSamples.h
@@ -21,8 +19,7 @@ SET(QuerySources
 	./include/Visus/BoxQuery.h
 	./src/BoxQuery.cpp
 	./include/Visus/PointQuery.h
-	./src/PointQuery.cpp
-)
+	./src/PointQuery.cpp)
 
 SET(DatasetSources
 	./include/Visus/Dataset.h
@@ -36,8 +33,7 @@ SET(DatasetSources
 	./src/DatasetBitmask.cpp
 	./src/DatasetFilter.cpp
 	./src/DatasetTimesteps.cpp
-	./src/GoogleMapsDataset.cpp
-)
+	./src/GoogleMapsDataset.cpp)
 
 SET(AccessSources
 	./include/Visus/Access.h
@@ -55,15 +51,12 @@ SET(AccessSources
 	./src/MultiplexAccess.cpp
 	./src/RamAccess.cpp
 	./include/Visus/OnDemandAccess.h
-	./src/OnDemandAccess.cpp
-)
-
+	./src/OnDemandAccess.cpp)
 
 FILE(GLOB IdxSources
 	include/Visus/Idx*.h          
 	src/Idx*.cpp   
-	src/LogicSamples.cpp 
-)
+	src/LogicSamples.cpp )
 
 source_group(""         FILES ${RootSources})
 source_group("Access"   FILES ${AccessSources})
@@ -71,19 +64,10 @@ source_group("Dataset"  FILES ${DatasetSources})
 source_group("Query"    FILES ${QuerySources})
 source_group("Idx"      FILES ${IdxSources})
 
-file(GLOB Sources *.py include/Visus/*.h include/Visus/*.i src/*.cpp)
-
+file(GLOB Sources include/Visus/*.h src/*.cpp)
 add_library(VisusDb SHARED ${Sources})
 set_target_properties(VisusDb PROPERTIES FOLDER "")
-
 target_link_libraries(VisusDb PUBLIC VisusKernel)
-
 target_compile_definitions(VisusDb  PRIVATE VISUS_BUILDING_VISUSDB=1)
 target_include_directories(VisusDb  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-CopyToBinaryDirectory(TARGET VisusDb FILES PyDataset.py         DESTINATION ./)
-
-set(SwigFile ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusDbPy.i)
-set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
-set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/include")
-AddSwigLibrary(VisusDbPy VisusDb ${SwigFile})

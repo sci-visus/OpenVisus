@@ -10,8 +10,6 @@ if (VISUS_OSPRAY)
 endif()
 
 SET(RootSources
-	./PyScriptingNode.py
-	./PyViewer.py
 	./include/Visus/FreeTransform.h
 	./src/FreeTransform.cpp
 	./include/Visus/Viewer.h
@@ -21,8 +19,7 @@ SET(RootSources
 	./src/Viewer.Gui.cpp
 	./include/Visus/Gui.h
 	./src/Gui.cpp
-	./resources/Gui.qrc
-)
+	./resources/Gui.qrc)
 
 
 file(GLOB OpenGLSources include/Visus/GL*.h src/GL*.cpp resources/GL*)
@@ -96,8 +93,7 @@ source_group("Viewer"  FILES ${ViewerSources})
 source_group("Qt"      FILES ${QtSources})
 source_group("OpenGL"  FILES ${OpenGLSources})
 
-
-file(GLOB Sources *.py include/Visus/*.h include/Visus/*.i src/*.cpp resources/*.glsl resources/*.qrc)
+file(GLOB Sources include/Visus/*.h src/*.cpp resources/*.glsl resources/*.qrc)
 add_library(VisusGui SHARED ${Sources})
 target_compile_definitions(VisusGui  PRIVATE VISUS_BUILDING_VISUSGUI=1)
 target_compile_definitions(VisusGui  PRIVATE VISUS_OPENGL_ES=0)
@@ -122,16 +118,6 @@ endif()
 
 set_target_properties(VisusGui PROPERTIES FOLDER "")
 
-CopyToBinaryDirectory(TARGET VisusGui FILES PyScriptingNode.py     DESTINATION ./)
-CopyToBinaryDirectory(TARGET VisusGui FILES PyViewer.py            DESTINATION ./)
 
-set(SwigFile ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiPy.i)
-set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
-set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include")
-set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include")
-set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Idx/include")
-set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Nodes/include")
-set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Gui/include")
-set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/include")
-AddSwigLibrary(VisusGuiPy VisusGui ${SwigFile})
+
 
