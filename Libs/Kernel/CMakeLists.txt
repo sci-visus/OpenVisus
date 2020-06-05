@@ -189,11 +189,13 @@ source_group("Misc" FILES
 	./src/Annotation.cpp)
 
 
-file(GLOB PyFiles      
-	./include/Visus/swigpyrun.h  
-	./include/Visus/Python.h 
-	./src/Python.cpp)
-source_group("Python" FILES ${PyFiles})
+if (VISUS_PYTHON)
+	file(GLOB PyFiles      
+		./include/Visus/swigpyrun.h  
+		./include/Visus/Python.h 
+		./src/Python.cpp)
+	source_group("Python" FILES ${PyFiles})
+endif()
 
 file(GLOB RootFiles  
 	../../.github/workflows/BuildOpenVisus.yml
@@ -265,7 +267,6 @@ endif()
 
 
 if (VISUS_PYTHON)
-
 	if (WIN32)
 		# I'm always linking to python Release (most of wheel do not work in debug mode, like numpy)
 		target_include_directories(VisusKernel PUBLIC ${Python_INCLUDE_DIRS})
@@ -277,7 +278,6 @@ if (VISUS_PYTHON)
 
 	target_compile_definitions(VisusKernel  PUBLIC  VISUS_PYTHON=1)
 	target_compile_definitions(VisusKernel  PRIVATE SWIG_TYPE_TABLE=OpenVisus)
-
 endif()
 
 

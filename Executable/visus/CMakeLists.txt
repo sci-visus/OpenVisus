@@ -4,7 +4,7 @@ add_executable(visus ${Sources})
 
 target_link_libraries(visus PUBLIC VisusDb)
 
-if (VISUS_PYTHON AND NOT WIN32)
+if (VISUS_PYTHON)
 	target_link_libraries(visus PUBLIC Python::Python)
 endif()
 

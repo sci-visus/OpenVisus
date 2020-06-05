@@ -92,6 +92,13 @@ For support : support@visus.net
 
 #if VISUS_PYTHON
 #include <Visus/Python.h>
+namespace Visus {
+  void InitPython();
+  void ShutdownPython();
+}
+#else
+void InitPython() {}
+void ShutdownPython() {}
 #endif
 
 #include <clocale>
@@ -146,10 +153,6 @@ void DestroyAutoReleasePool();
   
 #endif
 
-#if VISUS_PYTHON
-void InitPython();
-void ShutdownPython();
-#endif
 
 ConfigFile* VisusModule::getModuleConfig() {
   return Private::VisusConfig::getSingleton();
@@ -450,9 +453,7 @@ void KernelModule::attach()
   UUIDGenerator::allocSingleton();
 
   //this is to make sure PythonEngine works
-#if VISUS_PYTHON
   InitPython();
-#endif
 
   //in case the user whant to simulate I have a certain amount of RAM
   if (Int64 total = StringUtils::getByteSizeFromString(config->readString("Configuration/RamResource/total", "0")))
@@ -523,9 +524,7 @@ void KernelModule::detach()
   RamResource::releaseSingleton();
   UUIDGenerator::releaseSingleton();
 
-#if VISUS_PYTHON
   ShutdownPython();
-#endif
 
   NetService::detach();
 

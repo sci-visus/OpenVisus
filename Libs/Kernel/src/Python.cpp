@@ -36,8 +36,6 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#if VISUS_PYTHON
-
 #include <Visus/Python.h>
 #include <Visus/Thread.h>
 #include <Visus/ApplicationInfo.h>
@@ -563,5 +561,3 @@ PyObject* PythonEngine::evalCode(String s)
 
 
 } //namespace Visus
-
-#endif //VISUS_PYTHON
