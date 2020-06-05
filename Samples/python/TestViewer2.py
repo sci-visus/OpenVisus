@@ -12,7 +12,6 @@ from OpenVisus import *
 # on windows rememeber to INSTALL and CONFIGURE
 
 from OpenVisus.VisusGuiPy import *
-from OpenVisus.viewer     import *
 
 import PyQt5
 from   PyQt5.QtCore    import *
