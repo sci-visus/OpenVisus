@@ -40,19 +40,30 @@ For support : support@visus.net
 #include <Visus/ApplicationInfo.h>
 #include <Visus/ModVisus.h>
 
+#if VISUS_PYTHON
+#include <Visus/Python.h>
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 int main(int argn,const char* argv[])
 {
   using namespace Visus;
-
   SetCommandLine(argn, argv);
   GuiModule::attach();
 
+  //needed to register PyScriptingNode
+#if VISUS_PYTHON
   {
-    UniquePtr<Viewer> viewer(new Viewer());
+    ScopedAcquireGil acquire_gil;
+    PyRun_SimpleString("from OpenVisus.gui import *");
+  }
+#endif
+
+  {
+    auto viewer=std::make_shared<Viewer>();
     auto args = std::vector<String>(ApplicationInfo::args.begin() + 1, ApplicationInfo::args.end());
     viewer->configureFromArgs(args);
-    GuiModule::execApplication();
+    QApplication::exec();
   }
 
   GuiModule::detach();

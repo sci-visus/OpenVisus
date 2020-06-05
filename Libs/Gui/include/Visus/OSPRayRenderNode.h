@@ -97,6 +97,9 @@ public:
   //processInput
   virtual bool processInput() override;
 
+  //createEditor
+  virtual void createEditor();
+
 public:
 
   //write
@@ -116,7 +119,6 @@ private:
   
 
 }; //end class
-
 
 } //namespace Visus
 

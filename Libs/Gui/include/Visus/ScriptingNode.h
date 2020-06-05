@@ -134,6 +134,8 @@ public:
     return dynamic_cast<ScriptingNode*>(obj);
   }
 
+  //createEditor
+  virtual void createEditor();
 
 public:
 
@@ -223,102 +225,6 @@ private:
 
 };
 
-
-////////////////////////////////////////////////////////////
-class VISUS_GUI_API ScriptingNodeBaseView : public  View<ScriptingNode>
-{
-public:
-
-  //constructor
-  ScriptingNodeBaseView() {
-  }
-
-  //destructor
-  virtual ~ScriptingNodeBaseView(){
-  }
-
-  //clearPresets
-  virtual void clearPresets() = 0;
-
-  //addPreset
-  virtual void addPreset(String key, String code) = 0;
-
-};
-
-
-/////////////////////////////////////////////////////////////////////////////////////
-class VISUS_GUI_API ScriptingNodeView :
-  public QFrame,
-  public ScriptingNodeBaseView
-{
-public:
-
-  VISUS_NON_COPYABLE_CLASS(ScriptingNodeView)
-
-    class VISUS_GUI_API Widgets
-  {
-  public:
-    QTextEdit* txtCode = nullptr;
-    QTextEdit* txtOutput = nullptr;
-    QToolButton* btnRun = nullptr;
-    QComboBox* presets = nullptr;
-  };
-
-  Widgets widgets;
-
-  //constructor
-  ScriptingNodeView(ScriptingNode* model = nullptr);
-
-  //destructor
-  virtual ~ScriptingNodeView();
-
-  //clearPresets
-  virtual void clearPresets() override {
-    widgets.presets->clear();
-  }
-
-  //addPreset
-  virtual void addPreset(String key, String code) override {
-    widgets.presets->addItem(key.c_str());
-  }
-
-  //see https://stackoverflow.com/questions/1956407/how-to-redirect-stderr-in-python-via-python-c-api
-
-
-  //bindModel
-  virtual void bindModel(ScriptingNode* model) override;
-
-private:
-
-#if VISUS_PYTHON
-  PyObject* __stdout__ = nullptr;
-  PyObject* __stderr__ = nullptr;
-#endif
-
-  QTimer     output_timer;
-
-  //refreshGui
-  void refreshGui()
-  {
-    widgets.txtOutput->setText("");
-    widgets.txtCode->setText(model->getCode().c_str());
-  }
-
-  //modelChanged
-  virtual void modelChanged() override {
-    refreshGui();
-  }
-
-  //flushOutputs
-  void flushOutputs();
-
-  //showEvent
-  virtual  void showEvent(QShowEvent*) override;
-
-  //hideEvent
-  virtual void hideEvent(QHideEvent*) override;
-
-};
 
 } //namespace Visus
 

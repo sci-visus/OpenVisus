@@ -475,5 +475,10 @@ void OSPRayRenderNode::read(Archive& ar)
   Node::read(ar);
 }
 
+void OSPRayRenderNode::createEditor()
+{
+  //todo
+}
+
 } //namespace Visus
 

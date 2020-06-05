@@ -139,6 +139,9 @@ public:
   //processInput
   virtual bool processInput() override;
 
+  //createEditor
+  virtual void createEditor();
+
 public:
 
   //execute
@@ -186,106 +189,6 @@ private:
 };
 
 
-/////////////////////////////////////////////////////////
-class VISUS_GUI_API JTreeNodeView :
-  public QFrame,
-  public View<JTreeNode>
-{
-public:
-
-  VISUS_NON_COPYABLE_CLASS(JTreeNodeView)
-
-    //constructor
-    JTreeNodeView(JTreeNode* model = nullptr) {
-    if (model)
-      bindModel(model);
-  }
-
-  //destructor
-  virtual ~JTreeNodeView() {
-    bindModel(nullptr);
-  }
-
-  //bindModel
-  virtual void bindModel(JTreeNode* value) override
-  {
-    if (this->model)
-    {
-      QUtils::clearQWidget(this);
-      widgets = Widgets();
-    }
-
-    View<ModelClass>::bindModel(value);
-
-    if (this->model)
-    {
-      QFormLayout* layout = new QFormLayout();
-
-      layout->addRow("minima_tree", widgets.minima_tree = GuiFactory::CreateCheckBox(model->getMinimaTree(), "", [this](int value) {
-        model->setMinimaTree(value);
-      }));
-
-      layout->addRow("min_persistence", widgets.min_persistence = GuiFactory::CreateDoubleTextBoxWidget(model->getMinPersistence(), [this](double value) {
-        model->setMinPersistence(value);
-      }));
-
-      layout->addRow("reduce_minmax", widgets.reduce_minmax = GuiFactory::CreateCheckBox(model->getReduceMinMax(), "", [this](double value) {
-        model->setReduceMinMax(value);
-      }));
-
-
-      layout->addRow("threshold_min", widgets.threshold_min = GuiFactory::CreateDoubleTextBoxWidget(model->getThresholdMin(), [this](double value) {
-        model->setThresholdMin(value);
-      }));
-
-
-      layout->addRow("threshold_max", widgets.threshold_max = GuiFactory::CreateDoubleTextBoxWidget(model->getThresholdMax(), [this](double value) {
-        model->setThresholdMax(value);
-      }));
-
-
-      layout->addRow("auto_threshold", widgets.auto_threshold = GuiFactory::CreateCheckBox(model->getAutoThreshold(), "", [this](int value) {
-        model->setAutoThreshold(value);
-      }));
-
-
-      setLayout(layout);
-      refreshGui();
-    }
-  }
-
-private:
-
-  class Widgets
-  {
-  public:
-    QCheckBox* minima_tree = nullptr;
-    QLineEdit* min_persistence = nullptr;
-    QCheckBox* reduce_minmax = nullptr;
-    QLineEdit* threshold_min = nullptr;
-    QLineEdit* threshold_max = nullptr;
-    QCheckBox* auto_threshold = nullptr;
-  };
-
-  Widgets widgets;
-
-  ///refreshGui
-  void refreshGui()
-  {
-    widgets.minima_tree->setChecked(model->getMinimaTree());
-    widgets.min_persistence->setText(cstring(model->getMinPersistence()).c_str());
-    widgets.reduce_minmax->setChecked(model->getReduceMinMax());
-    widgets.threshold_min->setText(cstring(model->getThresholdMin()).c_str());
-    widgets.threshold_max->setText(cstring(model->getThresholdMax()).c_str());
-    widgets.auto_threshold->setChecked(model->getAutoThreshold());
-  }
-
-  //modelChanged
-  virtual void modelChanged() override {
-    refreshGui();
-  }
-
-};
 
 } //namespace Visus
 

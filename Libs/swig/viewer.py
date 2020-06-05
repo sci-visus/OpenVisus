@@ -15,27 +15,12 @@ class PyViewer(Viewer):
 	# constructor
 	def __init__(self):	
 		super().__init__()
-		
-	# editNode
-	def editNode(self,node):
-		
-		if not node:
-			node=self.getSelection()
-		
-		node=node.asPythonObject()
-		
-		if type(node) is PyScriptingNode: 
-			win=PyScriptingNodeView(node)
-			win.show()
-			return
-			
-		super().editNode(node)
-		
+	
 	# run
 	def run(self):
 		bounds=self.getWorldBox()
 		self.getGLCamera().guessPosition(bounds)	
-		GuiModule.execApplication()	
+		QApplication.exec()	
 		
 	# addVolumeRender
 	def addVolumeRender(self, data, bounds):

@@ -76,9 +76,19 @@ public:
   Widgets widgets;
 
   //constructor
-  FieldNodeView(FieldNode* model,SharedPtr<Dataset> dataset_=SharedPtr<Dataset>()) 
-  : dataset(dataset_)
+  FieldNodeView(FieldNode* model,SharedPtr<Dataset> dataset=SharedPtr<Dataset>()) 
   {
+    //find out the dataset
+    if (!dataset) {
+      if (auto query = model->getOutputPort("fieldname")->findFirstConnectedOutputOfType<QueryNode*>()) {
+        if (auto dataset_node = query->getInputPort("dataset")->findFirstConnectedInputOfType<DatasetNode*>()) {
+          dataset = dataset_node->getDataset();
+        }
+      }
+    }
+
+    this->dataset = dataset;
+
     if (model)
       bindModel(model);
   }

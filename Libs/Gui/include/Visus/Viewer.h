@@ -349,11 +349,8 @@ public:
     return false;
   }
 
-  //showPopupWidget
-  void showPopupWidget(QWidget* widget);
-
-  //showTopWidget
-  void showTopWidget(String title, QWidget* widget);
+  //showWidget
+  void showWidget(QWidget* widget, String title="");
 
   //openFile
   bool openFile(String filename, Node* parent = nullptr);

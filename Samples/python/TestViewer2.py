@@ -19,6 +19,8 @@ from   PyQt5.QtWidgets import *
 from   PyQt5.QtGui     import *
 import PyQt5.sip
 
+from PyQt5.QtWidgets import QApplication
+
 # ///////////////////////////////////////////////////////////
 class MyWidget(QWidget):
     
@@ -105,7 +107,7 @@ def Main(argv):
 	query_node=viewer.findNodeByUUID("volume")
 	viewer.connectNodes(query_node, pynode)
 		 
-	GuiModule.execApplication()
+	QApplication.exec()
 	viewer=None
 
 	print("All done")

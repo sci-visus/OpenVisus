@@ -381,5 +381,12 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
     gl.popClippingBox();
 }
 
+void KdRenderArrayNode::createEditor()
+{
+  //todo
+}
+
+
+
 } //namespace Visus
 

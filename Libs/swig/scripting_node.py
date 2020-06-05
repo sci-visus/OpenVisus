@@ -112,8 +112,11 @@ class PyScriptingNode(ScriptingNode):
 		self.addNodeJob(job)
 		return True 
 		
+	# createEditor
+	def createEditor(self):
+		win=PyScriptingNodeView(self)
+		win.show()
 
-		
 
 # ///////////////////////////////////////////////////////////////////////////
 class PyScriptingNodeView(QMainWindow):
@@ -122,42 +125,42 @@ class PyScriptingNodeView(QMainWindow):
 
 	# constructor
 	def __init__(self, node):
-			super().__init__()
+		super().__init__()
 			
-			self.gui_thread = QThread.currentThread()
-			self.append_output_signal.connect(self.appendOutput)
+		self.gui_thread = QThread.currentThread()
+		self.append_output_signal.connect(self.appendOutput)
 			
-			self.node=node
-			self.node.editor=self
+		self.node=node
+		self.node.editor=self
 
-			font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
-			font.setPointSize(9)
+		font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
+		font.setPointSize(9)
 			
-			self.presets = QComboBox()
-			self.presets.currentIndexChanged.connect(self.onPresetIndexChanged)
+		self.presets = QComboBox()
+		self.presets.currentIndexChanged.connect(self.onPresetIndexChanged)
 			
-			self.editor = QPlainTextEdit()	
-			self.editor.setFont(font)
+		self.editor = QPlainTextEdit()	
+		self.editor.setFont(font)
 			
-			self.output = QPlainTextEdit()	
-			self.output.setFont(font)
-			self.output.setStyleSheet("background-color: rgb(150, 150, 150);")
+		self.output = QPlainTextEdit()	
+		self.output.setFont(font)
+		self.output.setStyleSheet("background-color: rgb(150, 150, 150);")
 
-			self.run_button = QPushButton('Run')	
-			self.run_button.clicked.connect(self.runCode)				
+		self.run_button = QPushButton('Run')	
+		self.run_button.clicked.connect(self.runCode)				
 
-			self.layout = QVBoxLayout()
-			self.layout.addWidget(self.presets)
-			self.layout.addWidget(self.editor)
-			self.layout.addWidget(self.output)
-			self.layout.addWidget(self.run_button)	
+		self.layout = QVBoxLayout()
+		self.layout.addWidget(self.presets)
+		self.layout.addWidget(self.editor)
+		self.layout.addWidget(self.output)
+		self.layout.addWidget(self.run_button)	
 
-			container = QWidget()
-			container.setLayout(self.layout)
-			self.setCentralWidget(container)
+		container = QWidget()
+		container.setLayout(self.layout)
+		self.setCentralWidget(container)
 			
-			self.setText(node.getCode())
-			self.guessPresets()
+		self.setText(node.getCode())
+		self.guessPresets()
 			
 	# getText
 	def getText(self):
@@ -219,10 +222,10 @@ class PyScriptingNodeView(QMainWindow):
 
 	# showError
 	def showError(self, s):
-			dlg = QMessageBox(self)
-			dlg.setText(s)
-			dlg.setIcon(QMessageBox.Critical)
-			dlg.show()
+		dlg = QMessageBox(self)
+		dlg.setText(s)
+		dlg.setIcon(QMessageBox.Critical)
+		dlg.show()
 
 
 

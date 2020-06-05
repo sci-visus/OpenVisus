@@ -13,6 +13,7 @@ from OpenVisus import *
 
 from OpenVisus.gui import *
 
+from PyQt5.QtWidgets import QApplication
 
 # //////////////////////////////////////////////
 def Main(argv):
@@ -27,7 +28,7 @@ def Main(argv):
 		"output=cv2.Laplacian(input,cv2.CV_64F)"
 		]))
 		
-	GuiModule.execApplication()
+	QApplication.exec()
 	viewer=None
 
 	print("All done")

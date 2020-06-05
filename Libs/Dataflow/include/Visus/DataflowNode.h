@@ -411,7 +411,7 @@ public:
 
   //registerClass
   void registerClass(String portable_typename, String os_typename, NodeCreator* VISUS_DISOWN(creator)) {
-    PrintInfo("Registering class", portable_typename, os_typename);
+    PrintInfo("Registering C++ class", portable_typename, os_typename);
     creators[portable_typename] = creator;
     portable_typenames.setValue(os_typename, portable_typename);
   }

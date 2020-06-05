@@ -291,7 +291,7 @@ int main(int argn,const char* argv[])
     auto win = new DavidWindow();
     win->resize(1024, 768);
     win->show();
-    GuiModule::execApplication();
+    QApplication::exec();
     delete win;
   }
   

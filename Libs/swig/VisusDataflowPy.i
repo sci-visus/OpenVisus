@@ -73,7 +73,7 @@ PyObject* __asPythonObject() {
 
     def VISUS_REGISTER_NODE_CLASS(TypeName, PyTypeName, creator):
 
-        print("Registering python class",TypeName,PyTypeName)
+        print("Registering Python class",TypeName,PyTypeName)
 
         class PyNodeCreator(NodeCreator):
    

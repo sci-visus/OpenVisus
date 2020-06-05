@@ -569,9 +569,10 @@ def Main(args):
 	# example: python -m OpenVisus viewer ....
 	if action=="viewer":
 		from OpenVisus.gui import PyViewer,GuiModule
+		from PyQt5.QtWidgets import QApplication
 		viewer=PyViewer()
 		viewer.configureFromArgs(action_args)
-		GuiModule.execApplication()
+		QApplication.exec()
 		viewer=None
 		print("All done")
 		sys.exit(0)
