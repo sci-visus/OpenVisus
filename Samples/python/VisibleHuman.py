@@ -1,7 +1,7 @@
 import os,sys
 
-from OpenVisus            import *
-from OpenVisus.VisusGuiPy import *
+from OpenVisus     import *
+from OpenVisus.gui import *
 
 # //////////////////////////////////////////////
 def SwapRedBlue(img):
@@ -254,7 +254,7 @@ def VisibleFemale():
 	head=(0,1, 0,1, 0,0.1)
 	region=head
 
-	logic_box=db.getLogicBox(x=region[0:2],y==region[2:4],z==region[4:6])
+	logic_box=db.getLogicBox(x=region[0:2],y=region[2:4],z=region[4:6])
 
 	RGB =db.read(logic_box=logic_box,quality=G-6)	
 	bounds=db.getBounds(logic_box)

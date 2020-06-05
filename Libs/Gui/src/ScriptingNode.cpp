@@ -198,6 +198,8 @@ ScriptingNode::ScriptingNode()
 
   addInputPort("array");
   addOutputPort("array");
+
+  setCode("output=input");
 }
 
 ///////////////////////////////////////////////////////////////////////

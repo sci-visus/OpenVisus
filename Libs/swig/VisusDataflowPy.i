@@ -68,21 +68,22 @@ PyObject* __asPythonObject() {
 %include <Visus/DataflowNode.h>
 %include <Visus/Dataflow.h>
 
-// _____________________________________________________
-// python code 
+
 %pythoncode %{
 
-class PyNodeCreator(NodeCreator):
+    def VISUS_REGISTER_NODE_CLASS(TypeName, PyTypeName, creator):
+
+        print("Registering python class",TypeName,PyTypeName)
+
+        class PyNodeCreator(NodeCreator):
    
-    def __init__(self,creator):
-        super().__init__()
-        self.creator=creator
+            def __init__(self,creator):
+                super().__init__()
+                self.creator=creator
 
-    def createInstance(self):
-        return self.creator()
+            def createInstance(self):
+                return self.creator()
 
-def VISUS_REGISTER_NODE_CLASS(TypeName, PyTypeName, creator):
-    print("Registering python class",TypeName,PyTypeName)
-    NodeFactory.getSingleton().registerClass(TypeName, PyTypeName , PyNodeCreator(creator))
+        NodeFactory.getSingleton().registerClass(TypeName, PyTypeName , PyNodeCreator(creator))
 %}
 

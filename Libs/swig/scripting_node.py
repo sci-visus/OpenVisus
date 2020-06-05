@@ -1,5 +1,5 @@
-from OpenVisus             import *
-from OpenVisus.VisusGuiPy  import *
+from OpenVisus      import *
+from OpenVisus.gui  import *
 
 import numpy
 

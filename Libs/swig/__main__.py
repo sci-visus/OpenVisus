@@ -402,8 +402,8 @@ def CompressDataset(args):
 
 # ////////////////////////////////////////////////
 def RunViewer(args):
-	from VisusGuiPy import GuiModule,Viewer
-	viewer=Viewer()
+	from OpenVisus.gui import PyViewer,GuiModule
+	viewer=PyViewer()
 	viewer.configureFromArgs(args)
 	GuiModule.execApplication()
 	viewer=None

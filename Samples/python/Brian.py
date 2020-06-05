@@ -1,8 +1,8 @@
 import os
 import sys
 
-from OpenVisus            import *
-from OpenVisus.VisusGuiPy import *
+from OpenVisus     import *
+from OpenVisus.gui import *
 
 # Scripting Node to remove the white-sh (TO TRY)
 """

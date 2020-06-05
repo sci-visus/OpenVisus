@@ -67,6 +67,9 @@ CopyToBinaryDirectory(TARGET VisusKernelPy FILES  __init__.py            DESTINA
 CopyToBinaryDirectory(TARGET VisusKernelPy FILES  __main__.py            DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusKernelPy FILES  setup.py               DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusKernelPy FILES  utils.py               DESTINATION ./)
+
 CopyToBinaryDirectory(TARGET VisusDbPy     FILES  dataset.py             DESTINATION ./)
+
 CopyToBinaryDirectory(TARGET VisusGuiPy    FILES  scripting_node.py      DESTINATION ./)
+CopyToBinaryDirectory(TARGET VisusGuiPy    FILES  gui.py                 DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusGuiPy    FILES  viewer.py              DESTINATION ./)

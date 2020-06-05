@@ -11,14 +11,12 @@ from OpenVisus import *
 
 # on windows rememeber to INSTALL and CONFIGURE
 
-from OpenVisus.VisusGuiPy      import *
+from OpenVisus.gui import *
 
 
 # //////////////////////////////////////////////
 def Main(argv):
-	
-	VISUS_REGISTER_NODE_CLASS("ScriptingNode", "PyScriptingNode", lambda : PyScriptingNode())
-		
+
 	viewer=PyViewer()
 	viewer.open(r".\datasets\cat\gray.idx")
 		

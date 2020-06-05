@@ -109,9 +109,3 @@ namespace Visus {
 	PyObject* FromCppQtWidget (void*     widget);
 }
 
-%pythoncode %{
-GuiModule.attach()
-
-from OpenVisus.scripting_node  import *
-from OpenVisus.viewer          import *
-%}
