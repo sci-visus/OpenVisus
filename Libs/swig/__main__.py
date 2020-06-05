@@ -400,14 +400,6 @@ def CompressDataset(args):
 	Assert(db)
 	Assert(db.compressDataset(args.compression))
 
-# ////////////////////////////////////////////////
-def RunViewer(args):
-	from OpenVisus.gui import PyViewer,GuiModule
-	viewer=PyViewer()
-	viewer.configureFromArgs(args)
-	GuiModule.execApplication()
-	viewer=None
-	print("All done")
 
 # ////////////////////////////////////////////////
 def MidxToIdx(args):
@@ -576,7 +568,12 @@ def Main(args):
 
 	# example: python -m OpenVisus viewer ....
 	if action=="viewer":
-		RunViewer(action_args)
+		from OpenVisus.gui import PyViewer,GuiModule
+		viewer=PyViewer()
+		viewer.configureFromArgs(action_args)
+		GuiModule.execApplication()
+		viewer=None
+		print("All done")
 		sys.exit(0)
 
 	if action=="viewer1":

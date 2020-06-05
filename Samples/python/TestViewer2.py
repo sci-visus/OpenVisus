@@ -85,7 +85,7 @@ def Main(argv):
 	
 	VISUS_REGISTER_NODE_CLASS("MyRenderNode", "MyRenderNode", lambda : MyRenderNode())
 
-	viewer=Viewer()
+	viewer=PyViewer()
 	viewer.open("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1") 
 
 	# example of adding a PyQt5 widget to C++ Qt

@@ -56,7 +56,7 @@ AddSwigLibrary(VisusXIdx)
 AddSwigLibrary(VisusDataflow dataset.py)
 AddSwigLibrary(VisusDb)
 AddSwigLibrary(VisusNodes)
-AddSwigLibrary(VisusGui scripting_node.py viewer.py)
+AddSwigLibrary(VisusGui scripting_node.py viewer.py gui.py)
 
 if (VISUS_SLAM)
 	target_compile_definitions(VisusKernelPy PRIVATE VISUS_SLAM=1)
