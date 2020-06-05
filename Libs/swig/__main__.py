@@ -568,6 +568,7 @@ def Main(args):
 
 	# example: python -m OpenVisus viewer ....
 	if action=="viewer":
+		os.chdir(this_dir)
 		from OpenVisus.gui import PyViewer,GuiModule
 		from PyQt5.QtWidgets import QApplication
 		viewer=PyViewer()
@@ -578,14 +579,17 @@ def Main(args):
 		sys.exit(0)
 
 	if action=="viewer1":
+		os.chdir(this_dir)
 		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "TestViewer1.py")]) 
 		sys.exit(0)
 
 	if action=="viewer2":
+		os.chdir(this_dir)
 		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "TestViewer2.py")]) 
 		sys.exit(0)
 
 	if action=="visible-human":
+		os.chdir(this_dir)
 		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "VisibleHuman.py")]) 
 		sys.exit(0)
 

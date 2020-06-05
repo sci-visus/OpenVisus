@@ -1,14 +1,14 @@
+import numpy
+
 from OpenVisus      import *
 from OpenVisus.gui  import *
 
-import numpy
-
-from PyQt5.QtGui import *
+from PyQt5.QtGui     import *
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from PyQt5.QtCore    import *
 
 # //////////////////////////////////////////////////////////////////////////
-class PyScriptingNodeJob(NodeJob):
+class MyJob(NodeJob):
 	
 	# constructor
 	def __init__(self, node, input, return_receipt):
@@ -71,55 +71,9 @@ class PyScriptingNodeJob(NodeJob):
 		self.msg.writeArray("array", output)
 		self.node.publish(self.msg) 	
 		
-		
-
-# //////////////////////////////////////////////////////////////////////////
-class PyScriptingNode(ScriptingNode):
-	
-	# __init__
-	def __init__(self):
-		super().__init__()
-		self.editor=None
-		
-	# getTypeName
-	def getTypeName(self):		
-		return "PyScriptingNode"
-		
-	# getOsDependentTypeName
-	def getOsDependentTypeName(self):
-		return "PyScriptingNode"
-	
-	# setCode
-	def setCode(self,code):
-		super().setCode(code)
-		if self.editor:
-			self.editor.setText(code)
-
-	# processInput
-	def processInput(self):
-	
-		self.abortProcessing()
-		self.joinProcessing()
-
-		return_receipt = self.createPassThroughtReceipt()
-		input = self.readArray("array")
-		
-		if input is None:
-			return False
-
-		self.bounds = input.bounds
-		job=PyScriptingNodeJob(self, input, return_receipt)
-		self.addNodeJob(job)
-		return True 
-		
-	# createEditor
-	def createEditor(self):
-		win=PyScriptingNodeView(self)
-		win.show()
-
 
 # ///////////////////////////////////////////////////////////////////////////
-class PyScriptingNodeView(QMainWindow):
+class MyView(QMainWindow):
 	
 	append_output_signal=pyqtSignal(str)
 
@@ -228,4 +182,45 @@ class PyScriptingNodeView(QMainWindow):
 		dlg.show()
 
 
+# //////////////////////////////////////////////////////////////////////////
+class PyScriptingNode(ScriptingNode):
+	
+	# __init__
+	def __init__(self):
+		super().__init__()
+		self.editor=None
+		
+	# getTypeName
+	def getTypeName(self):		
+		return "PyScriptingNode"
+		
+	# getOsDependentTypeName
+	def getOsDependentTypeName(self):
+		return "PyScriptingNode"
+	
+	# setCode
+	def setCode(self,value):
+		super().setCode(value)
+		if not self.editor: return
+		self.editor.setText(value)
 
+	# processInput
+	def processInput(self):
+	
+		self.abortProcessing()
+		self.joinProcessing()
+
+		return_receipt = self.createPassThroughtReceipt()
+		input = self.readArray("array")
+		
+		if input is None:
+			return False
+
+		self.setBounds(input.bounds)
+		job=MyJob(self, input, return_receipt)
+		self.addNodeJob(job)
+		return True 
+		
+	# createEditor
+	def createEditor(self):
+		MyView(self).show()
