@@ -11,7 +11,6 @@ target_link_libraries(VisusXIdx PUBLIC VisusKernel)
 target_compile_definitions(VisusXIdx  PRIVATE VISUS_BUILDING_VISUSXIDX=1)
 target_include_directories(VisusXIdx  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-CopyToBinaryDirectory(TARGET VisusXIdx DIRECTORY ./include/Visus DESTINATION ./include/XIdx/Visus)
 
 set(SwigFile ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusXIdx.i)
 set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")

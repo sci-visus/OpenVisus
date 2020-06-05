@@ -214,33 +214,51 @@ if (1)
 		file(GENERATE OUTPUT ${__qt_version_filename__} CONTENT "${Qt5Core_VERSION_STRING}")
 	endif()
 
-	add_custom_target(CopyRootFiles ALL)
+	add_custom_target(CopyFiles ALL)
+	set_property(TARGET CopyFiles PROPERTY FOLDER CMakePredefinedTargets)
 
-	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     LICENSE                    DESTINATION ./)
-	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     README.md                  DESTINATION ./)
-	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     datasets/visus.config      DESTINATION ./)
-	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     ${__qt_version_filename__} DESTINATION ./)
-	CopyToBinaryDirectory(TARGET CopyRootFiles FILES     quick_tour.ipynb           DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyFiles FILES     LICENSE                    DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyFiles FILES     README.md                  DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyFiles FILES     datasets/visus.config      DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyFiles FILES     ${__qt_version_filename__} DESTINATION ./)
+	CopyToBinaryDirectory(TARGET CopyFiles FILES     quick_tour.ipynb           DESTINATION ./)
 
-	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY Copyrights                 DESTINATION ./Copyrights)
-	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY Samples                    DESTINATION ./Samples)
-	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY datasets                   DESTINATION ./datasets)
-	CopyToBinaryDirectory(TARGET CopyRootFiles DIRECTORY scripts                    DESTINATION ./scripts)
+	CopyToBinaryDirectory(TARGET CopyFiles DIRECTORY Copyrights                 DESTINATION ./Copyrights)
+	CopyToBinaryDirectory(TARGET CopyFiles DIRECTORY Samples                    DESTINATION ./Samples)
+	CopyToBinaryDirectory(TARGET CopyFiles DIRECTORY datasets                   DESTINATION ./datasets)
+	CopyToBinaryDirectory(TARGET CopyFiles DIRECTORY scripts                    DESTINATION ./scripts)
+
+	CopyToBinaryDirectory(TARGET CopyFiles DIRECTORY Libs/Kernel/include/Visus   DESTINATION ./include/Kernel/Visus)
+	CopyToBinaryDirectory(TARGET CopyFiles DIRECTORY Libs/XIdx/include/Visus     DESTINATION ./include/XIdx/Visus)
+	CopyToBinaryDirectory(TARGET CopyFiles DIRECTORY Libs/Db/include/Visus       DESTINATION ./include/Db/Visus)
+	CopyToBinaryDirectory(TARGET CopyFiles DIRECTORY Libs/Dataflow/include/Visus DESTINATION ./include/Dataflow/Visus)
+	CopyToBinaryDirectory(TARGET CopyFiles DIRECTORY Libs/Nodes/include/Visus    DESTINATION ./include/Nodes/Visus)
+	CopyToBinaryDirectory(TARGET CopyFiles DIRECTORY Libs/Gui/include/Visus      DESTINATION ./include/Gui/Visus)
 
 	# copy needed windows *.dll
 	if (WIN32)
 		set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION "${ConfigName}/${PROJECT_NAME}/bin")
 		include(InstallRequiredSystemLibraries)
-		CopyToBinaryDirectory(TARGET CopyRootFiles FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ./bin/)
+		CopyToBinaryDirectory(TARGET CopyFiles FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ./bin/)
 	endif()
 	
 endif()
 
+if (VISUS_PYTHON)
 
-# configure-step i.e. force use of PyQt to mix Qt5 and PyyQt5 ***
-if (VISUS_PYTHON AND VISUS_GUI)
-	add_custom_target(CONFIGURE ${CMAKE_COMMAND} -E env PYTHONPATH=${CMAKE_BINARY_DIR}/${ConfigName}/OpenVisus/.. ${Python_EXECUTABLE} -u -m OpenVisus use-pyqt5)
-	set_property(TARGET CONFIGURE PROPERTY FOLDER CMakePredefinedTargets)
+	macro(AddPythonTest Name)
+		add_custom_target(${Name} ${CMAKE_COMMAND} -E env PYTHONPATH=${CMAKE_BINARY_DIR}/${ConfigName}/OpenVisus/.. ${Python_EXECUTABLE} -u ${ARGN})
+		set_property(TARGET ${Name} PROPERTY FOLDER CMakePredefinedTargets)
+	endmacro()
+
+	AddPythonTest(test -m OpenVisus test)
+
+	if (VISUS_GUI)
+		AddPythonTest(UsePyQt5 -m OpenVisus use-pyqt5)
+		AddPythonTest(viewer   -m OpenVisus viewer)
+		AddPythonTest(viewer1  -m OpenVisus viewer1)
+		AddPythonTest(viewer2  -m OpenVisus viewer2)
+	endif()
 endif()
 
 

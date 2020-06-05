@@ -303,7 +303,6 @@ endif()
 target_compile_definitions(VisusKernel  PRIVATE VISUS_BUILDING_VISUSKERNEL=1)
 target_include_directories(VisusKernel  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-CopyToBinaryDirectory(TARGET VisusKernel DIRECTORY ./include/Visus  DESTINATION ./include/Kernel/Visus)
 CopyToBinaryDirectory(TARGET VisusKernel FILES __init__.py          DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusKernel FILES __main__.py          DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusKernel FILES setup.py             DESTINATION ./)

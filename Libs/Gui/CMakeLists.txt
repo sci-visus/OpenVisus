@@ -122,7 +122,6 @@ endif()
 
 set_target_properties(VisusGui PROPERTIES FOLDER "")
 
-CopyToBinaryDirectory(TARGET VisusGui DIRECTORY ./include/Visus    DESTINATION ./include/Gui/Visus)
 CopyToBinaryDirectory(TARGET VisusGui FILES PyScriptingNode.py     DESTINATION ./)
 CopyToBinaryDirectory(TARGET VisusGui FILES PyViewer.py            DESTINATION ./)
 

@@ -9,7 +9,6 @@ target_link_libraries(VisusDataflow PUBLIC VisusKernel)
 target_compile_definitions(VisusDataflow  PRIVATE VISUS_BUILDING_VISUSDATAFLOW=1)
 target_include_directories(VisusDataflow  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-CopyToBinaryDirectory(TARGET VisusDataflow DIRECTORY ./include/Visus DESTINATION ./include/Dataflow/Visus)
 
 set(SwigFile ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusDataflowPy.i)
 set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
