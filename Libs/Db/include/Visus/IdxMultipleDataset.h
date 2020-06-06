@@ -45,14 +45,20 @@ For support : support@visus.net
 
 namespace Visus {
 
-#if VISUS_PYTHON
-class VISUS_DB_API PythonEnginePool;
-#endif
 
 //////////////////////////////////////////////////////////////////////
 class VISUS_DB_API IdxMultipleDataset  : public IdxDataset
 {
 public:
+
+  VISUS_PIMPL_CLASS(IdxMultipleDataset)
+
+  enum 
+  {
+    DebugSaveImages = 0x01,
+    DebugSkipReading = 0x02,
+    DebugAll = 0xff
+  };
 
   //bMosaic
   bool is_mosaic = false;
@@ -66,13 +72,6 @@ public:
   //getTypeName
   virtual String getTypeName() const override {
     return "IdxMultipleDataset";
-  }
-
-  //clone
-  virtual SharedPtr<Dataset> clone() const override {
-    auto ret = std::make_shared<IdxMultipleDataset>();
-    *ret = *this;
-    return ret;
   }
 
   //getChild
@@ -92,6 +91,12 @@ public:
     VisusAssert(!down_datasets.count(name));
     down_datasets[name] = value;
   }
+
+  //createDownQuery
+  SharedPtr<BoxQuery> createDownQuery(SharedPtr<Access> ACCESS, BoxQuery* QUERY, String dataset_name, String fieldname);
+  
+  //executeDownQuery
+  Array executeDownQuery(BoxQuery* QUERY, SharedPtr<BoxQuery> query);
 
 public:
 
@@ -125,27 +130,16 @@ public:
 
 private:
 
-  friend class QueryInputTerm;
-
-  enum DebugMode
-  {
-    DebugSaveImages = 0x01,
-    DebugSkipReading=0x02,
-    DebugAll=0xff
-  };
+  friend class Pimpl;
+  friend class InputTerm;
 
   int debug_mode = 0;
-
-#if VISUS_PYTHON
-  SharedPtr<PythonEnginePool> python_engine_pool;
-#endif
 
   //getInputName
   String getInputName(String name, String fieldname);
 
   //createField
   Field createField(String operation_name);
-
 
   //removeAliases
   String removeAliases(String url);
@@ -155,7 +149,6 @@ private:
 
   //parseDatasets
   void parseDatasets(StringTree& cur,Matrix T);
-
 
 };
 

@@ -1582,7 +1582,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
     PrintInfo("aysnc read",concatenate(NREAD, "/", blocks.size()),"...");
   };
 
-  PrintInfo("Executing query...");
+  //PrintInfo("Executing query...");
 
   if (bReading)
     access->beginRead();
@@ -1651,7 +1651,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
     access->endReadWrite();
 
   waitAsyncRead();
-  PrintInfo("Query finished", "NREAD", NREAD, "NWRITE", NWRITE);
+  //PrintInfo("Query finished", "NREAD", NREAD, "NWRITE", NWRITE);
 
   //set the query status
   if (aborted())

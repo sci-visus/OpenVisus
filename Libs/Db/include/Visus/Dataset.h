@@ -135,10 +135,6 @@ public:
   //getTypeName
   virtual String getTypeName() const = 0;
 
-  //cloneclone
-  virtual SharedPtr<Dataset> clone() const = 0;
-
-
   //isServerMode
   bool isServerMode() const {
     return bServerMode;

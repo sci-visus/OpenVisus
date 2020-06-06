@@ -265,7 +265,6 @@ if (VISUS_IMAGE)
 	target_link_libraries(VisusKernel PRIVATE FreeImage)
 endif()
 
-
 if (VISUS_PYTHON)
 	if (WIN32)
 		# I'm always linking to python Release (most of wheel do not work in debug mode, like numpy)

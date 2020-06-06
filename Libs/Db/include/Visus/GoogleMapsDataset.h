@@ -50,6 +50,8 @@ class VISUS_DB_API GoogleMapsDataset : public Dataset
 {
 public:
 
+  VISUS_NON_COPYABLE_CLASS(GoogleMapsDataset)
+
   String           tiles;
   DType            dtype;
   Int64            tile_width=0;
@@ -68,13 +70,6 @@ public:
   //getTypeName
   virtual String getTypeName() const override {
     return "GoogleMapsDataset";
-  }
-
-  //clone
-  virtual SharedPtr<Dataset> clone() const override {
-    auto ret = std::make_shared<GoogleMapsDataset>();
-    *ret = *this;
-    return ret;
   }
 
   //getTileCoordinate

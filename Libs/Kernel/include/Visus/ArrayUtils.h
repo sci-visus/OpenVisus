@@ -84,7 +84,7 @@ public:
   //deepCopy
   static bool deepCopy(Array& dst, Array src)
   {
-    SharedPtr<HeapMemory> heap(src.heap->clone());
+    auto heap=src.heap->cloneHeap();
     if (!heap) return false;
     dst = src;
     dst.heap = heap;

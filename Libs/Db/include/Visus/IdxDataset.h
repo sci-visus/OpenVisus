@@ -78,13 +78,6 @@ public:
     return "IdxDataset";
   }
 
-  //clone
-  virtual SharedPtr<Dataset> clone() const override {
-    auto ret = std::make_shared<IdxDataset>();
-    *ret = *this;
-    return ret;
-  }
-
   //tryRemoveLockAndCorruptedBinaryFiles
   static void tryRemoveLockAndCorruptedBinaryFiles(String directory);
 
