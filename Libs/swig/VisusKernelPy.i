@@ -15,7 +15,7 @@
 using namespace Visus;
 %}
 
-%include <VisusPy.i>
+%include <VisusPy.common>
 
 %shared_ptr(Visus::HeapMemory)
 %shared_ptr(Visus::StringTree)

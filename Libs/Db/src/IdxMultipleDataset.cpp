@@ -43,132 +43,113 @@ For support : support@visus.net
 #include <Visus/ApplicationInfo.h>
 #include <Visus/Polygon.h>
 
-#if VISUS_PYTHON
-#include <Visus/Python.h>
-#endif
-
 #include <atomic>
 
 namespace Visus {
 
 ///////////////////////////////////////////////////////////////////////////////////////
-class IdxMultipleAccess : 
-  public Access, 
-  public std::enable_shared_from_this<IdxMultipleAccess>
+IdxMultipleAccess::IdxMultipleAccess(IdxMultipleDataset* VF_, StringTree CONFIG_)
+: DATASET(VF_), CONFIG(CONFIG_)
 {
-public:
+  VisusAssert(!DATASET->is_mosaic);
 
-  VISUS_NON_COPYABLE_CLASS(IdxMultipleAccess)
+  this->name = CONFIG.readString("name", "IdxMultipleAccess");
+  this->can_read = true;
+  this->can_write = false;
+  this->bitsperblock = DATASET->getDefaultBitsPerBlock();
 
-  IdxMultipleDataset* DATASET = nullptr;
-  StringTree                                       CONFIG;
-  std::map< std::pair<String, String>, StringTree> configs;
-  SharedPtr<ThreadPool>                            thread_pool;
-
-  //constructor
-  IdxMultipleAccess(IdxMultipleDataset* VF_, StringTree CONFIG_)
-  : DATASET(VF_), CONFIG(CONFIG_)
+  for (auto child : DATASET->down_datasets)
   {
-    VisusAssert(!DATASET->is_mosaic);
+    auto name = child.first;
 
-    this->name = CONFIG.readString("name", "IdxMultipleAccess");
-    this->can_read = true;
-    this->can_write = false;
-    this->bitsperblock = DATASET->getDefaultBitsPerBlock();
-
-    for (auto child : DATASET->down_datasets)
+    //see if the user specified how to access the data for each query dataset
+    for (auto it : CONFIG.getChilds())
     {
-      auto name = child.first;
-
-      //see if the user specified how to access the data for each query dataset
-      for (auto it : CONFIG.getChilds())
-      {
-        if (it->name == name || it->readString("name") == name)
-          configs[std::make_pair(name, "")] = *it;
-      }
+      if (it->name == name || it->readString("name") == name)
+        configs[std::make_pair(name, "")] = *it;
     }
-
-    bool disable_async = CONFIG.readBool("disable_async", DATASET->isServerMode());
-
-    //TODO: special case when I can use the blocks
-    //if (DATASET->childs.size() == 1 && DATASET->sameLogicSpace(DATASET->childs[0]))
-    //  ;
-
-    if (int nthreads= disable_async ? 0 : 3)
-      this->thread_pool = std::make_shared<ThreadPool>("IdxMultipleAccess Worker",nthreads);
   }
 
-  //destructor
-  virtual ~IdxMultipleAccess()
+  bool disable_async = CONFIG.readBool("disable_async", DATASET->isServerMode());
+
+  //TODO: special case when I can use the blocks
+  //if (DATASET->childs.size() == 1 && DATASET->sameLogicSpace(DATASET->childs[0]))
+  //  ;
+
+  if (int nthreads= disable_async ? 0 : 3)
+    this->thread_pool = std::make_shared<ThreadPool>("IdxMultipleAccess Worker",nthreads);
+}
+
+//destructor
+IdxMultipleAccess::~IdxMultipleAccess()
+{
+  thread_pool.reset();
+}
+
+//////////////////////////////////////////////////////
+SharedPtr<Access> IdxMultipleAccess::createDownAccess(String name, String fieldname)
+{
+  auto dataset = DATASET->getChild(name);
+  VisusAssert(dataset);
+
+  SharedPtr<Access> ret;
+
+  StringTree config = dataset->getDefaultAccessConfig();
+
+  auto it = this->configs.find(std::make_pair(name, fieldname));
+  if (it==configs.end())
+    it = configs.find(std::make_pair(name, ""));
+
+  if (it != configs.end())
+    config = it->second;
+
+  //inerits attributes from CONFIG
+  for (auto it : this->CONFIG.attributes)
   {
-    thread_pool.reset();
+    auto key = it.first;
+    auto value = it.second;
+    if (!config.hasAttribute(key))
+      config.setAttribute(key,value);
   }
 
-  //createDownAccess
-  SharedPtr<Access> createDownAccess(String name, String fieldname) 
+  bool bForBlockQuery = DATASET->getKdQueryMode() & KdQueryMode::UseBlockQuery ? true : false;
+  return dataset->createAccess(config, bForBlockQuery);
+}
+
+//////////////////////////////////////////////////////
+void IdxMultipleAccess::readBlock(SharedPtr<BlockQuery> BLOCKQUERY) 
+{
+  ThreadPool::push(thread_pool, [this, BLOCKQUERY]() 
   {
-    auto dataset = DATASET->getChild(name);
-    VisusAssert(dataset);
+    if (BLOCKQUERY->aborted())
+      return readFailed(BLOCKQUERY);
 
-    SharedPtr<Access> ret;
+    /*
+    TODO: can be async block query be enabled for simple cases?
+      (like: I want to cache blocks for dw datasets)
+      if all the childs are bSameLogicSpace I can do the blending of the blocks
+      instead of the blending of the buffer of regular queries.
 
-    StringTree config = dataset->getDefaultAccessConfig();
+    To tell the truth i'm not sure if this solution would be different from what
+    I'm doing right now (except that I can go async)
+    */
+    auto QUERY = DATASET->createEquivalentBoxQuery('r', BLOCKQUERY);
+    DATASET->beginQuery(QUERY);
+    if (!DATASET->executeQuery(shared_from_this(), QUERY))
+      return readFailed(BLOCKQUERY);
 
-    auto it = this->configs.find(std::make_pair(name, fieldname));
-    if (it==configs.end())
-      it = configs.find(std::make_pair(name, ""));
+    BLOCKQUERY->buffer = QUERY->buffer;
+    return readOk(BLOCKQUERY);
+  });
+}
 
-    if (it != configs.end())
-      config = it->second;
+//////////////////////////////////////////////////////
+void IdxMultipleAccess::writeBlock(SharedPtr<BlockQuery> BLOCKQUERY)  {
+  //not supported
+  VisusAssert(false);
+  writeFailed(BLOCKQUERY);
+}
 
-    //inerits attributes from CONFIG
-    for (auto it : this->CONFIG.attributes)
-    {
-      auto key = it.first;
-      auto value = it.second;
-      if (!config.hasAttribute(key))
-        config.setAttribute(key,value);
-    }
-
-    bool bForBlockQuery = DATASET->getKdQueryMode() & KdQueryMode::UseBlockQuery ? true : false;
-    return dataset->createAccess(config, bForBlockQuery);
-  }
-
-  //readBlock 
-  virtual void readBlock(SharedPtr<BlockQuery> BLOCKQUERY) override
-  {
-    ThreadPool::push(thread_pool, [this, BLOCKQUERY]() 
-    {
-      if (BLOCKQUERY->aborted())
-        return readFailed(BLOCKQUERY);
-
-      /*
-      TODO: can be async block query be enabled for simple cases?
-       (like: I want to cache blocks for dw datasets)
-       if all the childs are bSameLogicSpace I can do the blending of the blocks
-       instead of the blending of the buffer of regular queries.
-
-      To tell the truth i'm not sure if this solution would be different from what
-      I'm doing right now (except that I can go async)
-      */
-      auto QUERY = DATASET->createEquivalentBoxQuery('r', BLOCKQUERY);
-      DATASET->beginQuery(QUERY);
-      if (!DATASET->executeQuery(shared_from_this(), QUERY))
-        return readFailed(BLOCKQUERY);
-
-      BLOCKQUERY->buffer = QUERY->buffer;
-      return readOk(BLOCKQUERY);
-    });
-  }
-
-  //writeBlock (not supported)
-  virtual void writeBlock(SharedPtr<BlockQuery> BLOCKQUERY) override {
-    //not supported
-    VisusAssert(false);
-    writeFailed(BLOCKQUERY);
-  }
-
-}; //end class
 
 //////////////////////////////////////////////////////
 class IdxMosaicAccess : public Access
@@ -380,413 +361,44 @@ public:
 
 };
 
-////////////////////////////////////////////////////////
-#if VISUS_PYTHON
 
-class InputTerm
+////////////////////////////////////////////////////////////////////////////////////
+static bool IsGoodVariableName(String name)
 {
-public:
-
-  VISUS_NON_COPYABLE_CLASS(InputTerm)
-
-  IdxMultipleDataset*      DATASET;
-  BoxQuery*                QUERY;
-  SharedPtr<Access>        ACCESS;
-
-  SharedPtr<PythonEngine>  engine;
-  Aborted                  aborted;
-
-  //constructor
-  InputTerm(SharedPtr<PythonEngine> engine_, IdxMultipleDataset* DATASET_, BoxQuery* QUERY_, SharedPtr<Access> ACCESS_, Aborted aborted_)
-    : engine(engine_), DATASET(DATASET_), QUERY(QUERY_), ACCESS(ACCESS_), aborted(aborted_) {
-
-    VisusAssert(!DATASET->is_mosaic);
-
-    {
-      ScopedAcquireGil acquire_gil;
-
-      engine->execCode(
-        "class DynamicObject:\n"
-        "  def __getattr__(self, args) : return self.forwardGetAttr(args)\n"
-        "  def __getitem__(self, args) : return self.forwardGetAttr(args)\n"
-      );
-
-      auto py_input = newDynamicObject([this](String expr1) {
-        return getAttr1(expr1);
-      });
-      engine->setModuleAttr("input", py_input);
-      Py_DECREF(py_input);
-
-      //for fieldname=function_of(QUERY->time) 
-      //NOTE: for getFieldByName(), I think I can use the default timestep since I just want to know the dtype
-      engine->setModuleAttr("query_time", QUERY ? QUERY->time : DATASET->getTimesteps().getDefault());
-
-      engine->addModuleFunction("doPublish", [this](PyObject* self, PyObject* args) {
-        auto output = engine->getModuleArrayAttr("output");
-        if (output && QUERY && QUERY->incrementalPublish)
-          QUERY->incrementalPublish(output);
-        return nullptr;
-      });
-
-      engine->addModuleFunction("voronoi",      [this](PyObject* self, PyObject* args) {return blendBuffers(BlendBuffers::VororoiBlend, args); });
-      engine->addModuleFunction("averageBlend", [this](PyObject* self, PyObject* args) {return blendBuffers(BlendBuffers::AverageBlend, args); });
-      engine->addModuleFunction("noBlend",      [this](PyObject* self, PyObject* args) {return blendBuffers(BlendBuffers::NoBlend     , args); });
-    }
-  }
-
-  //destructor
-  virtual ~InputTerm()
+  const std::set<String> ReservedWords =
   {
-    ScopedAcquireGil acquire_gil;
-    engine->delModuleAttr("query_time");
-    engine->delModuleAttr("doPublish");
-    engine->delModuleAttr("voronoiBlend");
-    engine->delModuleAttr("averageBlend");
-    engine->delModuleAttr("noBlend");
-    engine->delModuleAttr("input");
-  }
-
-  //computeOutput
-  Array computeOutput(String code)
-  {
-    ScopedAcquireGil acquire_gil;
-    engine->execCode(code);
-
-    auto ret = engine->getModuleArrayAttr("output");
-    if (!ret && !aborted())
-      ThrowException("empty 'output' value");
-
-    if (DATASET->debug_mode & IdxMultipleDataset::DebugSaveImages)
-    {
-      static int cont = 0;
-      ArrayUtils::saveImage(concatenate("temp/", cont++, ".up.result.png"), ret);
-    }
-
-    return ret;
-  }
-
-  //newDynamicObject
-  PyObject* newDynamicObject(std::function<PyObject* (String)> getattr)
-  {
-    auto ret = engine->evalCode("DynamicObject()");  //new reference
-    VisusAssert(ret);
-    engine->addObjectMethod(ret, "forwardGetAttr", [getattr](PyObject*, PyObject* args) {
-
-      VisusAssert(PyTuple_Check(args));
-      VisusAssert(PyTuple_Size(args) == 1);
-      auto arg0 = PyTuple_GetItem(args, 0); VisusAssert(arg0);//borrowed
-      auto expr = PythonEngine::convertToString(arg0); VisusAssert(!expr.empty());
-      if (!getattr) {
-        PythonEngine::setError("getattr is null");
-        return (PyObject*)nullptr;
-      }
-      return getattr(expr);
-    });
-    return ret;
-  }
-
-  //getAttr1
-  PyObject* getAttr1(String expr1)
-  {
-    //example: input.timesteps
-    if (expr1 == "timesteps")
-      return engine->newPyObject(DATASET->getTimesteps().asVector());
-
-    auto dataset = DATASET->getChild(expr1);
-    if (!dataset)
-      ThrowException("input['", expr1, "'] not found");
-
-    auto ret = newDynamicObject([this, expr1](String expr2) {
-      return getAttr2(expr1, expr2);
-    });
-    return ret;
-  }
-
-  //getAttr2
-  PyObject* getAttr2(String expr1, String expr2)
-  {
-    auto dataset = DATASET->getChild(expr1);
-    VisusAssert(dataset);
-
-    //example: input.datasetname.timesteps
-    if (expr2 == "timesteps")
-      return engine->newPyObject(dataset->getTimesteps().asVector());
-
-    //see https://github.com/sci-visus/visus-issues/issues/367 
-    //specify a dataset  (see midxofmidx.midx)
-    //EXAMPLE: output = input.first   ['output=input.A.temperature'];
-    //EXAMPLE: output = input.first.                 A.temperature 
-    if (auto midx = std::dynamic_pointer_cast<IdxMultipleDataset>(dataset))
-    {
-      if (midx->getChild(expr2))
-      {
-        auto ret = newDynamicObject([this, expr1, expr2](String expr3) {
-          return getAttr2(expr1, StringUtils::join({ expr2 }, ".", "output=input.", "." + expr3 + ";"));
-        });
-        return ret;
-      }
-    }
-
-    Array ret;
-
-    //execute a query (expr2 is the fieldname)
-    Field field = dataset->getFieldByName(expr2);
-
-    if (!field.valid())
-      ThrowException("input['", expr1, "']['", expr2, "'] not found");
-
-    int pdim = DATASET->getPointDim();
-
-    //only getting dtype for field name
-    if (!QUERY)
-      return engine->newPyObject(Array(PointNi(pdim), field.dtype));
-
-    {
-      ScopedReleaseGil release_gil;
-      auto down_query = DATASET->createDownQuery(this->ACCESS, this->QUERY, expr1, expr2);
-      ret = DATASET->executeDownQuery(QUERY, down_query);
-    }
-
-    return engine->newPyObject(ret);
-  }
-
-  //blendBuffers
-  PyObject* blendBuffers(BlendBuffers::Type type, PyObject* args)
-  {
-    int N = args? (int)PyObject_Length(args) : 0;
-    BlendBuffers blend(type, aborted);
-
-    //preview only
-    if (!QUERY)
-    {
-      if (!N)
-      {
-        for (auto it : DATASET->down_datasets)
-          blend.addBlendArg(Array(PointNi(DATASET->getPointDim()), it.second->getDefaultField().dtype));
-      }
-      else
-      {
-        //arguments are arrays
-        PyObject* arg0 = nullptr;
-        if (!PyArg_ParseTuple(args, "O:blendBuffers", &arg0))
-        {
-          PythonEngine::setError("invalid argument");
-          return (PyObject*)nullptr;
-        }
-
-        if (!PyList_Check(arg0))
-        {
-          PythonEngine::setError("invalid argument");
-          return (PyObject*)nullptr;
-        }
-
-        for (int I = 0; I < N; I++)
-          blend.addBlendArg(engine->pythonObjectToArray(PyList_GetItem(arg0, I)));
-      }
-    }
-    else
-    {
-      ScopedReleaseGil release_gil;
-
-      //special case: empty argument means all down dataset default fields
-      if (!N)
-      {
-        for (auto it : DATASET->down_datasets)
-        {
-          auto dataset_name = it.first;
-          auto fieldname = it.second->getDefaultField().name;
-
-          auto query = DATASET->createDownQuery(this->ACCESS, this->QUERY, dataset_name, fieldname);
-          if (!query || query->failed() || query->aborted())
-            continue;
-
-          DATASET->executeDownQuery(QUERY, query);
-
-          if (!query->down_info.BUFFER || query->aborted())
-            continue;
-
-          blend.addBlendArg(query->down_info.BUFFER, query->down_info.PIXEL_TO_LOGIC, query->down_info.LOGIC_CENTROID);
-        }
-      }
-      else
-      {
-        for (auto it : QUERY->down_queries)
-        {
-          auto query = it.second;
-          if (!query || !query->down_info.BUFFER || query->aborted())
-            continue;
-
-          blend.addBlendArg(query->down_info.BUFFER, query->down_info.PIXEL_TO_LOGIC, query->down_info.LOGIC_CENTROID);
-        }
-      }
-    }
-
-    return engine->newPyObject(blend.result);
-  }
-
-};
-
-class IdxMultipleDataset::Pimpl
-{
-public:
-
-  IdxMultipleDataset*         DATASET;
-  SharedPtr<PythonEnginePool> pool;
-
-  //constructor
-  Pimpl(IdxMultipleDataset* DATASET_) : DATASET(DATASET_) {
-    if (!DATASET->isServerMode())
-      pool = std::make_shared<PythonEnginePool>();
-  }
-
-  //getFieldByNameThrowEx
-  Field getFieldByNameThrowEx(String FIELDNAME) const
-  {
-    if (DATASET->is_mosaic)
-      return DATASET->IdxDataset::getFieldByNameThrowEx(FIELDNAME);
-
-    String CODE;
-    if (DATASET->find_field.count(FIELDNAME))
-      CODE = DATASET->find_field.find(FIELDNAME)->second.name;  //existing field (it's a symbolic name)
-    else
-      CODE = FIELDNAME; //the fieldname itself is the expression
-
-    auto engine = pool? pool->createEngine() : std::make_shared<PythonEngine>();
-    auto OUTPUT = InputTerm(engine, const_cast<IdxMultipleDataset*>(DATASET), nullptr, SharedPtr<Access>(), Aborted()).computeOutput(CODE);
-    if (pool) pool->releaseEngine(engine);
-    return Field(CODE, OUTPUT.dtype);
-  }
-
-  //getInputName
-  String getInputName(String dataset_name, String fieldname)
-  {
-    std::ostringstream out;
-    out << "input";
-
-    if (PythonEngine::isGoodVariableName(dataset_name))
-    {
-      out << "." << dataset_name;
-    }
-    else
-    {
-      out << "['" << dataset_name << "']";
-    }
-
-    if (PythonEngine::isGoodVariableName(fieldname))
-    {
-      out << "." << fieldname;
-    }
-    else
-    {
-      if (StringUtils::contains(fieldname, "\n"))
-      {
-        const String triple = "\"\"\"";
-        out << "[" + triple + "\n" + fieldname + triple + "]";
-      }
-      else
-      {
-        //fieldname = StringUtils::replaceAll(fieldname, "\"", "\\\"");
-        fieldname = StringUtils::replaceAll(fieldname, "'", "\\'");
-        out << "['" << fieldname << "']";
-      }
-    }
-
-    return out.str();
+    "and", "del","from","not","while","as","elif","global","or","with","assert", "else","if",
+    "pass","yield","break","except","import","print", "class","exec""in","raise","continue",
+    "finally","is","return","def","for","lambda","try"
   };
 
-  //executeQuery
-  bool executeQuery(SharedPtr<IdxMultipleAccess> ACCESS, SharedPtr<BoxQuery> QUERY)
-  {
-    Array  OUTPUT;
-
-    auto engine = pool ? pool->createEngine() : std::make_shared<PythonEngine>();
-
-    try
-    {
-      OUTPUT = InputTerm(engine, DATASET, QUERY.get(), ACCESS, QUERY->aborted).computeOutput(QUERY->field.name);
-    }
-    catch (std::exception ex)
-    {
-      if (pool)
-        pool->releaseEngine(engine);
-
-      auto error_msg = QUERY->aborted() ? "query aborted" : ex.what();
-      QUERY->setFailed(error_msg);
-      return false;
-    }
-
-    if (pool) 
-      pool->releaseEngine(engine);
-
-    //a projection happened? results will be unmergeable!
-    if (OUTPUT.dims != QUERY->logic_samples.nsamples)
-      QUERY->merge_mode = DoNotMergeSamples;
-
-    QUERY->buffer = OUTPUT;
-    QUERY->setCurrentResolution(QUERY->end_resolution);
-    return true;
-  }
-
-};
-
-#else
-
-class Pimpl
-{
-public:
-
-  IdxMultipleDataset* DATASET;
-
-  //constructor
-  Pimpl(IdxMultipleDataset* DATASET_) : DATASET(DATASET_) {
-  }
-
-  //getFieldByNameThrowEx
-  Field getFieldByNameThrowEx(String FIELDNAME) const
-  {
-    auto v=StringUtils::split(FIELDNAME, ".");
-    if (v.size() != 2)
-      ThrowException("wrong FIELDNAME");
-
-    auto dataset_name=v[0];
-    auto fieldname = v[1];
-
-    auto dataset = DATASET->getChild(dataset_name);
-    if (!dataset)
-      ThrowException("dataset", dataset_name,not found);
-
-    return dataset->getFieldByNameThrowEx(fieldname);
-  }
-
-  //getInputName
-  String getInputName(String dataset_name, String fieldname) {
-    return concatenate("input.", dataset_name, ".", fieldname);
-  };
-
-  //executeQuery
-  bool executeQuery(SharedPtr<IdxMultipleAccess> ACCESS, SharedPtr<BoxQuery> QUERY)
-  {
-    QUERY->setFailed("not supported");
+  if (name.empty() || ReservedWords.count(name))
     return false;
+
+  if (!std::isalpha(name[0]))
+    return false;
+
+  for (int I = 1; I < (int)name.length(); I++)
+  {
+    if (!(std::isalnum(name[I]) || name[I] == '_'))
+      return false;
   }
 
+  return true;
 };
 
-#endif
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////
 IdxMultipleDataset::IdxMultipleDataset() {
 
   this->debug_mode = 0;// DebugSkipReading;
-  this->pimpl = new Pimpl(this);
 }
 
 
 ///////////////////////////////////////////////////////////////////////////////////
 IdxMultipleDataset::~IdxMultipleDataset() {
-  if (pimpl)
-    delete pimpl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -842,34 +454,50 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
 ////////////////////////////////////////////////////////////////////////////////////
 Field IdxMultipleDataset::getFieldByNameThrowEx(String FIELDNAME) const
 {
-  return pimpl->getFieldByNameThrowEx(FIELDNAME);
+  auto v = StringUtils::split(FIELDNAME, ".");
+  if (v.size() != 2)
+    ThrowException("wrong FIELDNAME");
+
+  auto dataset_name = v[0];
+  auto fieldname = v[1];
+
+  auto dataset = getChild(dataset_name);
+  if (!dataset)
+    ThrowException("dataset", dataset_name, "not found");
+
+  return dataset->getFieldByNameThrowEx(fieldname);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 String IdxMultipleDataset::getInputName(String dataset_name, String fieldname)
 {
-  return pimpl->getInputName(dataset_name, fieldname);
-};
-
-////////////////////////////////////////////////////////////////////////////////////
-Field IdxMultipleDataset::createField(String operation_name)
-{
   std::ostringstream out;
+  out << "input";
 
-  std::vector<String> args;
-  for (auto it : down_datasets)
+  if (IsGoodVariableName(dataset_name))
+    out << "." << dataset_name;
+  else
+    out << "['" << dataset_name << "']";
+
+  if (IsGoodVariableName(fieldname))
   {
-    String arg = "f" + cstring((int)args.size());
-    args.push_back(arg);
-    out << arg << "=" <<getInputName(it.first, it.second->getDefaultField().name)<< std::endl;
+    out << "." << fieldname;
   }
-  out << "output=" << operation_name << "([" << StringUtils::join(args,",") << "])" << std::endl;
+  else
+  {
+    if (StringUtils::contains(fieldname, "\n"))
+    {
+      const String triple = "\"\"\"";
+      out << "[" + triple + "\n" + fieldname + triple + "]";
+    }
+    else
+    {
+      fieldname = StringUtils::replaceAll(fieldname, "'", "\\'");
+      out << "['" << fieldname << "']";
+    }
+  }
 
-  String fieldname = out.str();
-  Field ret = getFieldByName(fieldname);
-  ret.setDescription(operation_name);
-  VisusAssert(ret.valid());
-  return ret;
+  return out.str();
 };
 
 
@@ -1427,6 +1055,26 @@ void IdxMultipleDataset::read(Archive& AR)
     }
     else
     {
+      auto createField=[this](String operation_name)
+      {
+        std::ostringstream out;
+
+        std::vector<String> args;
+        for (auto it : down_datasets)
+        {
+          String arg = "f" + cstring((int)args.size());
+          args.push_back(arg);
+          out << arg << "=" << getInputName(it.first, it.second->getDefaultField().name) << std::endl;
+        }
+        out << "output=" << operation_name << "([" << StringUtils::join(args, ",") << "])" << std::endl;
+
+        String fieldname = out.str();
+        Field ret = getFieldByName(fieldname);
+        ret.setDescription(operation_name);
+        VisusAssert(ret.valid());
+        return ret;
+      };
+
       //this will appear in the combo box
       addField(createField("ArrayUtils.average"));
       addField(createField("ArrayUtils.add"));
@@ -1474,41 +1122,11 @@ void IdxMultipleDataset::read(Archive& AR)
   PrintInfo(AR.toString());
 }
 
+
+
 ////////////////////////////////////////////////////////////////////////
 bool IdxMultipleDataset::executeQuery(SharedPtr<Access> ACCESS,SharedPtr<BoxQuery> QUERY)
 {
-  if (!QUERY)
-    return false;
-
-  if (!(QUERY->isRunning() && QUERY->getCurrentResolution() < QUERY->getEndResolution()))
-    return false;
-
-  if (QUERY->aborted())
-  {
-    QUERY->setFailed("QUERY aboted");
-    return false;
-  }
-
-  //for 'r' queries I can postpone the allocation
-  if (QUERY->mode == 'w' && !QUERY->buffer)
-  {
-    QUERY->setFailed("write buffer not set");
-    return false;
-  }
-
-  if (!is_mosaic)
-  {
-    //execute N-Query (independentely) and blend them
-    if (auto MULTIPLE_ACCESS = std::dynamic_pointer_cast<IdxMultipleAccess>(ACCESS))
-      return pimpl->executeQuery(MULTIPLE_ACCESS, QUERY);
-  }
-
-  // blending happens on the server
-  if (!ACCESS)
-    return executeBoxQueryOnServer(QUERY);
-
-  // as it was a normal IDX, execute queries with blending at block level
-  // example: since I can handle blocks, I can even enable caching adding for example a RamAccess/DiskAcces to the top
   return IdxDataset::executeQuery(ACCESS, QUERY);
 }
 

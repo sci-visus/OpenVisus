@@ -42,16 +42,49 @@ For support : support@visus.net
 #include <Visus/Db.h>
 #include <Visus/IdxDataset.h>
 #include <Visus/Color.h>
+#include <Visus/ThreadPool.h>
 
 namespace Visus {
 
+class IdxMultipleDataset;
+
+///////////////////////////////////////////////////////////////////////////////////////
+class VISUS_DB_API IdxMultipleAccess :
+  public Access,
+  public std::enable_shared_from_this<IdxMultipleAccess>
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(IdxMultipleAccess)
+
+  IdxMultipleDataset*                              DATASET = nullptr;
+  StringTree                                       CONFIG;
+  std::map< std::pair<String, String>, StringTree> configs;
+  SharedPtr<ThreadPool>                            thread_pool;
+
+  //constructor
+  IdxMultipleAccess(IdxMultipleDataset* VF, StringTree CONFIG);
+
+  //destructor
+  virtual ~IdxMultipleAccess();
+
+  //createDownAccess
+  SharedPtr<Access> createDownAccess(String name, String fieldname);
+
+  //readBlock 
+  virtual void readBlock(SharedPtr<BlockQuery> BLOCKQUERY) override;
+
+  //writeBlock (not supported)
+  virtual void writeBlock(SharedPtr<BlockQuery> BLOCKQUERY) override;
+
+}; //end class
 
 //////////////////////////////////////////////////////////////////////
 class VISUS_DB_API IdxMultipleDataset  : public IdxDataset
 {
 public:
 
-  VISUS_PIMPL_CLASS(IdxMultipleDataset)
+  VISUS_NON_COPYABLE_CLASS(IdxMultipleDataset)
 
   enum 
   {
@@ -59,6 +92,8 @@ public:
     DebugSkipReading = 0x02,
     DebugAll = 0xff
   };
+
+  int debug_mode = 0;
 
   //bMosaic
   bool is_mosaic = false;
@@ -130,16 +165,8 @@ public:
 
 private:
 
-  friend class Pimpl;
-  friend class InputTerm;
-
-  int debug_mode = 0;
-
   //getInputName
-  String getInputName(String name, String fieldname);
-
-  //createField
-  Field createField(String operation_name);
+  String getInputName(String dataset_name, String fieldname);
 
   //removeAliases
   String removeAliases(String url);
@@ -148,7 +175,7 @@ private:
   void parseDataset(StringTree& cur, Matrix T);
 
   //parseDatasets
-  void parseDatasets(StringTree& cur,Matrix T);
+  void parseDatasets(StringTree& cur, Matrix T);
 
 };
 

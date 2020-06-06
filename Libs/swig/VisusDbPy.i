@@ -23,7 +23,7 @@
 using namespace Visus;
 %}
 
-%include <VisusPy.i>
+%include <VisusPy.common>
 
 %import <VisusKernelPy.i>
 
@@ -51,6 +51,7 @@ using namespace Visus;
 
 %shared_ptr(Visus::IdxDataset)
 %shared_ptr(Visus::IdxMultipleDataset)
+%shared_ptr(Visus::IdxMultipleAccess)
 
 %include <Visus/Db.h>
 %include <Visus/IdxFile.h>

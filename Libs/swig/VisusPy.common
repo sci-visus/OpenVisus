@@ -46,12 +46,60 @@ For support : support@visus.net
 %}
 
 %{
+
 #include <Visus/Kernel.h>
-#include <Visus/Python.h>
+
+static String convertToString(PyObject* value)
+{
+    if (!value)
+        return "";
+
+    PyObject* py_str = PyObject_Str(value);
+    auto tmp = SWIG_Python_str_AsChar(py_str);
+    String ret = tmp ? tmp : "";
+    SWIG_Python_str_DelForPy3(tmp);
+    Py_DECREF(py_str);
+    return ret;
+}
+
+static String GetPythonErrorMessage()
+{
+    //see http://www.solutionscan.org/154789-python
+    auto err = PyErr_Occurred();
+    if (!err)
+        return "";
+
+    PyObject* type, * value, * traceback;
+    PyErr_Fetch(&type, &value, &traceback);
+
+    std::ostringstream out;
+
+    out << "Python error: "
+        << convertToString(type) << " "
+        << convertToString(value) << " ";
+
+    auto module_name = PyString_FromString("traceback");
+    auto module = PyImport_Import(module_name);
+    Py_DECREF(module_name);
+
+    auto fn = module ? PyObject_GetAttrString(module, "format_exception") : nullptr;
+    if (fn && PyCallable_Check(fn))
+    {
+        if (auto descr = PyObject_CallFunctionObjArgs(fn, type, value, traceback, NULL))
+        {
+        out << convertToString(descr);
+        Py_DECREF(descr);
+        }
+    }
+
+    return out.str();
+}
+
 
 #include <sstream>
 #include <string>
 #include <iostream>
+
 %}
 
 //__________________________________________________________

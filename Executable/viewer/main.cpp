@@ -54,7 +54,7 @@ int main(int argn,const char* argv[])
   //needed to register PyScriptingNode
 #if VISUS_PYTHON
   {
-    ScopedAcquireGil acquire_gil;
+    PythonEngine::ScopedAcquireGil acquire_gil;
     PyRun_SimpleString("from OpenVisus.gui import *");
   }
 #endif

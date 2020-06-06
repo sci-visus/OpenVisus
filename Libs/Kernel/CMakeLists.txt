@@ -192,8 +192,7 @@ source_group("Misc" FILES
 if (VISUS_PYTHON)
 	file(GLOB PyFiles      
 		./include/Visus/swigpyrun.h  
-		./include/Visus/Python.h 
-		./src/Python.cpp)
+		./include/Visus/Python.h )
 	source_group("Python" FILES ${PyFiles})
 endif()
 

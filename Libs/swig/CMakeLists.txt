@@ -51,7 +51,7 @@ if (VISUS_SLAM)
 	set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/VisusKernelPy.i APPEND PROPERTY SWIG_FLAGS  "-DVISUS_SLAM=1")
 endif()
 
-AddSwigLibrary(VisusKernel __init__.py __main__.py setup.py utils.py)
+AddSwigLibrary(VisusKernel __init__.py __main__.py setup.py utils.py VisusPy.common)
 AddSwigLibrary(VisusXIdx)
 AddSwigLibrary(VisusDataflow dataset.py)
 AddSwigLibrary(VisusDb)

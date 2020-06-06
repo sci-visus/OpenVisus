@@ -12,7 +12,7 @@ using namespace Visus;
 %include <std_string.i>
 %include <typemaps.i>
 
-%include <VisusPy.i>
+%include <VisusPy.common>
 %import <VisusKernelPy.i>
 
 %include <Visus/VisusXIdx.h>
