@@ -132,71 +132,47 @@ public:
 
   typedef std::function<PyObject*(PyObject*, PyObject*)> Function;
 
-#if PY_MAJOR_VERSION <3
-#define char2wchar(arg) ((char*)arg)
-#else
-
-  static wchar_t* char2wchar(const char* value)
-  {
-#if PY_MINOR_VERSION<=4
-    return _Py_char2wchar((char*)value, NULL);
-#else
-    return Py_DecodeLocale((char*)value, NULL);
-#endif
-  }
-
-#endif
 
   //constructor
   PythonEngine(bool bVerbose = false)
   {
     static std::atomic<int> module_id(0);
     this->module_name = concatenate("__PythonEngine__", ++module_id);
-    //PrintInfo("Creating PythonEngine",module_name,"...");
-
     ScopedAcquireGil acquire_gil;
     this->module = PyImport_AddModule(module_name.c_str());
     VisusReleaseAssert(this->module);
-
     this->globals = PyModule_GetDict(module); //borrowed
-
     auto builtins = PyEval_GetBuiltins(); VisusAssert(builtins);
     PyDict_SetItemString(this->globals, "__builtins__", builtins);
-
-    if (bVerbose)
-      PrintInfo("Trying to import OpenVisus...");
-
     execCode("from OpenVisus import *");
-
-    if (bVerbose)
-      PrintInfo("...imported OpenVisus");
   }
 
   //destructor
   virtual ~PythonEngine()
   {
-    //PrintInfo("Destroying PythonEngine",this->module_name,"...");
-
-    // Delete the module from sys.modules
-    {
-      ScopedAcquireGil acquire_gil;
-      PyObject* modules = PyImport_GetModuleDict();
-      PyDict_DelItemString(modules, module_name.c_str());
-    }
+    ScopedAcquireGil acquire_gil;
+    PyObject* modules = PyImport_GetModuleDict();
+    PyDict_DelItemString(modules, module_name.c_str());
   }
 
-  //incrRef
-  static void incrRef(PyObject* value) {
-    Py_INCREF(value);
+public:
+
+  //convertToString
+  static String convertToString(PyObject* value)
+  {
+    if (!value)
+      return "";
+
+    PyObject* py_str = PyObject_Str(value);
+    auto tmp = SWIG_Python_str_AsChar(py_str);
+    String ret = tmp ? tmp : "";
+    SWIG_Python_str_DelForPy3(tmp);
+    Py_DECREF(py_str);
+    return ret;
   }
 
-  //decrRef
-  static void decrRef(PyObject* value) {
-    Py_DECREF(value);
-  }
-
-  //GetPythonErrorMessage
-  static String GetPythonErrorMessage()
+  //getPythonErrorMessage
+  static String getPythonErrorMessage()
   {
     //see http://www.solutionscan.org/154789-python
     auto err = PyErr_Occurred();
@@ -209,8 +185,8 @@ public:
     std::ostringstream out;
 
     out << "Python error: "
-      << PythonEngine::convertToString(type) << " "
-      << PythonEngine::convertToString(value) << " ";
+      << convertToString(type) << " "
+      << convertToString(value) << " ";
 
     auto module_name = PyString_FromString("traceback");
     auto module = PyImport_Import(module_name);
@@ -221,21 +197,12 @@ public:
     {
       if (auto descr = PyObject_CallFunctionObjArgs(fn, type, value, traceback, NULL))
       {
-        out << PythonEngine::convertToString(descr);
+        out << convertToString(descr);
         Py_DECREF(descr);
       }
     }
 
     return out.str();
-  }
-
-  //PythonPrintCrLfIfNeeded
-  static void PythonPrintCrLfIfNeeded()
-  {
-#if PY_MAJOR_VERSION < 3
-    if (Py_FlushLine())
-      PyErr_Clear();
-#endif
   }
 
   //execCode
@@ -248,7 +215,7 @@ public:
     {
       if (PyErr_Occurred())
       {
-        String error_msg = cstring("Python error code:\n", s, "\nError:\n", GetPythonErrorMessage());
+        String error_msg = cstring("Python error code:\n", s, "\nError:\n", getPythonErrorMessage());
         PyErr_Clear();
         PrintInfo(error_msg);
         ThrowException(error_msg);
@@ -256,7 +223,6 @@ public:
     }
 
     Py_DECREF(obj);
-    PythonPrintCrLfIfNeeded();
   }
 
   //evalCode
@@ -270,14 +236,13 @@ public:
     {
       if (PyErr_Occurred())
       {
-        String error_msg = cstring("Python error code:\n", s, "\nError:\n", GetPythonErrorMessage());
+        String error_msg = cstring("Python error code:\n", s, "\nError:\n", getPythonErrorMessage());
         PyErr_Clear();
         PrintInfo(error_msg);
         ThrowException(error_msg);
       }
     }
 
-    PythonPrintCrLfIfNeeded();
     return obj;
   }
 
@@ -325,7 +290,7 @@ public:
     for (int i = 0; i < values.size(); i++) {
       auto value = newPyObject(values[i]);
       if (!value) {
-        decrRef(ret);
+        Py_DECREF(ret);
         return nullptr;
       }
       PyTuple_SetItem(ret, i, value);
@@ -343,7 +308,7 @@ public:
   void setModuleAttr(String name, Value value) {
     auto obj = newPyObject(value);
     setModuleAttr(name, obj);
-    decrRef(obj);
+    Py_DECREF(obj);
   }
 
   //getModuleAttr
@@ -389,39 +354,6 @@ public:
     Py_XDECREF(py_name);
   }
 
-  //getModuleAbortedAttr
-  Aborted getModuleAbortedAttr(String name)
-  {
-    auto typeinfo = SWIG_TypeQuery("Visus::Aborted *");
-    VisusAssert(typeinfo);
-
-    auto py_object = getModuleAttr(name);
-    if (!py_object)
-      ThrowException("cannot find", name, "in module");
-
-    Aborted* ptr = nullptr;
-    int res = SWIG_ConvertPtr(py_object, (void**)&ptr, typeinfo, 0);
-
-    if (!SWIG_IsOK(res) || !ptr)
-      ThrowException("cannot cast", name, "to", typeinfo->name);
-
-    Aborted ret = *ptr;
-
-    if (SWIG_IsNewObj(res))
-      delete ptr;
-
-    return ret;
-  }
-
-  //getModuleArrayAttr
-  Array getModuleArrayAttr(String name)
-  {
-    auto py_object = getModuleAttr(name);
-    if (!py_object)
-      ThrowException("cannot find", name, "in module");
-    return pythonObjectToArray(py_object);
-  }
-
   //pythonObjectToArray
   Array pythonObjectToArray(PyObject* py_object)
   {
@@ -442,24 +374,13 @@ public:
     return ret;
   }
 
-  //convertToString
-  static String convertToString(PyObject* value)
+  //getModuleArrayAttr
+  Array getModuleArrayAttr(String name)
   {
-    if (!value)
-      return "";
-
-    PyObject* py_str = PyObject_Str(value);
-    auto tmp = SWIG_Python_str_AsChar(py_str);
-    String ret = tmp ? tmp : "";
-    SWIG_Python_str_DelForPy3(tmp);
-    Py_DECREF(py_str);
-    return ret;
-  }
-
-  //printMessage (must have the GIL)
-  void printMessage(String message)
-  {
-    PySys_WriteStdout("%s", message.c_str());
+    auto py_object = getModuleAttr(name);
+    if (!py_object)
+      ThrowException("cannot find", name, "in module");
+    return pythonObjectToArray(py_object);
   }
 
 public:
@@ -496,32 +417,30 @@ public:
       args = new_args;
 
       const char* arg0 = ApplicationInfo::args[0].c_str();
-      Py_SetProgramName(char2wchar(arg0));
 
-      //IMPORTANT: if you want to avoid the usual sys.path initialization
-      //you can copy the python shared library (example: python36.dll) and create a file with the same name and _pth extension
-      //(example python36_d._pth). in that you specify the directories to include. you can also for example a python36.zip file
-      //or maybe you can set PYTHONHOME
+      #if PY_MINOR_VERSION<=4
+      Py_SetProgramName(_Py_char2wchar((char*)arg0, NULL));
+      #else
+      Py_SetProgramName(Py_DecodeLocale((char*)arg0, NULL));
+      #endif
 
-      //skips initialization registration of signal handlers
       Py_InitializeEx(0);
-
-      // acquire the gil
       PyEval_InitThreads();
 
       //add value PYTHONPATH in order to find the OpenVisus directory
       {
         auto path = KnownPaths::BinaryDirectory.toString() + "/../..";
-#if WIN32
+        #if WIN32
         path = StringUtils::replaceAll(path, "/", "\\\\");
-#else
+        #else
         path = StringUtils::replaceAll(path, "\\\\", "/");
-#endif
+        #endif
+
         auto cmd = StringUtils::join({
           "import os,sys",
           "value=os.path.realpath('" + path + "')",
           "if not value in sys.path: sys.path.append(value)"
-          }, "\r\n");
+        }, "\r\n");
 
         PyRun_SimpleString(cmd.c_str());
       }
@@ -532,20 +451,16 @@ public:
       MainThreadState() = PyEval_SaveThread();
     }
 
-    PrintInfo("Python initialization done");
-
-    //this is important to import swig libraries
-    if (auto engine = std::make_shared<PythonEngine>(true))
     {
       ScopedAcquireGil acquire_gil;
-      engine->execCode("print('PythonEngine is working fine')");
+      PyRun_SimpleString("from OpenVisus import *");
     }
   }
 
   //detach
   static void detach()
   {
-    if (auto state=MainThreadState()) {
+    if (auto state = MainThreadState()) {
       PyEval_RestoreThread(state);
       Py_Finalize();
     }
@@ -553,19 +468,9 @@ public:
 
 private:
 
-  String  module_name;
-
+  String    module_name;
   PyObject* module = nullptr;
   PyObject* globals = nullptr;
-
-  //fixPath
-  static String fixPath(String value) {
-#if WIN32
-    return StringUtils::replaceAll(value, "/", "\\\\");
-#else
-    return StringUtils::replaceAll(value, "\\\\", "/");
-#endif
-  }
 
   //internalNewPyFunction
   PyObject* internalNewPyFunction(PyObject* self, String name, Function fn)
@@ -603,7 +508,6 @@ private:
     Py_DECREF(py_capsule);
     return ret;
   }
-
 
 };
 
