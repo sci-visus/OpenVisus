@@ -274,8 +274,8 @@ if (VISUS_PYTHON)
 		target_link_libraries(VisusKernel PUBLIC Python::Module)
 	endif()
 
-	target_compile_definitions(VisusKernel  PUBLIC  VISUS_PYTHON=1)
-	target_compile_definitions(VisusKernel  PRIVATE SWIG_TYPE_TABLE=OpenVisus)
+	target_compile_definitions(VisusKernel  PUBLIC VISUS_PYTHON=1)
+	target_compile_definitions(VisusKernel  PUBLIC SWIG_TYPE_TABLE=OpenVisus)
 endif()
 
 

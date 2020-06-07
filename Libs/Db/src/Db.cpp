@@ -53,7 +53,315 @@ For support : support@visus.net
 
 namespace Visus {
 
-class InputTerm
+///////////////////////////////////////////////////////////////////////////
+class PythonModule
+{
+public:
+
+  //____________________________________________
+  class ScopedReleaseGil
+  {
+  public:
+    PyThreadState* state = PyEval_SaveThread();
+    ScopedReleaseGil() {}
+    ~ScopedReleaseGil() { PyEval_RestoreThread(state); }
+  };
+
+  typedef std::function<PyObject* (PyObject*, PyObject*)> Function;
+
+  //constructor
+  PythonModule()
+  {
+    ScopedAcquireGil acquire_gil;
+    static std::atomic<int> module_id(0);
+    this->module_name = concatenate("__PythonEngine__", ++module_id);
+    this->module = PyImport_AddModule(module_name.c_str());
+    VisusReleaseAssert(this->module);
+    this->globals = PyModule_GetDict(module); //borrowed
+    auto builtins = PyEval_GetBuiltins(); VisusAssert(builtins);
+    PyDict_SetItemString(this->globals, "__builtins__", builtins);
+    execCode("from OpenVisus import *");
+  }
+
+  //destructor
+  virtual ~PythonModule()
+  {
+    ScopedAcquireGil acquire_gil;
+    PyDict_DelItemString(PyImport_GetModuleDict(), module_name.c_str());
+  }
+
+  //convertToString
+  static String convertToString(PyObject* value)
+  {
+    if (!value)
+      return "";
+
+    PyObject* py_str = PyObject_Str(value);
+    auto tmp = SWIG_Python_str_AsChar(py_str);
+    String ret = tmp ? tmp : "";
+    SWIG_Python_str_DelForPy3(tmp);
+    Py_DECREF(py_str);
+    return ret;
+  }
+
+  //getPythonErrorMessage
+  static String getPythonErrorMessage()
+  {
+    //see http://www.solutionscan.org/154789-python
+    auto err = PyErr_Occurred();
+    if (!err)
+      return "";
+
+    PyObject* type, * value, * traceback;
+    PyErr_Fetch(&type, &value, &traceback);
+
+    std::ostringstream out;
+
+    out << "Python error: "
+      << convertToString(type) << " "
+      << convertToString(value) << " ";
+
+    auto module_name = PyString_FromString("traceback");
+    auto module = PyImport_Import(module_name);
+    Py_DECREF(module_name);
+
+    auto fn = module ? PyObject_GetAttrString(module, "format_exception") : nullptr;
+    if (fn && PyCallable_Check(fn))
+    {
+      if (auto descr = PyObject_CallFunctionObjArgs(fn, type, value, traceback, NULL))
+      {
+        out << convertToString(descr);
+        Py_DECREF(descr);
+      }
+    }
+
+    return out.str();
+  }
+
+  //execCode
+  void execCode(String s)
+  {
+    auto obj = PyRun_StringFlags(s.c_str(), Py_file_input, globals, globals, nullptr);
+    bool bError = (obj == nullptr);
+
+    if (bError)
+    {
+      if (PyErr_Occurred())
+      {
+        String error_msg = cstring("Python error code:\n", s, "\nError:\n", getPythonErrorMessage());
+        PyErr_Clear();
+        PrintInfo(error_msg);
+        ThrowException(error_msg);
+      }
+    }
+
+    Py_DECREF(obj);
+  }
+
+  //evalCode
+  PyObject* evalCode(String s)
+  {
+    //see https://bugs.python.org/issue405837
+    //Return value: New reference.
+    auto obj = PyRun_StringFlags(s.c_str(), Py_eval_input, globals, globals, nullptr);
+
+    if (bool bMaybeError = (obj == nullptr))
+    {
+      if (PyErr_Occurred())
+      {
+        String error_msg = cstring("Python error code:\n", s, "\nError:\n", getPythonErrorMessage());
+        PyErr_Clear();
+        PrintInfo(error_msg);
+        ThrowException(error_msg);
+      }
+    }
+
+    return obj;
+  }
+
+  //newPyObject
+  PyObject* newPyObject(double value) {
+    return PyFloat_FromDouble(value);;
+  }
+
+  //newPyObject
+  PyObject* newPyObject(int value) {
+    return PyLong_FromLong(value);
+  }
+
+  //newPyObject
+  PyObject* newPyObject(String s) {
+    return PyString_FromString(s.c_str());
+  }
+
+  //newPyObject
+  PyObject* newPyObject(Aborted value)
+  {
+    auto typeinfo = SWIG_TypeQuery("Visus::Aborted *");
+    VisusAssert(typeinfo);
+    Aborted* ptr = new Aborted(value);
+    return SWIG_NewPointerObj(ptr, typeinfo, SWIG_POINTER_OWN);
+  }
+
+  //newPyObject
+  PyObject* newPyObject(Array value)
+  {
+    auto typeinfo = SWIG_TypeQuery("Visus::Array *");
+    VisusAssert(typeinfo);
+    auto ptr = new Array(value);
+    return SWIG_NewPointerObj(ptr, typeinfo, SWIG_POINTER_OWN);
+  }
+
+  //newPyObject
+  template <typename T>
+  PyObject* newPyObject(const std::vector<T>& values)
+  {
+    auto ret = PyTuple_New(values.size());
+    if (!ret)
+      return nullptr;
+
+    for (int i = 0; i < values.size(); i++) {
+      auto value = newPyObject(values[i]);
+      if (!value) {
+        Py_DECREF(ret);
+        return nullptr;
+      }
+      PyTuple_SetItem(ret, i, value);
+    }
+    return ret;
+  }
+
+  //setModuleAttr
+  void setModuleAttr(String name, PyObject* value) {
+    PyDict_SetItemString(globals, name.c_str(), value);
+  }
+
+  //setModuleAttr
+  template <typename Value>
+  void setModuleAttr(String name, Value value) {
+    auto obj = newPyObject(value);
+    setModuleAttr(name, obj);
+    Py_DECREF(obj);
+  }
+
+  //getModuleAttr
+  PyObject* getModuleAttr(String name) {
+    return PyDict_GetItemString(globals, name.c_str()); //borrowed
+  }
+
+  //hasModuleAttr
+  bool hasModuleAttr(String name) {
+    return getModuleAttr(name) ? true : false;
+  }
+
+  //delModuleAttr
+  void delModuleAttr(String name) {
+    if (hasModuleAttr(name))
+      PyDict_DelItemString(globals, name.c_str());
+  }
+
+  //setError (to call when you return nullpptr in Function)
+  static void setError(String explanation, PyObject* err = nullptr)
+  {
+    if (!err)
+      err = PyExc_SystemError;
+
+    PyErr_SetString(err, explanation.c_str());
+  }
+
+  //addModuleFunction
+  void addModuleFunction(String name, Function fn)
+  {
+    auto py_fn = internalNewPyFunction(/*self*/nullptr, name, fn);
+    setModuleAttr(name, py_fn);
+    Py_DECREF(py_fn);
+  }
+
+  //addObjectMethod
+  void addObjectMethod(PyObject* self, String name, Function fn)
+  {
+    auto py_fn = internalNewPyFunction(self, name, fn);
+    auto py_name = PyString_FromString(name.c_str());
+    PyObject_SetAttr(self, py_name, py_fn);
+    Py_DECREF(py_fn);
+    Py_XDECREF(py_name);
+  }
+
+  //pythonObjectToArray
+  Array pythonObjectToArray(PyObject* py_object)
+  {
+    auto typeinfo = SWIG_TypeQuery("Visus::Array *");
+    VisusAssert(typeinfo);
+
+    Array* ptr = nullptr;
+    int res = SWIG_ConvertPtr(py_object, (void**)&ptr, typeinfo, 0);
+
+    if (!SWIG_IsOK(res) || !ptr)
+      ThrowException("cannot convert to array");
+
+    Array ret = *ptr;
+
+    if (SWIG_IsNewObj(res))
+      delete ptr;
+
+    return ret;
+  }
+
+  //getModuleArrayAttr
+  Array getModuleArrayAttr(String name)
+  {
+    auto py_object = getModuleAttr(name);
+    if (!py_object)
+      ThrowException("cannot find", name, "in module");
+    return pythonObjectToArray(py_object);
+  }
+
+
+  String    module_name;
+  PyObject* module = nullptr;
+  PyObject* globals = nullptr;
+
+  //internalNewPyFunction
+  PyObject* internalNewPyFunction(PyObject* self, String name, Function fn)
+  {
+    //see http://code.activestate.com/recipes/54352-defining-python-class-methods-in-c/
+    //see http://bannalia.blogspot.it/2016/07/passing-capturing-c-lambda-functions-as.html
+    //see https://stackoverflow.com/questions/26716711/documentation-for-pycfunction-new-pycfunction-newex
+
+    class PyCapsuleInfo
+    {
+    public:
+      UniquePtr<PyMethodDef> mdef;
+      Function               fn;
+      PyObject* self = nullptr;
+    };
+
+    //callFunction
+    auto callFunction = [](PyObject* py_capsule, PyObject* args)->PyObject*
+    {
+      auto info = static_cast<PyCapsuleInfo*>(PyCapsule_GetPointer(py_capsule, nullptr));
+      return info->fn(info->self, args);
+    };
+
+    auto info = new PyCapsuleInfo();
+    info->mdef.reset(new PyMethodDef({ name.c_str(), callFunction, METH_VARARGS,nullptr }));
+    info->fn = fn;
+    info->self = self;
+
+    auto py_capsule = PyCapsule_New(info, nullptr, /*destrutor*/[](PyObject* py_capsule) {
+      auto info = static_cast<PyCapsuleInfo*>(PyCapsule_GetPointer(py_capsule, nullptr));
+      delete info;
+    });
+
+    auto ret = PyCFunction_NewEx(/*method definition*/info->mdef.get(), /*self*/py_capsule,/*module*/self ? nullptr : this->module);
+    Py_DECREF(py_capsule);
+    return ret;
+  }
+
+
+};
+
+class InputTerm : public PythonModule
 {
 public:
 
@@ -63,19 +371,18 @@ public:
   BoxQuery*                QUERY;
   SharedPtr<Access>        ACCESS;
 
-  SharedPtr<PythonEngine>  engine;
   Aborted                  aborted;
 
   //constructor
-  InputTerm(SharedPtr<PythonEngine> engine_, IdxMultipleDataset* DATASET_, BoxQuery* QUERY_, SharedPtr<Access> ACCESS_, Aborted aborted_)
-    : engine(engine_), DATASET(DATASET_), QUERY(QUERY_), ACCESS(ACCESS_), aborted(aborted_) {
+  InputTerm(IdxMultipleDataset* DATASET_, BoxQuery* QUERY_, SharedPtr<Access> ACCESS_, Aborted aborted_)
+    : DATASET(DATASET_), QUERY(QUERY_), ACCESS(ACCESS_), aborted(aborted_) {
 
     VisusAssert(!DATASET->is_mosaic);
 
     {
-      PythonEngine::ScopedAcquireGil acquire_gil;
+      ScopedAcquireGil acquire_gil;
 
-      engine->execCode(
+      execCode(
         "class DynamicObject:\n"
         "  def __getattr__(self, args) : return self.forwardGetAttr(args)\n"
         "  def __getitem__(self, args) : return self.forwardGetAttr(args)\n"
@@ -84,45 +391,45 @@ public:
       auto py_input = newDynamicObject([this](String expr1) {
         return getAttr1(expr1);
       });
-      engine->setModuleAttr("input", py_input);
+      setModuleAttr("input", py_input);
       Py_DECREF(py_input);
 
       //for fieldname=function_of(QUERY->time) 
       //NOTE: for getFieldByName(), I think I can use the default timestep since I just want to know the dtype
-      engine->setModuleAttr("query_time", QUERY ? QUERY->time : DATASET->getTimesteps().getDefault());
+      setModuleAttr("query_time", QUERY ? QUERY->time : DATASET->getTimesteps().getDefault());
 
-      engine->addModuleFunction("doPublish", [this](PyObject* self, PyObject* args) {
-        auto output = engine->getModuleArrayAttr("output");
+      addModuleFunction("doPublish", [this](PyObject* self, PyObject* args) {
+        auto output = getModuleArrayAttr("output");
         if (output && QUERY && QUERY->incrementalPublish)
           QUERY->incrementalPublish(output);
         return nullptr;
       });
 
-      engine->addModuleFunction("voronoi", [this](PyObject* self, PyObject* args) {return blendBuffers(BlendBuffers::VororoiBlend, args); });
-      engine->addModuleFunction("averageBlend", [this](PyObject* self, PyObject* args) {return blendBuffers(BlendBuffers::AverageBlend, args); });
-      engine->addModuleFunction("noBlend", [this](PyObject* self, PyObject* args) {return blendBuffers(BlendBuffers::NoBlend, args); });
+      addModuleFunction("voronoi", [this](PyObject* self, PyObject* args) {return blendBuffers(BlendBuffers::VororoiBlend, args); });
+      addModuleFunction("averageBlend", [this](PyObject* self, PyObject* args) {return blendBuffers(BlendBuffers::AverageBlend, args); });
+      addModuleFunction("noBlend", [this](PyObject* self, PyObject* args) {return blendBuffers(BlendBuffers::NoBlend, args); });
     }
   }
 
   //destructor
   virtual ~InputTerm()
   {
-    PythonEngine::ScopedAcquireGil acquire_gil;
-    engine->delModuleAttr("query_time");
-    engine->delModuleAttr("doPublish");
-    engine->delModuleAttr("voronoiBlend");
-    engine->delModuleAttr("averageBlend");
-    engine->delModuleAttr("noBlend");
-    engine->delModuleAttr("input");
+    ScopedAcquireGil acquire_gil;
+    delModuleAttr("query_time");
+    delModuleAttr("doPublish");
+    delModuleAttr("voronoiBlend");
+    delModuleAttr("averageBlend");
+    delModuleAttr("noBlend");
+    delModuleAttr("input");
   }
 
   //computeOutput
   Array computeOutput(String code)
   {
-    PythonEngine::ScopedAcquireGil acquire_gil;
-    engine->execCode(code);
+    ScopedAcquireGil acquire_gil;
+    execCode(code);
 
-    auto ret = engine->getModuleArrayAttr("output");
+    auto ret = getModuleArrayAttr("output");
     if (!ret && !aborted())
       ThrowException("empty 'output' value");
 
@@ -138,16 +445,16 @@ public:
   //newDynamicObject
   PyObject* newDynamicObject(std::function<PyObject* (String)> getattr)
   {
-    auto ret = engine->evalCode("DynamicObject()");  //new reference
+    auto ret = evalCode("DynamicObject()");  //new reference
     VisusAssert(ret);
-    engine->addObjectMethod(ret, "forwardGetAttr", [getattr](PyObject*, PyObject* args) {
+    addObjectMethod(ret, "forwardGetAttr", [getattr](PyObject*, PyObject* args) {
 
       VisusAssert(PyTuple_Check(args));
       VisusAssert(PyTuple_Size(args) == 1);
       auto arg0 = PyTuple_GetItem(args, 0); VisusAssert(arg0);//borrowed
-      auto expr = PythonEngine::convertToString(arg0); VisusAssert(!expr.empty());
+      auto expr = convertToString(arg0); VisusAssert(!expr.empty());
       if (!getattr) {
-        PythonEngine::setError("getattr is null");
+        setError("getattr is null");
         return (PyObject*)nullptr;
       }
       return getattr(expr);
@@ -160,7 +467,7 @@ public:
   {
     //example: input.timesteps
     if (expr1 == "timesteps")
-      return engine->newPyObject(DATASET->getTimesteps().asVector());
+      return newPyObject(DATASET->getTimesteps().asVector());
 
     auto dataset = DATASET->getChild(expr1);
     if (!dataset)
@@ -180,7 +487,7 @@ public:
 
     //example: input.datasetname.timesteps
     if (expr2 == "timesteps")
-      return engine->newPyObject(dataset->getTimesteps().asVector());
+      return newPyObject(dataset->getTimesteps().asVector());
 
     //see https://github.com/sci-visus/visus-issues/issues/367 
     //specify a dataset  (see midxofmidx.midx)
@@ -209,15 +516,15 @@ public:
 
     //only getting dtype for field name
     if (!QUERY)
-      return engine->newPyObject(Array(PointNi(pdim), field.dtype));
+      return newPyObject(Array(PointNi(pdim), field.dtype));
 
     {
-      PythonEngine::ScopedReleaseGil release_gil;
+      ScopedReleaseGil release_gil;
       auto down_query = DATASET->createDownQuery(this->ACCESS, this->QUERY, expr1, expr2);
       ret = DATASET->executeDownQuery(QUERY, down_query);
     }
 
-    return engine->newPyObject(ret);
+    return newPyObject(ret);
   }
 
   //blendBuffers
@@ -240,23 +547,23 @@ public:
         PyObject* arg0 = nullptr;
         if (!PyArg_ParseTuple(args, "O:blendBuffers", &arg0))
         {
-          PythonEngine::setError("invalid argument");
+          setError("invalid argument");
           return (PyObject*)nullptr;
         }
 
         if (!PyList_Check(arg0))
         {
-          PythonEngine::setError("invalid argument");
+          setError("invalid argument");
           return (PyObject*)nullptr;
         }
 
         for (int I = 0; I < N; I++)
-          blend.addBlendArg(engine->pythonObjectToArray(PyList_GetItem(arg0, I)));
+          blend.addBlendArg(pythonObjectToArray(PyList_GetItem(arg0, I)));
       }
     }
     else
     {
-      PythonEngine::ScopedReleaseGil release_gil;
+      ScopedReleaseGil release_gil;
 
       //special case: empty argument means all down dataset default fields
       if (!N)
@@ -291,7 +598,7 @@ public:
       }
     }
 
-    return engine->newPyObject(blend.result);
+    return newPyObject(blend.result);
   }
 
 };
@@ -299,8 +606,6 @@ public:
 class PyIdxMultipleDataset : public IdxMultipleDataset
 {
 public:
-
-  SharedPtr<PythonEnginePool> pool = std::make_shared<PythonEnginePool>();
 
   //constructor
   PyIdxMultipleDataset() {
@@ -322,9 +627,7 @@ public:
     else
       CODE = FIELDNAME; //the fieldname itself is the expression
 
-    auto engine = isServerMode() ? std::make_shared<PythonEngine>() : pool->createEngine();
-    auto OUTPUT = InputTerm(engine, const_cast<PyIdxMultipleDataset*>(this), nullptr, SharedPtr<Access>(), Aborted()).computeOutput(CODE);
-    if (!isServerMode()) pool->releaseEngine(engine);
+    auto OUTPUT = InputTerm(const_cast<PyIdxMultipleDataset*>(this), nullptr, SharedPtr<Access>(), Aborted()).computeOutput(CODE);
     return Field(CODE, OUTPUT.dtype);
   }
 
@@ -357,23 +660,16 @@ public:
     }
 
     //execute N-Query (independentely) and blend them
-    auto engine = isServerMode() ? std::make_shared<PythonEngine>() : pool->createEngine();
-
     Array  OUTPUT;
     try
     {
-      OUTPUT = InputTerm(engine, this, QUERY.get(), ACCESS, QUERY->aborted).computeOutput(QUERY->field.name);
+      OUTPUT = InputTerm(this, QUERY.get(), ACCESS, QUERY->aborted).computeOutput(QUERY->field.name);
     }
     catch (std::exception ex)
     {
       QUERY->setFailed(QUERY->aborted() ? "query aborted" : ex.what());
-    }
-
-    if (!isServerMode())
-      pool->releaseEngine(engine);
-
-    if (QUERY->failed())
       return false;
+    }
 
     //a projection happened? results will be unmergeable!
     if (OUTPUT.dims != QUERY->logic_samples.nsamples)

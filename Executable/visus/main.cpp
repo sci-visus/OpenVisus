@@ -38,6 +38,11 @@ For support : support@visus.net
 
 #include <Visus/ApplicationInfo.h>
 #include <Visus/Db.h>
+#include <Visus/VisusConvert.h>
+
+#if VISUS_PYTHON
+#include <Visus/Python.h>
+#endif
 
 using namespace Visus;
 
@@ -45,13 +50,40 @@ using namespace Visus;
 int main(int argn, const char* argv[])
 {
   Time T1 = Time::now();
-
   SetCommandLine(argn, argv);
   DbModule::attach();
 
+#if VISUS_PYTHON
+#if PY_MINOR_VERSION<=4
+  Py_SetProgramName(_Py_char2wchar((char*)argv[0], NULL));
+#else
+  Py_SetProgramName(Py_DecodeLocale((char*)argv[0], NULL));
+#endif
+
+  Py_InitializeEx(0);
+  PyEval_InitThreads();
+  auto python_thread_state = PyEval_SaveThread();
+  {
+    ScopedAcquireGil acquire_gil;
+    String cmd = StringUtils::replaceAll(R"EOF(
+import os,sys;
+sys.path.append(os.path.realpath('${bin_dir}/../..'))
+from OpenVisus import *
+)EOF", "${bin_dir}", KnownPaths::BinaryDirectory.toString());
+    PyRun_SimpleString(cmd.c_str());
+  }
+#endif
+
   auto args = std::vector<String>(ApplicationInfo::args.begin() + 1, ApplicationInfo::args.end());
+  VisusConvert().runFromArgs(args);
 
   PrintInfo("All done in ",T1.elapsedSec(),",seconds");
+
+#if VISUS_PYTHON
+  PyEval_RestoreThread(python_thread_state);
+  Py_Finalize();
+#endif
+
   DbModule::detach();
   return 0;
 }

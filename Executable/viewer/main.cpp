@@ -39,6 +39,7 @@ For support : support@visus.net
 #include <Visus/Viewer.h>
 #include <Visus/ApplicationInfo.h>
 #include <Visus/ModVisus.h>
+#include <Visus/Path.h>
 
 #if VISUS_PYTHON
 #include <Visus/Python.h>
@@ -51,13 +52,27 @@ int main(int argn,const char* argv[])
   SetCommandLine(argn, argv);
   GuiModule::attach();
 
-  //needed to register PyScriptingNode
-#if VISUS_PYTHON
+  #if VISUS_PYTHON
+  #if PY_MINOR_VERSION<=4
+  Py_SetProgramName(_Py_char2wchar((char*)argv[0], NULL));
+  #else
+  Py_SetProgramName(Py_DecodeLocale((char*)argv[0], NULL));
+  #endif
+
+  Py_InitializeEx(0);
+  PyEval_InitThreads();
+  auto python_thread_state = PyEval_SaveThread();
   {
-    PythonEngine::ScopedAcquireGil acquire_gil;
-    PyRun_SimpleString("from OpenVisus.gui import *");
+    ScopedAcquireGil acquire_gil;
+    String cmd = StringUtils::replaceAll(R"EOF(
+import os,sys;
+sys.path.append(os.path.realpath('${bin_dir}/../..'))
+from OpenVisus import *
+from OpenVisus.gui import *
+)EOF", "${bin_dir}", KnownPaths::BinaryDirectory.toString());
+    PyRun_SimpleString(cmd.c_str());
   }
-#endif
+  #endif
 
   {
     auto viewer=std::make_shared<Viewer>();
@@ -65,6 +80,11 @@ int main(int argn,const char* argv[])
     viewer->configureFromArgs(args);
     QApplication::exec();
   }
+
+#if VISUS_PYTHON
+  PyEval_RestoreThread(python_thread_state);
+  Py_Finalize();
+#endif
 
   GuiModule::detach();
   return 0;
