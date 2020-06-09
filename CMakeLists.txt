@@ -96,6 +96,9 @@ if (1)
 	INSTALL(FILES     datasets/visus.config       DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
 	INSTALL(FILES     quick_tour.ipynb            DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
 
+	INSTALL(FILES     OpenVisusConfig.cmake       DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/lib/cmake/OpenVisus/)
+
+
 	if(VISUS_GUI)
 		set(__qt_ver__ ${CMAKE_BINARY_DIR}/QT_VERSION)
 		file(GENERATE OUTPUT ${__qt_ver__} CONTENT "${Qt5Core_VERSION_STRING}")
@@ -103,11 +106,19 @@ if (1)
 	endif()
 	
 	FILE(GLOB PyFiles Libs/swig/*.py)
-	INSTALL(FILES     ${PyFiles}                  DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
+	INSTALL(FILES     ${PyFiles}                              DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
 
-	INSTALL(DIRECTORY Copyrights                  DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus)
-	INSTALL(DIRECTORY Samples                     DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
-	INSTALL(DIRECTORY datasets                    DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
+	INSTALL(FILES Samples/simple_query/CMakeLists.txt         DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/simple_query/)
+	INSTALL(FILES Samples/simple_query/main.cpp               DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/simple_query/)
+
+	INSTALL(FILES Samples/simple_viewer2d/CMakeLists.txt      DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/simple_viewer2d/)
+	INSTALL(FILES Samples/simple_viewer2d/main.cpp            DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/simple_viewer2d/)
+
+	INSTALL(DIRECTORY Copyrights                              DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
+	INSTALL(DIRECTORY Samples/jupyter                         DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/)
+	INSTALL(DIRECTORY Samples/python                          DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/)
+
+	INSTALL(DIRECTORY datasets                                DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
 
 	INSTALL(DIRECTORY Libs/Kernel/include/Visus   DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Kernel/)
 	INSTALL(DIRECTORY Libs/XIdx/include/Visus     DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/XIdx/)

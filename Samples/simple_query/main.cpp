@@ -36,8 +36,6 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#if 0
-
 #include <Visus/IdxDataset.h>
 #include <Visus/ApplicationInfo.h>
 
@@ -169,5 +167,3 @@ int main(int argc, const char* argv[])
 
   return 0;
 }
-
-#endif

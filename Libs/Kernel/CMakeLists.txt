@@ -98,33 +98,6 @@ source_group("Misc" FILES
 	./include/Visus/PointCloud.h ./src/PointCloud.cpp
 	./include/Visus/Annotation.h ./src/Annotation.cpp)
 
-file(GLOB OtherFiles 
-	../../CMakeLists.txt	
-	../../OpenVisusConfig.cmake
-	../../LICENCE
-	../../README.md
-	../../.github/workflows/BuildOpenVisus.yml
-	../../ExternalLibs/CMakeLists.txt
-	../../Libs/CMakeLists.txt
-	../../Libs/swig/CMakeLists.txt
-	../../Executable/CMakeLists.txt
-	../../scripts/*
-	../../Samples/*)
-
-function(AssignSourceGroup GroupName StartDir)
-	foreach(_it_ IN ITEMS ${ARGN})
-		file(RELATIVE_PATH _group_ "${StartDir}" "${_it_}")
-		get_filename_component(_group_ "${_group_}" PATH)
-		string(REPLACE "../"  ""   _group_  "${_group_}")
-		string(REPLACE "../"  ""   _group_  "${_group_}")
-		string(REPLACE "../"  ""   _group_  "${_group_}")
-		string(REPLACE  "/"  "\\"  _group_  "${_group_}")
-		source_group("${GroupName}\\${_group_}" FILES "${_it_}")
-	endforeach()
-endfunction()
-
-AssignSourceGroup(OpenVisus ${CMAKE_SOURCE_DIR} ${OtherFiles})
-
 IF (WIN32 OR APPLE)
 	file(GLOB MMFiles src/*.mm)
 endif()
