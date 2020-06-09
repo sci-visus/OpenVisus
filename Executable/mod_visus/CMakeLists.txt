@@ -48,7 +48,16 @@ if (NOT WIN32)
 endif()
 
 add_library(mod_visus SHARED mod_visus.cpp)
-LinkPythonIfNeeded(mod_visus)
+
+if (VISUS_PYTHON)
+	target_compile_definitions(mod_visus PUBLIC VISUS_PYTHON=1)
+	if (WIN32)
+		target_include_directories(mod_visus PUBLIC ${Python_INCLUDE_DIRS})
+		target_link_libraries(mod_visus      PUBLIC ${Python_LIBRARY_RELEASE})
+	else()
+		target_link_libraries(mod_visus PUBLIC Python::Python) # Python library for Python embedding
+	endif()
+endif()
 
 set_target_properties(mod_visus PROPERTIES FOLDER Executable/)
 target_link_libraries(mod_visus PUBLIC VisusDb)
