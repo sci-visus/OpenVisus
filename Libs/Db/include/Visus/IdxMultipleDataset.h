@@ -163,7 +163,7 @@ public:
   //executeQuery
   virtual bool executeQuery(SharedPtr<Access> ACCESS,SharedPtr<BoxQuery> QUERY) override;
 
-private:
+protected:
 
   //getInputName
   String getInputName(String dataset_name, String fieldname);
@@ -176,6 +176,12 @@ private:
 
   //parseDatasets
   void parseDatasets(StringTree& cur, Matrix T);
+
+  //computeOuput
+  virtual Array computeOuput(BoxQuery* QUERY, SharedPtr<Access> ACCESS, Aborted aborted, String CODE) const {
+    ThrowException("not supported");
+    return Array();
+  }
 
 };
 

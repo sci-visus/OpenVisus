@@ -1,4 +1,4 @@
-/*-----------------------------------------------------------------------------
+#/*-----------------------------------------------------------------------------
 Copyright(c) 2010 - 2018 ViSUS L.L.C.,
 Scientific Computing and Imaging Institute of the University of Utah
 
@@ -36,45 +36,70 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef _PYTHON_ENGINE_H__
-#define _PYTHON_ENGINE_H__
+#ifndef VISUS_PYTHON_H__
+#define VISUS_PYTHON_H__
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning (disable:4996)
-#endif
+#if VISUS_PYTHON
 
-#ifdef WIN32
-#pragma warning( pop )
-#endif
+  #pragma push_macro("slots")
+  #undef slots
 
-#pragma push_macro("slots")
-#undef slots
+  #if defined(WIN32) && defined(_DEBUG) 
+  #undef _DEBUG
+  #include <Python.h>
+  #define _DEBUG 1
+  #else
+  #include <Python.h>
+  #endif
 
-#if defined(_DEBUG) && defined(SWIG_PYTHON_INTERPRETER_NO_DEBUG)
-/* Use debug wrappers with the Python release dll */
-# undef _DEBUG
-# include <Python.h>
-# define _DEBUG
+  #pragma pop_macro("slots")
+
+  #include <string>
+  #include <sstream>
+  #include <vector>
+
+  inline PyThreadState*& __python_thread_state__() {
+    static PyThreadState* ret = nullptr;
+    return ret;
+  }
+
+  inline void InitEmbeddedPython(int argn, const char* argv[], std::string sys_path = "", std::vector<std::string> commands = {})
+  {
+  #if PY_MINOR_VERSION<=4
+    Py_SetProgramName(_Py_char2wchar((char*)argv[0], NULL));
+  #else
+    Py_SetProgramName(Py_DecodeLocale((char*)argv[0], NULL));
+  #endif
+    Py_InitializeEx(0);
+    PyEval_InitThreads();
+    __python_thread_state__() = PyEval_SaveThread();
+    auto acquire_gil = PyGILState_Ensure();
+
+    std::ostringstream out;
+    out << "import os, sys;\n";
+
+    if (!sys_path.empty())
+      out << "sys.path.append(os.path.realpath('" + sys_path + "'))\n";
+
+    for (auto cmd : commands)
+      out << cmd << "\n";
+
+    PyRun_SimpleString(out.str().c_str());
+    PyGILState_Release(acquire_gil);
+  }
+
+  inline void ShutdownEmbeddedPython()
+  {
+    PyEval_RestoreThread(__python_thread_state__());
+    Py_Finalize();
+  }
+
 #else
-# include <Python.h>
+
+  inline void InitEmbeddedPython(int argn, const char* argv[], std::string sys_path, std::vector<std::string> commands = {})  {}
+  inline void ShutdownEmbeddedPython()  {}
+
 #endif
 
-#pragma pop_macro("slots")
+#endif //VISUS_PYTHON_H__
 
-#include <pydebug.h>
-
-//see SWIG_TYPE_TABLE necessary to share type info
-#include "swigpyrun.h"
-
-#include <string>
-
-class ScopedAcquireGil
-{
-public:
-  PyGILState_STATE state = PyGILState_Ensure();
-  ScopedAcquireGil() {}
-  ~ScopedAcquireGil() {PyGILState_Release(state);}
-};
-
-#endif //_PYTHON_ENGINE_H__

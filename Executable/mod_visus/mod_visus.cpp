@@ -36,6 +36,7 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
+#include <Visus/Python.h>
 #include <Visus/Kernel.h>
 #include <Visus/ModVisus.h>
 #include <Visus/Path.h>
@@ -128,7 +129,6 @@ std::map<String, _HTTP_HEADER_ID> response_headers = std::map<String, _HTTP_HEAD
   { "WwwAuthenticate",HttpHeaderWwwAuthenticate }
 });
 
-
 // Create a global handle for the Event Viewer.
 HANDLE g_hEventLog;
 ModVisus* mod_visus=nullptr;
@@ -160,14 +160,12 @@ public:
   //constructor
   MyGlobalModule()
   {
-    // Open a handle to the Event Viewer.
-    g_hEventLog = RegisterEventSource(NULL, "IISADMIN");
-
+    g_hEventLog = RegisterEventSource(NULL, "IISADMIN"); // Open a handle to the Event Viewer.
     static int argn = 3;
     static const char* argv[] = { "mod_visus.dll", "--visus-config", "/inetpub/wwwroot/visus/visus.config" };
     SetCommandLine(argn, argv);
     DbModule::attach();
-
+    InitEmbeddedPython(argn, argv, KnownPaths::BinaryDirectory.toString() + "/../..", { "from OpenVisus import *" });
     RedirectLogTo(MyWriteLog, this);
     mod_visus = new ModVisus();
     mod_visus->configureDatasets();
@@ -177,15 +175,11 @@ public:
   ~MyGlobalModule()
   {
     delete mod_visus;
-
     RedirectLogTo(nullptr);
-
-    // Test whether the handle for the Event Viewer is open.
-    if (NULL != g_hEventLog)
-    {
+    if (g_hEventLog)
       DeregisterEventSource(g_hEventLog);
-      g_hEventLog = NULL;
-    }
+    DbModule::detach();
+    ShutdownEmbeddedPython();
   }
 
   //OnGlobalPreBeginRequest
@@ -331,8 +325,6 @@ public:
   }
 };
 
-
-
 /////////////////////////////////////////////////////////////////////////////////////
 extern "C" __declspec(dllexport)  HRESULT __stdcall RegisterModule(DWORD ,IHttpModuleRegistrationInfo * pModuleInfo,IHttpServer * )
 {
@@ -375,10 +367,7 @@ extern "C" __declspec(dllexport)  HRESULT __stdcall RegisterModule(DWORD ,IHttpM
   return S_OK;
 }
 
-
-#endif
-
-#if !WIN32
+#else
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -607,14 +596,12 @@ public:
   void initialiseInCurrentProcess()
   {
     PrintInfo("initialiseInCurrentProcess");
-
     RedirectLogTo(MyWriteLog, this);
-
     static int narg=1;
     static const char *argv[]={"mod_visus"};
     SetCommandLine(narg,argv);
     DbModule::attach();
-
+    InitEmbeddedPython(narg, argv, KnownPaths::BinaryDirectory.toString() + "/../..", { "from OpenVisus import *" });
     this->configureDatasets();
   }
   
@@ -623,9 +610,9 @@ public:
   {
     PrintInfo("shutdownInCurrentProcess");
     DbModule::detach();
+    ShutdownEmbeddedPython();
     RedirectLogTo(nullptr);
   }
-
 
 };
 

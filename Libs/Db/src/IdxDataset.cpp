@@ -1579,7 +1579,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
   auto  waitAsyncRead = [&]()
   {
     async_read.waitAllDone();
-    PrintInfo("aysnc read",concatenate(NREAD, "/", blocks.size()),"...");
+    //PrintInfo("aysnc read",concatenate(NREAD, "/", blocks.size()),"...");
   };
 
   //PrintInfo("Executing query...");

@@ -1,17 +1,13 @@
 
-
 set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 FILE(GLOB Sources *.cpp *.h)
+
 add_executable(visusviewer ${Sources})
 
 target_link_libraries(visusviewer PUBLIC VisusGui)
-
-if (VISUS_PYTHON AND NOT WIN32)
-	target_link_libraries(visusviewer PUBLIC Python::Python)
-endif()
-
+LinkPythonIfNeeded(visusviewer)
 set_target_properties(visusviewer PROPERTIES FOLDER "Executable/")
 
 if (APPLE)

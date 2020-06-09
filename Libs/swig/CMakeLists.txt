@@ -1,3 +1,6 @@
+find_package(SWIG 3.0 REQUIRED)
+include(${SWIG_USE_FILE})	
+
 
 # /////////////////////////////////////////////////////////////////////
 macro(AddSwigLibrary WrappedLib)
@@ -5,6 +8,7 @@ macro(AddSwigLibrary WrappedLib)
 	set(NamePy   ${WrappedLib}Py)
 	set(SwigFile ${CMAKE_CURRENT_SOURCE_DIR}/${NamePy}.i)
 
+	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}")
 	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
 	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../XIdx/include")
 	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include")
@@ -21,17 +25,17 @@ macro(AddSwigLibrary WrappedLib)
 
 	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-threads;-extranative")
 
-	# important for good name generation id Debug mode (https://gitlab.kitware.com/cmake/cmake/issues/18771)
-	# set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-interface;${NamePy}")
-
-	# set_property(SOURCE ${SwigFile} PROPERTY SWIG_MODULE_NAME ${NamePy}) prevents rebuild every time make is called (? scrgiorgio sommented for now)
 	set_source_files_properties(${SwigFile} PROPERTIES CPLUSPLUS ON)
 	
 	swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile} ${ARGN})
 	target_compile_definitions(${NamePy} PRIVATE SWIG_TYPE_TABLE=OpenVisus)
+	target_compile_definitions(${NamePy} PRIVATE SWIG_PYTHON_INTERPRETER_NO_DEBUG=1)
 
-	target_link_libraries(${NamePy} PUBLIC ${WrappedLib})
+	target_include_directories(${NamePy} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+	target_link_libraries(${NamePy} PRIVATE ${WrappedLib})
 	set_target_properties(${NamePy} PROPERTIES FOLDER Swig/)
+
+	LinkPythonIfNeeded(${NamePy})
 
 	if (WIN32)
 		target_compile_definitions(${NamePy} PRIVATE /W0) # disable warnings
@@ -53,8 +57,8 @@ endif()
 
 AddSwigLibrary(VisusKernel __init__.py __main__.py setup.py utils.py VisusPy.common)
 AddSwigLibrary(VisusXIdx)
-AddSwigLibrary(VisusDataflow dataset.py)
-AddSwigLibrary(VisusDb)
+AddSwigLibrary(VisusDataflow )
+AddSwigLibrary(VisusDb dataset.py PyMultipleDataset.h)
 AddSwigLibrary(VisusNodes)
 AddSwigLibrary(VisusGui scripting_node.py viewer.py gui.py)
 
@@ -63,13 +67,17 @@ if (VISUS_SLAM)
 	target_include_directories(VisusKernelPy PRIVATE  ../slamcpp)
 endif()
 
-CopyToBinaryDirectory(TARGET VisusKernelPy FILES  __init__.py            DESTINATION ./)
-CopyToBinaryDirectory(TARGET VisusKernelPy FILES  __main__.py            DESTINATION ./)
-CopyToBinaryDirectory(TARGET VisusKernelPy FILES  setup.py               DESTINATION ./)
-CopyToBinaryDirectory(TARGET VisusKernelPy FILES  utils.py               DESTINATION ./)
+macro(AddPythonTarget Name)
+	add_custom_target(${Name} ${CMAKE_COMMAND} -E env PYTHONPATH=${CMAKE_BINARY_DIR}/${ConfigName}/OpenVisus/.. ${Python_EXECUTABLE} -u ${ARGN})
+	set_property(TARGET ${Name} PROPERTY FOLDER CMakePredefinedTargets)
+endmacro()
 
-CopyToBinaryDirectory(TARGET VisusDbPy     FILES  dataset.py             DESTINATION ./)
+AddPythonTarget(test -m OpenVisus test)
 
-CopyToBinaryDirectory(TARGET VisusGuiPy    FILES  scripting_node.py      DESTINATION ./)
-CopyToBinaryDirectory(TARGET VisusGuiPy    FILES  gui.py                 DESTINATION ./)
-CopyToBinaryDirectory(TARGET VisusGuiPy    FILES  viewer.py              DESTINATION ./)
+if (VISUS_GUI)
+	AddPythonTarget(UsePyQt5 -m OpenVisus use-pyqt5)
+	AddPythonTarget(viewer   -m OpenVisus viewer)
+	AddPythonTarget(viewer1  -m OpenVisus viewer1)
+	AddPythonTarget(viewer2  -m OpenVisus viewer2)
+endif()
+

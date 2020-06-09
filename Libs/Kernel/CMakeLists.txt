@@ -5,7 +5,6 @@ if(GIT_FOUND)
 		COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD 
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
 		OUTPUT_VARIABLE GIT_REVISION OUTPUT_STRIP_TRAILING_WHITESPACE)
-		
 	if (NOT GIT_REVISION STREQUAL "")
 		add_definitions(-DGIT_REVISION=${GIT_REVISION})
 		message(STATUS "${GIT_EXECUTABLE} Current GIT_REVISION ${GIT_REVISION}")
@@ -13,11 +12,9 @@ if(GIT_FOUND)
 endif()
 
 if (NOT (WIN32 OR APPLE))
-
   include(CheckIncludeFiles)
   unset(HAS_UUID_H)
   check_include_files(uuid/uuid.h HAS_UUID_H)
-
   if (HAS_UUID_H)
     add_definitions(-DHAS_UUID_H=1)
    else()
@@ -29,62 +26,70 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp/slam.cpp")
 	set(VISUS_SLAM 1)
 endif()
 
+function(AssignSourceGroup GroupName StartDir)
+	foreach(_it_ IN ITEMS ${ARGN})
+		file(RELATIVE_PATH _group_ "${StartDir}" "${_it_}")
+		get_filename_component(_group_ "${_group_}" PATH)
+		string(REPLACE "../"  ""   _group_  "${_group_}")
+		string(REPLACE "../"  ""   _group_  "${_group_}")
+		string(REPLACE "../"  ""   _group_  "${_group_}")
+		string(REPLACE  "/"  "\\"  _group_  "${_group_}")
+		source_group("${GroupName}\\${_group_}" FILES "${_it_}")
+	endforeach()
+endfunction()
+
 source_group("" FILES
-	./include/Visus/Kernel.h 
-	./src/Kernel.cpp
-	./src/Kernel.mm
-	../../OpenVisusConfig.cmake
-	../../.github/workflows/BuildOpenVisus.yml
-)
+	include/Visus/Kernel.h 
+	src/Kernel.cpp
+	src/Kernel.mm)
 
 source_group("Core" FILES
-	./include/Visus/Aborted.h
-	./include/Visus/Async.h
-	./include/Visus/ByteOrder.h
-	./src/ByteOrder.cpp	
-	./include/Visus/Color.h
-	./src/Color.cpp
-	./include/Visus/Diff.h
-	./src/Diff.cpp
-	./include/Visus/DirectoryIterator.h
-	./src/DirectoryIterator.cpp	
-	./src/DirectoryIterator.mm	
-	./include/Visus/File.h
-	./src/File.cpp
-	./include/Visus/HeapMemory.h
-	./include/Visus/UUID.h
-	./src/HeapMemory.cpp
-	./include/Visus/ScopedVector.h
-	./include/Visus/Model.h
-	./include/Visus/Model.cpp
-	./include/Visus/NumericLimits.h
-	./include/Visus/Path.h
-	./src/Path.cpp
-	./include/Visus/RamResource.h
-	./src/RamResource.cpp
-	./include/Visus/Singleton.h
-	./include/Visus/SignalSlot.h
-	./include/Visus/StringMap.h
-	./src/StringMap.cpp
-	./include/Visus/StringTree.h
-	./src/StringTree.cpp
-	./include/Visus/StringUtils.h
-	./src/StringUtils.cpp
-	./include/Visus/Time.h
-	./src/Time.cpp
-	./include/Visus/Url.h
-	./src/Url.cpp
-	./include/Visus/Utils.h
-	./src/Utils.cpp
-	./src/UUID.cpp
-	./include/Visus/ApplicationStats.h
-	./src/ApplicationStats.cpp
-	./include/Visus/ApplicationInfo.h
-	./src/ApplicationInfo.cpp
-	./include/Visus/SharedLibrary.h
-	./src/SharedLibrary.cpp
-	./include/Visus/json.hpp)
-	
+	include/Visus/Aborted.h
+	include/Visus/Async.h
+	include/Visus/ByteOrder.h
+	src/ByteOrder.cpp	
+	include/Visus/Color.h
+	src/Color.cpp
+	include/Visus/Diff.h
+	src/Diff.cpp
+	include/Visus/DirectoryIterator.h
+	src/DirectoryIterator.cpp	
+	src/DirectoryIterator.mm	
+	include/Visus/File.h
+	src/File.cpp
+	include/Visus/HeapMemory.h
+	src/HeapMemory.cpp
+	include/Visus/ScopedVector.h
+	include/Visus/Model.h
+	include/Visus/Model.cpp
+	include/Visus/NumericLimits.h
+	include/Visus/Path.h
+	src/Path.cpp
+	include/Visus/RamResource.h
+	src/RamResource.cpp
+	include/Visus/Singleton.h
+	include/Visus/SignalSlot.h
+	include/Visus/StringMap.h
+	src/StringMap.cpp
+	include/Visus/StringTree.h
+	src/StringTree.cpp
+	include/Visus/StringUtils.h
+	src/StringUtils.cpp
+	include/Visus/Time.h
+	src/Time.cpp
+	include/Visus/Url.h
+	src/Url.cpp
+	include/Visus/Utils.h
+	src/Utils.cpp
+	include/Visus/UUID.h
+	src/UUID.cpp
+	include/Visus/ApplicationStats.h
+	src/ApplicationStats.cpp
+	include/Visus/ApplicationInfo.h
+	src/ApplicationInfo.cpp
+	include/Visus/SharedLibrary.h
+	src/SharedLibrary.cpp
+	include/Visus/json.hpp)
 
 source_group("Thread" FILES
 	./include/Visus/CriticalSection.h
@@ -94,8 +99,7 @@ source_group("Thread" FILES
 	./include/Visus/Thread.h
 	./src/Thread.cpp 
 	./include/Visus/ThreadPool.h
-	./src/ThreadPool.cpp 
-)
+	./src/ThreadPool.cpp )
 
 source_group("Geometry" FILES
 	./include/Visus/Matrix.h 
@@ -179,7 +183,6 @@ source_group("Encoder" FILES
 	./src/EncoderZfp.hxx
 	./src/EncoderFreeImage.hxx)
 
-
 source_group("Misc" FILES 
 	./include/Visus/PointCloud.h
 	./include/Visus/Graph.h
@@ -188,28 +191,19 @@ source_group("Misc" FILES
 	./include/Visus/Annotation.h
 	./src/Annotation.cpp)
 
-
-if (VISUS_PYTHON)
-	file(GLOB PyFiles      
-		./include/Visus/swigpyrun.h  
-		./include/Visus/Python.h )
-	source_group("Python" FILES ${PyFiles})
-endif()
-
-file(GLOB RootFiles  
-	../../.github/workflows/BuildOpenVisus.yml
-	../../CMakeLists.txt
-	../../ExternalLibs/CMakeLists.txt
+file(GLOB OtherFiles 
+	../../CMakeLists.txt	
 	../../OpenVisusConfig.cmake
 	../../LICENCE
-	../../README.md*)
-source_group("" FILES   ${RootFiles})
-
-file(GLOB_RECURSE ScriptsFiles ../../scripts/*)
-AssignSourceGroup(${ScriptsFiles})
-
-file(GLOB_RECURSE  SamplesFiles  ../../Samples/*)
-AssignSourceGroup(${SamplesFiles})
+	../../README.md
+	../../.github/workflows/BuildOpenVisus.yml
+	../../ExternalLibs/CMakeLists.txt
+	../../Libs/CMakeLists.txt
+	../../Libs/swig/CMakeLists.txt
+	../../Executable/CMakeLists.txt
+	../../scripts/*
+	../../Samples/*)
+AssignSourceGroup(OpenVisus ${CMAKE_SOURCE_DIR} ${OtherFiles})
 
 IF (WIN32 OR APPLE)
 	file(GLOB MMFiles src/*.mm)
@@ -221,10 +215,7 @@ if (VISUS_SLAM)
 endif()
 
 file(GLOB Sources 
-	${RootFiles}
-	${PyFiles} 
-	${ScriptsFiles}
-	${SamplesFiles}
+	${OtherFiles}
 	${MMFiles}
 	${SlamCppSources}
 	include/Visus/*.*  
@@ -264,21 +255,6 @@ if (VISUS_IMAGE)
 	target_link_libraries(VisusKernel PRIVATE FreeImage)
 endif()
 
-if (VISUS_PYTHON)
-	if (WIN32)
-		# I'm always linking to python Release (most of wheel do not work in debug mode, like numpy)
-		target_include_directories(VisusKernel PUBLIC ${Python_INCLUDE_DIRS})
-		target_compile_definitions(VisusKernel PUBLIC SWIG_PYTHON_INTERPRETER_NO_DEBUG=1)
-		target_link_libraries(VisusKernel      PUBLIC ${Python_LIBRARY_RELEASE})
-	else()
-		target_link_libraries(VisusKernel PUBLIC Python::Module)
-	endif()
-
-	target_compile_definitions(VisusKernel  PUBLIC VISUS_PYTHON=1)
-	target_compile_definitions(VisusKernel  PUBLIC SWIG_TYPE_TABLE=OpenVisus)
-endif()
-
-
 if(WIN32)
 	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
 
@@ -289,9 +265,9 @@ elseif(APPLE)
 
 else()
 	target_link_libraries(VisusKernel PUBLIC dl rt util)
-  if (HAS_UUID_H)
-    target_link_libraries(VisusKernel PUBLIC uuid)
-  endif()
+	if (HAS_UUID_H)
+		target_link_libraries(VisusKernel PUBLIC uuid)
+	endif()
 	target_link_libraries(VisusKernel PUBLIC  pthread)
 
 endif()
@@ -300,13 +276,10 @@ target_compile_definitions(VisusKernel  PRIVATE VISUS_BUILDING_VISUSKERNEL=1)
 target_include_directories(VisusKernel  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 if (VISUS_SLAM)
-
 	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp)
 	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp/ExternalLibs/eigen)
 	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp/ExternalLibs/g2o)
-	
 	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp/ExternalLibs ${CMAKE_BINARY_DIR}/slamcpp/ExternalLibs)
-
 	target_link_libraries(VisusKernel PRIVATE 	
 		g2o_core 
 		g2o_solver_eigen 

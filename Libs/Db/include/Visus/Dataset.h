@@ -481,7 +481,6 @@ protected:
   int                     default_bitsperblock = 0;
 };
 
-
 ////////////////////////////////////////////////////////////////
 class VISUS_DB_API DatasetFactory
 {

@@ -454,18 +454,17 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
 ////////////////////////////////////////////////////////////////////////////////////
 Field IdxMultipleDataset::getFieldByNameThrowEx(String FIELDNAME) const
 {
-  auto v = StringUtils::split(FIELDNAME, ".");
-  if (v.size() != 2)
-    ThrowException("wrong FIELDNAME");
+  if (is_mosaic)
+    return this->IdxDataset::getFieldByNameThrowEx(FIELDNAME);
 
-  auto dataset_name = v[0];
-  auto fieldname = v[1];
+  String CODE;
+  if (find_field.count(FIELDNAME))
+    CODE = find_field.find(FIELDNAME)->second.name;  //existing field (it's a symbolic name)
+  else
+    CODE = FIELDNAME; //the fieldname itself is the expression
 
-  auto dataset = getChild(dataset_name);
-  if (!dataset)
-    ThrowException("dataset", dataset_name, "not found");
-
-  return dataset->getFieldByNameThrowEx(fieldname);
+  auto OUTPUT = computeOuput(/*QUERY*/nullptr, /*ACCESS*/SharedPtr<Access>(), Aborted(), CODE);
+  return Field(CODE, OUTPUT.dtype);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -1127,7 +1126,50 @@ void IdxMultipleDataset::read(Archive& AR)
 ////////////////////////////////////////////////////////////////////////
 bool IdxMultipleDataset::executeQuery(SharedPtr<Access> ACCESS,SharedPtr<BoxQuery> QUERY)
 {
-  return IdxDataset::executeQuery(ACCESS, QUERY);
+  if (is_mosaic)
+    return IdxDataset::executeQuery(ACCESS, QUERY);
+
+  auto MULTIPLE_ACCESS = std::dynamic_pointer_cast<IdxMultipleAccess>(ACCESS);
+  if (!MULTIPLE_ACCESS)
+    return IdxDataset::executeQuery(ACCESS, QUERY);
+
+  if (!QUERY)
+    return false;
+
+  if (!(QUERY->isRunning() && QUERY->getCurrentResolution() < QUERY->getEndResolution()))
+    return false;
+
+  if (QUERY->aborted())
+  {
+    QUERY->setFailed("QUERY aboted");
+    return false;
+  }
+
+  if (QUERY->mode == 'w')
+  {
+    QUERY->setFailed("not supported");
+    return false;
+  }
+
+  //execute N-Query (independentely) and blend them
+  Array  OUTPUT;
+  try
+  {
+    OUTPUT = computeOuput(QUERY.get(), ACCESS, QUERY->aborted, QUERY->field.name);
+  }
+  catch (std::exception ex)
+  {
+    QUERY->setFailed(QUERY->aborted() ? "query aborted" : ex.what());
+    return false;
+  }
+
+  //a projection happened? results will be unmergeable!
+  if (OUTPUT.dims != QUERY->logic_samples.nsamples)
+    QUERY->merge_mode = DoNotMergeSamples;
+
+  QUERY->buffer = OUTPUT;
+  QUERY->setCurrentResolution(QUERY->end_resolution);
+  return true;
 }
 
 ////////////////////////////////////////////////////////////////////////
