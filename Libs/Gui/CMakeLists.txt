@@ -10,15 +10,8 @@ if (VISUS_OSPRAY)
 endif()
 
 SET(RootSources
-	./include/Visus/FreeTransform.h
-	./src/FreeTransform.cpp
-	./include/Visus/Viewer.h
-	./src/Viewer.cpp
-	./src/Viewer.OpenGL.cpp
-	./src/Viewer.Net.cpp
-	./src/Viewer.Gui.cpp
-	./include/Visus/Gui.h
-	./src/Gui.cpp
+	./include/Visus/FreeTransform.h ./src/FreeTransform.cpp
+	./include/Visus/Viewer.h        ./src/Viewer.cpp ./src/Viewer.OpenGL.cpp ./src/Viewer.Net.cpp ./src/Viewer.Gui.cpp ./include/Visus/Gui.h ./src/Gui.cpp
 	./resources/Gui.qrc)
 
 
@@ -26,9 +19,8 @@ file(GLOB OpenGLSources include/Visus/GL*.h src/GL*.cpp resources/GL*)
 file(GLOB QtSources include/Visus/QCanvas2d.h include/Visus/QDoubleSlider.h include/Visus/GuiFactory.h)
 
 set(NodeSources
-	./include/Visus/GLCameraNode.h
+	./include/Visus/GLCameraNode.h 
 	./include/Visus/GLCameraNodeView.h
-	./src/GLCameraNode.cpp       
 	./src/IsoContourNode.cpp    
 	./include/Visus/JTreeRenderNode.h 
 	./include/Visus/JTreeRenderNodeView.h   
@@ -69,7 +61,6 @@ set(ViewerSources
 	./include/Visus/Viewer.h
 	./include/Visus/FreeTransform.h
 	./src/FreeTransform.cpp
-
 	./include/Visus/ArrayStatisticsView.h
 	./include/Visus/HistogramView.h
 	./include/Visus/CpuTransferFunctionNodeView.h
@@ -94,12 +85,13 @@ source_group("Qt"      FILES ${QtSources})
 source_group("OpenGL"  FILES ${OpenGLSources})
 
 file(GLOB Sources include/Visus/*.h src/*.cpp resources/*.glsl resources/*.qrc)
+
 add_library(VisusGui SHARED ${Sources})
+
 target_compile_definitions(VisusGui  PRIVATE VISUS_BUILDING_VISUSGUI=1)
 target_compile_definitions(VisusGui  PRIVATE VISUS_OPENGL_ES=0)
 target_include_directories(VisusGui  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-option(VISUS_OSPRAY "Enable ospray" OFF)
 if (VISUS_OSPRAY)
 	target_compile_definitions(VisusGui PUBLIC -DVISUS_OSPRAY=1)
 	target_link_libraries(VisusGui PUBLIC ospray::ospray ospcommon::ospcommon)

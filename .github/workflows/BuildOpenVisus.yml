@@ -69,6 +69,7 @@ jobs:
            cd build
            cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4
+           cmake --build . --target INSTALL   --config Release
           
            cd Release/OpenVisus\
 
@@ -149,6 +150,7 @@ jobs:
            
            cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
+           cmake --build ./ --target install   --config Release 
               
            cd Release/OpenVisus
 
@@ -273,6 +275,7 @@ jobs:
            cd build
            cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=$(which python) ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4 
+           cmake --build . --target INSTALL   --config Release
           
            cd Release/OpenVisus
 
@@ -365,6 +368,7 @@ jobs:
            cd build
            cmake -GXcode -DPython_EXECUTABLE=$(which python) -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
+           cmake --build ./ --target install   --config Release
           
            cd Release/OpenVisus
 

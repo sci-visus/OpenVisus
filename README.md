@@ -135,6 +135,7 @@ mkdir build
 cd build
 cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR=%Qt5_DIR% -DPython_EXECUTABLE=%Python_EXECUTABLE% ../ 
 cmake --build . --target ALL_BUILD --config Release
+cmake --build . --target INSTALL   --config Release
 
 set PYTHON_PATH=.\Release
 python -m OpenVisus configure
@@ -173,7 +174,8 @@ mkdir build
 cd build
 
 cmake -GXcode -DPython_ROOT_DIR=${Python_ROOT_DIR} -DQt5_DIR=${Qt5_DIR} ../
-cmake --build ./ --target all --config Release --parallel 4 
+cmake --build ./ --target all     --config Release --parallel 4 
+cmake --build ./ --target install --config Release
 
 export PYTHONPATH=$(pwd)/Release
 python -m OpenVisus configure
@@ -244,7 +246,8 @@ mkdir build
 cd build
 
 cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} ../
-cmake --build ./ --target all --config Release --parallel 4 
+cmake --build ./ --target all     --config Release --parallel 4 
+cmake --build ./ --target install --config Release
 
 python -m pip install --upgrade pip
 

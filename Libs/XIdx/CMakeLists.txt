@@ -1,7 +1,9 @@
 
 file(GLOB Sources include/Visus/*.h  src/*.cpp)
 source_group("" FILES ${Sources})
+
 add_library(VisusXIdx SHARED ${Sources})
+
 set_target_properties(VisusXIdx PROPERTIES FOLDER "")
 target_link_libraries(VisusXIdx PUBLIC VisusKernel)
 target_compile_definitions(VisusXIdx  PRIVATE VISUS_BUILDING_VISUSXIDX=1)

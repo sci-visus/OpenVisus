@@ -37,7 +37,8 @@ macro(AddSwigLibrary WrappedLib)
 	LinkPythonIfNeeded(${NamePy})
 
 	if (WIN32)
-		target_compile_definitions(${NamePy} PRIVATE /W0) # disable warnings
+		target_compile_definitions(${NamePy} PRIVATE /W0) 
+		target_compile_options(${NamePy} PRIVATE /bigobj)
 	else()
 		set_target_properties(${NamePy} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
 	endif()
@@ -89,10 +90,10 @@ endif()
 
 if (TARGET VisusGui)
 	AddSwigLibrary(VisusGui scripting_node.py viewer.py gui.py)
-	AddPythonTarget(UsePyQt5 -m OpenVisus use-pyqt5)
-	AddPythonTarget(viewer   -m OpenVisus viewer)
-	AddPythonTarget(viewer1  -m OpenVisus viewer1)
-	AddPythonTarget(viewer2  -m OpenVisus viewer2)	
+	AddPythonTarget(configure -m OpenVisus configure)
+	AddPythonTarget(viewer    -m OpenVisus viewer)
+	AddPythonTarget(viewer1   -m OpenVisus viewer1)
+	AddPythonTarget(viewer2   -m OpenVisus viewer2)	
 endif()
 
 
