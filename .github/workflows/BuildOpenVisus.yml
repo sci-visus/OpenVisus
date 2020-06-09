@@ -32,10 +32,17 @@ jobs:
       uses: lukka/get-cmake@latest
       
     # ____________________________________________
+    # this actions fails a lot, so I'm repeating 2 times
     - name: Install Swig 
       uses: crazy-max/ghaction-chocolatey@v1
       with:
-        args: install -y --allow-empty-checksums --no-progress cmake swig  
+        args: install -y --allow-empty-checksums --no-progress cmake swig
+        
+    - name: Install Swig (2)
+      uses: crazy-max/ghaction-chocolatey@v1
+      with:
+        args: install -y --allow-empty-checksums --no-progress cmake swig
+        
         
     # ____________________________________________
     - name: Install CPython 
@@ -236,10 +243,17 @@ jobs:
       uses: lukka/get-cmake@latest
       
     # ____________________________________________
+    # this actions fails a lot, so I'm repeating 2 times
     - name: Install Swig 
       uses: crazy-max/ghaction-chocolatey@v1
       with:
         args: install -y --allow-empty-checksums --no-progress cmake swig  
+        
+    - name: Install Swig (2)
+      uses: crazy-max/ghaction-chocolatey@v1
+      with:
+        args: install -y --allow-empty-checksums --no-progress cmake swig        
+        
         
     # ____________________________________________
     - name: Install Miniconda 
