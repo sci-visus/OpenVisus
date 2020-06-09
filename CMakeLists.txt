@@ -81,14 +81,16 @@ if (VISUS_GUI)
 endif()
 
 if (VISUS_PYTHON)
+
 	find_package(Python COMPONENTS Interpreter Development REQUIRED)
+
 	macro(LinkPythonIfNeeded Name)
 		if (WIN32)
 			# for windows most of the extensions do not work in debug, so I'm always using python release version
 			target_include_directories(${Name} PUBLIC ${Python_INCLUDE_DIRS})
 			target_link_libraries(${Name}      PUBLIC ${Python_LIBRARY_RELEASE})
 		else()
-			target_link_libraries(${Name} PUBLIC Python::Module)
+			target_link_libraries(${Name} PUBLIC Python::Python) # Python library for Python embedding
 		endif()
 		target_compile_definitions(${Name} PUBLIC VISUS_PYTHON=1)
 	endmacro()
