@@ -59,9 +59,12 @@ macro(AddSwigLibrary WrappedLib)
 
 endmacro()
 
-macro(AddPythonTarget Name)
-	add_custom_target(${Name} ${CMAKE_COMMAND} -E env PYTHONPATH=${CMAKE_BINARY_DIR}/${ConfigName}/OpenVisus/.. ${Python_EXECUTABLE} -u ${ARGN})
-	set_property(TARGET ${Name} PROPERTY FOLDER CMakePredefinedTargets)
+macro(AddPythonTarget GroupName Name)
+	add_custom_target(${Name} ${CMAKE_COMMAND} 
+		-E env PYTHONPATH=${CMAKE_BINARY_DIR}/${ConfigName} 
+		${Python_EXECUTABLE} -u ${ARGN} 
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/${ConfigName}/OpenVisus/)
+	set_property(TARGET ${Name} PROPERTY FOLDER ${GroupName})
 endmacro()
 
 if (TARGET VisusKernel)
@@ -89,7 +92,7 @@ endif()
 
 if (TARGET VisusDataflow)
 	AddSwigLibrary(VisusDataflow)
-	AddPythonTarget(test -m OpenVisus test)
+	AddPythonTarget("CMakePredefinedTargets" test -m OpenVisus test)
 endif()
 
 if (TARGET VisusNodes)
@@ -98,10 +101,15 @@ endif()
 
 if (TARGET VisusGui)
 	AddSwigLibrary(VisusGui scripting_node.py viewer.py gui.py)
-	AddPythonTarget(configure -m OpenVisus configure)
-	AddPythonTarget(viewer    -m OpenVisus viewer)
-	AddPythonTarget(viewer1   -m OpenVisus viewer1)
-	AddPythonTarget(viewer2   -m OpenVisus viewer2)	
+	AddPythonTarget("CMakePredefinedTargets" configure -m OpenVisus configure)
+	AddPythonTarget("CMakePredefinedTargets" viewer    -m OpenVisus viewer)
+	AddPythonTarget("CMakePredefinedTargets" viewer1   -m OpenVisus viewer1)
+	AddPythonTarget("CMakePredefinedTargets" viewer2   -m OpenVisus viewer2)	
+
+	AddPythonTarget("Jupyter" quick_tour.ipynb     -m OpenVisus jupyter quick_tour.ipynb)
+	AddPythonTarget("Jupyter" Agricolture.ipynb    -m OpenVisus jupyter Samples/jupyter/Agricolture.ipynb)
+	AddPythonTarget("Jupyter" Climate.ipynb        -m OpenVisus jupyter Samples/jupyter/Climate.ipynb)
+	AddPythonTarget("Jupyter" ReadAndView.ipynb    -m OpenVisus jupyter Samples/jupyter/ReadAndView.ipynb)
 endif()
 
 

@@ -517,22 +517,6 @@ def Main(args):
 		ExecuteCommand([sys.executable, "-m","OpenVisus","server","--dataset","./datasets/cat/rgb.exit","--port","10000","--exit"],check_result=True) 
 		sys.exit(0)
 
-	if action=="test-viewer":
-		os.chdir(this_dir)
-		ExecuteCommand([sys.executable, "-m","OpenVisus","viewer" ],check_result=True) 
-		ExecuteCommand([sys.executable, "-m","OpenVisus","viewer1"],check_result=True) 
-		ExecuteCommand([sys.executable, "-m","OpenVisus","viewer2"],check_result=True) 
-		sys.exit(0)
-
-	if action=="test-jupyter":
-		os.chdir(this_dir)
-		ExecuteCommand([sys.executable, "-m","jupyter","nbconvert","--execute","./quick_tour.ipynb"],check_result=True) 
-		ExecuteCommand([sys.executable, "-m","jupyter","nbconvert","--execute","./Samples/jupyter/Agricolture.ipynb"],check_result=True) 
-		ExecuteCommand([sys.executable, "-m","jupyter","nbconvert","--execute","./Samples/jupyter/Climate.ipynb"],check_result=True) 
-		# disabled: dependency on ipyvolume 
-		# ExecuteCommand([sys.executable, "-m","jupyter","nbconvert","--execute","./Samples/jupyter/ReadAndView.ipynb"],check_result=True) 
-		sys.exit(0)
-
 	if action=="test-idx":
 		os.chdir(this_dir)
 		SelfTestIdx(300)
@@ -584,6 +568,13 @@ def Main(args):
 	if action=="viewer2":
 		os.chdir(this_dir)
 		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "TestViewer2.py")]) 
+		sys.exit(0)
+
+	if action=="jupyter":
+		filename=action_args[0]
+		ExecuteCommand([sys.executable,"-m","jupyter","nbconvert","--execute", filename]) 
+		# import webbrowser  
+		# webbrowser.open("file://"+filename.replace(".ipynb",".html"))
 		sys.exit(0)
 
 	if action=="visible-human":

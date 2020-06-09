@@ -97,9 +97,9 @@ if (1)
 	INSTALL(FILES     quick_tour.ipynb            DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
 
 	if(VISUS_GUI)
-		set(__qt_version_filename__ ${CMAKE_BINARY_DIR}/QT_VERSION)
-		file(GENERATE OUTPUT ${__qt_version_filename__} CONTENT "${Qt5Core_VERSION_STRING}")
-		INSTALL(FILES     ${__qt_version_filename__}  DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
+		set(__qt_ver__ ${CMAKE_BINARY_DIR}/QT_VERSION)
+		file(GENERATE OUTPUT ${__qt_ver__} CONTENT "${Qt5Core_VERSION_STRING}")
+		INSTALL(FILES ${__qt_ver__}               DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
 	endif()
 	
 	FILE(GLOB PyFiles Libs/swig/*.py)
