@@ -1,27 +1,4 @@
 
-find_package(Git)
-if(GIT_FOUND)
-	execute_process(
-		COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD 
-		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
-		OUTPUT_VARIABLE GIT_REVISION OUTPUT_STRIP_TRAILING_WHITESPACE)
-	if (NOT GIT_REVISION STREQUAL "")
-		add_definitions(-DGIT_REVISION=${GIT_REVISION})
-		message(STATUS "${GIT_EXECUTABLE} Current GIT_REVISION ${GIT_REVISION}")
-	endif()
-endif()
-
-if (NOT (WIN32 OR APPLE))
-  include(CheckIncludeFiles)
-  unset(HAS_UUID_H)
-  check_include_files(uuid/uuid.h HAS_UUID_H)
-  if (HAS_UUID_H)
-    add_definitions(-DHAS_UUID_H=1)
-   else()
-    add_definitions(-DHAS_UUID_H=0)
-  endif()
-endif()
-
 source_group("" FILES
 	include/Visus/Kernel.h src/Kernel.cpp src/Kernel.mm
 	include/Visus/Python.h)
@@ -206,21 +183,50 @@ if (VISUS_IMAGE)
 	target_link_libraries(VisusKernel PRIVATE FreeImage)
 endif()
 
+# set git revision
+find_package(Git)
+if(GIT_FOUND)
+	execute_process(
+		COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD 
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
+		OUTPUT_VARIABLE GIT_REVISION OUTPUT_STRIP_TRAILING_WHITESPACE)
+	if (NOT GIT_REVISION STREQUAL "")
+		message(STATUS "${GIT_EXECUTABLE} Current GIT_REVISION ${GIT_REVISION}")
+		target_compile_options(VisusKernel PRIVATE -DGIT_REVISION=${GIT_REVISION})
+	endif()
+endif()
+
 if(WIN32)
 	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
 
 elseif(APPLE)
 	target_link_libraries(VisusKernel PUBLIC 
-		"-framework CoreFoundation" "-framework Foundation" "-framework AppKit" "-framework IOKit"
-		"-framework CoreAudio" "-framework CoreMIDI" "-framework QuartzCore" "-framework AudioToolbox")
+		"-framework CoreFoundation" 
+		"-framework Foundation" 
+		"-framework AppKit" 
+		"-framework IOKit"
+		"-framework CoreAudio" 
+		"-framework CoreMIDI" 
+		"-framework QuartzCore" 
+		"-framework AudioToolbox")
 
 else()
+
+	# uuid support
+  include(CheckIncludeFiles)
+  unset(HAS_UUID_H)
+  check_include_files(uuid/uuid.h HAS_UUID_H)
+  if (HAS_UUID_H)
+    target_compile_options(VisusKernel PRIVATE -DHAS_UUID_H=1)
+   else()
+    target_compile_options(VisusKernel PRIVATE -DHAS_UUID_H=0)
+  endif()
+
 	target_link_libraries(VisusKernel PUBLIC dl rt util)
 	if (HAS_UUID_H)
 		target_link_libraries(VisusKernel PUBLIC uuid)
 	endif()
 	target_link_libraries(VisusKernel PUBLIC  pthread)
-
 endif()
 
 target_compile_definitions(VisusKernel  PRIVATE VISUS_BUILDING_VISUSKERNEL=1)
