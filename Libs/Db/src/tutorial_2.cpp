@@ -42,47 +42,47 @@ For support : support@visus.net
 namespace Visus {
 
 
-  ////////////////////////////////////////////////////////////////////////
-  //read data from tutorial 1
-  ////////////////////////////////////////////////////////////////////////
-  void Tutorial_2(String default_layout)
+////////////////////////////////////////////////////////////////////////
+//read data from tutorial 1
+////////////////////////////////////////////////////////////////////////
+void Tutorial_2(String default_layout)
+{
+  //read Dataset from tutorial 1
+  auto dataset = LoadDataset("temp/tutorial_1.idx");
+
+  BoxNi world_box = dataset->getLogicBox();
+
+  int pdim = 3;
+
+  //check the data has dimension (16,16,16)
+  VisusReleaseAssert(dataset->getDefaultField().dtype == (DTypes::UINT32)
+    && world_box.p1 == PointNi(0, 0, 0)
+    && world_box.p2 == PointNi(16, 16, 16));
+
+  //any time you need to read/write data from/to a Dataset I need a Access
+  auto access = dataset->createAccess();
+
+  int cont = 0;
+  for (int nslice = 0; nslice < 16; nslice++)
   {
-    //read Dataset from tutorial 1
-    auto dataset = LoadDataset("temp/tutorial_1.idx");
+    //this is the bounding box of the region I want to read (i.e. a single slice)
+    BoxNi slice_box = world_box.getZSlab(nslice, nslice + 1);
 
-    BoxNi world_box = dataset->getLogicBox();
+    //I should get a number of samples equals to the number of samples written in tutorial 1
+    auto query = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
+    query->logic_box = slice_box;
+    dataset->beginQuery(query);
+    VisusReleaseAssert(query->isRunning());
+    VisusReleaseAssert(query->getNumberOfSamples() == PointNi(16, 16, 1));
 
-    int pdim = 3;
+    //read data from disk
+    VisusReleaseAssert(dataset->executeQuery(access, query));
+    VisusReleaseAssert(query->buffer.c_size() == sizeof(int) * 16 * 16);
 
-    //check the data has dimension (16,16,16)
-    VisusReleaseAssert(dataset->getDefaultField().dtype == (DTypes::UINT32)
-      && world_box.p1 == PointNi(0, 0, 0)
-      && world_box.p2 == PointNi(16, 16, 16));
-
-    //any time you need to read/write data from/to a Dataset I need a Access
-    auto access = dataset->createAccess();
-
-    int cont = 0;
-    for (int nslice = 0; nslice < 16; nslice++)
-    {
-      //this is the bounding box of the region I want to read (i.e. a single slice)
-      BoxNi slice_box = world_box.getZSlab(nslice, nslice + 1);
-
-      //I should get a number of samples equals to the number of samples written in tutorial 1
-      auto query = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-      query->logic_box = slice_box;
-      dataset->beginQuery(query);
-      VisusReleaseAssert(query->isRunning());
-      VisusReleaseAssert(query->getNumberOfSamples() == PointNi(16, 16, 1));
-
-      //read data from disk
-      VisusReleaseAssert(dataset->executeQuery(access, query));
-      VisusReleaseAssert(query->buffer.c_size() == sizeof(int) * 16 * 16);
-
-      GetSamples<Int32> Src(query->buffer);
-      for (int I = 0; I < 16 * 16; I++, cont++)
-        VisusReleaseAssert(Src[I] == cont);
-    }
+    GetSamples<Int32> Src(query->buffer);
+    for (int I = 0; I < 16 * 16; I++, cont++)
+      VisusReleaseAssert(Src[I] == cont);
   }
+}
 
 } //namespace Visus

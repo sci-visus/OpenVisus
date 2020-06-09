@@ -22,10 +22,6 @@ if (NOT (WIN32 OR APPLE))
   endif()
 endif()
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp/slam.cpp")
-	set(VISUS_SLAM 1)
-endif()
-
 function(AssignSourceGroup GroupName StartDir)
 	foreach(_it_ IN ITEMS ${ARGN})
 		file(RELATIVE_PATH _group_ "${StartDir}" "${_it_}")
@@ -41,7 +37,8 @@ endfunction()
 source_group("" FILES
 	include/Visus/Kernel.h 
 	src/Kernel.cpp
-	src/Kernel.mm)
+	src/Kernel.mm
+	include/Visus/Python.h)
 
 source_group("Core" FILES
 	include/Visus/Aborted.h
@@ -214,14 +211,38 @@ if (VISUS_SLAM)
 	source_group("slamcpp" FILES ${SlamCppSources})
 endif()
 
+file(GLOB cryptlite_Sources src/cryptlite/*.h src/cryptlite/*.c)
+source_group("ExternalLibs\\cryptlite" FILES ${cryptlite_Sources})
+	
+file(GLOB dtl_Sources src/dtl/*.hpp src/dtl/*.c)
+source_group("ExternalLibs\\dtl" FILES ${dtl_Sources})
+
+file(GLOB lz4_Sources src/lz4/*.h src/lz4/*.c)
+source_group("ExternalLibs\\lz4" FILES ${lz4_Sources})
+
+file(GLOB tinyxml_Sources src/tinyxml/*.h src/tinyxml/*.cpp)
+source_group("ExternalLibs\\tinyxml" FILES ${tinyxml_Sources})
+
+file(GLOB zfp_Sources src/zfp/*.h src/zfp/*.cpp src/zfp/*.inl)
+source_group("ExternalLibs\\zfp" FILES ${zfp_Sources})
+	
+file(GLOB zlib_Sources src/zlib/*.h src/zlib/*.c)
+source_group("ExternalLibs\\zlib" FILES ${zlib_Sources})	
+		
 file(GLOB Sources 
-	${OtherFiles}
-	${MMFiles}
-	${SlamCppSources}
 	include/Visus/*.*  
 	src/*.hxx
-	src/*.cpp)
-
+	src/*.cpp
+	${MMFiles}
+	${OtherFiles}
+	${SlamCppSources}
+	${cryptlite_Sources}
+	${dtl_Sources}
+	${lz4_Sources}
+	${tinyxml_Sources}
+	${zfp_Sources}
+	${zlib_Sources})
+	
 add_library(VisusKernel SHARED ${Sources})
 set_target_properties(VisusKernel PROPERTIES FOLDER "")
 
@@ -240,10 +261,14 @@ else()
 	target_compile_options(VisusKernel PUBLIC -Wno-attributes)	
 endif()
 
+include(CheckTypeSize)
+check_type_size(off64_t OFF64_T)
+if (HAVE_OFF64_T)
+  target_compile_definitions(VisusKernel _LARGEFILE64_SOURCE=1)
+endif()
+
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs)
-
-target_link_libraries(VisusKernel PRIVATE cryptlite dtl lz4 tinyxml zlib zfp)
 
 if (VISUS_NET)
 	target_compile_options(VisusKernel PRIVATE -DVISUS_NET=1)

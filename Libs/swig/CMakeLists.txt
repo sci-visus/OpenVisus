@@ -1,7 +1,6 @@
 find_package(SWIG 3.0 REQUIRED)
 include(${SWIG_USE_FILE})	
 
-
 # /////////////////////////////////////////////////////////////////////
 macro(AddSwigLibrary WrappedLib)
 
@@ -51,33 +50,49 @@ macro(AddSwigLibrary WrappedLib)
 
 endmacro()
 
-if (VISUS_SLAM)
-	set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/VisusKernelPy.i APPEND PROPERTY SWIG_FLAGS  "-DVISUS_SLAM=1")
-endif()
-
-AddSwigLibrary(VisusKernel __init__.py __main__.py setup.py utils.py VisusPy.common)
-AddSwigLibrary(VisusXIdx)
-AddSwigLibrary(VisusDataflow )
-AddSwigLibrary(VisusDb dataset.py PyMultipleDataset.h)
-AddSwigLibrary(VisusNodes)
-AddSwigLibrary(VisusGui scripting_node.py viewer.py gui.py)
-
-if (VISUS_SLAM)
-	target_compile_definitions(VisusKernelPy PRIVATE VISUS_SLAM=1)
-	target_include_directories(VisusKernelPy PRIVATE  ../slamcpp)
-endif()
-
 macro(AddPythonTarget Name)
 	add_custom_target(${Name} ${CMAKE_COMMAND} -E env PYTHONPATH=${CMAKE_BINARY_DIR}/${ConfigName}/OpenVisus/.. ${Python_EXECUTABLE} -u ${ARGN})
 	set_property(TARGET ${Name} PROPERTY FOLDER CMakePredefinedTargets)
 endmacro()
 
-AddPythonTarget(test -m OpenVisus test)
+if (TARGET VisusKernel)
 
-if (VISUS_GUI)
+	if (VISUS_SLAM)
+		set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/VisusKernelPy.i APPEND PROPERTY SWIG_FLAGS  "-DVISUS_SLAM=1")
+	endif()
+
+	AddSwigLibrary(VisusKernel __init__.py __main__.py setup.py utils.py VisusPy.common)
+
+	if (VISUS_SLAM)
+		target_compile_definitions(VisusKernelPy PRIVATE VISUS_SLAM=1)
+		target_include_directories(VisusKernelPy PRIVATE  ../slamcpp)
+	endif()
+
+endif()
+
+if (TARGET VisusXIdx)
+	AddSwigLibrary(VisusXIdx)
+endif()
+
+if (TARGET VisusDb)
+	AddSwigLibrary(VisusDb dataset.py PyMultipleDataset.h)
+endif()
+
+if (TARGET VisusDataflow)
+	AddSwigLibrary(VisusDataflow)
+	AddPythonTarget(test -m OpenVisus test)
+endif()
+
+if (TARGET VisusNodes)
+	AddSwigLibrary(VisusNodes)
+endif()
+
+if (TARGET VisusGui)
+	AddSwigLibrary(VisusGui scripting_node.py viewer.py gui.py)
 	AddPythonTarget(UsePyQt5 -m OpenVisus use-pyqt5)
 	AddPythonTarget(viewer   -m OpenVisus viewer)
 	AddPythonTarget(viewer1  -m OpenVisus viewer1)
-	AddPythonTarget(viewer2  -m OpenVisus viewer2)
+	AddPythonTarget(viewer2  -m OpenVisus viewer2)	
 endif()
+
 

@@ -8,13 +8,6 @@ else()
 	add_compile_options(-fvisibility=hidden) # this fixes the problem of static symbols conflicting with dynamic lib
 endif()
 
-add_subdirectory(cryptlite)
-add_subdirectory(dtl)
-add_subdirectory(lz4)
-add_subdirectory(tinyxml)
-add_subdirectory(zlib)
-add_subdirectory(zfp)
-
 if (VISUS_NET)
 	add_subdirectory(libressl)
 	add_subdirectory(curl)

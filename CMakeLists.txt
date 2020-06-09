@@ -51,9 +51,16 @@ set (CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR} CACHE STRING "CMAKE_INSTALL_PREFIX
 
 set(VISUS_DEFAULT_NET      ON)
 set(VISUS_DEFAULT_IMAGE    ON)
+set(VISUS_DEFAULT_XIDX     ON) # not really used?
+set(VISUS_DEFAULT_DATAFLOW ON)
 set(VISUS_DEFAULT_PYTHON   ON)
 set(VISUS_DEFAULT_GUI      ON)
 set(VISUS_DEFAULT_MODVISUS ON)
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp/slam.cpp")
+	set(VISUS_DEFAULT_SLAM 1)
+endif()
+
 
 if (WIN32 OR APPLE)
 	set(VISUS_DEFAULT_MODVISUS OFF)
@@ -61,9 +68,12 @@ endif()
 
 option(VISUS_NET      "Enable VISUS_NET"      ${VISUS_DEFAULT_NET})
 option(VISUS_IMAGE    "Enable VISUS_IMAGE"    ${VISUS_DEFAULT_IMAGE})
+option(VISUS_XIDX     "Enable VISUS_XIDX"     ${VISUS_DEFAULT_XIDX})
+option(VISUS_DATAFLOW "Enable VISUS_DATAFLOW" ${VISUS_DEFAULT_DATAFLOW})
 option(VISUS_PYTHON   "Enable VISUS_PYTHON"   ${VISUS_DEFAULT_PYTHON})
 option(VISUS_GUI      "Enable VISUS_GUI"      ${VISUS_DEFAULT_GUI})
 option(VISUS_MODVISUS "Enable VISUS_MODVISUS" ${VISUS_DEFAULT_MODVISUS})
+option(VISUS_SLAM     "Enable VISUS_SLAM"     ${VISUS_DEFAULT_SLAM})
 
 if (VISUS_GUI)
 	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS ${Qt5_DIR} NO_DEFAULT_PATH)
@@ -91,43 +101,45 @@ add_subdirectory(ExternalLibs)
 add_subdirectory(Libs)
 add_subdirectory(Executable)
 
-# see https://stackoverflow.com/questions/23327687/how-to-write-a-cmake-function-with-more-than-one-parameter-groups
-include(CMakeParseArguments)
-function(CopyToBinaryDirectory)
-	cmake_parse_arguments(
-		PARSED_ARGS 
-		""                      # boolean args
-		"DESTINATION;DIRECTORY" # 1-argument
-		"FILES"                 # multiple args
-		${ARGN})
-	if (PARSED_ARGS_FILES)
-		foreach(__it__ ${PARSED_ARGS_FILES})
-			set(__src__ ${__it__})
-			if(NOT IS_ABSOLUTE ${__src__})
-				set(__src__ ${CMAKE_CURRENT_SOURCE_DIR}/${__src__})
-			endif()
-			get_filename_component(__name__ ${__src__} NAME)
-			add_custom_command(
-				TARGET CopyFiles POST_BUILD
-				COMMAND ${CMAKE_COMMAND} -E echo copy_if_different ${__src__} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}${__name__}
-				COMMAND ${CMAKE_COMMAND} -E      copy_if_different ${__src__} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}${__name__})
-		endforeach()
-	endif()
-	if (PARSED_ARGS_DIRECTORY)
-		if(NOT IS_ABSOLUTE ${PARSED_ARGS_DIRECTORY})
-			set(PARSED_ARGS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${PARSED_ARGS_DIRECTORY})
-		endif()
-		add_custom_command(
-			TARGET CopyFiles POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E echo "copy_directory ${PARSED_ARGS_DIRECTORY} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}"
-			COMMAND ${CMAKE_COMMAND} -E       copy_directory ${PARSED_ARGS_DIRECTORY} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION})
-	endif()
-endfunction()
+
 
 # copy files to binary directory
 if (1)
 	add_custom_target(CopyFiles ALL)
 	set_property(TARGET CopyFiles PROPERTY FOLDER CMakePredefinedTargets)
+
+	# see https://stackoverflow.com/questions/23327687/how-to-write-a-cmake-function-with-more-than-one-parameter-groups
+	include(CMakeParseArguments)
+	function(CopyToBinaryDirectory)
+		cmake_parse_arguments(
+			PARSED_ARGS 
+			""                      # boolean args
+			"DESTINATION;DIRECTORY" # 1-argument
+			"FILES"                 # multiple args
+			${ARGN})
+		if (PARSED_ARGS_FILES)
+			foreach(__it__ ${PARSED_ARGS_FILES})
+				set(__src__ ${__it__})
+				if(NOT IS_ABSOLUTE ${__src__})
+					set(__src__ ${CMAKE_CURRENT_SOURCE_DIR}/${__src__})
+				endif()
+				get_filename_component(__name__ ${__src__} NAME)
+				add_custom_command(
+					TARGET CopyFiles POST_BUILD
+					COMMAND ${CMAKE_COMMAND} -E echo copy_if_different ${__src__} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}${__name__}
+					COMMAND ${CMAKE_COMMAND} -E      copy_if_different ${__src__} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}${__name__})
+			endforeach()
+		endif()
+		if (PARSED_ARGS_DIRECTORY)
+			if(NOT IS_ABSOLUTE ${PARSED_ARGS_DIRECTORY})
+				set(PARSED_ARGS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${PARSED_ARGS_DIRECTORY})
+			endif()
+			add_custom_command(
+				TARGET CopyFiles POST_BUILD
+				COMMAND ${CMAKE_COMMAND} -E echo "copy_directory ${PARSED_ARGS_DIRECTORY} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION}"
+				COMMAND ${CMAKE_COMMAND} -E       copy_directory ${PARSED_ARGS_DIRECTORY} ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}/${PARSED_ARGS_DESTINATION})
+		endif()
+	endfunction()
 
 	if(VISUS_GUI)
 		set(__qt_version_filename__ ${CMAKE_BINARY_DIR}/QT_VERSION)
