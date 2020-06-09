@@ -96,7 +96,7 @@ def ShowDeps(all_bins):
 		print(filename)	
 
 # ////////////////////////////////////////////////
-def UsePyQt5():
+def InstallAndUsePyQt5(bUserInstall=False):
 	
 	"""
 	python -m pip install johnnydep
@@ -129,14 +129,14 @@ def UsePyQt5():
 		bIsConda=False
 		
 	if bIsConda:
-		
-		conda.cli.main('conda', 'install',    '-y', "pyqt={}.{}".format(major,minor))
+		conda.cli.main('conda', 'install', '-y', "pyqt={}.{}".format(major,minor))
 		# do I need PyQtWebEngine for conda? considers Qt is 5.9 (very old)
 		# it has webengine and sip included
 
-	else: 
-
-		cmd=[sys.executable,"-m", "pip", "install", "PyQt5~={}.{}.0".format(major,minor)]
+	else:
+		cmd=[sys.executable,"-m", "pip", "install"]
+		if bUserInstall: cmd+=["--user"]
+		cmd+=["PyQt5~={}.{}.0".format(major,minor)]
 
 		if int(major)==5 and int(minor)>=12:
 			cmd+=["PyQtWebEngine~={}.{}.0".format(major,minor)]
@@ -468,13 +468,11 @@ def Main(args):
 	print("-m OpenVisus",action,action_args)
 
 	# ___________________________________________________________________ openvisus utils
-
-	if action=="configure" or action=="use-pyqt5":
+	if action=="configure":
 		os.chdir(this_dir)
-		UsePyQt5()
+		InstallAndUsePyQt5(bUserInstall="--user" in action_args)
 		print(action,"done")
 		sys.exit(0)
-
 
 	#example -m OpenVisus fix-range --dataset "D:\GoogleSci\visus_dataset\cat256\visus0.idx" 
 	if action=="fix-range":

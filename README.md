@@ -71,8 +71,8 @@ Type:
 ```
 python -m pip install --no-cache-dir --upgrade --force-reinstall OpenVisus
 
-# NOTE: you may need sudo for this, since it will install the files inside python site-packages
-python -m OpenVisus configure  
+# append "--user" in case of permission problems
+python -m OpenVisus configure 
 
 python -m OpenVisus viewer
 ```
@@ -143,7 +143,7 @@ cmake --build . --target ALL_BUILD --config Release
 cmake --build . --target INSTALL   --config Release
 
 set PYTHON_PATH=.\Release
-python -m OpenVisus configure
+python -m OpenVisus configure --user
 python -m OpenVisus viewer
 ```
 
@@ -183,7 +183,7 @@ cmake --build ./ --target all     --config Release --parallel 4
 cmake --build ./ --target install --config Release
 
 export PYTHONPATH=$(pwd)/Release
-python -m OpenVisus configure
+python -m OpenVisus configure --user
 python -m OpenVisus viewer
 ```
 
@@ -257,7 +257,7 @@ cmake --build ./ --target install --config Release
 python -m pip install --upgrade pip
 
 export PYTHONPATH=./Release
-python -m OpenVisus configure
+python -m OpenVisus configure --user
 python -m OpenVisus viewer
 ``
 
