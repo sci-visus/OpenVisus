@@ -39,10 +39,10 @@ jobs:
         args: install -y --allow-empty-checksums --no-progress cmake swig
         
     - name: Install Swig (2)
+      if: ${{ always() }} 
       uses: crazy-max/ghaction-chocolatey@v1
       with:
         args: install -y --allow-empty-checksums --no-progress cmake swig
-        
         
     # ____________________________________________
     - name: Install CPython 
@@ -250,6 +250,7 @@ jobs:
         args: install -y --allow-empty-checksums --no-progress cmake swig  
         
     - name: Install Swig (2)
+      if: ${{ always() }}
       uses: crazy-max/ghaction-chocolatey@v1
       with:
         args: install -y --allow-empty-checksums --no-progress cmake swig        
