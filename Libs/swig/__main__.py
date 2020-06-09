@@ -36,13 +36,13 @@ def GetFilenameWithoutExtension(filename):
 
 # /////////////////////////////////////////////////////////////////////////
 def GetCommandOutput(cmd,shell=False):
-	print("Executing command", cmd)
+	print("Executing command", " ".join(['"{}"'.format(it) for it in cmd]))
 	output=subprocess.check_output(cmd, shell = shell, universal_newlines=True)
 	return output.strip()
 
 # /////////////////////////////////////////////////////////////////////////
 def ExecuteCommand(cmd,shell=False,check_result=False):	
-	print("Executing command", " ".join(cmd))
+	print("Executing command", " ".join(['"{}"'.format(it) for it in cmd]))
 	if check_result:
 		return subprocess.check_call(cmd, shell=shell)
 	else:
@@ -136,7 +136,7 @@ def UsePyQt5():
 
 	else: 
 
-		cmd=[sys.executable,"-m", "pip", "install", "--progress-bar", "off", "PyQt5~={}.{}.0".format(major,minor)]
+		cmd=[sys.executable,"-m", "pip", "install", "PyQt5~={}.{}.0".format(major,minor)]
 
 		if int(major)==5 and int(minor)>=12:
 			cmd+=["PyQtWebEngine~={}.{}.0".format(major,minor)]

@@ -76,6 +76,8 @@ python -m OpenVisus viewer
 
 Also give a look to [quick_tour](https://github.com/sci-visus/OpenVisus/blob/master/quick_tour.ipynb)
 
+NOTE For Linux sometimes you have to install libraries (example: `sudo apt-get install python3.6 libpython3/6`)
+
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## Conda distribution
 
