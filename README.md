@@ -106,7 +106,17 @@ git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 mkdir build
 cd build
-cmake -DVISUS_PYTHON=0 -DVISUS_NET=0 -DVISUS_IMAGE=0 -DVISUS_GUI=0 -DVISUS_MODVISUS=0 ../
+cmake \
+   -DVISUS_NET=0 \
+   -DVISUS_IMAGE=0 \
+   -DVISUS_PYTHON=0 \
+   -DVISUS_GUI=0 \
+   -DVISUS_XIDX=0 \
+   -DVISUS_DATAFLOW=0 \
+   -DVISUS_MODVISUS=0 \
+   -DVISUS_SLAM=0 \
+   -DVISUS_OSPRAY=0
+   ../
 
 # replace all with ALL_BUILD on Windows
 cmake --build ./ --target all --config Release --parallel 4 
@@ -267,7 +277,7 @@ python -m OpenVisus viewer
 Type:
 
 ```
-TAG=$(python Libs/Kernel/setup.py new-tag) && echo ${TAG}
+TAG=$(python Libs/swig/setup.py new-tag) && echo ${TAG}
 git commit -a -m "New tag" && git tag -a $TAG -m "$TAG" && git push origin $TAG && git push origin
 ```
 
