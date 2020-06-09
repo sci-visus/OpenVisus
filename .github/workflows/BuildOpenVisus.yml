@@ -69,7 +69,7 @@ jobs:
            cd build
            cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4
-           cmake --build . --target INSTALL   --config Release
+           cmake --build . --target install   --config Release
           
            cd Release/OpenVisus\
 

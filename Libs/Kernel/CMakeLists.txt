@@ -200,18 +200,11 @@ if(WIN32)
 	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
 
 elseif(APPLE)
-	target_link_libraries(VisusKernel PUBLIC 
-		"-framework CoreFoundation" 
-		"-framework Foundation" 
-		"-framework AppKit" 
-		"-framework IOKit"
-		"-framework CoreAudio" 
-		"-framework CoreMIDI" 
-		"-framework QuartzCore" 
-		"-framework AudioToolbox")
-
+	target_link_libraries(VisusKernel PUBLIC "-framework CoreFoundation" "-framework Foundation")
+	# fixes problem of "_objc_readClassPair" missing
+	set_target_properties(VisusKernel PROPERTIES XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME "NO")
+		
 else()
-
 	# uuid support
   include(CheckIncludeFiles)
   unset(HAS_UUID_H)

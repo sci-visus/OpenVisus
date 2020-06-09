@@ -70,7 +70,10 @@ Type:
 
 ```
 python -m pip install --no-cache-dir --upgrade --force-reinstall OpenVisus
-python -m OpenVisus configure 
+
+# NOTE: you may need sudo for this, since it will install the files inside python site-packages
+python -m OpenVisus configure  
+
 python -m OpenVisus viewer
 ```
 

@@ -65,11 +65,12 @@ For support : support@visus.net
 
   inline void InitEmbeddedPython(int argn, const char* argv[], std::string sys_path = "", std::vector<std::string> commands = {})
   {
-  #if PY_MINOR_VERSION<=4
+  	#if PY_VERSION_HEX >= 0x03050000
+  	Py_SetProgramName(Py_DecodeLocale((char*)argv[0], NULL));
+  	#else
     Py_SetProgramName(_Py_char2wchar((char*)argv[0], NULL));
-  #else
-    Py_SetProgramName(Py_DecodeLocale((char*)argv[0], NULL));
-  #endif
+    #endif
+  
     Py_InitializeEx(0);
     PyEval_InitThreads();
     __python_thread_state__() = PyEval_SaveThread();
