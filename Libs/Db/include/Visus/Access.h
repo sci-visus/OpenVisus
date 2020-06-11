@@ -61,6 +61,8 @@ public:
     Int64 wok=0,wfail=0;
   };
 
+  static const String DefaultChMod;
+
   //empty by default
   String name;
 
@@ -114,8 +116,10 @@ public:
   }
 
   //getMode
-  String getMode() const {
-    return concatenate(isReading()?"r":"", isWriting()?"w":"");
+  int getMode() const {
+    if (isWriting()) return 'w';
+    if (isReading()) return 'r';
+    return 0;
   }
 
   //isReading
@@ -128,30 +132,29 @@ public:
     return bWriting;
   }
 
-
   //beginIO
-  virtual void beginIO(String mode) {
-    VisusAssert(!bReading && !bWriting);
-    this->bReading = mode.find('r') != String::npos;
-    this->bWriting = mode.find('w') != String::npos;
+  virtual void beginIO(int mode) {
+    VisusReleaseAssert(!bReading && !bWriting);
+    this->bReading = mode == 'r';
+    this->bWriting = mode == 'w';
   }
-
-  //readBlock
-  virtual void readBlock(SharedPtr<BlockQuery> query)=0;
-
-  //writeBlock
-  virtual void writeBlock(SharedPtr<BlockQuery> query) = 0;
 
   //endIO
   virtual void endIO() {
-    VisusAssert(bReading || bWriting);
+    VisusReleaseAssert(bReading || bWriting);
     this->bReading = false;
     this->bWriting = false;
   }
 
+  //readBlock
+  virtual void readBlock(SharedPtr<BlockQuery> query) = 0;
+
+  //writeBlock
+  virtual void writeBlock(SharedPtr<BlockQuery> query) = 0;
+
   //beginRead
   void beginRead() {
-    beginIO("r");
+    beginIO('r');
   }
 
   //endRead
@@ -161,21 +164,11 @@ public:
 
   //beginWrite
   void beginWrite() {
-    beginIO("w");
+    beginIO('w');
   }
 
   //endWrite
   void endWrite() {
-    endIO();
-  }
-
-  //beginReadWrite
-  void beginReadWrite() {
-    beginIO("rw");
-  }
-
-  //endWrite
-  void endReadWrite() {
     endIO();
   }
 

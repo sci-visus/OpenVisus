@@ -37,7 +37,6 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/IdxDataset.h>
-#include <Visus/ApplicationInfo.h>
 
 #include <fstream>
 
@@ -60,7 +59,7 @@ int main(int argc, const char* argv[])
     DbModule::detach();
   });
 
-  auto args=ApplicationInfo::args;
+  auto args=CommandLine::args;
 
   String dataset_url = "http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1";
   String fieldname = "";
@@ -131,7 +130,7 @@ int main(int argc, const char* argv[])
 
   PrintInfo("Box query",logic_box.p1,"p2",logic_box.p2,"variable",fieldname,"time",timestate);
 
-  auto field = !fieldname.empty() ? dataset->getFieldByName(fieldname) : dataset->getDefaultField();
+  auto field = !fieldname.empty() ? dataset->getField(fieldname) : dataset->getDefaultField();
   auto query=std::make_shared<BoxQuery>(dataset.get(), field, timestate,'r');
   query->logic_box = logic_box;
 

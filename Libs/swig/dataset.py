@@ -41,7 +41,7 @@ def CreateIdx(**args):
 
 	# blocks per file
 	if "blocksperfile" in args:
-		idx.samplesperblock=int(args["blocksperfile"])
+		idx.blocksperfile=int(args["blocksperfile"])
 		
 	# is the user specifying filters?
 	if "filters" in args:
@@ -131,7 +131,7 @@ class PyDataset(object):
 			return self.db.getDefaultField()
 
 		if isinstance(value,str):
-			return self.db.getFieldByName(value)
+			return self.db.getField(value)
 			
 		return value
 		
@@ -140,7 +140,7 @@ class PyDataset(object):
 		return self.db.createAccess()
 
 	# read
-	def read(self, logic_box=None, x=None, y=None, z=None, time=None, field=None, num_refinements=1, quality=0, max_resolution=None, disable_filters=False):
+	def read(self, logic_box=None, x=None, y=None, z=None, time=None, field=None, num_refinements=1, quality=0, max_resolution=None, disable_filters=False, access=None):
 		"""
 		db=PyDataset.Load(url)
 		
@@ -194,7 +194,9 @@ class PyDataset(object):
 		if not query.isRunning():
 			raise Exception("begin query failed {0}".format(query.getLastErrorMsg()))
 			
-		access=self.db.createAccess()
+		if not access:
+			access=self.db.createAccess()
+			
 		while query.isRunning():
 
 			if not self.db.executeQuery(access, query):
@@ -204,10 +206,10 @@ class PyDataset(object):
 			data=Array.toNumPy(query.buffer, bShareMem=False) 
 			yield data
 			
-			self.db.nextQuery(query)	
+			self.db.nextQuery(query)
 
 	# write
-	def write(self, data, x=0, y=0, z=0, time=None, field=None):
+	def write(self, data, x=0, y=0, z=0, time=None, field=None, access=None):
 
 		"""
 		db=PyDataset.Load(url)
@@ -261,7 +263,8 @@ class PyDataset(object):
 		if not query.isRunning():
 			raise Exception("begin query failed {0}".format(query.getLastErrorMsg()))
 			
-		access=self.createAccess()
+		if not access:
+			access=self.createAccess()
 		
 		# I need to change the shape of the buffer, since the last component is the channel (like RGB for example)
 		buffer=Array.fromNumPy(data,bShareMem=True)
@@ -274,7 +277,7 @@ class PyDataset(object):
 			raise Exception("query error {0}".format(query.getLastErrorMsg()))
 			
 	# writeSlabs
-	def writeSlabs(self,slices, x=0, y=0, z=0, time=None, field=None, max_memsize=1024*1024*1024):
+	def writeSlabs(self,slices, x=0, y=0, z=0, time=None, field=None, max_memsize=1024*1024*1024, access=None):
 		
 		os.environ["VISUS_DISABLE_WRITE_LOCK"]="1"
 		
@@ -296,7 +299,7 @@ class PyDataset(object):
 		# flush
 		if slab: 
 			data=numpy.stack(slab,axis=0)
-			self.write(data , x=x, y=y, z=z,field=field,time=time)		
+			self.write(data , x=x, y=y, z=z,field=field,time=time, access=access)		
 
 
 

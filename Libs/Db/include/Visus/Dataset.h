@@ -233,11 +233,11 @@ public:
     addField(field.name, field);
   }
 
-  // getFieldByNameThrowEx
-  virtual Field getFieldByNameThrowEx(String name) const;
+  // getFieldEx
+  virtual Field getFieldEx(String name) const;
 
-  // getFieldByName
-  Field getFieldByName(String name) const;
+  // getField
+  Field getField(String name) const;
 
 public:
 

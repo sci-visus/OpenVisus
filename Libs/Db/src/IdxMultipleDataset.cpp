@@ -40,10 +40,8 @@ For support : support@visus.net
 #include <Visus/ModVisusAccess.h>
 #include <Visus/Path.h>
 #include <Visus/ThreadPool.h>
-#include <Visus/ApplicationInfo.h>
 #include <Visus/Polygon.h>
-
-#include <atomic>
+#include <Visus/File.h>
 
 namespace Visus {
 
@@ -187,8 +185,8 @@ public:
 
     this->name = CONFIG.readString("name", "IdxMosaicAccess");
     this->CONFIG = CONFIG;
-    this->can_read = StringUtils::find(CONFIG.readString("chmod", "rw"), "r") >= 0;
-    this->can_write = StringUtils::find(CONFIG.readString("chmod", "rw"), "w") >= 0;
+    this->can_read  = StringUtils::find(CONFIG.readString("chmod", DefaultChMod), "r") >= 0;
+    this->can_write = StringUtils::find(CONFIG.readString("chmod", DefaultChMod), "w") >= 0;
     this->bitsperblock = DATASET->getDefaultBitsPerBlock();
 
     auto first = DATASET->getFirstChild();
@@ -227,7 +225,7 @@ public:
   }
 
   //beginIO
-  virtual void beginIO(String mode) override {
+  virtual void beginIO(int mode) override {
     Access::beginIO(mode);
   }
 
@@ -278,7 +276,7 @@ public:
       auto access = getChildAccess(it->second);
 
       if (!access->isReading())
-        access->beginIO(this->getMode());
+        access->beginRead();
 
       //TODO: should I keep track of running queries in order to wait for them in the destructor?
       dataset->executeBlockQuery(access, block_query).when_ready([this, QUERY, block_query](Void) {
@@ -339,11 +337,12 @@ public:
       if (bool bPrintStats = false)
       {
         PrintInfo("BLOCK",BLOCK,"inside",(bBlockTotallyInsideSingle ? "yes" : "no"),
-          "nopen",(Int64)ApplicationStats::io.nopen),
-          "rbytes",StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.rbytes),
-          "wbytes",StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.wbytes),
+          "nopen",(Int64)File::global_stats()->nopen),
+          "rbytes",StringUtils::getStringFromByteSize((Int64)File::global_stats()->rbytes),
+          "wbytes",StringUtils::getStringFromByteSize((Int64)File::global_stats()->wbytes),
           "msec",t1.elapsedMsec();
-        ApplicationStats::io.reset();
+
+        File::global_stats()->resetStats();
       }
 
       return QUERY->aborted() ? readFailed(QUERY) : readOk(QUERY);
@@ -452,10 +451,10 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-Field IdxMultipleDataset::getFieldByNameThrowEx(String FIELDNAME) const
+Field IdxMultipleDataset::getFieldEx(String FIELDNAME) const
 {
   if (is_mosaic)
-    return this->IdxDataset::getFieldByNameThrowEx(FIELDNAME);
+    return this->IdxDataset::getFieldEx(FIELDNAME);
 
   String CODE;
   if (find_field.count(FIELDNAME))
@@ -512,7 +511,7 @@ SharedPtr<BoxQuery> IdxMultipleDataset::createDownQuery(SharedPtr<Access> ACCESS
     return it->second;
 
   auto dataset = DATASET->down_datasets[dataset_name]; VisusAssert(dataset);
-  auto field = dataset->getFieldByName(fieldname); VisusAssert(field.valid());
+  auto field = dataset->getField(fieldname); VisusAssert(field.valid());
 
   auto QUERY_LOGIC_BOX = QUERY->logic_box.castTo<BoxNd>();
 
@@ -1041,7 +1040,7 @@ void IdxMultipleDataset::read(Archive& AR)
         child->readText("code", code);
         VisusAssert(!code.empty());
 
-        Field FIELD = getFieldByName(code);
+        Field FIELD = getField(code);
         if (!FIELD.valid())
           ThrowException("Invalid code for field", code);
         
@@ -1068,7 +1067,7 @@ void IdxMultipleDataset::read(Archive& AR)
         out << "output=" << operation_name << "([" << StringUtils::join(args, ",") << "])" << std::endl;
 
         String fieldname = out.str();
-        Field ret = getFieldByName(fieldname);
+        Field ret = getField(fieldname);
         ret.setDescription(operation_name);
         VisusAssert(ret.valid());
         return ret;
@@ -1095,7 +1094,7 @@ void IdxMultipleDataset::read(Archive& AR)
         for (auto field : it.second->getFields())
         {
           auto arg = getInputName(it.first, field.name);
-          Field FIELD = getFieldByName("output=" + arg + ";");
+          Field FIELD = getField("output=" + arg + ";");
           VisusAssert(FIELD.valid());
           FIELD.setDescription(it.first + "/" + field.getDescription());
           addField(FIELD);

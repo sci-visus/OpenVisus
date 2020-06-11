@@ -46,7 +46,6 @@ For support : support@visus.net
 #include <Visus/Encoder.h>
 #include <Visus/UUID.h>
 #include <Visus/StringTree.h>
-#include <Visus/ApplicationInfo.h>
 #include <Visus/NetService.h>
 #include <Visus/SharedLibrary.h>
 
@@ -142,7 +141,18 @@ void DestroyAutoReleasePool();
   
 #endif
 
+String OpenVisus_VERSION="";
 
+#ifdef GIT_REVISION
+  #define __str__(s) #s
+  #define __xstr__(s) __str__(s)
+  String OpenVisus_GIT_REVISION = __xstr__(GIT_REVISION);
+#else
+  String OpenVisus_GIT_REVISION = "";
+#endif
+
+std::vector<String> CommandLine::args;
+  
 ConfigFile* VisusModule::getModuleConfig() {
   return Private::VisusConfig::getSingleton();
 }
@@ -260,7 +270,7 @@ void SetCommandLine(int argn, const char** argv)
       continue;
     }
 
-    ApplicationInfo::args.push_back(argv[I]);
+    CommandLine::args.push_back(argv[I]);
   }
 }
 
@@ -288,10 +298,11 @@ bool VisusHasMessageLock()
 //////////////////////////////////////////////////////
 void VisusAssertFailed(const char* file,int line,const char* expr)
 {
-  if (ApplicationInfo::debug)
+#if _DEBUG
     Utils::breakInDebugger();
-  else
+#else
     ThrowExceptionEx(file,line,expr);
+#endif
 }
 
 String cnamed(String name, String value) {
@@ -383,8 +394,6 @@ void KernelModule::attach()
 
   bAttached = true;
 
-  ApplicationInfo::start = Time::now();
-
 #if __APPLE__
   InitAutoReleasePool();
 #endif
@@ -431,10 +440,11 @@ void KernelModule::attach()
       break;
   }
 
-  PrintInfo("git_revision            ",ApplicationInfo::git_revision);
-  PrintInfo("VisusHome               ",KnownPaths::VisusHome);
-  PrintInfo("BinaryDirectory         ",KnownPaths::BinaryDirectory);
-  PrintInfo("CurrentWorkingDirectory ",KnownPaths::CurrentWorkingDirectory());
+  PrintInfo("OpenVisus_VERSION       ", OpenVisus_VERSION);
+  PrintInfo("OpenVisus_GIT_REVISION  ", OpenVisus_GIT_REVISION);
+  PrintInfo("VisusHome               ", KnownPaths::VisusHome);
+  PrintInfo("BinaryDirectory         ", KnownPaths::BinaryDirectory);
+  PrintInfo("CurrentWorkingDirectory ", KnownPaths::CurrentWorkingDirectory());
 
   ArrayPlugins::allocSingleton();
   Encoders::allocSingleton();

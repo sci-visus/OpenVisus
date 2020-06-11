@@ -40,7 +40,7 @@ For support : support@visus.net
 #define _VISUS_RAM_RESOURCE_H__
 
 #include <Visus/Kernel.h>
-#include <Visus/Singleton.h>
+#include <Visus/CriticalSection.h>
 
 namespace Visus {
 

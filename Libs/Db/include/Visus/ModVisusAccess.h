@@ -61,7 +61,7 @@ public:
   virtual ~ModVisusAccess();
 
   //beginIO
-  virtual void beginIO(String mode) override{
+  virtual void beginIO(int mode) override{
     Access::beginIO(mode);
   }
 

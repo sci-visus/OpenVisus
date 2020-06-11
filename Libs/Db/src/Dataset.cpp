@@ -48,7 +48,7 @@ For support : support@visus.net
 #include <Visus/Polygon.h>
 #include <Visus/IdxFile.h>
 #include <Visus/DatasetFilter.h>
-
+#include <Visus/File.h>
 
 namespace Visus {
 
@@ -101,8 +101,8 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
   if (type == "lruam" || type == "ram" || type == "ramaccess")
   {
     auto available = StringUtils::getByteSizeFromString(config.readString("available", "128mb"));
-    auto can_read = StringUtils::contains(config.readString("chmod", "rw"), "r");
-    auto can_write = StringUtils::contains(config.readString("chmod", "rw"), "w");
+    auto can_read  = StringUtils::contains(config.readString("chmod", Access::DefaultChMod), "r");
+    auto can_write = StringUtils::contains(config.readString("chmod", Access::DefaultChMod), "w");
     return createRamAccess(available, can_read, can_write);
   }
 
@@ -186,7 +186,7 @@ bool Dataset::executePointQueryOnServer(SharedPtr<PointQuery> query)
 
 
 ///////////////////////////////////////////////////////////
-Field Dataset::getFieldByNameThrowEx(String fieldname) const
+Field Dataset::getFieldEx(String fieldname) const
 {
   //remove any params (they will be used in queries)
   ParseStringParams parse(fieldname);
@@ -205,9 +205,9 @@ Field Dataset::getFieldByNameThrowEx(String fieldname) const
 }
 
 ///////////////////////////////////////////////////////////
-Field Dataset::getFieldByName(String name) const {
+Field Dataset::getField(String name) const {
   try {
-    return getFieldByNameThrowEx(name);
+    return getFieldEx(name);
   }
   catch (std::exception ex) {
     return Field();
@@ -348,44 +348,56 @@ Future<Void> Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<Block
   VisusAssert(access->isReading() || access->isWriting());
 
   int mode = query->mode; 
-  auto failed = [&]() {
+  auto failed = [&](String reason) {
 
     if (!access)
       query->setFailed();
     else
       mode == 'r'? access->readFailed(query) : access->writeFailed(query);
    
+    PrintInfo("executeBlockQUery failed", reason);
     return query->done;
   };
 
   if (!access)
-    return failed();
+    return failed("no access");
 
   if (!query->field.valid())
-    return failed();
+    return failed("field not valid");
 
   if (!(query->start_address < query->end_address))
-    return failed();
+    return failed("address range not valid");
 
   if ((mode == 'r' && !access->can_read) || (mode == 'w' && !access->can_write))
-    return failed();
+    return failed("rw not enabled");
 
   if (!query->logic_samples.valid())
-    return failed();
+    return failed("logic_samples not valid");
 
   if (mode == 'w' && !query->buffer)
-    return failed();
+    return failed("no buffer to write");
 
   //auto allocate buffer
   if (!query->allocateBufferIfNeeded())
-    return failed();
+    return failed("failed to allocate");
 
   // override time  from from field
   if (query->field.hasParam("time"))
     query->time = cdouble(query->field.getParam("time"));
 
   query->setRunning();
-  mode=='r'? access->readBlock(query) : access->writeBlock(query);
+
+  if (mode == 'r')
+  {
+    ++BlockQuery::global_stats()->nread;
+    access->readBlock(query);
+  }
+  else
+  {
+    ++BlockQuery::global_stats()->nwrite;
+    access->writeBlock(query);
+  }
+
   return query->done;
 }
 
@@ -648,15 +660,17 @@ void Dataset::testQuerySpeed(double time, Field field, int query_dim)
     {
       auto sec = Tstats.elapsedSec();
 
-      auto nopen = (int)ApplicationStats::io.nopen;
-      auto rbytes = (int)ApplicationStats::io.rbytes;
-      auto wbytes = (int)ApplicationStats::io.wbytes;
+      auto nopen  = (int)File::global_stats()->nopen;
+      auto rbytes = (int)File::global_stats()->rbytes;
+      auto wbytes = (int)File::global_stats()->wbytes;
 
       PrintInfo("ndone", TileId, "/", tiles.size(),
         "io.nopen", nopen, "/", Int64(nopen / sec),
         "io.rbytes", StringUtils::getStringFromByteSize(rbytes), StringUtils::getStringFromByteSize(Int64(rbytes / sec)),
         "io.wbytes", StringUtils::getStringFromByteSize(wbytes), StringUtils::getStringFromByteSize(Int64(wbytes / sec)));
-      ApplicationStats::io.reset();
+
+      File::global_stats()->resetStats();
+
       Tstats = Time::now();
     }
   }

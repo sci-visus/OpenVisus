@@ -47,8 +47,8 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   : config(config_)
 {
   this->name = "CloudStorageAccess";
-  this->can_read = StringUtils::find(config.readString("chmod", "rw"), "r") >= 0;
-  this->can_write = StringUtils::find(config.readString("chmod", "rw"), "w") >= 0;
+  this->can_read  = StringUtils::find(config.readString("chmod", DefaultChMod), "r") >= 0;
+  this->can_write = StringUtils::find(config.readString("chmod", DefaultChMod), "w") >= 0;
   this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
   this->url = config.readString("url", dataset->getUrl()); VisusAssert(url.valid());
   this->compression = config.readString("compression", "zip"); //zip compress more than lz4 for network.. 

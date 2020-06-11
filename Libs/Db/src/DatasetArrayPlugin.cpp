@@ -88,7 +88,7 @@ public:
       else if (args[I]=="--field")
       {
         String sfield=args[++I];
-        field=dataset->getFieldByName(sfield);
+        field=dataset->getField(sfield);
         if (!field.valid())
         {
           PrintWarning("invalid --field",sfield);

@@ -49,7 +49,6 @@ For support : support@visus.net
 #include <Visus/DataflowTreeView.h>
 #include <Visus/Thread.h>
 #include <Visus/NetSocket.h>
-#include <Visus/ApplicationInfo.h>
 #include <Visus/StringTree.h>
 #include <Visus/NetServer.h>
 
@@ -91,7 +90,7 @@ public:
   static bool   default_show_logos;
 
 
-  String       title = "VisusViewer-" + ApplicationInfo::git_revision;
+  String       title = "VisusViewer-" + OpenVisus_VERSION + "-" + OpenVisus_GIT_REVISION;
   String       panels;
   bool         bHideTitleBar = false;
   bool         bHideMenus = false;

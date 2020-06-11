@@ -755,13 +755,13 @@ void Viewer::idle()
 {
   this->dataflow->dispatchPublishedMessages();
 
-  int   thread_nrunning   = ApplicationStats::num_threads;
-  int   thread_pool_njobs = ApplicationStats::num_cpu_jobs;
-  int   netservice_njobs  = ApplicationStats::num_net_jobs;
+  Int64   nthreads     = Thread::global_stats()->running_threads;
+  Int64   thread_njobs = ThreadPool::global_stats()->running_jobs;
+  Int64   net_njobs    = NetService::global_stats()->tot_requests;
 
   bool bWasRunning = running.value?true:false;
   bool& bIsRunning = running.value ;
-  bIsRunning = thread_pool_njobs || netservice_njobs;
+  bIsRunning = thread_njobs || net_njobs;
 
   if (bWasRunning!=bIsRunning)
   {
@@ -773,8 +773,9 @@ void Viewer::idle()
     else
     {
       running.t1=Time::now();
-      ApplicationStats::io.reset();
-      ApplicationStats::net.reset();
+
+      File::global_stats()->resetStats();
+      NetService::global_stats()->resetStats();
       //QApplication::setOverrideCursor(Qt::BusyCursor);
     }
   }
@@ -782,21 +783,21 @@ void Viewer::idle()
   std::ostringstream out;
 
   if (running.value)
-    out << "Working. "<<"TJOB(" << thread_pool_njobs << ") "<<"NJOB(" << netservice_njobs    << ") ";
+    out << "Working. "<<"TJOB(" << thread_njobs << ") "<<"NJOB(" << net_njobs << ") ";
   else
     out << "Ready runtime(" <<running.enlapsed<<"sec ";
 
-  out <<"nthreads(" << thread_nrunning   << ") ";
+  out <<"nthreads(" << nthreads << ") ";
 
   out << "IO("
-    << StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.nopen ) << "/"
-    << StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.rbytes ) << "/"
-    << StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.wbytes) << ") ";
+    << StringUtils::getStringFromByteSize((Int64)File::global_stats()->nopen ) << "/"
+    << StringUtils::getStringFromByteSize((Int64)File::global_stats()->rbytes ) << "/"
+    << StringUtils::getStringFromByteSize((Int64)File::global_stats()->wbytes) << ") ";
 
   out << "NET("
-    << StringUtils::getStringFromByteSize((Int64)ApplicationStats::net.nopen ) << "/"
-    << StringUtils::getStringFromByteSize((Int64)ApplicationStats::net.rbytes ) << "/"
-    << StringUtils::getStringFromByteSize((Int64)ApplicationStats::net.wbytes) << ") ";
+    << StringUtils::getStringFromByteSize((Int64)NetService::global_stats()->tot_requests) << "/"
+    << StringUtils::getStringFromByteSize((Int64)NetService::global_stats()->rbytes ) << "/"
+    << StringUtils::getStringFromByteSize((Int64)NetService::global_stats()->wbytes) << ") ";
 
   out << "RAM("
     << StringUtils::getStringFromByteSize(RamResource::getSingleton()->getVisusUsedMemory()) + "/"
@@ -1470,8 +1471,8 @@ void Viewer::save(String url,bool bSaveHistory)
   {
     ar = getHistory();
     ar.name = "Viewer";
-    ar.write("version", ApplicationInfo::version);
-    ar.write("git_revision", ApplicationInfo::git_revision);
+    ar.write("version", OpenVisus_VERSION);
+    ar.write("git_revision", OpenVisus_GIT_REVISION);
   }
   else
   {
@@ -2306,7 +2307,7 @@ QueryNode* Viewer::addIsoContour(String uuid, Node* parent, String fieldname, in
       isovalue = cdouble(s_isovalue);
     }
     else {
-      Field field = dataset->getFieldByName(fieldname);
+      Field field = dataset->getField(fieldname);
       isovalue = field.valid() && field.dtype.isVectorOf(DTypes::UINT8) ? 128.0 : 0.0;
     }
     build_isocontour->setIsoValue(isovalue);
@@ -2671,8 +2672,8 @@ KdRenderArrayNode* Viewer::addKdRender(String uuid, Node* parent, String palette
 /////////////////////////////////////////////////////////////
 void Viewer::write(Archive& ar) const
 {
-  ar.write("version", ApplicationInfo::version);
-  ar.write("git_revision", ApplicationInfo::git_revision);
+  ar.write("version", OpenVisus_VERSION);
+  ar.write("git_revision", OpenVisus_GIT_REVISION);
 
   //first dump the nodes without parent... NOTE: the first one is always the getRoot()
   auto root = dataflow->getRoot();

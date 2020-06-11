@@ -41,7 +41,6 @@ For support : support@visus.net
 #include <Visus/ModVisus.h>
 #include <Visus/Path.h>
 #include <Visus/Db.h>
-#include <Visus/ApplicationInfo.h>
 #include <Visus/StringTree.h>
 
 #if WIN32

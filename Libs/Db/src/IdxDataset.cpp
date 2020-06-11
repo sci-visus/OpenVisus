@@ -1413,7 +1413,9 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
 
   VisusAssert(access);
 
-  int           bReading = query->mode == 'r';
+  bool bWriting = query->mode == 'w';
+  bool bReading = query->mode == 'r';
+
   const Field& field = query->field;
   double        time = query->time;
 
@@ -1584,10 +1586,20 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
 
   //PrintInfo("Executing query...");
 
-  if (bReading)
-    access->beginRead();
+  //rehentrant call...(just to not close the file too soon)
+  bool bWasWriting = access->isWriting(); 
+  bool bWasReading = access->isReading();
+
+  if (bWriting)
+  {  
+    if (!bWasWriting)
+      access->beginWrite();
+  }
   else
-    access->beginReadWrite();
+  {
+    if (!bWasReading)
+      access->beginRead();
+  }
 
   for (auto HzFrom : blocks)
   {
@@ -1639,16 +1651,18 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
       access->releaseWriteLock(read_block);
 
       if (aborted() || write_block->failed()) {
-        bReading ? access->endRead() : access->endReadWrite();
+        if (!bWasWriting)
+          access->endWrite();
         return false;
       }
     }
   }
 
-  if (bReading)
+  if (bWriting && !bWasWriting)
+    access->endWrite();
+
+  if (bReading && !bWasReading)
     access->endRead();
-  else
-    access->endReadWrite();
 
   waitAsyncRead();
   //PrintInfo("Query finished", "NREAD", NREAD, "NWRITE", NWRITE);
@@ -1732,7 +1746,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
     return executePointQueryOnServer(query);
 
   //TODO
-  VisusAssert(query->mode == 'r');
+  VisusReleaseAssert(query->mode == 'r');
 
   auto            bitmask = getBitmask();
   BoxNi           bounds = this->getLogicBox();
@@ -1813,7 +1827,11 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
   //do the for loop block aligned
   WaitAsync< Future<Void> > wait_async;
 
-  access->beginRead();
+  bool bWasReading = access->isReading();
+
+  if (!bWasReading)
+    access->beginRead();
+
   for (int A = 0, B = 0; !aborted() && A < (int)hzaddresses.size(); A = B)
   {
     if (hzaddresses[A].first < 0) {
@@ -1841,7 +1859,9 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
       NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get(), &hzaddresses[0] + A, &hzaddresses[0] + B, aborted);
       });
   }
-  access->endRead();
+
+  if (!bWasReading)
+    access->endRead();
 
   wait_async.waitAllDone();
 

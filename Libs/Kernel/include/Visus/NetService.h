@@ -44,7 +44,51 @@ For support : support@visus.net
 #include <Visus/Async.h>
 #include <Visus/NetSocket.h>
 
+#include <atomic>
+
 namespace Visus {
+
+//////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API NetGlobalStats
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(NetGlobalStats)
+
+#if !SWIG
+  std::atomic<Int64> tot_requests = 0;
+  std::atomic<Int64> rbytes = 0;
+  std::atomic<Int64> wbytes = 0;
+
+  std::atomic<Int64> running_requests = 0;
+#endif
+
+  //constructor
+  NetGlobalStats() {
+  }
+
+  //resetStats
+  void resetStats() {
+    tot_requests = rbytes = wbytes = 0;
+    //running_requests is a real number
+  }
+
+  //getNumRequests
+  Int64 getNumRequests() const {
+    return tot_requests;
+  }
+
+  //getReadBytes
+  Int64 getReadBytes() const {
+    return rbytes;
+  }
+
+  //getWriteBytes
+  Int64 getWriteBytes() const {
+    return wbytes;
+  }
+
+};
 
 ///////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API NetService 
@@ -52,6 +96,12 @@ class VISUS_KERNEL_API NetService
 public:
 
   VISUS_PIMPL_CLASS(NetService)
+
+  //global_stats
+  static NetGlobalStats* global_stats() {
+    static NetGlobalStats ret;
+    return &ret;
+  }
 
   class VISUS_KERNEL_API Defaults
   {

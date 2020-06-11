@@ -143,8 +143,8 @@ public:
     return down_datasets;
   }
 
-  // getFieldByNameThrowEx
-  virtual Field getFieldByNameThrowEx(String name) const override;
+  // getFieldEx
+  virtual Field getFieldEx(String name) const override;
 
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree CONFIG=StringTree(), bool bForBlockQuery = false) override;

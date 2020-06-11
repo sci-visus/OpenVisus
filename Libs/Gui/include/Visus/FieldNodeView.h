@@ -181,7 +181,7 @@ private:
     try
     {
       VisusAssert(dataset);
-      Field field=dataset->getFieldByNameThrowEx(fieldname);
+      Field field=dataset->getFieldEx(fieldname);
       msg=cstring("DTYPE",field.dtype);
     }
     catch (std::exception ex)

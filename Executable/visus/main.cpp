@@ -36,7 +36,6 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/ApplicationInfo.h>
 #include <Visus/Db.h>
 #include <Visus/VisusConvert.h>
 #include <Visus/Python.h>
@@ -50,7 +49,7 @@ int main(int argn, const char* argv[])
   SetCommandLine(argn, argv);
   DbModule::attach();
   InitEmbeddedPython(argn, argv, KnownPaths::BinaryDirectory.toString() + "/../..", { "from OpenVisus import *" });
-  auto args = std::vector<String>(ApplicationInfo::args.begin() + 1, ApplicationInfo::args.end());
+  auto args = std::vector<String>(CommandLine::args.begin() + 1, CommandLine::args.end());
   VisusConvert().runFromArgs(args);
   PrintInfo("All done in ",T1.elapsedSec(),",seconds");
   DbModule::detach();

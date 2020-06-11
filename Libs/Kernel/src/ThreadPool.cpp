@@ -82,7 +82,7 @@ void ThreadPool::asyncRun(std::function<void()> run)
     wait_all.num_inside++;
   }
 
-  ApplicationStats::num_cpu_jobs++;
+  ThreadPool::global_stats()->running_jobs++;
 
   {
     ScopedLock lock(this->lock);
@@ -150,7 +150,7 @@ void ThreadPool::workerEntryProc(int worker)
       this->running.erase(fn);
     }
 
-    ApplicationStats::num_cpu_jobs--;
+    ThreadPool::global_stats()->running_jobs--;
 
     //for the wait all function
     {

@@ -471,7 +471,7 @@ Field QueryNode::getField()
     return Field();
 
   auto fieldname = readValue<String>("fieldname");
-  return fieldname? dataset->getFieldByName(*fieldname) : dataset->getDefaultField();
+  return fieldname? dataset->getField(*fieldname) : dataset->getDefaultField();
 }
 
 

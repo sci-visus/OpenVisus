@@ -44,6 +44,34 @@ For support : support@visus.net
 
 namespace Visus {
 
+///////////////////////////////////////////////////////////////////////////////////////
+class VISUS_DB_API BlockQueryGlobalStats
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(BlockQueryGlobalStats)
+
+#if !SWIG
+  std::atomic<Int64> nread = 0;
+  std::atomic<Int64> nwrite = 0;
+#endif
+
+  BlockQueryGlobalStats() {
+  }
+
+  void resetStats() {
+    nread = nwrite = 0;
+  }
+
+  Int64 getNumRead() const {
+    return nread;
+  }
+
+  Int64 getNumWrite() const {
+    return nwrite;
+  }
+
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////
 class VISUS_DB_API BlockQuery : public Query
@@ -63,6 +91,12 @@ public:
 
   //destructor
   virtual ~BlockQuery() {
+  }
+
+  //global_stats
+  static BlockQueryGlobalStats* global_stats() {
+    static BlockQueryGlobalStats ret;
+    return &ret;
   }
 
   //setStatus

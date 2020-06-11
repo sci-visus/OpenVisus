@@ -24,6 +24,7 @@
 #include <Visus/RenderArrayNode.h>
 #include <Visus/KdRenderArrayNode.h>
 #include <Visus/ScriptingNode.h>
+#include <Visus/IdxDiskAccess.h>
 
 #include <Visus/Viewer.h>
 

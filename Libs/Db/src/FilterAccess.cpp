@@ -44,11 +44,9 @@ namespace Visus {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 FilterAccess::FilterAccess(Dataset* dataset,StringTree config) 
 {
-  String chmod = config.readString("chmod","rw");
-
   //this is the access that will receive write/read if the filter allows it
-  this->can_read       = StringUtils::find(chmod,"r")>=0;
-  this->can_write      = StringUtils::find(chmod,"w")>=0;
+  this->can_read       = StringUtils::find(config.readString("chmod", DefaultChMod),"r")>=0;
+  this->can_write      = StringUtils::find(config.readString("chmod", DefaultChMod),"w")>=0;
 
   auto target_access = config.getChild("access");
 

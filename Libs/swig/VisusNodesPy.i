@@ -19,6 +19,7 @@
 #include <Visus/DatasetNode.h>
 #include <Visus/QueryNode.h>
 #include <Visus/KdQueryNode.h>
+#include <Visus/IdxDiskAccess.h>
 using namespace Visus;
 %}
 

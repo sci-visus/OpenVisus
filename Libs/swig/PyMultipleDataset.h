@@ -127,7 +127,7 @@ public:
       Py_DECREF(py_input);
 
       //for fieldname=function_of(QUERY->time) 
-      //NOTE: for getFieldByName(), I think I can use the default timestep since I just want to know the dtype
+      //NOTE: for getField(), I think I can use the default timestep since I just want to know the dtype
       setModuleAttr("query_time", QUERY ? QUERY->time : DATASET->getTimesteps().getDefault());
 
       addModuleFunction("doPublish", [this](PyObject* self, PyObject* args) {
@@ -475,7 +475,7 @@ private:
     Array ret;
 
     //execute a query (expr2 is the fieldname)
-    Field field = dataset->getFieldByName(expr2);
+    Field field = dataset->getField(expr2);
 
     if (!field.valid())
       ThrowException("input['", expr1, "']['", expr2, "'] not found");

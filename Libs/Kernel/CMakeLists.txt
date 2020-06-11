@@ -17,7 +17,6 @@ source_group("Core" FILES
 	include/Visus/NumericLimits.h
 	include/Visus/Path.h src/Path.cpp
 	include/Visus/RamResource.h src/RamResource.cpp
-	include/Visus/Singleton.h
 	include/Visus/SignalSlot.h
 	include/Visus/StringMap.h src/StringMap.cpp
 	include/Visus/StringTree.h src/StringTree.cpp
@@ -26,8 +25,6 @@ source_group("Core" FILES
 	include/Visus/Url.h src/Url.cpp
 	include/Visus/Utils.h src/Utils.cpp
 	include/Visus/UUID.h src/UUID.cpp
-	include/Visus/ApplicationStats.h src/ApplicationStats.cpp
-	include/Visus/ApplicationInfo.h src/ApplicationInfo.cpp
 	include/Visus/SharedLibrary.h src/SharedLibrary.cpp
 	include/Visus/json.hpp)
 
@@ -135,6 +132,7 @@ set_target_properties(VisusKernel PROPERTIES FOLDER "")
 
 if (WIN32)
 	target_compile_options(VisusKernel PUBLIC -DWIN32_LEAN_AND_MEAN)
+	target_compile_options(VisusKernel PUBLIC -D_CRT_SECURE_NO_WARNINGS)
 elseif (APPLE)
 	target_compile_options(VisusKernel PUBLIC -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
 else()

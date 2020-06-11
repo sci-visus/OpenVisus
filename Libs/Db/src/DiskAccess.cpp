@@ -48,11 +48,9 @@ namespace Visus {
 ////////////////////////////////////////////////////////////////////
 DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
 {
-  String chmod=config.readString("chmod","rw");
   int default_bitsperblock=dataset->getDefaultBitsPerBlock();
-
-  this->can_read          = StringUtils::find(chmod,"r")>=0;
-  this->can_write         = StringUtils::find(chmod,"w")>=0;
+  this->can_read          = StringUtils::find(config.readString("chmod", DefaultChMod),"r")>=0;
+  this->can_write         = StringUtils::find(config.readString("chmod", DefaultChMod),"w")>=0;
   this->path              = Path(config.readString("dir","."));
   this->bitsperblock      = default_bitsperblock;
   this->compression       = config.readString("compression", "lz4");

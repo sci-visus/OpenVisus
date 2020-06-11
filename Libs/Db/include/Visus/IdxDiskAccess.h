@@ -58,17 +58,30 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(IdxDiskAccess)
 
-  //constructor
-  IdxDiskAccess(IdxDataset* dataset, StringTree config = StringTree());
+    //constructor
+    IdxDiskAccess(IdxDataset* dataset, StringTree config = StringTree());
 
   //destructor 
   virtual ~IdxDiskAccess();
+
+  //create
+  static SharedPtr<IdxDiskAccess> create(IdxDataset* dataset) {
+    return std::make_shared<IdxDiskAccess>(dataset);
+  }
+
+  //disableAsync
+  void disableAsync();
+
+  //disableWriteLock
+  void disableWriteLock() {
+    this->bDisableWriteLocks = true;
+  }
 
   //getFilename
   virtual String getFilename(Field field, double time, BigInt blockid) const override;
 
   //beginIO
-  virtual void beginIO(String mode) override;
+  virtual void beginIO(int mode) override;
 
   //readBlock 
   virtual void readBlock(SharedPtr<BlockQuery> query) override;

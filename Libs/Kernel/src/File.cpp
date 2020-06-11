@@ -39,7 +39,6 @@ For support : support@visus.net
 #include <Visus/File.h>
 #include <Visus/Thread.h>
 #include <Visus/Utils.h>
-#include <Visus/ApplicationStats.h>
 #include <Visus/Time.h>
 
 #include <sys/types.h>
@@ -91,6 +90,7 @@ For support : support@visus.net
 
 namespace Visus {
 
+
 /////////////////////////////////////////////////////////////////////////
 #ifdef WIN32
 static String Win32FormatErrorMessage(DWORD ErrorCode)
@@ -140,10 +140,10 @@ public:
   }
 
   //open
-  virtual bool open(String filename, String mode, File::Options options) override
+  virtual bool open(String filename, String file_mode, File::Options options) override
   {
-    bool bRead = StringUtils::contains(mode, "r");
-    bool bWrite = StringUtils::contains(mode, "w");
+    bool bRead  = StringUtils::contains(file_mode, "r");
+    bool bWrite = StringUtils::contains(file_mode, "w");
     bool bMustCreate = options & File::MustCreateFile;
 
     int imode = O_BINARY;
@@ -190,7 +190,7 @@ public:
       return false;
     }
 
-    ++ApplicationStats::io.nopen;
+    ++File::global_stats()->nopen;
     this->can_read = bRead;
     this->can_write = bWrite;
     this->filename = filename;
@@ -267,7 +267,7 @@ public:
         return false;
       }
 
-      ApplicationStats::io.wbytes+=n;
+      File::global_stats()->wbytes+=n;
       remaining -= n;
       buffer += n;
     }
@@ -306,7 +306,7 @@ public:
         return false;
       }
 
-      ApplicationStats::io.rbytes+=n;
+      File::global_stats()->rbytes+=n;
       remaining -= n;
       buffer += n;
     }
@@ -398,10 +398,10 @@ public:
   }
 
   //open
-  virtual bool open(String filename, String mode, File::Options options) override  {
+  virtual bool open(String filename, String file_mode, File::Options options) override  {
 
-    bool bRead  = StringUtils::contains(mode, "r");
-    bool bWrite = StringUtils::contains(mode, "w");
+    bool bRead  = StringUtils::contains(file_mode, "r");
+    bool bWrite = StringUtils::contains(file_mode, "w");
     bool bMustCreate = options & File::MustCreateFile;
 
     this->handle = CreateFile(
@@ -419,7 +419,7 @@ public:
       return false;
     }
 
-    ++ApplicationStats::io.nopen;
+    ++File::global_stats()->nopen;
     this->can_read = bRead;
     this->can_write = bWrite;
     this->filename = filename;
@@ -502,7 +502,7 @@ public:
         return false;
       }
 
-      ApplicationStats::io.wbytes+=n;
+      File::global_stats()->wbytes+=n;
       remaining -= n;
       buffer += n;
     }
@@ -539,7 +539,7 @@ public:
         return false;
       }
 
-      ApplicationStats::io.rbytes+=n;
+      File::global_stats()->rbytes+=n;
       remaining -= n;
       buffer += n;
     }
@@ -626,14 +626,14 @@ public:
   }
 
   //open
-  virtual bool open(String filename, String mode, File::Options options) override
+  virtual bool open(String filename, String file_mode, File::Options options) override
   {
     close();
 
     bool bMustCreate = options & File::MustCreateFile;
 
     //not supported
-    if (mode.find("w") != String::npos || bMustCreate) {
+    if (file_mode.find("w") != String::npos || bMustCreate) {
       VisusAssert(false);
       return false;
     }
@@ -682,10 +682,10 @@ public:
     }
 
 
-    ++ApplicationStats::io.nopen;
+    ++File::global_stats()->nopen;
     this->filename = filename;
-    this->can_read  = mode.find("r") != String::npos;
-    this->can_write = mode.find("w") != String::npos;
+    this->can_read  = file_mode.find("r") != String::npos;
+    this->can_write = file_mode.find("w") != String::npos;
     return true;
   }
 
@@ -742,7 +742,7 @@ public:
 
     memcpy(mem + pos, buffer, (size_t)tot);
 
-    ApplicationStats::io.wbytes+=tot;
+    File::global_stats()->wbytes+=tot;
     return true; 
   }
 
@@ -753,7 +753,7 @@ public:
       return false;
 
     memcpy(buffer, mem + pos, (size_t)tot);
-    ApplicationStats::io.rbytes+=tot;
+    File::global_stats()->rbytes+=tot;
     return true;
   }
 
@@ -775,7 +775,7 @@ private:
 };
 
 /////////////////////////////////////////////////////////////////////////
-bool File::open(String filename, String mode, Options options)
+bool File::open(String filename, String file_mode, Options options)
 {
   close();
 
@@ -789,7 +789,7 @@ bool File::open(String filename, String mode, Options options)
   //pimpl.reset(new MemoryMappedFile());
 #endif
 
-  if (!pimpl->open(filename, mode, options)) {
+  if (!pimpl->open(filename, file_mode, options)) {
     pimpl.reset();
     return false;
   }
@@ -939,7 +939,7 @@ bool FileUtils::removeDirectory(Path path)
 bool FileUtils::touch(Path path)
 {
   File file;
-  return file.createAndOpen(path.toString(),"rw");
+  return file.createAndOpen(path.toString(), "rw");
 }
 
 
@@ -964,7 +964,7 @@ void FileUtils::lock(Path path)
   for (int nattempt=0; ;nattempt++)
   {
     File file;
-    if (file.createAndOpen(lock_filename,"rw"))
+    if (file.createAndOpen(lock_filename, "rw"))
     {
       file.close();
 

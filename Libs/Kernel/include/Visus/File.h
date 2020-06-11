@@ -42,8 +42,48 @@ For support : support@visus.net
 #include <Visus/Kernel.h>
 #include <Visus/Path.h>
 
+#include <atomic>
+
 namespace Visus {
 
+
+class VISUS_KERNEL_API FileGlobalStats
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(FileGlobalStats)
+
+#if !SWIG
+  std::atomic<Int64> nopen = 0;
+  std::atomic<Int64> rbytes = 0;
+  std::atomic<Int64> wbytes = 0;
+#endif
+
+  //constructor
+  FileGlobalStats() {
+  }
+
+  //resetStats
+  void resetStats() {
+    nopen = rbytes = wbytes = 0;
+  }
+
+  //getReadBytes
+  Int64 getReadBytes() const {
+    return rbytes;
+  }
+
+  //getWriteBytes
+  Int64 getWriteBytes() const {
+    return wbytes;
+  }
+
+  //getNumOpen
+  Int64 getNumOpen() const {
+    return nopen;
+  }
+
+};
 
 /////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API File
@@ -76,7 +116,7 @@ public:
     virtual bool isOpen() const = 0;
 
     //open
-    virtual bool open(String filename, String mode, Options options) = 0;
+    virtual bool open(String filename, String file_mode, Options options) = 0;
 
     //close
     virtual void close() = 0;
@@ -110,19 +150,25 @@ public:
   virtual ~File() {
   }
 
+  //global_stats
+  static FileGlobalStats* global_stats() {
+    static FileGlobalStats ret;
+    return &ret;
+  }
+
   //isOpen
   bool isOpen() const  {
     return pimpl ? true : false;
   }
 
   //open
-  bool open(String filename, String mode) {
-    return open(filename, mode, NoOptions);
+  bool open(String filename, String file_mode) {
+    return open(filename, file_mode, NoOptions);
   }
 
   //createAndOpen (return false if already exists)
-  bool createAndOpen(String filename, String mode) {
-    return open(filename, mode, MustCreateFile);
+  bool createAndOpen(String filename, String file_mode) {
+    return open(filename, file_mode, MustCreateFile);
   }
 
   //close
@@ -145,13 +191,10 @@ public:
     return pimpl ? pimpl->canWrite() : false;
   }
 
-  //getMode
-  String getMode() const {
-    auto can_read = canRead();
-    auto can_write = canWrite();
-    return can_read && can_write ? "rw" : (can_read ? "r" : (can_write ? "w" : ""));
+  //getFileMode
+  String getFileMode() const {
+    return concatenate(canRead() ? "r" : "", canWrite() ? "w" : "");
   }
-
 
   //getFilename
   String getFilename() const  {
@@ -173,7 +216,7 @@ private:
   UniquePtr<Pimpl> pimpl;
 
   //open
-  bool open(String filename, String mode, Options options);
+  bool open(String filename, String file_mode, Options options);
 
 };
 

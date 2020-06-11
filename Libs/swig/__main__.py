@@ -290,7 +290,7 @@ def FixRange(args):
 	if args.field is None:
 		args.field=db.getDefaultField().name
 
-	field=db.getFieldByName(args.field)
+	field=db.getField(args.field)
 
 	# compute the ranges
 	N = field.dtype.ncomponents()
@@ -414,7 +414,7 @@ def MidxToIdx(args):
 	args.TILE_SIZE=int(eval(args.TILE_SIZE))
 
 	DATASET = LoadIdxDataset(args.DATASET)
-	FIELD=DATASET.getFieldByName(args.FIELD)
+	FIELD=DATASET.getField(args.FIELD)
 	TIME=DATASET.getDefaultTime()
 	Assert(FIELD.valid())
 

@@ -313,7 +313,7 @@ private:
       String filename = concatenate(widgets.fileEdit->text().toStdString(),nsamples.toString("_"),query->field.dtype.toString(),".raw");
 
       File data_file;
-      if (data_file.createAndOpen(filename,"rw"))
+      if (data_file.createAndOpen(filename, "rw"))
       {
         if (!data_file.write(0, query->buffer.c_size(), query->buffer.c_ptr()))
         {
