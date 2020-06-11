@@ -404,17 +404,17 @@ def CompressDataset(args):
 # ////////////////////////////////////////////////
 def MidxToIdx(args):
 	parser = argparse.ArgumentParser(description="compress dataset")
-	parser.add_argument("--DATASET"   , type=str,   required=True)
-	parser.add_argument("--FIELD"     , type=str,   required=True,default="output=voronoi()")
-	parser.add_argument("--TILE-SIZE" , type=str,   required=False,default="4*1024")
-	parser.add_argument("--dataset"   , type=str,   required=True)
+	parser.add_argument("--midx"   , type=str,  required=True)
+	parser.add_argument("--field"     , type=str,   required=False,default="output=voronoi()")
+	parser.add_argument("--tile-size" , type=str,   required=False,default="4*1024")
+	parser.add_argument("--idx", "--dataset", type=str, dest="dataset",  required=True)
 	args = parser.parse_args(args)
 
 	# in case it's an expression
-	args.TILE_SIZE=int(eval(args.TILE_SIZE))
+	args.tile_size=int(eval(args.tile_size))
 
-	DATASET = LoadIdxDataset(args.DATASET)
-	FIELD=DATASET.getField(args.FIELD)
+	DATASET = LoadIdxDataset(args.midx)
+	FIELD=DATASET.getFieldByName(args.field)
 	TIME=DATASET.getDefaultTime()
 	Assert(FIELD.valid())
 
@@ -435,8 +435,8 @@ def MidxToIdx(args):
 	ACCESS = DATASET.createAccess()
 	access = dataset.createAccess()
 
-	print("Generating tiles...",args.TILE_SIZE)
-	TILES = DATASET.generateTiles(args.TILE_SIZE)
+	print("Generating tiles...",args.tile_size)
+	TILES = DATASET.generateTiles(args.tile_size)
 	TOT_TILES=TILES.size()
 	T1 = Time.now()
 	for TILE_ID in range(TOT_TILES):
@@ -493,7 +493,7 @@ def Main(args):
 		CompressDataset(action_args)
 		sys.exit(0)
 
-	# example: -m OpenVisus midx-to-idx --DATASET "D:\GoogleSci\visus_slam\TaylorGrant\VisusSlamFiles\visus.midx" --FIELD "output=voronoi()" --TILE-SIZE "4*1024" --dataset "tmp/test.idx"
+	# example: -m OpenVisus midx-to-idx --midx "D:\GoogleSci\visus_slam\TaylorGrant\VisusSlamFiles\visus.midx" --field "output=voronoi()" --tile-size "4*1024" --idx "tmp/test.idx"
 	if action=="midx-to-idx":
 		MidxToIdx(action_args)
 		sys.exit(0)
