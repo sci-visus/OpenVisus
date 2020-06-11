@@ -755,13 +755,17 @@ void Viewer::idle()
 {
   this->dataflow->dispatchPublishedMessages();
 
+  auto io_stats  = File::global_stats();
+  auto net_stats = NetService::global_stats();
+
   Int64   nthreads     = Thread::global_stats()->running_threads;
   Int64   thread_njobs = ThreadPool::global_stats()->running_jobs;
-  Int64   net_njobs    = NetService::global_stats()->tot_requests;
+  Int64   net_njobs    = net_stats->tot_requests;
 
   bool bWasRunning = running.value?true:false;
   bool& bIsRunning = running.value ;
   bIsRunning = thread_njobs || net_njobs;
+
 
   if (bWasRunning!=bIsRunning)
   {
@@ -773,9 +777,8 @@ void Viewer::idle()
     else
     {
       running.t1=Time::now();
-
-      File::global_stats()->resetStats();
-      NetService::global_stats()->resetStats();
+      io_stats->resetStats();
+      net_stats->resetStats();
       //QApplication::setOverrideCursor(Qt::BusyCursor);
     }
   }
@@ -789,15 +792,16 @@ void Viewer::idle()
 
   out <<"nthreads(" << nthreads << ") ";
 
+  
   out << "IO("
-    << StringUtils::getStringFromByteSize((Int64)File::global_stats()->nopen ) << "/"
-    << StringUtils::getStringFromByteSize((Int64)File::global_stats()->rbytes ) << "/"
-    << StringUtils::getStringFromByteSize((Int64)File::global_stats()->wbytes) << ") ";
+    << StringUtils::getStringFromByteSize((Int64)io_stats->nopen ) << "/"
+    << StringUtils::getStringFromByteSize((Int64)io_stats->rbytes ) << "/"
+    << StringUtils::getStringFromByteSize((Int64)io_stats->wbytes) << ") ";
 
   out << "NET("
-    << StringUtils::getStringFromByteSize((Int64)NetService::global_stats()->tot_requests) << "/"
-    << StringUtils::getStringFromByteSize((Int64)NetService::global_stats()->rbytes ) << "/"
-    << StringUtils::getStringFromByteSize((Int64)NetService::global_stats()->wbytes) << ") ";
+    << StringUtils::getStringFromByteSize((Int64)net_stats->tot_requests) << "/"
+    << StringUtils::getStringFromByteSize((Int64)net_stats->rbytes ) << "/"
+    << StringUtils::getStringFromByteSize((Int64)net_stats->wbytes) << ") ";
 
   out << "RAM("
     << StringUtils::getStringFromByteSize(RamResource::getSingleton()->getVisusUsedMemory()) + "/"

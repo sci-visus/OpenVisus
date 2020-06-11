@@ -334,16 +334,15 @@ public:
           QUERY->aborted);
       }
 
-      if (bool bPrintStats = false)
-      {
+#if 0
+      auto stats= File::global_stats();
         PrintInfo("BLOCK",BLOCK,"inside",(bBlockTotallyInsideSingle ? "yes" : "no"),
-          "nopen",(Int64)File::global_stats()->nopen),
-          "rbytes",StringUtils::getStringFromByteSize((Int64)File::global_stats()->rbytes),
-          "wbytes",StringUtils::getStringFromByteSize((Int64)File::global_stats()->wbytes),
+          "nopen",(Int64)stats->nopen),
+          "rbytes",StringUtils::getStringFromByteSize((Int64)stats->rbytes),
+          "wbytes",StringUtils::getStringFromByteSize((Int64)stats->wbytes),
           "msec",t1.elapsedMsec();
-
-        File::global_stats()->resetStats();
-      }
+        stats->resetStats();
+#endif
 
       return QUERY->aborted() ? readFailed(QUERY) : readOk(QUERY);
     }

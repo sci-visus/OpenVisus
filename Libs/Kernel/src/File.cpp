@@ -190,8 +190,8 @@ public:
       return false;
     }
 
-    ++File::global_stats()->nopen;
-    this->can_read = bRead;
+    onOpenEvent();
+    this->can_read  = bRead;
     this->can_write = bWrite;
     this->filename = filename;
     this->cursor = 0;
@@ -267,7 +267,7 @@ public:
         return false;
       }
 
-      File::global_stats()->wbytes+=n;
+      onWriteEvent(n);
       remaining -= n;
       buffer += n;
     }
@@ -306,7 +306,7 @@ public:
         return false;
       }
 
-      File::global_stats()->rbytes+=n;
+      onReadEvent(n);
       remaining -= n;
       buffer += n;
     }
@@ -419,11 +419,11 @@ public:
       return false;
     }
 
-    ++File::global_stats()->nopen;
-    this->can_read = bRead;
+    onOpenEvent();
+    this->can_read  = bRead;
     this->can_write = bWrite;
     this->filename = filename;
-    this->cursor   = 0;
+    this->cursor    = 0;
     return true;
   }
 
@@ -502,7 +502,7 @@ public:
         return false;
       }
 
-      File::global_stats()->wbytes+=n;
+      onWriteEvent(n);
       remaining -= n;
       buffer += n;
     }
@@ -539,7 +539,7 @@ public:
         return false;
       }
 
-      File::global_stats()->rbytes+=n;
+      onReadEvent(n);
       remaining -= n;
       buffer += n;
     }
@@ -682,8 +682,8 @@ public:
     }
 
 
-    ++File::global_stats()->nopen;
-    this->filename = filename;
+    onOpenEvent();
+    this->filename  = filename;
     this->can_read  = file_mode.find("r") != String::npos;
     this->can_write = file_mode.find("w") != String::npos;
     return true;
@@ -741,8 +741,7 @@ public:
       return false;
 
     memcpy(mem + pos, buffer, (size_t)tot);
-
-    File::global_stats()->wbytes+=tot;
+    onWriteEvent(tot);
     return true; 
   }
 
@@ -753,7 +752,7 @@ public:
       return false;
 
     memcpy(buffer, mem + pos, (size_t)tot);
-    File::global_stats()->rbytes+=tot;
+    onReadEvent(tot);
     return true;
   }
 

@@ -99,6 +99,14 @@ public:
     return &ret;
   }
 
+  static void readBlockEvent() {
+    global_stats()->nread++;
+  }
+
+  static void writeBlockEvent() {
+    global_stats()->nwrite++;
+  }
+
   //setStatus
   virtual void setStatus(QueryStatus value) override;
 

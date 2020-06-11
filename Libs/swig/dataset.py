@@ -54,6 +54,9 @@ def CreateIdx(**args):
 		idx.timesteps=DatasetTimesteps(A,B,1.0)
 		idx.time_template=time_template
 
+	if "filename_template" in args:
+		idx.filename_template=args["filename_template"]
+
 	idx.save(url)
 	db=PyDataset(url)
 

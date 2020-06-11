@@ -389,13 +389,13 @@ Future<Void> Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<Block
 
   if (mode == 'r')
   {
-    ++BlockQuery::global_stats()->nread;
     access->readBlock(query);
+    BlockQuery::readBlockEvent();
   }
   else
   {
-    ++BlockQuery::global_stats()->nwrite;
     access->writeBlock(query);
+    BlockQuery::writeBlockEvent();
   }
 
   return query->done;
@@ -660,16 +660,16 @@ void Dataset::testQuerySpeed(double time, Field field, int query_dim)
     {
       auto sec = Tstats.elapsedSec();
 
-      auto nopen  = (int)File::global_stats()->nopen;
-      auto rbytes = (int)File::global_stats()->rbytes;
-      auto wbytes = (int)File::global_stats()->wbytes;
+      auto stats = File::global_stats();
+      auto nopen  = (int)stats->nopen;
+      auto rbytes = (int)stats->rbytes;
+      auto wbytes = (int)stats->wbytes;
 
       PrintInfo("ndone", TileId, "/", tiles.size(),
         "io.nopen", nopen, "/", Int64(nopen / sec),
         "io.rbytes", StringUtils::getStringFromByteSize(rbytes), StringUtils::getStringFromByteSize(Int64(rbytes / sec)),
         "io.wbytes", StringUtils::getStringFromByteSize(wbytes), StringUtils::getStringFromByteSize(Int64(wbytes / sec)));
-
-      File::global_stats()->resetStats();
+      stats->resetStats();
 
       Tstats = Time::now();
     }

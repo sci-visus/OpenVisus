@@ -139,6 +139,20 @@ public:
     //read (should be portable to 32 and 64 bit OS)
     virtual bool read(Int64 pos, Int64 count, unsigned char* buffer) = 0;
 
+  protected:
+
+    inline void onOpenEvent() {
+      File::global_stats()->nopen++;
+    }
+
+    inline void onReadEvent(Int64 value) {
+      File::global_stats()->rbytes += value;
+    }
+
+    inline void onWriteEvent(Int64 value) {
+      File::global_stats()->wbytes += value;
+    }
+
   };
 #endif
 
@@ -211,12 +225,13 @@ public:
     return pimpl ? pimpl->read(pos, count, buffer) : false;
   }
 
-private:
+protected:
 
   UniquePtr<Pimpl> pimpl;
 
   //open
   bool open(String filename, String file_mode, Options options);
+
 
 };
 
