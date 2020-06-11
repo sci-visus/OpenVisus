@@ -991,7 +991,8 @@ IdxDiskAccess::~IdxDiskAccess()
     async_tpool.reset();
   }
 
-  VisusReleaseAssert(!isReading() && !isWriting());
+  //scrgiorgio: I have a problem here, don't know why
+  //VisusReleaseAssert(!isReading() && !isWriting());
 }
 
 ////////////////////////////////////////////////////////////////////

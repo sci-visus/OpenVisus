@@ -121,11 +121,33 @@ source_group("ExternalLibs\\zfp" FILES ${zfp_Sources})
 	
 file(GLOB zlib_Sources src/zlib/*.h src/zlib/*.c)
 source_group("ExternalLibs\\zlib" FILES ${zlib_Sources})	
+
+
+function(AssignSourceGroup GroupName StartDir)
+	foreach(_it_ IN ITEMS ${ARGN})
+		file(RELATIVE_PATH _group_ "${StartDir}" "${_it_}")
+		get_filename_component(_group_ "${_group_}" PATH)
+		string(REPLACE "../"  ""   _group_  "${_group_}")
+		string(REPLACE "../"  ""   _group_  "${_group_}")
+		string(REPLACE "../"  ""   _group_  "${_group_}")
+		string(REPLACE  "/"  "\\"  _group_  "${_group_}")
+		source_group("${GroupName}\\${_group_}" FILES "${_it_}")
+	endforeach()
+endfunction()
+
+file(GLOB SamplesSources ${CMAKE_SOURCE_DIR}/Samples/jupyter/*.ipynb ${CMAKE_SOURCE_DIR}/Samples/python/*.py ${CMAKE_SOURCE_DIR}/Samples/python/CloudStorage/*.py) 
+AssignSourceGroup(Samples ${CMAKE_SOURCE_DIR} ${SamplesSources})
+
 		
 file(GLOB Sources 
 	include/Visus/*.*  src/*.hxx src/*.cpp ${MMFiles} ${SlamCppSources}
-	${OtherFiles}
-	${cryptlite_Sources} ${dtl_Sources} ${lz4_Sources} ${tinyxml_Sources} ${zfp_Sources} ${zlib_Sources})
+	${SamplesSources}
+	${cryptlite_Sources} 
+	${dtl_Sources} 
+	${lz4_Sources} 
+	${tinyxml_Sources} 
+	${zfp_Sources} 
+	${zlib_Sources})
 	
 add_library(VisusKernel SHARED ${Sources})
 set_target_properties(VisusKernel PROPERTIES FOLDER "")

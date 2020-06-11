@@ -142,6 +142,26 @@ class PyDataset(object):
 	def createAccess(self):
 		return self.db.createAccess()
 
+	# readBlock
+	def readBlock(self, block_id, time=None, field=None, access=None, aborted=Aborted()):
+		Assert(access)
+		field=self.getDefaultField() if field is None else self.getField(field)	
+		time = self.getDefaultTime() if time is None else time
+		read_block = BlockQuery(self.db, field, time, access.getStartAddress(block_id), access.getEndAddress(block_id), ord('r'), aborted)
+		self.executeBlockQueryAndWait(access, read_block)
+		if not read_block.ok(): return None
+		return Array.toNumPy(read_block.buffer, bShareMem=False)
+
+	# writeBlock
+	def writeBlock(self, block_id, time=None, field=None, access=None, data=None, aborted=Aborted()):
+		Assert(access and data)
+		field=self.getDefaultField() if field is None else self.getField(field)	
+		time = self.getDefaultTime() if time is None else time
+		write_block = BlockQuery(self.db, field, time, access.getStartAddress(block_id), access.getEndAddress(block_id), ord('w'), aborted)
+		write_block.buffer=Array.fromNumPy(data,TargetDim=self.getPointDim(), bShareMem=True)
+		self.executeBlockQueryAndWait(access, write_block)
+		return write_block.ok()
+
 	# read
 	def read(self, logic_box=None, x=None, y=None, z=None, time=None, field=None, num_refinements=1, quality=0, max_resolution=None, disable_filters=False, access=None):
 		"""
@@ -161,8 +181,7 @@ class PyDataset(object):
 		
 		pdim=self.getPointDim()
 
-
-		field=self.getField(field)	
+		field=self.getDefaultField() if field is None else self.getField(field)	
 			
 		if time is None:
 			time = self.getDefaultTime()			
@@ -207,8 +226,11 @@ class PyDataset(object):
 				
 			# i cannot be sure how the numpy will be used outside or when the query will dealllocate the buffer
 			data=Array.toNumPy(query.buffer, bShareMem=False) 
+
+			if query.end_resolutions.size()==1:
+				return data
+
 			yield data
-			
 			self.db.nextQuery(query)
 
 	# write

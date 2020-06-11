@@ -47,7 +47,7 @@ def TestFilters(img_filename, filter):
 
 	# create source dataset for comparison purpouse
 	src_db=CreateIdx(url="tmp/src.idx", dim=2, data=noise)
-	SaveImage("tmp/src.full.tif", next(src_db.read()))
+	SaveImage("tmp/src.full.tif", src_db.read())
 
 	# read data coarse to fine
 	num_refinements=5
@@ -62,7 +62,7 @@ def TestFilters(img_filename, filter):
 	# compute the filter fine to coarse
 	filter_db.computeFilter(filter_db.getDefaultField())
 	
-	SaveImage("tmp/{0}.full.tif".format(filter), next(filter_db.read())[:,:,0])
+	SaveImage("tmp/{0}.full.tif".format(filter), filter_db.read()[:,:,0])
 
 	# read filtered data 
 	filter_levels=list(filter_db.read(num_refinements=num_refinements))
@@ -97,7 +97,7 @@ def TestFilters(img_filename, filter):
 		m0,M0=(m,M)
 
 	# this is the data without the filter applied (i.e. how it is stored on disk)
-	filter_channels=next(filter_db.read(disable_filters=True))
+	filter_channels=filter_db.read(disable_filters=True)
 	SaveImage("tmp/disk.{0}.tif".format(filter),filter_channels, bSeparateChannels=True)	
 	
 

@@ -60,7 +60,7 @@ class MyTestCase(unittest.TestCase):
 			
 			# read a slice in the middle
 			middle=int(depth/2)
-			check=next(db.read(z=[middle, middle+1]))
+			check=db.read(z=[middle, middle+1])
 			Assert((cat==check).all())
 	
 	def testCreate3dDatasetAndReadStuff(self):
@@ -79,7 +79,7 @@ class MyTestCase(unittest.TestCase):
 		db.write(cat,z=0)
 		
 		# read back slice at z=0
-		check=next(db.read(z=[0,1]))
+		check=db.read(z=[0,1])
 		Assert((cat==check).all())
 		
 		# read slice at z=0 with 3 refinements (coarse to fine)
