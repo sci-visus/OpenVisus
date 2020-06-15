@@ -164,8 +164,6 @@ def ReadIdxBoxQuery(filename, dims):
 	access.endRead()
 	del access
 
-
-
 # ////////////////////////////////////////////////////////////////
 def TimeIt(name, gen, max_seconds=60):
 	data, needed=next(gen) # skip any headers (open/close file)
@@ -200,7 +198,7 @@ def Main():
 		RemoveFiles(filename)
 	
 		for blocksize in (128,64,32,16,8,4):
-			filename=dir + "/{:%03d}k.idx".format(blocksize)
+			filename=dir + "/{:03d}k.idx".format(blocksize)
 			CreateIdxDataset(filename, DIMS=DIMS, dtype=DTYPE, blocksize=blocksize*KB)
 			TimeIt(filename+"-BlockQuery", ReadIdxBlockQuery(filename))
 			for dims in [(16,16,16),(16,16,32),(16,32,32),(32,32,32),(32,32,64),(32,64,64)]:

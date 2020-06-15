@@ -61,11 +61,11 @@ public:
   VISUS_NON_COPYABLE_CLASS(ThreadGlobalStats)
 
 #if !SWIG
-  std::atomic<Int64> running_threads = 0;
+  std::atomic<Int64> running_threads;
 #endif
 
   //constructor
-  ThreadGlobalStats() {
+  ThreadGlobalStats() : running_threads(0){
   }
 
   //getNumRunningThreads

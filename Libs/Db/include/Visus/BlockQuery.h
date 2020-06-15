@@ -52,11 +52,11 @@ public:
   VISUS_NON_COPYABLE_CLASS(BlockQueryGlobalStats)
 
 #if !SWIG
-  std::atomic<Int64> nread = 0;
-  std::atomic<Int64> nwrite = 0;
+  std::atomic<Int64> nread;
+  std::atomic<Int64> nwrite;
 #endif
 
-  BlockQueryGlobalStats() {
+  BlockQueryGlobalStats() : nread(0), nwrite(0) {
   }
 
   void resetStats() {

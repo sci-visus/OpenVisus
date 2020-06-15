@@ -85,7 +85,7 @@ public:
   void removeFiles();
 
   //compressDataset
-  virtual bool compressDataset(String compression) override;
+  virtual void compressDataset(std::vector<String> compression) override;
 
   //getLevelSamples
   virtual LogicSamples getLevelSamples(int H) override;

@@ -80,12 +80,6 @@ public:
   //read 
   virtual void read(Archive& ar) override;
 
-  //compressDataset
-  virtual bool compressDataset(String compression) override {
-    ThrowException("compress not supported");
-    return false;
-  }
-
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
 

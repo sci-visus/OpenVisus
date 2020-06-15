@@ -57,11 +57,11 @@ public:
   VISUS_NON_COPYABLE_CLASS(ThreadPoolGlobalStats)
 
 #if !SWIG
-  std::atomic<Int64> running_jobs = 0;
+  std::atomic<Int64> running_jobs;
 #endif
 
   //constructor
-  ThreadPoolGlobalStats() {
+  ThreadPoolGlobalStats() : running_jobs(0) {
   }
 
   //getNumRunningJobs

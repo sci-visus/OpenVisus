@@ -54,13 +54,13 @@ public:
   VISUS_NON_COPYABLE_CLASS(FileGlobalStats)
 
 #if !SWIG
-  std::atomic<Int64> nopen = 0;
-  std::atomic<Int64> rbytes = 0;
-  std::atomic<Int64> wbytes = 0;
+  std::atomic<Int64> nopen;
+  std::atomic<Int64> rbytes;
+  std::atomic<Int64> wbytes;
 #endif
 
   //constructor
-  FileGlobalStats() {
+  FileGlobalStats() : nopen(0), rbytes(0), wbytes(0){
   }
 
   //resetStats

@@ -345,10 +345,14 @@ public:
   //read 
   virtual void read(Archive& ar) = 0;
 
-  //compressDataset
-  virtual bool compressDataset(String compression) {
+  //compressDataset (specify compression for each level)
+  virtual void compressDataset(std::vector<String> compression) {
     ThrowException("compression not enabled");
-    return false;
+  }
+
+  //compressDataset
+  void compressDataset(String compression) {
+    return compressDataset(std::vector<String>({compression}));
   }
 
   //getInnerDatasets

@@ -55,9 +55,6 @@ namespace Visus {
 VISUS_IMPLEMENT_SINGLETON_CLASS(DatasetFactory)
 
 
-
-
-
 ////////////////////////////////////////////////////////////////////
 SharedPtr<Access> Dataset::createRamAccess(Int64 available, bool can_read, bool can_write)
 {

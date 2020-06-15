@@ -30,7 +30,7 @@ DAMAGES(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+OF THIS SOrunning_requests FTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
@@ -56,15 +56,14 @@ public:
   VISUS_NON_COPYABLE_CLASS(NetGlobalStats)
 
 #if !SWIG
-  std::atomic<Int64> tot_requests = 0;
-  std::atomic<Int64> rbytes = 0;
-  std::atomic<Int64> wbytes = 0;
-
-  std::atomic<Int64> running_requests = 0;
+  std::atomic<Int64> tot_requests;
+  std::atomic<Int64> rbytes;
+  std::atomic<Int64> wbytes;
+  std::atomic<Int64> running_requests;
 #endif
 
   //constructor
-  NetGlobalStats() {
+  NetGlobalStats() : tot_requests(0), running_requests(0), rbytes(0),wbytes(0) {
   }
 
   //resetStats
