@@ -68,7 +68,7 @@ public:
   //physic bounds
   Position bounds;
 
-  // the collection of fields stored inside this dataset (note if this is empty you can still use Dataset::getFieldByName(name) for dynamic fields)
+  // the collection of fields stored inside this dataset (note if this is empty you can still use Dataset::getField(name) for dynamic fields)
   std::vector<Field> fields;
 
   //timesteps

@@ -59,8 +59,8 @@ public:
     : dataset(dataset_),config(config_) 
   {
     this->name = "GoogleMapsAccess";
-    this->can_read = StringUtils::find(config.readString("chmod", "rw"), "r") >= 0;
-    this->can_write = StringUtils::find(config.readString("chmod", "rw"), "w") >= 0;
+    this->can_read  = StringUtils::find(config.readString("chmod", DefaultChMod), "r") >= 0;
+    this->can_write = StringUtils::find(config.readString("chmod", DefaultChMod), "w") >= 0;
     this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
     this->tiles = dataset->tiles; 
 

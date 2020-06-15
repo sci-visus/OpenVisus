@@ -42,8 +42,48 @@ For support : support@visus.net
 #include <Visus/Kernel.h>
 #include <Visus/Path.h>
 
+#include <atomic>
+
 namespace Visus {
 
+
+class VISUS_KERNEL_API FileGlobalStats
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(FileGlobalStats)
+
+#if !SWIG
+  std::atomic<Int64> nopen;
+  std::atomic<Int64> rbytes;
+  std::atomic<Int64> wbytes;
+#endif
+
+  //constructor
+  FileGlobalStats() : nopen(0), rbytes(0), wbytes(0){
+  }
+
+  //resetStats
+  void resetStats() {
+    nopen = rbytes = wbytes = 0;
+  }
+
+  //getReadBytes
+  Int64 getReadBytes() const {
+    return rbytes;
+  }
+
+  //getWriteBytes
+  Int64 getWriteBytes() const {
+    return wbytes;
+  }
+
+  //getNumOpen
+  Int64 getNumOpen() const {
+    return nopen;
+  }
+
+};
 
 /////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API File
@@ -76,7 +116,7 @@ public:
     virtual bool isOpen() const = 0;
 
     //open
-    virtual bool open(String filename, String mode, Options options) = 0;
+    virtual bool open(String filename, String file_mode, Options options) = 0;
 
     //close
     virtual void close() = 0;
@@ -99,6 +139,20 @@ public:
     //read (should be portable to 32 and 64 bit OS)
     virtual bool read(Int64 pos, Int64 count, unsigned char* buffer) = 0;
 
+  protected:
+
+    inline void onOpenEvent() {
+      File::global_stats()->nopen++;
+    }
+
+    inline void onReadEvent(Int64 value) {
+      File::global_stats()->rbytes += value;
+    }
+
+    inline void onWriteEvent(Int64 value) {
+      File::global_stats()->wbytes += value;
+    }
+
   };
 #endif
 
@@ -110,19 +164,25 @@ public:
   virtual ~File() {
   }
 
+  //global_stats
+  static FileGlobalStats* global_stats() {
+    static FileGlobalStats ret;
+    return &ret;
+  }
+
   //isOpen
   bool isOpen() const  {
     return pimpl ? true : false;
   }
 
   //open
-  bool open(String filename, String mode) {
-    return open(filename, mode, NoOptions);
+  bool open(String filename, String file_mode) {
+    return open(filename, file_mode, NoOptions);
   }
 
   //createAndOpen (return false if already exists)
-  bool createAndOpen(String filename, String mode) {
-    return open(filename, mode, MustCreateFile);
+  bool createAndOpen(String filename, String file_mode) {
+    return open(filename, file_mode, MustCreateFile);
   }
 
   //close
@@ -145,13 +205,10 @@ public:
     return pimpl ? pimpl->canWrite() : false;
   }
 
-  //getMode
-  String getMode() const {
-    auto can_read = canRead();
-    auto can_write = canWrite();
-    return can_read && can_write ? "rw" : (can_read ? "r" : (can_write ? "w" : ""));
+  //getFileMode
+  String getFileMode() const {
+    return concatenate(canRead() ? "r" : "", canWrite() ? "w" : "");
   }
-
 
   //getFilename
   String getFilename() const  {
@@ -168,12 +225,13 @@ public:
     return pimpl ? pimpl->read(pos, count, buffer) : false;
   }
 
-private:
+protected:
 
   UniquePtr<Pimpl> pimpl;
 
   //open
-  bool open(String filename, String mode, Options options);
+  bool open(String filename, String file_mode, Options options);
+
 
 };
 

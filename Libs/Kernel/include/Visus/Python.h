@@ -1,4 +1,4 @@
-/*-----------------------------------------------------------------------------
+#/*-----------------------------------------------------------------------------
 Copyright(c) 2010 - 2018 ViSUS L.L.C.,
 Scientific Computing and Imaging Institute of the University of Utah
 
@@ -36,236 +36,71 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef _VISUS_PYTHON_ENGINE_H__
-#define _VISUS_PYTHON_ENGINE_H__
+#ifndef VISUS_PYTHON_H__
+#define VISUS_PYTHON_H__
 
 #if VISUS_PYTHON
 
-#include <Visus/Array.h>
-#include <Visus/StringUtils.h>
+  #pragma push_macro("slots")
+  #undef slots
 
-#include <queue>
+  #if defined(WIN32) && defined(_DEBUG) 
+  #undef _DEBUG
+  #include <Python.h>
+  #define _DEBUG 1
+  #else
+  #include <Python.h>
+  #endif
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning (disable:4996)
-#endif
+  #pragma pop_macro("slots")
 
-#include <functional>
+  #include <string>
+  #include <sstream>
+  #include <vector>
 
-#ifdef WIN32
-#pragma warning( pop )
-#endif
+  inline PyThreadState*& __python_thread_state__() {
+    static PyThreadState* ret = nullptr;
+    return ret;
+  }
 
-#pragma push_macro("slots")
-#undef slots
-
-#if defined(_DEBUG) && defined(SWIG_PYTHON_INTERPRETER_NO_DEBUG)
-/* Use debug wrappers with the Python release dll */
-# undef _DEBUG
-# include <Python.h>
-# define _DEBUG
-#else
-# include <Python.h>
-#endif
-
-#pragma pop_macro("slots")
-
-namespace Visus {
-
-VISUS_KERNEL_API String GetPythonErrorMessage();
-
-///////////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API PythonEngine
-{
-public:
-
-  VISUS_CLASS(PythonEngine)
-
-public:
-
-  typedef std::function<PyObject*(PyObject*, PyObject*)> Function;
-
-  //constructor
-  PythonEngine(bool bVerbose=false);
-
-  //destructor
-  virtual ~PythonEngine();
-
-  //isGoodVariableName
-  static bool isGoodVariableName(String name);
-
-  //incrRef
-  static void incrRef(PyObject* value);
-
-  //decrRef
-  static void decrRef(PyObject* value);
-
-  //execCode
-  void execCode(String s);
-
-  //evalCode
-  PyObject* evalCode(String s);
-
-  //newPyObject
-  PyObject* newPyObject(double value);
-
-  //newPyObject
-  PyObject* newPyObject(int value);
-
-  //newPyObject
-  PyObject* newPyObject(String s);
-
-  //newPyObject
-  PyObject* newPyObject(Aborted value);
-
-  //newPyObject
-  PyObject* newPyObject(Array value);
-
-  //newPyObject
-  template <typename T>
-  PyObject* newPyObject(const std::vector<T>& values)
+  inline void InitEmbeddedPython(int argn, const char* argv[], std::string sys_path = "", std::vector<std::string> commands = {})
   {
-    auto ret = PyTuple_New(values.size());
-    if (!ret)
-      return nullptr;
-
-    for (int i = 0; i < values.size(); i++) {
-      auto value = newPyObject(values[i]);
-      if (!value) {
-        decrRef(ret);
-        return nullptr;
-      }
-      PyTuple_SetItem(ret, i, value);
-    }
-    return ret;
-  }
-
-  //setModuleAttr
-  void setModuleAttr(String name, PyObject* value);
-
-  //setModuleAttr
-  template <typename Value>
-  void setModuleAttr(String name, Value value) {
-    auto obj = newPyObject(value);
-    setModuleAttr(name, obj);
-    decrRef(obj);
-  }
-
-  //getModuleAttr
-  PyObject* getModuleAttr(String name);
-
-  //hasModuleAttr
-  bool hasModuleAttr(String name);
-
-  //delModuleAttr
-  void delModuleAttr(String name);
-
-  //setError (to call when you return nullpptr in Function)
-  static void setError(String explanation, PyObject* err= nullptr);
-
-  //addModuleFunction
-  void addModuleFunction(String name,Function fn);
-
-  //addObjectMethod
-  void addObjectMethod(PyObject* self, String name, Function fn);
-
-  //getModuleAbortedAttr
-  Aborted getModuleAbortedAttr(String name);
-
-  //getModuleArrayAttr
-  Array getModuleArrayAttr(String name);
-
-  //pythonObjectToArray
-  Array pythonObjectToArray(PyObject* py_object);
-
-  //convertToString
-  static String convertToString(PyObject* value);
-
-  //printMessage (must have the GIL)
-  void printMessage(String message);
-
-private:
-
-  String  module_name;
-
-  PyObject* module = nullptr;
-  PyObject* globals = nullptr;
-
-  //fixPath
-  static String fixPath(String value);
-
-  //internalNewPyFunction
-  PyObject* internalNewPyFunction(PyObject* self, String name, Function fn);
-
-};
-
-
-/////////////////////////////////////////////////////
-class VISUS_KERNEL_API ScopedAcquireGil
-{
-  PyGILState_STATE* state = nullptr;
-
-public:
-
-  VISUS_CLASS(ScopedAcquireGil)
-
-  //constructor
-  ScopedAcquireGil();
-
-  //destructor
-  ~ScopedAcquireGil();
-};
-
-typedef ScopedAcquireGil PythonThreadBlock;
-
-/////////////////////////////////////////////////////
-class VISUS_KERNEL_API ScopedReleaseGil {
-
-  PyThreadState* state = nullptr;
-
-public:
-
-  //constructor
-  ScopedReleaseGil();
+  	#if PY_VERSION_HEX >= 0x03050000
+  	Py_SetProgramName(Py_DecodeLocale((char*)argv[0], NULL));
+  	#else
+    Py_SetProgramName(_Py_char2wchar((char*)argv[0], NULL));
+    #endif
   
-  //destructor
-  ~ScopedReleaseGil();
-};
+    Py_InitializeEx(0);
+    PyEval_InitThreads();
+    __python_thread_state__() = PyEval_SaveThread();
+    auto acquire_gil = PyGILState_Ensure();
 
-typedef ScopedReleaseGil PythonThreadAllow;
+    std::ostringstream out;
+    out << "import os, sys;\n";
 
+    if (!sys_path.empty())
+      out << "sys.path.append(os.path.realpath('" + sys_path + "'))\n";
 
-/////////////////////////////////////////////////////
-class VISUS_KERNEL_API PythonEnginePool
-{
-public:
+    for (auto cmd : commands)
+      out << cmd << "\n";
 
-  //createEngine
-  SharedPtr<PythonEngine> createEngine() {
-    ScopedLock lock(this->lock);
-    if (freelist.empty()) 
-      freelist.push(std::make_shared<PythonEngine>());
-    auto ret = freelist.front();
-    freelist.pop();
-    return ret;
+    PyRun_SimpleString(out.str().c_str());
+    PyGILState_Release(acquire_gil);
   }
 
-  //releaseEngine
-  void releaseEngine(SharedPtr<PythonEngine> value) {
-    ScopedLock lock(this->lock);
-    freelist.push(value);
+  inline void ShutdownEmbeddedPython()
+  {
+    PyEval_RestoreThread(__python_thread_state__());
+    Py_Finalize();
   }
 
-private:
+#else
 
-  CriticalSection lock;
-  std::queue< SharedPtr<PythonEngine> > freelist;
+  inline void InitEmbeddedPython(int argn, const char* argv[], std::string sys_path, std::vector<std::string> commands = {})  {}
+  inline void ShutdownEmbeddedPython()  {}
 
-};
+#endif
 
-} //namespace Visus
+#endif //VISUS_PYTHON_H__
 
-#endif //VISUS_PYTHON
-
-#endif //_VISUS_PYTHON_ENGINE_H__

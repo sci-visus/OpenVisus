@@ -88,7 +88,7 @@ public:
       else if (args[I]=="--field")
       {
         String sfield=args[++I];
-        field=dataset->getFieldByName(sfield);
+        field=dataset->getField(sfield);
         if (!field.valid())
         {
           PrintWarning("invalid --field",sfield);
@@ -159,11 +159,11 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
   if (args.bDisableFilters)
   {
     PrintInfo("DatasetFilter disabled.Reason: command line has --disable-filters option");
-    query->filter.enabled=false;
+    query->disableFilters();
   }
   else
   {
-    query->filter.enabled=true;
+    query->enableFilters();
   }
 
   dataset->beginQuery(query);

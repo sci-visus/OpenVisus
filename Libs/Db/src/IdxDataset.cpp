@@ -44,6 +44,7 @@ For support : support@visus.net
 #include <Visus/DatasetFilter.h>
 #include <Visus/StringTree.h>
 #include <Visus/OnDemandAccess.h>
+#include <Visus/IdxHzOrder.h>
 
 #ifdef WIN32
 #pragma warning(disable:4996) // 'sprintf': This function or variable may be unsafe
@@ -631,148 +632,117 @@ void IdxDataset::removeFiles()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::compressDataset(String compression)
+void IdxDataset::compressDataset(std::vector<String> compression)
 {
   // for future version: here I'm making the assumption that a file contains multiple fields
-  if (idxfile.version != 6) {
-    VisusAssert(false); 
-    return false;
-  }
+  if (idxfile.version != 6)
+    ThrowException("unsupported");
+
+  // example ["zip","jpeg","jpeg"] means last level "jpeg", last-level-minus-one "jpeg" all others zip
+  while (compression.size() != (getMaxResolution() + 1))
+    compression.insert(compression.begin(), compression.front());
   
-  //save the new idx file
+  //save the new idx file oonly if compression is equal for all levels
+  if (std::set<String>(compression.begin(), compression.end()).size() == 1)
   {
     for (auto& field : idxfile.fields)
-      field.default_compression =compression;
+      field.default_compression = compression[0];
 
-    String filename=Url(this->getUrl()).getPath();
+    String filename = Url(this->getUrl()).getPath();
     idxfile.save(filename);
   }
 
-  Time T1=Time::now();
-  Time t1=T1;
+  auto Raccess = std::make_shared<IdxDiskAccess>(this);
+  Raccess->disableWriteLock();
+  Raccess->disableAsync();
 
-  auto access = std::make_shared<IdxDiskAccess>(this);
+  auto Waccess = std::make_shared<IdxDiskAccess>(this);
+  Waccess->disableWriteLock();
+  Waccess->disableAsync();
 
   Aborted aborted; 
 
   //for each time
   auto timesteps=idxfile.timesteps.asVector();
   Int64 overall_file_size = 0;
-  for (auto time : timesteps)
+
+  int nfields = (int)idxfile.fields.size();
+  for (auto Wtime : timesteps)
   {
+    auto Rtime = Wtime;
+
     //for each file...
     BigInt total_block = getTotalNumberOfBlocks();
     BigInt tot_files = (total_block  / idxfile.blocksperfile) + ((total_block % idxfile.blocksperfile)? 1 : 0);
 
+    std::set<String> filenames;
+
     for (BigInt fileid = 0; fileid < tot_files; fileid++)
     {
-      std::vector< std::vector<Array> > file_blocks;
-      file_blocks.resize(idxfile.fields.size(), std::vector<Array>(idxfile.blocksperfile));
+      PrintInfo("Compressing file", fileid, "/", tot_files);
 
-      std::set<String> filenames;
+      std::vector< std::vector<Array> > file_blocks(idxfile.blocksperfile, std::vector<Array>(nfields));
 
       //read file blocks
-      access->beginRead();
-      for (int F = 0; F < idxfile.fields.size(); F++)
+      Raccess->beginRead();
       {
-        auto field = idxfile.fields[F];
-
-        auto blockid = fileid*idxfile.blocksperfile;
-        for (BigInt B = 0; B < idxfile.blocksperfile && blockid<total_block; B++, blockid++)
+        auto blockid = fileid * idxfile.blocksperfile;
+        for (BigInt B = 0; B < idxfile.blocksperfile && blockid < total_block; B++, blockid++)
         {
-          auto filename=access->getFilename(field,time,blockid);
-
-          if (!FileUtils::existsFile(filename))
-            continue;
-
-          auto read_block = std::make_shared<BlockQuery>(this, field, time, access->getStartAddress(blockid), access->getEndAddress(blockid), 'r', aborted);
-          if (executeBlockQueryAndWait(access, read_block))
+          for (int F = 0; F < nfields; F++)
           {
-            file_blocks[F][B] = read_block->buffer;
+            auto Rfield = idxfile.fields[F];
+            auto filename = Raccess->getFilename(Rfield, Rtime, blockid);
+            if (!FileUtils::existsFile(filename))
+              continue;
+
             filenames.insert(filename);
+
+            auto read_block = std::make_shared<BlockQuery>(this, Rfield, Rtime, Raccess->getStartAddress(blockid), Raccess->getEndAddress(blockid), 'r', aborted);
+
+            //could fail because block does not exist
+            if (executeBlockQueryAndWait(Raccess, read_block))
+              file_blocks[B][F] = read_block->buffer;
           }
         }
       }
-      access->endRead();
+      Raccess->endRead();
 
-      //rename old files (in case the conversion fails)
-      for (auto filename : filenames) 
-      {
-        String tmp_filename=filename+".tmp~";
-
-        //note: this can fail because the access is working in async mode and still need to close the file
-        auto tmove = Time::now();
-        while (true)
-        {
-          if (FileUtils::moveFile(filename.c_str(), tmp_filename.c_str()))
-            break;
-
-          if (tmove.elapsedSec() > 5)
-          {
-            std::perror(cstring("Cannot std::rename" + filename,"to",tmp_filename).c_str());
-            VisusAssert(false);
-            return false;
-          }
-        }
-      }
+      //now it's safe to remove old files
+      for (auto filename : filenames)
+        FileUtils::removeFile(filename);
 
       //write file blocks
-      access->beginWrite();
-      for (int F = 0; F < idxfile.fields.size(); F++)
+      Waccess->beginWrite();
       {
-        auto field = idxfile.fields[F];
-
-        auto blockid = fileid*idxfile.blocksperfile;
+        auto blockid = fileid * idxfile.blocksperfile;
         for (BigInt B = 0; B < idxfile.blocksperfile; B++, blockid++)
         {
-          if (auto buffer = file_blocks[F][B])
+          for (int F = 0; F < idxfile.fields.size(); F++)
           {
-            auto write_block = std::make_shared<BlockQuery>(this, field, time, access->getStartAddress(blockid), access->getEndAddress(blockid), 'w', aborted);
-            write_block->buffer = buffer;
+            auto Wfield = idxfile.fields[F];
 
-            if (!executeBlockQueryAndWait(access, write_block))
-            {
-              PrintError("Fatal error writing field(", F, "block",blockid);
-              VisusAssert(false);
-              access->endIO();
-              return false;
-            }
+            if (!file_blocks[B][F])
+              continue;
+
+            //compression can depend on level
+            auto HzStart = Waccess->getStartAddress(blockid);
+            auto HzEnd = Waccess->getEndAddress(blockid);
+            int H = HzOrder::getAddressResolution(idxfile.bitmask, HzStart);
+            VisusReleaseAssert(H >= 0 && H < compression.size());
+            Wfield.default_compression = compression[H];
+
+            auto write_block = std::make_shared<BlockQuery>(this, Wfield, Wtime, HzStart, HzEnd, 'w', aborted);
+            write_block->buffer = file_blocks[B][F];
+
+            if (!executeBlockQueryAndWait(Waccess, write_block))
+              ThrowException("Fatal error writing Wfield(", F, "block", blockid);
           }
         }
       }
-      access->endWrite();
-
-      //safe to delete the old file
-      for (auto filename : filenames) 
-      {
-        String old_filename=filename+".tmp~";
-        auto new_filesize = FileUtils::getFileSize(filename);
-        overall_file_size += new_filesize;
-
-        if(std::remove(old_filename.c_str())!=0)  
-        {
-          std::perror(cstring("Cannot std::remove",old_filename).c_str());
-          VisusAssert(false);
-          return false;
-        }
-
-        PrintInfo("Done",filename,"time",time,"/",timesteps.size(),"fileid",fileid,"/",tot_files);
-      }
+      Waccess->endWrite();
     }
   }
-
-  BigInt original_bytesize =0;
-  for (auto field : idxfile.fields)
-    original_bytesize += field.dtype.getByteSize();
-  original_bytesize *= this->getLogicBox().size().innerProduct();
-
-  auto ratio = overall_file_size/double(original_bytesize);
-
-  PrintInfo("Dataset compressed algorithm",compression,"in",T1.elapsedSec(),"sec",
-    "original_bytesize", StringUtils::getStringFromByteSize(original_bytesize),
-    "overall_file_size", StringUtils::getStringFromByteSize(overall_file_size),
-    "ratio", ratio);
-  return true;
 }
 
 
@@ -1323,7 +1293,7 @@ void IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
       query->filter.dataset_filter = createFilter(query->field);
 
       if (!query->filter.dataset_filter)
-        query->filter.enabled = false;
+        query->disableFilters();
     }
   }
 
@@ -1413,7 +1383,9 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
 
   VisusAssert(access);
 
-  int           bReading = query->mode == 'r';
+  bool bWriting = query->mode == 'w';
+  bool bReading = query->mode == 'r';
+
   const Field& field = query->field;
   double        time = query->time;
 
@@ -1436,7 +1408,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
       auto Wquery = std::make_shared<BoxQuery>(this, query->field, query->time, 'r', query->aborted);
       Wquery->logic_box = adjusted_logic_box;
       Wquery->setResolutionRange(0,H);
-      Wquery->filter.enabled = false;
+      Wquery->disableFilters();
       Wquery->merge_mode = InsertSamples;
 
       beginQuery(Wquery);
@@ -1579,15 +1551,25 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
   auto  waitAsyncRead = [&]()
   {
     async_read.waitAllDone();
-    PrintInfo("aysnc read",concatenate(NREAD, "/", blocks.size()),"...");
+    //PrintInfo("aysnc read",concatenate(NREAD, "/", blocks.size()),"...");
   };
 
-  PrintInfo("Executing query...");
+  //PrintInfo("Executing query...");
 
-  if (bReading)
-    access->beginRead();
+  //rehentrant call...(just to not close the file too soon)
+  bool bWasWriting = access->isWriting(); 
+  bool bWasReading = access->isReading();
+
+  if (bWriting)
+  {  
+    if (!bWasWriting)
+      access->beginWrite();
+  }
   else
-    access->beginReadWrite();
+  {
+    if (!bWasReading)
+      access->beginRead();
+  }
 
   for (auto HzFrom : blocks)
   {
@@ -1639,19 +1621,21 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
       access->releaseWriteLock(read_block);
 
       if (aborted() || write_block->failed()) {
-        bReading ? access->endRead() : access->endReadWrite();
+        if (!bWasWriting)
+          access->endWrite();
         return false;
       }
     }
   }
 
-  if (bReading)
+  if (bWriting && !bWasWriting)
+    access->endWrite();
+
+  if (bReading && !bWasReading)
     access->endRead();
-  else
-    access->endReadWrite();
 
   waitAsyncRead();
-  PrintInfo("Query finished", "NREAD", NREAD, "NWRITE", NWRITE);
+  //PrintInfo("Query finished", "NREAD", NREAD, "NWRITE", NWRITE);
 
   //set the query status
   if (aborted())
@@ -1732,7 +1716,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
     return executePointQueryOnServer(query);
 
   //TODO
-  VisusAssert(query->mode == 'r');
+  VisusReleaseAssert(query->mode == 'r');
 
   auto            bitmask = getBitmask();
   BoxNi           bounds = this->getLogicBox();
@@ -1813,7 +1797,11 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
   //do the for loop block aligned
   WaitAsync< Future<Void> > wait_async;
 
-  access->beginRead();
+  bool bWasReading = access->isReading();
+
+  if (!bWasReading)
+    access->beginRead();
+
   for (int A = 0, B = 0; !aborted() && A < (int)hzaddresses.size(); A = B)
   {
     if (hzaddresses[A].first < 0) {
@@ -1841,7 +1829,9 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
       NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get(), &hzaddresses[0] + A, &hzaddresses[0] + B, aborted);
       });
   }
-  access->endRead();
+
+  if (!bWasReading)
+    access->endRead();
 
   wait_async.waitAllDone();
 

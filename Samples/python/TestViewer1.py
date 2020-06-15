@@ -11,19 +11,13 @@ from OpenVisus import *
 
 # on windows rememeber to INSTALL and CONFIGURE
 
-from OpenVisus.VisusGuiPy      import *
-from OpenVisus.PyViewer        import *
-from OpenVisus.PyScriptingNode import *
+from OpenVisus.gui import *
 
+from PyQt5.QtWidgets import QApplication
 
 # //////////////////////////////////////////////
 def Main(argv):
-	
-	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
-	# c:\Python37\python.exe Libs/Gui/PyViewer.py	
-	
-	VISUS_REGISTER_NODE_CLASS("ScriptingNode", "PyScriptingNode", lambda : PyScriptingNode())
-		
+
 	viewer=PyViewer()
 	viewer.open(r".\datasets\cat\gray.idx")
 		
@@ -34,7 +28,7 @@ def Main(argv):
 		"output=cv2.Laplacian(input,cv2.CV_64F)"
 		]))
 		
-	GuiModule.execApplication()
+	QApplication.exec()
 	viewer=None
 
 	print("All done")

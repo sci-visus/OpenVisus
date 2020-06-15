@@ -42,17 +42,58 @@ For support : support@visus.net
 #include <Visus/Db.h>
 #include <Visus/IdxDataset.h>
 #include <Visus/Color.h>
+#include <Visus/ThreadPool.h>
 
 namespace Visus {
 
-#if VISUS_PYTHON
-class VISUS_DB_API PythonEnginePool;
-#endif
+class IdxMultipleDataset;
+
+///////////////////////////////////////////////////////////////////////////////////////
+class VISUS_DB_API IdxMultipleAccess :
+  public Access,
+  public std::enable_shared_from_this<IdxMultipleAccess>
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(IdxMultipleAccess)
+
+  IdxMultipleDataset*                              DATASET = nullptr;
+  StringTree                                       CONFIG;
+  std::map< std::pair<String, String>, StringTree> configs;
+  SharedPtr<ThreadPool>                            thread_pool;
+
+  //constructor
+  IdxMultipleAccess(IdxMultipleDataset* VF, StringTree CONFIG);
+
+  //destructor
+  virtual ~IdxMultipleAccess();
+
+  //createDownAccess
+  SharedPtr<Access> createDownAccess(String name, String fieldname);
+
+  //readBlock 
+  virtual void readBlock(SharedPtr<BlockQuery> BLOCKQUERY) override;
+
+  //writeBlock (not supported)
+  virtual void writeBlock(SharedPtr<BlockQuery> BLOCKQUERY) override;
+
+}; //end class
 
 //////////////////////////////////////////////////////////////////////
 class VISUS_DB_API IdxMultipleDataset  : public IdxDataset
 {
 public:
+
+  VISUS_NON_COPYABLE_CLASS(IdxMultipleDataset)
+
+  enum 
+  {
+    DebugSaveImages = 0x01,
+    DebugSkipReading = 0x02,
+    DebugAll = 0xff
+  };
+
+  int debug_mode = 0;
 
   //bMosaic
   bool is_mosaic = false;
@@ -66,13 +107,6 @@ public:
   //getTypeName
   virtual String getTypeName() const override {
     return "IdxMultipleDataset";
-  }
-
-  //clone
-  virtual SharedPtr<Dataset> clone() const override {
-    auto ret = std::make_shared<IdxMultipleDataset>();
-    *ret = *this;
-    return ret;
   }
 
   //getChild
@@ -93,6 +127,12 @@ public:
     down_datasets[name] = value;
   }
 
+  //createDownQuery
+  SharedPtr<BoxQuery> createDownQuery(SharedPtr<Access> ACCESS, BoxQuery* QUERY, String dataset_name, String fieldname);
+  
+  //executeDownQuery
+  Array executeDownQuery(BoxQuery* QUERY, SharedPtr<BoxQuery> query);
+
 public:
 
   //read 
@@ -103,8 +143,8 @@ public:
     return down_datasets;
   }
 
-  // getFieldByNameThrowEx
-  virtual Field getFieldByNameThrowEx(String name) const override;
+  // getFieldEx
+  virtual Field getFieldEx(String name) const override;
 
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree CONFIG=StringTree(), bool bForBlockQuery = false) override;
@@ -123,29 +163,10 @@ public:
   //executeQuery
   virtual bool executeQuery(SharedPtr<Access> ACCESS,SharedPtr<BoxQuery> QUERY) override;
 
-private:
-
-  friend class QueryInputTerm;
-
-  enum DebugMode
-  {
-    DebugSaveImages = 0x01,
-    DebugSkipReading=0x02,
-    DebugAll=0xff
-  };
-
-  int debug_mode = 0;
-
-#if VISUS_PYTHON
-  SharedPtr<PythonEnginePool> python_engine_pool;
-#endif
+protected:
 
   //getInputName
-  String getInputName(String name, String fieldname);
-
-  //createField
-  Field createField(String operation_name);
-
+  String getInputName(String dataset_name, String fieldname);
 
   //removeAliases
   String removeAliases(String url);
@@ -154,8 +175,13 @@ private:
   void parseDataset(StringTree& cur, Matrix T);
 
   //parseDatasets
-  void parseDatasets(StringTree& cur,Matrix T);
+  void parseDatasets(StringTree& cur, Matrix T);
 
+  //computeOuput
+  virtual Array computeOuput(BoxQuery* QUERY, SharedPtr<Access> ACCESS, Aborted aborted, String CODE) const {
+    ThrowException("not supported");
+    return Array();
+  }
 
 };
 

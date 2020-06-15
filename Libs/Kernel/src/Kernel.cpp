@@ -46,7 +46,6 @@ For support : support@visus.net
 #include <Visus/Encoder.h>
 #include <Visus/UUID.h>
 #include <Visus/StringTree.h>
-#include <Visus/ApplicationInfo.h>
 #include <Visus/NetService.h>
 #include <Visus/SharedLibrary.h>
 
@@ -89,10 +88,6 @@ For support : support@visus.net
 #include <Visus/TransferFunction.h>
 #include <Visus/Statistics.h>
 #include <Visus/Array.h>
-
-#if VISUS_PYTHON
-#include <Visus/Python.h>
-#endif
 
 #include <clocale>
 
@@ -146,11 +141,18 @@ void DestroyAutoReleasePool();
   
 #endif
 
-#if VISUS_PYTHON
-void InitPython();
-void ShutdownPython();
+String OpenVisus_VERSION="";
+
+#ifdef GIT_REVISION
+  #define __str__(s) #s
+  #define __xstr__(s) __str__(s)
+  String OpenVisus_GIT_REVISION = __xstr__(GIT_REVISION);
+#else
+  String OpenVisus_GIT_REVISION = "";
 #endif
 
+std::vector<String> CommandLine::args;
+  
 ConfigFile* VisusModule::getModuleConfig() {
   return Private::VisusConfig::getSingleton();
 }
@@ -268,7 +270,7 @@ void SetCommandLine(int argn, const char** argv)
       continue;
     }
 
-    ApplicationInfo::args.push_back(argv[I]);
+    CommandLine::args.push_back(argv[I]);
   }
 }
 
@@ -296,10 +298,11 @@ bool VisusHasMessageLock()
 //////////////////////////////////////////////////////
 void VisusAssertFailed(const char* file,int line,const char* expr)
 {
-  if (ApplicationInfo::debug)
+#if _DEBUG
     Utils::breakInDebugger();
-  else
+#else
     ThrowExceptionEx(file,line,expr);
+#endif
 }
 
 String cnamed(String name, String value) {
@@ -391,8 +394,6 @@ void KernelModule::attach()
 
   bAttached = true;
 
-  ApplicationInfo::start = Time::now();
-
 #if __APPLE__
   InitAutoReleasePool();
 #endif
@@ -439,20 +440,16 @@ void KernelModule::attach()
       break;
   }
 
-  PrintInfo("git_revision            ",ApplicationInfo::git_revision);
-  PrintInfo("VisusHome               ",KnownPaths::VisusHome);
-  PrintInfo("BinaryDirectory         ",KnownPaths::BinaryDirectory);
-  PrintInfo("CurrentWorkingDirectory ",KnownPaths::CurrentWorkingDirectory());
+  PrintInfo("OpenVisus_VERSION       ", OpenVisus_VERSION);
+  PrintInfo("OpenVisus_GIT_REVISION  ", OpenVisus_GIT_REVISION);
+  PrintInfo("VisusHome               ", KnownPaths::VisusHome);
+  PrintInfo("BinaryDirectory         ", KnownPaths::BinaryDirectory);
+  PrintInfo("CurrentWorkingDirectory ", KnownPaths::CurrentWorkingDirectory());
 
   ArrayPlugins::allocSingleton();
   Encoders::allocSingleton();
   RamResource::allocSingleton();
   UUIDGenerator::allocSingleton();
-
-  //this is to make sure PythonEngine works
-#if VISUS_PYTHON
-  InitPython();
-#endif
 
   //in case the user whant to simulate I have a certain amount of RAM
   if (Int64 total = StringUtils::getByteSizeFromString(config->readString("Configuration/RamResource/total", "0")))
@@ -503,7 +500,6 @@ void KernelModule::attach()
   }
 #endif
 
-
   PrintInfo("Attached KernelModule");
 }
 
@@ -523,10 +519,6 @@ void KernelModule::detach()
   RamResource::releaseSingleton();
   UUIDGenerator::releaseSingleton();
 
-#if VISUS_PYTHON
-  ShutdownPython();
-#endif
-
   NetService::detach();
 
   Private::VisusConfig::releaseSingleton();
@@ -536,7 +528,6 @@ void KernelModule::detach()
 #endif
 
   PrintInfo("Detached KernelModule...");
-
 }
 
 } //namespace Visus

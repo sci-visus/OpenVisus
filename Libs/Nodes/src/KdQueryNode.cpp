@@ -43,7 +43,6 @@ For support : support@visus.net
 #include <Visus/NetService.h>
 #include <Visus/FieldNode.h>
 #include <Visus/StringTree.h>
-#include <Visus/ApplicationInfo.h>
 
 namespace Visus {
 
@@ -628,7 +627,7 @@ bool KdQueryNode::processInput()
   if (!dataset->getTimesteps().containsTimestep(time))
     return false;
 
-  auto field = fieldname.empty() ? dataset->getDefaultField() : dataset->getFieldByName(fieldname);
+  auto field = fieldname.empty() ? dataset->getDefaultField() : dataset->getField(fieldname);
   if (!field.valid())
     return false;
 

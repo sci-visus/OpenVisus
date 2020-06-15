@@ -82,7 +82,7 @@ public:
   void addCondition(FilterAccessCondition condition);
 
   //beginIO
-  virtual void beginIO(String mode) override {
+  virtual void beginIO(int mode) override {
     Access::beginIO(mode);
     target->beginIO(mode);
   }

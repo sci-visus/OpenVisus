@@ -30,7 +30,7 @@ DAMAGES(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+OF THIS SOrunning_requests FTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
@@ -44,7 +44,50 @@ For support : support@visus.net
 #include <Visus/Async.h>
 #include <Visus/NetSocket.h>
 
+#include <atomic>
+
 namespace Visus {
+
+//////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API NetGlobalStats
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(NetGlobalStats)
+
+#if !SWIG
+  std::atomic<Int64> tot_requests;
+  std::atomic<Int64> rbytes;
+  std::atomic<Int64> wbytes;
+  std::atomic<Int64> running_requests;
+#endif
+
+  //constructor
+  NetGlobalStats() : tot_requests(0), running_requests(0), rbytes(0),wbytes(0) {
+  }
+
+  //resetStats
+  void resetStats() {
+    tot_requests = rbytes = wbytes = 0;
+    //running_requests is a real number
+  }
+
+  //getNumRequests
+  Int64 getNumRequests() const {
+    return tot_requests;
+  }
+
+  //getReadBytes
+  Int64 getReadBytes() const {
+    return rbytes;
+  }
+
+  //getWriteBytes
+  Int64 getWriteBytes() const {
+    return wbytes;
+  }
+
+};
 
 ///////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API NetService 
@@ -52,6 +95,12 @@ class VISUS_KERNEL_API NetService
 public:
 
   VISUS_PIMPL_CLASS(NetService)
+
+  //global_stats
+  static NetGlobalStats* global_stats() {
+    static NetGlobalStats ret;
+    return &ret;
+  }
 
   class VISUS_KERNEL_API Defaults
   {

@@ -42,7 +42,6 @@ For support : support@visus.net
 #include <Visus/Kernel.h>
 #include <Visus/StringMap.h>
 #include <Visus/StringMap.h>
-#include <Visus/Singleton.h>
 #include <Visus/StringUtils.h>
 
 #include <stack>

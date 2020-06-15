@@ -78,13 +78,6 @@ public:
     return "IdxDataset";
   }
 
-  //clone
-  virtual SharedPtr<Dataset> clone() const override {
-    auto ret = std::make_shared<IdxDataset>();
-    *ret = *this;
-    return ret;
-  }
-
   //tryRemoveLockAndCorruptedBinaryFiles
   static void tryRemoveLockAndCorruptedBinaryFiles(String directory);
 
@@ -92,7 +85,7 @@ public:
   void removeFiles();
 
   //compressDataset
-  virtual bool compressDataset(String compression) override;
+  virtual void compressDataset(std::vector<String> compression) override;
 
   //getLevelSamples
   virtual LogicSamples getLevelSamples(int H) override;

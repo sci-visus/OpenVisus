@@ -39,7 +39,6 @@ For support : support@visus.net
 #include <Visus/Access.h>
 
 namespace Visus {
-
-
+const String Access::DefaultChMod = "rw";
 } //namespace Visus
 

@@ -45,7 +45,6 @@ For support : support@visus.net
 #include <Visus/Encoder.h>
 #include <Visus/IdxHzOrder.h>
 #include <Visus/StringTree.h>
-#include <Visus/ApplicationInfo.h>
 #include <Visus/ByteOrder.h>
 
 #include <sys/types.h>
@@ -219,7 +218,7 @@ public:
   }
 
   //beginIO
-  virtual void beginIO(String mode) override {
+  virtual void beginIO(int mode) override {
     Access::beginIO(mode);
     this->mode = mode;
   }
@@ -227,7 +226,7 @@ public:
   //endIO
   virtual void endIO() override {
     closeFile("endIO");
-    this->mode = "";
+    this->mode = 0;
     Access::endIO();
   }
 
@@ -348,25 +347,25 @@ private:
   HeapMemory     headers;
   BlockHeader*   block_headers=nullptr;
   File           file;
-  String         mode;
+  int            mode=0;
 
   //openFile
-  bool openFile(String filename, String mode)
+  bool openFile(String filename, String file_mode)
   {
-    VisusReleaseAssert(!mode.empty());
+    VisusReleaseAssert(!file_mode.empty());
+    VisusReleaseAssert(file_mode=="r");
 
-    //useless code, already opened in the desired mode
-    if (filename == this->file.getFilename() && mode == this->file.getMode())
+    //useless code, already opened in the desired file_mode
+    if (filename == this->file.getFilename() && "r" == this->file.getFileMode())
       return true;
 
     if (this->file.isOpen())
       closeFile("need to openFile");
 
     if (bVerbose)
-      PrintInfo("Opening file",filename,"mode",mode);
+      PrintInfo("Opening file",filename,"file_mode", "r");
 
-
-    if (!this->file.open(filename,"r"))
+    if (!this->file.open(filename, "r"))
     {
       closeFile(cstring("Cannot open file",filename));
       return false;
@@ -378,7 +377,6 @@ private:
       closeFile("cannot read headers");
       return false;
     }
-
 
     Int32* ptr = (Int32*)(this->headers.c_ptr());
     for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
@@ -394,7 +392,7 @@ private:
       return;
 
     if (bVerbose)
-      PrintInfo("Closing file",this->file.getFilename(),"mode",this->file.getMode(),"reason",reason);
+      PrintInfo("Closing file",this->file.getFilename(),"file_mode", "r" ,"reason",reason);
 
     this->file.close();
   }
@@ -434,7 +432,7 @@ public:
   }
 
   //beginIO
-  virtual void beginIO(String mode) override  {
+  virtual void beginIO(int mode) override  {
     Access::beginIO(mode);
     this->mode = mode;
   }
@@ -442,7 +440,7 @@ public:
   //endIO
   virtual void endIO() override {
     closeFile("endIO");
-    this->mode = "";
+    this->mode = 0;
     Access::endIO();
   }
 
@@ -466,7 +464,7 @@ public:
 
     //try to open the existing file
     String filename = getFilename(query->field, query->time, blockid);
-    if (!openFile(filename, StringUtils::contains(mode, "w") ? "rw" : "r"))
+    if (!openFile(filename, this->mode == 'w' ? "rw" : "r"))
       return failed("cannot open file");
 
     if (aborted())
@@ -529,7 +527,7 @@ public:
 
     auto failed = [&](String reason) {
 
-      if (bVerbose)
+      //if (bVerbose)
         PrintInfo("IdxDiskAccess::write blockid",blockid,"failed",reason);
 
       return owner->writeFailed(query);
@@ -773,7 +771,7 @@ private:
   FileHeader*     file_header=nullptr;
   BlockHeader*    block_headers = nullptr;
   SharedPtr<File> file;
-  String          mode;
+  int             mode=0;
 
   //re-entrant file lock
   std::map<String, int> file_locks;
@@ -784,24 +782,24 @@ private:
   }
 
   //openFile
-  bool openFile(String filename, String mode)
+  bool openFile(String filename, String file_mode)
   {
-    VisusReleaseAssert(!mode.empty());
+    VisusReleaseAssert(!file_mode.empty());
+    VisusReleaseAssert(file_mode=="rw" || file_mode=="r");
 
     //useless code, already opened in the desired mode
-    if (filename == this->file->getFilename() && mode == this->file->getMode())
+    if (filename == this->file->getFilename() && file_mode == this->file->getFileMode())
       return true;
 
     if (this->file->isOpen())
       closeFile("need to openFile");
 
     if (bVerbose)
-      PrintInfo("Opening file",filename,"mode",mode);
+      PrintInfo("Opening file",filename,"mode", file_mode);
 
-    bool bWriting = StringUtils::contains(mode, "w");
 
     //already exist
-    if (bool bOpened = bWriting ? this->file->open(filename,"rw") : this->file->open(filename,"r"))
+    if (this->file->open(filename, file_mode))
     {
       //read the headers
       if (!this->file->read(0, this->headers.c_size(), this->headers.c_ptr()))
@@ -819,14 +817,14 @@ private:
     }
 
     //cannot read the file
-    if (!bWriting)
+    if (!StringUtils::contains(file_mode,"w"))
     {
       closeFile("Cannot open file(" + filename + ")");
       return false;
     }
 
     //create a new file and fill up the headers
-    if (!this->file->createAndOpen(filename,"rw"))
+    if (!this->file->createAndOpen(filename, "rw"))
     {
       //should not fail here!
       VisusAssert(false);
@@ -856,7 +854,7 @@ private:
       return;
 
     if (bVerbose)
-      PrintInfo("Closing file",this->file->getFilename(),"mode",this->file->getMode(),"reason",reason);
+      PrintInfo("Closing file",this->file->getFilename(),"file_mode",this->file->getFileMode(),"reason",reason);
 
     //need to write the headers
     if (this->file->canWrite())
@@ -883,7 +881,6 @@ private:
 ////////////////////////////////////////////////////////////////////
 IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config) 
 {
-  String chmod=config.readString("chmod","rw");
   auto idxfile=dataset->idxfile;
 
   Url url = dataset->getUrl();
@@ -917,8 +914,8 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
 
   this->name = config.readString("name", "IdxDiskAccess");
   this->idxfile = idxfile;
-  this->can_read = StringUtils::find(chmod, "r") >= 0;
-  this->can_write = StringUtils::find(chmod, "w") >= 0;
+  this->can_read  = StringUtils::find(config.readString("chmod", DefaultChMod), "r") >= 0;
+  this->can_write = StringUtils::find(config.readString("chmod", DefaultChMod), "w") >= 0;
   this->bitsperblock = idxfile.bitsperblock;
   this->bVerbose = config.readInt("verbose", 0);
 
@@ -958,7 +955,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
   //set this only if you know what you are doing (example visus convert with only one process)
   this->bDisableWriteLocks = 
     config.readBool("disable_write_locks") == true ||
-    std::find(ApplicationInfo::args.begin(), ApplicationInfo::args.end(), "--disable-write-locks") != ApplicationInfo::args.end();
+    std::find(CommandLine::args.begin(), CommandLine::args.end(), "--disable-write-locks") != CommandLine::args.end();
 
   if (auto env = getenv("VISUS_DISABLE_WRITE_LOCK"))
     this->bDisableWriteLocks = cbool(String(env));
@@ -967,7 +964,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
   //  PrintInfo("IdxDiskAccess::IdxDiskAccess disabling write locsk. be careful");
 
   this->bDisableIO = config.readBool("disable_io")==true ||
-    std::find(ApplicationInfo::args.begin(), ApplicationInfo::args.end(), "--idx-disk-access-disable-io") != ApplicationInfo::args.end();
+    std::find(CommandLine::args.begin(), CommandLine::args.end(), "--idx-disk-access-disable-io") != CommandLine::args.end();
 
   // important!number of threads must be <=1 
 #if 1
@@ -988,13 +985,20 @@ IdxDiskAccess::~IdxDiskAccess()
   if (bVerbose)
     PrintInfo("IdxDiskAccess destroyed");
 
-  VisusReleaseAssert(!isReading() && !isWriting());
-
   if (async_tpool)
   {
     async_tpool->waitAll();
     async_tpool.reset();
   }
+
+  //scrgiorgio: I have a problem here, don't know why
+  //VisusReleaseAssert(!isReading() && !isWriting());
+}
+
+////////////////////////////////////////////////////////////////////
+void IdxDiskAccess::disableAsync()
+{
+  async_tpool.reset();
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -1004,27 +1008,41 @@ String IdxDiskAccess::getFilename(Field field,double time,BigInt blockid) const
 }
 
 ////////////////////////////////////////////////////////////////////
-void IdxDiskAccess::beginIO(String mode) {
+void IdxDiskAccess::beginIO(int mode) 
+{
+  if (async_tpool)
+    async_tpool->waitAll();
+
   Access::beginIO(mode);
-
-  bool bAsync = !isWriting() && async_tpool;
-
-  ThreadPool::push(bAsync ? async_tpool : SharedPtr<ThreadPool>(), [this, bAsync, mode]() {
-    auto pimpl = bAsync ? async.get() : sync.get();
-    pimpl->beginIO(mode);
-  });
-  
+  if (!isWriting() && async_tpool)
+  {
+    ThreadPool::push(async_tpool, [this, mode]() {
+      async->beginIO(mode);
+    });
+  }
+  else
+  {
+    sync->beginIO(mode);
+  }
 }
 
 ////////////////////////////////////////////////////////////////////
-void IdxDiskAccess::endIO() {
+void IdxDiskAccess::endIO() 
+{
+  if (!isWriting() && async_tpool)
+  {
+    ThreadPool::push(async_tpool, [this]() {
+      async->endIO();
+    });
+    async_tpool->waitAll();
+  }
+  else
+  {
+    sync->endIO();
+  }
 
-  bool bAsync = !isWriting() && async_tpool;
-
-  ThreadPool::push(bAsync? async_tpool : SharedPtr<ThreadPool>(),[this, bAsync]() {
-    auto pimpl = bAsync ? async.get() : sync.get();
-    pimpl->endIO();
-  });
+  if (async_tpool)
+    async_tpool->waitAll();
 
   Access::endIO();
 }
@@ -1072,12 +1090,16 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
   }
 
   bool bAsync = !isWriting() && async_tpool;
-  ThreadPool::push(bAsync? async_tpool : SharedPtr<ThreadPool>(),[this, query, bAsync]() {
-
-    auto pimpl = bAsync? async.get() : sync.get();
-    return pimpl->readBlock(query);
-  });
-
+  if (bAsync)
+  {
+    ThreadPool::push(async_tpool, [this, query]() {
+      return async->readBlock(query);
+    });
+  }
+  else
+  {
+    return sync->readBlock(query);
+  }
 }
 
 

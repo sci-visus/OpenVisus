@@ -51,7 +51,6 @@ For support : support@visus.net
 #include <Visus/ThreadPool.h>
 #include <Visus/NetService.h>
 #include <Visus/Utils.h>
-#include <Visus/ApplicationInfo.h>
 #include <Visus/IdxDiskAccess.h>
 #include <Visus/IdxMultipleDataset.h>
 #include <Visus/MultiplexAccess.h>

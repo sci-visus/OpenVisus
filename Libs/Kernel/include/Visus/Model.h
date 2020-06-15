@@ -43,7 +43,6 @@ For support : support@visus.net
 #include <Visus/Time.h>
 #include <Visus/StringUtils.h>
 #include <Visus/SignalSlot.h>
-#include <Visus/ApplicationInfo.h>
 
 #include <stack>
 #include <fstream>

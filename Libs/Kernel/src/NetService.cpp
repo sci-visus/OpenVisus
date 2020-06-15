@@ -235,7 +235,7 @@ public:
       connection->response.body = std::make_shared<HeapMemory>();
 
     size_t tot = size * nmemb;
-    ApplicationStats::net.rbytes+=tot;
+    NetService::global_stats()->wbytes+=tot;
 
     Int64 oldsize = connection->response.body->c_size();
     if (!connection->response.body->resize(oldsize + tot, __FILE__, __LINE__))
@@ -253,7 +253,7 @@ public:
 
     size_t& offset = connection->buffer_offset;
     size_t tot = std::min((size_t)connection->request.body->c_size() - offset, size * nmemb);
-    ApplicationStats::net.wbytes+=tot;
+    NetService::global_stats()->rbytes+=tot;
 
     memcpy(chunk, connection->request.body->c_ptr() + offset, tot);
     offset += tot;
@@ -386,7 +386,6 @@ public:
           //request to exit ASAP (no need to execute it)
           if (!request)
           {
-            ApplicationStats::num_net_jobs--;
             bExitThread = true;
             continue;
           }
@@ -401,7 +400,7 @@ public:
 
               request->statistics.run_msec = 0;
               promise.set_value(response);
-              ApplicationStats::num_net_jobs--;
+              --NetService::global_stats()->running_requests;
             }
             owner->waiting_lock.lock();
             continue;
@@ -448,7 +447,6 @@ public:
           request->statistics.run_t1 = Time::now();
           connection->first_byte = false;
           connection->setNetRequest(*request, promise);
-          ++ApplicationStats::net.nopen;
         }
         owner->waiting = still_waiting;
       }
@@ -478,11 +476,12 @@ public:
             owner->printStatistics(connection->id, connection->request, connection->response);
 
           connection->promise.set_value(connection->response);
+          --NetService::global_stats()->running_requests;
 
           connection->setNetRequest(NetRequest(), Promise<NetResponse>());
           running.erase(connection);
           available.push_back(connection);
-          ApplicationStats::num_net_jobs--;
+          
         }
       }
 
@@ -528,9 +527,11 @@ void NetService::detach()
 Future<NetResponse> NetService::handleAsync(SharedPtr<NetRequest> request)
 {
   if (request)
+  {
     request->statistics.enter_t1 = Time::now();
-
-  ApplicationStats::num_net_jobs++;
+    ++NetService::global_stats()->tot_requests;
+    ++NetService::global_stats()->running_requests;
+  }
   Promise<NetResponse> promise;
   {
     ScopedLock lock(this->waiting_lock);
@@ -616,7 +617,7 @@ void NetService::testSpeed(int nconnections, int nrequests, std::vector<String> 
 {
   auto net = std::make_shared<NetService>(nconnections, false);
 
-  ApplicationStats::net.reset();
+  NetService::global_stats()->resetStats();
 
   Time t1 = Time::now();
 
@@ -635,10 +636,10 @@ void NetService::testSpeed(int nconnections, int nrequests, std::vector<String> 
   PrintInfo("All done in", sec, "sec");
   PrintInfo(
     "Num request/sec", double(nrequests) / sec,
-    "read", StringUtils::getStringFromByteSize(ApplicationStats::net.rbytes), "bytes/sec", double(ApplicationStats::net.rbytes) / (sec),
-    "write", StringUtils::getStringFromByteSize(ApplicationStats::net.wbytes), "bytes/sec", double(ApplicationStats::net.wbytes) / (sec));
+    "read",  StringUtils::getStringFromByteSize(NetService::global_stats()->rbytes), "bytes/sec", double(NetService::global_stats()->rbytes) / (sec),
+    "write", StringUtils::getStringFromByteSize(NetService::global_stats()->wbytes), "bytes/sec", double(NetService::global_stats()->wbytes) / (sec));
 
-  ApplicationStats::net.reset();
+  NetService::global_stats()->resetStats();
 }
 
 } //namespace Visus

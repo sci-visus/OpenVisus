@@ -41,6 +41,7 @@ For support : support@visus.net
 
 #include <Visus/Kernel.h>
 #include <Visus/Array.h>
+#include <Visus/CriticalSection.h>
 
 namespace Visus {
 

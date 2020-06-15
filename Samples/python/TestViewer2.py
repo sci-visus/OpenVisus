@@ -11,14 +11,15 @@ from OpenVisus import *
 
 # on windows rememeber to INSTALL and CONFIGURE
 
-from OpenVisus.VisusGuiPy import *
-from OpenVisus.PyViewer   import *
+from OpenVisus.gui import *
 
 import PyQt5
 from   PyQt5.QtCore    import *
 from   PyQt5.QtWidgets import *
 from   PyQt5.QtGui     import *
 import PyQt5.sip
+
+from PyQt5.QtWidgets import QApplication
 
 # ///////////////////////////////////////////////////////////
 class MyWidget(QWidget):
@@ -35,21 +36,21 @@ class MyWidget(QWidget):
 
 
 # ///////////////////////////////////////////////////////////
-class MyScriptingNode(ScriptingNode):
+class MyRenderNode(PyScriptingNode):
 
 	# __init__
 	def __init__(self):
 		ScriptingNode.__init__(self)
-		self.setName("MyScriptingNode")
+		self.setName("MyRenderNode")
 		self.addInputPort("array")
 
 	# getTypeName
 	def getTypeName(self):    
-		return "MyScriptingNode"
+		return "MyRenderNode"
 
 	# getOsDependentTypeName
 	def getOsDependentTypeName(self):
-		return "MyScriptingNode"
+		return "MyRenderNode"
 
 	# glRender
 	def glRender(self, gl):
@@ -84,16 +85,9 @@ class MyScriptingNode(ScriptingNode):
 # //////////////////////////////////////////////
 def Main(argv):		
 	
-	"""
-	allow some python code inside scripting node
-	"""
-	
-	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
-	# c:\Python37\python.exe Libs/Gui/PyViewer.py	
-	
-	VISUS_REGISTER_NODE_CLASS("MyScriptingNode", "MyScriptingNode", lambda : MyScriptingNode())
+	VISUS_REGISTER_NODE_CLASS("MyRenderNode", "MyRenderNode", lambda : MyRenderNode())
 
-	viewer=Viewer()
+	viewer=PyViewer()
 	viewer.open("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1") 
 
 	# example of adding a PyQt5 widget to C++ Qt
@@ -104,7 +98,7 @@ def Main(argv):
 	root=viewer.getRoot()
 	world_box=viewer.getWorldBox()
 
-	pynode=MyScriptingNode()
+	pynode=MyRenderNode()
 	pynode.glSetRenderQueue(999)
 	pynode.setBounds(Position(world_box))
 	viewer.addNode(root,pynode)
@@ -113,7 +107,7 @@ def Main(argv):
 	query_node=viewer.findNodeByUUID("volume")
 	viewer.connectNodes(query_node, pynode)
 		 
-	GuiModule.execApplication()
+	QApplication.exec()
 	viewer=None
 
 	print("All done")

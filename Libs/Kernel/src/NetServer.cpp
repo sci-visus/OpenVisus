@@ -38,7 +38,6 @@ For support : support@visus.net
 
 #include <Visus/NetServer.h>
 #include <Visus/StringTree.h>
-#include <Visus/ApplicationInfo.h>
 
 namespace Visus {
 
@@ -46,7 +45,11 @@ namespace Visus {
 ///////////////////////////////////////////////////////////////
 NetServer::NetServer(int port_, NetServerModule* module_,int nthreads_) : port(port_), module(module_),nthreads(nthreads_)
 {
-  this->verbose = ApplicationInfo::debug ? 1 : 0;
+#if _DEBUG
+  this->verbose = 1;
+#else
+  this->verbose = 0;
+#endif
 }
 
 

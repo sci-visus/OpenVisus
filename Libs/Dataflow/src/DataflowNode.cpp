@@ -39,7 +39,6 @@ For support : support@visus.net
 #include <Visus/Dataflow.h>
 #include <Visus/DataflowNode.h>
 #include <Visus/Dataflow.h>
-#include <Visus/ApplicationInfo.h>
 
 namespace Visus {
 

@@ -214,7 +214,7 @@ private:
     VisusAssert(!(dataset->getPointDim() == 3 && query_bounds.getBoxNd().toBox3().minsize() == 0));
 
     auto query = std::make_shared<BoxQuery>(dataset.get(), node->getField(), node->getTime(), 'r');
-    query->filter.enabled = true;
+    query->enableFilters();
     query->logic_box = node->getQueryLogicPosition().toDiscreteAxisAlignedBox();
     query->setResolutionRange(0, end_resolution);
     return query;
@@ -313,7 +313,7 @@ private:
       String filename = concatenate(widgets.fileEdit->text().toStdString(),nsamples.toString("_"),query->field.dtype.toString(),".raw");
 
       File data_file;
-      if (data_file.createAndOpen(filename,"rw"))
+      if (data_file.createAndOpen(filename, "rw"))
       {
         if (!data_file.write(0, query->buffer.c_size(), query->buffer.c_ptr()))
         {

@@ -39,19 +39,17 @@ For support : support@visus.net
 #include <Visus/Thread.h>
 
 
-
 namespace Visus {
-
 
 ////////////////////////////////////////////////////////////
 SharedPtr<std::thread> Thread::start(String thread_name,std::function<void()> entry_proc)
 {
-  ++ApplicationStats::num_threads;
+  ++Thread::global_stats()->running_threads;
   
   return std::make_shared<std::thread>(([entry_proc, thread_name]()
   {
     entry_proc(); 
-    --ApplicationStats::num_threads;
+    --Thread::global_stats()->running_threads;
   }));
 }
 

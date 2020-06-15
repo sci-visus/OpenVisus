@@ -634,28 +634,23 @@ void Viewer::editNode(Node* node)
   if (!node)
     node=getSelection();
 
-  //QueryNode
   if (auto query_node=dynamic_cast<QueryNode*>(node))
   {
     if (!widgets.glcanvas) 
       return;
 
-    showTopWidget("QueryNode",new QueryNodeView(query_node));
+    showWidget(new QueryNodeView(query_node));
 
     //this force the creation of the free_transform
     this->dropSelection();
     this->setSelection(query_node); 
 
-    if (free_transform) 
-    {
-      auto view=new FreeTransformView(free_transform.get());
-      showTopWidget("FreeTransform",view);
-    }
+    if (!free_transform)
+      return;
 
-    return;
+    return showWidget(new FreeTransformView(free_transform.get()));
   }
 
-  //ModelViewNode
   if (auto model=dynamic_cast<ModelViewNode*>(node))
   {
     if (!widgets.glcanvas) 
@@ -665,162 +660,69 @@ void Viewer::editNode(Node* node)
     this->dropSelection();
     this->setSelection(model);
 
-    if (free_transform)
-    {
-      auto view=new FreeTransformView(free_transform.get());
-      view->widgets.box->setEnabled(false); //I cannot edit the down bounds, I can change only the matrix
-      showTopWidget("FreeTransform",view);
-    }
+    if (!free_transform)
+      return;
 
+    auto view=new FreeTransformView(free_transform.get());
+    view->widgets.box->setEnabled(false); //I cannot edit the down bounds, I can change only the matrix
+    showWidget(view);
     return ;
   }
 
-  //DatasetNode
   if (auto model=dynamic_cast<DatasetNode*>(node))
-  {
-    showTopWidget("Dataset Node",new DatasetNodeView(model));
-    return;
-  }
+    return showWidget(new DatasetNodeView(model));
 
-  //TimeNode
   if (auto model=dynamic_cast<TimeNode*>(node))
-  {
-    showTopWidget("Time Node",new TimeNodeView(model));
-    return;
-  }
+    return showWidget(new TimeNodeView(model));
 
-  //GLCameraNode
   if (auto model=dynamic_cast<GLCameraNode*>(node))
-  {
-    showTopWidget("GLCamera Node",new GLCameraNodeView(model));
-    return;
-  }
+    return showWidget(new GLCameraNodeView(model));
 
-  //StatisticsNode
   if (auto model=dynamic_cast<StatisticsNode*>(node))
-  {
-    showTopWidget("Statistics Node",new StatisticsNodeView(model));
-    return;
-  }
+    return showWidget(new StatisticsNodeView(model));
 
-  //FieldNode
   if (auto field_node=dynamic_cast<FieldNode*>(node))
-  {
-    //find the dataset...
-    SharedPtr<Dataset> dataset;
-    if (QueryNode* query=field_node->getOutputPort("fieldname")->findFirstConnectedOutputOfType<QueryNode*>())
-    {
-      if (DatasetNode* dataset_node=query->getInputPort("dataset")->findFirstConnectedInputOfType<DatasetNode*>())
-        dataset=dataset_node->getDataset();
-    }
+    return showWidget(new FieldNodeView(field_node));
 
-    auto widget=new FieldNodeView(field_node,dataset);
-
-    if (std::dynamic_pointer_cast<IdxMultipleDataset>(dataset))
-      showTopWidget(node->getName(),widget);
-    else
-      showTopWidget("Field", new FieldNodeView(field_node,dataset));
-    return;
-  }
-
-  //ScriptingNode
-  if (auto model=dynamic_cast<ScriptingNode*>(node))
-  {
-    showTopWidget(node->getName(),new ScriptingNodeView(model));
-    return;
-  }
-
- //CpuPaletteNode
   if (auto model=dynamic_cast<CpuPaletteNode*>(node))
-  {
-    showTopWidget(node->getName(),new CpuTransferFunctionNodeView(model));
-    return;
-  }
+    return showWidget(new CpuTransferFunctionNodeView(model));
 
-  //PaletteNode
   if (auto model=dynamic_cast<PaletteNode*>(node))
-  {
-    showTopWidget(node->getName(),new PaletteNodeView(model));
-    return;
-  }
+    return showWidget(new PaletteNodeView(model));
 
-  //RenderArrayNode
   if (auto model=dynamic_cast<RenderArrayNode*>(node))
-  {
-    showTopWidget(node->getName(),new RenderArrayNodeView(model));
-    return;
-  }
+    return model->createEditor();
 
-
-
-  //RenderArrayNode
   if (auto model = dynamic_cast<OSPRayRenderNode*>(node))
-  {
-    //todo...
-    return;
-  }
+    return model->createEditor();
 
-
-  //IsoContourNode
   if (auto model=dynamic_cast<IsoContourNode*>(node))
-  {
-    showTopWidget(node->getName(),new IsoContourNodeView(model));
-    return;
-  }
+    return model->createEditor();
 
-  //IsoContourRenderNode
   if (auto model=dynamic_cast<IsoContourRenderNode*>(node))
-  {
-    showTopWidget(node->getName(),new IsoContourRenderNodeView(model));
-    return;
-  }
+    return model->createEditor();
 
-  //VoxelScoopNode
   if (auto model=dynamic_cast<VoxelScoopNode*>(node))
-  {
-    showTopWidget("VoxelScoop",new VoxelScoopNodeView(model));
-    return;
-  }
+    return model->createEditor();
 
-  //JTreeNode
   if (auto model=dynamic_cast<JTreeNode*>(node))
-  {
-    showTopWidget("JTreeNode",new JTreeNodeView(model));
-    return;
-  }
+    return model->createEditor();
 
-  //JTreeRenderNode
   if (auto model=dynamic_cast<JTreeRenderNode*>(node))
-  {
-    showTopWidget("JTreeRenderNode",new JTreeRenderNodeView(model));
-    return;
-  }
-  
+    return model->createEditor();
+
+
+  if (auto model = dynamic_cast<ScriptingNode*>(node))
+    return model->createEditor();
+
 }
 
 ///////////////////////////////////////////////////////////
-void Viewer::showTopWidget(String title, QWidget* widget)
+void Viewer::showWidget(QWidget* widget, String title)
 {
-  auto layout = new QVBoxLayout();
-  layout->addWidget(widget);
-
-  auto sub = new QDialog(this);
-  sub->setLayout(layout);
-  sub->show();
+  widget->show();
 }
 
-///////////////////////////////////////////////////////////
-void Viewer::showPopupWidget(QWidget* widget)
-{
-  auto layout=new QVBoxLayout();
-  layout->addWidget(widget);
-
-  auto popup = new QWidget(this, Qt::Popup);
-  popup->setLayout(layout);
-  popup->move(QCursor::pos().x(),QCursor::pos().y());
-  popup->show();
-
-}
 
 ///////////////////////////////////////////////////////////
 void Viewer::addDockWidget(String name,QWidget* widget)

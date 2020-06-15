@@ -39,7 +39,6 @@ For support : support@visus.net
 #include <Visus/File.h>
 #include <Visus/Thread.h>
 #include <Visus/Utils.h>
-#include <Visus/ApplicationStats.h>
 #include <Visus/Time.h>
 
 #include <sys/types.h>
@@ -81,14 +80,6 @@ For support : support@visus.net
 #define PimplStat ::stat
 #endif
 
-#ifndef S_ISREG
-#  define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
-#endif
-
-#ifndef S_ISDIR
-#  define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
-#endif
-
 namespace Visus {
 
 /////////////////////////////////////////////////////////////////////////
@@ -104,6 +95,7 @@ static String Win32FormatErrorMessage(DWORD ErrorCode)
   return ret;
 }
 #endif
+
 
 /////////////////////////////////////////////////////////////////////////
 class PosixFile : public File::Pimpl
@@ -140,14 +132,14 @@ public:
   }
 
   //open
-  virtual bool open(String filename, String mode, File::Options options) override
+  virtual bool open(String filename, String file_mode, File::Options options) override
   {
-    bool bRead = StringUtils::contains(mode, "r");
-    bool bWrite = StringUtils::contains(mode, "w");
+    bool bRead  = StringUtils::contains(file_mode, "r");
+    bool bWrite = StringUtils::contains(file_mode, "w");
     bool bMustCreate = options & File::MustCreateFile;
 
     int imode = O_BINARY;
-    if (bRead && bWrite) imode |= O_RDWR;
+    if      (bRead && bWrite) imode |= O_RDWR;
     else if (bRead)           imode |= O_RDONLY;
     else if (bWrite)          imode |= O_WRONLY;
     else  VisusAssert(false);
@@ -190,8 +182,8 @@ public:
       return false;
     }
 
-    ++ApplicationStats::io.nopen;
-    this->can_read = bRead;
+    onOpenEvent();
+    this->can_read  = bRead;
     this->can_write = bWrite;
     this->filename = filename;
     this->cursor = 0;
@@ -267,7 +259,7 @@ public:
         return false;
       }
 
-      ApplicationStats::io.wbytes+=n;
+      onWriteEvent(n);
       remaining -= n;
       buffer += n;
     }
@@ -306,7 +298,7 @@ public:
         return false;
       }
 
-      ApplicationStats::io.rbytes+=n;
+      onReadEvent(n);
       remaining -= n;
       buffer += n;
     }
@@ -398,10 +390,10 @@ public:
   }
 
   //open
-  virtual bool open(String filename, String mode, File::Options options) override  {
+  virtual bool open(String filename, String file_mode, File::Options options) override  {
 
-    bool bRead  = StringUtils::contains(mode, "r");
-    bool bWrite = StringUtils::contains(mode, "w");
+    bool bRead  = StringUtils::contains(file_mode, "r");
+    bool bWrite = StringUtils::contains(file_mode, "w");
     bool bMustCreate = options & File::MustCreateFile;
 
     this->handle = CreateFile(
@@ -419,11 +411,11 @@ public:
       return false;
     }
 
-    ++ApplicationStats::io.nopen;
-    this->can_read = bRead;
+    onOpenEvent();
+    this->can_read  = bRead;
     this->can_write = bWrite;
     this->filename = filename;
-    this->cursor   = 0;
+    this->cursor    = 0;
     return true;
   }
 
@@ -502,7 +494,7 @@ public:
         return false;
       }
 
-      ApplicationStats::io.wbytes+=n;
+      onWriteEvent(n);
       remaining -= n;
       buffer += n;
     }
@@ -539,7 +531,7 @@ public:
         return false;
       }
 
-      ApplicationStats::io.rbytes+=n;
+      onReadEvent(n);
       remaining -= n;
       buffer += n;
     }
@@ -626,14 +618,14 @@ public:
   }
 
   //open
-  virtual bool open(String filename, String mode, File::Options options) override
+  virtual bool open(String filename, String file_mode, File::Options options) override
   {
     close();
 
     bool bMustCreate = options & File::MustCreateFile;
 
     //not supported
-    if (mode.find("w") != String::npos || bMustCreate) {
+    if (file_mode.find("w") != String::npos || bMustCreate) {
       VisusAssert(false);
       return false;
     }
@@ -682,10 +674,10 @@ public:
     }
 
 
-    ++ApplicationStats::io.nopen;
-    this->filename = filename;
-    this->can_read  = mode.find("r") != String::npos;
-    this->can_write = mode.find("w") != String::npos;
+    onOpenEvent();
+    this->filename  = filename;
+    this->can_read  = file_mode.find("r") != String::npos;
+    this->can_write = file_mode.find("w") != String::npos;
     return true;
   }
 
@@ -741,8 +733,7 @@ public:
       return false;
 
     memcpy(mem + pos, buffer, (size_t)tot);
-
-    ApplicationStats::io.wbytes+=tot;
+    onWriteEvent(tot);
     return true; 
   }
 
@@ -753,7 +744,7 @@ public:
       return false;
 
     memcpy(buffer, mem + pos, (size_t)tot);
-    ApplicationStats::io.rbytes+=tot;
+    onReadEvent(tot);
     return true;
   }
 
@@ -775,21 +766,21 @@ private:
 };
 
 /////////////////////////////////////////////////////////////////////////
-bool File::open(String filename, String mode, Options options)
+bool File::open(String filename, String file_mode, Options options)
 {
   close();
 
 #if WIN32
-  //don't see any advantage using Win32File
+   //NOTE fopen/fclose is even slower than _open/_close
   pimpl.reset(new PosixFile());
-  //pimpl.reset(new Win32File());
-  //pimpl.reset(new MemoryMappedFile());
+  //pimpl.reset(new Win32File()); //don't see any advantage using Win32File
+  //pimpl.reset(new MemoryMappedFile()); THIS IS THE SLOWEST
 #else
   pimpl.reset(new PosixFile());
   //pimpl.reset(new MemoryMappedFile());
 #endif
 
-  if (!pimpl->open(filename, mode, options)) {
+  if (!pimpl->open(filename, file_mode, options)) {
     pimpl.reset();
     return false;
   }
@@ -813,6 +804,10 @@ bool FileUtils::existsDirectory(Path path)
   if (PimplStat(fullpath.c_str(), &status) != 0)
     return false;
 
+#ifndef S_ISDIR
+#  define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#endif
+
   if (!S_ISDIR(status.st_mode))
     return false;
 
@@ -833,6 +828,10 @@ bool FileUtils::existsFile(Path path)
     return false;
 
   //TODO: probably here i need to specific test if it's a regular file or symbolic link
+#ifndef S_ISREG
+#  define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#endif
+
   if (!S_ISREG(status.st_mode))
     return false;
 
@@ -939,9 +938,8 @@ bool FileUtils::removeDirectory(Path path)
 bool FileUtils::touch(Path path)
 {
   File file;
-  return file.createAndOpen(path.toString(),"rw");
+  return file.createAndOpen(path.toString(), "rw");
 }
-
 
 /////////////////////////////////////////////////////////////////////////
 void FileUtils::lock(Path path)
@@ -964,7 +962,7 @@ void FileUtils::lock(Path path)
   for (int nattempt=0; ;nattempt++)
   {
     File file;
-    if (file.createAndOpen(lock_filename,"rw"))
+    if (file.createAndOpen(lock_filename, "rw"))
     {
       file.close();
 
@@ -998,8 +996,6 @@ void FileUtils::unlock(Path path)
   if (!bRemoved)
     ThrowException("cannot remove lock file",lock_filename);
 }
-
-
 
 /////////////////////////////////////////////////////////////////////////
 bool FileUtils::copyFile(String src_filename, String dst_filename, bool bFailIfExist)
@@ -1064,6 +1060,5 @@ bool FileUtils::createLink(String existing_file, String new_file)
   return symlink(existing_file.c_str(), new_file.c_str()) == 0;
 #endif
 }
-
 
 } //namespace Visus

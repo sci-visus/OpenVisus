@@ -1,8 +1,8 @@
 import os
 import sys
 
-from OpenVisus           import *
-from OpenVisus.PyViewer  import *
+from OpenVisus     import *
+from OpenVisus.gui import *
 
 # Scripting Node to remove the white-sh (TO TRY)
 """
@@ -192,7 +192,7 @@ def ExportSlicesToMovie(out_movie, db, axis,preserve_ratio=True):
 	for I,offset in enumerate(offsets):
 
 		logic_box=getSliceLogicBox(axis, offset)
-		img=next(data.read(logic_box=logic_box))
+		img=data.read(logic_box=logic_box)
 		physic_box=db.getBounds(logic_box).toAxisAlignedBox()
 
 		img,logic_box,=db.readSlice()

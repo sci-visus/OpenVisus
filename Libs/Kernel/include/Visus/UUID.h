@@ -41,7 +41,6 @@ For support : support@visus.net
 #define VISUS_UUID_H
 
 #include <Visus/Kernel.h>
-#include <Visus/Singleton.h>
 
 namespace Visus {
 

@@ -225,16 +225,6 @@ inline Value from_string(const std::string& s) {
 
 VISUS_KERNEL_API String cstring10(double value);
 
-#if !SWIG
-class VISUS_KERNEL_API CommandLine
-{
-public:
-  static int argn;
-  static const char** argv;
-};
-#endif
-
-
 VISUS_KERNEL_API void PrintLine(String file, int line, int severity, String msg);
 
 #define PrintDebug(...)   PrintLine(__FILE__,__LINE__, 0, cstring(__VA_ARGS__))
@@ -386,6 +376,24 @@ public:
   /*--*/
 #endif
 
+#ifndef VISUS_DECLARE_SINGLETON_CLASS
+#define VISUS_DECLARE_SINGLETON_CLASS(ClassName)\
+  private:\
+    VISUS_NON_COPYABLE_CLASS(ClassName)\
+    static ClassName* __instance__;\
+  public:\
+    static ClassName* getSingleton()                 {return __instance__;}\
+    static void       setSingleton(ClassName* value) {__instance__=value;} \
+    static void       allocSingleton()               {VisusAssert(!__instance__);__instance__=new ClassName();} \
+    static void       releaseSingleton()             {VisusAssert( __instance__);delete __instance__; __instance__=nullptr;} \
+  /*--*/
+#endif
+
+#ifndef VISUS_IMPLEMENT_SINGLETON_CLASS
+#define VISUS_IMPLEMENT_SINGLETON_CLASS(ClassName) \
+  ClassName* ClassName::__instance__=nullptr;
+#endif
+
 class VISUS_KERNEL_API Void {};
 
 class VISUS_KERNEL_API ConfigFile;
@@ -415,6 +423,27 @@ template <typename D, typename S>
 D convertTo(const S& value);
 
 
+extern VISUS_KERNEL_API String OpenVisus_VERSION;
+extern VISUS_KERNEL_API String OpenVisus_GIT_REVISION;
+
+
+//////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API CommandLine
+{
+public:
+
+  static std::vector<String> args;
+
+#if !SWIG
+  static int          argn;
+  static const char** argv;
+#endif
+
+private:
+
+  //constructor
+  CommandLine() = delete;
+};
 
 } //namespace Visus
 

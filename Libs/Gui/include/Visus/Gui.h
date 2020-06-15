@@ -73,9 +73,6 @@ public:
 
   //detach
   static void detach();
-
-  //execApplication
-  static void execApplication();
 };
 
 

@@ -76,9 +76,19 @@ public:
   Widgets widgets;
 
   //constructor
-  FieldNodeView(FieldNode* model,SharedPtr<Dataset> dataset_=SharedPtr<Dataset>()) 
-  : dataset(dataset_)
+  FieldNodeView(FieldNode* model,SharedPtr<Dataset> dataset=SharedPtr<Dataset>()) 
   {
+    //find out the dataset
+    if (!dataset) {
+      if (auto query = model->getOutputPort("fieldname")->findFirstConnectedOutputOfType<QueryNode*>()) {
+        if (auto dataset_node = query->getInputPort("dataset")->findFirstConnectedInputOfType<DatasetNode*>()) {
+          dataset = dataset_node->getDataset();
+        }
+      }
+    }
+
+    this->dataset = dataset;
+
     if (model)
       bindModel(model);
   }
@@ -171,7 +181,7 @@ private:
     try
     {
       VisusAssert(dataset);
-      Field field=dataset->getFieldByNameThrowEx(fieldname);
+      Field field=dataset->getFieldEx(fieldname);
       msg=cstring("DTYPE",field.dtype);
     }
     catch (std::exception ex)

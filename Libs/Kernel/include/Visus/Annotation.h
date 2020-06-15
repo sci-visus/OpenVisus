@@ -60,8 +60,8 @@ public:
   virtual ~Annotation() {
   }
 
-  //clone
-  virtual SharedPtr<Annotation> clone() const = 0;
+  //cloneAnnotation
+  virtual SharedPtr<Annotation> cloneAnnotation() const = 0;
 
   //prependModelview
   virtual void prependModelview(Matrix T) = 0;
@@ -143,8 +143,8 @@ public:
   virtual ~PointOfInterest() {
   }
 
-  //clone
-  virtual SharedPtr<Annotation> clone() const override {
+  //cloneAnnotation
+  virtual SharedPtr<Annotation> cloneAnnotation() const override {
     return std::make_shared<PointOfInterest>(*this);
   }
 
@@ -169,7 +169,7 @@ public:
   }
 
   //clone
-  virtual SharedPtr<Annotation> clone() const override {
+  virtual SharedPtr<Annotation> cloneAnnotation() const override {
     return std::make_shared<PolygonAnnotation>(*this);
   }
 

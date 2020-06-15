@@ -49,27 +49,30 @@ For support : support@visus.net
 
 #include <QTimer>
 
-#if VISUS_PYTHON
-#include <Visus/Python.h>
-#endif
 
 namespace Visus {
 
 ////////////////////////////////////////////////////////////
 class VISUS_GUI_API ScriptingNode : public Node
-#if !SWIG
   , public GLObject
-#endif
 {
 public:
 
   VISUS_NON_COPYABLE_CLASS(ScriptingNode)
 
   //constructor
-  ScriptingNode();
+  ScriptingNode()
+  {
+    addInputPort("array");
+    addOutputPort("array");
+
+    setCode("output=input");
+  }
 
   //destructor
-  virtual ~ScriptingNode();
+  virtual ~ScriptingNode()
+  {
+  }
 
   //getOsDependentTypeName (virtual so that I can override it in python)
   virtual String getOsDependentTypeName() const override {
@@ -81,44 +84,33 @@ public:
     return code;
   }
 
-  //getMaxPublishMSec
-  int getMaxPublishMSec() const {
-    return max_publish_msec;
-  }
-
-  //setMaxPublishMSec
-  void setMaxPublishMSec(int value) {
-    setProperty("SetMaxPublishMSec", this->max_publish_msec, value);
-  }
-
   //setCode
   void setCode(String code) {
     setProperty("SetCode", this->code, code);
   }
 
-  //addUserInput
-  void addUserInput(String key, Array value);
-
-  //clearPresets
-  void clearPresets();
-
-  //getPresets
-  std::vector<String> getPresets() const {
-    return presets.keys;
-  }
-
-  //addPreset
-  void addPreset(String key, String code);
-
-  //getPresetCode
-  String getPresetCode(String key, String default_value = "") {
-
-    int index = Utils::find(presets.keys,key);
-    return index >= 0 ? presets.code[index] : default_value;
-  }
-
   //processInput
-  virtual bool processInput() override;
+  virtual bool processInput() override
+  {
+    abortProcessing();
+
+    //I'm using the shared engine...
+    joinProcessing();
+
+    // important to do before readValue
+    auto return_receipt = createPassThroughtReceipt();
+    auto input = readValue<Array>("array");
+    if (!input)
+      return  false;
+
+    this->node_bounds = input->bounds;
+
+    DataflowMessage msg;
+    msg.setReturnReceipt(return_receipt);
+    msg.writeValue("array", input);
+    this->publish(msg);
+    return true;
+  }
 
   //getBounds
   virtual Position getBounds() override {
@@ -134,6 +126,15 @@ public:
     return dynamic_cast<ScriptingNode*>(obj);
   }
 
+  //modelChanged
+  virtual void modelChanged() override {
+    if (dataflow)
+      dataflow->needProcessInput(this);
+  }
+
+  //createEditor
+  virtual void createEditor() {
+  }
 
 public:
 
@@ -177,148 +178,38 @@ public:
 public:
 
   //execute
-  virtual void execute(Archive& ar) override;
+  virtual void execute(Archive& ar) override
+  {
+    if (ar.name == "SetCode") {
+      String value;
+      ar.read("value", value);
+      setCode(value);
+      return;
+    }
+
+    return Node::execute(ar);
+  }
 
   //write
-  virtual void write(Archive& ar) const override;
+  virtual void write(Archive& ar) const override
+  {
+      Node::write(ar);
+      ar.writeText("code", code);
+  }
 
   //read
-  virtual void read(Archive& ar) override;
+  virtual void read(Archive& ar) override
+  {
+      Node::read(ar);
+      ar.readText("code", code);
+  }
 
 private:
-
-#if VISUS_PYTHON
-  class MyJob;  
-  friend class MyJob;
-#endif
 
   String    code;
-
-  int max_publish_msec = 600;
-
-  struct
-  {
-    std::vector<String> keys;
-    std::vector<String> code;
-  }
-  presets;
-
-
-  DType     last_dtype;
-
   Position  node_bounds;
-
-#if VISUS_PYTHON
-  SharedPtr<PythonEngine> engine;
-#endif
-
-  //guessPresets
-  void guessPresets(Array data);
-
-  //modelChanged
-  virtual void modelChanged() override {
-    if (dataflow)
-      dataflow->needProcessInput(this);
-  }
-
 };
 
-
-////////////////////////////////////////////////////////////
-class VISUS_GUI_API ScriptingNodeBaseView : public  View<ScriptingNode>
-{
-public:
-
-  //constructor
-  ScriptingNodeBaseView() {
-  }
-
-  //destructor
-  virtual ~ScriptingNodeBaseView(){
-  }
-
-  //clearPresets
-  virtual void clearPresets() = 0;
-
-  //addPreset
-  virtual void addPreset(String key, String code) = 0;
-
-};
-
-
-/////////////////////////////////////////////////////////////////////////////////////
-class VISUS_GUI_API ScriptingNodeView :
-  public QFrame,
-  public ScriptingNodeBaseView
-{
-public:
-
-  VISUS_NON_COPYABLE_CLASS(ScriptingNodeView)
-
-    class VISUS_GUI_API Widgets
-  {
-  public:
-    QTextEdit* txtCode = nullptr;
-    QTextEdit* txtOutput = nullptr;
-    QToolButton* btnRun = nullptr;
-    QComboBox* presets = nullptr;
-  };
-
-  Widgets widgets;
-
-  //constructor
-  ScriptingNodeView(ScriptingNode* model = nullptr);
-
-  //destructor
-  virtual ~ScriptingNodeView();
-
-  //clearPresets
-  virtual void clearPresets() override {
-    widgets.presets->clear();
-  }
-
-  //addPreset
-  virtual void addPreset(String key, String code) override {
-    widgets.presets->addItem(key.c_str());
-  }
-
-  //see https://stackoverflow.com/questions/1956407/how-to-redirect-stderr-in-python-via-python-c-api
-
-
-  //bindModel
-  virtual void bindModel(ScriptingNode* model) override;
-
-private:
-
-#if VISUS_PYTHON
-  PyObject* __stdout__ = nullptr;
-  PyObject* __stderr__ = nullptr;
-#endif
-
-  QTimer     output_timer;
-
-  //refreshGui
-  void refreshGui()
-  {
-    widgets.txtOutput->setText("");
-    widgets.txtCode->setText(model->getCode().c_str());
-  }
-
-  //modelChanged
-  virtual void modelChanged() override {
-    refreshGui();
-  }
-
-  //flushOutputs
-  void flushOutputs();
-
-  //showEvent
-  virtual  void showEvent(QShowEvent*) override;
-
-  //hideEvent
-  virtual void hideEvent(QHideEvent*) override;
-
-};
 
 } //namespace Visus
 

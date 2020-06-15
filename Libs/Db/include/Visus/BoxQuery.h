@@ -170,6 +170,11 @@ public:
   void disableFilters() {
     this->filter.enabled = false;
   }
+  
+  //enableFilters
+  void enableFilters() {
+    this->filter.enabled = true;
+  }
 
 private:
 

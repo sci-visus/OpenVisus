@@ -135,10 +135,6 @@ public:
   //getTypeName
   virtual String getTypeName() const = 0;
 
-  //cloneclone
-  virtual SharedPtr<Dataset> clone() const = 0;
-
-
   //isServerMode
   bool isServerMode() const {
     return bServerMode;
@@ -237,11 +233,11 @@ public:
     addField(field.name, field);
   }
 
-  // getFieldByNameThrowEx
-  virtual Field getFieldByNameThrowEx(String name) const;
+  // getFieldEx
+  virtual Field getFieldEx(String name) const;
 
-  // getFieldByName
-  Field getFieldByName(String name) const;
+  // getField
+  Field getField(String name) const;
 
 public:
 
@@ -349,10 +345,14 @@ public:
   //read 
   virtual void read(Archive& ar) = 0;
 
-  //compressDataset
-  virtual bool compressDataset(String compression) {
+  //compressDataset (specify compression for each level)
+  virtual void compressDataset(std::vector<String> compression) {
     ThrowException("compression not enabled");
-    return false;
+  }
+
+  //compressDataset
+  void compressDataset(String compression) {
+    return compressDataset(std::vector<String>({compression}));
   }
 
   //getInnerDatasets
@@ -485,7 +485,6 @@ protected:
   int                     default_bitsperblock = 0;
 };
 
-
 ////////////////////////////////////////////////////////////////
 class VISUS_DB_API DatasetFactory
 {
@@ -495,38 +494,20 @@ public:
 
   typedef std::function< SharedPtr<Dataset>() > CreateInstance;
 
-  class VISUS_DB_API RegisteredDataset
-  {
-  public:
-    String TypeName;
-    CreateInstance createInstance;
-
-  };
-
   //registerDatasetType
-  void registerDatasetType(String TypeName, CreateInstance createInstance)
-  {
-    RegisteredDataset item;
-    item.TypeName = TypeName;
-    item.createInstance = createInstance;
-    v.push_back(item);
+  void registerDatasetType(String TypeName, CreateInstance createInstance) {
+    map[TypeName] = createInstance;
   }
 
   //createInstance
   SharedPtr<Dataset> createInstance(String TypeName) {
-    if (TypeName.empty())
-      return SharedPtr<Dataset>();
-
-    for (const auto& it : v) {
-      if (it.TypeName == TypeName)
-        return it.createInstance();
-    }
-    return SharedPtr<Dataset>();
+    auto it = map.find(TypeName);
+    return it == map.end() ? SharedPtr<Dataset>() : it->second();
   }
 
 private:
 
-  std::vector<RegisteredDataset> v;
+  std::map<String, CreateInstance> map;
 
   DatasetFactory(){}
 

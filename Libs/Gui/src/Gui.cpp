@@ -81,13 +81,6 @@ namespace Visus {
 
 bool GuiModule::bAttached = false;
 
-
-//////////////////////////////////////////////
-void GuiModule::execApplication()
-{
-  QApplication::exec();
-}
-
 static bool bOwnedApp = false;
 
 //////////////////////////////////////////////

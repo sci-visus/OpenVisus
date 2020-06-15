@@ -70,11 +70,16 @@ Type:
 
 ```
 python -m pip install --no-cache-dir --upgrade --force-reinstall OpenVisus
+
+# append "--user" in case of permission problems
 python -m OpenVisus configure 
+
 python -m OpenVisus viewer
 ```
 
 Also give a look to [quick_tour](https://github.com/sci-visus/OpenVisus/blob/master/quick_tour.ipynb)
+
+NOTE For Linux sometimes you have to install libraries (example: `sudo apt-get install python3.6 libpython3/6`)
 
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## Conda distribution
@@ -101,7 +106,17 @@ git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 mkdir build
 cd build
-cmake -DVISUS_PYTHON=0 -DVISUS_NET=0 -DVISUS_IMAGE=0 -DVISUS_GUI=0 -DVISUS_MODVISUS=0 ../
+cmake \
+   -DVISUS_NET=0 \
+   -DVISUS_IMAGE=0 \
+   -DVISUS_PYTHON=0 \
+   -DVISUS_GUI=0 \
+   -DVISUS_XIDX=0 \
+   -DVISUS_DATAFLOW=0 \
+   -DVISUS_MODVISUS=0 \
+   -DVISUS_SLAM=0 \
+   -DVISUS_OSPRAY=0
+   ../
 
 # replace all with ALL_BUILD on Windows
 cmake --build ./ --target all --config Release --parallel 4 
@@ -135,9 +150,10 @@ mkdir build
 cd build
 cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR=%Qt5_DIR% -DPython_EXECUTABLE=%Python_EXECUTABLE% ../ 
 cmake --build . --target ALL_BUILD --config Release
+cmake --build . --target INSTALL   --config Release
 
 set PYTHON_PATH=.\Release
-python -m OpenVisus configure
+python -m OpenVisus configure --user
 python -m OpenVisus viewer
 ```
 
@@ -173,10 +189,11 @@ mkdir build
 cd build
 
 cmake -GXcode -DPython_ROOT_DIR=${Python_ROOT_DIR} -DQt5_DIR=${Qt5_DIR} ../
-cmake --build ./ --target all --config Release --parallel 4 
+cmake --build ./ --target all     --config Release --parallel 4 
+cmake --build ./ --target install --config Release
 
 export PYTHONPATH=$(pwd)/Release
-python -m OpenVisus configure
+python -m OpenVisus configure --user
 python -m OpenVisus viewer
 ```
 
@@ -244,12 +261,13 @@ mkdir build
 cd build
 
 cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} ../
-cmake --build ./ --target all --config Release --parallel 4 
+cmake --build ./ --target all     --config Release --parallel 4 
+cmake --build ./ --target install --config Release
 
 python -m pip install --upgrade pip
 
 export PYTHONPATH=./Release
-python -m OpenVisus configure
+python -m OpenVisus configure --user
 python -m OpenVisus viewer
 ``
 
@@ -259,7 +277,7 @@ python -m OpenVisus viewer
 Type:
 
 ```
-TAG=$(python Libs/Kernel/setup.py new-tag) && echo ${TAG}
+TAG=$(python Libs/swig/setup.py new-tag) && echo ${TAG}
 git commit -a -m "New tag" && git tag -a $TAG -m "$TAG" && git push origin $TAG && git push origin
 ```
 

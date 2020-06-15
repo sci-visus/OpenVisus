@@ -43,53 +43,51 @@ For support : support@visus.net
 namespace Visus {
 
 ///////////////////////////////////////////////////////
-MultiplexAccess::MultiplexAccess(Dataset* dataset,StringTree config) 
+MultiplexAccess::MultiplexAccess(Dataset* dataset, StringTree config)
 {
-  String chmod=config.readString("chmod","rw");
-
-  this->name=config.readString("name");
-  this->dataset        = dataset; //i need to create new BlockQuery
-  this->can_read       = true;
-  this->can_write      = false; 
-  this->bitsperblock   = 0;
+  this->name = config.readString("name");
+  this->dataset = dataset; //i need to create new BlockQuery
+  this->can_read = true;
+  this->can_write = false;
+  this->bitsperblock = 0;
 
   for (auto child_config : config.childs)
   {
-    if (child_config->name!="access")
+    if (child_config->name != "access")
       continue;
 
-    auto child=dataset->createAccess(*child_config);
+    auto child = dataset->createAccess(*child_config);
     if (!child)
       ThrowException("wrong child access");
 
     this->addChild(child);
   }
-  
+
   //NOTE: 
   //I must use a thread because Access class are not thread-enabled
   //so I need to make sure that readBlock/writeBlock are called from the same thread 
   //Counter-example: writeBlock for caching could happen in a diffeent thread 
 
-  this->thread=Thread::start("Multiplex thread",[this]() {
+  this->thread = Thread::start("Multiplex thread", [this]() {
     runInBackground();
   });
 }
 
 ///////////////////////////////////////////////////////
-MultiplexAccess::~MultiplexAccess() 
+MultiplexAccess::~MultiplexAccess()
 {
   //safe exit
   bExit = true;
   something_happened.up();
   Thread::join(this->thread);
-  
+
 }
 
 ///////////////////////////////////////////////////////
 void MultiplexAccess::addChild(SharedPtr<Access> child)
 {
-  int bpb=child->bitsperblock;
-  this->bitsperblock=(dw_access.empty())? bpb : std::min(this->bitsperblock,bpb) ;
+  int bpb = child->bitsperblock;
+  this->bitsperblock = (dw_access.empty()) ? bpb : std::min(this->bitsperblock, bpb);
   this->dw_access.push_back(SharedPtr<Access>(child));
 
 }
@@ -97,12 +95,12 @@ void MultiplexAccess::addChild(SharedPtr<Access> child)
 ///////////////////////////////////////////////////////
 void MultiplexAccess::printStatistics()
 {
-  PrintInfo("type","MultiplexAccess");
+  PrintInfo("type", "MultiplexAccess");
 
   Access::printStatistics();
 
-  PrintInfo("nchilds",dw_access.size());
-  for (int i=0;i<(int)dw_access.size();i++) 
+  PrintInfo("nchilds", dw_access.size());
+  for (int i = 0; i < (int)dw_access.size(); i++)
     dw_access[i]->printStatistics();
 }
 
@@ -136,7 +134,7 @@ void MultiplexAccess::scheduleOp(int mode, int index, SharedPtr<BlockQuery> up_q
   }
 
   auto dw_query = std::make_shared<BlockQuery>(dataset, up_query->field, up_query->time, up_query->start_address, up_query->end_address, mode, up_query->aborted);
-  VisusAssert(dw_query->getNumberOfSamples() ==up_query->getNumberOfSamples());
+  VisusAssert(dw_query->getNumberOfSamples() == up_query->getNumberOfSamples());
   VisusAssert(dw_query->logic_samples == up_query->logic_samples);
   dw_query->buffer = up_query->buffer;
 
@@ -152,36 +150,6 @@ void MultiplexAccess::scheduleOp(int mode, int index, SharedPtr<BlockQuery> up_q
   }
 }
 
-///////////////////////////////////////////////////////
-std::vector<String> MultiplexAccess::getNextMode(std::vector<Pending>& pendings)
-{
-  int N = (int)dw_access.size();
-
-  std::vector<bool> bRead (N, false);
-  std::vector<bool> bWrite(N, false);
-
-  for (int I = 0; I < pendings.size(); I++)
-  {
-    auto index    = pendings[I].index; VisusAssert(isGoodIndex(index));
-    auto up_query = pendings[I].up_query;
-    auto mode     = pendings[I].dw_query->mode;    
-    
-    VisusAssert(mode == 'r' || mode == 'w');
-    if (mode == 'r')
-      bRead[index] = true;
-    else
-      bWrite[index] = true;
-  }
-
-  std::vector<String> ret(N);
-  for (int index = 0; index < N; index++)
-  {
-    if (bRead[index] || bWrite[index])
-      ret[index]= concatenate(bRead[index] ? "r" : "",bWrite[index] ? "w" : "");
-  }
-
-  return ret;
-}
 
 ///////////////////////////////////////////////////////
 void MultiplexAccess::runInBackground()
@@ -211,34 +179,38 @@ void MultiplexAccess::runInBackground()
       break;
     }
 
-    auto new_modes = getNextMode(pendings);
+    std::vector<int> new_modes(dw_access.size(), 0);
+    for (auto pending : pendings)
+    {
+      VisusAssert(isGoodIndex(pending.index));
+      new_modes[pending.index] = pending.dw_query->mode;
+    }
 
-    int N = (int)dw_access.size();
-    for (int index = 0; index < N; index++)
+    for (int index = 0; index < (int)dw_access.size(); index++)
     {
       auto cur_mode = dw_access[index]->getMode();
       auto new_mode = new_modes[index];
 
-      if (new_mode == cur_mode)
-        continue;
+      if (new_mode != cur_mode)
+      {
+        if (cur_mode)
+          dw_access[index]->endIO();
 
-      if (!cur_mode.empty())
-        dw_access[index]->endIO();
-
-      if (!new_mode.empty())
-        dw_access[index]->beginIO(new_mode);
+        if (new_mode)
+          dw_access[index]->beginIO(new_mode);
+      }
     }
 
     for (auto it : pendings)
     {
-      auto index    = it.index;
+      auto index = it.index;
       auto up_query = it.up_query;
       auto dw_query = it.dw_query;
 
       //need to read
       if (dw_query->mode == 'r')
       {
-        dataset->executeBlockQuery(dw_access[index],dw_query).when_ready([this, up_query, dw_query, index](Void)
+        dataset->executeBlockQuery(dw_access[index], dw_query).when_ready([this, up_query, dw_query, index](Void)
         {
           //if fails try the next index
           if (dw_query->failed())
@@ -266,7 +238,7 @@ void MultiplexAccess::runInBackground()
         VisusAssert(dw_query->mode == 'w');
 
         //if fails or not I don't care, I try to cache to upper levels anyway
-        dataset->executeBlockQuery(dw_access[index],dw_query).when_ready([this, up_query, dw_query, index](Void) {
+        dataset->executeBlockQuery(dw_access[index], dw_query).when_ready([this, up_query, dw_query, index](Void) {
           scheduleOp('w', index - 1, up_query);
         });
       }
@@ -279,20 +251,23 @@ void MultiplexAccess::runInBackground()
       pendings = this->pendings;
     }
 
-    new_modes = getNextMode(pendings);
-    for (int index = 0; index < N; index++)
+    new_modes = std::vector<int>(dw_access.size(), 0);
+    for (auto pending : pendings)
+    {
+      VisusAssert(isGoodIndex(pending.index));
+      new_modes[pending.index] = pending.dw_query->mode;
+    }
+
+    for (int index = 0; index < (int)dw_access.size(); index++)
     {
       auto cur_mode = dw_access[index]->getMode();
       auto new_mode = new_modes[index];
 
-      if (new_mode.empty()) {
-        if (!cur_mode.empty())
-          dw_access[index]->endIO();
-      }
+      if (!new_mode && cur_mode)
+        dw_access[index]->endIO();
     }
   }
 }
-
 
 } //namespace Visus 
 

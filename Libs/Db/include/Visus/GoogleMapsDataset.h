@@ -50,6 +50,8 @@ class VISUS_DB_API GoogleMapsDataset : public Dataset
 {
 public:
 
+  VISUS_NON_COPYABLE_CLASS(GoogleMapsDataset)
+
   String           tiles;
   DType            dtype;
   Int64            tile_width=0;
@@ -70,13 +72,6 @@ public:
     return "GoogleMapsDataset";
   }
 
-  //clone
-  virtual SharedPtr<Dataset> clone() const override {
-    auto ret = std::make_shared<GoogleMapsDataset>();
-    *ret = *this;
-    return ret;
-  }
-
   //getTileCoordinate
   Point3i getTileCoordinate(BigInt start_address,BigInt end_address);
 
@@ -84,12 +79,6 @@ public:
 
   //read 
   virtual void read(Archive& ar) override;
-
-  //compressDataset
-  virtual bool compressDataset(String compression) override {
-    ThrowException("compress not supported");
-    return false;
-  }
 
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;

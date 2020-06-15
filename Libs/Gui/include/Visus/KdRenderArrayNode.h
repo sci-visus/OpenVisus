@@ -89,6 +89,9 @@ public:
   //glRender
   virtual void glRender(GLCanvas& gl) override;
 
+  //createEditor
+  virtual void createEditor();
+
 public:
 
   //shaders

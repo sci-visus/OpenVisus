@@ -5,7 +5,7 @@ set -x  # very verbose
 
 PYTHON_VERSION=${PYTHON_VERSION:-3.6}
 Python_EXECUTABLE=$(which python${PYTHON_VERSION})
-Qt5_DIR=${Qt5_DIR:-/opt/qt59}
+Qt5_DIR=${Qt5_DIR:-/opt/qt512}
 
 ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow jupyter matplotlib --upgrade 1>/dev/null || true
 
@@ -14,6 +14,7 @@ cd build
 
 cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} ../
 cmake --build ./ --target all     --config Release --parallel 4
+cmake --build ./ --target install --config Release
 
 cd Release/OpenVisus
 

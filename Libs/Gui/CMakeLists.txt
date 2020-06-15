@@ -10,28 +10,17 @@ if (VISUS_OSPRAY)
 endif()
 
 SET(RootSources
-	./PyScriptingNode.py
-	./PyViewer.py
-	./include/Visus/FreeTransform.h
-	./src/FreeTransform.cpp
-	./include/Visus/Viewer.h
-	./src/Viewer.cpp
-	./src/Viewer.OpenGL.cpp
-	./src/Viewer.Net.cpp
-	./src/Viewer.Gui.cpp
-	./include/Visus/Gui.h
-	./src/Gui.cpp
-	./resources/Gui.qrc
-)
+	./include/Visus/FreeTransform.h ./src/FreeTransform.cpp
+	./include/Visus/Viewer.h        ./src/Viewer.cpp ./src/Viewer.OpenGL.cpp ./src/Viewer.Net.cpp ./src/Viewer.Gui.cpp ./include/Visus/Gui.h ./src/Gui.cpp
+	./resources/Gui.qrc)
 
 
 file(GLOB OpenGLSources include/Visus/GL*.h src/GL*.cpp resources/GL*)
 file(GLOB QtSources include/Visus/QCanvas2d.h include/Visus/QDoubleSlider.h include/Visus/GuiFactory.h)
 
 set(NodeSources
-	./include/Visus/GLCameraNode.h
+	./include/Visus/GLCameraNode.h 
 	./include/Visus/GLCameraNodeView.h
-	./src/GLCameraNode.cpp       
 	./src/IsoContourNode.cpp    
 	./include/Visus/JTreeRenderNode.h 
 	./include/Visus/JTreeRenderNodeView.h   
@@ -72,7 +61,6 @@ set(ViewerSources
 	./include/Visus/Viewer.h
 	./include/Visus/FreeTransform.h
 	./src/FreeTransform.cpp
-
 	./include/Visus/ArrayStatisticsView.h
 	./include/Visus/HistogramView.h
 	./include/Visus/CpuTransferFunctionNodeView.h
@@ -96,14 +84,14 @@ source_group("Viewer"  FILES ${ViewerSources})
 source_group("Qt"      FILES ${QtSources})
 source_group("OpenGL"  FILES ${OpenGLSources})
 
+file(GLOB Sources include/Visus/*.h src/*.cpp resources/*.glsl resources/*.qrc)
 
-file(GLOB Sources *.py include/Visus/*.h include/Visus/*.i src/*.cpp resources/*.glsl resources/*.qrc)
 add_library(VisusGui SHARED ${Sources})
+
 target_compile_definitions(VisusGui  PRIVATE VISUS_BUILDING_VISUSGUI=1)
 target_compile_definitions(VisusGui  PRIVATE VISUS_OPENGL_ES=0)
 target_include_directories(VisusGui  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-option(VISUS_OSPRAY "Enable ospray" OFF)
 if (VISUS_OSPRAY)
 	target_compile_definitions(VisusGui PUBLIC -DVISUS_OSPRAY=1)
 	target_link_libraries(VisusGui PUBLIC ospray::ospray ospcommon::ospcommon)
@@ -115,24 +103,22 @@ target_link_libraries(VisusGui PUBLIC Qt5::Core Qt5::Widgets Qt5::Gui Qt5::OpenG
 if (WIN32)
 	target_link_libraries(VisusGui PUBLIC opengl32.lib glu32.lib)
 elseif (APPLE)
-	target_link_libraries(VisusGui PUBLIC "-framework OpenGL" "-framework AGL")
+	target_link_libraries(VisusGui PUBLIC 
+		"-framework OpenGL" 
+		"-framework AGL"
+		"-framework AppKit" 
+		"-framework IOKit"
+		"-framework CoreAudio" 
+		"-framework CoreMIDI" 
+		"-framework QuartzCore" 
+		"-framework AudioToolbox")
+	
 else() 
 	target_link_libraries(VisusGui PUBLIC GL GLU X11)
 endif()
 
 set_target_properties(VisusGui PROPERTIES FOLDER "")
 
-CopyToBinaryDirectory(TARGET VisusGui DIRECTORY ./include/Visus    DESTINATION ./include/Gui/Visus)
-CopyToBinaryDirectory(TARGET VisusGui FILES PyScriptingNode.py     DESTINATION ./)
-CopyToBinaryDirectory(TARGET VisusGui FILES PyViewer.py            DESTINATION ./)
 
-set(SwigFile ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiPy.i)
-set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
-set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include")
-set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include")
-set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Idx/include")
-set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Nodes/include")
-set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Gui/include")
-set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/include")
-AddSwigLibrary(VisusGuiPy VisusGui ${SwigFile})
+
 

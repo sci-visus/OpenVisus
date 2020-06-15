@@ -40,6 +40,7 @@ For support : support@visus.net
 #define __VISUS_GL_INFO_H
 
 #include <Visus/Gui.h>
+#include <Visus/CriticalSection.h>
 
 namespace Visus {
 

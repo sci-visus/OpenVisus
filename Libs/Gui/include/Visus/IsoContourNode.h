@@ -132,6 +132,9 @@ public:
     setProperty("SetIsoValue", this->isovalue, value);
   }
 
+  //createEditor
+  virtual void createEditor();
+
 public:
 
   //execute
@@ -163,88 +166,6 @@ private:
 }; //end class
 
 
-/////////////////////////////////////////////////////////
-class VISUS_GUI_API IsoContourNodeView :
-  public QFrame,
-  public View<IsoContourNode>
-{
-public:
-
-  VISUS_NON_COPYABLE_CLASS(IsoContourNodeView)
-
-    //_______________________________________________________
-    class Widgets
-  {
-  public:
-    QDoubleSlider* slider = nullptr;
-    QLabel* data_min = nullptr;
-    QLabel* data_max = nullptr;
-    QLabel* value = nullptr;
-  };
-
-  Widgets widgets;
-
-  //constructor
-  IsoContourNodeView(IsoContourNode* model) {
-    bindModel(model);
-  }
-
-  //destructor
-  virtual ~IsoContourNodeView()
-  {
-    bindModel(nullptr);
-  }
-
-  //bindModel
-  virtual void bindModel(IsoContourNode* value) override
-  {
-    if (this->model)
-    {
-      QUtils::clearQWidget(this);
-      widgets = Widgets();
-    }
-
-    View<ModelClass>::bindModel(value);
-
-    if (this->model)
-    {
-      QFormLayout* layout = new QFormLayout();
-
-      layout->addRow("Isovalue", widgets.slider = GuiFactory::CreateDoubleSliderWidget(0, Range(0, 1, 0), [this](double value) {
-        model->setIsoValue(value);
-      }));
-
-      layout->addRow("Value", widgets.value = new QLabel("0.0"));
-      layout->addRow("From", widgets.data_min = new QLabel("0.0"));
-      layout->addRow("To", widgets.data_max = new QLabel("0.0"));
-
-      setLayout(layout);
-      refreshGui();
-    }
-  }
-
-private:
-
-  //refreshGui
-  void refreshGui()
-  {
-    Range range = model->getLastFieldRange();
-    if (!range.delta())
-      range = Range::numeric_limits<double>();
-
-    widgets.slider->setRange(range);
-    widgets.slider->setValue(model->getIsoValue());
-    widgets.value->setText(cstring(model->getIsoValue()).c_str());
-    widgets.data_min->setText(cstring(range.from).c_str());
-    widgets.data_max->setText(cstring(range.to).c_str());
-  }
-
-  //modelChanged
-  virtual void modelChanged() override {
-    refreshGui();
-  }
-
-};
 
 } //namespace Visus
 

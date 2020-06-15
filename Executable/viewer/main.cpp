@@ -37,25 +37,28 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/Viewer.h>
-#include <Visus/ApplicationInfo.h>
 #include <Visus/ModVisus.h>
+#include <Visus/Path.h>
+#include <Visus/Python.h>
 
 ////////////////////////////////////////////////////////////////////////
 int main(int argn,const char* argv[])
 {
   using namespace Visus;
-
   SetCommandLine(argn, argv);
   GuiModule::attach();
 
+  InitEmbeddedPython(argn, argv, KnownPaths::BinaryDirectory.toString() + "/../..", {"from OpenVisus import *", "from OpenVisus.gui import *"});
+
   {
-    UniquePtr<Viewer> viewer(new Viewer());
-    auto args = std::vector<String>(ApplicationInfo::args.begin() + 1, ApplicationInfo::args.end());
+    auto viewer=std::make_shared<Viewer>();
+    auto args = std::vector<String>(CommandLine::args.begin() + 1, CommandLine::args.end());
     viewer->configureFromArgs(args);
-    GuiModule::execApplication();
+    QApplication::exec();
   }
 
   GuiModule::detach();
+  ShutdownEmbeddedPython();
   return 0;
 }
 

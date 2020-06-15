@@ -36,8 +36,6 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#if 0
-
 #include <Visus/Kernel.h>
 #include <Visus/Dataflow.h>
 #include <Visus/DatasetNode.h>
@@ -218,7 +216,7 @@ public:
       render_node->setName("KdRender");
       this->dataflow->addNode(render_node);
       this->dataflow->connectNodes(dataset_node,query_node);
-      this->dataflow->connectNodes(query_node,"array",render_node);
+      this->dataflow->connectNodes(query_node,"kdarray",render_node);
     }
     else
     { 
@@ -228,7 +226,7 @@ public:
       render_node->setName("Render Node");
       this->dataflow->addNode(render_node);
       this->dataflow->connectNodes(dataset_node,query_node);
-      this->dataflow->connectNodes(query_node,"kdarray",render_node);
+      this->dataflow->connectNodes(query_node,"array",render_node);
     }
 
     this->query_node->setAccessIndex(0);
@@ -291,7 +289,7 @@ int main(int argn,const char* argv[])
     auto win = new DavidWindow();
     win->resize(1024, 768);
     win->show();
-    GuiModule::execApplication();
+    QApplication::exec();
     delete win;
   }
   
@@ -299,6 +297,3 @@ int main(int argn,const char* argv[])
 
   return 0;
 }
-
-
-#endif

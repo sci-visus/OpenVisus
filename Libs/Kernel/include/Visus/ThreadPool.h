@@ -45,9 +45,31 @@ For support : support@visus.net
 #include <vector>
 #include <set>
 #include <deque>
+#include <atomic>
 
 namespace Visus {
 
+////////////////////////////////////////////////////////
+class VISUS_KERNEL_API ThreadPoolGlobalStats
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(ThreadPoolGlobalStats)
+
+#if !SWIG
+  std::atomic<Int64> running_jobs;
+#endif
+
+  //constructor
+  ThreadPoolGlobalStats() : running_jobs(0) {
+  }
+
+  //getNumRunningJobs
+  Int64 getNumRunningJobs() {
+    return running_jobs;
+  }
+
+};
 
 ////////////////////////////////////////////////////////
 class VISUS_KERNEL_API ThreadPool
@@ -55,6 +77,12 @@ class VISUS_KERNEL_API ThreadPool
 public:
 
   VISUS_NON_COPYABLE_CLASS(ThreadPool)
+
+  //global_stats
+  static ThreadPoolGlobalStats* global_stats() {
+    static ThreadPoolGlobalStats ret;
+    return &ret;
+  }
 
   //constructor
   ThreadPool(String basename,int num_workers);

@@ -195,6 +195,10 @@ public:
     height = fabs(p2[1] - p1[1]);
   }
 
+  //destructor
+  ~Rectangle2d() {
+  }
+
   //fromString
   static Rectangle2d fromString(String s) {
     Rectangle2d ret;

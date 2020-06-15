@@ -48,8 +48,8 @@ ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_)
   : config(config_)
 {
   this->name = "ModVisusAccess";
-  this->can_read = StringUtils::find(config.readString("chmod", "rw"), "r") >= 0;
-  this->can_write = StringUtils::find(config.readString("chmod", "rw"), "w") >= 0;
+  this->can_read  = StringUtils::find(config.readString("chmod", DefaultChMod), "r") >= 0;
+  this->can_write = StringUtils::find(config.readString("chmod", DefaultChMod), "w") >= 0;
   this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
   this->url = config.readString("url", dataset->getUrl()); VisusAssert(url.valid());
   this->compression = config.readString("compression", url.getParam("compression", "zip"));  //TODO: should I swith to lz4?

@@ -259,5 +259,48 @@ void IsoContourRenderNode::read(Archive& ar)
   //NOTE: the palette is a runtime value, and is not part of the model
 }
 
+/////////////////////////////////////////////////////////
+class IsoContourRenderNodeView :
+  public QFrame,
+  public View<IsoContourRenderNode>
+{
+public:
+
+  //constructor
+  IsoContourRenderNodeView(IsoContourRenderNode* model) {
+    bindModel(model);
+  }
+
+  //destructor
+  virtual ~IsoContourRenderNodeView() {
+    bindModel(nullptr);
+  }
+
+  //bindModel
+  virtual void bindModel(IsoContourRenderNode* model) override
+  {
+    if (this->model)
+    {
+      QUtils::clearQWidget(this);
+    }
+
+    View<ModelClass>::bindModel(model);
+
+    if (this->model)
+    {
+      auto layout = new QVBoxLayout();
+      layout->addWidget(GuiFactory::CreateGLMaterialView(model->getMaterial(), [model](GLMaterial value) {model->setMaterial(value); }));
+      setLayout(layout);
+    }
+  }
+
+};
+
+void IsoContourRenderNode::createEditor()
+{
+  auto win = new IsoContourRenderNodeView(this);
+  win->show();
+}
+
 
 } //namespace Visus

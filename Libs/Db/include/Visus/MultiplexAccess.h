@@ -113,9 +113,6 @@ private:
   //runInBackground
   void runInBackground();
 
-  //getNextMode
-  std::vector<String> getNextMode(std::vector<Pending>& pendings);
-
 
 };
 

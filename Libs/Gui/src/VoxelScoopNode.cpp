@@ -1113,5 +1113,113 @@ void VoxelScoopNode::read(Archive& ar)
   ar.read("min_diam", min_diam);
 }
 
+/////////////////////////////////////////////////////////
+class VoxelScoopNodeView :
+  public QFrame,
+  public View<VoxelScoopNode>
+{
+public:
+
+  //constructor
+  VoxelScoopNodeView(VoxelScoopNode* model = nullptr) {
+    if (model)
+      bindModel(model);
+  }
+
+  //destructor
+  virtual ~VoxelScoopNodeView() {
+    bindModel(nullptr);
+  }
+
+  //bindModel
+  virtual void bindModel(VoxelScoopNode* value) override
+  {
+    if (this->model)
+    {
+      QUtils::clearQWidget(this);
+      widgets = Widgets();
+    }
+
+    View<ModelClass>::bindModel(value);
+
+    if (this->model)
+    {
+      QFormLayout* layout = new QFormLayout();
+
+      layout->addRow("simplify", widgets.simplify = GuiFactory::CreateCheckBox(model->doSimplify(), "", [this](int value) {
+        model->setSimplify((bool)value);
+      }));
+
+      layout->addRow("min_length", widgets.min_length = GuiFactory::CreateDoubleTextBoxWidget(model->getMinLength(), [this](double value) {
+        model->setMinLength(value);
+      }));
+
+      layout->addRow("min_ratio", widgets.min_ratio = GuiFactory::CreateDoubleTextBoxWidget(model->getMinRatio(), [this](double value) {
+        model->setMinRatio(value);
+      }));
+
+      layout->addRow("threshold", widgets.threshold = GuiFactory::CreateDoubleTextBoxWidget(model->getThreshold(), [this](double value) {
+        model->setThreshold(value);
+      }));
+
+      layout->addRow("use_minima_as_seed", widgets.use_minima_as_seed = GuiFactory::CreateCheckBox(model->useMinimaAsSeed(), "", [this](int value) {
+        model->setUseMinimaAsSeed((bool)value);
+      }));
+
+      layout->addRow("use_maxima_as_seed", widgets.use_maxima_as_seed = GuiFactory::CreateCheckBox(model->useMaximaAsSeed(), "", [this](int value) {
+        model->setUseMaximaAsSeed((bool)value);
+      }));
+
+      layout->addRow("min_diam", widgets.min_diam = GuiFactory::CreateDoubleTextBoxWidget(model->getMinDiam(), [this](double value) {
+        model->setMinDiam(value);
+      }));
+
+      setLayout(layout);
+      refreshGui();
+    }
+  }
+
+private:
+
+  class Widgets
+  {
+  public:
+    QCheckBox* simplify = nullptr;
+    QLineEdit* min_length = nullptr;
+    QLineEdit* min_ratio = nullptr;
+    QLineEdit* threshold = nullptr;
+    QCheckBox* use_minima_as_seed = nullptr;
+    QCheckBox* use_maxima_as_seed = nullptr;
+    QLineEdit* min_diam = nullptr;
+  };
+
+  Widgets widgets;
+
+  ///refreshGui
+  void refreshGui()
+  {
+    widgets.simplify->setChecked(model->doSimplify());
+    widgets.min_length->setText(cstring(model->getMinLength()).c_str());
+    widgets.min_ratio->setText(cstring(model->getMinRatio()).c_str());
+    widgets.threshold->setText(cstring(model->getThreshold()).c_str());
+    widgets.use_minima_as_seed->setChecked(model->useMinimaAsSeed());
+    widgets.use_maxima_as_seed->setChecked(model->useMaximaAsSeed());
+    widgets.min_diam->setText(cstring(model->getMinDiam()).c_str());
+  }
+
+  //modelChanged
+  virtual void modelChanged() override {
+    refreshGui();
+  }
+
+};
+
+void VoxelScoopNode::createEditor()
+{
+  auto win = new VoxelScoopNodeView(this);
+  win->show();
+}
+
+
 } //namespace Visus
 

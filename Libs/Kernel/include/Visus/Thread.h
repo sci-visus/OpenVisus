@@ -43,7 +43,6 @@ For support : support@visus.net
 #include <Visus/Aborted.h>
 #include <Visus/Semaphore.h>
 #include <Visus/CriticalSection.h>
-#include <Visus/ApplicationStats.h>
 
 #include <thread>
 #include <atomic>
@@ -54,11 +53,40 @@ For support : support@visus.net
 
 namespace Visus {
 
+  //////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API ThreadGlobalStats
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(ThreadGlobalStats)
+
+#if !SWIG
+  std::atomic<Int64> running_threads;
+#endif
+
+  //constructor
+  ThreadGlobalStats() : running_threads(0){
+  }
+
+  //getNumRunningThreads
+  Int64 getNumRunningThreads() {
+    return running_threads;
+  }
+
+
+};
+
 
   //////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API Thread 
 {
 public:
+
+  //global_stats
+  static ThreadGlobalStats* global_stats() {
+    static ThreadGlobalStats ret;
+    return &ret;
+  }
 
   // start
   static SharedPtr<std::thread> start(String name,std::function<void()> entry_proc);
