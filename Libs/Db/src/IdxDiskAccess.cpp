@@ -1010,6 +1010,9 @@ String IdxDiskAccess::getFilename(Field field,double time,BigInt blockid) const
 ////////////////////////////////////////////////////////////////////
 void IdxDiskAccess::beginIO(int mode) 
 {
+  if (async_tpool)
+    async_tpool->waitAll();
+
   Access::beginIO(mode);
   if (!isWriting() && async_tpool)
   {
@@ -1030,14 +1033,18 @@ void IdxDiskAccess::endIO()
   {
     ThreadPool::push(async_tpool, [this]() {
       async->endIO();
-      Access::endIO();
     });
+    async_tpool->waitAll();
   }
   else
   {
     sync->endIO();
-    Access::endIO();
   }
+
+  if (async_tpool)
+    async_tpool->waitAll();
+
+  Access::endIO();
 }
 
 ////////////////////////////////////////////////////////////////////

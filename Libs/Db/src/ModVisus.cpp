@@ -565,12 +565,12 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
   //I apply the filter on server side only for the first coarse query (more data need to be processed on client side)
   if (fromh == 0 && !bDisableFilters)
   {
-    query->filter.enabled = true;
+    query->enableFilters();
     query->filter.domain = (bKdBoxQuery ? dataset->getBitmask().getPow2Box() : dataset->getLogicBox());
   }
   else
   {
-    query->filter.enabled = false;
+    query->disableFilters();
   }
 
   query->logic_box = BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box"));

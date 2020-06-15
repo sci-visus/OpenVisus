@@ -80,16 +80,7 @@ For support : support@visus.net
 #define PimplStat ::stat
 #endif
 
-#ifndef S_ISREG
-#  define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
-#endif
-
-#ifndef S_ISDIR
-#  define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
-#endif
-
 namespace Visus {
-
 
 /////////////////////////////////////////////////////////////////////////
 #ifdef WIN32
@@ -104,6 +95,7 @@ static String Win32FormatErrorMessage(DWORD ErrorCode)
   return ret;
 }
 #endif
+
 
 /////////////////////////////////////////////////////////////////////////
 class PosixFile : public File::Pimpl
@@ -147,7 +139,7 @@ public:
     bool bMustCreate = options & File::MustCreateFile;
 
     int imode = O_BINARY;
-    if (bRead && bWrite) imode |= O_RDWR;
+    if      (bRead && bWrite) imode |= O_RDWR;
     else if (bRead)           imode |= O_RDONLY;
     else if (bWrite)          imode |= O_WRONLY;
     else  VisusAssert(false);
@@ -779,10 +771,10 @@ bool File::open(String filename, String file_mode, Options options)
   close();
 
 #if WIN32
-  //don't see any advantage using Win32File
+   //NOTE fopen/fclose is even slower than _open/_close
   pimpl.reset(new PosixFile());
-  //pimpl.reset(new Win32File());
-  //pimpl.reset(new MemoryMappedFile());
+  //pimpl.reset(new Win32File()); //don't see any advantage using Win32File
+  //pimpl.reset(new MemoryMappedFile()); THIS IS THE SLOWEST
 #else
   pimpl.reset(new PosixFile());
   //pimpl.reset(new MemoryMappedFile());
@@ -812,6 +804,10 @@ bool FileUtils::existsDirectory(Path path)
   if (PimplStat(fullpath.c_str(), &status) != 0)
     return false;
 
+#ifndef S_ISDIR
+#  define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#endif
+
   if (!S_ISDIR(status.st_mode))
     return false;
 
@@ -832,6 +828,10 @@ bool FileUtils::existsFile(Path path)
     return false;
 
   //TODO: probably here i need to specific test if it's a regular file or symbolic link
+#ifndef S_ISREG
+#  define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#endif
+
   if (!S_ISREG(status.st_mode))
     return false;
 
@@ -941,7 +941,6 @@ bool FileUtils::touch(Path path)
   return file.createAndOpen(path.toString(), "rw");
 }
 
-
 /////////////////////////////////////////////////////////////////////////
 void FileUtils::lock(Path path)
 {
@@ -997,8 +996,6 @@ void FileUtils::unlock(Path path)
   if (!bRemoved)
     ThrowException("cannot remove lock file",lock_filename);
 }
-
-
 
 /////////////////////////////////////////////////////////////////////////
 bool FileUtils::copyFile(String src_filename, String dst_filename, bool bFailIfExist)
@@ -1063,6 +1060,5 @@ bool FileUtils::createLink(String existing_file, String new_file)
   return symlink(existing_file.c_str(), new_file.c_str()) == 0;
 #endif
 }
-
 
 } //namespace Visus

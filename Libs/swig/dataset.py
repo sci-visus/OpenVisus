@@ -44,7 +44,7 @@ def CreateIdx(**args):
 		idx.blocksperfile=int(args["blocksperfile"])
 		
 	# is the user specifying filters?
-	if "filters" in args:
+	if "filters" in args and args["filters"]:
 		filters=args["filters"]
 		for I in range(idx.fields.size()):
 			idx.fields[I].filter=filters[I]
@@ -190,6 +190,8 @@ class PyDataset(object):
 		
 		if disable_filters:
 			query.disableFilters()
+		else:
+			query.enableFilters()
 		
 		if logic_box is None:
 			logic_box=self.getLogicBox(x,y,z)
@@ -219,21 +221,30 @@ class PyDataset(object):
 		if not access:
 			access=self.db.createAccess()
 			
-		while query.isRunning():
-
+		def NoGenerator():
 			if not self.db.executeQuery(access, query):
 				raise Exception("query error {0}".format(query.getLastErrorMsg()))
-				
 			# i cannot be sure how the numpy will be used outside or when the query will dealllocate the buffer
 			data=Array.toNumPy(query.buffer, bShareMem=False) 
+			return data
+			
+		def WithGenerator():
+			while query.isRunning():
 
-			if query.end_resolutions.size()==1:
-				return data
+				if not self.db.executeQuery(access, query):
+					raise Exception("query error {0}".format(query.getLastErrorMsg()))
 
-			yield data
-			self.db.nextQuery(query)
+				# i cannot be sure how the numpy will be used outside or when the query will dealllocate the buffer
+				data=Array.toNumPy(query.buffer, bShareMem=False) 
+				yield data
+				self.db.nextQuery(query)	
+
+		return NoGenerator() if query.end_resolutions.size()==1 else WithGenerator()
+			
+
 
 	# write
+	# IMPORTANT: usually db.write happens without write lock and syncronously (at least in python)
 	def write(self, data, x=0, y=0, z=0, time=None, field=None, access=None):
 
 		"""
@@ -289,7 +300,9 @@ class PyDataset(object):
 			raise Exception("begin query failed {0}".format(query.getLastErrorMsg()))
 			
 		if not access:
-			access=self.createAccess()
+			access=IdxDiskAccess.create(self.db)
+			access.disableAsync()
+			access.disableWriteLock()
 		
 		# I need to change the shape of the buffer, since the last component is the channel (like RGB for example)
 		buffer=Array.fromNumPy(data,bShareMem=True)

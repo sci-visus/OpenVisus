@@ -652,6 +652,8 @@ bool IdxDataset::compressDataset(String compression)
   Time t1=T1;
 
   auto access = std::make_shared<IdxDiskAccess>(this);
+  access->disableWriteLock();
+  access->disableAsync();
 
   Aborted aborted; 
 
@@ -1323,7 +1325,7 @@ void IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
       query->filter.dataset_filter = createFilter(query->field);
 
       if (!query->filter.dataset_filter)
-        query->filter.enabled = false;
+        query->disableFilters();
     }
   }
 
@@ -1438,7 +1440,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
       auto Wquery = std::make_shared<BoxQuery>(this, query->field, query->time, 'r', query->aborted);
       Wquery->logic_box = adjusted_logic_box;
       Wquery->setResolutionRange(0,H);
-      Wquery->filter.enabled = false;
+      Wquery->disableFilters();
       Wquery->merge_mode = InsertSamples;
 
       beginQuery(Wquery);
