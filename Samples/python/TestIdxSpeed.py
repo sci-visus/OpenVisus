@@ -1,6 +1,7 @@
 
 # this example test the speed of IDX 
 import os,sys,math, numpy as np
+import shutil
 from OpenVisus import *
 
 KB,MB,GB=1024,1024*1024,1024*1024*1024
@@ -14,62 +15,24 @@ def GenerateRandomData(dims, dtype):
 	
 	W,H,D=dims
 	ret=np.zeros((D, H, W),dtype=convert_dtype(dtype.get(0).toString()))
-
+	
 	if ret.dtype==numpy.float32 or ret.dtype==numpy.float64:
 		ret[0:int(D/2),:,]=np.random.rand(int(D/2), H, W,dtype=ret.dtype)
-	else:
+			
+	elif ret.dtype==numpy.uint16 :
 		ret[0:int(D/2),:,]=np.random.randint(0, 65535, (int(D/2), H, W),dtype=ret.dtype)
+			
+	elif ret.dtype==numpy.uint8 :
+		ret[0:int(D/2),:,]=np.random.randint(0, 255  , (int(D/2), H, W),dtype=ret.dtype)
+			
+	else:
+		raise Exception("internal error")
+		
 	return ret	
 
-# ////////////////////////////////////////////////////////////////
-def CreateIdxDataset(filename, DIMS=None, dtype=None, blocksize=0, default_layout="rowmajor",default_compression=""):
-
-	print("Creating idx dataset", filename,"...")
-
-	dtype=DType.fromString(dtype)
-	totvoxels=DIMS[0]*DIMS[1]*DIMS[2]
-	samplessize=dtype.getByteSize()
-	samplesperblock=int(blocksize/samplessize)
-	bitsperblock=int(math.log(samplesperblock,2))
-	nblocks=int(totvoxels/samplesperblock)
-	blocksperfile=nblocks # I want only one file containing all blocks (to avoid fopen/fclose slowness)
-	
-	#print("blocksize",StringUtils.getStringFromByteSize(int(blocksize)))
-	#print("samplesperblock",samplesperblock)
-	#print("bitsperblock",bitsperblock)
-	#print("nblocks",nblocks)
-	#print("blocksperfile",blocksperfile)
-
-	field=Field("data")
-	field.dtype=dtype
-	field.default_layout=default_layout
-	field.default_compression=default_compression
-	CreateIdx(url=filename,dims=DIMS,fields=[field], bitsperblock=bitsperblock, blocksperfile=blocksperfile, filename_template="./" + os.path.basename(filename)+".bin")
-
-	# fill with fake data
-	db=LoadDataset(filename)
-	field=db.getDefaultField()
-	time=db.getDefaultTime()
-	access = IdxDiskAccess.create(db)
-	access.disableAsync()
-	access.disableWriteLock()
-	access.beginWrite()
-	nblocks=db.getTotalNumberOfBlocks()
-	for block_id in range(nblocks):
-		write_block = BlockQuery(db, field, time, access.getStartAddress(block_id), access.getEndAddress(block_id), ord('w'), Aborted())
-		nsamples=write_block.getNumberOfSamples().toVector()
-		buffer=GenerateRandomData(nsamples,dtype)
-		write_block.buffer=Array.fromNumPy(buffer, bShareMem=True)
-		db.executeBlockQueryAndWait(access, write_block)
-		Assert(write_block.ok())
-		#if block_id % 300 ==0:
-		#	print(block_id,"{}%".format(int(100*block_id/nblocks)))
-	access.endWrite()	
-	del access
-	del db
 
 # /////////////////////////////////////////////////////
-def CreateFullRes(filename, totsize=0,writesize=1024*1024*1024):
+def CreateHugeRandomFile(filename, totsize=0,writesize=1024*1024*1024):
 	if os.path.exists(filename): os.remove(filename)
 	file=File()
 	Assert(file.createAndOpen(filename, "w"))
@@ -77,7 +40,7 @@ def CreateFullRes(filename, totsize=0,writesize=1024*1024*1024):
 	print("Creating fullres file",filename,"...")
 	while cursor<totsize:
 		nwrite=min(writesize,totsize-cursor)
-		print("{}% ".format(int(100*cursor/totsize)), end='',flush=True)
+		print(cursor,totsize)
 		buffer=np.zeros(nwrite,numpy.uint8)
 		buffer[0:int(nwrite/2)]=np.random.randint(0, 256, int(nwrite/2),dtype=numpy.uint8)
 		array=Array.fromNumPy(buffer, bShareMem=True)
@@ -86,6 +49,24 @@ def CreateFullRes(filename, totsize=0,writesize=1024*1024*1024):
 	file.close()
 	del file
 	print("Created fullres file",filename)
+
+# /////////////////////////////////////////////////////
+def ReadFileSequentially(filename):
+	file=File()
+	Assert(file.open(filename, "r"))
+	cursor=0
+	array=Array(1024*1024*1024, DType.fromString("uint8")) 
+	try:
+		while True:
+			if not file.read(cursor,array.c_size(),array.c_ptr()):
+				cursor=0
+			else:
+				cursor+=array.c_size()
+			yield (array,array.c_size())
+	except GeneratorExit:
+		pass
+	file.close()
+	del file
 
 # /////////////////////////////////////////////////////
 def ReadFullResBlocks(filename, blocksize=0):
@@ -104,23 +85,47 @@ def ReadFullResBlocks(filename, blocksize=0):
 	file.close()
 	del file
 
-# /////////////////////////////////////////////////////
-def ReadSeq(filename):
-	file=File()
-	Assert(file.open(filename, "r"))
-	cursor=0
-	array=Array(1024*1024*1024, DType.fromString("uint8")) 
-	try:
-		while True:
-			if not file.read(cursor,array.c_size(),array.c_ptr()):
-				cursor=0
-			else:
-				cursor+=array.c_size()
-			yield (array,array.c_size())
-	except GeneratorExit:
-		pass
-	file.close()
-	del file
+# ////////////////////////////////////////////////////////////////
+def CreateIdxDataset(filename, DIMS=None, dtype=None, blocksize=0, default_layout="rowmajor",default_compression=""):
+
+	print("Creating idx dataset", filename,"...")
+
+	dtype=DType.fromString(dtype)
+	bitsperblock=int(math.log(int(blocksize/dtype.getByteSize()),2))
+	Assert(int(pow(2,bitsperblock)*dtype.getByteSize())==blocksize)
+
+	field=Field("data")
+	field.dtype=dtype
+	field.default_layout=default_layout
+	field.default_compression=default_compression
+	
+	CreateIdx(
+		url=filename,
+		dims=DIMS,
+		fields=[field], 
+		bitsperblock=bitsperblock, 
+		blocksperfile=-1,  # one file
+		filename_template="./" + os.path.basename(filename)+".bin")
+
+	# fill with fake data
+	db=LoadDataset(filename)
+	
+	access = IdxDiskAccess.create(db)
+	access.disableAsync()
+	access.disableWriteLock()
+	
+	access.beginWrite()
+	for block_id in range(db.getTotalNumberOfBlocks()):
+		write_block = BlockQuery(db, db.getDefaultField(), db.getDefaultTime(), access.getStartAddress(block_id), access.getEndAddress(block_id), ord('w'), Aborted())
+		nsamples=write_block.getNumberOfSamples().toVector()
+		buffer=GenerateRandomData(nsamples,dtype)
+		write_block.buffer=Array.fromNumPy(buffer, bShareMem=True)
+		db.executeBlockQueryAndWait(access, write_block)
+		Assert(write_block.ok())
+	access.endWrite()	
+	
+	del access
+	del db
 
 # ////////////////////////////////////////////////////////////////
 def ReadIdxBlockQuery(filename):
@@ -187,23 +192,40 @@ def Main():
 
 	# 128GB
 	DIMS=(4096,4096,8192)
-	DTYPE="uint8"
-
-	for dir in ["C:/tmp/test_speed", "D:/tmp/test_speed"]:
-		filename=dir+"/fullres.bin"
-		CreateFullRes(filename,totsize=DIMS[0]*DIMS[1]*DIMS[2]) 
-		TimeIt(filename+"-readsseq",  ReadSeq(filename))
-		for blocksize in (128,64,32,16,8,4):
-			TimeIt(filename+"-{:03d}k".format(blocksize), ReadFullResBlocks(filename, blocksize=128*KB))
-		RemoveFiles(filename)
+	print("db size",DIMS[0]*DIMS[1]*DIMS[2]/GB,"GB")
 	
-		for blocksize in (128,64,32,16,8,4):
-			filename=dir + "/{:03d}k.idx".format(blocksize)
-			CreateIdxDataset(filename, DIMS=DIMS, dtype=DTYPE, blocksize=blocksize*KB)
-			TimeIt(filename+"-BlockQuery", ReadIdxBlockQuery(filename))
-			for dims in [(16,16,16),(16,16,32),(16,32,32),(32,32,32),(32,32,64),(32,64,64)]:
-				TimeIt(filename+"-BoxQuery{:03d}k".format(int(dims[0]*dim[1]*dim[2]/1024)),  ReadIdxBoxQuery(filename, dims))
+	for dir in ["C:/tmp/test_speed", "D:/tmp/test_speed"]:
+		
+		try:
+			shutil.rmtree(dir)
+		except:
+			pass
+			
+		if True:
+		
+			filename=dir+"/fullres.bin"
+			CreateHugeRandomFile(filename,totsize=DIMS[0]*DIMS[1]*DIMS[2]) 
+			
+			TimeIt(filename+"-read-file-seq",  ReadFileSequentially(filename))
+			
+			for blocksize in (128,64,32,16,8,4):
+				TimeIt(filename+"-{:03d}k".format(blocksize), ReadFullResBlocks(filename, blocksize=blocksize*KB))
+				
 			RemoveFiles(filename+"*")
+			
+		if True:
+	
+			for blocksize in (128,64,32,16,8,4):
+				
+				filename=dir + "/{:03d}k.idx".format(blocksize)
+				CreateIdxDataset(filename, DIMS=DIMS, dtype="uint8", blocksize=blocksize*KB)
+				
+				TimeIt(filename+"-BlockQuery", ReadIdxBlockQuery(filename))
+				
+				for dims in [(16,16,16),(16,16,32),(16,32,32),(32,32,32),(32,32,64),(32,64,64)]:
+					TimeIt(filename+"-BoxQuery{:03d}k".format(int(dims[0]*dims[1]*dims[2]/1024)),  ReadIdxBoxQuery(filename, dims))
+
+				RemoveFiles(filename+"*")
 
 	print("all done")
 	sys.exit(0)

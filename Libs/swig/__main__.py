@@ -398,7 +398,7 @@ def CompressDataset(args):
 
 	db=LoadDataset(args.dataset)
 	Assert(db)
-	Assert(db.compressDataset(args.compression))
+	Assert(db.compressDataset([args.compression]))
 
 
 # ////////////////////////////////////////////////
@@ -453,7 +453,7 @@ def MidxToIdx(args):
 
 		print("done", TILE_ID, "/", TOT_TILES, "msec_read", msec_read, "msec_write", msec_write)
 
-	dataset.compressDataset("zip")
+	dataset.compressDataset(["zip"])
 	print("ALL DONE IN", T1.elapsedMsec())
 
 # ////////////////////////////////////////////////

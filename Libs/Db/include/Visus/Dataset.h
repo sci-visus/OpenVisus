@@ -350,11 +350,6 @@ public:
     ThrowException("compression not enabled");
   }
 
-  //compressDataset
-  void compressDataset(String compression) {
-    return compressDataset(std::vector<String>({compression}));
-  }
-
   //getInnerDatasets
   virtual std::map<String,SharedPtr<Dataset> > getInnerDatasets() const  {
     return std::map<String,SharedPtr<Dataset> >();
