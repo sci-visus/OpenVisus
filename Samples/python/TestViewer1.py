@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import QApplication
 def Main(argv):
 
 	viewer=PyViewer()
-	viewer.open(r".\datasets\cat\gray.idx")
+	viewer.open("./datasets/cat/gray.idx")
 		
 	# ... with some little python scripting
 	viewer.setScriptingCode("\n".join([

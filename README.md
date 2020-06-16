@@ -160,7 +160,7 @@ python -m OpenVisus viewer
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## MacOSX compilation
 
-Make sure you have command line toos:
+Make sure you have command line tools:
 
 ```
 sudo xcode-select --install || sudo xcode-select --reset
@@ -189,12 +189,19 @@ mkdir build
 cd build
 
 cmake -GXcode -DPython_ROOT_DIR=${Python_ROOT_DIR} -DQt5_DIR=${Qt5_DIR} ../
-cmake --build ./ --target all     --config Release --parallel 4 
-cmake --build ./ --target install --config Release
+cmake --build ./ --target ALL_BUILD --config Release --parallel 4
+cmake --build ./ --target install   --config Release
 
 export PYTHONPATH=$(pwd)/Release
+
+# this command will install PyQt5 and link OpenVisus to PyQt5 in user space (given that you don't want to run as root)
 python -m OpenVisus configure --user
+python -m OpenVisus test
 python -m OpenVisus viewer
+
+python -m pip install --upgrade opencv-python opencv-contrib-python 
+python -m OpenVisus viewer1
+python -m OpenVisus viewer2
 ```
 
 <!--//////////////////////////////////////////////////////////////////////// -->
