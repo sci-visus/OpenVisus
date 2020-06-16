@@ -195,9 +195,14 @@ python3 -m OpenVisus configure --user
 python3 -m OpenVisus test
 python3 -m OpenVisus viewer
 
+# OPTIONAL
 python3 -m pip install --upgrade opencv-python opencv-contrib-python 
 python3 -m OpenVisus viewer1
 python3 -m OpenVisus viewer2
+
+# OPTIONAL
+python3 -m pip install --upgrade jupyter
+python3 -m jupyter notebook ../Samples/jupyter/Agricolture.ipynb
 ```
 
 <!--//////////////////////////////////////////////////////////////////////// -->

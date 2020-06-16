@@ -637,9 +637,14 @@ void IdxDataset::compressDataset(std::vector<String> compression)
   // for future version: here I'm making the assumption that a file contains multiple fields
   if (idxfile.version != 6)
     ThrowException("unsupported");
+    
+  PrintInfo("Compressing dataset",StringUtils::join(compression));
+  	
+  int nlevels=getMaxResolution() + 1;
+  VisusReleaseAssert(compression.size()<=nlevels);
 
   // example ["zip","jpeg","jpeg"] means last level "jpeg", last-level-minus-one "jpeg" all others zip
-  while (compression.size() != (getMaxResolution() + 1))
+  while (compression.size() < nlevels)
     compression.insert(compression.begin(), compression.front());
   
   //save the new idx file oonly if compression is equal for all levels
