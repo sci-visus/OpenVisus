@@ -66,14 +66,11 @@ Table of content:
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## PIP distribution
 
-Type:
+Type (you can remove `user` if you want to install as `root`):
 
 ```
-python -m pip install --no-cache-dir --upgrade --force-reinstall OpenVisus
-
-# append "--user" in case of permission problems
-python -m OpenVisus configure 
-
+python -m pip install --user --upgrade OpenVisus
+python -m OpenVisus configure --user
 python -m OpenVisus viewer
 ```
 
@@ -166,11 +163,6 @@ Make sure you have command line tools:
 sudo xcode-select --install || sudo xcode-select --reset
 ```
 
-Install the following presequisites (for example using brew): 
-
-```
-swig cmake python3.x qt5
-```
 
 Build the repository (change as needed):
 
@@ -181,13 +173,17 @@ cd OpenVisus
 # update submodules
 git pull --recurse-submodules
 
-Python_ROOT_DIR=$(brew --prefix python3)
+# change as needed if you have python in another place
+Python_ROOT_DIR=/Library/Frameworks/Python.framework/Versions/3.6
+
+# install qt5 (change as needed)
+brew install qt5
 Qt5_DIR=$(brew --prefix qt5)/lib/cmake/Qt5
-alias python=${Python_ROOT_DIR}/bin/python3
 
 mkdir build 
 cd build
 
+brew install swig cmake
 cmake -GXcode -DPython_ROOT_DIR=${Python_ROOT_DIR} -DQt5_DIR=${Qt5_DIR} ../
 cmake --build ./ --target ALL_BUILD --config Release --parallel 4
 cmake --build ./ --target install   --config Release
@@ -195,13 +191,13 @@ cmake --build ./ --target install   --config Release
 export PYTHONPATH=$(pwd)/Release
 
 # this command will install PyQt5 and link OpenVisus to PyQt5 in user space (given that you don't want to run as root)
-python -m OpenVisus configure --user
-python -m OpenVisus test
-python -m OpenVisus viewer
+python3 -m OpenVisus configure --user
+python3 -m OpenVisus test
+python3 -m OpenVisus viewer
 
-python -m pip install --upgrade opencv-python opencv-contrib-python 
-python -m OpenVisus viewer1
-python -m OpenVisus viewer2
+python3 -m pip install --upgrade opencv-python opencv-contrib-python 
+python3 -m OpenVisus viewer1
+python3 -m OpenVisus viewer2
 ```
 
 <!--//////////////////////////////////////////////////////////////////////// -->
