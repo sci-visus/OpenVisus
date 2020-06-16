@@ -1,3 +1,0 @@
-[submodule "Libs/slamcpp"]
-	path = Libs/slamcpp
-	url = git@github.com:sci-visus/slamcpp.git
