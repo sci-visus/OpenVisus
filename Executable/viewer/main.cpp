@@ -39,7 +39,10 @@ For support : support@visus.net
 #include <Visus/Viewer.h>
 #include <Visus/ModVisus.h>
 #include <Visus/Path.h>
+
+#if VISUS_PYTHON
 #include <Visus/Python.h>
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 int main(int argn,const char* argv[])
@@ -48,7 +51,9 @@ int main(int argn,const char* argv[])
   SetCommandLine(argn, argv);
   GuiModule::attach();
 
+#if VISUS_PYTHON
   InitEmbeddedPython(argn, argv, KnownPaths::BinaryDirectory.toString() + "/../..", {"from OpenVisus import *", "from OpenVisus.gui import *"});
+#endif
 
   {
     auto viewer=std::make_shared<Viewer>();
@@ -58,7 +63,11 @@ int main(int argn,const char* argv[])
   }
 
   GuiModule::detach();
+  	
+#if VISUS_PYTHON  	
   ShutdownEmbeddedPython();
+#endif
+  
   return 0;
 }
 

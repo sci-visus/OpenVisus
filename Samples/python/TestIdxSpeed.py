@@ -222,7 +222,8 @@ def Main():
 				
 				TimeIt(filename+"-BlockQuery", ReadIdxBlockQuery(filename))
 				
-				for dims in [(16,16,16),(16,16,32),(16,32,32),(32,32,32),(32,32,64),(32,64,64)]:
+				# 128k...4k
+				for dims in [(32,64,64), (32,32,64), (32,32,32), (16,32,32), (16,16,32), (16,16,16)]:
 					TimeIt(filename+"-BoxQuery{:03d}k".format(int(dims[0]*dims[1]*dims[2]/1024)),  ReadIdxBoxQuery(filename, dims))
 
 				RemoveFiles(filename+"*")

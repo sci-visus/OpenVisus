@@ -6,7 +6,7 @@
 #include "gzguts.h"
 
 #if WIN32
-#pragma warning(disable: 4267)
+#pragma warning(disable: 4267 4996)
 #endif
 
 /* Local functions */

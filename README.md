@@ -93,7 +93,6 @@ python -m OpenVisus viewer
 Also give a look to [quick_tour](https://github.com/sci-visus/OpenVisus/blob/master/quick_tour.ipynb)
 
 <!--//////////////////////////////////////////////////////////////////////// -->
-
 ## Minimal compilation
 
 Just do:
@@ -103,21 +102,29 @@ git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 mkdir build
 cd build
-cmake \
-   -DVISUS_NET=0 \
-   -DVISUS_IMAGE=0 \
-   -DVISUS_PYTHON=0 \
-   -DVISUS_GUI=0 \
-   -DVISUS_XIDX=0 \
-   -DVISUS_DATAFLOW=0 \
-   -DVISUS_MODVISUS=0 \
-   -DVISUS_SLAM=0 \
-   -DVISUS_OSPRAY=0
-   ../
-
-# replace all with ALL_BUILD on Windows
-cmake --build ./ --target all --config Release --parallel 4 
 ```
+
+On windows:
+
+```
+cmake -G "Visual Studio 16 2019" -A "x64" -DVISUS_MINIMAL=1 ../ 
+cmake --build . --target ALL_BUILD --config Release
+```
+
+On Apple:
+
+```
+cmake -GXcode -DVISUS_MINIMAL=1 ../
+cmake --build ./ --target ALL_BUILD --config Release 
+```
+
+On Linux:
+
+```
+cmake -DVISUS_MINIMAL=1 ../
+cmake --build ./ --target all 
+```
+
 
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## Windows compilation

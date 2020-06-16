@@ -36,7 +36,10 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
+#if VISUS_PYTHON
 #include <Visus/Python.h>
+#endif
+
 #include <Visus/Kernel.h>
 #include <Visus/ModVisus.h>
 #include <Visus/Path.h>
@@ -164,7 +167,11 @@ public:
     static const char* argv[] = { "mod_visus.dll", "--visus-config", "/inetpub/wwwroot/visus/visus.config" };
     SetCommandLine(argn, argv);
     DbModule::attach();
+    	
+#if VISUS_PYTHON    	
     InitEmbeddedPython(argn, argv, KnownPaths::BinaryDirectory.toString() + "/../..", { "from OpenVisus import *" });
+#endif
+
     RedirectLogTo(MyWriteLog, this);
     mod_visus = new ModVisus();
     mod_visus->configureDatasets();
@@ -178,7 +185,10 @@ public:
     if (g_hEventLog)
       DeregisterEventSource(g_hEventLog);
     DbModule::detach();
+    	
+#if VISUS_PYTHON
     ShutdownEmbeddedPython();
+#endif
   }
 
   //OnGlobalPreBeginRequest
@@ -600,7 +610,11 @@ public:
     static const char *argv[]={"mod_visus"};
     SetCommandLine(narg,argv);
     DbModule::attach();
+    	
+#if VISUS_PYTHON    	
     InitEmbeddedPython(narg, argv, KnownPaths::BinaryDirectory.toString() + "/../..", { "from OpenVisus import *" });
+#endif
+
     this->configureDatasets();
   }
   
@@ -609,7 +623,11 @@ public:
   {
     PrintInfo("shutdownInCurrentProcess");
     DbModule::detach();
+    
+#if VISUS_PYTHON    	
     ShutdownEmbeddedPython();
+#endif
+
     RedirectLogTo(nullptr);
   }
 

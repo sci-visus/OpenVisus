@@ -34,14 +34,12 @@ macro(AddSwigLibrary WrappedLib)
 	target_link_libraries(${NamePy} PRIVATE ${WrappedLib})
 	set_target_properties(${NamePy} PROPERTIES FOLDER Swig/)
 
-	if (VISUS_PYTHON)
-		target_compile_definitions(${NamePy} PUBLIC VISUS_PYTHON=1)
-		if (WIN32)
-			target_include_directories(${NamePy} PUBLIC ${Python_INCLUDE_DIRS})
-			target_link_libraries(${NamePy}      PUBLIC ${Python_LIBRARY_RELEASE})
-		else()
-			target_link_libraries(${NamePy} PUBLIC Python::Module) # Python library for Python extending
-		endif()
+	target_compile_definitions(${NamePy} PUBLIC VISUS_PYTHON=1)
+	if (WIN32)
+		target_include_directories(${NamePy} PUBLIC ${Python_INCLUDE_DIRS})
+		target_link_libraries(${NamePy}      PUBLIC ${Python_LIBRARY_RELEASE})
+	else()
+		target_link_libraries(${NamePy} PUBLIC Python::Module) # Python library for Python extending
 	endif()
 
 	if (WIN32)

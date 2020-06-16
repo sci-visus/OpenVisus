@@ -392,8 +392,8 @@ def CopyDataset(args):
 # ////////////////////////////////////////////////
 def CompressDataset(args):
 	parser = argparse.ArgumentParser(description="compress dataset")
-	parser.add_argument("--dataset"       , type=str,   help="dataset", required=True)
-	parser.add_argument("--compression"   , type=str,   help="compresson", required=True)
+	parser.add_argument("--dataset"       , type=str,   help="dataset",     required=True)
+	parser.add_argument("--compression"   , type=str,   help="compression", required=True)
 	args = parser.parse_args(args)
 
 	db=LoadDataset(args.dataset)

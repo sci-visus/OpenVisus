@@ -38,7 +38,10 @@ For support : support@visus.net
 
 #include <Visus/Db.h>
 #include <Visus/VisusConvert.h>
+
+#if VISUS_PYTHON
 #include <Visus/Python.h>
+#endif
 
 using namespace Visus;
 
@@ -48,11 +51,19 @@ int main(int argn, const char* argv[])
   auto T1 = Time::now();
   SetCommandLine(argn, argv);
   DbModule::attach();
+
+#if VISUS_PYTHON
   InitEmbeddedPython(argn, argv, KnownPaths::BinaryDirectory.toString() + "/../..", { "from OpenVisus import *" });
+#endif
+
   auto args = std::vector<String>(CommandLine::args.begin() + 1, CommandLine::args.end());
   VisusConvert().runFromArgs(args);
   PrintInfo("All done in ",T1.elapsedSec(),",seconds");
   DbModule::detach();
+
+#if VISUS_PYTHON
   ShutdownEmbeddedPython();
+#endif
+
   return 0;
 }

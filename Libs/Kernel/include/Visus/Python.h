@@ -39,68 +39,61 @@ For support : support@visus.net
 #ifndef VISUS_PYTHON_H__
 #define VISUS_PYTHON_H__
 
-#if VISUS_PYTHON
 
-  #pragma push_macro("slots")
-  #undef slots
+#pragma push_macro("slots")
+#undef slots
 
-  #if defined(WIN32) && defined(_DEBUG) 
-  #undef _DEBUG
-  #include <Python.h>
-  #define _DEBUG 1
-  #else
-  #include <Python.h>
-  #endif
-
-  #pragma pop_macro("slots")
-
-  #include <string>
-  #include <sstream>
-  #include <vector>
-
-  inline PyThreadState*& __python_thread_state__() {
-    static PyThreadState* ret = nullptr;
-    return ret;
-  }
-
-  inline void InitEmbeddedPython(int argn, const char* argv[], std::string sys_path = "", std::vector<std::string> commands = {})
-  {
-  	#if PY_VERSION_HEX >= 0x03050000
-  	Py_SetProgramName(Py_DecodeLocale((char*)argv[0], NULL));
-  	#else
-    Py_SetProgramName(_Py_char2wchar((char*)argv[0], NULL));
-    #endif
-  
-    Py_InitializeEx(0);
-    PyEval_InitThreads();
-    __python_thread_state__() = PyEval_SaveThread();
-    auto acquire_gil = PyGILState_Ensure();
-
-    std::ostringstream out;
-    out << "import os, sys;\n";
-
-    if (!sys_path.empty())
-      out << "sys.path.append(os.path.realpath('" + sys_path + "'))\n";
-
-    for (auto cmd : commands)
-      out << cmd << "\n";
-
-    PyRun_SimpleString(out.str().c_str());
-    PyGILState_Release(acquire_gil);
-  }
-
-  inline void ShutdownEmbeddedPython()
-  {
-    PyEval_RestoreThread(__python_thread_state__());
-    Py_Finalize();
-  }
-
+#if defined(WIN32) && defined(_DEBUG) 
+#undef _DEBUG
+#include <Python.h>
+#define _DEBUG 1
 #else
-
-  inline void InitEmbeddedPython(int argn, const char* argv[], std::string sys_path, std::vector<std::string> commands = {})  {}
-  inline void ShutdownEmbeddedPython()  {}
-
+#include <Python.h>
 #endif
+
+#pragma pop_macro("slots")
+
+#include <string>
+#include <sstream>
+#include <vector>
+
+inline PyThreadState*& __python_thread_state__() {
+  static PyThreadState* ret = nullptr;
+  return ret;
+}
+
+inline void InitEmbeddedPython(int argn, const char* argv[], std::string sys_path = "", std::vector<std::string> commands = {})
+{
+  #if PY_VERSION_HEX >= 0x03050000
+  Py_SetProgramName(Py_DecodeLocale((char*)argv[0], NULL));
+  #else
+  Py_SetProgramName(_Py_char2wchar((char*)argv[0], NULL));
+  #endif
+  
+  Py_InitializeEx(0);
+  PyEval_InitThreads();
+  __python_thread_state__() = PyEval_SaveThread();
+  auto acquire_gil = PyGILState_Ensure();
+
+  std::ostringstream out;
+  out << "import os, sys;\n";
+
+  if (!sys_path.empty())
+    out << "sys.path.append(os.path.realpath('" + sys_path + "'))\n";
+
+  for (auto cmd : commands)
+    out << cmd << "\n";
+
+  PyRun_SimpleString(out.str().c_str());
+  PyGILState_Release(acquire_gil);
+}
+
+inline void ShutdownEmbeddedPython()
+{
+  PyEval_RestoreThread(__python_thread_state__());
+  Py_Finalize();
+}
+
 
 #endif //VISUS_PYTHON_H__
 
