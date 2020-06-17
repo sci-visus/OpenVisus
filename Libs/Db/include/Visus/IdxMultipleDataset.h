@@ -95,6 +95,9 @@ public:
 
   int debug_mode = 0;
 
+  //this is needed for midx
+  std::map<String, SharedPtr<Dataset> > down_datasets;
+
   //constructor
   IdxMultipleDataset();
 
@@ -145,11 +148,6 @@ public:
 
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree CONFIG=StringTree(), bool bForBlockQuery = false) override;
-
-  //createQueryFilter (not supported?!)
-  virtual SharedPtr<DatasetFilter> createFilter(const Field& FIELD) override {
-    return SharedPtr<DatasetFilter>();
-  }
 
   //beginBoxQuery
   virtual void beginBoxQuery(SharedPtr<BoxQuery> query) override;

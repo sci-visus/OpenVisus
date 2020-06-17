@@ -41,10 +41,10 @@ For support : support@visus.net
 #include <Visus/ModVisusAccess.h>
 #include <Visus/File.h>
 #include <Visus/DirectoryIterator.h>
-#include <Visus/DatasetFilter.h>
 #include <Visus/StringTree.h>
 #include <Visus/OnDemandAccess.h>
 #include <Visus/IdxHzOrder.h>
+#include <Visus/IdxFilter.h>
 
 #ifdef WIN32
 #pragma warning(disable:4996) // 'sprintf': This function or variable may be unsafe
@@ -301,6 +301,7 @@ class InsertBlockQueryHzOrderSamplesToBoxQuery
 {
 public:
 
+  //execute
   template <class Sample>
   bool execute(IdxDataset*  vf,BoxQuery* query,BlockQuery* block_query)
   {
@@ -729,7 +730,7 @@ void IdxDataset::compressDataset(std::vector<String> compression)
 
 
 ///////////////////////////////////////////////////////////////////////////////////
-BoxNi IdxDataset::adjustFilterBox(BoxQuery* query,DatasetFilter* filter,BoxNi user_box,int H) 
+BoxNi IdxDataset::adjustBoxQueryFilterBox(BoxQuery* query,IdxFilter* filter,BoxNi user_box,int H) 
 {
   //there are some case when I need alignment with pow2 box, for example when doing kdquery=box with filters
   auto bitmask = getBitmask();
@@ -1184,7 +1185,7 @@ NetRequest IdxDataset::createPointQueryRequest(SharedPtr<PointQuery> query)
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::setEndResolution(SharedPtr<BoxQuery> query, int value)
+bool IdxDataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value)
 {
   auto bitmask = this->idxfile.bitmask;
   HzOrder hzorder(bitmask);
@@ -1201,7 +1202,7 @@ bool IdxDataset::setEndResolution(SharedPtr<BoxQuery> query, int value)
   if (auto filter = query->filter.dataset_filter)
   {
     //important to return the "final" number of samples (see execute for loop)
-    logic_box = this->adjustFilterBox(query.get(), filter.get(), logic_box, end_resolution);
+    logic_box = this->adjustBoxQueryFilterBox(query.get(), filter.get(), logic_box, end_resolution);
     query->filter.adjusted_logic_box = logic_box;
   }
 
@@ -1290,7 +1291,7 @@ void IdxDataset::beginBoxQuery(SharedPtr<BoxQuery> query)
 
   for (auto end_resolution : query->end_resolutions)
   {
-    if (setEndResolution(query, end_resolution))
+    if (setBoxQueryEndResolution(query, end_resolution))
     {
       query->setRunning();
       return;
@@ -1320,7 +1321,7 @@ void IdxDataset::nextBoxQuery(SharedPtr<BoxQuery> query)
 
   int index = Utils::find(query->end_resolutions, query->end_resolution) + 1;
   int end_resolution = query->end_resolutions[index];
-  VisusReleaseAssert(setEndResolution(query,end_resolution));
+  VisusReleaseAssert(setBoxQueryEndResolution(query,end_resolution));
 
   //asssume no merging
   query->buffer = Array();
@@ -1393,7 +1394,7 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
     //need to go level by level to rebuild the original data (top-down)
     for (int H = cur_resolution + 1; H <= end_resolution; H++)
     {
-      BoxNi adjusted_logic_box = adjustFilterBox(query.get(), filter.get(), query->filter.adjusted_logic_box, H);
+      BoxNi adjusted_logic_box = adjustBoxQueryFilterBox(query.get(), filter.get(), query->filter.adjusted_logic_box, H);
 
       auto Wquery = createBoxQuery(adjusted_logic_box, query->field, query->time, 'r', query->aborted);
       Wquery->setResolutionRange(0,H);
@@ -1423,7 +1424,7 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
       if (!this->executeBoxQuery(access, Wquery))
         return false;
 
-      if (!filter->computeFilter(Wquery.get(), true))
+      if (!filter->internalComputeFilter(Wquery.get(), true))
         return false;
 
       query->filter.query = Wquery;
@@ -1836,6 +1837,146 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access,SharedPtr<PointQuery
   return true;
 }
 
+
+///////////////////////////////////////////////////////////////////////////////
+bool IdxDataset::computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow) 
+{
+  //this works only for filter_size==2, otherwise the building of the sliding_window is very difficult
+  VisusAssert(this->size == 2);
+
+  DatasetBitmask bitmask = this->getBitmask();
+  BoxNi          box = this->getLogicBox();
+
+  int pdim = bitmask.getPointDim();
+
+  //the window size must be multiple of 2, otherwise I loose the filter alignment
+  for (int D = 0; D < pdim; D++)
+  {
+    Int64 size = SlidingWindow[D];
+    VisusAssert(size == 1 || (size / 2) * 2 == size);
+  }
+
+  //convert the dataset  FINE TO COARSE, this can be really time consuming!!!!
+  for (int H = this->getMaxResolution(); H >= 1; H--)
+  {
+    PrintInfo("Applying filter to dataset resolution", H);
+    int bit = bitmask[H];
+
+    Int64 FILTERSTEP = filter->getFilterStep(H)[bit];
+
+    //need to align the from so that the first sample is filter-aligned
+    PointNi From = box.p1;
+
+    if (!Utils::isAligned(From[bit], (Int64)0, FILTERSTEP))
+      From[bit] = Utils::alignLeft(From[bit], (Int64)0, FILTERSTEP) + FILTERSTEP;
+
+    PointNi To = box.p2;
+    for (auto P = ForEachPoint(From, To, SlidingWindow); !P.end(); P.next())
+    {
+      //this is the sliding window
+      BoxNi sliding_window(P.pos, P.pos + SlidingWindow);
+
+      //important! crop to the stored world box to be sure that the alignment with the filter is correct!
+      sliding_window = sliding_window.getIntersection(box);
+
+      //no valid box since do not intersect with box 
+      if (!sliding_window.isFullDim())
+        continue;
+
+      //I'm sure that since the From is filter-aligned, then P must be already aligned
+      VisusAssert(Utils::isAligned(sliding_window.p1[bit], (Int64)0, FILTERSTEP));
+
+      //important, i'm not using adjustBox because I'm sure it is already correct!
+      auto read = createBoxQuery(sliding_window, field, time, 'r');
+      read->setResolutionRange(0, H);
+
+      beginBoxQuery(read);
+
+      if (!executeBoxQuery(access, read))
+        return false;
+
+      //if you want to debug step by step...
+#if 0
+      {
+        PrintInfo("Before");
+        int nx = (int)read->buffer->dims.x;
+        int ny = (int)read->buffer->dims.y;
+        Uint8* SRC = read->buffer->c_ptr();
+        std::ostringstream out;
+        for (int Y = 0; Y < ny; Y++)
+        {
+          for (int X = 0; X < nx; X++)
+          {
+            out << std::setw(3) << (int)SRC[((ny - Y - 1) * nx + X) * 2] << " ";
+          }
+          out << std::endl;
+        }
+        out << std::endl;
+        PrintInfo("\n" << out.str();
+      }
+#endif
+
+      if (!filter->internalComputeFilter(read.get(),/*bInverse*/false))
+        return false;
+
+      //if you want to debug step by step...
+#if 0 
+      {
+        PrintInfo("After");
+        int nx = (int)read->buffer->dims.x;
+        int ny = (int)read->buffer->dims.y;
+        Uint8* SRC = read->buffer->c_ptr();
+        std::ostringstream out;
+        for (int Y = 0; Y < ny; Y++)
+        {
+          for (int X = 0; X < nx; X++)
+          {
+            out << std::setw(3) << (int)SRC[((ny - Y - 1) * nx + X) * 2] << " ";
+          }
+          out << std::endl;
+        }
+        out << std::endl;
+        PrintInfo("\n", out.str());
+      }
+#endif
+
+      auto write = createBoxQuery(sliding_window, field, time, 'w');
+      write->setResolutionRange(0, H);
+
+      beginBoxQuery(write);
+
+      if (!write->isRunning())
+        return false;
+
+      write->buffer = read->buffer;
+
+      if (!executeBoxQuery(access, write))
+        return false;
+    }
+
+    //I'm going to write the next resolution, double the dimension along the current axis
+    //in this way I have the same number of samples!
+    SlidingWindow[bit] <<= 1;
+  }
+  return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void IdxDataset::computeFilter(const Field& field, int window_size)
+{
+  PrintInfo("starting filter computation...");
+  auto filter = createFilter(field);
+
+
+  //the filter will be applied using this sliding window
+  PointNi sliding_box = PointNi::one(getPointDim());
+  for (int D = 0; D < getPointDim(); D++)
+    sliding_box[D] = window_size;
+
+  auto acess = createAccess();
+  for (auto time : getTimesteps().asVector())
+    computeFilter(filter, time, field, acess, sliding_box);
+}
 
 
 } //namespace Visus

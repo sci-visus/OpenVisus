@@ -9,7 +9,6 @@
 #include <Visus/BoxQuery.h>
 #include <Visus/PointQuery.h>
 #include <Visus/DatasetTimesteps.h>
-#include <Visus/DatasetFilter.h>
 #include <Visus/Dataset.h>
 #include <Visus/ModVisus.h>
 #include <Visus/IdxFile.h>
@@ -71,7 +70,6 @@ using namespace Visus;
 %include <Visus/Query.h>
 %include <Visus/DatasetBitmask.h>
 %include <Visus/DatasetTimesteps.h>
-%include <Visus/DatasetFilter.h>
 %include <Visus/Dataset.h>
 %include <Visus/ModVisus.h>
 %include <Visus/Db.h>

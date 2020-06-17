@@ -46,7 +46,7 @@ For support : support@visus.net
 namespace Visus {
 
 //predeclaration
-class DatasetFilter;
+class IdxFilter;
 class Dataset;
 class Access;
 
@@ -97,7 +97,7 @@ public:
   struct
   {
     bool                     enabled = false;
-    SharedPtr<DatasetFilter> dataset_filter;
+    SharedPtr<IdxFilter>     dataset_filter;
     BoxNi                    domain;
     BoxNi                    adjusted_logic_box;
     SharedPtr<BoxQuery>      query;
@@ -167,7 +167,7 @@ public:
     return end_resolution;
   }
 
-  //setEndResolution
+  //setBoxQueryEndResolution
   void setResolutionRange(int A,int B) {
     this->start_resolution = A;
     this->end_resolutions = { B };

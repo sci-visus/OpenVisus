@@ -38,10 +38,9 @@ For support : support@visus.net
 
 #include <Visus/DatasetArrayPlugin.h>
 #include <Visus/Dataset.h>
-#include <Visus/DatasetFilter.h>
+#include <Visus/IdxFilter.h>
 
 namespace Visus {
-
 
 ////////////////////////////////////////////////
 class DatasetArrayPluginParseArguments
@@ -157,7 +156,7 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
 
   if (args.bDisableFilters)
   {
-    PrintInfo("DatasetFilter disabled.Reason: command line has --disable-filters option");
+    PrintInfo("Filter disabled.Reason: command line has --disable-filters option");
     query->disableFilters();
   }
   else

@@ -105,8 +105,8 @@ private:
   //getLevelSamples
   LogicSamples getLevelSamples(int H);
 
-  //setEndResolution
-  bool setEndResolution(SharedPtr<BoxQuery> query,int value);
+  //setBoxQueryEndResolution
+  bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query,int value);
 
   //kdTraverse
   void kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_queries,SharedPtr<BoxQuery> query,BoxNi box,BigInt id,int H,int end_resolution);

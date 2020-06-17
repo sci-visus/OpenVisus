@@ -38,13 +38,13 @@ For support : support@visus.net
 
 #include <Visus/ModVisus.h>
 #include <Visus/Dataset.h>
-#include <Visus/DatasetFilter.h>
 #include <Visus/File.h>
 #include <Visus/TransferFunction.h>
 #include <Visus/NetService.h>
 #include <Visus/StringTree.h>
 #include <Visus/IdxDataset.h>
 #include <Visus/IdxMultipleDataset.h>
+#include <Visus/IdxFilter.h>
 
 namespace Visus {
 

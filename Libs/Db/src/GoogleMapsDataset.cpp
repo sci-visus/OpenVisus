@@ -141,7 +141,7 @@ public:
 
 
 //////////////////////////////////////////////////////////////
-bool GoogleMapsDataset::setEndResolution(SharedPtr<BoxQuery> query,int value)
+bool GoogleMapsDataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query,int value)
 {
   VisusAssert(query->end_resolution < value);
   query->end_resolution = value;
@@ -202,7 +202,7 @@ void GoogleMapsDataset::beginBoxQuery(SharedPtr<BoxQuery> query)
 
   for (auto end_resolution : query->end_resolutions)
   {
-    if (setEndResolution(query, end_resolution))
+    if (setBoxQueryEndResolution(query, end_resolution))
     {
       query->setRunning();
       return;
@@ -227,7 +227,7 @@ void GoogleMapsDataset::nextBoxQuery(SharedPtr<BoxQuery> query)
 
   int I = Utils::find(query->end_resolutions, query->end_resolution) + 1;
   auto end_resolution = query->end_resolutions[I];
-  VisusReleaseAssert(setEndResolution(query, end_resolution));
+  VisusReleaseAssert(setBoxQueryEndResolution(query, end_resolution));
 
   //merging is not supported, so I'm resetting the buffer
   query->buffer = Array();

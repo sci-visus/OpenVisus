@@ -38,14 +38,15 @@ For support : support@visus.net
 
 #include <Visus/Db.h>
 #include <Visus/IdxDataset.h>
-#include <Visus/DatasetFilter.h>
+#include <Visus/IdxFilter.h>
 
 namespace Visus   {
+
 namespace Private {
 
 ///////////////////////////////////////////////////////////////////////////////
 template <typename CppType,class FilterClass>
-static bool ComputeFilter(Dataset* dataset,BoxQuery* query,const FilterClass* filter,bool bInverse)
+static bool ComputeFilter(IdxDataset* dataset,BoxQuery* query,const FilterClass* filter,bool bInverse)
 {
   const Field& field=query->field;
 
@@ -62,7 +63,7 @@ static bool ComputeFilter(Dataset* dataset,BoxQuery* query,const FilterClass* fi
   int              bit        = bitmask[H];
   PointNi          dims       = query->getNumberOfSamples();
   PointNi          stride     = dims.stride();
-  int              filter_size = filter->getSize();
+  int              filter_size = filter->size;
   PointNi          filterstep = filter->getFilterStep(H);
   Int64 FILTERSTEP = filterstep[bit];
   BoxNi            filter_domain  = query->filter.domain;
@@ -166,43 +167,44 @@ static bool ComputeFilter(Dataset* dataset,BoxQuery* query,const FilterClass* fi
 
 /////////////////////////////////////////////////////////////////////////////
 template <typename CppType>
-class IdentityFilter: public DatasetFilter
+class IdentityFilter: public IdxFilter
 {
 public:
 
   //constructor
-  IdentityFilter(Dataset* dataset,const Field& field) : DatasetFilter(dataset,field, /*filter_size*/2,"IdentityFilter")
+  IdentityFilter(IdxDataset* dataset,const Field& field) : IdxFilter(dataset,field, /*filter_size*/2,"IdentityFilter")
   {}
   
   //destructor
   virtual ~IdentityFilter(){}
 
   //applyDirect
-  inline void applyDirect(CppType* va,CppType* vb) const
+  inline void applyDirect(CppType* va, CppType* vb) const
   {}
 
   //applyInverse
-  inline void applyInverse(CppType* va,CppType* vb) const
+  inline void applyInverse(CppType* va, CppType* vb) const
   {}
 
-  //computeFilter
-  virtual bool computeFilter(BoxQuery* query,bool bInverse) const override
-  {return ComputeFilter<CppType>(getDataset(),query,this,bInverse);}
+  //internalComputeFilter
+  virtual bool internalComputeFilter(BoxQuery* query, bool bInverse) const override {
+    return ComputeFilter<CppType>(dataset, query, this, bInverse);
+  }
 
 };
 
 /////////////////////////////////////////////////////////////////////////////
 template <typename CppType>
-class MinFilter : public DatasetFilter
+class MinFilter : public IdxFilter
 {
 public:
 
   int ncomponents;
 
   //constructor
-  MinFilter(Dataset* dataset,const Field& field) : DatasetFilter(dataset,field, /*filter_size*/2,"MinFilter")
+  MinFilter(IdxDataset* dataset,const Field& field) : IdxFilter(dataset,field, /*filter_size*/2,"MinFilter")
   {
-    setNeedExtraComponent(true); //always need an extra sample to store the SWAP info
+    bNeedExtraComponent=true; //always need an extra sample to store the SWAP info
     VisusAssert(getDType().ncomponents()>1);
     ncomponents=field.dtype.ncomponents();
     VisusAssert((ncomponents-1)<=sizeof(CppType)*8);
@@ -250,15 +252,15 @@ public:
     vb[ncomponents-1]=(CppType)0;
   }
 
-  //computeFilter
-  virtual bool computeFilter(BoxQuery* query,bool bInverse) const override
-  {return ComputeFilter<CppType>(getDataset(),query,this,bInverse);}
+  //internalComputeFilter
+  virtual bool internalComputeFilter(BoxQuery* query,bool bInverse) const override
+  {return ComputeFilter<CppType>(dataset,query,this,bInverse);}
 
 };
 
 /////////////////////////////////////////////////////////////////////////////
 template <typename CppType>
-class MaxFilter : public DatasetFilter
+class MaxFilter : public IdxFilter
 {
 public:
 
@@ -266,9 +268,9 @@ public:
   int ncomponents;
 
   //constructor
-  MaxFilter(Dataset* dataset,const Field& field) : DatasetFilter(dataset,field, /*filter_size*/2,"MaxFilter")
+  MaxFilter(IdxDataset* dataset,const Field& field) : IdxFilter(dataset,field, /*filter_size*/2,"MaxFilter")
   {
-    setNeedExtraComponent(true); //always need an extra sample to store the SWAP info
+    bNeedExtraComponent = true; //always need an extra sample to store the SWAP info
     VisusAssert(getDType().ncomponents()>1);
     ncomponents=field.dtype.ncomponents();
     VisusAssert((ncomponents-1)<=sizeof(CppType)*8);
@@ -316,15 +318,15 @@ public:
     vb[ncomponents-1]=(CppType)0;
   }
 
-  //computeFilter
-  virtual bool computeFilter(BoxQuery* query,bool bInverse) const override
-  {return ComputeFilter<CppType>(getDataset(),query,this,bInverse);}
+  //internalComputeFilter
+  virtual bool internalComputeFilter(BoxQuery* query,bool bInverse) const override
+  {return ComputeFilter<CppType>(dataset,query,this,bInverse);}
 
 };
 
 /////////////////////////////////////////////////////////////////////////////
 template <typename CppType,typename R>
-class DeHaarDiscreteFilter  : public DatasetFilter
+class DeHaarDiscreteFilter  : public IdxFilter
 {
 public:
 
@@ -332,9 +334,9 @@ public:
   int ncomponents;
 
   //constructor
-  DeHaarDiscreteFilter(Dataset* dataset,const Field& field) : DatasetFilter(dataset,field,/*filter_size*/2,"DeHaarDiscreteFilter")
+  DeHaarDiscreteFilter(IdxDataset* dataset,const Field& field) : IdxFilter(dataset,field,/*filter_size*/2,"DeHaarDiscreteFilter")
   {
-    setNeedExtraComponent(true); //always need an extra sample to store the sign
+    bNeedExtraComponent = true; //always need an extra sample to store the sign
     VisusAssert(getDType().ncomponents()>1); 
     ncomponents=field.dtype.ncomponents();
     VisusAssert((ncomponents-1)<=sizeof(CppType)*8);
@@ -385,15 +387,16 @@ public:
     va[ncomponents-1]=(CppType)0;
   }
 
-  //computeFilter
-  virtual bool computeFilter(BoxQuery* query,bool bInverse) const override
-  {return ComputeFilter<CppType>(getDataset(),query,this,bInverse);}
+  //internalComputeFilter
+  virtual bool internalComputeFilter(BoxQuery* query,bool bInverse) const override {
+    return ComputeFilter<CppType>(dataset,query,this,bInverse);
+  }
 
 };
 
 /////////////////////////////////////////////////////////////////////////////
 template <typename CppType,typename R>
-class DeHaarContinuousFilter : public DatasetFilter
+class DeHaarContinuousFilter : public IdxFilter
 {
 public:
 
@@ -401,7 +404,8 @@ public:
   int ncomponents;
 
   //constructor
-  DeHaarContinuousFilter(Dataset* dataset,const Field& field) : DatasetFilter(dataset,field,/*filter_size*/2,"DeHaarContinuousFilter")
+  DeHaarContinuousFilter(IdxDataset* dataset,const Field& field) 
+    : IdxFilter(dataset,field,/*filter_size*/2,"DeHaarContinuousFilter")
   {
     VisusAssert(sizeof(R)>=sizeof(CppType));
     ncomponents=field.dtype.ncomponents();
@@ -439,22 +443,77 @@ public:
     }
   }
 
-  //computeFilter
-  virtual bool computeFilter(BoxQuery* query,bool bInverse) const override
-  {return ComputeFilter<CppType>(getDataset(),query,this,bInverse);}
+  //internalComputeFilter
+  virtual bool internalComputeFilter(BoxQuery* query,bool bInverse) const override {
+    return ComputeFilter<CppType>(dataset,query,this,bInverse);
+  }
 
 };
 
 } //namespace private
 
 
+///////////////////////////////////////////////////////////////////////////////////
+PointNi IdxFilter::getFilterStep(int H) const
+{
+  /* Example ('-' means the same group for the filter):
+
+  V000 with filter_size=2
+    (V) H=0 step=8  filterstep=16    00
+    (0) H=1 step=4  filterstep=8     00----------04
+    (0) H=2 step=2  filterstep=4     00----02    04----06
+    (0) H=3 step=1  filterstep=2     00-01 02-03 04-05 06-07
+
+  V0000 with filter_size=3
+    (V) H=0 step=16  filterstep=48   00
+    (0) H=1 step=8   filterstep=24   00                      08
+    (0) H=2 step=4   filterstep=12   00----------04----------08          12
+    (0) H=3 step=2   filterstep=6    00----02----04    06----08----10    12----14
+    (0) H=4 step=1   filterstep=3    00-01-02 03-04-05 06-07-08 09-10-11 12-13-14 15
+
+  For 2d/3d... is more complex. But keep in mind that the "restriction" that filterstep
+  applies, are inherited going from fine to coarse resolutions. So for example (read bottom to top
+  as you are trying to know samples dependencies):
+
+  V0101 (dimensions 4*4) filter_size=2
+
+    See query-filter-explanation.gif
+
+    ^ (V)  step(4,4) filterstep(8,8)
+    | (0)  step(2,2) filterstep(4,4)
+    | (1)  step(1,2) filterstep(2,4)
+    | (0)  step(1,1) filterstep(2,2)
+    | (1)  step(0,1) filterstep(1,2)
+  */
+
+  DatasetBitmask bitmask = dataset->getBitmask();
+  int pdim = bitmask.getPointDim();
+  PointNi step = bitmask.getPow2Box().size();
+  for (int K = 0; K < H; K++)
+  {
+    int bit = bitmask[K];
+    if (!K)
+      step = step.rightShift(PointNi::one(pdim));
+    else //
+      step[bit] >>= 1;
+  }
+
+  //note the std::max.. don't want 0!
+  PointNi filterstep = PointNi::one(pdim);
+  for (int D = 0; D < pdim; D++)
+    filterstep[D] = std::max((Int64)1, step[D] * this->size);
+
+  return filterstep;
+}
+
+
 /////////////////////////////////////////////////////////////////////////////////////
-SharedPtr<DatasetFilter> IdxDataset::createFilter(const Field& field) 
+SharedPtr<IdxFilter> IdxDataset::createFilter(const Field& field) 
 {
   String filter_name=field.filter;
 
   if (filter_name.empty())
-    return SharedPtr<DatasetFilter>();
+    return SharedPtr<IdxFilter>();
 
   if (filter_name=="identity" || filter_name=="IdentityFilter")
   {
@@ -493,7 +552,7 @@ SharedPtr<DatasetFilter> IdxDataset::createFilter(const Field& field)
   }
 
   PrintWarning("Cannot create filter, wrong name ", filter_name);
-  return SharedPtr<DatasetFilter>();
+  return SharedPtr<IdxFilter>();
 }
 
 } //namespace Visus

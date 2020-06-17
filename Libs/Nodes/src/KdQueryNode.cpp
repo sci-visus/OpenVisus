@@ -39,10 +39,11 @@ For support : support@visus.net
 
 #include <Visus/KdQueryNode.h>
 #include <Visus/GoogleMapsDataset.h>
-#include <Visus/DatasetFilter.h>
 #include <Visus/NetService.h>
 #include <Visus/FieldNode.h>
 #include <Visus/StringTree.h>
+#include <Visus/IdxDataset.h>
+#include <Visus/IdxFilter.h>
 
 namespace Visus {
 
@@ -132,15 +133,18 @@ public:
     // otherwise is probably a kdquery=block with a remote url, the server will apply the filter
     if (access)
     {
-      if (auto filter=dataset->createFilter(field))
+      if (auto idx = std::dynamic_pointer_cast<IdxDataset>(dataset))
       {
-        for (int H = 0; H <= end_resolution; H++)
+        if (auto filter = idx->createFilter(field))
         {
-          query->setCurrentResolution(H);
-          if (!filter->computeFilter(query.get(),true))
-            return false;
+          for (int H = 0; H <= end_resolution; H++)
+          {
+            query->setCurrentResolution(H);
+            if (!filter->internalComputeFilter(query.get(), true))
+              return false;
+          }
+          displaydata = filter->dropExtraComponentIfExists(fullres);
         }
-        displaydata = filter->dropExtraComponentIfExists(fullres);
       }
     }
 
@@ -188,8 +192,8 @@ public:
         if (!node->up->fullres || !node->blockdata)
           return;
 
-        auto query = dataset->createBoxQuery(node->logic_box, field, time,'r', this->aborted);
-        query->setResolutionRange(0,node->resolution);
+        auto query = dataset->createBoxQuery(node->logic_box, field, time, 'r', this->aborted);
+        query->setResolutionRange(0, node->resolution);
 
         if (aborted())
           return;
@@ -205,7 +209,7 @@ public:
         bool bLeftChild = node->up->left.get() == node ? true : false;
 
         auto fullres = bLeftChild ?
-          ArrayUtils::splitAndGetFirst (node->up->fullres, splitbit, aborted) :
+          ArrayUtils::splitAndGetFirst(node->up->fullres, splitbit, aborted) :
           ArrayUtils::splitAndGetSecond(node->up->fullres, splitbit, aborted);
 
         if (aborted() || !fullres)
@@ -235,12 +239,23 @@ public:
         //this is the latest resolution! needed also for filter->applyToQuery!
         query->setCurrentResolution(node->resolution);
 
-        //need to apply the filter, from now on I can display the data
-        auto filter = dataset->createFilter(field);
-        if (aborted() || (filter && !filter->computeFilter(query.get(), true)))
+        if (aborted())
           return;
 
-        auto displaydata = filter ? filter->dropExtraComponentIfExists(fullres) : fullres;
+
+        Array displaydata= fullres;
+
+        //need to apply the filter, from now on I can display the data
+        if (auto idx = std::dynamic_pointer_cast<IdxDataset>(dataset))
+        {
+          if (auto filter = idx->createFilter(field))
+          {
+            if (!!filter->internalComputeFilter(query.get(), true))
+              return;
+
+            displaydata = filter->dropExtraComponentIfExists(fullres);
+          }
+        }
 
         //store the results
         {

@@ -37,8 +37,8 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/IdxDataset.h>
-#include <Visus/DatasetFilter.h>
 #include <Visus/File.h>
+#include <Visus/IdxFilter.h>
 
 namespace Visus {
 
@@ -184,7 +184,7 @@ Array createImageFromBuffer(Array src)
 
 
 //////////////////////////////////////////////////////////////////////////////////////
-//show how to apply the De Haar DatasetFilter on IDX dataset
+//show how to apply the De Haar filter on IDX dataset
 //////////////////////////////////////////////////////////////////////////////////////
 void Tutorial_6(String default_layout)
 {
@@ -241,9 +241,8 @@ void Tutorial_6(String default_layout)
 
     //apply the filter on a IDX file (i.e. rewrite all samples)
     {
-      auto filter=dataset->createFilter(field);
-      VisusReleaseAssert(filter);
-      filter->computeFilter(dataset->getDefaultTime(),field,access,sliding_window_size);
+      auto filter=dataset->createFilter(field); VisusReleaseAssert(filter);
+      dataset->computeFilter(filter, dataset->getDefaultTime(), field, access, sliding_window_size);
     }
 
     BoxNi world_box=dataset->getLogicBox();

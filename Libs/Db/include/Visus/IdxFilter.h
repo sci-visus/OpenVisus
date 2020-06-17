@@ -36,8 +36,8 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef __VISUS_DATASET_FILTER_H
-#define __VISUS_DATASET_FILTER_H
+#ifndef __VISUS_IDX_DATASET_FILTER_H
+#define __VISUS_IDX_DATASET_FILTER_H
 
 #include <Visus/Db.h>
 #include <Visus/Array.h>
@@ -45,71 +45,19 @@ For support : support@visus.net
 namespace Visus {
 
 //predeclaration
-class Dataset;
+class IdxDataset;
 class Access;
 class BoxQuery;
 
 ////////////////////////////////////////////////////////
-class VISUS_DB_API DatasetFilter
+class VISUS_DB_API IdxFilter
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(DatasetFilter)
-
-  //constructor
-  DatasetFilter(Dataset* dataset,const Field& field,int filter_size,String name);
-
-  //destructor
-  virtual ~DatasetFilter();
-
-  //getDataset
-  Dataset* getDataset() const
-  {return dataset;}
-
-  //setNeedExtraComponent
-  void setNeedExtraComponent(bool value)
-  {this->bNeedExtraComponent=value;}
-
-  //doesNeedExtraComponent
-  bool doesNeedExtraComponent() const
-  {return bNeedExtraComponent;}
-  
-  //getName
-  const String& getName() const
-  {return name;}
-
-  //getSize
-  int getSize() const
-  {return size;}
-
-  //getDType
-  DType getDType() const
-  {return dtype;}
-
-  //getFilterStep
-  PointNi getFilterStep(int H) const; 
-
-  //dropExtraComponentIfExists
-  Array dropExtraComponentIfExists(Array src) const 
-  {
-    if (bool bRemoveLastComponent=bNeedExtraComponent?true:false)
-      return ArrayUtils::smartCast(src, DType(dtype.ncomponents()-1,dtype.get(0))); 
-    else
-    {
-      return src;
-    }
-  }
-
-  //computeFilter
-  virtual bool computeFilter(BoxQuery* query,bool bInverse) const=0;
-
-  //computeFilter
-  bool computeFilter(double time,Field field,SharedPtr<Access> access,PointNi SlidingWindow) const;
-
-private:
+  VISUS_NON_COPYABLE_CLASS(IdxFilter)
 
   //dataset
-  Dataset* dataset;
+  IdxDataset* dataset;
 
   //name
   String name;
@@ -123,9 +71,29 @@ private:
   //bNeedExtraComponent
   bool bNeedExtraComponent;
 
+  //constructor
+  IdxFilter(IdxDataset* dataset_, const Field& field, int filtersize_, String name_)
+    : dataset(dataset_), dtype(field.dtype), size(filtersize_), name(name_), bNeedExtraComponent(false) {
+  }
+
+  //destructor
+  virtual ~IdxFilter() {
+  }
+
+  //getFilterStep
+  PointNi getFilterStep(int H) const; 
+
+  //dropExtraComponentIfExists
+  Array dropExtraComponentIfExists(Array src) const  { 
+    return bNeedExtraComponent? ArrayUtils::smartCast(src, DType(dtype.ncomponents()-1,dtype.get(0))) : src;
+  }
+
+  //internalComputeFilter
+  virtual bool internalComputeFilter(BoxQuery* query,bool bInverse) const=0;
+
 };
 
 } //namespace Visus
 
-#endif //__VISUS_DATASET_FILTER_H
+#endif //__VISUS_IDX_DATASET_FILTER_H
 

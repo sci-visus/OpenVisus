@@ -39,7 +39,6 @@ For support : support@visus.net
 #include <Visus/VisusConvert.h>
 #include <Visus/Access.h>
 #include <Visus/IdxFile.h>
-#include <Visus/DatasetFilter.h>
 #include <Visus/CloudStorage.h>
 #include <Visus/IdxDataset.h>
 #include <Visus/File.h>

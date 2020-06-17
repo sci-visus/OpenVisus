@@ -60,13 +60,6 @@ public:
   //idxfile
   IdxFile idxfile;
 
-  SharedPtr<IdxBoxQueryHzAddressConversion> hzaddress_conversion_boxquery;
-
-  // to speed up point queries
-  // But keep in mind that this "preprocessing" is slow and can consume  a lot of memory. 
-  // So use only when stricly necessary! 
-  SharedPtr<IdxPointQueryHzAddressConversion> hzaddress_conversion_pointquery;
-
   //default constructor
   IdxDataset();
 
@@ -78,28 +71,15 @@ public:
     return "IdxDataset";
   }
 
+public:
+
   // removeFiles all files bolonging to this visus file 
   void removeFiles();
 
   //compressDataset
   virtual void compressDataset(std::vector<String> compression) override;
 
-  //adjustFilterBox
-  BoxNi adjustFilterBox(BoxQuery* query,DatasetFilter* filter,BoxNi box,int H);
-
-  //createEquivalentBoxQuery
-  SharedPtr<BoxQuery> createEquivalentBoxQuery(int mode,SharedPtr<BlockQuery> block_query);
-
-  //setIdxFile
-  void setIdxFile(IdxFile value);
-
-  //getLevelSamples
-  LogicSamples getLevelSamples(int H);
-
 public:
-
-  //read
-  virtual void read(Archive& ar) override;
 
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
@@ -109,9 +89,6 @@ public:
 
   //convertBlockQueryToRowMajor
   virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) override;
-
-  //createFilter
-  virtual SharedPtr<DatasetFilter> createFilter(const Field& field) override;
 
 public:
 
@@ -130,6 +107,12 @@ public:
   //createBoxQueryRequest
   virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query) override;
 
+  //createEquivalentBoxQuery
+  SharedPtr<BoxQuery> createEquivalentBoxQuery(int mode, SharedPtr<BlockQuery> block_query);
+
+  //adjustBoxQueryFilterBox
+  BoxNi adjustBoxQueryFilterBox(BoxQuery* query, IdxFilter* filter, BoxNi box, int H);
+
 public:
 
   //beginPointQuery
@@ -141,9 +124,42 @@ public:
   //createPointQueryRequest
   virtual NetRequest createPointQueryRequest(SharedPtr<PointQuery> query) override;
 
-  //setEndResolution
-  bool setEndResolution(SharedPtr<BoxQuery> query, int value);
+public:
 
+  //createFilter
+  SharedPtr<IdxFilter> createFilter(const Field& field);
+
+  //computeFilter
+  bool computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow) ;
+
+  //computeFilter
+  void computeFilter(const Field& field, int window_size);
+
+public:
+
+  //read
+  virtual void read(Archive& ar) override;
+
+private:
+
+  friend class InsertBlockQueryHzOrderSamplesToBoxQuery;
+  friend class IdxMultipleDataset;
+
+  SharedPtr<IdxBoxQueryHzAddressConversion> hzaddress_conversion_boxquery;
+
+  // to speed up point queries
+  // But keep in mind that this "preprocessing" is slow and can consume  a lot of memory. 
+  // So use only when stricly necessary! 
+  SharedPtr<IdxPointQueryHzAddressConversion> hzaddress_conversion_pointquery;
+
+  //getLevelSamples
+  LogicSamples getLevelSamples(int H);
+
+  //setIdxFile
+  void setIdxFile(IdxFile value);
+
+  //setBoxQueryEndResolution
+  bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value);
 
 };
 

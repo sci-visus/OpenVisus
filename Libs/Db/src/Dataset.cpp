@@ -47,7 +47,6 @@ For support : support@visus.net
 #include <Visus/StringTree.h>
 #include <Visus/Polygon.h>
 #include <Visus/IdxFile.h>
-#include <Visus/DatasetFilter.h>
 #include <Visus/File.h>
 
 namespace Visus {
@@ -337,22 +336,6 @@ SharedPtr<Dataset> LoadDataset(String url) {
   return LoadDatasetEx(ar);
 }
 
-////////////////////////////////////////////////
-void Dataset::computeFilter(const Field& field, int window_size)
-{
-  PrintInfo("starting conversion...");
-  auto filter = createFilter(field);
-  auto acess = createAccess();
-
-  //the filter will be applied using this sliding window
-  PointNi sliding_box = PointNi::one(getPointDim());
-  for (int D = 0; D < getPointDim(); D++)
-    sliding_box[D] = window_size;
-
-  auto timesteps = getTimesteps().asVector();
-  for (auto time : timesteps)
-    filter->computeFilter(time, field, acess, sliding_box);
-}
 
 ////////////////////////////////////////////////
 SharedPtr<BoxQuery> Dataset::createBoxQuery(BoxNi logic_box, Field field, double time, int mode, Aborted aborted)

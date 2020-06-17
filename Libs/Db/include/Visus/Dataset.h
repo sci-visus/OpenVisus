@@ -114,9 +114,6 @@ public:
   Color color;
 
   //this is needed for midx
-  std::map<String, SharedPtr<Dataset> > down_datasets;
-
-  //this is needed for midx
   Matrix logic_to_LOGIC;
 
   //annotations
@@ -466,19 +463,6 @@ public:
 
   //executePointQueryOnServer
   virtual bool executePointQueryOnServer(SharedPtr<PointQuery> query);
-
-public:
-
-  //________________________________________________
-  //filter stuff
-
-  //createFilter (default: not supported)
-  virtual SharedPtr<DatasetFilter> createFilter(const Field& field) {
-    return SharedPtr<DatasetFilter>();
-  }
-
-  //computeFilter
-  virtual void computeFilter(const Field& field, int window_size = 4096);
 
 public:
 
