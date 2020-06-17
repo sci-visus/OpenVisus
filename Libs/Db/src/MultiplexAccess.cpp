@@ -210,7 +210,8 @@ void MultiplexAccess::runInBackground()
       //need to read
       if (dw_query->mode == 'r')
       {
-        dataset->executeBlockQuery(dw_access[index], dw_query).when_ready([this, up_query, dw_query, index](Void)
+        dataset->executeBlockQuery(dw_access[index], dw_query);
+        dw_query->done.when_ready([this, up_query, dw_query, index](Void)
         {
           //if fails try the next index
           if (dw_query->failed())
@@ -238,7 +239,8 @@ void MultiplexAccess::runInBackground()
         VisusAssert(dw_query->mode == 'w');
 
         //if fails or not I don't care, I try to cache to upper levels anyway
-        dataset->executeBlockQuery(dw_access[index], dw_query).when_ready([this, up_query, dw_query, index](Void) {
+        dataset->executeBlockQuery(dw_access[index], dw_query);
+        dw_query->done.when_ready([this, up_query, dw_query, index](Void) {
           scheduleOp('w', index - 1, up_query);
         });
       }

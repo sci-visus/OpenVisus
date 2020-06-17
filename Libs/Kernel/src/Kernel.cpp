@@ -474,7 +474,7 @@ void KernelModule::attach()
 
   //encoders
   {
-    Encoders::getSingleton()->registerEncoder("",    [](String specs) {return std::make_shared<IdEncoder>(specs); });
+    Encoders::getSingleton()->registerEncoder("",    [](String specs) {return std::make_shared<IdEncoder>(specs); }); 
     Encoders::getSingleton()->registerEncoder("raw", [](String specs) {return std::make_shared<IdEncoder>(specs); });
     Encoders::getSingleton()->registerEncoder("bin", [](String specs) {return std::make_shared<IdEncoder>(specs); });
     Encoders::getSingleton()->registerEncoder("lz4", [](String specs) {return std::make_shared<LZ4Encoder>(specs); });

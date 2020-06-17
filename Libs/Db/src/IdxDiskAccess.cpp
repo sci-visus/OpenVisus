@@ -248,7 +248,6 @@ public:
     if (!openFile(filename, "r"))
       return failed("cannot open file");
 
-
     const auto& block_header = block_headers[cint(query->field.index)*idxfile.blocksperfile + idxfile.getBlockPositionInFile(blockid)];
     
     Int64 block_offset = block_header.offset;
@@ -943,15 +942,6 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
   this-> sync.reset(createAccess());
   this->async.reset(createAccess());
 
-  //special case for caching stuff (example range="0 2048" means that all block >=0 && block<2048 will pass throught)
-  auto block_range=config.readString("range");
-  if (!block_range.empty())
-  {
-    std::istringstream parse(block_range);
-    parse >> this->block_range.from;
-    parse >> this->block_range.to;
-  }
-
   //set this only if you know what you are doing (example visus convert with only one process)
   this->bDisableWriteLocks = 
     config.readBool("disable_write_locks") == true ||
@@ -962,9 +952,6 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
 
   //if (this->bDisableWriteLocks)
   //  PrintInfo("IdxDiskAccess::IdxDiskAccess disabling write locsk. be careful");
-
-  this->bDisableIO = config.readBool("disable_io")==true ||
-    std::find(CommandLine::args.begin(), CommandLine::args.end(), "--idx-disk-access-disable-io") != CommandLine::args.end();
 
   // important!number of threads must be <=1 
 #if 1
@@ -1068,29 +1055,7 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
 
   VisusAssert(query->start_address <= query->end_address);
 
-  if (block_range.to>0 )
-  {    
-    if (bVerbose)
-      PrintInfo("IdxDiskAccess::read blockid",blockid,"failed because out of range");
-
-    if (!(blockid >= block_range.from && blockid < block_range.to))
-      return readFailed(query);
-    else
-    {
-      query->buffer.fillWithValue(query->field.default_value);
-      return readOk(query);
-    }
-  }
-
-  if (bDisableIO)
-  {
-    query->buffer.fillWithValue(query->field.default_value);
-    query->buffer.layout = query->field.default_layout;
-    return readOk(query);
-  }
-
-  bool bAsync = !isWriting() && async_tpool;
-  if (bAsync)
+  if (bool bAsync = !isWriting() && async_tpool)
   {
     ThreadPool::push(async_tpool, [this, query]() {
       return async->readBlock(query);
@@ -1112,17 +1077,6 @@ void IdxDiskAccess::writeBlock(SharedPtr<BlockQuery> query)
 
   if (bVerbose)
     PrintInfo("got request to write block blockid",blockid);
-
-  if (block_range.to>0 && !(blockid >= block_range.from && blockid < block_range.to))
-  {
-    if (bVerbose)
-      PrintInfo("IdxDiskAccess::write blockid",blockid,"failed because out of range");
-
-    return writeFailed(query);
-  }
-
-  if (bDisableIO)
-    return writeOk(query);
 
   acquireWriteLock(query);
   sync->writeBlock(query);

@@ -66,12 +66,11 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(Query)
 
-  Dataset* dataset = nullptr;
+  Dataset*     dataset = nullptr;
   int          mode = 0;
   Field        field;
   double       time = 0;
   Aborted      aborted;
-
   Array        buffer;
 
   //constructor

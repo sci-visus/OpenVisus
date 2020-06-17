@@ -397,7 +397,8 @@ public:
 
       //retrieve the block data
       auto blockquery = std::make_shared<BlockQuery>(dataset.get(), field, time, getStartAddress(node), getEndAddress(node), 'r', this->aborted);
-      wait_async.pushRunning(dataset->executeBlockQuery(access, blockquery)).when_ready([this, blockquery, node, &rlock](Void) {
+      dataset->executeBlockQuery(access, blockquery);
+      wait_async.pushRunning(blockquery->done).when_ready([this, blockquery, node, &rlock](Void) {
 
         if (aborted() || blockquery->failed())
           return;

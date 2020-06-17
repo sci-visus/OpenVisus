@@ -369,11 +369,12 @@ public:
   SharedPtr<Access> createRamAccess(Int64 available, bool can_read = true, bool can_write = true);
 
   //readBlock  
-  virtual Future<Void> executeBlockQuery(SharedPtr<Access> access, SharedPtr<BlockQuery> query);
+  virtual void executeBlockQuery(SharedPtr<Access> access, SharedPtr<BlockQuery> query);
 
   //executeBlockQueryAndWait
   bool executeBlockQueryAndWait(SharedPtr<Access> access, SharedPtr<BlockQuery> query) {
-    executeBlockQuery(access, query).get(); 
+    executeBlockQuery(access, query);
+    query->done.get(); 
     return query->ok();
   }
 

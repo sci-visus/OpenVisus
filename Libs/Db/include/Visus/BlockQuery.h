@@ -83,7 +83,6 @@ public:
   BigInt       start_address = 0;
   BigInt       end_address = 0;
   LogicSamples logic_samples;
-
   Future<Void> done;
 
   //constructor

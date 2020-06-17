@@ -282,7 +282,8 @@ bool GoogleMapsDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuer
   {
     for (auto block_query : block_queries)
     {
-      wait_async.pushRunning(executeBlockQuery(access, block_query)).when_ready([this, query, block_query](Void) {
+      executeBlockQuery(access, block_query);
+      wait_async.pushRunning(block_query->done).when_ready([this, query, block_query](Void) {
 
         if (!query->aborted() && block_query->ok())
           mergeBoxQueryWithBlock(query, block_query);

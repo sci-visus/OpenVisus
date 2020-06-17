@@ -279,7 +279,8 @@ public:
         access->beginRead();
 
       //TODO: should I keep track of running queries in order to wait for them in the destructor?
-      dataset->executeBlockQuery(access, block_query).when_ready([this, QUERY, block_query](Void) {
+      dataset->executeBlockQuery(access, block_query);
+      block_query->done.when_ready([this, QUERY, block_query](Void) {
 
         if (block_query->failed())
           return readFailed(QUERY); //failed

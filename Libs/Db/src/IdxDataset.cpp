@@ -106,6 +106,9 @@ public:
     if (!logic_samples.valid())
       return readFailed(query);
 
+    if (!query->allocateBufferIfNeeded())
+      return readFailed(query);
+
     auto& buffer=query->buffer;
     buffer.layout="";
 
@@ -1591,7 +1594,8 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
 
     if (bReading)
     {
-      async_read.pushRunning(executeBlockQuery(access, read_block)).when_ready([this, query, read_block, aborted](Void)
+      executeBlockQuery(access, read_block);
+      async_read.pushRunning(read_block->done).when_ready([this, query, read_block, aborted](Void)
       {
         //I don't care if the read fails...
         if (!aborted() && read_block->ok())
@@ -1825,7 +1829,8 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
       ++B;
 
     auto block_query = std::make_shared<BlockQuery>(this, query->field, query->time, HzFrom, HzTo, 'r', aborted);
-    wait_async.pushRunning(this->executeBlockQuery(access, block_query)).when_ready([this, query, block_query, &hzaddresses, A, B, aborted](Void) {
+    this->executeBlockQuery(access, block_query);
+    wait_async.pushRunning(block_query->done).when_ready([this, query, block_query, &hzaddresses, A, B, aborted](Void) {
 
       if (aborted() || block_query->failed())
         return;

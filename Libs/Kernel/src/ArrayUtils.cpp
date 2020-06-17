@@ -124,24 +124,30 @@ bool ArrayUtils::saveImage(String url,Array src,std::vector<String> args)
 }
 
 //////////////////////////////////////////////////////////////
-SharedPtr<HeapMemory> ArrayUtils::encodeArray(String compression_specs,Array array)
+SharedPtr<HeapMemory> ArrayUtils::encodeArray(String compression,Array array)
 {
   if (!array) {
     VisusAssert(false);
     return SharedPtr<HeapMemory>();
   }
 
-  std::vector<String> options;
-  auto encoder=Encoders::getSingleton()->createEncoder(compression_specs);
-  if (!encoder) 
+  SharedPtr<HeapMemory> encoded;
+  if (compression.empty())
   {
-    VisusAssert(false);
-    return SharedPtr<HeapMemory>();
+    encoded = array.heap;
+  }
+  else
+  {
+    auto encoder = Encoders::getSingleton()->createEncoder(compression);
+    if (!encoder)
+    {
+      VisusAssert(false);
+      return SharedPtr<HeapMemory>();
+    }
+    //if encoder fails, just copy the array
+    encoded = encoder->encode(array.dims, array.dtype, array.heap);
   }
 
-  //if encoder fails, just copy the array
-  auto decoded=array.heap;
-  auto encoded=encoder->encode(array.dims,array.dtype,decoded);
   if (!encoded) {
     VisusAssert(false);
     return SharedPtr<HeapMemory>();
@@ -152,7 +158,7 @@ SharedPtr<HeapMemory> ArrayUtils::encodeArray(String compression_specs,Array arr
 
 
 //////////////////////////////////////////////////////////////
-Array ArrayUtils::decodeArray(String compression_specs,PointNi dims,DType dtype,SharedPtr<HeapMemory> encoded)
+Array ArrayUtils::decodeArray(String compression,PointNi dims,DType dtype,SharedPtr<HeapMemory> encoded)
 {
   if (!encoded) {
     VisusAssert(false);
@@ -162,18 +168,25 @@ Array ArrayUtils::decodeArray(String compression_specs,PointNi dims,DType dtype,
   if (dims.innerProduct()<=0 || !dtype.valid())
     return Array();
 
-  auto decoder=Encoders::getSingleton()->createEncoder(compression_specs);
-  if (!decoder) {
-    VisusAssert(false);
-    return Array();
+  SharedPtr<HeapMemory> decoded;
+  if (compression.empty())
+  {
+    decoded = encoded;
   }
-  
-  auto decoded=decoder->decode(dims,dtype,encoded);
+  else
+  {
+    auto decoder = Encoders::getSingleton()->createEncoder(compression);
+    if (!decoder) {
+      VisusAssert(false);
+      return Array();
+    }
+    decoded = decoder->decode(dims, dtype, encoded);
+  }
+
   if (!decoded)
     return Array();
 
   VisusAssert(decoded->c_size()==dtype.getByteSize(dims));
-
   return Array(dims,dtype,decoded);
 }
 
@@ -200,7 +213,7 @@ Array ArrayUtils::decodeArray(StringMap metadata, SharedPtr<HeapMemory> encoded)
   if (!metadata.hasValue("visus-compression") && !metadata.getValue("Content-Type").empty())
   {
     auto content_type = metadata.getValue("Content-Type");
-    if (content_type == "application/x-lz4")    compression = "lz4";
+    if      (content_type == "application/x-lz4")   compression = "lz4";
     else if (content_type == "application/zip")     compression = "zip";
     else if (content_type == "image/png")           compression = "png";
     else if (content_type == "image/jpeg")          compression = "jpg";

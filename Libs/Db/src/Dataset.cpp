@@ -340,7 +340,7 @@ void Dataset::computeFilter(const Field& field, int window_size)
 }
 
 ////////////////////////////////////////////////
-Future<Void> Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
+void Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
 {
   VisusAssert(access->isReading() || access->isWriting());
 
@@ -353,7 +353,7 @@ Future<Void> Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<Block
       mode == 'r'? access->readFailed(query) : access->writeFailed(query);
    
     PrintInfo("executeBlockQUery failed", reason);
-    return query->done;
+    return;
   };
 
   if (!access)
@@ -374,10 +374,6 @@ Future<Void> Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<Block
   if (mode == 'w' && !query->buffer)
     return failed("no buffer to write");
 
-  //auto allocate buffer
-  if (!query->allocateBufferIfNeeded())
-    return failed("failed to allocate");
-
   // override time  from from field
   if (query->field.hasParam("time"))
     query->time = cdouble(query->field.getParam("time"));
@@ -395,7 +391,7 @@ Future<Void> Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<Block
     BlockQuery::writeBlockEvent();
   }
 
-  return query->done;
+  return;
 }
 
 
@@ -593,8 +589,6 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
     auto hzto = hzfrom + nsamplesperblock;
 
     auto block_query = std::make_shared<BlockQuery>(this, field, time, hzfrom, hzto, 'r', Aborted());
-    
-
     this->executeBlockQueryAndWait(access, block_query);
 
     if (block_query->failed())
