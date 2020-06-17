@@ -69,7 +69,7 @@ SharedPtr<Access> Dataset::createRamAccess(Int64 available, bool can_read, bool 
 }
 
 ////////////////////////////////////////////////////////////////////
-SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt start_address, BigInt end_address, Field field, double time, int mode, Aborted aborted)
+SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted)
 {
   auto ret = std::make_shared<BlockQuery>();
   ret->dataset = this;
@@ -78,9 +78,8 @@ SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt start_address, BigInt end
   ret->mode = mode; VisusAssert(mode == 'r' || mode == 'w');
   ret->aborted = aborted;
   ret->done = Promise<Void>().get_future();
-  ret->start_address = start_address;
-  ret->end_address = end_address;
-  ret->logic_samples = getAddressRangeSamples(start_address, end_address);
+  ret->blockid = blockid;
+  ret->logic_samples = getBlockSamples(blockid);
   return ret;
 }
 
@@ -392,7 +391,7 @@ void Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<BlockQuery> q
   if (!query->field.valid())
     return failed("field not valid");
 
-  if (!(query->start_address < query->end_address))
+  if (query->blockid < 0)
     return failed("address range not valid");
 
   if ((mode == 'r' && !access->can_read) || (mode == 'w' && !access->can_write))
@@ -462,9 +461,9 @@ Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, dou
 
   auto query = createBoxQuery(logic_box, field, time, 'r');
 
-  beginQuery(query);
+  beginBoxQuery(query);
 
-  if (!executeQuery(access, query))
+  if (!executeBoxQuery(access, query))
     return Array();
 
   query->buffer.bounds = Position(logicToPhysic(),logic_box);
@@ -478,7 +477,7 @@ bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, dou
     logic_box =BoxNi(PointNi(buffer.getPointDim()), buffer.dims);
 
   auto query = createBoxQuery(logic_box, field, time,'w');
-  beginQuery(query);
+  beginBoxQuery(query);
 
   if (!query->isRunning())
     return false;
@@ -486,7 +485,7 @@ bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, dou
   VisusAssert(query->getNumberOfSamples() == buffer.dims);
   query->buffer = buffer;
 
-  if (!executeQuery(access, query))
+  if (!executeBoxQuery(access, query))
     return false;
 
   return true;
@@ -593,210 +592,6 @@ SharedPtr<PointQuery> Dataset::createPointQuery(Position logic_position, Field f
   return ret;
 }
 
-/////////////////////////////////////////////////////////
-Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double time, int H)
-{
-  VisusAssert(access);
 
-  auto pdim = this->getPointDim();
-  auto bitmask = this->getBitmask();
-  auto bitsperblock = access->bitsperblock;
-  auto nsamplesperblock = 1 << bitsperblock;
-
-  VisusAssert(H >= bitsperblock);
-
-  LogicSamples Lsamples;
-
-  if (H == bitsperblock)
-    Lsamples = this->getAddressRangeSamples(0, nsamplesperblock);
-  else
-    Lsamples = this->getLevelSamples(H);
-
-  auto start_block = (H == bitsperblock) ? 0 : (1 << (H - bitsperblock - 1));
-  auto block_per_level = std::max(1, start_block);
-
-  Array ret(Lsamples.nsamples, DTypes::UINT8_RGB);
-  ret.fillWithValue(0);
-
-  access->beginRead();
-
-  for (int block = start_block; block < (start_block + block_per_level); block++)
-  {
-    auto hzfrom = block << bitsperblock;
-    auto hzto = hzfrom + nsamplesperblock;
-
-    auto block_query = createBlockQuery(hzfrom, hzto, field, time);
-    this->executeBlockQueryAndWait(access, block_query);
-
-    if (block_query->failed())
-      continue;
-
-    //make sure is row major
-    if (!block_query->buffer.layout.empty())
-      convertBlockQueryToRowMajor(block_query);
-
-    auto src = block_query->buffer;
-
-    ArrayUtils::saveImage(concatenate("temp/block",block_query->start_address >> bitsperblock,".png"), src);
-
-    if (bool bDrawBorder = true)
-    {
-      VisusAssert(src.dtype == DTypes::UINT8_RGB);
-      VisusAssert(pdim == 2);
-
-      int W = (int)src.dims[0];
-      int H = (int)src.dims[1];
-
-      Uint8* samples = src.c_ptr();
-      auto setBlack = [&](int R, int C) {memset(samples + (R*W + C) * 3, 0, 3); };
-
-      for (int R = 0; R < src.dims[0]; R++) { setBlack(R, 0); setBlack(R, H - 1); }
-      for (int C = 0; C < src.dims[1]; C++) { setBlack(0, C); setBlack(W - 1, C); }
-    }
-
-    auto p1 = Lsamples.logicToPixel(block_query->getLogicBox().p1);
-    ArrayUtils::paste(ret, p1, src);
-  }
-
-  access->endRead();
-
-  return ret;
-}
-
-/////////////////////////////////////////////////////////
-void Dataset::testQuerySpeed(double time, Field field, int query_dim)
-{
-  srand((unsigned int)Time::now().getTimeStamp());
-
-  auto access = this->createAccess();
-
-  auto tiles = this->generateTiles(query_dim);
-
-  Time T1 = Time::now();
-  Time Tstats = Time::now();
-
-  for (int TileId = 0; TileId < tiles.size(); TileId++)
-  {
-    auto tile = tiles[TileId];
-    auto buffer = this->readFullResolutionData(access, this->getDefaultField(), this->getDefaultTime(), tile);
-    if (!buffer)
-      continue;
-
-    PrintInfo("Done", TileId, "of", tiles.size());
-
-    if (Tstats.elapsedSec() > 3.0)
-    {
-      auto sec = Tstats.elapsedSec();
-
-      auto stats = File::global_stats();
-      auto nopen  = (int)stats->nopen;
-      auto rbytes = (int)stats->rbytes;
-      auto wbytes = (int)stats->wbytes;
-
-      PrintInfo("ndone", TileId, "/", tiles.size(),
-        "io.nopen", nopen, "/", Int64(nopen / sec),
-        "io.rbytes", StringUtils::getStringFromByteSize(rbytes), StringUtils::getStringFromByteSize(Int64(rbytes / sec)),
-        "io.wbytes", StringUtils::getStringFromByteSize(wbytes), StringUtils::getStringFromByteSize(Int64(wbytes / sec)));
-      stats->resetStats();
-
-      Tstats = Time::now();
-    }
-  }
-
-  PrintInfo("Test done in", T1.elapsedSec());
-}
-
-
-/////////////////////////////////////////////////////////
-void Dataset::testSlabSpeed(String filename, PointNi dims, int num_slabs, String  dtype, String  layout)
-{
-  int slices_per_slab = (int)dims[2] / num_slabs;
-
-  //create the idx file
-  {
-    IdxFile idxfile;
-    idxfile.logic_box = BoxNi(PointNi(3), dims);
-    Field field("myfield", DType::fromString(dtype));
-    field.default_compression = ""; // no compression (in writing I should not use compression)
-    field.default_layout = layout;
-    idxfile.fields.push_back(field);
-    idxfile.save(filename);
-  }
-
-  //now create a Dataset, save it and reopen from disk
-  auto dataset = LoadDataset(filename);
-
-  //any time you need to read/write data from/to a Dataset I need a Access
-  auto access = dataset->createAccess();
-
-  //for example I want to write data by slices
-  Int32 sample_id = 0;
-  double SEC = 0;
-
-  for (int Slab = 0; Slab < num_slabs; Slab++)
-  {
-    //this is the bounding box of the region I'm going to write
-    auto Z1 = Slab * slices_per_slab;
-    auto Z2 = Z1 + slices_per_slab;
-
-    BoxNi slice_box = dataset->getLogicBox().getZSlab(Z1, Z2);
-
-    //prepare the write query
-    auto write = dataset->createBoxQuery(slice_box, 'w');
-    dataset->beginQuery(write);
-    VisusReleaseAssert(write->isRunning());
-
-    int slab_num_samples = (int)(dims[0] * dims[1] * slices_per_slab);
-    VisusReleaseAssert(write->getNumberOfSamples().innerProduct() == slab_num_samples);
-
-    //fill the buffers with some fake data
-    {
-      Array buffer(write->getNumberOfSamples(), write->field.dtype);
-
-      VisusAssert(dtype == "int32");
-      GetSamples<Int32> samples(buffer);
-
-      for (int I = 0; I < slab_num_samples; I++)
-        samples[I] = sample_id++;
-
-      write->buffer = buffer;
-    }
-
-    //execute the writing
-    auto t1 = clock();
-    VisusReleaseAssert(dataset->executeQuery(access, write));
-    auto t2 = clock();
-    auto sec = (t2 - t1) / (float)CLOCKS_PER_SEC;
-    SEC += sec;
-    PrintInfo("Done", Slab, "of", num_slabs, "bbox ", slice_box.toString(/*bInterleave*/true), "in", sec, "sec");
-  }
-
-  PrintInfo("Wrote all slabs in", SEC, "sec");
-
-  //verify data
-  {
-    auto read = dataset->createBoxQuery(dataset->getLogicBox(), 'r');
-    dataset->beginQuery(read);
-    VisusReleaseAssert(read->isRunning());
-
-    Array buffer(read->getNumberOfSamples(), read->field.dtype);
-    buffer.fillWithValue(0);
-    read->buffer = buffer;
-
-    auto t1 = clock();
-    VisusReleaseAssert(dataset->executeQuery(access, read));
-    auto t2 = clock();
-    auto sec = (t2 - t1) / (float)CLOCKS_PER_SEC;
-
-    VisusAssert(dtype == "int32");
-    GetSamples<Int32> samples(buffer);
-
-    for (int I = 0, N = (int)dims.innerProduct(); I < N; I++)
-    {
-      if (samples[I] != I)
-        PrintInfo("Reading verification failed sample", I, "expecting", I, "got", samples[I]);
-    }
-  }
-}
 
 } //namespace Visus 

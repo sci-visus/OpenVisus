@@ -474,14 +474,23 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
   String fieldname = request.url.getParam("field", dataset->getDefaultField().name);
   double time = cdouble(request.url.getParam("time", cstring(dataset->getDefaultTime())));
 
-  std::vector<BigInt> start_address; for (auto it : StringUtils::split(request.url.getParam("from", "0"))) start_address.push_back(cbigint(it));
-  std::vector<BigInt> end_address; for (auto it : StringUtils::split(request.url.getParam("to", "0"))) end_address.push_back(cbigint(it));
+  auto bitsperblock = dataset->getDefaultBitsPerBlock();
 
-  if (start_address.empty())
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "start_address.empty()");
+  std::vector<BigInt> blocks;
 
-  if (start_address.size() != end_address.size())
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "start_address.size()!=end_address.size()");
+  if (request.url.hasParam("block"))
+  {
+    for (auto it : StringUtils::split(request.url.getParam("block", "0")))
+      blocks.push_back(cbigint(it));
+  }
+  else if (request.url.hasParam("from"))
+  {
+    for (auto it : StringUtils::split(request.url.getParam("from", "0")))
+      blocks.push_back(cbigint(it)>>bitsperblock);
+  }
+
+  if (blocks.empty())
+    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "blocks empty()");
 
   Field field = fieldname.empty() ? dataset->getDefaultField() : dataset->getField(fieldname);
   if (!field.valid())
@@ -496,9 +505,9 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
   Aborted aborted;
 
   std::vector<NetResponse> responses;
-  for (int I = 0; I < (int)start_address.size(); I++)
+  for (auto blockid : blocks)
   {
-    auto block_query = dataset->createBlockQuery(start_address[I], end_address[I], field, time, 'r', aborted);
+    auto block_query = dataset->createBlockQuery(blockid, field, time, 'r', aborted);
     dataset->executeBlockQuery(access, block_query);
     wait_async.pushRunning(block_query->done).when_ready([block_query, &responses, dataset, compression](Void) {
 
@@ -575,14 +584,14 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
     query->disableFilters();
   }
 
-  dataset->beginQuery(query);
+  dataset->beginBoxQuery(query);
 
   if (!query->isRunning())
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginBoxQuery() failed " + query->errormsg);
 
   auto access = dataset->createAccess();
-  if (!dataset->executeQuery(access, query))
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeQuery() failed " + query->getLastErrorMsg());
+  if (!dataset->executeBoxQuery(access, query))
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeBoxQuery() failed " + query->errormsg);
 
   buffer = query->buffer;
 
@@ -675,17 +684,17 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
   query->end_resolution = endh;
 
   if (!query->setPoints(nsamples))
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->setPoints failed " + query->getLastErrorMsg());
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->setPoints failed " + query->errormsg);
 
   auto access = dataset->createAccess();
 
-  dataset->beginQuery(query);
+  dataset->beginPointQuery(query);
 
   if (!query->isRunning())
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginBoxQuery() failed " + query->errormsg);
 
-  if (!dataset->executeQuery(access, query))
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeQuery() failed " + query->getLastErrorMsg());
+  if (!dataset->executePointQuery(access, query))
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeBoxQuery() failed " + query->errormsg);
 
   buffer = query->buffer;
 

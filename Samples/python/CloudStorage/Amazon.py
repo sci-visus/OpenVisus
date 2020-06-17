@@ -69,7 +69,7 @@ def ReadBlocks(db, blocks,filename_template="{time}/{field}/{block:016x}", rever
 	access=db.createAccessForBlockQuery()
 	access.beginRead()
 	for block_id in blocks:
-		block = db.createBlockQuery(access.getStartAddress(block_id), access.getEndAddress(block_id), field, time)
+		block = db.createBlockQuery(block_id, field, time)
 		bOk=db.executeBlockQueryAndWait(access, block)
 		if not bOk:
 			continue # could be that the block is not stored

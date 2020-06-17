@@ -147,7 +147,7 @@ class PyDataset(object):
 		Assert(access)
 		field=self.getDefaultField() if field is None else self.getField(field)	
 		time = self.getDefaultTime() if time is None else time
-		read_block = self.db.createBlockQuery(access.getStartAddress(block_id), access.getEndAddress(block_id), field, time, ord('r'), aborted)
+		read_block = self.db.createBlockQuery(block_id, field, time, ord('r'), aborted)
 		self.executeBlockQueryAndWait(access, read_block)
 		if not read_block.ok(): return None
 		return Array.toNumPy(read_block.buffer, bShareMem=False)
@@ -157,7 +157,7 @@ class PyDataset(object):
 		Assert(access and data)
 		field=self.getDefaultField() if field is None else self.getField(field)	
 		time = self.getDefaultTime() if time is None else time
-		write_block = self.db.createBlockQuery(access.getStartAddress(block_id), access.getEndAddress(block_id), field, time, ord('w'), aborted)
+		write_block = self.db.createBlockQuery(block_id, field, time, ord('w'), aborted)
 		write_block.buffer=Array.fromNumPy(data,TargetDim=self.getPointDim(), bShareMem=True)
 		self.executeBlockQueryAndWait(access, write_block)
 		return write_block.ok()
@@ -211,17 +211,17 @@ class PyDataset(object):
 			if res>=0:
 				query.end_resolutions.push_back(res)
 		
-		self.db.beginQuery(query)
+		self.db.beginBoxQuery(query)
 		
 		if not query.isRunning():
-			raise Exception("begin query failed {0}".format(query.getLastErrorMsg()))
+			raise Exception("begin query failed {0}".format(query.errormsg))
 			
 		if not access:
 			access=self.db.createAccess()
 			
 		def NoGenerator():
-			if not self.db.executeQuery(access, query):
-				raise Exception("query error {0}".format(query.getLastErrorMsg()))
+			if not self.db.executeBoxQuery(access, query):
+				raise Exception("query error {0}".format(query.errormsg))
 			# i cannot be sure how the numpy will be used outside or when the query will dealllocate the buffer
 			data=Array.toNumPy(query.buffer, bShareMem=False) 
 			return data
@@ -229,13 +229,13 @@ class PyDataset(object):
 		def WithGenerator():
 			while query.isRunning():
 
-				if not self.db.executeQuery(access, query):
-					raise Exception("query error {0}".format(query.getLastErrorMsg()))
+				if not self.db.executeBoxQuery(access, query):
+					raise Exception("query error {0}".format(query.errormsg))
 
 				# i cannot be sure how the numpy will be used outside or when the query will dealllocate the buffer
 				data=Array.toNumPy(query.buffer, bShareMem=False) 
 				yield data
-				self.db.nextQuery(query)	
+				self.db.nextBoxQuery(query)	
 
 		return NoGenerator() if query.end_resolutions.size()==1 else WithGenerator()
 			
@@ -290,10 +290,10 @@ class PyDataset(object):
 		query = self.db.createBoxQuery(BoxNi(p1,p1+PointNi(dims)), field , time , ord('w'))
 		query.end_resolutions.push_back(self.getMaxResolution())
 		
-		self.db.beginQuery(query)
+		self.db.beginBoxQuery(query)
 		
 		if not query.isRunning():
-			raise Exception("begin query failed {0}".format(query.getLastErrorMsg()))
+			raise Exception("begin query failed {0}".format(query.errormsg))
 			
 		if not access:
 			access=IdxDiskAccess.create(self.db)
@@ -307,8 +307,8 @@ class PyDataset(object):
 		
 		query.buffer=buffer
 		
-		if not self.db.executeQuery(access, query):
-			raise Exception("query error {0}".format(query.getLastErrorMsg()))
+		if not self.db.executeBoxQuery(access, query):
+			raise Exception("query error {0}".format(query.errormsg))
 			
 	# writeSlabs
 	def writeSlabs(self,slices, x=0, y=0, z=0, time=None, field=None, max_memsize=1024*1024*1024, access=None):

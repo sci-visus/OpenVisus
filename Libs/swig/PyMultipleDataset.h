@@ -100,9 +100,6 @@ public:
   //constructor
   ComputeOutput(const IdxMultipleDataset* DATASET_, BoxQuery* QUERY_, SharedPtr<Access> ACCESS_, Aborted aborted_)
     : DATASET(const_cast<IdxMultipleDataset*>(DATASET_)), QUERY(QUERY_), ACCESS(ACCESS_), aborted(aborted_) {
-
-    VisusAssert(!DATASET->is_mosaic);
-
     {
       ScopedAcquireGil acquire_gil;
       static std::atomic<int> module_id(0);

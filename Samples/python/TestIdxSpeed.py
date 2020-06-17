@@ -96,7 +96,7 @@ def CreateIdxDataset(filename, DIMS=None, dtype=None, blocksize=0, default_layou
 	
 	access.beginWrite()
 	for blockid in range(db.getTotalNumberOfBlocks()):
-		write_block = db.createBlockQuery(access.getStartAddress(blockid), access.getEndAddress(blockid), ord('w'), Aborted())
+		write_block = db.createBlockQuery(blockid, ord('w'), Aborted())
 		nsamples=write_block.getNumberOfSamples().toVector()
 		buffer=GenerateRandomData(nsamples,dtype)
 		write_block.buffer=Array.fromNumPy(buffer, bShareMem=True)
@@ -117,7 +117,7 @@ def ReadIdxBlockQuery(filename):
 	try:
 		while True:
 			blockid=np.random.randint(0,nblocks)
-			query = db.createBlockQuery(access.getStartAddress(blockid), access.getEndAddress(blockid))
+			query = db.createBlockQuery(blockid)
 			db.executeBlockQuery(access, query)
 			Assert(query.ok())
 			yield query.buffer.c_size()

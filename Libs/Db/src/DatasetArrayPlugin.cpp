@@ -165,12 +165,12 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
     query->enableFilters();
   }
 
-  dataset->beginQuery(query);
+  dataset->beginBoxQuery(query);
 
   auto access=dataset->createAccess();
-  if (!dataset->executeQuery(access,query))
+  if (!dataset->executeBoxQuery(access,query))
   {
-    PrintWarning("!dataset->executeQuery()");
+    PrintWarning("!dataset->executeBoxQuery()");
     return Array();
   }
 
@@ -213,11 +213,11 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
   auto query=dataset->createBoxQuery(args.box, args.field, args.time,'w');
   query->setResolutionRange(args.fromh,args.toh);
 
-  dataset->beginQuery(query);
+  dataset->beginBoxQuery(query);
 
   if (!query->isRunning())
   {
-    PrintWarning("dataset->beginQuery() failed");
+    PrintWarning("dataset->beginBoxQuery() failed");
     return false;
   }
 
@@ -243,9 +243,9 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
   query->buffer=src; 
 
   auto access=dataset->createAccess();
-  if (!dataset->executeQuery(access,query))
+  if (!dataset->executeBoxQuery(access,query))
   {
-    PrintWarning("!dataset->executeQuery()");
+    PrintWarning("!dataset->executeBoxQuery()");
     return false;
   }
 

@@ -161,7 +161,7 @@ public:
         BoxNi slice_box = getSliceBox(N);
 
         auto query = dataset->createBoxQuery(slice_box, 'w');
-        dataset->beginQuery(query);
+        dataset->beginBoxQuery(query);
         VisusReleaseAssert(query->isRunning());
 
         Array buffer(query->getNumberOfSamples(), dtype);
@@ -169,7 +169,7 @@ public:
           buffer.c_ptr()[i] = cont++;
         query->buffer = buffer;
 
-        VisusReleaseAssert(dataset->executeQuery(access, query));
+        VisusReleaseAssert(dataset->executeBoxQuery(access, query));
         this->write_queries.push_back(query);
       }
     }
@@ -181,9 +181,9 @@ public:
       for (int N = 0; N < this->nslices; N++)
       {
         auto read_slice = dataset->createBoxQuery(getSliceBox(N), 'r');
-        dataset->beginQuery(read_slice);
+        dataset->beginBoxQuery(read_slice);
         VisusReleaseAssert(read_slice->isRunning());
-        VisusReleaseAssert(dataset->executeQuery(access, read_slice));
+        VisusReleaseAssert(dataset->executeBoxQuery(access, read_slice));
         VisusReleaseAssert(read_slice->getNumberOfSamples().innerProduct() == this->perslice);
         VisusReleaseAssert(CompareSamples(write_queries[N]->buffer, 0, read_slice->buffer, 0, perslice));
         read_slice.reset();
@@ -207,7 +207,7 @@ public:
     auto access = dataset->createAccess();
 
     auto query = dataset->createBoxQuery(box, 'r');
-    query->merge_mode = (bInterpolate ? InterpolateSamples : InsertSamples);
+    query->merge_mode = (bInterpolate ? MergeMode::InterpolateSamples : MergeMode::InsertSamples);
 
     for (int h = firsth; h <= lasth; h = h + deltah)
       query->end_resolutions.push_back(h);
@@ -217,18 +217,18 @@ public:
     PointNi shift(pdim);
 
     //probably the bounding box cannot get samples
-    dataset->beginQuery(query);
+    dataset->beginBoxQuery(query);
 
     if (!query->isRunning())
       return;
 
     while (query->isRunning())
     {
-      VisusReleaseAssert(dataset->executeQuery(access, query));
+      VisusReleaseAssert(dataset->executeBoxQuery(access, query));
       buffer = query->buffer;
       h_box = query->logic_samples.logic_box;
       shift = query->logic_samples.shift;
-      dataset->nextQuery(query);
+      dataset->nextBoxQuery(query);
     }
 
     VisusReleaseAssert(buffer);

@@ -120,9 +120,9 @@ public:
     //I use a box query to get the data
     auto query=dataset->createBoxQuery(pow2_box, field, time,'r', this->aborted);
     query->setResolutionRange(0,end_resolution);
-    dataset->beginQuery(query);
+    dataset->beginBoxQuery(query);
 
-    if (!dataset->executeQuery(access,query))
+    if (!dataset->executeBoxQuery(access,query))
       return false;
 
     auto fullres     = query->buffer;
@@ -194,7 +194,7 @@ public:
         if (aborted())
           return;
 
-        dataset->beginQuery(query);
+        dataset->beginBoxQuery(query);
 
         if (!query->isRunning())
           return;
@@ -223,11 +223,11 @@ public:
         VisusAssert(fullres.dims == query->getNumberOfSamples());
         query->buffer = fullres;
 
-        auto blockquery = dataset->createBlockQuery(getStartAddress(node), getEndAddress(node), field, time, 'r', Aborted());
+        auto blockquery = dataset->createBlockQuery(getBlockId(node), field, time, 'r', Aborted());
         VisusAssert(blockquery->getNumberOfSamples() == node->blockdata.dims);
         blockquery->buffer = node->blockdata;
 
-        if (aborted() || !dataset->mergeBoxQueryWithBlock(query, blockquery))
+        if (aborted() || !dataset->mergeBoxQueryWithBlockQuery(query, blockquery))
           return;
 
         fullres = query->buffer;
@@ -258,16 +258,10 @@ public:
     computeFullRes(node->right.get(), rlock);
   }
 
-  //getStartAddress
-  BigInt getStartAddress(KdArrayNode* node) 
+  //getBlockId
+  BigInt getBlockId(KdArrayNode* node) 
   {
-    auto blocknum = BigInt(bBlocksAreFullRes ? node->id - 1 : node->id); //IF !bBlocksAreFullRes node->id is the block number (considering that root has blocks 0 and 1)
-    return blocknum << bitsperblock;
-  }
-
-  //getStartAddress
-  BigInt getEndAddress(KdArrayNode* node) {
-    return getStartAddress(node) + (BigInt(1)<<bitsperblock);
+    return BigInt(bBlocksAreFullRes ? node->id - 1 : node->id); //IF !bBlocksAreFullRes node->id is the block number (considering that root has blocks 0 and 1)
   }
 
   //isLeafNode
@@ -307,7 +301,7 @@ public:
     {
       auto query = dataset->createBoxQuery(node->logic_box, field, time, 'r');
       query->setResolutionRange(0, node->resolution);
-      dataset->beginQuery(query);
+      dataset->beginBoxQuery(query);
       nsamples = query->getNumberOfSamples();
       nsamples.setPointDim(3, 1);
     }
@@ -393,7 +387,7 @@ public:
         continue;
 
       //retrieve the block data
-      auto blockquery = dataset->createBlockQuery(getStartAddress(node), getEndAddress(node), field, time, 'r', this->aborted);
+      auto blockquery = dataset->createBlockQuery(getBlockId(node), field, time, 'r', this->aborted);
       dataset->executeBlockQuery(access, blockquery);
       wait_async.pushRunning(blockquery->done).when_ready([this, blockquery, node, &rlock](Void) {
 
@@ -500,7 +494,7 @@ public:
       auto query = dataset->createBoxQuery(node->logic_box, field, time,'r', this->aborted);
       query->setResolutionRange(0, node->resolution);
 
-      dataset->beginQuery(query);
+      dataset->beginBoxQuery(query);
 
       if (!query->isRunning() || !query->allocateBufferIfNeeded())
         continue;
@@ -534,7 +528,7 @@ public:
       }
 
       //execute in place (TODO: use thread here?)
-      else if (dataset->executeQuery(access, query))
+      else if (dataset->executeBoxQuery(access, query))
       {
         {
           ScopedWriteLock wlock(rlock);

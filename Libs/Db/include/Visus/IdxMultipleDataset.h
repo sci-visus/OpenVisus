@@ -95,9 +95,6 @@ public:
 
   int debug_mode = 0;
 
-  //bMosaic
-  bool is_mosaic = false;
-
   //constructor
   IdxMultipleDataset();
 
@@ -154,14 +151,14 @@ public:
     return SharedPtr<DatasetFilter>();
   }
 
-  //beginQuery
-  virtual void beginQuery(SharedPtr<BoxQuery> query) override;
+  //beginBoxQuery
+  virtual void beginBoxQuery(SharedPtr<BoxQuery> query) override;
 
-  //nextQuery
-  virtual void nextQuery(SharedPtr<BoxQuery> QUERY) override;
+  //nextBoxQuery
+  virtual void nextBoxQuery(SharedPtr<BoxQuery> QUERY) override;
 
-  //executeQuery
-  virtual bool executeQuery(SharedPtr<Access> ACCESS,SharedPtr<BoxQuery> QUERY) override;
+  //executeBoxQuery
+  virtual bool executeBoxQuery(SharedPtr<Access> ACCESS,SharedPtr<BoxQuery> QUERY) override;
 
 protected:
 

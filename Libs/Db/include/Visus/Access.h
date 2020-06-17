@@ -102,7 +102,7 @@ public:
 
   //getFilename
   String getFilename(SharedPtr<BlockQuery> query) const {
-    return getFilename(query->field,query->time,query->getBlockNumber(bitsperblock));
+    return getFilename(query->field,query->time,query->blockid);
   }
 
   //getStartAddress

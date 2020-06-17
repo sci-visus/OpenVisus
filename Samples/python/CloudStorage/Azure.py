@@ -58,7 +58,7 @@ def Main():
 	access=db.createAccessForBlockQuery()
 	access.beginRead()
 	for block_id in range(tot):
-		block = db.createBlockQuery(access.getStartAddress(block_id), access.getEndAddress(block_id), field, time)
+		block = db.createBlockQuery(block_id, field, time)
 		bOk=db.executeBlockQueryAndWait(access, block)
 		
 		# could be that the block is not stored

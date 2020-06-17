@@ -101,7 +101,7 @@ void TilingExample(IdxDataset* dataset)
       {
         auto query=dataset->createBoxQuery(box, 'r');
         query->setResolutionRange(H == bitsperblock ? 0 : H, H);
-        dataset->beginQuery(query);
+        dataset->beginBoxQuery(query);
         VisusReleaseAssert(query->isRunning());
         VisusReleaseAssert(query->getNumberOfSamples()==dims);
       }

@@ -41,22 +41,8 @@ For support : support@visus.net
 
 namespace Visus {
 
-
-////////////////////////////////////////////////////////////////
-void BlockQuery::setStatus(QueryStatus value)
-{
-  if (this->status == value)
-    return;
-
-  Query::setStatus(value);
-
-  //final?
-  if (ok() || failed())
-    this->done.get_promise()->set_value(Void());
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-bool Query::allocateBufferIfNeeded()
+///////////////////////////////////////////////////////////////////////////////////
+bool BlockQuery::allocateBufferIfNeeded()
 {
   auto nsamples = getNumberOfSamples();
 

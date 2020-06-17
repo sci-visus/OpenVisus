@@ -233,7 +233,7 @@ public:
   //readBlock
   virtual void readBlock(SharedPtr<BlockQuery> query) override
   {
-    BigInt blockid = query->getBlockNumber(owner->bitsperblock);
+    BigInt blockid = query->blockid;
 
     auto failed = [&](String reason) {
 
@@ -446,7 +446,7 @@ public:
   //readBlock
   virtual void readBlock(SharedPtr<BlockQuery> query) override
   {
-    BigInt blockid = query->getBlockNumber(owner->bitsperblock);
+    BigInt blockid = query->blockid;
 
     auto failed = [&](String reason) {
 
@@ -519,7 +519,7 @@ public:
   //writeBlock
   virtual void writeBlock(SharedPtr<BlockQuery> query) override
   {
-    BigInt blockid = query->getBlockNumber(owner->bitsperblock);
+    BigInt blockid = query->blockid;
 
     //NOTE: ignoring aborted in writing!
     auto& aborted = query->aborted; 
@@ -609,7 +609,7 @@ public:
     VisusAssert(isWriting());
     if (bDisableWriteLocks) return;
 
-    auto filename = getFilename(query->field, query->time, query->getBlockNumber(bitsperblock));
+    auto filename = getFilename(query->field, query->time, query->blockid);
 
     if (++file_locks[filename] == 1)
     {
@@ -626,7 +626,7 @@ public:
     VisusAssert(isWriting());
     if (bDisableWriteLocks) return;
 
-    auto filename = getFilename(query->field, query->time, query->getBlockNumber(bitsperblock));
+    auto filename = getFilename(query->field, query->time, query->blockid);
 
     if (--file_locks[filename] == 0)
     {
@@ -1039,7 +1039,7 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
 {
   VisusAssert(isReading());
 
-  BigInt blockid = query->getBlockNumber(bitsperblock);
+  BigInt blockid = query->blockid;
 
   if (bVerbose)
     PrintInfo("got request to read block blockid",blockid);
@@ -1052,8 +1052,6 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
 
     return readFailed(query);
   }
-
-  VisusAssert(query->start_address <= query->end_address);
 
   if (bool bAsync = !isWriting() && async_tpool)
   {
@@ -1073,7 +1071,7 @@ void IdxDiskAccess::writeBlock(SharedPtr<BlockQuery> query)
 {
   VisusAssert(isWriting());
 
-  BigInt blockid = query->getBlockNumber(bitsperblock);
+  BigInt blockid = query->blockid;
 
   if (bVerbose)
     PrintInfo("got request to write block blockid",blockid);

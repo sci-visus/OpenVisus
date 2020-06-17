@@ -66,14 +66,14 @@ void Tutorial_3(String default_layout)
   //create and read data for resolutions [8,12] (12==MaxH which is the very last available on disk)
   auto query = dataset->createBoxQuery(slice_box, 'r');
   query->end_resolutions = { 8,12 };
-  query->merge_mode = InsertSamples;
+  query->merge_mode = MergeMode::InsertSamples;
 
-  dataset->beginQuery(query);
-  VisusReleaseAssert(dataset->executeQuery(access, query));
+  dataset->beginBoxQuery(query);
+  VisusReleaseAssert(dataset->executeBoxQuery(access, query));
   VisusReleaseAssert(query->getCurrentResolution() == 8);
 
-  dataset->nextQuery(query);
-  VisusReleaseAssert(dataset->executeQuery(access, query));
+  dataset->nextBoxQuery(query);
+  VisusReleaseAssert(dataset->executeBoxQuery(access, query));
   VisusReleaseAssert(query->getCurrentResolution() == 12);
 
   //I can verify the data is correct

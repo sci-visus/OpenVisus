@@ -77,18 +77,6 @@ String CloudStorageAccess::getFilename(Field field, double time, BigInt blockid)
   String fieldname = StringUtils::removeSpaces(field.name);
   String ret = filename_template;
 
-  //backward compatible
-  if (StringUtils::contains(ret, "$("))
-  {
-    ret = StringUtils::replaceFirst(ret, "$(prefix)", this->url.getPath());
-    ret = StringUtils::replaceFirst(ret, "$(time)", StringUtils::onlyAlNum(int(time) == time ? cstring((int)time) : cstring(time)));
-    ret = StringUtils::replaceFirst(ret, "$(field)", fieldname.length() < 32 ? StringUtils::onlyAlNum(fieldname) : StringUtils::computeChecksum(fieldname));
-    ret = StringUtils::replaceFirst(ret, "$(block)", StringUtils::join(StringUtils::splitInChunks(StringUtils::formatNumber("%032x", blockid), 4), "/"));
-    ret = StringUtils::replaceFirst(ret, "$(compression)", compression);
-    if (StringUtils::contains(ret, "$(start_address)"))
-      ret = StringUtils::replaceFirst(ret, "$(start_address)", StringUtils::formatNumber("%020d", blockid << bitsperblock));
-  }
-
   // new format
   if (StringUtils::contains(ret, "${"))
   {

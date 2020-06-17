@@ -82,18 +82,16 @@ void FilterAccess::addCondition(FilterAccessCondition condition)
 //////////////////////////////////////////////////////////////////////////////////////////////////
 bool FilterAccess::passThrought(SharedPtr<BlockQuery> query)
 {
-  BigInt from=query->start_address;
-  BigInt to  =query->end_address;
+  BigInt blockid =query->blockid;
 
   //all the conditions are in OR (i.e. first satisfied return true!)
-  for (int i=0;i<(int)conditions.size();i++)
+  for (const auto& condition : conditions)
   {
     //basically I need that the requested range in inside a full range i.e. [condition.hzfrom+K*condition.step,condition.hzfrom+K*condition.step+condition.full) for some K
-    const FilterAccessCondition& condition=conditions[i];
-    BigInt K=(from-condition.from)/condition.step;
-    BigInt aligned_from =condition.from+K*condition.step;
-    BigInt aligned_to   =aligned_from+condition.full;
-    if (bool bOk=(aligned_from>=condition.from && aligned_to<=condition.to) && (from>=aligned_from && to<=aligned_to)) 
+    BigInt K=(blockid -condition.from)/condition.step;
+    BigInt aligned_from = condition.from+K*condition.step;
+    BigInt aligned_to   = condition.from + K * condition.step +condition.full;
+    if (bool bOk=(aligned_from>=condition.from && aligned_to<=condition.to) && (blockid >=aligned_from && blockid <=aligned_to))
       return true;
   }
   return false;

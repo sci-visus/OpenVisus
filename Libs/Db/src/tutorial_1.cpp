@@ -85,7 +85,7 @@ void Tutorial_1(String default_layout)
 
     //prepare the write query
     auto query=dataset->createBoxQuery(slice_box, 'w');
-    dataset->beginQuery(query);
+    dataset->beginBoxQuery(query);
     VisusReleaseAssert(query->isRunning());
     VisusReleaseAssert(query->getNumberOfSamples()==PointNi(16,16,1));
 
@@ -96,7 +96,7 @@ void Tutorial_1(String default_layout)
       Dst[I]=cont++;
 
     //execute the writing
-    VisusReleaseAssert(dataset->executeQuery(access,query));
+    VisusReleaseAssert(dataset->executeBoxQuery(access,query));
   }
 }
 

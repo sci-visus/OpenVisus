@@ -70,12 +70,12 @@ void Tutorial_2(String default_layout)
 
     //I should get a number of samples equals to the number of samples written in tutorial 1
     auto query = dataset->createBoxQuery(slice_box, 'r');
-    dataset->beginQuery(query);
+    dataset->beginBoxQuery(query);
     VisusReleaseAssert(query->isRunning());
     VisusReleaseAssert(query->getNumberOfSamples() == PointNi(16, 16, 1));
 
     //read data from disk
-    VisusReleaseAssert(dataset->executeQuery(access, query));
+    VisusReleaseAssert(dataset->executeBoxQuery(access, query));
     VisusReleaseAssert(query->buffer.c_size() == sizeof(int) * 16 * 16);
 
     GetSamples<Int32> Src(query->buffer);

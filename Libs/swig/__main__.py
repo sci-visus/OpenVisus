@@ -252,26 +252,6 @@ def TestNetworkSpeed(args):
 	print("urls\n","\n\t".join(args.url))
 	NetService.testSpeed(args.nconnections,args.nrequests,args.url)
 
-# ////////////////////////////////////////////////
-def TestQuerySpeed(args):
-	parser = argparse.ArgumentParser(description="Test query read speed")
-	parser.add_argument("--dataset", type=str, help="Dataset", required=True)
-	parser.add_argument("--query-dim", type=int, help="Query dimension", required=True)
-	args = parser.parse_args(args)
-
-	db=LoadDataset(args.dataset)
-	db.testQuerySpeed(db.getDefaultTime(),db.getDefaultField(),args.query_dim)
-
-# ////////////////////////////////////////////////
-def TestSlabSpeed(args):
-	parser = argparse.ArgumentParser(description="Test slab speed")
-	parser.add_argument("--dataset", type=str, help="Dataset", required=True)
-	parser.add_argument("--dims", type=str, help="Dataset dimension", required=True)
-	parser.add_argument("--num-slabs", type=int, help="Number of slabs", required=True)
-	parser.add_argument("--dtype", type=str, help="DType", required=True)
-	parser.add_argument("--layout", type=str, help="layourt", required=True)
-	args = parser.parse_args(args)
-	Dataset.testSlabSpeed(args.dataset,PointNi.fromString(args.dims),args.num_slabs,args.dtype,args.layout)
 
 # ////////////////////////////////////////////////
 def FixRange(args):
@@ -300,7 +280,7 @@ def FixRange(args):
 	access.beginRead()
 	for block_id in range(db.getTotalNumberOfBlocks()):
 
-		read_block = db.createBlockQuery(access.getStartAddress(block_id), access.getEndAddress(block_id), field, args.time)
+		read_block = db.createBlockQuery(block_id, field, args.time)
 
 		if not db.executeBlockQueryAndWait(access, read_block):
 			continue
@@ -536,16 +516,7 @@ def Main(args):
 		TestNetworkSpeed(action_args)
 		sys.exit(0)
 		
-	# example -m OpenVisus test-query-speed --dataset "D:\GoogleSci\visus_dataset\2kbit1\zip\rowmajor\visus.idx" --query-dim 512
-	if action=="test-query-speed":
-		TestQuerySpeed(action_args)
-		sys.exit(0)
-		
-	# example -m OpenVisus test-slab-speed --dataset "D:\temp\test\test.idx" --dims "1024 1024 1024" --num-slabs 128 --dtype "int32" --layout ""
-	if action=="test-slab-speed":
-		TestSlabSpeed(action_args)
-		sys.exit(0)
-		
+
 	# ___________________________________________________________________ gui
 
 	# example: python -m OpenVisus viewer ....

@@ -73,7 +73,7 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
   auto access=dataset->createAccess();
   
   auto write=dataset->createBoxQuery(userbox, 'w');
-  dataset->beginQuery(write);
+  dataset->beginBoxQuery(write);
   VisusReleaseAssert(write->isRunning());
   VisusReleaseAssert(write->getNumberOfSamples()==img.dims);
 
@@ -123,7 +123,7 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
   }
 
   //write to disk
-  VisusReleaseAssert(dataset->executeQuery(access,write));
+  VisusReleaseAssert(dataset->executeBoxQuery(access,write));
   return dataset;
 }
 
@@ -269,18 +269,18 @@ void Tutorial_6(String default_layout)
     
     auto query=dataset->createBoxQuery(query_box, 'r');
     query->enableFilters();
-    query->merge_mode= InsertSamples;
+    query->merge_mode= MergeMode::InsertSamples;
 
     //I go level by level for debugging
     for (int H=0;H<=dataset->getMaxResolution();H++)
       query->end_resolutions.push_back(H);
 
-    dataset->beginQuery(query);
+    dataset->beginBoxQuery(query);
     VisusReleaseAssert(query->isRunning());
 
     while (query->isRunning())
     {
-      VisusReleaseAssert(dataset->executeQuery(access,query));
+      VisusReleaseAssert(dataset->executeBoxQuery(access,query));
       
       auto buffer=query->buffer;
       buffer=query->filter.dataset_filter->dropExtraComponentIfExists(buffer);
@@ -326,7 +326,7 @@ void Tutorial_6(String default_layout)
         }
       }
 
-      dataset->nextQuery(query);
+      dataset->nextBoxQuery(query);
     }
 
     dataset->removeFiles();

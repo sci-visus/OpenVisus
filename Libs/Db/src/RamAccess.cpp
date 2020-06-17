@@ -53,27 +53,27 @@ public:
   
     String   fieldname;
     double   time;
-    BigInt   start_address; 
+    BigInt   blockid; 
 
     //constructor
-    inline Key(String fieldname_,double time_,BigInt start_address_) : fieldname(fieldname_),time(time_),start_address(start_address_)
+    inline Key(String fieldname_,double time_,BigInt blockid_) : fieldname(fieldname_),time(time_), blockid(blockid_)
     {}
 
     //operator==
     inline bool operator==(const Key& other) const 
-    {return start_address==other.start_address && time==other.time && fieldname==other.fieldname;}
+    {return blockid ==other.blockid && time==other.time && fieldname==other.fieldname;}
 
     //operator<
     inline bool operator<(const Key& other) const 
     {
-      return (start_address<other.start_address) 
-          || (start_address==other.start_address && time<other.time) 
-          || (start_address==other.start_address && time==other.time && fieldname<other.fieldname);
+      return (blockid <other.blockid)
+          || (blockid ==other.blockid && time<other.time)
+          || (blockid ==other.blockid && time==other.time && fieldname<other.fieldname);
     }
 
     //valid
     inline bool valid() 
-    {return start_address>=0 && !fieldname.empty();}
+    {return blockid >=0 && !fieldname.empty();}
 
   };
 
@@ -83,13 +83,12 @@ public:
   public:
     Field                        field;
     double                       time=0;
-    BigInt                       start_address=0;
-    BigInt                       end_address=0;
+    BigInt                       blockid =0;
     Array                        buffer;
     Cached                       *prev=nullptr,*next=nullptr;
 
     inline Key key() {
-      return Key(field.name,time,start_address);
+      return Key(field.name,time, blockid);
     }
   };
 
@@ -115,7 +114,7 @@ public:
   {
     ScopedLock lock(this->lock);
 
-    Key key(query->field.name, query->time, query->start_address);
+    Key key(query->field.name, query->time, query->blockid);
     auto it = index.find(key);
     VisusAssert(it == index.end() || it->second->key() == key);
 
@@ -127,8 +126,7 @@ public:
 
     VisusAssert(query->field.name == it->second->field.name);
     VisusAssert(query->time == it->second->time);
-    VisusAssert(query->start_address == it->second->start_address);
-    VisusAssert(query->end_address == it->second->end_address);
+    VisusAssert(query->blockid == it->second->blockid);
 
     if (it->second != front)
       push_front(remove(it->second));
@@ -142,7 +140,7 @@ public:
   {
     ScopedLock lock(this->lock);
 
-    Key key(query->field.name, query->time, query->start_address);
+    Key key(query->field.name, query->time, query->blockid);
     auto it = index.find(key);
     VisusAssert(it == index.end() || it->second->key() == key);
 
@@ -162,8 +160,7 @@ public:
 
     cached->field = query->field;
     cached->time = query->time;
-    cached->start_address = query->start_address;
-    cached->end_address = query->end_address;
+    cached->blockid = query->blockid;
 
     if (it == index.end())
       push_front(cached);
@@ -231,19 +228,12 @@ void RamAccess::shareMemoryWith(SharedPtr<RamAccess> value)
 ////////////////////////////////////////////////////////////////////////////////
 void RamAccess::readBlock(SharedPtr<BlockQuery> query)  
 {
-  //check alignment!
-  VisusAssert((query->start_address % getSamplesPerBlock()) == 0);
-  VisusAssert(query->getNumberOfSamples().innerProduct() == getSamplesPerBlock());
   return shared->read(query)? readOk(query):readFailed(query);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void RamAccess::writeBlock(SharedPtr<BlockQuery> query)  
 {
-  //check alignment!
-  VisusAssert((query->start_address % getSamplesPerBlock()) == 0);
-  VisusAssert(query->getNumberOfSamples().innerProduct() == getSamplesPerBlock());
-
   return shared->write(query)? writeOk(query):writeFailed(query);
 }
 

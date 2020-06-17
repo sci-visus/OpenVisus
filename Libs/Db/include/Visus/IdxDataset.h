@@ -78,17 +78,11 @@ public:
     return "IdxDataset";
   }
 
-  //tryRemoveLockAndCorruptedBinaryFiles
-  static void tryRemoveLockAndCorruptedBinaryFiles(String directory);
-
   // removeFiles all files bolonging to this visus file 
   void removeFiles();
 
   //compressDataset
   virtual void compressDataset(std::vector<String> compression) override;
-
-  //getLevelSamples
-  virtual LogicSamples getLevelSamples(int H) override;
 
   //adjustFilterBox
   BoxNi adjustFilterBox(BoxQuery* query,DatasetFilter* filter,BoxNi box,int H);
@@ -99,6 +93,9 @@ public:
   //setIdxFile
   void setIdxFile(IdxFile value);
 
+  //getLevelSamples
+  LogicSamples getLevelSamples(int H);
+
 public:
 
   //read
@@ -107,8 +104,8 @@ public:
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
 
-  //getAddressRangeSamples
-  virtual LogicSamples getAddressRangeSamples(BigInt start_address, BigInt end_address) override;
+  //getBlockSamples
+  virtual LogicSamples getBlockSamples(BigInt blockid) override;
 
   //convertBlockQueryToRowMajor
   virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) override;
@@ -118,28 +115,28 @@ public:
 
 public:
 
-  //beginQuery
-  virtual void beginQuery(SharedPtr<BoxQuery> query) override;
+  //beginBoxQuery
+  virtual void beginBoxQuery(SharedPtr<BoxQuery> query) override;
 
-  //nextQuery
-  virtual void nextQuery(SharedPtr<BoxQuery> query) override;
+  //nextBoxQuery
+  virtual void nextBoxQuery(SharedPtr<BoxQuery> query) override;
 
-  //executeQuery
-  virtual bool executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
+  //executeBoxQuery
+  virtual bool executeBoxQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
 
-  //mergeBoxQueryWithBlock
-  virtual bool mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> block_query) override;
+  //mergeBoxQueryWithBlockQuery
+  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> block_query) override;
 
   //createBoxQueryRequest
   virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query) override;
 
 public:
 
-  //beginQuery
-  virtual void beginQuery(SharedPtr<PointQuery> query) override;
+  //beginPointQuery
+  virtual void beginPointQuery(SharedPtr<PointQuery> query) override;
 
-  //executeQuery
-  virtual bool executeQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) override;
+  //executeBoxQuery
+  virtual bool executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) override;
 
   //createPointQueryRequest
   virtual NetRequest createPointQueryRequest(SharedPtr<PointQuery> query) override;

@@ -76,7 +76,7 @@ class TestIdx(unittest.TestCase):
 			slice_box=dataset.getLogicBox().getZSlab(Z,Z+1)
 			
 			query=dataset.createBoxQuery(slice_box, ord('w'))
-			dataset.beginQuery(query)
+			dataset.beginBoxQuery(query)
 			self.assertTrue(query.isRunning())
 			self.assertEqual(query.getNumberOfSamples().innerProduct(),16*16)
 			
@@ -89,7 +89,7 @@ class TestIdx(unittest.TestCase):
 					fill[Y,X]=sampleid
 					sampleid+=1
 
-			self.assertTrue(dataset.executeQuery(access,query))
+			self.assertTrue(dataset.executeBoxQuery(access,query))
 
 	# ReadIdx
 	def ReadIdx(self): 
@@ -104,10 +104,10 @@ class TestIdx(unittest.TestCase):
 			slice_box=box.getZSlab(Z,Z+1)
 			
 			query=dataset.createBoxQuery(slice_box, ord('r'))
-			dataset.beginQuery(query)
+			dataset.beginBoxQuery(query)
 			self.assertTrue(query.isRunning())
 			self.assertEqual(query.getNumberOfSamples().innerProduct(),16*16)
-			self.assertTrue(dataset.executeQuery(access,query))
+			self.assertTrue(dataset.executeBoxQuery(access,query))
 			
 			check=Array.toNumPy(query.buffer,bSqueeze=True,bShareMem=True)
 			
@@ -134,17 +134,17 @@ class TestIdx(unittest.TestCase):
 		query.end_resolutions.push_back(12)
 		
 		# end_resolution=8
-		dataset.beginQuery(query)
+		dataset.beginBoxQuery(query)
 		self.assertTrue(query.isRunning())
 		self.assertTrue(query.getNumberOfSamples().innerProduct()>0)
-		self.assertTrue(dataset.executeQuery(access,query))
+		self.assertTrue(dataset.executeBoxQuery(access,query))
 		self.assertEqual(query.getCurrentResolution(),8)
 		
 		# end_resolution=12
-		dataset.nextQuery(query)
+		dataset.nextBoxQuery(query)
 		self.assertTrue(query.isRunning())
 		self.assertEqual(query.getNumberOfSamples().innerProduct(),16*16)
-		self.assertTrue(dataset.executeQuery(access,query))
+		self.assertTrue(dataset.executeBoxQuery(access,query))
 		self.assertEqual(query.getCurrentResolution(),12)
 		
 		#verify the data is correct

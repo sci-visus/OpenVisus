@@ -55,25 +55,82 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(PointQuery)
 
-  int        end_resolution=-1;
-  Position   logic_position;
-  Array      points;
+  Dataset*     dataset = nullptr;
+  int          mode = 0;
+  Field        field;
+  double       time = 0;
+  Aborted      aborted;
+
+  Array        buffer;
+  int          status = QueryCreated;
+  String       errormsg;
+
+  int          end_resolution=-1;
+  Position     logic_position;
+  Array        points;
 
   //constructor
   PointQuery() {
   }
 
-  //destructor
-  virtual ~PointQuery() {
+  //getNumberOfSamples
+  PointNi getNumberOfSamples() const {
+    return points.dims;
   }
 
-  //getNumberOfSamples
-  virtual PointNi getNumberOfSamples() const override {
-    return points.dims;
+  //getByteSize
+  Int64 getByteSize() const {
+    return field.dtype.getByteSize(getNumberOfSamples());
   }
 
   //setPoints
   bool setPoints(PointNi nsamples);
+
+
+  //getStatus
+  int getStatus() const {
+    return status;
+  }
+
+  //setStatus
+  void setStatus(int value) {
+    this->status = value;
+  }
+
+  //ok
+  bool ok() const {
+    return status == QueryOk;
+  }
+
+  //failed
+  bool failed() const {
+    return status == QueryFailed;
+  }
+
+  //running
+  bool isRunning() const {
+    return status == QueryRunning;
+  }
+
+  //setRunning
+  void setRunning() {
+    setStatus(QueryRunning);
+  }
+
+  //setOk
+  void setOk() {
+    setStatus(QueryOk);
+  }
+
+  //setOk
+  void setFailed(String error_msg = "") {
+    setStatus(QueryFailed);
+    if (!error_msg.empty())
+      this->errormsg = error_msg;
+  }
+
+  //allocateBufferIfNeeded
+  bool allocateBufferIfNeeded();
 
 };
 

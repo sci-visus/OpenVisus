@@ -275,7 +275,7 @@ private:
         if (!query) 
           return;
 
-        dataset->beginQuery(query);
+        dataset->beginBoxQuery(query);
 
         if (!query->isRunning())
           return;
@@ -304,8 +304,8 @@ private:
       if (!query)
         return false;
 
-      dataset->beginQuery(query);
-      if (!dataset->executeQuery(dataset->createAccess(), query))
+      dataset->beginBoxQuery(query);
+      if (!dataset->executeBoxQuery(dataset->createAccess(), query))
         return false;
 
       auto nsamples = query->getNumberOfSamples();

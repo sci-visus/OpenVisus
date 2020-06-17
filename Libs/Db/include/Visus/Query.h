@@ -45,109 +45,27 @@ For support : support@visus.net
 
 namespace Visus {
 
-
 //predeclaration
 class Dataset;
-
-//////////////////////////////////////////////////////////////////////////
-enum QueryStatus
-{
-  QueryCreated = 0,
-  QueryRunning,
-  QueryFailed,
-  QueryOk
-};
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 class VISUS_DB_API Query
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(Query)
+  enum
+  {
+    QueryCreated = 0,
+    QueryRunning,
+    QueryFailed,
+    QueryOk
+  };
 
-  Dataset*     dataset = nullptr;
-  int          mode = 0;
-  Field        field;
-  double       time = 0;
-  Aborted      aborted;
-
-  Array        buffer;
-  QueryStatus  status = QueryCreated;
-  String       errormsg;
-
-  //default constructor
+  //constructor
   Query() {
   }
 
-  //destructor
-  virtual ~Query() {
-  }
-
-  //getNumberOfSamples
-  virtual PointNi getNumberOfSamples() const = 0;
-
-  //getByteSize
-  Int64 getByteSize() const {
-    return field.dtype.getByteSize(getNumberOfSamples());
-  }
-
-  //getStatus
-  QueryStatus getStatus() const {
-    return status;
-  }
-
-  //setStatus
-  virtual void setStatus(QueryStatus value);
-
-  //ok
-  bool ok() const {
-    return getStatus() == QueryOk;
-  }
-
-  //failed
-  bool failed() const {
-    return getStatus() == QueryFailed;
-  }
-
-  //running
-  bool isRunning() const {
-    return getStatus() == QueryRunning;
-  }
-
-  //setRunning
-  void setRunning() {
-    setStatus(QueryRunning);
-  }
-
-  //setOk
-  void setOk() {
-    setStatus(QueryOk);
-  }
-
-  //setOk
-  void setFailed(String error_msg = "") {
-    setStatus(QueryFailed);
-    if (!error_msg.empty())
-      setLastErrorMsg(error_msg);
-  }
-
-  //getLastErrorMsg
-  String getLastErrorMsg() const {
-    return errormsg;
-  }
-
-  //setLastErrorMsg
-  void setLastErrorMsg(String value) {
-    errormsg = value;
-  }
-
-  //allocateBufferIfNeeded
-  bool allocateBufferIfNeeded();
-
-
 };
-
 
 } //namespace Visus
 

@@ -161,9 +161,9 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
       auto read=dataset->createBoxQuery(sliding_window, field, time,'r');
       read->setResolutionRange(0,H);
 
-      dataset->beginQuery(read);
+      dataset->beginBoxQuery(read);
 
-      if (!dataset->executeQuery(access,read))
+      if (!dataset->executeBoxQuery(access,read))
         return false;
 
       //if you want to debug step by step...
@@ -214,14 +214,14 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
       auto write=dataset->createBoxQuery(sliding_window, field, time,'w');
       write->setResolutionRange(0,H);
 
-      dataset->beginQuery(write);
+      dataset->beginBoxQuery(write);
 
       if (!write->isRunning())
         return false;
 
       write->buffer=read->buffer;
 
-      if (!dataset->executeQuery(access,write))
+      if (!dataset->executeBoxQuery(access,write))
         return false;
     }
 

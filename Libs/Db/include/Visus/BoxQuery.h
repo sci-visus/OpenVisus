@@ -73,8 +73,20 @@ class VISUS_DB_API BoxQuery : public Query
 {
 public:
 
+  VISUS_NON_COPYABLE_CLASS(BoxQuery)
+
+  Dataset*     dataset = nullptr;
+  int          mode = 0;
+  Field        field;
+  double       time = 0;
+  Aborted      aborted;
+
+  Array        buffer;
+  int          status = QueryCreated;
+  String       errormsg;
+
   BoxNi                      logic_box;
-  MergeMode                  merge_mode = InsertSamples;
+  MergeMode                  merge_mode = MergeMode::InsertSamples;
   int                        start_resolution = 0;
   int                        end_resolution = -1;
   std::vector<int>           end_resolutions;
@@ -114,17 +126,30 @@ public:
   std::function<void(Array)> incrementalPublish;
 #endif
 
+  //internal use only
+  int  cur_resolution = -1;
+
   //constructor
   BoxQuery() {
   }
-
-  //destructor
-  virtual ~BoxQuery() {
+  
+  //canExecute
+  bool canExecute() const {
+    return status == QueryRunning && cur_resolution < end_resolution;
   }
 
   //getNumberOfSamples
-  virtual PointNi getNumberOfSamples() const override {
-    return canExecute() ? logic_samples.nsamples : buffer.dims;
+  PointNi getNumberOfSamples() const {
+    return
+      canExecute() ? logic_samples.nsamples : buffer.dims;
+  }
+
+  //allocateBufferIfNeeded
+  bool allocateBufferIfNeeded();
+
+  //getByteSize
+  Int64 getByteSize() const {
+    return field.dtype.getByteSize(getNumberOfSamples());
   }
 
   //getCurrentResolution
@@ -148,24 +173,8 @@ public:
     this->end_resolutions = { B };
   }
 
-  //canExecute
-  bool canExecute() const {
-    return isRunning() && cur_resolution < end_resolution;
-  }
-
   //mergeWith
-  bool mergeWith(BoxQuery& other, Aborted aborted) {
-
-    if (!allocateBufferIfNeeded())
-      return false;
-
-    if (!LogicSamples::merge(this->logic_samples, this->buffer, other.logic_samples, other.buffer, this->merge_mode, aborted))
-      return false;
-
-    setCurrentResolution(other.getCurrentResolution());
-    //note: start_resolution/end_resolution do not change
-    return true;
-  }
+  bool mergeWith(BoxQuery& other, Aborted aborted);
 
   //disableFilters
   void disableFilters() {
@@ -177,9 +186,47 @@ public:
     this->filter.enabled = true;
   }
 
-private:
+  //getStatus
+  int getStatus() const {
+    return status;
+  }
 
-  int  cur_resolution = -1;
+  //setStatus
+  void setStatus(int value) {
+    this->status = value;
+  }
+
+  //ok
+  bool ok() const {
+    return status == QueryOk;
+  }
+
+  //failed
+  bool failed() const {
+    return status == QueryFailed;
+  }
+
+  //running
+  bool isRunning() const {
+    return status == QueryRunning;
+  }
+
+  //setRunning
+  void setRunning() {
+    setStatus(QueryRunning);
+  }
+
+  //setOk
+  void setOk() {
+    setStatus(QueryOk);
+  }
+
+  //setOk
+  void setFailed(String error_msg = "") {
+    setStatus(QueryFailed);
+    if (!error_msg.empty())
+      this->errormsg = error_msg;
+  }
 
 };
 

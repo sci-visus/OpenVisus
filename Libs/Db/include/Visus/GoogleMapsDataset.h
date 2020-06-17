@@ -72,8 +72,8 @@ public:
     return "GoogleMapsDataset";
   }
 
-  //getTileCoordinate
-  Point3i getTileCoordinate(BigInt start_address,BigInt end_address);
+  //getBlockCoordinate
+  Point3i getBlockCoordinate(BigInt blockid);
 
 public:
 
@@ -83,27 +83,27 @@ public:
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
 
-  //getAddressRangeSamples
-  virtual LogicSamples getAddressRangeSamples(BigInt start_address,BigInt end_address) override;
-
-  //getLevelSamples
-  virtual LogicSamples getLevelSamples(int H) override;
+  //getBlockSamples
+  virtual LogicSamples getBlockSamples(BigInt blockid) override;
 
 public:
 
-  //beginQuery
-  virtual void beginQuery(SharedPtr<BoxQuery> query) override;
+  //beginBoxQuery
+  virtual void beginBoxQuery(SharedPtr<BoxQuery> query) override;
 
-  //nextQuery
-  virtual void nextQuery(SharedPtr<BoxQuery> query) override;
+  //nextBoxQuery
+  virtual void nextBoxQuery(SharedPtr<BoxQuery> query) override;
 
-  //executeQuery
-  virtual bool executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
+  //executeBoxQuery
+  virtual bool executeBoxQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
 
-  //mergeBoxQueryWithBlock
-  virtual bool mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> blockquery) override;
+  //mergeBoxQueryWithBlockQuery
+  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> blockquery) override;
 
 private:
+
+  //getLevelSamples
+  LogicSamples getLevelSamples(int H);
 
   //setEndResolution
   bool setEndResolution(SharedPtr<BoxQuery> query,int value);

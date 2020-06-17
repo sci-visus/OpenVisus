@@ -183,11 +183,11 @@ public:
       auto nsamples = dataset->guessPointQueryNumberOfSamples(logic_to_screen, logic_position, query->end_resolution);
       query->setPoints(nsamples);
 
-      dataset->beginQuery(query);
+      dataset->beginPointQuery(query);
 
       PrintInfo("PointQuery msec", t1.elapsedMsec(), "level", N, "/", resolutions.size(), "/", resolutions[N], "/", dataset->getMaxResolution(), "...");
 
-      if (!dataset->executeQuery(access, query))
+      if (!dataset->executePointQuery(access, query))
         return;
 
       auto output = query->buffer;
@@ -283,14 +283,14 @@ public:
     //remove transformation! (in doPublish I will add the physic clipping)
     auto query = dataset->createBoxQuery(this->logic_position.toDiscreteAxisAlignedBox(), field, time, 'r', this->aborted);
     query->enableFilters();
-    query->merge_mode = InsertSamples;
+    query->merge_mode = MergeMode::InsertSamples;
     query->end_resolutions = resolutions;
 
     query->incrementalPublish = [&](Array output) {
       doPublish(output, query);
     };
 
-    dataset->beginQuery(query);
+    dataset->beginBoxQuery(query);
 
     //could be that end_resolutions gets corrected (see google maps for example)
     resolutions = query->end_resolutions;
@@ -304,7 +304,7 @@ public:
 
       PrintInfo("BoxQuery msec", t1.elapsedMsec(), "level", N, "/", resolutions.size(), "/", resolutions[N], "/", dataset->getMaxResolution());
 
-      if (!dataset->executeQuery(access, query))
+      if (!dataset->executeBoxQuery(access, query))
         return;
 
       if (aborted())
@@ -326,7 +326,7 @@ public:
       doPublish(output, query);
 
       PrintInfo("Calling next query...");
-      dataset->nextQuery(query);
+      dataset->nextBoxQuery(query);
       PrintInfo("Done next query");
     }
   }
