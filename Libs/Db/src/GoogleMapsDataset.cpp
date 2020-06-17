@@ -317,7 +317,7 @@ void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_q
     VisusAssert(H % 2==0);
     BigInt start_address=(id-1)*samplesperblock;
     BigInt end_address  =start_address+samplesperblock;
-    auto block_query=std::make_shared<BlockQuery>(this, query->field,query->time,start_address,end_address, 'r', query->aborted);
+    auto block_query=createBlockQuery(start_address, end_address, query->field,query->time,'r', query->aborted);
     block_queries.push_back(block_query);
     return;
   }

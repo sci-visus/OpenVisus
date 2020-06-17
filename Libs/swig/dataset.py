@@ -147,7 +147,7 @@ class PyDataset(object):
 		Assert(access)
 		field=self.getDefaultField() if field is None else self.getField(field)	
 		time = self.getDefaultTime() if time is None else time
-		read_block = BlockQuery(self.db, field, time, access.getStartAddress(block_id), access.getEndAddress(block_id), ord('r'), aborted)
+		read_block = self.db.createBlockQuery(access.getStartAddress(block_id), access.getEndAddress(block_id), field, time, ord('r'), aborted)
 		self.executeBlockQueryAndWait(access, read_block)
 		if not read_block.ok(): return None
 		return Array.toNumPy(read_block.buffer, bShareMem=False)
@@ -157,7 +157,7 @@ class PyDataset(object):
 		Assert(access and data)
 		field=self.getDefaultField() if field is None else self.getField(field)	
 		time = self.getDefaultTime() if time is None else time
-		write_block = BlockQuery(self.db, field, time, access.getStartAddress(block_id), access.getEndAddress(block_id), ord('w'), aborted)
+		write_block = self.db.createBlockQuery(access.getStartAddress(block_id), access.getEndAddress(block_id), field, time, ord('w'), aborted)
 		write_block.buffer=Array.fromNumPy(data,TargetDim=self.getPointDim(), bShareMem=True)
 		self.executeBlockQueryAndWait(access, write_block)
 		return write_block.ok()
@@ -186,21 +186,19 @@ class PyDataset(object):
 		if time is None:
 			time = self.getDefaultTime()			
 
-		query = BoxQuery(self.db, field , time, ord('r'))
+		if logic_box is None:
+			logic_box=self.getLogicBox(x,y,z)
+
+		if isinstance(logic_box,(tuple,list)):
+			logic_box=BoxNi(PointNi(logic_box[0]),PointNi(logic_box[1]))
+
+		query = self.db.createBoxQuery(BoxNi(logic_box), field , time, ord('r'))
 		
 		if disable_filters:
 			query.disableFilters()
 		else:
 			query.enableFilters()
 		
-		if logic_box is None:
-			logic_box=self.getLogicBox(x,y,z)
-			
-		if isinstance(logic_box,(tuple,list)):
-			logic_box=BoxNi(PointNi(logic_box[0]),PointNi(logic_box[1]))
-			
-		query.logic_box=BoxNi(logic_box)
-
 		if max_resolution is None:
 			max_resolution=self.getMaxResolution()
 		
@@ -274,9 +272,8 @@ class PyDataset(object):
 		
 		if time is None:
 			time = self.getDefaultTime()
-			
-		query = BoxQuery(self.db, field , time , ord('w'))
-		
+
+
 		dims=list(data.shape)
 		
 		# remove last components
@@ -288,10 +285,9 @@ class PyDataset(object):
 			dims=[1] + dims	
 		
 		dims=list(reversed(dims))	
-		
+
 		p1=PointNi([x,y,z][0:pdim])
-		query.logic_box=BoxNi(p1,p1+PointNi(dims))
-		
+		query = self.db.createBoxQuery(BoxNi(p1,p1+PointNi(dims)), field , time , ord('w'))
 		query.end_resolutions.push_back(self.getMaxResolution())
 		
 		self.db.beginQuery(query)

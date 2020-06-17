@@ -152,8 +152,7 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
 
   Time t1=Time::now();
 
-  auto query=std::make_shared<BoxQuery>(dataset.get(), args.field, args.time,'r');
-  query->logic_box=args.box;
+  auto query=dataset->createBoxQuery(args.box, args.field, args.time,'r');
   query->setResolutionRange(args.fromh, args.toh);
 
   if (args.bDisableFilters)
@@ -211,9 +210,7 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
       PrintInfo("You did not specify logic box and input data has logic box !=dataset->getLogicBox()");
   }
 
-  auto query=std::make_shared<BoxQuery>(dataset.get(), args.field, args.time,'w');
-  query->logic_box=args.box;
-
+  auto query=dataset->createBoxQuery(args.box, args.field, args.time,'w');
   query->setResolutionRange(args.fromh,args.toh);
 
   dataset->beginQuery(query);

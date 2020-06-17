@@ -60,9 +60,7 @@ public:
   Array      points;
 
   //constructor
-  PointQuery(Dataset* dataset, Field field, double time, int mode, Aborted aborted = Aborted())
-    : Query(dataset, field, time, mode, aborted)
-  {
+  PointQuery() {
   }
 
   //destructor

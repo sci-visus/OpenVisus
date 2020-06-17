@@ -71,13 +71,13 @@ public:
   Field        field;
   double       time = 0;
   Aborted      aborted;
-  Array        buffer;
 
-  //constructor
-  Query(Dataset* dataset_, Field field_, double time_, int mode_, Aborted aborted_)
-    : dataset(dataset_), field(field_), time(time_), mode(mode_), aborted(aborted_)
-  {
-    VisusAssert(mode == 'r' || mode == 'w');
+  Array        buffer;
+  QueryStatus  status = QueryCreated;
+  String       errormsg;
+
+  //default constructor
+  Query() {
   }
 
   //destructor
@@ -145,11 +145,7 @@ public:
   //allocateBufferIfNeeded
   bool allocateBufferIfNeeded();
 
-protected:
 
-  QueryStatus status = QueryCreated;
-
-  String errormsg = "";
 };
 
 

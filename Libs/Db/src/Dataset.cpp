@@ -69,6 +69,22 @@ SharedPtr<Access> Dataset::createRamAccess(Int64 available, bool can_read, bool 
 }
 
 ////////////////////////////////////////////////////////////////////
+SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt start_address, BigInt end_address, Field field, double time, int mode, Aborted aborted)
+{
+  auto ret = std::make_shared<BlockQuery>();
+  ret->dataset = this;
+  ret->field = field;
+  ret->time = time;
+  ret->mode = mode; VisusAssert(mode == 'r' || mode == 'w');
+  ret->aborted = aborted;
+  ret->done = Promise<Void>().get_future();
+  ret->start_address = start_address;
+  ret->end_address = end_address;
+  ret->logic_samples = getAddressRangeSamples(start_address, end_address);
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////
 SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
 {
   if (!config.valid())
@@ -340,6 +356,20 @@ void Dataset::computeFilter(const Field& field, int window_size)
 }
 
 ////////////////////////////////////////////////
+SharedPtr<BoxQuery> Dataset::createBoxQuery(BoxNi logic_box, Field field, double time, int mode, Aborted aborted)
+{
+  auto ret = std::make_shared<BoxQuery>();
+  ret->dataset = this;
+  ret->field = field;
+  ret->time = time;
+  ret->mode = mode; VisusAssert(mode == 'r' || mode == 'w');
+  ret->aborted = aborted;
+  ret->logic_box = logic_box;
+  ret->filter.domain = this->getLogicBox();
+  return ret;
+}
+
+////////////////////////////////////////////////
 void Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
 {
   VisusAssert(access->isReading() || access->isWriting());
@@ -430,8 +460,7 @@ Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, dou
   if (logic_box == BoxNi())
     logic_box = this->logic_box;
 
-  auto query = std::make_shared<BoxQuery>(this, field, time,  'r');
-  query->logic_box = logic_box;
+  auto query = createBoxQuery(logic_box, field, time, 'r');
 
   beginQuery(query);
 
@@ -448,9 +477,7 @@ bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, dou
   if (logic_box ==BoxNi())
     logic_box =BoxNi(PointNi(buffer.getPointDim()), buffer.dims);
 
-  auto query = std::make_shared<BoxQuery>(this, field, time,'w');
-  query->logic_box = logic_box;
-
+  auto query = createBoxQuery(logic_box, field, time,'w');
   beginQuery(query);
 
   if (!query->isRunning())
@@ -553,8 +580,18 @@ PointNi Dataset::guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, 
   return nsamples;
 }
 
-
-
+/////////////////////////////////////////////////////////
+SharedPtr<PointQuery> Dataset::createPointQuery(Position logic_position, Field field, double time, Aborted aborted)
+{
+  auto ret = std::make_shared<PointQuery>();
+  ret->dataset = this;
+  ret->field = field = field;
+  ret->time = time;
+  ret->mode = 'r';
+  ret->aborted = aborted;
+  ret->logic_position = logic_position;
+  return ret;
+}
 
 /////////////////////////////////////////////////////////
 Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double time, int H)
@@ -588,7 +625,7 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
     auto hzfrom = block << bitsperblock;
     auto hzto = hzfrom + nsamplesperblock;
 
-    auto block_query = std::make_shared<BlockQuery>(this, field, time, hzfrom, hzto, 'r', Aborted());
+    auto block_query = createBlockQuery(hzfrom, hzto, field, time);
     this->executeBlockQueryAndWait(access, block_query);
 
     if (block_query->failed())
@@ -705,8 +742,7 @@ void Dataset::testSlabSpeed(String filename, PointNi dims, int num_slabs, String
     BoxNi slice_box = dataset->getLogicBox().getZSlab(Z1, Z2);
 
     //prepare the write query
-    auto write = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'w');
-    write->logic_box = slice_box;
+    auto write = dataset->createBoxQuery(slice_box, 'w');
     dataset->beginQuery(write);
     VisusReleaseAssert(write->isRunning());
 
@@ -739,8 +775,7 @@ void Dataset::testSlabSpeed(String filename, PointNi dims, int num_slabs, String
 
   //verify data
   {
-    auto read = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-    read->logic_box = dataset->getLogicBox();
+    auto read = dataset->createBoxQuery(dataset->getLogicBox(), 'r');
     dataset->beginQuery(read);
     VisusReleaseAssert(read->isRunning());
 

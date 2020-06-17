@@ -155,6 +155,8 @@ inline VISUS_DB_API SharedPtr<IdxDataset> LoadIdxDataset(String url) {
   return std::dynamic_pointer_cast<IdxDataset>(LoadDataset(url));
 }
 
+VISUS_DB_API void SelfTestIdx(int max_seconds);
+
 } //namespace Visus
 
 

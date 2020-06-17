@@ -84,8 +84,7 @@ void Tutorial_1(String default_layout)
     BoxNi slice_box=dataset->getLogicBox().getZSlab(nslice,nslice+1);
 
     //prepare the write query
-    auto query=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'w');
-    query->logic_box=slice_box;
+    auto query=dataset->createBoxQuery(slice_box, 'w');
     dataset->beginQuery(query);
     VisusReleaseAssert(query->isRunning());
     VisusReleaseAssert(query->getNumberOfSamples()==PointNi(16,16,1));

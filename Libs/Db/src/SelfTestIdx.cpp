@@ -160,8 +160,7 @@ public:
       {
         BoxNi slice_box = getSliceBox(N);
 
-        auto query = std::make_shared<BoxQuery>(dataset, dataset->getDefaultField(), dataset->getDefaultTime(), 'w');
-        query->logic_box = slice_box;
+        auto query = dataset->createBoxQuery(slice_box, 'w');
         dataset->beginQuery(query);
         VisusReleaseAssert(query->isRunning());
 
@@ -181,8 +180,7 @@ public:
 
       for (int N = 0; N < this->nslices; N++)
       {
-        auto read_slice = std::make_shared<BoxQuery>(dataset, dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-        read_slice->logic_box = (getSliceBox(N));
+        auto read_slice = dataset->createBoxQuery(getSliceBox(N), 'r');
         dataset->beginQuery(read_slice);
         VisusReleaseAssert(read_slice->isRunning());
         VisusReleaseAssert(dataset->executeQuery(access, read_slice));
@@ -208,8 +206,7 @@ public:
 
     auto access = dataset->createAccess();
 
-    auto query = std::make_shared<BoxQuery>(dataset, dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-    query->logic_box = box;
+    auto query = dataset->createBoxQuery(box, 'r');
     query->merge_mode = (bInterpolate ? InterpolateSamples : InsertSamples);
 
     for (int h = firsth; h <= lasth; h = h + deltah)

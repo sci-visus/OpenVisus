@@ -118,8 +118,7 @@ public:
         bitsperblock;
 
     //I use a box query to get the data
-    auto query=std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
-    query->logic_box=pow2_box;
+    auto query=dataset->createBoxQuery(pow2_box, field, time,'r', this->aborted);
     query->setResolutionRange(0,end_resolution);
     dataset->beginQuery(query);
 
@@ -189,8 +188,7 @@ public:
         if (!node->up->fullres || !node->blockdata)
           return;
 
-        auto query = std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
-        query->logic_box = node->logic_box;
+        auto query = dataset->createBoxQuery(node->logic_box, field, time,'r', this->aborted);
         query->setResolutionRange(0,node->resolution);
 
         if (aborted())
@@ -225,7 +223,7 @@ public:
         VisusAssert(fullres.dims == query->getNumberOfSamples());
         query->buffer = fullres;
 
-        auto blockquery = std::make_shared<BlockQuery>(dataset.get(), field, time, getStartAddress(node), getEndAddress(node), 'r', Aborted());
+        auto blockquery = dataset->createBlockQuery(getStartAddress(node), getEndAddress(node), field, time, 'r', Aborted());
         VisusAssert(blockquery->getNumberOfSamples() == node->blockdata.dims);
         blockquery->buffer = node->blockdata;
 
@@ -307,8 +305,7 @@ public:
     //TODO: can I do better then this to compute number of samples?
     PointNi nsamples;
     {
-      auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r');
-      query->logic_box = node->logic_box;
+      auto query = dataset->createBoxQuery(node->logic_box, field, time, 'r');
       query->setResolutionRange(0, node->resolution);
       dataset->beginQuery(query);
       nsamples = query->getNumberOfSamples();
@@ -396,7 +393,7 @@ public:
         continue;
 
       //retrieve the block data
-      auto blockquery = std::make_shared<BlockQuery>(dataset.get(), field, time, getStartAddress(node), getEndAddress(node), 'r', this->aborted);
+      auto blockquery = dataset->createBlockQuery(getStartAddress(node), getEndAddress(node), field, time, 'r', this->aborted);
       dataset->executeBlockQuery(access, blockquery);
       wait_async.pushRunning(blockquery->done).when_ready([this, blockquery, node, &rlock](Void) {
 
@@ -500,8 +497,7 @@ public:
       if (!isLeafNode(node))
         continue;
 
-      auto query = std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
-      query->logic_box = node->logic_box;
+      auto query = dataset->createBoxQuery(node->logic_box, field, time,'r', this->aborted);
       query->setResolutionRange(0, node->resolution);
 
       dataset->beginQuery(query);

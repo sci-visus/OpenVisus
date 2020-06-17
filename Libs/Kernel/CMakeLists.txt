@@ -135,10 +135,14 @@ function(AssignSourceGroup GroupName StartDir)
 	endforeach()
 endfunction()
 
-file(GLOB SamplesSources ${CMAKE_SOURCE_DIR}/Samples/jupyter/*.ipynb ${CMAKE_SOURCE_DIR}/Samples/python/*.py ${CMAKE_SOURCE_DIR}/Samples/python/CloudStorage/*.py) 
-AssignSourceGroup(Samples ${CMAKE_SOURCE_DIR} ${SamplesSources})
+file(GLOB SamplesSources 
+	${CMAKE_SOURCE_DIR}/*.ipynb 
+	${CMAKE_SOURCE_DIR}/Samples/jupyter/*.ipynb 
+	${CMAKE_SOURCE_DIR}/Samples/python/*.py 
+	${CMAKE_SOURCE_DIR}/Samples/python/CloudStorage/*.py) 
 
-		
+AssignSourceGroup(CMakeSourceDir ${CMAKE_SOURCE_DIR} ${SamplesSources})
+
 file(GLOB Sources 
 	include/Visus/*.*  src/*.hxx src/*.cpp ${MMFiles} ${SlamCppSources}
 	${SamplesSources}

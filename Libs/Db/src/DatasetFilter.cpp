@@ -158,8 +158,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
       VisusAssert(Utils::isAligned(sliding_window.p1[bit],(Int64)0,FILTERSTEP));
 
       //important, i'm not using adjustBox because I'm sure it is already correct!
-      auto read=std::make_shared<BoxQuery>(dataset, field, time,'r');
-      read->logic_box=sliding_window;
+      auto read=dataset->createBoxQuery(sliding_window, field, time,'r');
       read->setResolutionRange(0,H);
 
       dataset->beginQuery(read);
@@ -212,8 +211,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
       }
       #endif
 
-      auto write=std::make_shared<BoxQuery>(dataset, field, time,'w');
-      write->logic_box=sliding_window;
+      auto write=dataset->createBoxQuery(sliding_window, field, time,'w');
       write->setResolutionRange(0,H);
 
       dataset->beginQuery(write);

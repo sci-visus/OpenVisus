@@ -86,7 +86,8 @@ public:
   Future<Void> done;
 
   //constructor
-  BlockQuery(Dataset* dataset, Field field, double time, BigInt start_address, BigInt end_address, int mode, Aborted aborted);
+  BlockQuery() {
+  }
 
   //destructor
   virtual ~BlockQuery() {

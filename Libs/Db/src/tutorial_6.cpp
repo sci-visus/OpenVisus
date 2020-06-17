@@ -72,8 +72,7 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
 
   auto access=dataset->createAccess();
   
-  auto write=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'w');
-  write->logic_box=userbox;
+  auto write=dataset->createBoxQuery(userbox, 'w');
   dataset->beginQuery(write);
   VisusReleaseAssert(write->isRunning());
   VisusReleaseAssert(write->getNumberOfSamples()==img.dims);
@@ -268,8 +267,7 @@ void Tutorial_6(String default_layout)
         PointNi((int)(dataset_offset[0] + 4.0f*Width / 6.0f), (int)(dataset_offset[1] + 4.0f*Height / 6.0f)));
     }
     
-    auto query=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-    query->logic_box= query_box;
+    auto query=dataset->createBoxQuery(query_box, 'r');
     query->enableFilters();
     query->merge_mode= InsertSamples;
 

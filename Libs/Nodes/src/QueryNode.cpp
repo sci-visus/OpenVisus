@@ -178,8 +178,7 @@ public:
     {
       Time t1 = Time::now();
 
-      auto query = std::make_shared<PointQuery>(dataset.get(), field, time, 'r', this->aborted);
-      query->logic_position = logic_position;
+      auto query = dataset->createPointQuery(logic_position, field, time, this->aborted);
       query->end_resolution = resolutions[N];
       auto nsamples = dataset->guessPointQueryNumberOfSamples(logic_to_screen, logic_position, query->end_resolution);
       query->setPoints(nsamples);
@@ -281,10 +280,10 @@ public:
     if (resolutions.empty())
       return;
 
-    auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r', this->aborted);
+    //remove transformation! (in doPublish I will add the physic clipping)
+    auto query = dataset->createBoxQuery(this->logic_position.toDiscreteAxisAlignedBox(), field, time, 'r', this->aborted);
     query->enableFilters();
     query->merge_mode = InsertSamples;
-    query->logic_box = this->logic_position.toDiscreteAxisAlignedBox(); //remove transformation! (in doPublish I will add the physic clipping)
     query->end_resolutions = resolutions;
 
     query->incrementalPublish = [&](Array output) {

@@ -64,8 +64,7 @@ void Tutorial_3(String default_layout)
   BoxNi slice_box = world_box.getZSlab(0, 1);
 
   //create and read data for resolutions [8,12] (12==MaxH which is the very last available on disk)
-  auto query = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-  query->logic_box = slice_box;
+  auto query = dataset->createBoxQuery(slice_box, 'r');
   query->end_resolutions = { 8,12 };
   query->merge_mode = InsertSamples;
 

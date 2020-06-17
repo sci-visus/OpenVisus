@@ -115,7 +115,8 @@ public:
 #endif
 
   //constructor
-  BoxQuery(Dataset* dataset, Field field, double time, int mode, Aborted aborted = Aborted());
+  BoxQuery() {
+  }
 
   //destructor
   virtual ~BoxQuery() {

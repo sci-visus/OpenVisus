@@ -113,10 +113,8 @@ public:
   //this is needed for midx
   Color color;
 
-
   //this is needed for midx
   std::map<String, SharedPtr<Dataset> > down_datasets;
-
 
   //this is needed for midx
   Matrix logic_to_LOGIC;
@@ -357,6 +355,10 @@ public:
 
 public:
 
+
+  ////////////////////////////////////
+  //block query stuff
+
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config = StringTree(), bool bForBlockQuery = false);
   
@@ -367,6 +369,14 @@ public:
 
   //createRamAccess
   SharedPtr<Access> createRamAccess(Int64 available, bool can_read = true, bool can_write = true);
+
+  //createBlockQuery
+  SharedPtr<BlockQuery> createBlockQuery(BigInt start_address, BigInt end_address, Field field, double time, int mode = 'r', Aborted aborted = Aborted());
+
+  //createBlockQuery
+  SharedPtr<BlockQuery> createBlockQuery(BigInt start_address, BigInt end_address, int mode = 'r', Aborted aborted = Aborted()) {
+    return createBlockQuery(start_address, end_address, getDefaultField(), getDefaultTime(), mode, aborted);
+  }
 
   //readBlock  
   virtual void executeBlockQuery(SharedPtr<Access> access, SharedPtr<BlockQuery> query);
@@ -394,7 +404,15 @@ public:
 public:
 
   ////////////////////////////////////
-  //box query
+  //box query stuff
+
+  //createBoxQuery
+  SharedPtr<BoxQuery> createBoxQuery(BoxNi logic_box, Field field, double time, int mode = 'r', Aborted aborted = Aborted());
+
+  //createBoxQuery
+  SharedPtr<BoxQuery> createBoxQuery(BoxNi logic_box, int mode = 'r', Aborted aborted = Aborted()) {
+    return createBoxQuery(logic_box, getDefaultField(), getDefaultTime(), mode, aborted);
+  }
 
   virtual void beginQuery(SharedPtr<BoxQuery> query) {
   }
@@ -424,10 +442,18 @@ public:
 public:
 
   ////////////////////////////////////
-  //point query
+  //point query stuff
 
   //guessPointQueryNumberOfSamples
   PointNi guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, Position logic_position, int end_resolution);
+
+  //constructor
+  SharedPtr<PointQuery> createPointQuery(Position logic_position, Field field, double time, Aborted aborted = Aborted());
+
+  //createPointQuery
+  SharedPtr<PointQuery> createPointQuery(Position logic_position, Aborted aborted=Aborted()) {
+    return createPointQuery(logic_position, getDefaultField(), getDefaultTime(), aborted);
+  }
 
   //beginQuery
   virtual void beginQuery(SharedPtr<PointQuery> query) {

@@ -300,7 +300,7 @@ def FixRange(args):
 	access.beginRead()
 	for block_id in range(db.getTotalNumberOfBlocks()):
 
-		read_block = BlockQuery(db, field, args.time, access.getStartAddress(block_id), access.getEndAddress(block_id), ord('r'), Aborted())
+		read_block = db.createBlockQuery(access.getStartAddress(block_id), access.getEndAddress(block_id), field, args.time)
 
 		if not db.executeBlockQueryAndWait(access, read_block):
 			continue

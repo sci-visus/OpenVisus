@@ -498,7 +498,7 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
   std::vector<NetResponse> responses;
   for (int I = 0; I < (int)start_address.size(); I++)
   {
-    auto block_query = std::make_shared<BlockQuery>(dataset.get(), field, time, start_address[I], end_address[I], 'r', aborted);
+    auto block_query = dataset->createBlockQuery(start_address[I], end_address[I], field, time, 'r', aborted);
     dataset->executeBlockQuery(access, block_query);
     wait_async.pushRunning(block_query->done).when_ready([block_query, &responses, dataset, compression](Void) {
 
@@ -560,7 +560,8 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
   bool   bDisableFilters = cbool(request.url.getParam("disable_filters"));
   bool   bKdBoxQuery = request.url.getParam("kdquery") == "box";
 
-  auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r', Aborted());
+  auto logic_box = BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box"));;
+  auto query = dataset->createBoxQuery(logic_box, field, time, 'r', Aborted());
   query->setResolutionRange(fromh, endh);
 
   //I apply the filter on server side only for the first coarse query (more data need to be processed on client side)
@@ -573,8 +574,6 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
   {
     query->disableFilters();
   }
-
-  query->logic_box = BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box"));
 
   dataset->beginQuery(query);
 
@@ -667,12 +666,13 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
   VisusAssert(nsamples.getPointDim() == 3);
 
   VisusAssert(fromh == 0);
-  auto query = std::make_shared<PointQuery>(dataset.get(), field, time, 'r', Aborted());
-  query->end_resolution = endh;
 
-  query->logic_position = Position(
-    Matrix::fromString(4, request.url.getParam("matrix")), 
+  auto logic_position = Position(
+    Matrix::fromString(4, request.url.getParam("matrix")),
     BoxNd::fromString(request.url.getParam("box"),/*bInterleave*/false).withPointDim(3));
+
+  auto query = dataset->createPointQuery(logic_position, field, time);
+  query->end_resolution = endh;
 
   if (!query->setPoints(nsamples))
     return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->setPoints failed " + query->getLastErrorMsg());

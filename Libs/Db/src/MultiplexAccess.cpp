@@ -133,7 +133,7 @@ void MultiplexAccess::scheduleOp(int mode, int index, SharedPtr<BlockQuery> up_q
     }
   }
 
-  auto dw_query = std::make_shared<BlockQuery>(dataset, up_query->field, up_query->time, up_query->start_address, up_query->end_address, mode, up_query->aborted);
+  auto dw_query = dataset->createBlockQuery(up_query->start_address, up_query->end_address, up_query->field, up_query->time, mode, up_query->aborted);
   VisusAssert(dw_query->getNumberOfSamples() == up_query->getNumberOfSamples());
   VisusAssert(dw_query->logic_samples == up_query->logic_samples);
   dw_query->buffer = up_query->buffer;

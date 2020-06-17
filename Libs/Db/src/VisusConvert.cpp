@@ -194,10 +194,10 @@ public:
         {
           auto hz1 = w_access->getStartAddress(blockid);
           auto hz2 = w_access->getEndAddress(blockid);
-          auto read_block = std::make_shared<BlockQuery>(dataset.get(), field, time, hz1, hz2, 'r', Aborted());
+          auto read_block = dataset->createBlockQuery(hz1, hz2, field, time);
           if (dataset->executeBlockQueryAndWait(r_access, read_block))
           {
-            auto write_block = std::make_shared<BlockQuery>(dataset.get(), field, time, hz1, hz2, 'w', Aborted());
+            auto write_block = dataset->createBlockQuery(hz1, hz2, field, time, 'w', Aborted());
             write_block->buffer = read_block->buffer;
             if (!dataset->executeBlockQueryAndWait(w_access, write_block))
               ThrowException("Failed to write block");

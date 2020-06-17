@@ -75,8 +75,7 @@ class TestIdx(unittest.TestCase):
 		for Z in range(0,16):
 			slice_box=dataset.getLogicBox().getZSlab(Z,Z+1)
 			
-			query=BoxQuery(dataset,dataset.getDefaultField(),dataset.getDefaultTime(),ord('w'))
-			query.logic_box=slice_box
+			query=dataset.createBoxQuery(slice_box, ord('w'))
 			dataset.beginQuery(query)
 			self.assertTrue(query.isRunning())
 			self.assertEqual(query.getNumberOfSamples().innerProduct(),16*16)
@@ -104,8 +103,7 @@ class TestIdx(unittest.TestCase):
 		for Z in range(0,16):
 			slice_box=box.getZSlab(Z,Z+1)
 			
-			query=BoxQuery(dataset,dataset.getDefaultField(),dataset.getDefaultTime(),ord('r'))
-			query.logic_box=slice_box
+			query=dataset.createBoxQuery(slice_box, ord('r'))
 			dataset.beginQuery(query)
 			self.assertTrue(query.isRunning())
 			self.assertEqual(query.getNumberOfSamples().innerProduct(),16*16)
@@ -131,8 +129,7 @@ class TestIdx(unittest.TestCase):
 		slice_box=box.getZSlab(0,1);
 		
 		#create and read data from VisusFIle up to resolution FinalH=8 (<MaxH)
-		query=BoxQuery(dataset,dataset.getDefaultField(),dataset.getDefaultTime(),ord('r'))
-		query.logic_box=slice_box
+		query=dataset.createBoxQuery(slice_box, ord('r'))
 		query.end_resolutions.push_back(8)
 		query.end_resolutions.push_back(12)
 		

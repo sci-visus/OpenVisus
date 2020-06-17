@@ -69,8 +69,7 @@ void Tutorial_2(String default_layout)
     BoxNi slice_box = world_box.getZSlab(nslice, nslice + 1);
 
     //I should get a number of samples equals to the number of samples written in tutorial 1
-    auto query = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-    query->logic_box = slice_box;
+    auto query = dataset->createBoxQuery(slice_box, 'r');
     dataset->beginQuery(query);
     VisusReleaseAssert(query->isRunning());
     VisusReleaseAssert(query->getNumberOfSamples() == PointNi(16, 16, 1));

@@ -706,7 +706,7 @@ void IdxDataset::compressDataset(std::vector<String> compression)
 
             filenames.insert(filename);
 
-            auto read_block = std::make_shared<BlockQuery>(this, Rfield, Rtime, Raccess->getStartAddress(blockid), Raccess->getEndAddress(blockid), 'r', aborted);
+            auto read_block = createBlockQuery(Raccess->getStartAddress(blockid), Raccess->getEndAddress(blockid), Rfield, Rtime, 'r', aborted);
 
             //could fail because block does not exist
             if (executeBlockQueryAndWait(Raccess, read_block))
@@ -740,7 +740,7 @@ void IdxDataset::compressDataset(std::vector<String> compression)
             VisusReleaseAssert(H >= 0 && H < compression.size());
             Wfield.default_compression = compression[H];
 
-            auto write_block = std::make_shared<BlockQuery>(this, Wfield, Wtime, HzStart, HzEnd, 'w', aborted);
+            auto write_block = createBlockQuery(HzStart, HzEnd, Wfield, Wtime,  'w', aborted);
             write_block->buffer = file_blocks[B][F];
 
             if (!executeBlockQueryAndWait(Waccess, write_block))
@@ -839,8 +839,7 @@ SharedPtr<BoxQuery> IdxDataset::createEquivalentBoxQuery(int mode,SharedPtr<Bloc
   VisusAssert(block_samples.nsamples.innerProduct()==(block_query->end_address-block_query->start_address));
   VisusAssert(fromh==toh || block_query->start_address==0);
 
-  auto ret=std::make_shared<BoxQuery>(this, block_query->field, block_query->time,mode, block_query->aborted);
-  ret->logic_box= block_samples.logic_box;
+  auto ret=createBoxQuery(block_samples.logic_box, block_query->field, block_query->time,mode, block_query->aborted);
   ret->setResolutionRange(fromh,toh);
   return ret;
 }
@@ -1315,7 +1314,6 @@ void IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
   }
 
   query->setFailed();
-
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -1413,8 +1411,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
     {
       BoxNi adjusted_logic_box = adjustFilterBox(query.get(), filter.get(), query->filter.adjusted_logic_box, H);
 
-      auto Wquery = std::make_shared<BoxQuery>(this, query->field, query->time, 'r', query->aborted);
-      Wquery->logic_box = adjusted_logic_box;
+      auto Wquery = createBoxQuery(adjusted_logic_box, query->field, query->time, 'r', query->aborted);
       Wquery->setResolutionRange(0,H);
       Wquery->disableFilters();
       Wquery->merge_mode = InsertSamples;
@@ -1589,7 +1586,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
       waitAsyncRead();
 
     BigInt HzTo = HzFrom + (((BigInt)1) << bitsperblock);
-    auto read_block = std::make_shared<BlockQuery>(this, field, time, HzFrom, HzTo, 'r', aborted);
+    auto read_block = createBlockQuery(HzFrom, HzTo, field, time, 'r', aborted);
     NREAD++;
 
     if (bReading)
@@ -1611,7 +1608,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
       executeBlockQueryAndWait(access, read_block);
 
       //WRITE block
-      auto write_block = std::make_shared<BlockQuery>(this, field, time, HzFrom, HzTo, 'w', aborted);
+      auto write_block = createBlockQuery(HzFrom, HzTo, field, time, 'w', aborted);
 
       //read ok
       if (read_block->ok())
@@ -1828,7 +1825,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
     while (B < (int)hzaddresses.size() && (hzaddresses[B].first >= HzFrom && hzaddresses[B].first < HzTo))
       ++B;
 
-    auto block_query = std::make_shared<BlockQuery>(this, query->field, query->time, HzFrom, HzTo, 'r', aborted);
+    auto block_query = createBlockQuery(HzFrom, HzTo, query->field, query->time, 'r', aborted);
     this->executeBlockQuery(access, block_query);
     wait_async.pushRunning(block_query->done).when_ready([this, query, block_query, &hzaddresses, A, B, aborted](Void) {
 

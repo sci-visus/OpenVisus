@@ -42,15 +42,5 @@ For support : support@visus.net
 namespace Visus {
 
 
-////////////////////////////////////////////////////////////////////////////////////
-BoxQuery::BoxQuery(Dataset* dataset, Field field, double time, int mode, Aborted aborted)
-  :Query(dataset, field, time, mode, aborted)
-{
-  this->filter.domain = dataset->getLogicBox();
-}
-
-
-
-
 } //namespace Visus
 

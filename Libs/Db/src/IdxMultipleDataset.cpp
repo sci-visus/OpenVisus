@@ -176,7 +176,6 @@ public:
   StringTree CONFIG;
   std::map<PointNi, Child, Child::Compare > childs;
 
-
   //constructor
   IdxMosaicAccess(IdxMultipleDataset* VF_, StringTree CONFIG = StringTree())
     : DATASET(VF_)
@@ -271,7 +270,7 @@ public:
 
       auto hzfrom = HzOrder(dataset->idxfile.bitmask).getAddress(p1);
 
-      auto block_query = std::make_shared<BlockQuery>(dataset.get(), QUERY->field, QUERY->time, hzfrom, hzfrom + ((BigInt)1 << bitsperblock), 'r', QUERY->aborted);
+      auto block_query = dataset->createBlockQuery(hzfrom, hzfrom + ((BigInt)1 << bitsperblock), QUERY->field, QUERY->time, 'r', QUERY->aborted);
 
       auto access = getChildAccess(it->second);
 
@@ -308,8 +307,7 @@ public:
         auto offset = it.first.innerMultiply(dims);
         auto access = getChildAccess(it.second);
 
-        auto query = std::make_shared<BoxQuery>(dataset.get(), QUERY->field, QUERY->time, 'r');
-        query->logic_box = QUERY->getLogicBox().translate(-offset);
+        auto query = dataset->createBoxQuery(QUERY->getLogicBox().translate(-offset), QUERY->field, QUERY->time, 'r');
         query->setResolutionRange(BLOCK ? query->end_resolutions[0] : 0, HZORDER.getAddressResolution(BITMASK, QUERY->end_address - 1) - NBITS );
 
         if (access->isReading() || access->isWriting())
@@ -535,10 +533,9 @@ SharedPtr<BoxQuery> IdxMultipleDataset::createDownQuery(SharedPtr<Access> ACCESS
   auto volume = Position(dataset->logic_to_LOGIC, dataset->getLogicBox()).computeVolume();
   int delta_h = -(int)log2(VOLUME / volume);
 
-  auto query = std::make_shared<BoxQuery>(dataset.get(), field, QUERY->time, 'r', QUERY->aborted);
+  auto query = dataset->createBoxQuery(query_logic_box, field, QUERY->time, 'r', QUERY->aborted);
   QUERY->down_queries[key] = query;
   query->down_info.name = dataset_name;
-  query->logic_box = query_logic_box;
 
   //resolutions
   if (!QUERY->start_resolution)
