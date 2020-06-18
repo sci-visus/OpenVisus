@@ -44,7 +44,6 @@ For support : support@visus.net
 #include <Visus/Path.h>
 #include <Visus/File.h>
 #include <Visus/Encoder.h>
-#include <Visus/UUID.h>
 #include <Visus/StringTree.h>
 #include <Visus/NetService.h>
 #include <Visus/SharedLibrary.h>
@@ -449,7 +448,6 @@ void KernelModule::attach()
   ArrayPlugins::allocSingleton();
   Encoders::allocSingleton();
   RamResource::allocSingleton();
-  UUIDGenerator::allocSingleton();
 
   //in case the user whant to simulate I have a certain amount of RAM
   if (Int64 total = StringUtils::getByteSizeFromString(config->readString("Configuration/RamResource/total", "0")))
@@ -517,7 +515,6 @@ void KernelModule::detach()
   ArrayPlugins::releaseSingleton();
   Encoders::releaseSingleton();
   RamResource::releaseSingleton();
-  UUIDGenerator::releaseSingleton();
 
   NetService::detach();
 
