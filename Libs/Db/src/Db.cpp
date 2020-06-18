@@ -58,8 +58,6 @@ void DbModule::attach()
   if (bAttached)  
     return;
   
-  PrintInfo("Attaching DbModule...");
-  
   bAttached = true;
 
   KernelModule::attach();
@@ -75,25 +73,15 @@ void DbModule::attach()
 
   if (auto value = config->readInt("Configuration/OnDemandAccess/External/nconnections", 8))
     OnDemandAccess::Defaults::nconnections = value;
-
-  PrintInfo("Attached DbModule");
 }
 
 //////////////////////////////////////////////
 void DbModule::detach()
 {
-  if (!bAttached)  
-    return;
-  
-  PrintInfo("Detaching DbModule...");
-  
+  if (!bAttached)  return;
   bAttached = false;
-
   DatasetFactory::releaseSingleton();
-
   KernelModule::detach();
-
-  PrintInfo("Detached DbModule.");
 }
 
 

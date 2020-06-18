@@ -71,10 +71,10 @@ Int64 getTotalVideoMemoryBytes()
   {
     GLint mega;
     CGLDescribeRenderer(info, i, kCGLRPVideoMemoryMegabytes, &mega);
-    PrintInfo("vid mem: ",mega,"MB");
+    //PrintInfo("vid mem: ",mega,"MB");
     tot=mega;
     CGLDescribeRenderer(info, i, kCGLRPTextureMemoryMegabytes, &mega);
-    PrintInfo("tex mem:",mega,"MB");
+    //PrintInfo("tex mem:",mega,"MB");
     if (tot > 0) break;  // software renderer always reports 0 bytes, so break when we find a renderer with memory
   }
 
@@ -122,8 +122,6 @@ static Int64 ReadPerfInt64Value(CFStringRef name)
 ///////////////////////////////////////////////
 GLInfo::GLInfo() : visus_used_memory(0),os_total_memory(0),extension_GL_NVX_gpu_memory_info(false)
 {
-  PrintInfo("GLCanvas::initOpenGL...");
-
   GLNeedContext gl;
 
   this->vendor    =(char*)glGetString(GL_VENDOR);
@@ -151,22 +149,6 @@ GLInfo::GLInfo() : visus_used_memory(0),os_total_memory(0),extension_GL_NVX_gpu_
   glGetIntegerv(GL_MAX_CLIP_PLANES, &this->max_clip_planes);
   #endif
 
-  PrintInfo("gles_version", this->gles_version);
-  PrintInfo("GL_VENDOR", this->vendor);
-  PrintInfo("GL_RENDERER", this->renderer);
-  PrintInfo("GL_VERSION", this->version);
-  //PrintInfo("GL_EXTENSIONS", this->extensions);
-  PrintInfo("GL_RED_BITS", this->red_bits);
-  PrintInfo("GL_GREEN_BITS", this->green_bits);
-  PrintInfo("GL_BLUE_BITS", this->blue_bits);
-  PrintInfo("GL_ALPHA_BITS", this->alpha_bits);
-  PrintInfo("GL_DEPTH_BITS", this->depth_bits);
-  PrintInfo("GL_STENCIL_BITS", this->stencil_bits);
-  PrintInfo("GL_MAX_LIGHTS", this->max_lights);
-  PrintInfo("GL_MAX_TEXTURE_SIZE", this->max_texture_size);
-  PrintInfo("GL_MAX_3D_TEXTURE_SIZE", this->max_3d_texture_size);
-  PrintInfo("GL_MAX_CLIP_PLANES", this->max_clip_planes);
-
   #if __APPLE__
   {
     this->os_total_memory=getTotalVideoMemoryBytes();
@@ -185,8 +167,6 @@ GLInfo::GLInfo() : visus_used_memory(0),os_total_memory(0),extension_GL_NVX_gpu_
     }
   }
   #endif
-
-  PrintInfo("...done");
 }
 
 //////////////////////////////////////////////////////////

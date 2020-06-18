@@ -739,8 +739,8 @@ void Viewer::enableSaveSession()
     filename=filename.substr(0,filename.size()-extension.size());  
   filename=filename+"."+Time::now().getFormattedLocalTime()+extension;
 
-  PrintInfo("Configuration/VisusViewer/SaveSession/filename",filename);
-  PrintInfo("Configuration/VisusViewer/SaveSession/sec",every_sec);
+  //PrintInfo("Configuration/VisusViewer/SaveSession/filename",filename);
+  //PrintInfo("Configuration/VisusViewer/SaveSession/sec",every_sec);
 
   connect(save_session_timer.get(),&QTimer::timeout,[this,filename](){
     save(filename,/*bSaveHistory*/false);

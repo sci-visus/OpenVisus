@@ -30,7 +30,7 @@ def SaveImage(url,data, bSeparateChannels=False):
 			SaveImage(base+".{0}".format(I)+ext,data[:,:,I])
 		
 	else:
-		print("saving image",url)
+		# print("saving image",url)
 		Image.fromarray(data).save(url)
 
 # NormalizeData

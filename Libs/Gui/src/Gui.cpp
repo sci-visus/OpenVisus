@@ -89,10 +89,7 @@ void GuiModule::attach()
   if (bAttached)  
     return;
   
-  PrintInfo("Attaching GuiModule...");
-
   bAttached = true;
-
   GuiInitResources();
 
   //show qt resources
@@ -153,8 +150,6 @@ void GuiModule::attach()
   ViewerPreferences::default_panels= config->readString("Configuration/VisusViewer/panels", "left center");
   ViewerPreferences::default_show_logos = cbool(config->readString("Configuration/VisusViewer/show_logos", "true"));
 
-  PrintInfo("Attached GuiModule");
-
 }
 
 //////////////////////////////////////////////
@@ -162,8 +157,6 @@ void GuiModule::detach()
 {
   if (!bAttached)  
     return;
-  
-  PrintInfo("Detaching GuiModule...");
   
   bAttached = false;
 
@@ -189,8 +182,6 @@ void GuiModule::detach()
   if (bOwnedApp && qApp)
     delete qApp;
 #endif
-
-  PrintInfo("Detached GuiModule");
 }
 
 

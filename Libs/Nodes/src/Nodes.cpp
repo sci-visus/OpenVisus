@@ -63,8 +63,6 @@ void NodesModule::attach()
   if (bAttached)  
     return;
   
-  PrintInfo("Attaching NodesModule...");
-
   bAttached = true;
 
   DbModule::attach();
@@ -82,24 +80,15 @@ void NodesModule::attach()
   VISUS_REGISTER_NODE_CLASS(StatisticsNode);
   VISUS_REGISTER_NODE_CLASS(ModelViewNode);
   VISUS_REGISTER_NODE_CLASS(TimeNode);
-
-  PrintInfo("Attached NodesModule");
 }
 
 //////////////////////////////////////////////
 void NodesModule::detach()
 {
-  if (!bAttached)  
-    return;
-  
-  PrintInfo("Detaching NodesModule...");
-
+  if (!bAttached)  return;
   bAttached = false;
-
   DbModule::detach();
   DataflowModule::detach();
-
-  PrintInfo("Detached NodesModule");
 }
 
 } //namespace Visus

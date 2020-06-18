@@ -200,38 +200,10 @@ void PrintLine(String file, int line, int level, String msg)
 }
 
 
-//check types
-static_assert(sizeof(Int8) == 1 && sizeof(Uint8) == 1 && sizeof(char) == 1, "internal error");
-static_assert(sizeof(Int16) == 2 && sizeof(Int16) == 2 && sizeof(short) == 2, "internal error");
-static_assert(sizeof(Int32) == 4 && sizeof(Int32) == 4 && sizeof(int) == 4, "internal error");
-static_assert(sizeof(Int64) == 8 && sizeof(Uint64) == 8, "internal error");
-static_assert(sizeof(Float32) == 4 && sizeof(float) == 4, "internal error");
-static_assert(sizeof(Float64) == 8 && sizeof(double) == 8, "internal error");
-
-#pragma pack(push)
-#pragma pack(1) 
-typedef struct { Int64 a[1];           Int8 b; }S009;
-typedef struct { Int64 a[2];           Int8 b; }S017;
-typedef struct { Int64 a[2]; Int32 b[1]; Int8 c; }S021;
-typedef struct { Int64 a[4];           Int8 b; }S033;
-typedef struct { Int64 a[4]; Int32 b[1]; Int8 c; }S037;
-typedef struct { Int64 a[8]; Int8 b; }S065;
-typedef struct { Int64 a[16]; Int8 b; }S129;
-typedef struct { Int64 a[16]; Int32 b[1]; Int8 c; }S133;
-#pragma pack(pop)
-
-static_assert(sizeof(S009) == 9, "internal error");
-static_assert(sizeof(S017) == 17, "internal error");
-static_assert(sizeof(S021) == 21, "internal error");
-static_assert(sizeof(S033) == 33, "internal error");
-static_assert(sizeof(S037) == 37, "internal error");
-static_assert(sizeof(S065) == 65, "internal error");
-static_assert(sizeof(S129) == 129, "internal error");
-static_assert(sizeof(S133) == 133, "internal error");
 
 //check 64 bit file IO is enabled!
 #if __GNUC__ && !__APPLE__
-static_assert(sizeof(off_t) == 8, "internal error");
+VisusAssert(sizeof(off_t) == 8, "internal error");
 #endif
 
 int          CommandLine::argn=0;
@@ -389,9 +361,38 @@ void KernelModule::attach()
   if (bAttached)
     return;
 
-  PrintInfo("Attaching KernelModule...");
 
   bAttached = true;
+
+  //check types
+  VisusReleaseAssert(sizeof(Int8) == 1 && sizeof(Uint8) == 1 && sizeof(char) == 1);
+  VisusReleaseAssert(sizeof(Int16) == 2 && sizeof(Int16) == 2 && sizeof(short) == 2);
+  VisusReleaseAssert(sizeof(Int32) == 4 && sizeof(Int32) == 4 && sizeof(int) == 4);
+  VisusReleaseAssert(sizeof(Int64) == 8 && sizeof(Uint64) == 8);
+  VisusReleaseAssert(sizeof(Float32) == 4 && sizeof(float) == 4);
+  VisusReleaseAssert(sizeof(Float64) == 8 && sizeof(double) == 8);
+
+#pragma pack(push)
+#pragma pack(1) 
+  typedef struct { Int64 a[1];           Int8 b; }S009;
+  typedef struct { Int64 a[2];           Int8 b; }S017;
+  typedef struct { Int64 a[2]; Int32 b[1]; Int8 c; }S021;
+  typedef struct { Int64 a[4];           Int8 b; }S033;
+  typedef struct { Int64 a[4]; Int32 b[1]; Int8 c; }S037;
+  typedef struct { Int64 a[8]; Int8 b; }S065;
+  typedef struct { Int64 a[16]; Int8 b; }S129;
+  typedef struct { Int64 a[16]; Int32 b[1]; Int8 c; }S133;
+#pragma pack(pop)
+
+  VisusReleaseAssert(sizeof(S009) == 9);
+  VisusReleaseAssert(sizeof(S017) == 17);
+  VisusReleaseAssert(sizeof(S021) == 21);
+  VisusReleaseAssert(sizeof(S033) == 33);
+  VisusReleaseAssert(sizeof(S037) == 37);
+  VisusReleaseAssert(sizeof(S065) == 65);
+  VisusReleaseAssert(sizeof(S129) == 129);
+  VisusReleaseAssert(sizeof(S133) == 133);
+
 
 #if __APPLE__
   InitAutoReleasePool();
@@ -434,16 +435,20 @@ void KernelModule::attach()
       continue;
 
     bool bOk = config->load(filename);
+#if _DEBUG
     PrintInfo("VisusConfig filename",filename,"ok",bOk ? "YES" : "NO");
-    if (bOk)
-      break;
+#endif
+    if (bOk) break;
   }
 
-  PrintInfo("OpenVisus_VERSION       ", OpenVisus_VERSION);
-  PrintInfo("OpenVisus_GIT_REVISION  ", OpenVisus_GIT_REVISION);
-  PrintInfo("VisusHome               ", KnownPaths::VisusHome);
-  PrintInfo("BinaryDirectory         ", KnownPaths::BinaryDirectory);
-  PrintInfo("CurrentWorkingDirectory ", KnownPaths::CurrentWorkingDirectory());
+#if _DEBUG
+  PrintInfo(
+    "VERSION", OpenVisus_VERSION,
+    "GIT_REVISION", OpenVisus_GIT_REVISION,
+    "VisusHome", KnownPaths::VisusHome, 
+    "BinaryDirectory", KnownPaths::BinaryDirectory,
+    "CurrentWorkingDirectory ", KnownPaths::CurrentWorkingDirectory());
+#endif
 
   ArrayPlugins::allocSingleton();
   Encoders::allocSingleton();
@@ -497,8 +502,6 @@ void KernelModule::attach()
     plugin->lib = lib;
   }
 #endif
-
-  PrintInfo("Attached KernelModule");
 }
 
 
@@ -509,8 +512,6 @@ void KernelModule::detach()
     return;
   
   bAttached = false;
-
-  PrintInfo("Detaching KernelModule...");
 
   ArrayPlugins::releaseSingleton();
   Encoders::releaseSingleton();
@@ -523,8 +524,6 @@ void KernelModule::detach()
 #if __APPLE__
   DestroyAutoReleasePool();
 #endif
-
-  PrintInfo("Detached KernelModule...");
 }
 
 } //namespace Visus

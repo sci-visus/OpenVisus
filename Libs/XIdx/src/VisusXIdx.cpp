@@ -9,32 +9,18 @@ bool XIdxModule::bAttached = false;
 //////////////////////////////////////////////////////////////////
 void XIdxModule::attach()
 {
-  if (bAttached)
-    return;
-
-  PrintInfo("Attaching XIdxModule...");
-
+  if (bAttached) return;
   bAttached = true;
-
   KernelModule::attach();
-
-  PrintInfo("Attached XIdxModule");
 }
 
 
 //////////////////////////////////////////////
 void XIdxModule::detach()
 {
-  if (!bAttached)
-    return;
-
-  PrintInfo("Detaching XIdxModule...");
-
+  if (!bAttached) return;
   bAttached = false;
-
   KernelModule::detach();
-
-  PrintInfo("Detached XIdxModule");
 }
 
 //////////////////////////////////////////////
