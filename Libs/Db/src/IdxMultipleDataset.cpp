@@ -287,10 +287,11 @@ Array IdxMultipleDataset::executeDownQuery(BoxQuery* QUERY, SharedPtr<BoxQuery> 
     if (DATASET->debug_mode & IdxMultipleDataset::DebugSaveImages)
     {
       static int cont = 0;
-      ArrayUtils::saveImage(concatenate("temp/", cont, ".dw." + dataset_name, ".", query->field.name, ".buffer.png"), query->buffer);
-      ArrayUtils::saveImage(concatenate("temp/", cont, ".dw." + dataset_name, ".", query->field.name, ".alpha_.png"), *query->buffer.alpha);
-      ArrayUtils::saveImage(concatenate("temp/", cont, ".up." + dataset_name, ".", query->field.name, ".buffer.png"), query->down_info.BUFFER);
-      ArrayUtils::saveImage(concatenate("temp/", cont, ".up." + dataset_name, ".", query->field.name, ".alpha_.png"), *query->down_info.BUFFER.alpha);
+      String tmp_dir = "tmp/debug_midx";
+      ArrayUtils::saveImage(concatenate(tmp_dir, "/", cont, ".dw." + dataset_name, ".", query->field.name, ".buffer.png"), query->buffer);
+      ArrayUtils::saveImage(concatenate(tmp_dir, "/", cont, ".dw." + dataset_name, ".", query->field.name, ".alpha_.png"), *query->buffer.alpha);
+      ArrayUtils::saveImage(concatenate(tmp_dir, "/", cont, ".up." + dataset_name, ".", query->field.name, ".buffer.png"), query->down_info.BUFFER);
+      ArrayUtils::saveImage(concatenate(tmp_dir, "/", cont, ".up." + dataset_name, ".", query->field.name, ".alpha_.png"), *query->down_info.BUFFER.alpha);
       //ArrayUtils::setBufferColor(query->BUFFER, DATASET->childs[dataset_name].color);
       cont++;
     }

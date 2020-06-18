@@ -312,7 +312,7 @@ void SelfTestIdx(int max_seconds)
     //remove data from tutorial_1
     try
     {
-      auto dataset = LoadIdxDataset("./temp/tutorial_1.idx");
+      auto dataset = LoadIdxDataset("tmp/tutorial_1/visus.idx");
       dataset->removeFiles();
     }
     catch (...) {}
@@ -345,9 +345,10 @@ void SelfTestIdx(int max_seconds)
             field.default_compression = Utils::getRandInteger(0, 1) ? "lz4" : "";
             idxfile.fields.push_back(field);
           }
-          idxfile.save("./temp/temp.idx");
 
-          auto dataset = LoadIdxDataset("./temp/temp.idx");
+          auto filename = "tmp/self_test_idx/temp.idx";
+          idxfile.save(filename);
+          auto dataset = LoadIdxDataset(filename);
 
           {
             SelfTest selftest(dataset.get());
@@ -380,18 +381,15 @@ void SelfTestIdx(int max_seconds)
         idxfile.fields.push_back(field);
       }
 
-      String idxfilename = "./temp/temp.idx";
-
-      idxfile.save(idxfilename);
-
-      auto dataset = LoadIdxDataset(idxfilename);
+      String filename = "tmp/self_test_idx/temp.idx";
+      idxfile.save(filename);
+      auto dataset = LoadIdxDataset(filename);
 
       {
         SelfTest selftest(dataset.get());
         for (int n = 0; n < 10; n++)
           selftest.executeRandomQuery();
       }
-
       dataset->removeFiles();
     }
   }

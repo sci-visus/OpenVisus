@@ -46,7 +46,7 @@ namespace Private {
 
 ///////////////////////////////////////////////////////////////////////////////
 template <typename CppType,class FilterClass>
-static bool ComputeFilter(IdxDataset* dataset,BoxQuery* query,const FilterClass* filter,bool bInverse)
+static void ComputeFilter(IdxDataset* dataset,BoxQuery* query,const FilterClass* filter,bool bInverse)
 {
   const Field& field=query->field;
 
@@ -54,7 +54,7 @@ static bool ComputeFilter(IdxDataset* dataset,BoxQuery* query,const FilterClass*
 
   //nothing to do for very coarse resolution (H=0)
   if (H==0)
-    return true;
+    return;
 
   LogicSamples     logic_samples  = query->logic_samples;
   DType            dtype      = field.dtype;
@@ -72,7 +72,7 @@ static bool ComputeFilter(IdxDataset* dataset,BoxQuery* query,const FilterClass*
   
   //cannot apply the filter, too few samples
   if (dims[bit]<filter_size) 
-    return true; 
+    return; 
 
   //align again to filter (this is needed again for certain types of queries, such as query for visus blocks!)
   BoxNi box= logic_samples.logic_box;
@@ -82,7 +82,7 @@ static bool ComputeFilter(IdxDataset* dataset,BoxQuery* query,const FilterClass*
   box= box.getIntersection(filter_domain);
 
   if (!box.isFullDim())
-    return true;
+    return;
 
   for (int D=0;D<pdim;D++) 
   {
@@ -112,7 +112,7 @@ static bool ComputeFilter(IdxDataset* dataset,BoxQuery* query,const FilterClass*
 
   //invalid box obtained!
   if (!box.isFullDim())
-    return true;
+    return;
 
   PointNi from = logic_samples.logicToPixel(box.p1);
   PointNi to   = logic_samples.logicToPixel(box.p2);
@@ -146,7 +146,7 @@ static bool ComputeFilter(IdxDataset* dataset,BoxQuery* query,const FilterClass*
   for (auto loc = ForEachPoint(from, to, step); !loc.end(); loc.next())
   {
     if (query->aborted()) 
-      return false;
+      return;
     
     CppType* va = ((CppType*)buffer)+ncomponents*stride.dotProduct(loc.pos);
     CppType* vb = va + PHY_NEXT_SAMPLE; 
@@ -161,8 +161,6 @@ static bool ComputeFilter(IdxDataset* dataset,BoxQuery* query,const FilterClass*
         filter->applyDirect(va,vb);
     }
   }
-
-  return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -187,7 +185,7 @@ public:
   {}
 
   //internalComputeFilter
-  virtual bool internalComputeFilter(BoxQuery* query, bool bInverse) const override {
+  virtual void internalComputeFilter(BoxQuery* query, bool bInverse) const override {
     return ComputeFilter<CppType>(dataset, query, this, bInverse);
   }
 
@@ -253,7 +251,7 @@ public:
   }
 
   //internalComputeFilter
-  virtual bool internalComputeFilter(BoxQuery* query,bool bInverse) const override
+  virtual void internalComputeFilter(BoxQuery* query,bool bInverse) const override
   {return ComputeFilter<CppType>(dataset,query,this,bInverse);}
 
 };
@@ -319,7 +317,7 @@ public:
   }
 
   //internalComputeFilter
-  virtual bool internalComputeFilter(BoxQuery* query,bool bInverse) const override
+  virtual void internalComputeFilter(BoxQuery* query,bool bInverse) const override
   {return ComputeFilter<CppType>(dataset,query,this,bInverse);}
 
 };
@@ -388,7 +386,7 @@ public:
   }
 
   //internalComputeFilter
-  virtual bool internalComputeFilter(BoxQuery* query,bool bInverse) const override {
+  virtual void internalComputeFilter(BoxQuery* query,bool bInverse) const override {
     return ComputeFilter<CppType>(dataset,query,this,bInverse);
   }
 
@@ -444,7 +442,7 @@ public:
   }
 
   //internalComputeFilter
-  virtual bool internalComputeFilter(BoxQuery* query,bool bInverse) const override {
+  virtual void internalComputeFilter(BoxQuery* query,bool bInverse) const override {
     return ComputeFilter<CppType>(dataset,query,this,bInverse);
   }
 

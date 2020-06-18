@@ -53,17 +53,14 @@ class TestIdx(unittest.TestCase):
   
 	# testIdx
 	def testIdx(self):
-
 		data=np.random.randint(0, np.iinfo(np.uint32).max, (16, 16, 16), dtype=np.uint32)
-		db=CreateIdx(url="temp/TestIdx.idx",dim=3, dims=(16,16,16),fields=[Field("myfield","uint32")],data=data, compression=["zip"])
+		db=CreateIdx(url='tmp/test_idx/visus.idx', rmtree=True, dim=3, dims=(16,16,16),fields=[Field("myfield","uint32")],data=data, compression=["zip"])
 		data_check=db.read()
 		Assert((data==data_check).all())
 
 		# example of doing a progressive query 
 		for data in db.read(z=[0,1],num_refinements=3):
 			print(data.shape,data.dtype)
-	
-
 
 # ////////////////////////////////////////////////////////
 if __name__ == '__main__':

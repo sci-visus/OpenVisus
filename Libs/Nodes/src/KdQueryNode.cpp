@@ -140,8 +140,7 @@ public:
           for (int H = 0; H <= end_resolution; H++)
           {
             query->setCurrentResolution(H);
-            if (!filter->internalComputeFilter(query.get(), true))
-              return false;
+            filter->internalComputeFilter(query.get(), /*bInverse*/true);
           }
           displaydata = filter->dropExtraComponentIfExists(fullres);
         }
@@ -242,7 +241,6 @@ public:
         if (aborted())
           return;
 
-
         Array displaydata= fullres;
 
         //need to apply the filter, from now on I can display the data
@@ -250,9 +248,7 @@ public:
         {
           if (auto filter = idx->createFilter(field))
           {
-            if (!!filter->internalComputeFilter(query.get(), true))
-              return;
-
+            filter->internalComputeFilter(query.get(), /*bInverse*/true);
             displaydata = filter->dropExtraComponentIfExists(fullres);
           }
         }

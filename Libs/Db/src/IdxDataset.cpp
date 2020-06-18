@@ -1459,8 +1459,7 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
       if (!this->executeBoxQuery(access, Wquery))
         return false;
 
-      if (!filter->internalComputeFilter(Wquery.get(), true))
-        return false;
+      filter->internalComputeFilter(Wquery.get(), /*bInverse*/true);
 
       query->filter.query = Wquery;
     }
@@ -1951,8 +1950,7 @@ bool IdxDataset::computeFilter(SharedPtr<IdxFilter> filter, double time, Field f
       }
 #endif
 
-      if (!filter->internalComputeFilter(read.get(),/*bInverse*/false))
-        return false;
+      filter->internalComputeFilter(read.get(),/*bInverse*/false);
 
       //if you want to debug step by step...
 #if 0 

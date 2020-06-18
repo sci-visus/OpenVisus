@@ -89,7 +89,7 @@ public:
   }
 
   //internalComputeFilter
-  virtual bool internalComputeFilter(BoxQuery* query,bool bInverse) const=0;
+  virtual void internalComputeFilter(BoxQuery* query,bool bInverse) const=0;
 
 };
 

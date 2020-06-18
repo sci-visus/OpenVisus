@@ -235,7 +235,7 @@ public:
   virtual bool write(Int64 pos, Int64 tot, const unsigned char* buffer) override
   {
     if (!isOpen() || tot<0 || !can_write)
-      return false;
+      return false; 
 
     if (tot == 0)
       return true;

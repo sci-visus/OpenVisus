@@ -79,8 +79,7 @@ def CreateIdxDataset(filename, DIMS=None, dtype=None, blocksize=0, default_layou
 	field.default_layout=default_layout
 	field.default_compression=default_compression
 	
-	CreateIdx(
-		url=filename,
+	CreateIdx(url=filename, rmtree=True, 
 		dims=DIMS,
 		fields=[field], 
 		bitsperblock=bitsperblock, 
@@ -175,17 +174,17 @@ def Main():
 	DIMS=(4096,4096,8192)
 	print("db size",DIMS[0]*DIMS[1]*DIMS[2]/GB,"GB")
 	
-	dir="C:/tmp/test_speed"
 	for blocksize in (128, 64, 32, 16, 8):
-		filename=dir + "/{:03d}k.idx".format(blocksize)
-		RemoveFiles(filename+"*")
-		CreateIdxDataset(filename, DIMS=DIMS, dtype="uint8", blocksize=blocksize*KB)
+		filename=dir + "C:/tmp/test_speed/{:03d}k.idx".format(blocksize)
+
+		CreateIdxDataset(filename, rmtree=True, DIMS=DIMS, dtype="uint8", blocksize=blocksize*KB)
 		TimeIt(filename+"-read-file-seq",  ReadFileSequentially(filename+".bin"))
 		TimeIt(filename+"-{:03d}k".format(blocksize), ReadFullResBlocks(filename+".bin", blocksize=blocksize*KB))
 		TimeIt(filename+"-BlockQuery", ReadIdxBlockQuery(filename))
+
 		for dims in [(32,64,64), (32,32,64), (32,32,32), (16,32,32), (16,16,32)]: # 128k...8k
 			TimeIt(filename+"-BoxQuery{:03d}k".format(int(dims[0]*dims[1]*dims[2]/1024)),  ReadIdxBoxQuery(filename, dims))
-		RemoveFiles(filename+"*")
+
 
 	print("all done")
 	sys.exit(0)

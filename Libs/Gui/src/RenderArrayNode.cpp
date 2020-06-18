@@ -307,7 +307,7 @@ void RenderArrayNode::setData(Array value,SharedPtr<Palette> palette)
 #if 0
   {
     static int cont = 0;
-    ArrayUtils::saveImageUINT8(concatenate("temp.", cont++, ".png"), *data);
+    ArrayUtils::saveImageUINT8(concatenate("tmp/debug_render_array_node/", cont++, ".png"), *data);
   }
 #endif
 

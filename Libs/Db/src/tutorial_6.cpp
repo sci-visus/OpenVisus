@@ -231,7 +231,7 @@ void Tutorial_6(String default_layout)
 
     Array src_image=ArrayUtils::loadImage(img_filename);
     VisusReleaseAssert(src_image);
-    auto dataset=createDatasetFromImage("temp/tutorial_6.idx",src_image,dtype,dataset_offset,bitsperblock,default_layout,filters[NFilter]);
+    auto dataset=createDatasetFromImage("tmp/tutorial_6/visus.idx",src_image,dtype,dataset_offset,bitsperblock,default_layout,filters[NFilter]);
     VisusReleaseAssert(dataset);
     Field field=dataset->getField();
 
@@ -290,7 +290,7 @@ void Tutorial_6(String default_layout)
       {
         int H=query->getCurrentResolution();
 
-        Path filename=Path(String("temp/")  + filters[NFilter] + "/" + StringUtils::replaceFirst(dtype.toString(),"*","_") + String(Overall ?"_all":"_piece"))
+        Path filename=Path(String("tmp/tutorial6/")  + filters[NFilter] + "/" + StringUtils::replaceFirst(dtype.toString(),"*","_") + String(Overall ?"_all":"_piece"))
           .getChild("snapshot" + String(H<10?"0":"") + cstring(H)  + (".png"));
 
         FileUtils::createDirectory(filename.getParent());

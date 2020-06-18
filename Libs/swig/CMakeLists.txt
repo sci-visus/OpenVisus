@@ -90,7 +90,8 @@ endif()
 
 if (TARGET VisusDataflow)
 	AddSwigLibrary(VisusDataflow)
-	AddPythonTarget("CMakePredefinedTargets" test -m OpenVisus test)
+	AddPythonTarget("CMakePredefinedTargets" test      -m OpenVisus test)
+	AddPythonTarget("CMakePredefinedTargets" test-idx  -m OpenVisus test-idx)
 endif()
 
 if (TARGET VisusNodes)

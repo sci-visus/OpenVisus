@@ -113,7 +113,7 @@ void TilingExample(IdxDataset* dataset)
 ///////////////////////////////////////////////////////////////////////////////////////
 void Tutorial_Tiling(String default_layout)
 {
-  String filename="temp/tiling.idx";
+  String filename="tmp/test_tiling/visus.idx";
 
   //create a sample IdxDataset
   IdxFile idxfile;

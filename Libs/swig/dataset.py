@@ -1,8 +1,12 @@
 import os,sys
 import numpy 
 import inspect
+import tempfile
+import shutil
+
 
 from OpenVisus import *
+
 
 # //////////////////////////////////////////////////////////
 def CreateIdx(**args):
@@ -11,6 +15,10 @@ def CreateIdx(**args):
 		raise Exception("url not specified")
 
 	url=args["url"]
+
+	if "rmtree" in args and args["rmtree"]==True:
+		dir=os.path.dirname(url)
+		shutil.rmtree(dir, ignore_errors=True)
 
 	idx=IdxFile()
 		
@@ -75,11 +83,6 @@ class PyDataset(object):
 	# constructor
 	def __init__(self,db):
 		self.db = db
-
-	# Create
-	@staticmethod
-	def Create(**args):
-		return CreateIdx(args)
 
 	# __getattr__
 	def __getattr__(self,attr):

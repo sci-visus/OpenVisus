@@ -136,6 +136,10 @@ function(AssignSourceGroup GroupName StartDir)
 endfunction()
 
 file(GLOB SamplesSources 
+	${CMAKE_SOURCE_DIR}/README.md
+	${CMAKE_SOURCE_DIR}/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/OpenVisusConfig.cmake
+	${CMAKE_SOURCE_DIR}/Libs/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/*.ipynb 
 	${CMAKE_SOURCE_DIR}/Samples/jupyter/*.ipynb 
 	${CMAKE_SOURCE_DIR}/Samples/python/*.py 

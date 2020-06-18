@@ -803,11 +803,11 @@ public:
     ComputeLongestPaths(*tg);
 
     std::ofstream cg_dump;
-    cg_dump.open("/tmp/cg.dot");
+    cg_dump.open("tmp/debug_voxel_scoop/cg.dot");
     genDot2(*this->centerlines,cg_dump);
     cg_dump.close();
     std::ofstream tg_dump;
-    tg_dump.open("/tmp/tg.dot");
+    tg_dump.open("tmp/debug_voxel_scoop/tg.dot");
     genDot3(*tg,tg_dump);
     tg_dump.close();
 
@@ -886,9 +886,9 @@ public:
     auto cg=CreateCGraph(*tg);
     VisusAssert(cg);
 
-    cg_dump.open("/tmp/cg2.dot");
+    cg_dump.open("tmp/debug_voxel_scoop/cg2.dot");
     genDot2(*cg,cg_dump);
-    tg_dump.open("/tmp/tg2.dot");
+    tg_dump.open("tmp/debug_voxel_scoop/tg2.dot");
     genDot3(*tg,tg_dump);
 
     this->centerlines=cg;

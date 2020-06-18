@@ -46,7 +46,7 @@ namespace Visus {
 ////////////////////////////////////////////////////////////////////////////////////
 void Tutorial_3(String default_layout)
 {
-  auto dataset = LoadDataset("temp/tutorial_1.idx");
+  auto dataset = LoadDataset("tmp/tutorial_1/visus.idx");
 
   BoxNi world_box = dataset->getLogicBox();
 

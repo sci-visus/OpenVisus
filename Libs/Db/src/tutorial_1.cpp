@@ -55,7 +55,7 @@ void Tutorial_1(String default_layout)
   //"MY_SCALAR_FIELD 1*uint8 compressed + MY_VECTORIAL_FIELD 3*float32 "
   //in this case, when you read or write, specify the field you want Dataset::field/Dataset::field
 
-  String filename="temp/tutorial_1.idx";
+  String filename="tmp/tutorial_1/visus.idx";
 
   //the data will be in the bounding box  p1(0,0,0) p2(16,16,16) (p1 included, p2 excluded) 
   {

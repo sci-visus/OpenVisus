@@ -166,7 +166,7 @@ public:
     if (DATASET->debug_mode & IdxMultipleDataset::DebugSaveImages)
     {
       static int cont = 0;
-      ArrayUtils::saveImage(concatenate("temp/", cont++, ".up.result.png"), ret);
+      ArrayUtils::saveImage(concatenate("tmp/debug_pymultipledataset/", cont++, ".up.result.png"), ret);
     }
 
     return ret;

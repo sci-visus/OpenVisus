@@ -226,7 +226,7 @@ public:
     //get the file format
     FREE_IMAGE_FORMAT fif;
     {
-      String temp_filename = "temp." + encoder_name;
+      String temp_filename = "fake." + encoder_name;
       fif = FreeImage_GetFIFFromFilename(temp_filename.c_str());
       if (fif == FIF_UNKNOWN) return SharedPtr<HeapMemory>();
     }
@@ -308,7 +308,7 @@ public:
     //get the file format
     FREE_IMAGE_FORMAT fif;
     {
-      String temp_filename = "temp." + encoder_name;
+      String temp_filename = "fake." + encoder_name;
       fif = FreeImage_GetFIFFromFilename(temp_filename.c_str());
       if (fif == FIF_UNKNOWN) return SharedPtr<HeapMemory>();
     }
