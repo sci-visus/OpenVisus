@@ -325,9 +325,9 @@ public:
 
       doPublish(output, query);
 
-      PrintInfo("Calling next query...");
+      //PrintInfo("Calling next query...");
       dataset->nextBoxQuery(query);
-      PrintInfo("Done next query");
+      //PrintInfo("Done next query");
     }
   }
 
