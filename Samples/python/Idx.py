@@ -44,116 +44,25 @@ import string
 import unittest
 import os
 
-import numpy
+import numpy as np
 
 from OpenVisus import *
 
 # ////////////////////////////////////////////////////////////////////////
 class TestIdx(unittest.TestCase):
   
+	# testIdx
 	def testIdx(self):
-		self.filename="temp/TestIdx.idx"
-		self.WriteIdx()
-		self.ReadIdx()
-		self.MergeIdx()
+
+		data=np.random.randint(0, np.iinfo(np.uint32).max, (16, 16, 16), dtype=np.uint32)
+		db=CreateIdx(url="temp/TestIdx.idx",dim=3, dims=(16,16,16),fields=[Field("myfield","uint32")],data=data, compression=["zip"])
+		data_check=db.read()
+		Assert((data==data_check).all())
+
+		# example of doing a progressive query 
+		for data in db.read(z=[0,1],num_refinements=3):
+			print(data.shape,data.dtype)
 	
-	# WriteIdx
-	def WriteIdx(self): 
-		
-		dataset_box=BoxNi(PointNi(0,0,0),PointNi(16,16,16))
-		
-		idxfile=IdxFile();
-		idxfile.logic_box=BoxNi(dataset_box)
-		idxfile.fields.push_back(Field("myfield","uint32"))
-
-		idxfile.save(self.filename)
-		dataset=LoadDataset(self.filename)
-		access=dataset.createAccess()
-		
-		sampleid=0
-		
-		for Z in range(0,16):
-			slice_box=dataset.getLogicBox().getZSlab(Z,Z+1)
-			
-			query=dataset.createBoxQuery(slice_box, ord('w'))
-			dataset.beginBoxQuery(query)
-			self.assertTrue(query.isRunning())
-			self.assertEqual(query.getNumberOfSamples().innerProduct(),16*16)
-			
-			buffer=Array(query.getNumberOfSamples(),query.field.dtype)
-			query.buffer=buffer
-			
-			fill=Array.toNumPy(buffer,bSqueeze=True,bShareMem=True)
-			for Y in range(16):
-				for X in range(16):
-					fill[Y,X]=sampleid
-					sampleid+=1
-
-			self.assertTrue(dataset.executeBoxQuery(access,query))
-
-	# ReadIdx
-	def ReadIdx(self): 
-		
-		dataset=LoadDataset(self.filename)
-		box=dataset.getLogicBox()
-		field=dataset.getDefaultField()
-		access=dataset.createAccess()
-		
-		sampleid=0
-		for Z in range(0,16):
-			slice_box=box.getZSlab(Z,Z+1)
-			
-			query=dataset.createBoxQuery(slice_box, ord('r'))
-			dataset.beginBoxQuery(query)
-			self.assertTrue(query.isRunning())
-			self.assertEqual(query.getNumberOfSamples().innerProduct(),16*16)
-			self.assertTrue(dataset.executeBoxQuery(access,query))
-			
-			check=Array.toNumPy(query.buffer,bSqueeze=True,bShareMem=True)
-			
-			for Y in range(16):
-				for X in range(16):
-					self.assertEqual(check[Y,X],sampleid)
-					sampleid+=1
-
-	def MergeIdx(self): 
-		
-		dataset=LoadDataset(self.filename)
-		
-		box=dataset.getLogicBox()
-		access=dataset.createAccess()
-		field=dataset.getDefaultField()
-		self.assertEqual(dataset.getMaxResolution(),12) #in the bitmask_pattern "V012012012012" the very last bit of the bitmask is at position MaxH=12 
-		
-		#I want to read data from first slice Z=0
-		slice_box=box.getZSlab(0,1);
-		
-		#create and read data from VisusFIle up to resolution FinalH=8 (<MaxH)
-		query=dataset.createBoxQuery(slice_box, ord('r'))
-		query.end_resolutions.push_back(8)
-		query.end_resolutions.push_back(12)
-		
-		# end_resolution=8
-		dataset.beginBoxQuery(query)
-		self.assertTrue(query.isRunning())
-		self.assertTrue(query.getNumberOfSamples().innerProduct()>0)
-		self.assertTrue(dataset.executeBoxQuery(access,query))
-		self.assertEqual(query.getCurrentResolution(),8)
-		
-		# end_resolution=12
-		dataset.nextBoxQuery(query)
-		self.assertTrue(query.isRunning())
-		self.assertEqual(query.getNumberOfSamples().innerProduct(),16*16)
-		self.assertTrue(dataset.executeBoxQuery(access,query))
-		self.assertEqual(query.getCurrentResolution(),12)
-		
-		#verify the data is correct
-		check=Array.toNumPy(query.buffer,bSqueeze=True,bShareMem=True)
-		sampleid=0
-		for Y in range(0,16):
-			for X in range(0,16):
-				self.assertEqual(check[Y,X],sampleid)
-				sampleid+=1 
 
 
 # ////////////////////////////////////////////////////////

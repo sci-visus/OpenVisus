@@ -93,7 +93,7 @@ public:
   //save
   void save(String filename)
   {
-    StringTree out(this->getTypeName());
+    StringTree out(this->getXIdxTypeName());
     this->write(out);
     Utils::saveTextDocument(filename, out.toString());
   }
@@ -122,7 +122,7 @@ public:
           .write("xpointer", "xpointer(//Xidx/Group/Group)"));
 
         {
-          StringTree stree(child->getTypeName());
+          StringTree stree(child->getXIdxTypeName());
           child->write(stree);
           auto content = stree.toString();
           Utils::saveTextDocument(filename, content);

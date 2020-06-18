@@ -30,10 +30,15 @@ class MyDataflow(Dataflow):
 		super().__init__()
 
 		dataset = LoadDataset("http://atlantis.sci.utah.edu/mod_visus?dataset=david")
-		self.bounds=dataset.getLogicBox()
-		self.bounds=self.bounds.scaleAroundCenter(0.01) # 1% of the overall dataset
-		print("bounds:", self.bounds.toString(),"width",self.bounds.size()[0],"height",self.bounds.size()[1])
-
+		(X1,Y1),(X2,Y2)=dataset.getLogicBox()
+		
+		# 1% of the overall dataset
+		HalfW,HalfH=0.5*(X2-X1),0.5*(Y2-Y1)
+		MidX,MidY=0.5*(X1+X2),0.5*(Y1+Y2)
+		X1, X2 = int(MidX-HalfW*0.01), int(MidX+HalfW*0.01)
+		Y1, Y2 = int(MidY-HalfH*0.01), int(MidY+HalfH*0.01)
+		print("X1", X1, "Y1", Y1, "X2", X2, "Y2", Y2)
+		
 		self.field = None
 
 		self.dataset_node = DatasetNode()
@@ -53,26 +58,26 @@ class MyDataflow(Dataflow):
 
 		self.dataset_node.setDataset(dataset, True)
 
+		bounds=Position(BoxNi(PointNi([X1,Y1]),PointNi([X2,Y2])))
 		self.query_node.setVerbose(True)
 		self.query_node.setAccessIndex(0)
 		self.query_node.setProgression(QueryGuessProgression)
 		self.query_node.setQuality(QueryDefaultQuality)
-		self.query_node.setBounds(Position(self.bounds))
-		self.query_node.setQueryBounds(Position(self.bounds))
+		self.query_node.setBounds(bounds)
+		self.query_node.setQueryBounds(bounds)
 		
 		view_dep=True
 		self.query_node.setViewDependentEnabled(view_dep)
 		if view_dep:
 			# this is a frustum which map each pixels in the buffer to a screen pixel
-			X1,Y1,X2,Y2=self.bounds.p1[0],self.bounds.p1[1],self.bounds.p2[0],self.bounds.p2[1]
 			frustum=Frustum()
 			frustum.loadModelview(Matrix.identity(4))
 			frustum.loadProjection(Matrix.ortho(X1,X2,Y1,Y2,-1,+1))
 			frustum.setViewport(Rectangle2d(0,0,X2-X1,Y2-Y1))
 			self.query_node.setNodeToScreen(frustum)
 
-		self.setTime(dataset.getDefaultTime())
-		self.setFieldName(dataset.getDefaultField().name)
+		self.setTime(dataset.getTime())
+		self.setFieldName(dataset.getField().name)
 		
 	def setFieldName(self, name):
 		self.query_node.getInputPort('fieldname').writeString(name)

@@ -85,14 +85,7 @@ public:
       auto textedit=GuiFactory::CreateTextEdit();
 
       if (auto dataset=model->getDataset())
-      {
-        std::ostringstream out;
-        out<< dataset->getDatasetBody().toString()<<std::endl<<std::endl;
-        out<<"//Infos"<<std::endl;
-        out<<model->getDataset()->getDatasetInfos();
-
-        textedit->setText(out.str().c_str());
-      }
+        textedit->setText(dataset->getDatasetBody().toString().c_str());
 
       auto layout=new QVBoxLayout();
       layout->addWidget(GuiFactory::CreateCheckBox(model->showBounds(),"Show bounds",[model](int value){model->setShowBounds(value);}));

@@ -233,7 +233,7 @@ void Tutorial_6(String default_layout)
     VisusReleaseAssert(src_image);
     auto dataset=createDatasetFromImage("temp/tutorial_6.idx",src_image,dtype,dataset_offset,bitsperblock,default_layout,filters[NFilter]);
     VisusReleaseAssert(dataset);
-    Field field=dataset->getDefaultField();
+    Field field=dataset->getField();
 
     //now that I have an IDX file apply the filter
     
@@ -242,7 +242,7 @@ void Tutorial_6(String default_layout)
     //apply the filter on a IDX file (i.e. rewrite all samples)
     {
       auto filter=dataset->createFilter(field); VisusReleaseAssert(filter);
-      dataset->computeFilter(filter, dataset->getDefaultTime(), field, access, sliding_window_size);
+      dataset->computeFilter(filter, dataset->getTime(), field, access, sliding_window_size);
     }
 
     BoxNi world_box=dataset->getLogicBox();

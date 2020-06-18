@@ -189,8 +189,8 @@ def ExportSideBySideMovies(old_dataset,new_db):
 # /////////////////////////////////////////////////////////////////
 def VisibleMale():
 	
-	old_dataset=PyDataset(r"D:\GoogleSci\visus_dataset\male\visus.idx")
-	new_db=PyDataset(r"D:\GoogleSci\visus_dataset\male\RAW\Fullcolor\fullbody\VisusSlamFiles\visus.idx")
+	old_dataset=LoadDataset(r"D:\GoogleSci\visus_dataset\male\visus.idx")
+	new_db=LoadDataset(r"D:\GoogleSci\visus_dataset\male\RAW\Fullcolor\fullbody\VisusSlamFiles\visus.idx")
 	Assert(old_dataset)
 	Assert(new_db)
 	
@@ -245,7 +245,7 @@ def VisibleMale():
 # /////////////////////////////////////////////////////////////////
 def VisibleFemale():
 	
-	db=PyDataset(r"D:\GoogleSci\visus_dataset\female\visus.idx")
+	db=LoadDataset(r"D:\GoogleSci\visus_dataset\female\visus.idx")
 	Assert(db)
 
 	# ExportSideBySideMovies(old_dataset)

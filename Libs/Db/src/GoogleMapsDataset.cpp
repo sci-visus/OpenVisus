@@ -395,7 +395,7 @@ LogicSamples GoogleMapsDataset::getBlockSamples(BigInt blockid)
 }
 
 //////////////////////////////////////////////////////////////
-void GoogleMapsDataset::read(Archive& ar)
+void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
 {
   String url = ar.readString("url");
 

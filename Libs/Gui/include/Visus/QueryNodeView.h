@@ -241,7 +241,7 @@ private:
     auto dataset_node=this->model->getDatasetNode();
     auto time_node=dataset_node->findChild<TimeNode*>();
     
-    widgets.selected_field = dataset->getDefaultField();
+    widgets.selected_field = dataset->getField();
     
     widgets.fieldComboBox=new QComboBox();
     std::vector<Field> fields=dataset->getFields();

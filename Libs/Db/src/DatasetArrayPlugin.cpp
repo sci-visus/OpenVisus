@@ -58,8 +58,8 @@ public:
   //constructor
   DatasetArrayPluginParseArguments(Dataset* dataset_) : dataset(dataset_)
   {
-    this->time           = dataset->getDefaultTime();
-    this->field          = dataset->getDefaultField();
+    this->time           = dataset->getTime();
+    this->field          = dataset->getField();
     this->fromh          = 0; //default is max resolution
     this->toh            = dataset->getMaxResolution();
   }
@@ -127,7 +127,7 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
   StringTree ar("stat");
 
   ar.write("url",url);
-  ar.write("format", dataset->getTypeName());
+  ar.write("format", dataset->getDatasetTypeName());
   ar.write("logic_box", dataset->getLogicBox().toOldFormatString());
   ar.write("logic_size", dataset->getLogicBox().size());
   ar.write("timesteps",cstring(dataset->getTimesteps().getMin())+" " + cstring(dataset->getTimesteps().getMax()));

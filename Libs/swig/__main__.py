@@ -265,10 +265,10 @@ def FixRange(args):
 	Assert(db)
 
 	if args.time is None:
-		args.time=db.getDefaultTime()
+		args.time=db.getTime()
 
 	if args.field is None:
-		args.field=db.getDefaultField().name
+		args.field=db.getField().name
 
 	field=db.getField(args.field)
 
@@ -353,11 +353,11 @@ def CopyDataset(args):
 	src=LoadDataset(args.src)
 	dst=LoadDataset(args.dst)
 
-	src_time=src.getDefaultTime() if args.src_time is None else args.src_time
-	dst_time=dst.getDefaultTime() if args.dst_time is None else args.dst_time   
+	src_time=src.getTime() if args.src_time is None else args.src_time
+	dst_time=dst.getTime() if args.dst_time is None else args.dst_time   
 
-	src_field=src.getDefaultField() if args.src_field is None else args.src_field
-	dst_field=dst.getDefaultField() if args.dst_field is None else args.dst_field
+	src_field=src.getField() if args.src_field is None else args.src_field
+	dst_field=dst.getField() if args.dst_field is None else args.dst_field
 
 	Assert(src_field.dtype==dst_field.dtype)
 
@@ -384,7 +384,7 @@ def CompressDataset(args):
 # ////////////////////////////////////////////////
 def MidxToIdx(args):
 	parser = argparse.ArgumentParser(description="compress dataset")
-	parser.add_argument("--midx"   , type=str,  required=True)
+	parser.add_argument("--midx"   ,"--DATASET", type=str,  required=True)
 	parser.add_argument("--field"     , type=str,   required=False,default="output=voronoi()")
 	parser.add_argument("--tile-size" , type=str,   required=False,default="4*1024")
 	parser.add_argument("--idx", "--dataset", type=str, dest="dataset",  required=True)
@@ -393,47 +393,64 @@ def MidxToIdx(args):
 	# in case it's an expression
 	args.tile_size=int(eval(args.tile_size))
 
-	DATASET = LoadIdxDataset(args.midx)
-	FIELD=DATASET.getFieldByName(args.field)
-	TIME=DATASET.getDefaultTime()
+	midx = LoadDataset(args.midx)
+	FIELD=midx.getField(args.field)
+	TIME=midx.getTime()
 	Assert(FIELD.valid())
 
 	# save the new idx file
-	idxfile=DATASET.idxfile
+	idxfile=midx.idxfile
 	idxfile.filename_template = "" # //force guess
 	idxfile.time_template = ""     #force guess
 	idxfile.fields.clear()
 	idxfile.fields.push_back(Field("DATA", FIELD.dtype, "rowmajor")) # note that compression will is empty in writing (at the end I will compress)
 	idxfile.save(args.dataset)
 
-	dataset = LoadIdxDataset(args.dataset)
-	Assert(dataset)
-	field=dataset.getDefaultField()
-	time=dataset.getDefaultTime()
+	idx = LoadDataset(args.dataset)
+	Assert(idx)
+	field=idx.getField()
+	time=idx.getTime()
 	Assert(field.valid())
 
-	ACCESS = DATASET.createAccess()
-	access = dataset.createAccess()
+	ACCESS = midx.createAccess()
+	access = idx.createAccess()
 
 	print("Generating tiles...",args.tile_size)
-	TILES = DATASET.generateTiles(args.tile_size)
-	TOT_TILES=TILES.size()
+	pdim=idx.getPointDim()
+	tile_size=args.tile_size
+	TILES=[]
+	if pdim==2:
+		(X1,Y1),(X2,Y2)=midx.getLogicBox()
+		for Y in range(Y1,Y2,tile_size):
+			for X in range(X1,X2,tile_size):
+				TILES.append(([X,Y],[min([X2,X+tile_size]),min([Y2,Y+tile_size])]))
+
+	elif pdim==3:
+		(X1,Y1,Z1),(X2,Y2,Z2)=midx.getLogicBox()
+		for Z in range(Z1,Z2,tile_size):
+			for Y in range(Y1,Y2,tile_size):
+				for X in range(X1,X2,tile_size):
+					TILES.append(([X,Y,Z],[min([X2,X+tile_size]),min([Y2,Y+tile_size]),min([Z2,Z+tile_size])]))
+	else:
+		raise Exception("not supported")
+
 	T1 = Time.now()
-	for TILE_ID in range(TOT_TILES):
-		TILE = TILES[TILE_ID]
-		t1 = Time.now()
-		buffer = DATASET.readFullResolutionData(ACCESS, FIELD, TIME, TILE)
-		msec_read = t1.elapsedMsec()
-		if not buffer: 
-			continue
+	for I,TILE in enumerate(TILES):
+
+		print("Generating tile",I,"of",len(TILES),TILE,"...")
 
 		t1 = Time.now()
-		dataset.writeFullResolutionData(access, field, time, buffer, TILE)
+		buffer = midx.read(access=ACCESS, field=FIELD, time=TIME, logic_box=TILE) 
+		msec_read = t1.elapsedMsec()
+		if buffer is None: continue
+
+		t1 = Time.now()
+		idx.write(buffer, access=access, field=field, time=time, logic_box=TILE)
 		msec_write = t1.elapsedMsec()
 
-		print("done", TILE_ID, "/", TOT_TILES, "msec_read", msec_read, "msec_write", msec_write)
+		print("Generated tile", I, "/", len(TILES), "msec_read", msec_read, "msec_write", msec_write)
 
-	dataset.compressDataset(["zip"])
+	idx.compressDataset(["zip"])
 	print("ALL DONE IN", T1.elapsedMsec())
 
 # ////////////////////////////////////////////////

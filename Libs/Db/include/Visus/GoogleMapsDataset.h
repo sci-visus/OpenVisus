@@ -67,8 +67,13 @@ public:
   virtual ~GoogleMapsDataset() {
   }
 
-  //getTypeName
-  virtual String getTypeName() const override {
+  //castFrom
+  static SharedPtr<GoogleMapsDataset> castFrom(SharedPtr<Dataset> db) {
+    return std::dynamic_pointer_cast<GoogleMapsDataset>(db);
+  }
+
+  //getDatasetTypeName
+  virtual String getDatasetTypeName() const override {
     return "GoogleMapsDataset";
   }
 
@@ -77,8 +82,8 @@ public:
 
 public:
 
-  //read 
-  virtual void read(Archive& ar) override;
+  //readDatasetFromArchive 
+  virtual void readDatasetFromArchive(Archive& ar) override;
 
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;

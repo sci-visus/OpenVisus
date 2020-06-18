@@ -293,42 +293,10 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
   if (!ret)
     ThrowException("LoadDataset",url,"failed. Cannot DatasetFactory::getSingleton()->createInstance",TypeName);
 
-  ret->read(ar);
-  //PrintInfo(ret->getDatasetInfos();
+  ret->readDatasetFromArchive(ar);
   return ret; 
 }
 
-////////////////////////////////////////////////////////////////////////
-String Dataset::getDatasetInfos() const
-{
-  std::ostringstream out;
-
-  int bitsperblock=getDefaultBitsPerBlock();
-  int samplesperblock = 1 << bitsperblock;
-
-  BigInt total_number_of_blocks  = getTotalNumberOfBlocks();
-  BigInt total_number_of_samples = total_number_of_blocks * samplesperblock;
-
-  out<<"Visus file infos                                         "<<std::endl;
-  out<<"  Logic box                                              "<< getLogicBox().toOldFormatString()<<std::endl;
-  out <<" Physic position                                        "<< " T " <<getDatasetBounds().getTransformation().toString()<< " box " << getDatasetBounds().getBoxNd().toString() << std::endl;
-  out<<"  Pow2 dims                                              "<<getBitmask().getPow2Dims().toString()<<std::endl;
-  out<<"  number of samples                                      "<<total_number_of_samples<<std::endl;
-  out<<"  number of blocks                                       "<<total_number_of_blocks<<std::endl;
-  out<<"  timesteps                                              "<<std::endl<<getTimesteps().toString()<<std::endl;
-  out<<"  bitmask                                                "<<bitmask.toString()<<std::endl;
-
-  out<<"  Fields:"<<std::endl;
-  for (auto field : this->fields)
-    out<<"    Field "<<field.name<< " dtype("<<field.dtype.toString()<<")"<<std::endl;
-
-  out << "Inner datasets";
-  for (auto it : getInnerDatasets())
-    out << it.first<<" "<<std::endl<<it.second->getDatasetInfos() << std::endl;
-  return out.str();
-
-  return out.str();
-}
 
 ////////////////////////////////////////////////
 SharedPtr<Dataset> LoadDataset(String url) {
@@ -405,75 +373,6 @@ void Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<BlockQuery> q
 
   return;
 }
-
-
-////////////////////////////////////////////////
-std::vector<BoxNi> Dataset::generateTiles(int TileSize) const
-{
-  auto pdim = this->getPointDim();
-  auto WindowSize = PointNi::one(pdim);
-  for (int D = 0; D < pdim; D++)
-    WindowSize[D] = TileSize;
-
-  auto box = this->getLogicBox();
-
-  auto Tot = PointNi::one(pdim);
-  for (int D = 0; D < pdim; D++)
-    Tot[D] = (Utils::alignRight(box.p2[D], box.p1[D], WindowSize[D]) - box.p1[D]) / WindowSize[D];
-
-  std::vector<BoxNi> ret;
-  for (auto P = ForEachPoint(box.p1, box.p2, WindowSize); !P.end(); P.next())
-  {
-    auto tile = BoxNi(P.pos, P.pos + WindowSize).getIntersection(this->getLogicBox());
-
-    if (!tile.valid()) {
-      VisusAssert(false);
-      continue;
-    }
-
-    ret.push_back(tile);
-  }
-  return ret;
-}
-
-////////////////////////////////////////////////
-Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, double time, BoxNi logic_box)
-{
-  if (logic_box == BoxNi())
-    logic_box = this->logic_box;
-
-  auto query = createBoxQuery(logic_box, field, time, 'r');
-
-  beginBoxQuery(query);
-
-  if (!executeBoxQuery(access, query))
-    return Array();
-
-  query->buffer.bounds = Position(logicToPhysic(),logic_box);
-  return query->buffer;
-}
-
-////////////////////////////////////////////////
-bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, double time, Array buffer, BoxNi logic_box)
-{
-  if (logic_box ==BoxNi())
-    logic_box =BoxNi(PointNi(buffer.getPointDim()), buffer.dims);
-
-  auto query = createBoxQuery(logic_box, field, time,'w');
-  beginBoxQuery(query);
-
-  if (!query->isRunning())
-    return false;
-
-  VisusAssert(query->getNumberOfSamples() == buffer.dims);
-  query->buffer = buffer;
-
-  if (!executeBoxQuery(access, query))
-    return false;
-
-  return true;
-}
-
 
 
 //*********************************************************************

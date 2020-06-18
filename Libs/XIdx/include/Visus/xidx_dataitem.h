@@ -260,7 +260,7 @@ public:
     // TODO fix getParent(), it returns an XIdxElement 
     for(auto cursor = this->getParent(); cursor; cursor = cursor->getParent())
     {
-      if (cursor->getTypeName() == "Group")
+      if (cursor->getXIdxTypeName() == "Group")
       {
         if (auto source = cursor->findChildWithName("DataSource"))
           return dynamic_cast<DataSource*>(source);

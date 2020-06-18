@@ -52,8 +52,8 @@ def Main():
 		pass
 	
 	tot=db.getTotalNumberOfBlocks()
-	time=db.getDefaultTime()
-	field=db.getDefaultField()
+	time=db.getTime()
+	field=db.getField()
 	
 	access=db.createAccessForBlockQuery()
 	access.beginRead()

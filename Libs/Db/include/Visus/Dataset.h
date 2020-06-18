@@ -127,6 +127,9 @@ public:
   virtual ~Dataset() {
   }
 
+  //getDatasetTypeName
+  virtual String getDatasetTypeName() const = 0;
+
   //getPointDim
   int getPointDim() const {
     return bitmask.getPointDim();
@@ -162,8 +165,8 @@ public:
     this->timesteps = value;
   }
 
-  //getDefaultTime
-  double getDefaultTime() const {
+  //getTime
+  double getTime() const {
     return getTimesteps().getDefault();
   }
 
@@ -207,10 +210,6 @@ public:
   String getUrl() const {
     return getDatasetBody().getAttribute("url");
   }
-
-  // getDatasetInfos
-  String getDatasetInfos() const;
-
 
   //getDefaultBitsPerBlock
   int getDefaultBitsPerBlock() const {
@@ -297,21 +296,21 @@ public:
   //________________________________________________
   //fields stuff
 
-  //clearFields
-  void clearFields() {
-    this->fields.clear();
-    this->find_field.clear();
-  }
-
   //getFields
   std::vector<Field>& getFields() {
     return fields;
   }
 
-  //getDefaultField
-  Field getDefaultField() const {
+  //getField
+  Field getField() const {
     return fields.empty() ? Field() : fields.front();
   }
+
+  // getField
+  Field getField(String name) const;
+
+  // getFieldEx
+  virtual Field getFieldEx(String name) const;
 
   //addField
   void addField(String name, Field field) {
@@ -324,32 +323,11 @@ public:
     addField(field.name, field);
   }
 
-  // getField
-  Field getField(String name) const;
-
-public:
-
-  //________________________________________________
-  //some virtuals
-
-  //getTypeName
-  virtual String getTypeName() const = 0;
-
-  // getFieldEx
-  virtual Field getFieldEx(String name) const;
-
-  //getInnerDatasets
-  virtual std::map<String, SharedPtr<Dataset> > getInnerDatasets() const {
-    return std::map<String, SharedPtr<Dataset> >();
+  //clearFields
+  void clearFields() {
+    this->fields.clear();
+    this->find_field.clear();
   }
-
-  //compressDataset (specify compression for each level)
-  virtual void compressDataset(std::vector<String> compression) {
-    ThrowException("compression not enabled");
-  }
-
-  //read 
-  virtual void read(Archive& ar) = 0;
 
 public:
 
@@ -375,7 +353,7 @@ public:
 
   //createBlockQuery
   SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, int mode = 'r', Aborted aborted = Aborted()) {
-    return createBlockQuery(blockid, getDefaultField(), getDefaultTime(), mode, aborted);
+    return createBlockQuery(blockid, getField(), getTime(), mode, aborted);
   }
 
   //readBlock  
@@ -403,7 +381,7 @@ public:
 
   //createBoxQuery
   SharedPtr<BoxQuery> createBoxQuery(BoxNi logic_box, int mode = 'r', Aborted aborted = Aborted()) {
-    return createBoxQuery(logic_box, getDefaultField(), getDefaultTime(), mode, aborted);
+    return createBoxQuery(logic_box, getField(), getTime(), mode, aborted);
   }
 
   virtual void beginBoxQuery(SharedPtr<BoxQuery> query) {
@@ -444,7 +422,7 @@ public:
 
   //createPointQuery
   SharedPtr<PointQuery> createPointQuery(Position logic_position, Aborted aborted=Aborted()) {
-    return createPointQuery(logic_position, getDefaultField(), getDefaultTime(), aborted);
+    return createPointQuery(logic_position, getField(), getTime(), aborted);
   }
 
   //beginPointQuery
@@ -466,14 +444,8 @@ public:
 
 public:
 
-  //generateTiles (useful for conversion)
-  std::vector<BoxNi> generateTiles(int TileSize) const;
-
-  //readFullResolutionData
-  Array readFullResolutionData(SharedPtr<Access> access, Field field, double time, BoxNi logic_box =BoxNi());
-
-  //writeFullResolutionData
-  bool writeFullResolutionData(SharedPtr<Access> access, Field field, double time, Array buffer,BoxNi logic_box =BoxNi());
+  //readDatasetFromArchive 
+  virtual void readDatasetFromArchive(Archive& ar) = 0;
 
 protected:
 

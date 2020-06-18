@@ -132,7 +132,7 @@ public:
   SelfTest(IdxDataset* dataset)
   {
     this->dataset = dataset;
-    this->dtype = dataset->getDefaultField().dtype;
+    this->dtype = dataset->getField().dtype;
     this->user_box = dataset->getLogicBox();
     this->pdim = dataset->getPointDim();
     this->nslices = user_box.p2[pdim - 1] - user_box.p1[pdim - 1];

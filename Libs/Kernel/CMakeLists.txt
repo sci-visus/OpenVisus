@@ -100,8 +100,8 @@ IF (WIN32 OR APPLE)
 endif()
 
 if (VISUS_SLAM)
-	file(GLOB SlamCppSources ../slamcpp/*.h ../slamcpp/*.cpp)
-	source_group("slamcpp" FILES ${SlamCppSources})
+	file(GLOB SlamSources ../slamcpp/*.h ../slamcpp/*.cpp ../slampy/*.py)
+	source_group("slam" FILES ${SlamSources})
 endif()
 
 file(GLOB cryptlite_Sources src/cryptlite/*.h src/cryptlite/*.c)
@@ -144,7 +144,8 @@ file(GLOB SamplesSources
 AssignSourceGroup(CMakeSourceDir ${CMAKE_SOURCE_DIR} ${SamplesSources})
 
 file(GLOB Sources 
-	include/Visus/*.*  src/*.hxx src/*.cpp ${MMFiles} ${SlamCppSources}
+	include/Visus/*.*  src/*.hxx src/*.cpp ${MMFiles} 
+	${SlamSources} 
 	${SamplesSources}
 	${cryptlite_Sources} 
 	${dtl_Sources} 

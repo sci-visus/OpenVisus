@@ -14,26 +14,29 @@ def CreateIdx(**args):
 
 	idx=IdxFile()
 		
+	buffer=None
 	if "data" in args:
 		data=args["data"]
 		dim=int(args["dim"])
 		Assert(dim>=2) # you must specify the point dim since it could be that data has multiple components
-		buffer=Array.fromNumPy(data,TargetDim=dim)
+		buffer=Array.fromNumPy(data,TargetDim=dim, bShareMem=True)
 		idx.logic_box=BoxNi(PointNi.zero(dim),PointNi(buffer.dims))
 		N=1 if dim==len(data.shape) else data.shape[-1]
-		idx.fields.push_back(Field.fromString("DATA uint8[{}] default_layout(row_major)".format(N)))
 
-	else:
-		if not "dims" in args:
-			raise Exception("please specify dimensions")
-
+	elif "dims" in args:
 		dims=PointNi(args["dims"])
 		idx.logic_box=BoxNi(PointNi.zero(dims.getPointDim()),dims)
+	else:
+		raise Exception("please specify dimensions or source data")
 
 	# add fields
 	if "fields" in args:
 		for field in  args["fields"]:
 			idx.fields.push_back(field)
+	elif buffer:
+		idx.fields.push_back(Field.fromString("DATA {} default_layout(row_major)".format(buffer.dtype.toString())))
+	else:
+		raise Exception("no field")
 
 	# bitsperblock
 	if "bitsperblock" in args:
@@ -58,10 +61,11 @@ def CreateIdx(**args):
 		idx.filename_template=args["filename_template"]
 
 	idx.save(url)
-	db=PyDataset(url)
+	db=LoadDataset(url)
 
-	if "data" in args:
-		db.write(args["data"])
+	if buffer:
+		compression=args["compression"] if "compression" in args else ["zip"]
+		db.compressDataset(compression, buffer)
 			
 	return db
 
@@ -69,8 +73,8 @@ def CreateIdx(**args):
 class PyDataset(object):
 	
 	# constructor
-	def __init__(self,url):
-		self.db = LoadDataset(url)
+	def __init__(self,db):
+		self.db = db
 
 	# Create
 	@staticmethod
@@ -128,10 +132,10 @@ class PyDataset(object):
 		return [field.name for field in self.db.getFields()]
 		
 	# getField
-	def getField(self,value):
+	def getField(self,value=None):
 		
 		if value is None:
-			return self.db.getDefaultField()
+			return self.db.getField()
 
 		if isinstance(value,str):
 			return self.db.getField(value)
@@ -145,8 +149,8 @@ class PyDataset(object):
 	# readBlock
 	def readBlock(self, block_id, time=None, field=None, access=None, aborted=Aborted()):
 		Assert(access)
-		field=self.getDefaultField() if field is None else self.getField(field)	
-		time = self.getDefaultTime() if time is None else time
+		field=self.getField() if field is None else self.getField(field)	
+		time = self.getTime() if time is None else time
 		read_block = self.db.createBlockQuery(block_id, field, time, ord('r'), aborted)
 		self.executeBlockQueryAndWait(access, read_block)
 		if not read_block.ok(): return None
@@ -155,8 +159,8 @@ class PyDataset(object):
 	# writeBlock
 	def writeBlock(self, block_id, time=None, field=None, access=None, data=None, aborted=Aborted()):
 		Assert(access and data)
-		field=self.getDefaultField() if field is None else self.getField(field)	
-		time = self.getDefaultTime() if time is None else time
+		field=self.getField() if field is None else self.getField(field)	
+		time = self.getTime() if time is None else time
 		write_block = self.db.createBlockQuery(block_id, field, time, ord('w'), aborted)
 		write_block.buffer=Array.fromNumPy(data,TargetDim=self.getPointDim(), bShareMem=True)
 		self.executeBlockQueryAndWait(access, write_block)
@@ -181,10 +185,10 @@ class PyDataset(object):
 		
 		pdim=self.getPointDim()
 
-		field=self.getDefaultField() if field is None else self.getField(field)	
+		field=self.getField() if field is None else self.getField(field)	
 			
 		if time is None:
-			time = self.getDefaultTime()			
+			time = self.getTime()			
 
 		if logic_box is None:
 			logic_box=self.getLogicBox(x,y,z)
@@ -243,7 +247,7 @@ class PyDataset(object):
 
 	# write
 	# IMPORTANT: usually db.write happens without write lock and syncronously (at least in python)
-	def write(self, data, x=0, y=0, z=0, time=None, field=None, access=None):
+	def write(self, data, x=0, y=0, z=0,logic_box=None, time=None, field=None, access=None):
 
 		"""
 		db=PyDataset.Load(url)
@@ -271,7 +275,7 @@ class PyDataset(object):
 		field=self.getField(field)
 		
 		if time is None:
-			time = self.getDefaultTime()
+			time = self.getTime()
 
 
 		dims=list(data.shape)
@@ -286,8 +290,14 @@ class PyDataset(object):
 		
 		dims=list(reversed(dims))	
 
-		p1=PointNi([x,y,z][0:pdim])
-		query = self.db.createBoxQuery(BoxNi(p1,p1+PointNi(dims)), field , time , ord('w'))
+		if logic_box is None:
+			p1=PointNi([x,y,z][0:pdim])
+			logic_box=BoxNi(p1,p1+PointNi(dims))
+
+		if isinstance(logic_box,(tuple,list)):
+			logic_box=BoxNi(PointNi(logic_box[0]),PointNi(logic_box[1]))
+
+		query = self.db.createBoxQuery(logic_box, field , time , ord('w'))
 		query.end_resolutions.push_back(self.getMaxResolution())
 		
 		self.db.beginBoxQuery(query)

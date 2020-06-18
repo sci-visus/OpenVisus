@@ -36,48 +36,14 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef __VISUS_DB_IDX_MULTIPLE_DATASET_H
-#define __VISUS_DB_IDX_MULTIPLE_DATASET_H
+#ifndef __VISUS_IDX_MULTIPLE_DATASET_H
+#define __VISUS_IDX_MULTIPLE_DATASET_H
 
 #include <Visus/Db.h>
 #include <Visus/IdxDataset.h>
 #include <Visus/Color.h>
-#include <Visus/ThreadPool.h>
 
 namespace Visus {
-
-class IdxMultipleDataset;
-
-///////////////////////////////////////////////////////////////////////////////////////
-class VISUS_DB_API IdxMultipleAccess :
-  public Access,
-  public std::enable_shared_from_this<IdxMultipleAccess>
-{
-public:
-
-  VISUS_NON_COPYABLE_CLASS(IdxMultipleAccess)
-
-  IdxMultipleDataset*                              DATASET = nullptr;
-  StringTree                                       CONFIG;
-  std::map< std::pair<String, String>, StringTree> configs;
-  SharedPtr<ThreadPool>                            thread_pool;
-
-  //constructor
-  IdxMultipleAccess(IdxMultipleDataset* VF, StringTree CONFIG);
-
-  //destructor
-  virtual ~IdxMultipleAccess();
-
-  //createDownAccess
-  SharedPtr<Access> createDownAccess(String name, String fieldname);
-
-  //readBlock 
-  virtual void readBlock(SharedPtr<BlockQuery> BLOCKQUERY) override;
-
-  //writeBlock (not supported)
-  virtual void writeBlock(SharedPtr<BlockQuery> BLOCKQUERY) override;
-
-}; //end class
 
 //////////////////////////////////////////////////////////////////////
 class VISUS_DB_API IdxMultipleDataset  : public IdxDataset
@@ -104,10 +70,17 @@ public:
   //destructor
   virtual ~IdxMultipleDataset();
 
-  //getTypeName
-  virtual String getTypeName() const override {
+  //castFrom
+  static SharedPtr<IdxMultipleDataset> castFrom(SharedPtr<Dataset> db) {
+    return std::dynamic_pointer_cast<IdxMultipleDataset>(db);
+  }
+
+  //getDatasetTypeName
+  virtual String getDatasetTypeName() const override {
     return "IdxMultipleDataset";
   }
+
+public:
 
   //getChild
   SharedPtr<Dataset> getChild(String name) const {
@@ -127,27 +100,12 @@ public:
     down_datasets[name] = value;
   }
 
-  //createDownQuery
-  SharedPtr<BoxQuery> createDownQuery(SharedPtr<Access> ACCESS, BoxQuery* QUERY, String dataset_name, String fieldname);
-  
-  //executeDownQuery
-  Array executeDownQuery(BoxQuery* QUERY, SharedPtr<BoxQuery> query);
-
 public:
-
-  //read 
-  virtual void read(Archive& ar) override;
-
-  //getInnerDatasets
-  virtual std::map<String, SharedPtr<Dataset> > getInnerDatasets() const override {
-    return down_datasets;
-  }
 
   // getFieldEx
   virtual Field getFieldEx(String name) const override;
 
-  //createAccess
-  virtual SharedPtr<Access> createAccess(StringTree CONFIG=StringTree(), bool bForBlockQuery = false) override;
+public:
 
   //beginBoxQuery
   virtual void beginBoxQuery(SharedPtr<BoxQuery> query) override;
@@ -158,10 +116,29 @@ public:
   //executeBoxQuery
   virtual bool executeBoxQuery(SharedPtr<Access> ACCESS,SharedPtr<BoxQuery> QUERY) override;
 
-protected:
+public:
 
   //getInputName
-  String getInputName(String dataset_name, String fieldname);
+  static String getInputName(String dataset_name, String fieldname);
+
+  //createDownQuery
+  SharedPtr<BoxQuery> createDownQuery(SharedPtr<Access> ACCESS, BoxQuery* QUERY, String dataset_name, String fieldname);
+
+  //executeDownQuery
+  Array executeDownQuery(BoxQuery* QUERY, SharedPtr<BoxQuery> query);
+
+  //computeOuput (to override)
+  virtual Array computeOuput(BoxQuery* QUERY, SharedPtr<Access> ACCESS, Aborted aborted, String CODE) const {
+    ThrowException("not supported");
+    return Array();
+  }
+
+public:
+
+  //readDatasetFromArchive 
+  virtual void readDatasetFromArchive(Archive& ar) override;
+
+private:
 
   //removeAliases
   String removeAliases(String url);
@@ -172,15 +149,9 @@ protected:
   //parseDatasets
   void parseDatasets(StringTree& cur, Matrix T);
 
-  //computeOuput
-  virtual Array computeOuput(BoxQuery* QUERY, SharedPtr<Access> ACCESS, Aborted aborted, String CODE) const {
-    ThrowException("not supported");
-    return Array();
-  }
-
 };
 
 } //namespace Visus
 
-#endif //__VISUS_DB_IDX_MULTIPLE_DATASET_H
+#endif //__VISUS_IDX_MULTIPLE_DATASET_H
 

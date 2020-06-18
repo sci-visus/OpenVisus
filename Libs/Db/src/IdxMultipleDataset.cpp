@@ -37,116 +37,11 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/IdxMultipleDataset.h>
-#include <Visus/ModVisusAccess.h>
+#include <Visus/IdxMultipleAccess.h>
 #include <Visus/Path.h>
-#include <Visus/ThreadPool.h>
 #include <Visus/Polygon.h>
-#include <Visus/File.h>
 
 namespace Visus {
-
-///////////////////////////////////////////////////////////////////////////////////////
-IdxMultipleAccess::IdxMultipleAccess(IdxMultipleDataset* VF_, StringTree CONFIG_)
-: DATASET(VF_), CONFIG(CONFIG_)
-{
-  this->name = CONFIG.readString("name", "IdxMultipleAccess");
-  this->can_read = true;
-  this->can_write = false;
-  this->bitsperblock = DATASET->getDefaultBitsPerBlock();
-
-  for (auto child : DATASET->down_datasets)
-  {
-    auto name = child.first;
-
-    //see if the user specified how to access the data for each query dataset
-    for (auto it : CONFIG.getChilds())
-    {
-      if (it->name == name || it->readString("name") == name)
-        configs[std::make_pair(name, "")] = *it;
-    }
-  }
-
-  bool disable_async = CONFIG.readBool("disable_async", DATASET->isServerMode());
-
-  //TODO: special case when I can use the blocks
-  //if (DATASET->childs.size() == 1 && DATASET->sameLogicSpace(DATASET->childs[0]))
-  //  ;
-
-  if (int nthreads= disable_async ? 0 : 3)
-    this->thread_pool = std::make_shared<ThreadPool>("IdxMultipleAccess Worker",nthreads);
-}
-
-//destructor
-IdxMultipleAccess::~IdxMultipleAccess()
-{
-  thread_pool.reset();
-}
-
-//////////////////////////////////////////////////////
-SharedPtr<Access> IdxMultipleAccess::createDownAccess(String name, String fieldname)
-{
-  auto dataset = DATASET->getChild(name);
-  VisusAssert(dataset);
-
-  SharedPtr<Access> ret;
-
-  StringTree config = dataset->getDefaultAccessConfig();
-
-  auto it = this->configs.find(std::make_pair(name, fieldname));
-  if (it==configs.end())
-    it = configs.find(std::make_pair(name, ""));
-
-  if (it != configs.end())
-    config = it->second;
-
-  //inerits attributes from CONFIG
-  for (auto it : this->CONFIG.attributes)
-  {
-    auto key = it.first;
-    auto value = it.second;
-    if (!config.hasAttribute(key))
-      config.setAttribute(key,value);
-  }
-
-  bool bForBlockQuery = DATASET->getKdQueryMode() & KdQueryMode::UseBlockQuery ? true : false;
-  return dataset->createAccess(config, bForBlockQuery);
-}
-
-//////////////////////////////////////////////////////
-void IdxMultipleAccess::readBlock(SharedPtr<BlockQuery> BLOCKQUERY) 
-{
-  ThreadPool::push(thread_pool, [this, BLOCKQUERY]() 
-  {
-    if (BLOCKQUERY->aborted())
-      return readFailed(BLOCKQUERY);
-
-    /*
-    TODO: can be async block query be enabled for simple cases?
-      (like: I want to cache blocks for dw datasets)
-      if all the childs are bSameLogicSpace I can do the blending of the blocks
-      instead of the blending of the buffer of regular queries.
-
-    To tell the truth i'm not sure if this solution would be different from what
-    I'm doing right now (except that I can go async)
-    */
-    auto QUERY = DATASET->createEquivalentBoxQuery('r', BLOCKQUERY);
-    DATASET->beginBoxQuery(QUERY);
-    if (!DATASET->executeBoxQuery(shared_from_this(), QUERY))
-      return readFailed(BLOCKQUERY);
-
-    BLOCKQUERY->buffer = QUERY->buffer;
-    return readOk(BLOCKQUERY);
-  });
-}
-
-//////////////////////////////////////////////////////
-void IdxMultipleAccess::writeBlock(SharedPtr<BlockQuery> BLOCKQUERY)  {
-  //not supported
-  VisusAssert(false);
-  writeFailed(BLOCKQUERY);
-}
-
-
 
 ////////////////////////////////////////////////////////////////////////////////////
 static bool IsGoodVariableName(String name)
@@ -174,8 +69,6 @@ static bool IsGoodVariableName(String name)
 };
 
 
-
-
 ///////////////////////////////////////////////////////////////////////////////////
 IdxMultipleDataset::IdxMultipleDataset() {
 
@@ -187,44 +80,6 @@ IdxMultipleDataset::IdxMultipleDataset() {
 IdxMultipleDataset::~IdxMultipleDataset() {
 }
 
-///////////////////////////////////////////////////////////////////////////////////
-SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForBlockQuery)
-{
-  if (!config.valid())
-    config = getDefaultAccessConfig();
-
-  //consider I can have thousands of childs (NOTE: this attribute should be "inherited" from child)
-  config.write("disable_async", true);
-
-  String type = StringUtils::toLower(config.readString("type"));
-
-  if (type.empty())
-  {
-    Url url = config.readString("url",this->getUrl());
-
-    //local disk access
-    if (url.isFile())
-    {
-      return std::make_shared<IdxMultipleAccess>(this, config);
-    }
-    else
-    {
-      VisusAssert(url.isRemote());
-
-      if (bForBlockQuery)
-        return std::make_shared<ModVisusAccess>(this, config);
-      else
-        //hopefully I can execute box/point queries on the server
-        return SharedPtr<Access>();
-    }
-  }
-
-  //IdxMultipleAccess
-  if (type == "idxmultipleaccess" || type == "midx" || type == "multipleaccess")
-    return std::make_shared<IdxMultipleAccess>(this, config);
-
-  return IdxDataset::createAccess(config, bForBlockQuery);
-}
 
 ////////////////////////////////////////////////////////////////////////////////////
 Field IdxMultipleDataset::getFieldEx(String FIELDNAME) const
@@ -609,13 +464,12 @@ void IdxMultipleDataset::parseDatasets(StringTree& ar, Matrix modelview)
 
 
 ///////////////////////////////////////////////////////////
-void IdxMultipleDataset::read(Archive& AR)
+void IdxMultipleDataset::readDatasetFromArchive(Archive& AR)
 {
   String URL = AR.readString("url");
 
   setDatasetBody(AR);
   setKdQueryMode(KdQueryMode::fromString(AR.readString("kdquery")));
-
 
   for (auto it : AR.childs)
     parseDatasets(*it,Matrix());
@@ -768,7 +622,7 @@ void IdxMultipleDataset::read(Archive& AR)
       {
         String arg = "f" + cstring((int)args.size());
         args.push_back(arg);
-        out << arg << "=" << getInputName(it.first, it.second->getDefaultField().name) << std::endl;
+        out << arg << "=" << getInputName(it.first, it.second->getField().name) << std::endl;
       }
       out << "output=" << operation_name << "([" << StringUtils::join(args, ",") << "])" << std::endl;
 

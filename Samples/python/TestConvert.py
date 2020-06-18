@@ -48,7 +48,7 @@ class MyTestCase(unittest.TestCase):
 			width, height,depth=256,256,10
 			fields=[Field("data","uint8[3]","row_major")]
 			CreateIdx(url=url,dims=[width,height,depth],fields=fields)
-			db=PyDataset(url)
+			db=LoadDataset(url)
 
 			cat=numpy.asarray(Image.open('datasets/cat/rgb.png'))
 
@@ -71,7 +71,7 @@ class MyTestCase(unittest.TestCase):
 		field=Field("data","uint8[3]","row_major")
 		CreateIdx(url=url,dims=[width,height,depth],fields=[field])
 		
-		db=PyDataset(url)
+		db=LoadDataset(url)
 		print(db.getDatasetBody().toString())
 			
 		# write first slice at offset z=0

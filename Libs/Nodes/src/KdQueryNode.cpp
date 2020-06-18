@@ -633,7 +633,7 @@ bool KdQueryNode::processInput()
   if (!dataset->getTimesteps().containsTimestep(time))
     return false;
 
-  auto field = fieldname.empty() ? dataset->getDefaultField() : dataset->getField(fieldname);
+  auto field = fieldname.empty() ? dataset->getField() : dataset->getField(fieldname);
   if (!field.valid())
     return false;
 

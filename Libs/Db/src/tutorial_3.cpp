@@ -53,7 +53,7 @@ void Tutorial_3(String default_layout)
   //any time you need to read/write data from/to a Dataset I need a Access
   auto access = dataset->createAccess();
 
-  Field field = dataset->getDefaultField();
+  Field field = dataset->getField();
 
   //this is the maximum resolution of the Dataset 
 

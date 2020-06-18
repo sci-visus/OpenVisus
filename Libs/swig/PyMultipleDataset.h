@@ -504,7 +504,7 @@ private:
       if (!N)
       {
         for (auto it : DATASET->down_datasets)
-          blend.addBlendArg(Array(PointNi(DATASET->getPointDim()), it.second->getDefaultField().dtype));
+          blend.addBlendArg(Array(PointNi(DATASET->getPointDim()), it.second->getField().dtype));
       }
       else
       {
@@ -536,7 +536,7 @@ private:
         for (auto it : DATASET->down_datasets)
         {
           auto dataset_name = it.first;
-          auto fieldname = it.second->getDefaultField().name;
+          auto fieldname = it.second->getField().name;
 
           auto query = DATASET->createDownQuery(this->ACCESS, this->QUERY, dataset_name, fieldname);
           if (!query || query->failed() || query->aborted())

@@ -237,8 +237,8 @@ public:
     this->query_node->setQueryBounds(dataset_bounds);
     this->glcamera->guessPosition(dataset_bounds.toAxisAlignedBox());
 
-    setTime(dataset->getDefaultTime());
-    setFieldName(dataset->getDefaultField().name);
+    setTime(dataset->getTime());
+    setFieldName(dataset->getField().name);
 
     return true;
   }

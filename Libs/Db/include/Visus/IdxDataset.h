@@ -53,7 +53,7 @@ class IdxPointQueryHzAddressConversion;
 
 
   //////////////////////////////////////////////////////////////////////
-class VISUS_DB_API IdxDataset  : public Dataset 
+class VISUS_DB_API IdxDataset : public Dataset
 {
 public:
 
@@ -66,18 +66,15 @@ public:
   //destructor
   virtual ~IdxDataset();
 
-  //getTypeName
-  virtual String getTypeName() const override {
-    return "IdxDataset";
+  //castFrom
+  static SharedPtr<IdxDataset> castFrom(SharedPtr<Dataset> db) {
+    return std::dynamic_pointer_cast<IdxDataset>(db);
   }
 
-public:
-
-  // removeFiles all files bolonging to this visus file 
-  void removeFiles();
-
-  //compressDataset
-  virtual void compressDataset(std::vector<String> compression) override;
+  //getDatasetTypeName
+  virtual String getDatasetTypeName() const override {
+    return "IdxDataset";
+  }
 
 public:
 
@@ -126,6 +123,14 @@ public:
 
 public:
 
+  // removeFiles all files bolonging to this visus file 
+  void removeFiles();
+
+  //compressDataset
+  void compressDataset(std::vector<String> compression, Array data=Array());
+
+public:
+
   //createFilter
   SharedPtr<IdxFilter> createFilter(const Field& field);
 
@@ -137,8 +142,8 @@ public:
 
 public:
 
-  //read
-  virtual void read(Archive& ar) override;
+  //readDatasetFromArchive
+  virtual void readDatasetFromArchive(Archive& ar) override;
 
 private:
 
@@ -163,10 +168,12 @@ private:
 
 };
 
-
+//swig will use internal casting (see Db.i)
+#if !SWIG
 inline VISUS_DB_API SharedPtr<IdxDataset> LoadIdxDataset(String url) {
   return std::dynamic_pointer_cast<IdxDataset>(LoadDataset(url));
 }
+#endif
 
 VISUS_DB_API void SelfTestIdx(int max_seconds);
 

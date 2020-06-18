@@ -42,8 +42,8 @@ def Main():
 	bucket.blob("visus.idx").upload_from_string(body, content_type="application/octet-stream")
 		
 	tot=db.getTotalNumberOfBlocks()
-	time=db.getDefaultTime()
-	field=db.getDefaultField()
+	time=db.getTime()
+	field=db.getField()
 	
 	access=db.createAccessForBlockQuery()
 	

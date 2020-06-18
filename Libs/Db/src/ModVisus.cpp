@@ -45,6 +45,7 @@ For support : support@visus.net
 #include <Visus/IdxDataset.h>
 #include <Visus/IdxMultipleDataset.h>
 #include <Visus/IdxFilter.h>
+#include <Visus/IdxMultipleDataset.h>
 
 namespace Visus {
 
@@ -123,8 +124,11 @@ private:
     dst.addChild(public_dataset);
 
     //automatically add the childs of a multiple datasets
-    for (auto it : dataset->getInnerDatasets())
-      ret += addPublicDataset(public_dataset, name + "/" + it.first, it.second);
+    if (auto midx=std::dynamic_pointer_cast<IdxMultipleDataset>(dataset))
+    {
+      for (auto it : midx->down_datasets)
+        ret += addPublicDataset(public_dataset, name + "/" + it.first, it.second);
+    }
 
     return ret;
   }
@@ -368,14 +372,14 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
 
   NetResponse response(HttpStatus::STATUS_OK);
   response.setHeader("visus-git-revision", OpenVisus_GIT_REVISION);
-  response.setHeader("visus-typename", dataset->getTypeName());
+  response.setHeader("visus-typename", dataset->getDatasetTypeName());
 
   auto body = dataset->getDatasetBody();
 
   //backward compatible
   bool bPreferOldIdxFormat = true;
 
-  if (dataset->getTypeName()=="IdxDataset" && bPreferOldIdxFormat)
+  if (dataset->getDatasetTypeName()=="IdxDataset" && bPreferOldIdxFormat)
   {
     auto idxfile = std::dynamic_pointer_cast<IdxDataset>(dataset)->idxfile;
     String content=idxfile.writeToOldFormat();
@@ -471,8 +475,8 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
 
   String compression = request.url.getParam("compression");
-  String fieldname = request.url.getParam("field", dataset->getDefaultField().name);
-  double time = cdouble(request.url.getParam("time", cstring(dataset->getDefaultTime())));
+  String fieldname = request.url.getParam("field", dataset->getField().name);
+  double time = cdouble(request.url.getParam("time", cstring(dataset->getTime())));
 
   auto bitsperblock = dataset->getDefaultBitsPerBlock();
 
@@ -492,7 +496,7 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
   if (blocks.empty())
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "blocks empty()");
 
-  Field field = fieldname.empty() ? dataset->getDefaultField() : dataset->getField(fieldname);
+  Field field = fieldname.empty() ? dataset->getField() : dataset->getField(fieldname);
   if (!field.valid())
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find field(" + fieldname + ")");
 
@@ -558,7 +562,7 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
   int pdim = dataset->getPointDim();
 
   String fieldname = request.url.getParam("field");
-  Field field = fieldname.empty() ? dataset->getDefaultField() : dataset->getField(fieldname);
+  Field field = fieldname.empty() ? dataset->getField() : dataset->getField(fieldname);
   if (!field.valid())
     return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Cannot find fieldname(" + fieldname + ")");
 
@@ -663,7 +667,7 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
   int pdim = dataset->getPointDim();
 
   String fieldname = request.url.getParam("field");
-  Field field = fieldname.empty() ? dataset->getDefaultField() : dataset->getField(fieldname);
+  Field field = fieldname.empty() ? dataset->getField() : dataset->getField(fieldname);
   if (!field.valid())
     return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Cannot find fieldname(" + fieldname + ")");
 

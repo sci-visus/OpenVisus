@@ -38,13 +38,12 @@ For support : support@visus.net
 
 #include <Visus/IdxDataset.h>
 #include <Visus/IdxDiskAccess.h>
-#include <Visus/ModVisusAccess.h>
-#include <Visus/File.h>
-#include <Visus/DirectoryIterator.h>
-#include <Visus/StringTree.h>
-#include <Visus/OnDemandAccess.h>
 #include <Visus/IdxHzOrder.h>
 #include <Visus/IdxFilter.h>
+#include <Visus/IdxMultipleAccess.h>
+#include <Visus/IdxMultipleDataset.h>
+#include <Visus/OnDemandAccess.h>
+#include <Visus/ModVisusAccess.h>
 
 #ifdef WIN32
 #pragma warning(disable:4996) // 'sprintf': This function or variable may be unsafe
@@ -611,7 +610,7 @@ void IdxDataset::removeFiles()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
-void IdxDataset::compressDataset(std::vector<String> compression)
+void IdxDataset::compressDataset(std::vector<String> compression, Array data)
 {
   // for future version: here I'm making the assumption that a file contains multiple fields
   if (idxfile.version != 6)
@@ -636,9 +635,29 @@ void IdxDataset::compressDataset(std::vector<String> compression)
     idxfile.save(filename);
   }
 
-  auto Raccess = std::make_shared<IdxDiskAccess>(this);
-  Raccess->disableWriteLock();
-  Raccess->disableAsync();
+  SharedPtr<Access> Raccess;
+
+  //data will replace current data
+  if (data)
+  {
+    //write BoxQuery(==data) to BlockQuery(==RAM)
+    auto query = createBoxQuery(this->getLogicBox(), 'w');
+    beginBoxQuery(query);
+    VisusReleaseAssert(query->isRunning());
+    VisusAssert(query->getNumberOfSamples() == data.dims);
+    query->buffer = data;
+
+    Raccess = createRamAccess(/* no memory limit*/0);
+    Raccess->disableWriteLock();
+    VisusReleaseAssert(executeBoxQuery(Raccess, query));
+  }
+  else
+  {
+    auto access = std::make_shared<IdxDiskAccess>(this);
+    access->disableAsync();
+    access->disableWriteLock();
+    Raccess = Raccess;
+  }
 
   auto Waccess = std::make_shared<IdxDiskAccess>(this);
   Waccess->disableWriteLock();
@@ -657,7 +676,7 @@ void IdxDataset::compressDataset(std::vector<String> compression)
 
     //for each file...
     BigInt total_block = getTotalNumberOfBlocks();
-    BigInt tot_files = (total_block  / idxfile.blocksperfile) + ((total_block % idxfile.blocksperfile)? 1 : 0);
+    BigInt tot_files = (total_block / idxfile.blocksperfile) + ((total_block % idxfile.blocksperfile) ? 1 : 0);
 
     std::set<String> filenames;
 
@@ -677,10 +696,10 @@ void IdxDataset::compressDataset(std::vector<String> compression)
           {
             auto Rfield = idxfile.fields[F];
             auto filename = Raccess->getFilename(Rfield, Rtime, blockid);
-            if (!FileUtils::existsFile(filename))
-              continue;
 
-            filenames.insert(filename);
+            //prepare to remove file
+            if (!filename.empty() && FileUtils::existsFile(filename))
+              filenames.insert(filename);
 
             auto read_block = createBlockQuery(blockid, Rfield, Rtime, 'r', aborted);
 
@@ -705,7 +724,6 @@ void IdxDataset::compressDataset(std::vector<String> compression)
           for (int F = 0; F < idxfile.fields.size(); F++)
           {
             auto Wfield = idxfile.fields[F];
-
             if (!file_blocks[B][F])
               continue;
 
@@ -727,6 +745,8 @@ void IdxDataset::compressDataset(std::vector<String> compression)
     }
   }
 }
+
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -877,6 +897,11 @@ SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuer
   if (!config.valid())
     config = getDefaultAccessConfig();
 
+  //consider I can have thousands of childs (NOTE: this attribute should be "inherited" from child)
+  auto midx = dynamic_cast<IdxMultipleDataset*>(this);
+  if (midx)
+    config.write("disable_async", true);
+
   String type =StringUtils::toLower(config.readString("type"));
 
   //no type, create default
@@ -887,7 +912,10 @@ SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuer
     //local disk access
     if (url.isFile())
     {
-      return std::make_shared<IdxDiskAccess>(this,config);
+      if (midx)
+        return std::make_shared<IdxMultipleAccess>(midx, config);
+      else
+        return std::make_shared<IdxDiskAccess>(this,config);
     }
     else
     {
@@ -905,6 +933,13 @@ SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuer
   if (type=="disk" || type=="idxdiskaccess")
     return std::make_shared<IdxDiskAccess>(this, config);
 
+  //IdxMultipleAccess
+  if (type == "idxmultipleaccess" || type == "midx" || type == "multipleaccess")
+  {
+    VisusReleaseAssert(midx);
+    return std::make_shared<IdxMultipleAccess>(midx, config);
+  }
+
   //IdxMandelbrotAccess
   if (type=="idxmandelbrotaccess")
     return std::make_shared<IdxMandelbrotAccess>(this, config);
@@ -917,7 +952,7 @@ SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuer
 }
 
 ////////////////////////////////////////////////////////////////////
-void IdxDataset::read(Archive& ar)
+void IdxDataset::readDatasetFromArchive(Archive& ar)
 {
   String url = ar.readString("url");
 
@@ -1966,7 +2001,6 @@ void IdxDataset::computeFilter(const Field& field, int window_size)
 {
   PrintInfo("starting filter computation...");
   auto filter = createFilter(field);
-
 
   //the filter will be applied using this sliding window
   PointNi sliding_box = PointNi::one(getPointDim());

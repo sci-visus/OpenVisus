@@ -55,7 +55,7 @@ void Tutorial_2(String default_layout)
   int pdim = 3;
 
   //check the data has dimension (16,16,16)
-  VisusReleaseAssert(dataset->getDefaultField().dtype == (DTypes::UINT32)
+  VisusReleaseAssert(dataset->getField().dtype == (DTypes::UINT32)
     && world_box.p1 == PointNi(0, 0, 0)
     && world_box.p2 == PointNi(16, 16, 16));
 

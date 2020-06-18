@@ -35,8 +35,7 @@ SET(AccessSources
 source_group("Access" FILES ${AccessSources})
 
 FILE(GLOB IdxSources
-	include/Visus/Idx*.h src/Idx*.cpp   
-	src/LogicSamples.cpp )
+	include/Visus/Idx*.h src/Idx*.cpp )
 source_group("Idx" FILES ${IdxSources})
 
 file(GLOB Sources include/Visus/*.h src/*.cpp)

@@ -109,7 +109,7 @@ def CreateIdxDataset(filename, DIMS=None, dtype=None, blocksize=0, default_layou
 
 # ////////////////////////////////////////////////////////////////
 def ReadIdxBlockQuery(filename):
-	db=PyDataset(filename)
+	db=LoadDataset(filename)
 	access = IdxDiskAccess.create(db)
 	access.disableAsync()
 	access.beginRead()
@@ -128,12 +128,12 @@ def ReadIdxBlockQuery(filename):
 
 # ////////////////////////////////////////////////////////////////
 def ReadIdxBoxQuery(filename, dims):
-	db=PyDataset(filename)
+	db=LoadDataset(filename)
 	DIMS=db.getLogicSize()
 	access = IdxDiskAccess.create(db)
 	access.disableAsync()
 	access.beginRead()
-	samplesize=db.getDefaultField().dtype.getByteSize()
+	samplesize=db.getField().dtype.getByteSize()
 	try:
 		while True:
 			x=np.random.randint(0,DIMS[0]/dims[0])*dims[0]

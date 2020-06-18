@@ -470,7 +470,7 @@ Field QueryNode::getField()
     return Field();
 
   auto fieldname = readValue<String>("fieldname");
-  return fieldname? dataset->getField(*fieldname) : dataset->getDefaultField();
+  return fieldname? dataset->getField(*fieldname) : dataset->getField();
 }
 
 
@@ -483,7 +483,7 @@ double QueryNode::getTime()
     return 0.0;
 
   auto time = readValue<double>("time");
-  return time ? *time : dataset->getDefaultTime();
+  return time ? *time : dataset->getTime();
 }
 
 
