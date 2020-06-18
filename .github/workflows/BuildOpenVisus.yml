@@ -20,14 +20,6 @@ jobs:
       uses: actions/checkout@v2
   
     # ____________________________________________
-    - name: Checkout submodules
-      uses: actions/checkout@v2
-      with:
-        repository: sci-visus/slamcpp
-        token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
-        path: Libs/slamcpp    
-      
-    # ____________________________________________
     - name: Install CMake
       uses: lukka/get-cmake@latest
       
@@ -71,6 +63,8 @@ jobs:
            Python_EXECUTABLE=${pythonLocation}/python.exe
 
            ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow jupyter matplotlib --upgrade 1>/dev/null 
+
+           git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
            
            mkdir -p build
            cd build
@@ -106,14 +100,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
       
-    # ____________________________________________
-    - name: Checkout submodules
-      uses: actions/checkout@v2
-      with:
-        repository: sci-visus/slamcpp
-        token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
-        path: Libs/slamcpp    
-
     # ____________________________________________
     - name: Install CMake
       uses: lukka/get-cmake@latest
@@ -152,6 +138,9 @@ jobs:
            Python_EXECUTABLE=${pythonLocation}/python 
            
            ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow jupyter matplotlib --upgrade 1>/dev/null 
+
+           git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
+
            mkdir -p build
            cd build   
            
@@ -187,19 +176,13 @@ jobs:
       uses: actions/checkout@v2
       
     # ____________________________________________
-    - name: Checkout submodules
-      uses: actions/checkout@v2
-      with:
-        repository: sci-visus/slamcpp
-        token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
-        path: Libs/slamcpp    
-            
-    # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
       run: |
            set -e  # stop or error
-           set -x  # very verbose        
+           set -x  # very verbose  
+           
+           git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
       
            docker run \
               -e PYTHON_VERSION=${{ matrix.python-version }} \
@@ -230,14 +213,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
   
-    # ____________________________________________
-    - name: Checkout submodules
-      uses: actions/checkout@v2
-      with:
-        repository: sci-visus/slamcpp
-        token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
-        path: Libs/slamcpp    
-      
     # ____________________________________________
     - name: Install CMake
       uses: lukka/get-cmake@latest
@@ -284,7 +259,9 @@ jobs:
            conda install conda-build anaconda-client numpy  pillow jupyter matplotlib    1>/dev/null 
            
            set -e  # stop or error
-           set -x  # very verbose   
+           set -x  # very verbose  
+           
+           git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
            
            mkdir -p build 
            cd build
@@ -321,16 +298,7 @@ jobs:
     # ____________________________________________
     - name: Checkout
       uses: actions/checkout@v2
-      
-    # ____________________________________________
-    - name: Checkout submodules
-      uses: actions/checkout@v2
-      with:
-        repository: sci-visus/slamcpp
-        token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
-        path: Libs/slamcpp    
-            
-      
+
     # ____________________________________________
     - name: Install CMake
       uses: lukka/get-cmake@latest
@@ -377,7 +345,9 @@ jobs:
            conda install conda-build anaconda-client numpy pillow jupyter matplotlib     1>/dev/null  
            
            set -e  # stop or error
-           set -x  # very verbose   
+           set -x  # very verbose  
+           
+           git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
 
            mkdir -p build 
            cd build
@@ -416,14 +386,6 @@ jobs:
       uses: actions/checkout@v2
       
     # ____________________________________________
-    - name: Checkout submodules
-      uses: actions/checkout@v2
-      with:
-        repository: sci-visus/slamcpp
-        token: ${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}
-        path: Libs/slamcpp    
-          
-    # ____________________________________________
     - name: Install Miniconda 
       uses: goanpeca/setup-miniconda@v1
       with:
@@ -437,6 +399,8 @@ jobs:
       run: |
            set -e  # stop or error
            set -x  # very verbose 
+
+           git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
      
            docker run \
               -e PYTHON_VERSION=${{ matrix.python-version }} \
