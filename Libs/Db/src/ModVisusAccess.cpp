@@ -109,8 +109,6 @@ void ModVisusAccess::readBlock(SharedPtr<BlockQuery> query)
 }
 
 
-
-
 //////////////////////////////////////////////////////////////////////////////////////
 void ModVisusAccess::flushBatch()
 {
@@ -120,12 +118,8 @@ void ModVisusAccess::flushBatch()
   Batch batch;
   std::swap(batch,this->batch);
 
-  std::vector<String> from, to;
-  for (auto query : batch)
-  {
-    from.push_back(cstring(query->start_address));
-    to.push_back(cstring(query->end_address));
-  }
+
+
 
   Url URL(this->url.getProtocol() + "://" + this->url.getHostname() + ":" + cstring(this->url.getPort()) + "/mod_visus");
   URL.setParam("action"      , "rangequery");
@@ -133,8 +127,27 @@ void ModVisusAccess::flushBatch()
   URL.setParam("compression" , this->compression);
   URL.setParam("field"       , batch[0]->field.name);
   URL.setParam("time"        , cstring(batch[0]->time));
-  URL.setParam("from"        , StringUtils::join(from," "));
-  URL.setParam("to"          , StringUtils::join(to  ," "));
+
+  //send blockid to the server
+  {
+    std::vector<String> v;
+    for (auto query : batch)
+      v.push_back(cstring(query->blockid));
+    URL.setParam("block", StringUtils::join(v));
+  }
+
+  //backward compatible (send address range)
+  {
+    std::vector<String> from, to;
+    for (auto query : batch)
+    {
+      from.push_back(cstring((query->blockid + 0) << bitsperblock));
+      to  .push_back(cstring((query->blockid + 1) << bitsperblock));
+    }
+
+    URL.setParam("from", StringUtils::join(from));
+    URL.setParam("to"  , StringUtils::join(to));
+  }
 
   auto REQUEST=NetRequest(URL);
   REQUEST.aborted=batch[0]->aborted;

@@ -78,7 +78,7 @@ public:
   //readBlock
   virtual void readBlock(SharedPtr<BlockQuery> query) override
   {
-    auto coord=dataset->getTileCoordinate(query->start_address,query->end_address);
+    auto coord=dataset->getBlockCoordinate(query->blockid);
 
     auto X=coord[0];
     auto Y=coord[1];
@@ -140,10 +140,8 @@ public:
 };
 
 
-
-
 //////////////////////////////////////////////////////////////
-bool GoogleMapsDataset::setEndResolution(SharedPtr<BoxQuery> query,int value)
+bool GoogleMapsDataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query,int value)
 {
   VisusAssert(query->end_resolution < value);
   query->end_resolution = value;
@@ -164,12 +162,12 @@ bool GoogleMapsDataset::setEndResolution(SharedPtr<BoxQuery> query,int value)
 }
 
 //////////////////////////////////////////////////////////////
-void GoogleMapsDataset::beginQuery(SharedPtr<BoxQuery> query)
+void GoogleMapsDataset::beginBoxQuery(SharedPtr<BoxQuery> query)
 {
   if (!query)
     return;
 
-  if (query->getStatus() != QueryCreated)
+  if (query->getStatus() != Query::QueryCreated)
     return;
 
   if (query->mode == 'w')
@@ -204,7 +202,7 @@ void GoogleMapsDataset::beginQuery(SharedPtr<BoxQuery> query)
 
   for (auto end_resolution : query->end_resolutions)
   {
-    if (setEndResolution(query, end_resolution))
+    if (setBoxQueryEndResolution(query, end_resolution))
     {
       query->setRunning();
       return;
@@ -215,7 +213,7 @@ void GoogleMapsDataset::beginQuery(SharedPtr<BoxQuery> query)
 }
 
 //////////////////////////////////////////////////////////////
-void GoogleMapsDataset::nextQuery(SharedPtr<BoxQuery> query)
+void GoogleMapsDataset::nextBoxQuery(SharedPtr<BoxQuery> query)
 {
   if (!query)
     return;
@@ -229,7 +227,7 @@ void GoogleMapsDataset::nextQuery(SharedPtr<BoxQuery> query)
 
   int I = Utils::find(query->end_resolutions, query->end_resolution) + 1;
   auto end_resolution = query->end_resolutions[I];
-  VisusReleaseAssert(setEndResolution(query, end_resolution));
+  VisusReleaseAssert(setBoxQueryEndResolution(query, end_resolution));
 
   //merging is not supported, so I'm resetting the buffer
   query->buffer = Array();
@@ -237,7 +235,7 @@ void GoogleMapsDataset::nextQuery(SharedPtr<BoxQuery> query)
 
 
 //////////////////////////////////////////////////////////////
-bool GoogleMapsDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
+bool GoogleMapsDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
 {
   if (!query)
     return false;
@@ -282,10 +280,11 @@ bool GoogleMapsDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuer
   {
     for (auto block_query : block_queries)
     {
-      wait_async.pushRunning(executeBlockQuery(access, block_query)).when_ready([this, query, block_query](Void) {
+      executeBlockQuery(access, block_query);
+      wait_async.pushRunning(block_query->done).when_ready([this, query, block_query](Void) {
 
         if (!query->aborted() && block_query->ok())
-          mergeBoxQueryWithBlock(query, block_query);
+          mergeBoxQueryWithBlockQuery(query, block_query);
         });
     }
   }
@@ -314,9 +313,7 @@ void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_q
   if (H==end_resolution)
   {
     VisusAssert(H % 2==0);
-    BigInt start_address=(id-1)*samplesperblock;
-    BigInt end_address  =start_address+samplesperblock;
-    auto block_query=std::make_shared<BlockQuery>(this, query->field,query->time,start_address,end_address, 'r', query->aborted);
+    auto block_query=createBlockQuery(id - 1, query->field,query->time,'r', query->aborted);
     block_queries.push_back(block_query);
     return;
   }
@@ -334,9 +331,9 @@ void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_q
 
 
 //////////////////////////////////////////////////////////////
-bool GoogleMapsDataset::mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> blockquery)
+bool GoogleMapsDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> blockquery)
 {
-  return LogicSamples::merge(query->logic_samples, query->buffer, blockquery->logic_samples, blockquery->buffer, InsertSamples, query->aborted);
+  return LogicSamples::merge(query->logic_samples, query->buffer, blockquery->logic_samples, blockquery->buffer, MergeMode::InsertSamples, query->aborted);
 }
 
 //////////////////////////////////////////////////////////////
@@ -357,19 +354,16 @@ SharedPtr<Access> GoogleMapsDataset::createAccess(StringTree config, bool bForBl
 
 
 //////////////////////////////////////////////////////////////
-Point3i GoogleMapsDataset::getTileCoordinate(BigInt start_address,BigInt end_address)
+Point3i GoogleMapsDataset::getBlockCoordinate(BigInt blockid)
 {
   int bitsperblock=this->getDefaultBitsPerBlock();
   int samplesperblock=((BigInt)1)<<bitsperblock;
   auto bitmask = getBitmask();
 
-  VisusAssert(end_address==start_address+samplesperblock);
-
-  Int64  blocknum=cint64(start_address>>bitsperblock);
-  int    H=bitsperblock+Utils::getLog2(1+blocknum);
+  int    H=bitsperblock+Utils::getLog2(1+ blockid);
   VisusAssert((H % 2)==0);
   Int64  first_block_in_level=(((Int64)1)<<(H-bitsperblock))-1;
-  PointNi tile_coord=bitmask.deinterleave(blocknum-first_block_in_level,H-bitsperblock);
+  PointNi tile_coord=bitmask.deinterleave(blockid -first_block_in_level,H-bitsperblock);
 
   return Point3i(
     (int)(tile_coord[0]),
@@ -378,9 +372,9 @@ Point3i GoogleMapsDataset::getTileCoordinate(BigInt start_address,BigInt end_add
 }
 
 //////////////////////////////////////////////////////////////
-LogicSamples GoogleMapsDataset::getAddressRangeSamples(BigInt start_address,BigInt end_address)
+LogicSamples GoogleMapsDataset::getBlockSamples(BigInt blockid)
 {
-  auto coord=getTileCoordinate(start_address,end_address);
+  auto coord= getBlockCoordinate(blockid);
 
   auto X=coord[0];
   auto Y=coord[1];
@@ -401,7 +395,7 @@ LogicSamples GoogleMapsDataset::getAddressRangeSamples(BigInt start_address,BigI
 }
 
 //////////////////////////////////////////////////////////////
-void GoogleMapsDataset::read(Archive& ar)
+void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
 {
   String url = ar.readString("url");
 

@@ -80,17 +80,22 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(BlockQuery)
 
-  BigInt       start_address = 0;
-  BigInt       end_address = 0;
-  LogicSamples logic_samples;
+  Dataset*     dataset = nullptr;
+  int          mode = 0;
+  Field        field;
+  double       time = 0;
+  Aborted      aborted;
 
+  Array        buffer;
+  int          status = QueryCreated;
+  String       errormsg;
+
+  BigInt       blockid = 0;
+  LogicSamples logic_samples;
   Future<Void> done;
 
   //constructor
-  BlockQuery(Dataset* dataset, Field field, double time, BigInt start_address, BigInt end_address, int mode, Aborted aborted);
-
-  //destructor
-  virtual ~BlockQuery() {
+  BlockQuery() {
   }
 
   //global_stats
@@ -107,12 +112,61 @@ public:
     global_stats()->nwrite++;
   }
 
+  //getStatus
+  int getStatus() const {
+    return status;
+  }
+
   //setStatus
-  virtual void setStatus(QueryStatus value) override;
+  void setStatus(int value)
+  {
+    if (this->status == value) return;
+    this->status = value;
+    //final?
+    if (ok() || failed())
+      this->done.get_promise()->set_value(Void());
+  }
+
+  //ok
+  bool ok() const {
+    return status == QueryOk;
+  }
+
+  //failed
+  bool failed() const {
+    return status == QueryFailed;
+  }
+
+  //running
+  bool isRunning() const {
+    return status == QueryRunning;
+  }
+
+  //setRunning
+  void setRunning() {
+    setStatus(QueryRunning);
+  }
+
+  //setOk
+  void setOk() {
+    setStatus(QueryOk);
+  }
+
+  //setOk
+  void setFailed(String error_msg = "") {
+    setStatus(QueryFailed);
+    if (!error_msg.empty())
+      this->errormsg = error_msg;
+  }
 
   //getNumberOfSamples
-  virtual PointNi getNumberOfSamples() const override {
+  PointNi getNumberOfSamples() const {
     return logic_samples.nsamples;
+  }
+
+  //getByteSize
+  Int64 getByteSize() const {
+    return field.dtype.getByteSize(getNumberOfSamples());
   }
 
   //getLogicBox
@@ -120,13 +174,10 @@ public:
     return logic_samples.logic_box;
   }
 
-  //getBlockNumber
-  BigInt getBlockNumber(int bitsperblock) const {
-    return start_address >> bitsperblock;
-  }
+  //allocateBufferIfNeeded
+  bool allocateBufferIfNeeded();
 
 };
-
 
 } //namespace Visus
 

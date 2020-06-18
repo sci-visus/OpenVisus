@@ -41,36 +41,6 @@ For support : support@visus.net
 
 namespace Visus {
  
-////////////////////////////////////////////////////////////////
-void Query::setStatus(QueryStatus value)
-{
-  if (this->status == value)
-    return;
-
-  auto old_status = this->status;
-
-  switch (value)
-  {
-    case QueryCreated:
-      VisusAssert(false);
-      return;
-      
-    case QueryRunning:
-      VisusReleaseAssert(old_status == QueryCreated);
-      this->status = value;
-      return;
-
-    case QueryOk:
-      VisusReleaseAssert(old_status == QueryCreated || old_status == QueryRunning);
-      this->status = value;
-      return;
-
-    case QueryFailed:
-      VisusReleaseAssert(old_status == QueryCreated || old_status == QueryRunning);
-      this->status = value;
-      return;
-  }
-}
 
 } //namespace Visus
 

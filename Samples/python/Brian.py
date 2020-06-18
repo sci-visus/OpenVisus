@@ -217,7 +217,7 @@ def Main(argv):
 	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
 	# c:\Python37\python.exe Samples\python\Brian.py
 	
-	db=PyDataset(r"D:\GoogleSci\visus_dataset\male\visus.idx")
+	db=LoadDataset(r"D:\GoogleSci\visus_dataset\male\visus.idx")
 	Assert(db)
 
 	# ExportSlicesToMovie(PyMovie("All_z.avi"), db, axis=2)

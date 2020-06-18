@@ -1953,7 +1953,7 @@ DatasetNode* Viewer::addDataset(String uuid, Node* parent, String url)
     addNode(parent, dataset_node);
 
     //time (this is for queries...)
-    auto time_node = new TimeNode(dataset->getDefaultTime(), dataset->getTimesteps());
+    auto time_node = new TimeNode(dataset->getTime(), dataset->getTimesteps());
     time_node->setUUID(concatenate(uuid, "/time"));
     time_node->setName("Time");
     addNode(dataset_node, time_node);
@@ -2095,7 +2095,7 @@ QueryNode* Viewer::addVolume(String uuid, Node* parent, String fieldname, int ac
   auto dataset = dataset_node->getDataset();
 
   if (fieldname.empty())
-    fieldname = dataset->getDefaultField().name;
+    fieldname = dataset->getField().name;
 
   QueryNode* ret = nullptr;
   beginUpdate(
@@ -2119,7 +2119,7 @@ QueryNode* Viewer::addVolume(String uuid, Node* parent, String fieldname, int ac
     //time
     auto time_node = dataset_node->findChild<TimeNode*>();
     if (!time_node) {
-      time_node = new TimeNode(dataset->getDefaultTime(), dataset->getTimesteps());
+      time_node = new TimeNode(dataset->getTime(), dataset->getTimesteps());
       time_node->setUUID(concatenate(uuid, "/time"));
       time_node->setName("Time");
       addNode(query_node, time_node);
@@ -2169,7 +2169,7 @@ QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int acc
   auto dataset = dataset_node->getDataset();
 
   if (fieldname.empty())
-    fieldname = dataset->getDefaultField().name;
+    fieldname = dataset->getField().name;
 
   QueryNode* ret = nullptr;
   beginUpdate(
@@ -2203,7 +2203,7 @@ QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int acc
     auto time_node = dataset_node->findChild<TimeNode*>();
     if (!time_node)
     {
-      time_node = new TimeNode(dataset->getDefaultTime(), dataset->getTimesteps());
+      time_node = new TimeNode(dataset->getTime(), dataset->getTimesteps());
       time_node->setUUID(concatenate(uuid, "/time"));
       time_node->setName("Time");
       addNode(query_node, time_node);
@@ -2254,7 +2254,7 @@ QueryNode* Viewer::addIsoContour(String uuid, Node* parent, String fieldname, in
   VisusReleaseAssert(dataset);
 
   if (fieldname.empty())
-    fieldname = dataset->getDefaultField().name;
+    fieldname = dataset->getField().name;
 
   dropSelection();
 
@@ -2280,7 +2280,7 @@ QueryNode* Viewer::addIsoContour(String uuid, Node* parent, String fieldname, in
     //time
     auto time_node = dataset_node->findChild<TimeNode*>();
     if (!time_node) {
-      time_node = new TimeNode(dataset->getDefaultTime(), dataset->getTimesteps());
+      time_node = new TimeNode(dataset->getTime(), dataset->getTimesteps());
       time_node->setUUID(concatenate(uuid, "/time"));
       time_node->setName("Time");
       addNode(query_node, time_node);
@@ -2366,7 +2366,7 @@ KdQueryNode* Viewer::addKdQuery(String uuid, Node* parent,String fieldname,int a
   auto dataset = dataset_node->getDataset();
 
   if (fieldname.empty())
-    fieldname = dataset->getDefaultField().name;
+    fieldname = dataset->getField().name;
 
   KdQueryNode* ret = nullptr;
   beginUpdate(
@@ -2388,7 +2388,7 @@ KdQueryNode* Viewer::addKdQuery(String uuid, Node* parent,String fieldname,int a
     //time
     auto time_node = dataset_node->findChild<TimeNode*>();
     if (!time_node) {
-      time_node = new TimeNode(dataset->getDefaultTime(), dataset->getTimesteps());
+      time_node = new TimeNode(dataset->getTime(), dataset->getTimesteps());
       time_node->setUUID(concatenate(uuid, "/time"));
       time_node->setName("Time");
       addNode(query_node, time_node);

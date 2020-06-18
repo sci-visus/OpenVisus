@@ -45,7 +45,7 @@ public:
   //VISUS_XIDX_CLASS(XIdxElement)
   VISUS_CLASS(XIdxElement)
 
-  virtual String getTypeName() {
+  virtual String getXIdxTypeName() {
     return "XIdxElement";
   }
 
@@ -85,14 +85,14 @@ public:
 
   //getXPathPrefix
   virtual String getXPathPrefix() {
-    return concatenate(getParent() ? getParent()->getXPathPrefix() : "/", "/",getTypeName());
+    return concatenate(getParent() ? getParent()->getXPathPrefix() : "/", "/",getXIdxTypeName());
   }
 
   //findChildWithName
   XIdxElement* findChildWithName(String name)
   {
     for (auto child : this->childs) {
-      if (child->getTypeName() == name)
+      if (child->getXIdxTypeName() == name)
         return child;
     }
     return nullptr;

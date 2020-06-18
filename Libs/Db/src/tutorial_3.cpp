@@ -46,14 +46,14 @@ namespace Visus {
 ////////////////////////////////////////////////////////////////////////////////////
 void Tutorial_3(String default_layout)
 {
-  auto dataset = LoadDataset("temp/tutorial_1.idx");
+  auto dataset = LoadDataset("tmp/tutorial_1/visus.idx");
 
   BoxNi world_box = dataset->getLogicBox();
 
   //any time you need to read/write data from/to a Dataset I need a Access
   auto access = dataset->createAccess();
 
-  Field field = dataset->getDefaultField();
+  Field field = dataset->getField();
 
   //this is the maximum resolution of the Dataset 
 
@@ -64,17 +64,16 @@ void Tutorial_3(String default_layout)
   BoxNi slice_box = world_box.getZSlab(0, 1);
 
   //create and read data for resolutions [8,12] (12==MaxH which is the very last available on disk)
-  auto query = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-  query->logic_box = slice_box;
+  auto query = dataset->createBoxQuery(slice_box, 'r');
   query->end_resolutions = { 8,12 };
-  query->merge_mode = InsertSamples;
+  query->merge_mode = MergeMode::InsertSamples;
 
-  dataset->beginQuery(query);
-  VisusReleaseAssert(dataset->executeQuery(access, query));
+  dataset->beginBoxQuery(query);
+  VisusReleaseAssert(dataset->executeBoxQuery(access, query));
   VisusReleaseAssert(query->getCurrentResolution() == 8);
 
-  dataset->nextQuery(query);
-  VisusReleaseAssert(dataset->executeQuery(access, query));
+  dataset->nextBoxQuery(query);
+  VisusReleaseAssert(dataset->executeBoxQuery(access, query));
   VisusReleaseAssert(query->getCurrentResolution() == 12);
 
   //I can verify the data is correct

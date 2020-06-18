@@ -44,7 +44,7 @@ For support : support@visus.net
 
 namespace Visus {
 
-enum MergeMode
+enum class MergeMode
 {
   DoNotMergeSamples = 0,
   InsertSamples,
@@ -154,7 +154,7 @@ public:
   static bool merge(
     LogicSamples Wsamples, Array Wbuffer,
     LogicSamples Rsamples, Array Rbuffer,
-    int merge_mode, Aborted aborted);
+    MergeMode merge_mode, Aborted aborted);
 
 
 };

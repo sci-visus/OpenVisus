@@ -48,14 +48,14 @@ namespace Visus {
 void Tutorial_2(String default_layout)
 {
   //read Dataset from tutorial 1
-  auto dataset = LoadDataset("temp/tutorial_1.idx");
+  auto dataset = LoadDataset("tmp/tutorial_1/visus.idx");
 
   BoxNi world_box = dataset->getLogicBox();
 
   int pdim = 3;
 
   //check the data has dimension (16,16,16)
-  VisusReleaseAssert(dataset->getDefaultField().dtype == (DTypes::UINT32)
+  VisusReleaseAssert(dataset->getField().dtype == (DTypes::UINT32)
     && world_box.p1 == PointNi(0, 0, 0)
     && world_box.p2 == PointNi(16, 16, 16));
 
@@ -69,14 +69,13 @@ void Tutorial_2(String default_layout)
     BoxNi slice_box = world_box.getZSlab(nslice, nslice + 1);
 
     //I should get a number of samples equals to the number of samples written in tutorial 1
-    auto query = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-    query->logic_box = slice_box;
-    dataset->beginQuery(query);
+    auto query = dataset->createBoxQuery(slice_box, 'r');
+    dataset->beginBoxQuery(query);
     VisusReleaseAssert(query->isRunning());
     VisusReleaseAssert(query->getNumberOfSamples() == PointNi(16, 16, 1));
 
     //read data from disk
-    VisusReleaseAssert(dataset->executeQuery(access, query));
+    VisusReleaseAssert(dataset->executeBoxQuery(access, query));
     VisusReleaseAssert(query->buffer.c_size() == sizeof(int) * 16 * 16);
 
     GetSamples<Int32> Src(query->buffer);

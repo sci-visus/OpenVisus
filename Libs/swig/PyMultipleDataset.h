@@ -100,9 +100,6 @@ public:
   //constructor
   ComputeOutput(const IdxMultipleDataset* DATASET_, BoxQuery* QUERY_, SharedPtr<Access> ACCESS_, Aborted aborted_)
     : DATASET(const_cast<IdxMultipleDataset*>(DATASET_)), QUERY(QUERY_), ACCESS(ACCESS_), aborted(aborted_) {
-
-    VisusAssert(!DATASET->is_mosaic);
-
     {
       ScopedAcquireGil acquire_gil;
       static std::atomic<int> module_id(0);
@@ -169,7 +166,7 @@ public:
     if (DATASET->debug_mode & IdxMultipleDataset::DebugSaveImages)
     {
       static int cont = 0;
-      ArrayUtils::saveImage(concatenate("temp/", cont++, ".up.result.png"), ret);
+      ArrayUtils::saveImage(concatenate("tmp/debug_pymultipledataset/", cont++, ".up.result.png"), ret);
     }
 
     return ret;
@@ -507,7 +504,7 @@ private:
       if (!N)
       {
         for (auto it : DATASET->down_datasets)
-          blend.addBlendArg(Array(PointNi(DATASET->getPointDim()), it.second->getDefaultField().dtype));
+          blend.addBlendArg(Array(PointNi(DATASET->getPointDim()), it.second->getField().dtype));
       }
       else
       {
@@ -539,7 +536,7 @@ private:
         for (auto it : DATASET->down_datasets)
         {
           auto dataset_name = it.first;
-          auto fieldname = it.second->getDefaultField().name;
+          auto fieldname = it.second->getField().name;
 
           auto query = DATASET->createDownQuery(this->ACCESS, this->QUERY, dataset_name, fieldname);
           if (!query || query->failed() || query->aborted())

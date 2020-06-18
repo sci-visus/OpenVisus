@@ -213,9 +213,8 @@ private:
     //note: point query not supported!
     VisusAssert(!(dataset->getPointDim() == 3 && query_bounds.getBoxNd().toBox3().minsize() == 0));
 
-    auto query = std::make_shared<BoxQuery>(dataset.get(), node->getField(), node->getTime(), 'r');
+    auto query = dataset->createBoxQuery(node->getQueryLogicPosition().toDiscreteAxisAlignedBox(), node->getField(), node->getTime(), 'r');
     query->enableFilters();
-    query->logic_box = node->getQueryLogicPosition().toDiscreteAxisAlignedBox();
     query->setResolutionRange(0, end_resolution);
     return query;
   }
@@ -242,7 +241,7 @@ private:
     auto dataset_node=this->model->getDatasetNode();
     auto time_node=dataset_node->findChild<TimeNode*>();
     
-    widgets.selected_field = dataset->getDefaultField();
+    widgets.selected_field = dataset->getField();
     
     widgets.fieldComboBox=new QComboBox();
     std::vector<Field> fields=dataset->getFields();
@@ -276,7 +275,7 @@ private:
         if (!query) 
           return;
 
-        dataset->beginQuery(query);
+        dataset->beginBoxQuery(query);
 
         if (!query->isRunning())
           return;
@@ -305,8 +304,8 @@ private:
       if (!query)
         return false;
 
-      dataset->beginQuery(query);
-      if (!dataset->executeQuery(dataset->createAccess(), query))
+      dataset->beginBoxQuery(query);
+      if (!dataset->executeBoxQuery(dataset->createAccess(), query))
         return false;
 
       auto nsamples = query->getNumberOfSamples();

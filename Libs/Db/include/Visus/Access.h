@@ -90,6 +90,11 @@ public:
   virtual ~Access() {
   }
 
+  //disableWriteLock
+  void disableWriteLock() {
+    this->bDisableWriteLocks = true;
+  }
+
   //this is the number of samples it will return in a read/write operation
   int getSamplesPerBlock() const {
     return 1 << bitsperblock;
@@ -102,7 +107,7 @@ public:
 
   //getFilename
   String getFilename(SharedPtr<BlockQuery> query) const {
-    return getFilename(query->field,query->time,query->getBlockNumber(bitsperblock));
+    return getFilename(query->field,query->time,query->blockid);
   }
 
   //getStartAddress

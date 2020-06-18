@@ -150,8 +150,6 @@ public:
     // </dataset>
 
     //where the samples will be in X Y Z, not a simply 1d array
-    // PointNi nsamples = HzOrder::getAddressRangeLayout(bitmask,start_address,end_address); 
-    // VisusAssert(nsamples.innerProduct()==cint64(end_address-start_address));
 
     auto bitmask = dataset->getBitmask();
     auto timestep = query->time;

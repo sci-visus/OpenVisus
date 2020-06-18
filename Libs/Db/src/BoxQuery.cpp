@@ -40,17 +40,48 @@ For support : support@visus.net
 #include <Visus/Dataset.h>
 
 namespace Visus {
+    //allocateBufferIfNeeded
 
+    bool BoxQuery::allocateBufferIfNeeded()
+    {
+        auto nsamples = getNumberOfSamples();
 
-////////////////////////////////////////////////////////////////////////////////////
-BoxQuery::BoxQuery(Dataset* dataset, Field field, double time, int mode, Aborted aborted)
-  :Query(dataset, field, time, mode, aborted)
-{
-  this->filter.domain = dataset->getLogicBox();
-}
+        if (!buffer)
+        {
+            if (!buffer.resize(nsamples, field.dtype, __FILE__, __LINE__))
+                return false;
 
+            buffer.fillWithValue(field.default_value);
+            buffer.layout = field.default_layout;
+        }
 
+        //check buffer
+        VisusAssert(buffer.dtype == field.dtype);
+        VisusAssert(buffer.c_size() == getByteSize());
 
+        //this covers the case when the user specify a 3d array for a 3d datasets
+        //or for pointqueries 
+#if 1
+        VisusAssert(buffer.dims.innerProduct() == nsamples.innerProduct());
+        buffer.dims = nsamples;
+#endif
 
+        return true;
+    }
+
+    //mergeWith
+
+    bool BoxQuery::mergeWith(BoxQuery& other, Aborted aborted) {
+
+      if (!allocateBufferIfNeeded())
+        return false;
+
+      if (!LogicSamples::merge(this->logic_samples, this->buffer, other.logic_samples, other.buffer, this->merge_mode, aborted))
+        return false;
+
+      setCurrentResolution(other.getCurrentResolution());
+      //note: start_resolution/end_resolution do not change
+      return true;
+    }
 } //namespace Visus
 

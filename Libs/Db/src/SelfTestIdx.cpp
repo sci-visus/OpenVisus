@@ -132,7 +132,7 @@ public:
   SelfTest(IdxDataset* dataset)
   {
     this->dataset = dataset;
-    this->dtype = dataset->getDefaultField().dtype;
+    this->dtype = dataset->getField().dtype;
     this->user_box = dataset->getLogicBox();
     this->pdim = dataset->getPointDim();
     this->nslices = user_box.p2[pdim - 1] - user_box.p1[pdim - 1];
@@ -160,9 +160,8 @@ public:
       {
         BoxNi slice_box = getSliceBox(N);
 
-        auto query = std::make_shared<BoxQuery>(dataset, dataset->getDefaultField(), dataset->getDefaultTime(), 'w');
-        query->logic_box = slice_box;
-        dataset->beginQuery(query);
+        auto query = dataset->createBoxQuery(slice_box, 'w');
+        dataset->beginBoxQuery(query);
         VisusReleaseAssert(query->isRunning());
 
         Array buffer(query->getNumberOfSamples(), dtype);
@@ -170,7 +169,7 @@ public:
           buffer.c_ptr()[i] = cont++;
         query->buffer = buffer;
 
-        VisusReleaseAssert(dataset->executeQuery(access, query));
+        VisusReleaseAssert(dataset->executeBoxQuery(access, query));
         this->write_queries.push_back(query);
       }
     }
@@ -181,11 +180,10 @@ public:
 
       for (int N = 0; N < this->nslices; N++)
       {
-        auto read_slice = std::make_shared<BoxQuery>(dataset, dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-        read_slice->logic_box = (getSliceBox(N));
-        dataset->beginQuery(read_slice);
+        auto read_slice = dataset->createBoxQuery(getSliceBox(N), 'r');
+        dataset->beginBoxQuery(read_slice);
         VisusReleaseAssert(read_slice->isRunning());
-        VisusReleaseAssert(dataset->executeQuery(access, read_slice));
+        VisusReleaseAssert(dataset->executeBoxQuery(access, read_slice));
         VisusReleaseAssert(read_slice->getNumberOfSamples().innerProduct() == this->perslice);
         VisusReleaseAssert(CompareSamples(write_queries[N]->buffer, 0, read_slice->buffer, 0, perslice));
         read_slice.reset();
@@ -208,9 +206,8 @@ public:
 
     auto access = dataset->createAccess();
 
-    auto query = std::make_shared<BoxQuery>(dataset, dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-    query->logic_box = box;
-    query->merge_mode = (bInterpolate ? InterpolateSamples : InsertSamples);
+    auto query = dataset->createBoxQuery(box, 'r');
+    query->merge_mode = (bInterpolate ? MergeMode::InterpolateSamples : MergeMode::InsertSamples);
 
     for (int h = firsth; h <= lasth; h = h + deltah)
       query->end_resolutions.push_back(h);
@@ -220,18 +217,18 @@ public:
     PointNi shift(pdim);
 
     //probably the bounding box cannot get samples
-    dataset->beginQuery(query);
+    dataset->beginBoxQuery(query);
 
     if (!query->isRunning())
       return;
 
     while (query->isRunning())
     {
-      VisusReleaseAssert(dataset->executeQuery(access, query));
+      VisusReleaseAssert(dataset->executeBoxQuery(access, query));
       buffer = query->buffer;
       h_box = query->logic_samples.logic_box;
       shift = query->logic_samples.shift;
-      dataset->nextQuery(query);
+      dataset->nextBoxQuery(query);
     }
 
     VisusReleaseAssert(buffer);
@@ -315,7 +312,7 @@ void SelfTestIdx(int max_seconds)
     //remove data from tutorial_1
     try
     {
-      auto dataset = LoadIdxDataset("./temp/tutorial_1.idx");
+      auto dataset = LoadIdxDataset("tmp/tutorial_1/visus.idx");
       dataset->removeFiles();
     }
     catch (...) {}
@@ -348,9 +345,10 @@ void SelfTestIdx(int max_seconds)
             field.default_compression = Utils::getRandInteger(0, 1) ? "lz4" : "";
             idxfile.fields.push_back(field);
           }
-          idxfile.save("./temp/temp.idx");
 
-          auto dataset = LoadIdxDataset("./temp/temp.idx");
+          auto filename = "tmp/self_test_idx/temp.idx";
+          idxfile.save(filename);
+          auto dataset = LoadIdxDataset(filename);
 
           {
             SelfTest selftest(dataset.get());
@@ -383,18 +381,15 @@ void SelfTestIdx(int max_seconds)
         idxfile.fields.push_back(field);
       }
 
-      String idxfilename = "./temp/temp.idx";
-
-      idxfile.save(idxfilename);
-
-      auto dataset = LoadIdxDataset(idxfilename);
+      String filename = "tmp/self_test_idx/temp.idx";
+      idxfile.save(filename);
+      auto dataset = LoadIdxDataset(filename);
 
       {
         SelfTest selftest(dataset.get());
         for (int n = 0; n < 10; n++)
           selftest.executeRandomQuery();
       }
-
       dataset->removeFiles();
     }
   }

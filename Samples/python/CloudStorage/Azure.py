@@ -52,13 +52,13 @@ def Main():
 		pass
 	
 	tot=db.getTotalNumberOfBlocks()
-	time=db.getDefaultTime()
-	field=db.getDefaultField()
+	time=db.getTime()
+	field=db.getField()
 	
 	access=db.createAccessForBlockQuery()
 	access.beginRead()
 	for block_id in range(tot):
-		block = BlockQuery(db, field, time, access.getStartAddress(block_id), access.getEndAddress(block_id), ord('r'), Aborted())
+		block = db.createBlockQuery(block_id, field, time)
 		bOk=db.executeBlockQueryAndWait(access, block)
 		
 		# could be that the block is not stored

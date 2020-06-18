@@ -37,8 +37,8 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/IdxDataset.h>
-#include <Visus/DatasetFilter.h>
 #include <Visus/File.h>
+#include <Visus/IdxFilter.h>
 
 namespace Visus {
 
@@ -72,9 +72,8 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
 
   auto access=dataset->createAccess();
   
-  auto write=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'w');
-  write->logic_box=userbox;
-  dataset->beginQuery(write);
+  auto write=dataset->createBoxQuery(userbox, 'w');
+  dataset->beginBoxQuery(write);
   VisusReleaseAssert(write->isRunning());
   VisusReleaseAssert(write->getNumberOfSamples()==img.dims);
 
@@ -124,7 +123,7 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
   }
 
   //write to disk
-  VisusReleaseAssert(dataset->executeQuery(access,write));
+  VisusReleaseAssert(dataset->executeBoxQuery(access,write));
   return dataset;
 }
 
@@ -185,7 +184,7 @@ Array createImageFromBuffer(Array src)
 
 
 //////////////////////////////////////////////////////////////////////////////////////
-//show how to apply the De Haar DatasetFilter on IDX dataset
+//show how to apply the De Haar filter on IDX dataset
 //////////////////////////////////////////////////////////////////////////////////////
 void Tutorial_6(String default_layout)
 {
@@ -232,9 +231,9 @@ void Tutorial_6(String default_layout)
 
     Array src_image=ArrayUtils::loadImage(img_filename);
     VisusReleaseAssert(src_image);
-    auto dataset=createDatasetFromImage("temp/tutorial_6.idx",src_image,dtype,dataset_offset,bitsperblock,default_layout,filters[NFilter]);
+    auto dataset=createDatasetFromImage("tmp/tutorial_6/visus.idx",src_image,dtype,dataset_offset,bitsperblock,default_layout,filters[NFilter]);
     VisusReleaseAssert(dataset);
-    Field field=dataset->getDefaultField();
+    Field field=dataset->getField();
 
     //now that I have an IDX file apply the filter
     
@@ -242,9 +241,8 @@ void Tutorial_6(String default_layout)
 
     //apply the filter on a IDX file (i.e. rewrite all samples)
     {
-      auto filter=dataset->createFilter(field);
-      VisusReleaseAssert(filter);
-      filter->computeFilter(dataset->getDefaultTime(),field,access,sliding_window_size);
+      auto filter=dataset->createFilter(field); VisusReleaseAssert(filter);
+      dataset->computeFilter(filter, dataset->getTime(), field, access, sliding_window_size);
     }
 
     BoxNi world_box=dataset->getLogicBox();
@@ -268,21 +266,20 @@ void Tutorial_6(String default_layout)
         PointNi((int)(dataset_offset[0] + 4.0f*Width / 6.0f), (int)(dataset_offset[1] + 4.0f*Height / 6.0f)));
     }
     
-    auto query=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-    query->logic_box= query_box;
+    auto query=dataset->createBoxQuery(query_box, 'r');
     query->enableFilters();
-    query->merge_mode= InsertSamples;
+    query->merge_mode= MergeMode::InsertSamples;
 
     //I go level by level for debugging
     for (int H=0;H<=dataset->getMaxResolution();H++)
       query->end_resolutions.push_back(H);
 
-    dataset->beginQuery(query);
+    dataset->beginBoxQuery(query);
     VisusReleaseAssert(query->isRunning());
 
     while (query->isRunning())
     {
-      VisusReleaseAssert(dataset->executeQuery(access,query));
+      VisusReleaseAssert(dataset->executeBoxQuery(access,query));
       
       auto buffer=query->buffer;
       buffer=query->filter.dataset_filter->dropExtraComponentIfExists(buffer);
@@ -293,7 +290,7 @@ void Tutorial_6(String default_layout)
       {
         int H=query->getCurrentResolution();
 
-        Path filename=Path(String("temp/")  + filters[NFilter] + "/" + StringUtils::replaceFirst(dtype.toString(),"*","_") + String(Overall ?"_all":"_piece"))
+        Path filename=Path(String("tmp/tutorial6/")  + filters[NFilter] + "/" + StringUtils::replaceFirst(dtype.toString(),"*","_") + String(Overall ?"_all":"_piece"))
           .getChild("snapshot" + String(H<10?"0":"") + cstring(H)  + (".png"));
 
         FileUtils::createDirectory(filename.getParent());
@@ -328,7 +325,7 @@ void Tutorial_6(String default_layout)
         }
       }
 
-      dataset->nextQuery(query);
+      dataset->nextBoxQuery(query);
     }
 
     dataset->removeFiles();

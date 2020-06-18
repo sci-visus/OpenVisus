@@ -83,6 +83,33 @@ bool PointQuery::setPoints(PointNi nsamples)
   return true;
 }
 
+////////////////////////////////////////////////////////////////////
+bool PointQuery::allocateBufferIfNeeded()
+{
+  auto nsamples = getNumberOfSamples();
+
+  if (!buffer)
+  {
+    if (!buffer.resize(nsamples, field.dtype, __FILE__, __LINE__))
+      return false;
+
+    buffer.fillWithValue(field.default_value);
+    buffer.layout = field.default_layout;
+  }
+
+  //check buffer
+  VisusAssert(buffer.dtype == field.dtype);
+  VisusAssert(buffer.c_size() == getByteSize());
+
+  //this covers the case when the user specify a 3d array for a 3d datasets
+  //or for pointqueries 
+#if 1
+  VisusAssert(buffer.dims.innerProduct() == nsamples.innerProduct());
+  buffer.dims = nsamples;
+#endif
+
+  return true;
+}
 
 } //namespace Visus
 

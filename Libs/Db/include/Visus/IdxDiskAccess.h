@@ -72,11 +72,6 @@ public:
   //disableAsync
   void disableAsync();
 
-  //disableWriteLock
-  void disableWriteLock() {
-    this->bDisableWriteLocks = true;
-  }
-
   //getFilename
   virtual String getFilename(Field field, double time, BigInt blockid) const override;
 
@@ -101,15 +96,8 @@ public:
 private:
 
   UniquePtr<Access> sync, async;
-
   SharedPtr<ThreadPool> async_tpool;
-
   IdxFile   idxfile;
-
-  struct {BigInt from = 0, to = 0;} block_range;
-
-  //bDisableIO (for debugging)
-  bool bDisableIO = false;
 
 }; 
 

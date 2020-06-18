@@ -117,7 +117,7 @@ String Url::toString() const
   if (isRemote()) 
     out<<this->hostname<< ((port==80)? ("") : (":" + cstring(this->port)));
 
-  //example path=c:/temp/visus.idx -> file:///c:/temp/visus.idx
+  //example path=c:/path/visus.idx -> file:///c:/path/visus.idx
   if (isFile() && StringUtils::contains(path,":")) 
     out<<"/";
 

@@ -40,9 +40,8 @@ For support : support@visus.net
 
 namespace Visus {
 
-
 ////////////////////////////////////////////////////////////////////////////////////
-bool LogicSamples::merge(LogicSamples Wsamples, Array Wbuffer, LogicSamples Rsamples, Array Rbuffer, int merge_mode, Aborted aborted)
+bool LogicSamples::merge(LogicSamples Wsamples, Array Wbuffer, LogicSamples Rsamples, Array Rbuffer, MergeMode merge_mode, Aborted aborted)
 {
   if (!Wsamples.valid() || !Rsamples.valid())
     return false;
@@ -119,7 +118,7 @@ bool LogicSamples::merge(LogicSamples Wsamples, Array Wbuffer, LogicSamples Rsam
     return false;
 
   //eventually interpolate the samples got so far (NOTE: interpolate can be slow!)
-  if (merge_mode == InterpolateSamples && !ArrayUtils::interpolate(Wbuffer, wfrom, wto, wstep, aborted))
+  if (merge_mode == MergeMode::InterpolateSamples && !ArrayUtils::interpolate(Wbuffer, wfrom, wto, wstep, aborted))
     return false;
 
   return true;

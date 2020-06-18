@@ -64,12 +64,12 @@ def UploadFilesToBucket(bucket_name, tot, files):
 
 # Add a function which reads all OpenVisus block and yield them with a unique filename:
 def ReadBlocks(db, blocks,filename_template="{time}/{field}/{block:016x}", reverse_filename=False):
-	time=db.getDefaultTime()
-	field=db.getDefaultField()
+	time=db.getTime()
+	field=db.getField()
 	access=db.createAccessForBlockQuery()
 	access.beginRead()
 	for block_id in blocks:
-		block = BlockQuery(db, field, time, access.getStartAddress(block_id), access.getEndAddress(block_id), ord('r'), Aborted())
+		block = db.createBlockQuery(block_id, field, time)
 		bOk=db.executeBlockQueryAndWait(access, block)
 		if not bOk:
 			continue # could be that the block is not stored

@@ -19,7 +19,6 @@ SET(DatasetSources
 	./include/Visus/Dataset.h             ./src/Dataset.cpp
 	./include/Visus/DatasetArrayPlugin.h  ./src/DatasetArrayPlugin.cpp
 	./include/Visus/DatasetBitmask.h      ./src/DatasetBitmask.cpp
-	./include/Visus/DatasetFilter.h       ./src/DatasetFilter.cpp
 	./include/Visus/DatasetTimesteps.h    ./src/DatasetTimesteps.cpp
 	./include/Visus/GoogleMapsDataset.h   ./src/GoogleMapsDataset.cpp)
 source_group("Dataset" FILES ${DatasetSources})
@@ -36,8 +35,7 @@ SET(AccessSources
 source_group("Access" FILES ${AccessSources})
 
 FILE(GLOB IdxSources
-	include/Visus/Idx*.h src/Idx*.cpp   
-	src/LogicSamples.cpp )
+	include/Visus/Idx*.h src/Idx*.cpp )
 source_group("Idx" FILES ${IdxSources})
 
 file(GLOB Sources include/Visus/*.h src/*.cpp)

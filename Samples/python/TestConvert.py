@@ -27,65 +27,58 @@ def SaveImage(url, image):
 class MyTestCase(unittest.TestCase):
 	
 	def testCreateEmpty3dDataset(self):
-		url="tmp/empty3d.idx"
 		dtype="uint8[3]"
 		width,height,depth=1025,512,256
 		field=Field("data",dtype,"row_major")
-		CreateIdx(url=url,dims=[width,height,depth],fields=[field])
+		db=CreateIdx(url='tmp/test_convert/visus.idx', rmtree=True, dims=[width,height,depth],fields=[field])
 
 	def testCreate2dDatasetFromNumPy(self):
-		url="tmp/data2d_from_numpy.idx"
 		data=numpy.asarray(Image.open('datasets/cat/rgb.png'))
-		CreateIdx(url=url, dim=2,data=data)
+		db=CreateIdx(url='tmp/test_convert/visus.idx', rmtree=True, dim=2,data=data)
 		
 	def testCreate3dDatasetFromNumPy(self):
-		url="tmp/data3d_from_numpy.idx"
 		data=numpy.zeros((100,100,100,3),dtype=numpy.float32) # depth,height,width,nchannels
-		CreateIdx(url=url, dim=3, data=data)
+		db=CreateIdx(url='tmp/test_convert/visus.idx', rmtree=True, dim=3, data=data)
 		
 	def testCreate3dDatasetFromSlices(self):
-			url="tmp/data3d_from_slices.idx"
-			width, height,depth=256,256,10
-			fields=[Field("data","uint8[3]","row_major")]
-			CreateIdx(url=url,dims=[width,height,depth],fields=fields)
-			db=PyDataset(url)
+		width, height,depth=256,256,10
+		fields=[Field("data","uint8[3]","row_major")]
+		db=CreateIdx(url='tmp/test_convert/visus.idx',rmtree=True, dims=[width,height,depth],fields=fields)
 
-			cat=numpy.asarray(Image.open('datasets/cat/rgb.png'))
+		rgb=numpy.asarray(Image.open('datasets/cat/rgb.png'))
 
-			def generateSlices():
-				for I in range(depth): 
-					yield cat
+		def generateSlices():
+			for I in range(depth): 
+				yield rgb
 
-			db.writeSlabs(generateSlices(),z=0,max_memsize=4*1024*1024*1024)
+		db.writeSlabs(generateSlices(),z=0,max_memsize=4*1024*1024*1024)
 			
-			# read a slice in the middle
-			middle=int(depth/2)
-			check=db.read(z=[middle, middle+1])
-			Assert((cat==check).all())
+		# read a slice in the middle
+		middle=int(depth/2)
+		check=db.read(z=[middle, middle+1])
+		Assert((rgb==check).all())
 	
 	def testCreate3dDatasetAndReadStuff(self):
 		
 		width,height,depth=256,256,100
 		
-		url="tmp/create3d_and_read_stuff.idx"
 		field=Field("data","uint8[3]","row_major")
-		CreateIdx(url=url,dims=[width,height,depth],fields=[field])
-		
-		db=PyDataset(url)
+		db=CreateIdx(url='tmp/test_convert/visus.idx', rmtree=True, dims=[width,height,depth],fields=[field])
 		print(db.getDatasetBody().toString())
 			
 		# write first slice at offset z=0
-		cat=numpy.asarray(Image.open('datasets/cat/rgb.png'))
-		db.write(cat,z=0)
+		rgb=numpy.asarray(Image.open('datasets/cat/rgb.png'))
+		db.write(rgb,z=0)
 		
 		# read back slice at z=0
 		check=db.read(z=[0,1])
-		Assert((cat==check).all())
+		Assert((rgb==check).all())
 		
 		# read slice at z=0 with 3 refinements (coarse to fine)
 		for I,data in enumerate(db.read(z=[0,1],num_refinements=3)):
 			level=data[0,:,:]
-			Assert(I<2 or (cat==level).all())
+			Assert(I<2 or (rgb==level).all())
+			
 
 
 # ///////////////////////////////////////////////////////////

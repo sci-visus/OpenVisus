@@ -30,39 +30,19 @@ def GenerateRandomData(dims, dtype):
 		
 	return ret	
 
-
-# /////////////////////////////////////////////////////
-def CreateHugeRandomFile(filename, totsize=0,writesize=1024*1024*1024):
-	if os.path.exists(filename): os.remove(filename)
-	file=File()
-	Assert(file.createAndOpen(filename, "w"))
-	cursor=0
-	print("Creating fullres file",filename,"...")
-	while cursor<totsize:
-		nwrite=min(writesize,totsize-cursor)
-		print(cursor,totsize)
-		buffer=np.zeros(nwrite,numpy.uint8)
-		buffer[0:int(nwrite/2)]=np.random.randint(0, 256, int(nwrite/2),dtype=numpy.uint8)
-		array=Array.fromNumPy(buffer, bShareMem=True)
-		Assert(file.write(cursor, writesize, array.c_ptr()))
-		cursor+=nwrite
-	file.close()
-	del file
-	print("Created fullres file",filename)
-
 # /////////////////////////////////////////////////////
 def ReadFileSequentially(filename):
 	file=File()
 	Assert(file.open(filename, "r"))
 	cursor=0
-	array=Array(1024*1024*1024, DType.fromString("uint8")) 
+	array=Array(1* GB, DType.fromString("uint8")) 
 	try:
 		while True:
 			if not file.read(cursor,array.c_size(),array.c_ptr()):
 				cursor=0
 			else:
 				cursor+=array.c_size()
-			yield (array,array.c_size())
+				yield array.c_size()
 	except GeneratorExit:
 		pass
 	file.close()
@@ -70,16 +50,16 @@ def ReadFileSequentially(filename):
 
 # /////////////////////////////////////////////////////
 def ReadFullResBlocks(filename, blocksize=0):
-	totsize=os.path.getsize(filename)
-	nblocks=int(totsize/blocksize)
 	file=File()
 	Assert(file.open(filename, "r"))
-	array=Array(blocksize, DType.fromString("uint8"))
+	totsize=os.path.getsize(filename)
+	nblocks=totsize/blocksize
 	try:
 		while True:
+			array=Array(blocksize, DType.fromString("uint8"))
 			blockid=np.random.randint(0,nblocks)
 			file.read(blockid * blocksize,array.c_size(),array.c_ptr())
-			yield (array,array.c_size())
+			yield array.c_size()
 	except GeneratorExit:
 		pass
 	file.close()
@@ -99,8 +79,7 @@ def CreateIdxDataset(filename, DIMS=None, dtype=None, blocksize=0, default_layou
 	field.default_layout=default_layout
 	field.default_compression=default_compression
 	
-	CreateIdx(
-		url=filename,
+	CreateIdx(url=filename, rmtree=True, 
 		dims=DIMS,
 		fields=[field], 
 		bitsperblock=bitsperblock, 
@@ -115,8 +94,8 @@ def CreateIdxDataset(filename, DIMS=None, dtype=None, blocksize=0, default_layou
 	access.disableWriteLock()
 	
 	access.beginWrite()
-	for block_id in range(db.getTotalNumberOfBlocks()):
-		write_block = BlockQuery(db, db.getDefaultField(), db.getDefaultTime(), access.getStartAddress(block_id), access.getEndAddress(block_id), ord('w'), Aborted())
+	for blockid in range(db.getTotalNumberOfBlocks()):
+		write_block = db.createBlockQuery(blockid, ord('w'), Aborted())
 		nsamples=write_block.getNumberOfSamples().toVector()
 		buffer=GenerateRandomData(nsamples,dtype)
 		write_block.buffer=Array.fromNumPy(buffer, bShareMem=True)
@@ -129,17 +108,18 @@ def CreateIdxDataset(filename, DIMS=None, dtype=None, blocksize=0, default_layou
 
 # ////////////////////////////////////////////////////////////////
 def ReadIdxBlockQuery(filename):
-	db=PyDataset(filename)
+	db=LoadDataset(filename)
 	access = IdxDiskAccess.create(db)
 	access.disableAsync()
 	access.beginRead()
 	nblocks=db.getTotalNumberOfBlocks()
 	try:
 		while True:
-			block_id=np.random.randint(0,nblocks)
-			data=db.readBlock(block_id, access=access)
-			Assert(data is not None)
-			yield (data,data.nbytes)
+			blockid=np.random.randint(0,nblocks)
+			query = db.createBlockQuery(blockid)
+			db.executeBlockQuery(access, query)
+			Assert(query.ok())
+			yield query.buffer.c_size()
 	except GeneratorExit:
 		pass
 	access.endRead()
@@ -147,12 +127,12 @@ def ReadIdxBlockQuery(filename):
 
 # ////////////////////////////////////////////////////////////////
 def ReadIdxBoxQuery(filename, dims):
-	db=PyDataset(filename)
+	db=LoadDataset(filename)
 	DIMS=db.getLogicSize()
 	access = IdxDiskAccess.create(db)
 	access.disableAsync()
 	access.beginRead()
-	samplesize=db.getDefaultField().dtype.getByteSize()
+	samplesize=db.getField().dtype.getByteSize()
 	try:
 		while True:
 			x=np.random.randint(0,DIMS[0]/dims[0])*dims[0]
@@ -163,7 +143,7 @@ def ReadIdxBoxQuery(filename, dims):
 			Assert(data.nbytes==dims[0]*dims[1]*dims[2]*samplesize)
 			N=BlockQuery.global_stats().getNumRead()
 			# print(N)
-			yield (data,data.nbytes)
+			yield data.nbytes
 	except GeneratorExit:
 		pass
 	access.endRead()
@@ -171,16 +151,16 @@ def ReadIdxBoxQuery(filename, dims):
 
 # ////////////////////////////////////////////////////////////////
 def TimeIt(name, gen, max_seconds=60):
-	data, needed=next(gen) # skip any headers (open/close file)
-	NEEDED, DISK, DONE, T1=0,0,0,Time.now()
+	user=next(gen) # skip any headers (open/close file)
+	USER, DISK, NCALLS, T1=0,0,0,Time.now()
 	while T1.elapsedSec()<max_seconds:
 		File.global_stats().resetStats()
-		data, needed=next(gen)
-		NEEDED+=needed
+		user=next(gen)
+		USER+=user
 		DISK+=File.global_stats().getReadBytes()
-		DONE+=1
+		NCALLS+=1
 	SEC=T1.elapsedSec()
-	print(name,"{:0.2f}".format(NEEDED/(SEC*MB)),"\t{:0.2f}".format(DISK/(SEC*MB)),"\t{:0.2f}".format(DISK/NEEDED))
+	print(name,"{:0.2f}".format(USER/(SEC*MB)),"\t{:0.2f}".format(DISK/(SEC*MB)),"\t{:0.2f}".format(DISK/USER),"NCALLS",NCALLS)
 
 # ////////////////////////////////////////////////////////////////
 def Main():
@@ -194,39 +174,17 @@ def Main():
 	DIMS=(4096,4096,8192)
 	print("db size",DIMS[0]*DIMS[1]*DIMS[2]/GB,"GB")
 	
-	for dir in ["C:/tmp/test_speed", "D:/tmp/test_speed"]:
-		
-		try:
-			shutil.rmtree(dir)
-		except:
-			pass
-			
-		if True:
-		
-			filename=dir+"/fullres.bin"
-			CreateHugeRandomFile(filename,totsize=DIMS[0]*DIMS[1]*DIMS[2]) 
-			
-			TimeIt(filename+"-read-file-seq",  ReadFileSequentially(filename))
-			
-			for blocksize in (128,64,32,16,8,4):
-				TimeIt(filename+"-{:03d}k".format(blocksize), ReadFullResBlocks(filename, blocksize=blocksize*KB))
-				
-			RemoveFiles(filename+"*")
-			
-		if True:
-	
-			for blocksize in (128,64,32,16,8,4):
-				
-				filename=dir + "/{:03d}k.idx".format(blocksize)
-				CreateIdxDataset(filename, DIMS=DIMS, dtype="uint8", blocksize=blocksize*KB)
-				
-				TimeIt(filename+"-BlockQuery", ReadIdxBlockQuery(filename))
-				
-				# 128k...4k
-				for dims in [(32,64,64), (32,32,64), (32,32,32), (16,32,32), (16,16,32), (16,16,16)]:
-					TimeIt(filename+"-BoxQuery{:03d}k".format(int(dims[0]*dims[1]*dims[2]/1024)),  ReadIdxBoxQuery(filename, dims))
+	for blocksize in (128, 64, 32, 16, 8):
+		filename=dir + "C:/tmp/test_speed/{:03d}k.idx".format(blocksize)
 
-				RemoveFiles(filename+"*")
+		CreateIdxDataset(filename, rmtree=True, DIMS=DIMS, dtype="uint8", blocksize=blocksize*KB)
+		TimeIt(filename+"-read-file-seq",  ReadFileSequentially(filename+".bin"))
+		TimeIt(filename+"-{:03d}k".format(blocksize), ReadFullResBlocks(filename+".bin", blocksize=blocksize*KB))
+		TimeIt(filename+"-BlockQuery", ReadIdxBlockQuery(filename))
+
+		for dims in [(32,64,64), (32,32,64), (32,32,32), (16,32,32), (16,16,32)]: # 128k...8k
+			TimeIt(filename+"-BoxQuery{:03d}k".format(int(dims[0]*dims[1]*dims[2]/1024)),  ReadIdxBoxQuery(filename, dims))
+
 
 	print("all done")
 	sys.exit(0)

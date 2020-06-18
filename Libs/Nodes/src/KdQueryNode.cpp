@@ -39,10 +39,11 @@ For support : support@visus.net
 
 #include <Visus/KdQueryNode.h>
 #include <Visus/GoogleMapsDataset.h>
-#include <Visus/DatasetFilter.h>
 #include <Visus/NetService.h>
 #include <Visus/FieldNode.h>
 #include <Visus/StringTree.h>
+#include <Visus/IdxDataset.h>
+#include <Visus/IdxFilter.h>
 
 namespace Visus {
 
@@ -118,12 +119,11 @@ public:
         bitsperblock;
 
     //I use a box query to get the data
-    auto query=std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
-    query->logic_box=pow2_box;
+    auto query=dataset->createBoxQuery(pow2_box, field, time,'r', this->aborted);
     query->setResolutionRange(0,end_resolution);
-    dataset->beginQuery(query);
+    dataset->beginBoxQuery(query);
 
-    if (!dataset->executeQuery(access,query))
+    if (!dataset->executeBoxQuery(access,query))
       return false;
 
     auto fullres     = query->buffer;
@@ -133,15 +133,17 @@ public:
     // otherwise is probably a kdquery=block with a remote url, the server will apply the filter
     if (access)
     {
-      if (auto filter=dataset->createFilter(field))
+      if (auto idx = std::dynamic_pointer_cast<IdxDataset>(dataset))
       {
-        for (int H = 0; H <= end_resolution; H++)
+        if (auto filter = idx->createFilter(field))
         {
-          query->setCurrentResolution(H);
-          if (!filter->computeFilter(query.get(),true))
-            return false;
+          for (int H = 0; H <= end_resolution; H++)
+          {
+            query->setCurrentResolution(H);
+            filter->internalComputeFilter(query.get(), /*bInverse*/true);
+          }
+          displaydata = filter->dropExtraComponentIfExists(fullres);
         }
-        displaydata = filter->dropExtraComponentIfExists(fullres);
       }
     }
 
@@ -189,14 +191,13 @@ public:
         if (!node->up->fullres || !node->blockdata)
           return;
 
-        auto query = std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
-        query->logic_box = node->logic_box;
-        query->setResolutionRange(0,node->resolution);
+        auto query = dataset->createBoxQuery(node->logic_box, field, time, 'r', this->aborted);
+        query->setResolutionRange(0, node->resolution);
 
         if (aborted())
           return;
 
-        dataset->beginQuery(query);
+        dataset->beginBoxQuery(query);
 
         if (!query->isRunning())
           return;
@@ -207,7 +208,7 @@ public:
         bool bLeftChild = node->up->left.get() == node ? true : false;
 
         auto fullres = bLeftChild ?
-          ArrayUtils::splitAndGetFirst (node->up->fullres, splitbit, aborted) :
+          ArrayUtils::splitAndGetFirst(node->up->fullres, splitbit, aborted) :
           ArrayUtils::splitAndGetSecond(node->up->fullres, splitbit, aborted);
 
         if (aborted() || !fullres)
@@ -225,11 +226,11 @@ public:
         VisusAssert(fullres.dims == query->getNumberOfSamples());
         query->buffer = fullres;
 
-        auto blockquery = std::make_shared<BlockQuery>(dataset.get(), field, time, getStartAddress(node), getEndAddress(node), 'r', Aborted());
+        auto blockquery = dataset->createBlockQuery(getBlockId(node), field, time, 'r', Aborted());
         VisusAssert(blockquery->getNumberOfSamples() == node->blockdata.dims);
         blockquery->buffer = node->blockdata;
 
-        if (aborted() || !dataset->mergeBoxQueryWithBlock(query, blockquery))
+        if (aborted() || !dataset->mergeBoxQueryWithBlockQuery(query, blockquery))
           return;
 
         fullres = query->buffer;
@@ -237,12 +238,20 @@ public:
         //this is the latest resolution! needed also for filter->applyToQuery!
         query->setCurrentResolution(node->resolution);
 
-        //need to apply the filter, from now on I can display the data
-        auto filter = dataset->createFilter(field);
-        if (aborted() || (filter && !filter->computeFilter(query.get(), true)))
+        if (aborted())
           return;
 
-        auto displaydata = filter ? filter->dropExtraComponentIfExists(fullres) : fullres;
+        Array displaydata= fullres;
+
+        //need to apply the filter, from now on I can display the data
+        if (auto idx = std::dynamic_pointer_cast<IdxDataset>(dataset))
+        {
+          if (auto filter = idx->createFilter(field))
+          {
+            filter->internalComputeFilter(query.get(), /*bInverse*/true);
+            displaydata = filter->dropExtraComponentIfExists(fullres);
+          }
+        }
 
         //store the results
         {
@@ -260,16 +269,10 @@ public:
     computeFullRes(node->right.get(), rlock);
   }
 
-  //getStartAddress
-  BigInt getStartAddress(KdArrayNode* node) 
+  //getBlockId
+  BigInt getBlockId(KdArrayNode* node) 
   {
-    auto blocknum = BigInt(bBlocksAreFullRes ? node->id - 1 : node->id); //IF !bBlocksAreFullRes node->id is the block number (considering that root has blocks 0 and 1)
-    return blocknum << bitsperblock;
-  }
-
-  //getStartAddress
-  BigInt getEndAddress(KdArrayNode* node) {
-    return getStartAddress(node) + (BigInt(1)<<bitsperblock);
+    return BigInt(bBlocksAreFullRes ? node->id - 1 : node->id); //IF !bBlocksAreFullRes node->id is the block number (considering that root has blocks 0 and 1)
   }
 
   //isLeafNode
@@ -307,10 +310,9 @@ public:
     //TODO: can I do better then this to compute number of samples?
     PointNi nsamples;
     {
-      auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r');
-      query->logic_box = node->logic_box;
+      auto query = dataset->createBoxQuery(node->logic_box, field, time, 'r');
       query->setResolutionRange(0, node->resolution);
-      dataset->beginQuery(query);
+      dataset->beginBoxQuery(query);
       nsamples = query->getNumberOfSamples();
       nsamples.setPointDim(3, 1);
     }
@@ -396,8 +398,9 @@ public:
         continue;
 
       //retrieve the block data
-      auto blockquery = std::make_shared<BlockQuery>(dataset.get(), field, time, getStartAddress(node), getEndAddress(node), 'r', this->aborted);
-      wait_async.pushRunning(dataset->executeBlockQuery(access, blockquery)).when_ready([this, blockquery, node, &rlock](Void) {
+      auto blockquery = dataset->createBlockQuery(getBlockId(node), field, time, 'r', this->aborted);
+      dataset->executeBlockQuery(access, blockquery);
+      wait_async.pushRunning(blockquery->done).when_ready([this, blockquery, node, &rlock](Void) {
 
         if (aborted() || blockquery->failed())
           return;
@@ -499,11 +502,10 @@ public:
       if (!isLeafNode(node))
         continue;
 
-      auto query = std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
-      query->logic_box = node->logic_box;
+      auto query = dataset->createBoxQuery(node->logic_box, field, time,'r', this->aborted);
       query->setResolutionRange(0, node->resolution);
 
-      dataset->beginQuery(query);
+      dataset->beginBoxQuery(query);
 
       if (!query->isRunning() || !query->allocateBufferIfNeeded())
         continue;
@@ -537,7 +539,7 @@ public:
       }
 
       //execute in place (TODO: use thread here?)
-      else if (dataset->executeQuery(access, query))
+      else if (dataset->executeBoxQuery(access, query))
       {
         {
           ScopedWriteLock wlock(rlock);
@@ -627,7 +629,7 @@ bool KdQueryNode::processInput()
   if (!dataset->getTimesteps().containsTimestep(time))
     return false;
 
-  auto field = fieldname.empty() ? dataset->getDefaultField() : dataset->getField(fieldname);
+  auto field = fieldname.empty() ? dataset->getField() : dataset->getField(fieldname);
   if (!field.valid())
     return false;
 

@@ -38,12 +38,13 @@ For support : support@visus.net
 
 #include <Visus/ModVisus.h>
 #include <Visus/Dataset.h>
-#include <Visus/DatasetFilter.h>
 #include <Visus/File.h>
 #include <Visus/TransferFunction.h>
 #include <Visus/NetService.h>
 #include <Visus/StringTree.h>
 #include <Visus/IdxDataset.h>
+#include <Visus/IdxMultipleDataset.h>
+#include <Visus/IdxFilter.h>
 #include <Visus/IdxMultipleDataset.h>
 
 namespace Visus {
@@ -123,8 +124,11 @@ private:
     dst.addChild(public_dataset);
 
     //automatically add the childs of a multiple datasets
-    for (auto it : dataset->getInnerDatasets())
-      ret += addPublicDataset(public_dataset, name + "/" + it.first, it.second);
+    if (auto midx=std::dynamic_pointer_cast<IdxMultipleDataset>(dataset))
+    {
+      for (auto it : midx->down_datasets)
+        ret += addPublicDataset(public_dataset, name + "/" + it.first, it.second);
+    }
 
     return ret;
   }
@@ -368,14 +372,14 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
 
   NetResponse response(HttpStatus::STATUS_OK);
   response.setHeader("visus-git-revision", OpenVisus_GIT_REVISION);
-  response.setHeader("visus-typename", dataset->getTypeName());
+  response.setHeader("visus-typename", dataset->getDatasetTypeName());
 
   auto body = dataset->getDatasetBody();
 
   //backward compatible
   bool bPreferOldIdxFormat = true;
 
-  if (dataset->getTypeName()=="IdxDataset" && bPreferOldIdxFormat)
+  if (dataset->getDatasetTypeName()=="IdxDataset" && bPreferOldIdxFormat)
   {
     auto idxfile = std::dynamic_pointer_cast<IdxDataset>(dataset)->idxfile;
     String content=idxfile.writeToOldFormat();
@@ -471,19 +475,28 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
 
   String compression = request.url.getParam("compression");
-  String fieldname = request.url.getParam("field", dataset->getDefaultField().name);
-  double time = cdouble(request.url.getParam("time", cstring(dataset->getDefaultTime())));
+  String fieldname = request.url.getParam("field", dataset->getField().name);
+  double time = cdouble(request.url.getParam("time", cstring(dataset->getTime())));
 
-  std::vector<BigInt> start_address; for (auto it : StringUtils::split(request.url.getParam("from", "0"))) start_address.push_back(cbigint(it));
-  std::vector<BigInt> end_address; for (auto it : StringUtils::split(request.url.getParam("to", "0"))) end_address.push_back(cbigint(it));
+  auto bitsperblock = dataset->getDefaultBitsPerBlock();
 
-  if (start_address.empty())
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "start_address.empty()");
+  std::vector<BigInt> blocks;
 
-  if (start_address.size() != end_address.size())
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "start_address.size()!=end_address.size()");
+  if (request.url.hasParam("block"))
+  {
+    for (auto it : StringUtils::split(request.url.getParam("block", "0")))
+      blocks.push_back(cbigint(it));
+  }
+  else if (request.url.hasParam("from"))
+  {
+    for (auto it : StringUtils::split(request.url.getParam("from", "0")))
+      blocks.push_back(cbigint(it)>>bitsperblock);
+  }
 
-  Field field = fieldname.empty() ? dataset->getDefaultField() : dataset->getField(fieldname);
+  if (blocks.empty())
+    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "blocks empty()");
+
+  Field field = fieldname.empty() ? dataset->getField() : dataset->getField(fieldname);
   if (!field.valid())
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find field(" + fieldname + ")");
 
@@ -496,10 +509,11 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
   Aborted aborted;
 
   std::vector<NetResponse> responses;
-  for (int I = 0; I < (int)start_address.size(); I++)
+  for (auto blockid : blocks)
   {
-    auto block_query = std::make_shared<BlockQuery>(dataset.get(), field, time, start_address[I], end_address[I], 'r', aborted);
-    wait_async.pushRunning(dataset->executeBlockQuery(access, block_query)).when_ready([block_query, &responses, dataset, compression](Void) {
+    auto block_query = dataset->createBlockQuery(blockid, field, time, 'r', aborted);
+    dataset->executeBlockQuery(access, block_query);
+    wait_async.pushRunning(block_query->done).when_ready([block_query, &responses, dataset, compression](Void) {
 
       if (block_query->failed())
       {
@@ -548,7 +562,7 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
   int pdim = dataset->getPointDim();
 
   String fieldname = request.url.getParam("field");
-  Field field = fieldname.empty() ? dataset->getDefaultField() : dataset->getField(fieldname);
+  Field field = fieldname.empty() ? dataset->getField() : dataset->getField(fieldname);
   if (!field.valid())
     return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Cannot find fieldname(" + fieldname + ")");
 
@@ -559,7 +573,8 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
   bool   bDisableFilters = cbool(request.url.getParam("disable_filters"));
   bool   bKdBoxQuery = request.url.getParam("kdquery") == "box";
 
-  auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r', Aborted());
+  auto logic_box = BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box"));;
+  auto query = dataset->createBoxQuery(logic_box, field, time, 'r', Aborted());
   query->setResolutionRange(fromh, endh);
 
   //I apply the filter on server side only for the first coarse query (more data need to be processed on client side)
@@ -573,16 +588,14 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
     query->disableFilters();
   }
 
-  query->logic_box = BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box"));
-
-  dataset->beginQuery(query);
+  dataset->beginBoxQuery(query);
 
   if (!query->isRunning())
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginBoxQuery() failed " + query->errormsg);
 
   auto access = dataset->createAccess();
-  if (!dataset->executeQuery(access, query))
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeQuery() failed " + query->getLastErrorMsg());
+  if (!dataset->executeBoxQuery(access, query))
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeBoxQuery() failed " + query->errormsg);
 
   buffer = query->buffer;
 
@@ -654,7 +667,7 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
   int pdim = dataset->getPointDim();
 
   String fieldname = request.url.getParam("field");
-  Field field = fieldname.empty() ? dataset->getDefaultField() : dataset->getField(fieldname);
+  Field field = fieldname.empty() ? dataset->getField() : dataset->getField(fieldname);
   if (!field.valid())
     return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Cannot find fieldname(" + fieldname + ")");
 
@@ -666,25 +679,26 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
   VisusAssert(nsamples.getPointDim() == 3);
 
   VisusAssert(fromh == 0);
-  auto query = std::make_shared<PointQuery>(dataset.get(), field, time, 'r', Aborted());
-  query->end_resolution = endh;
 
-  query->logic_position = Position(
-    Matrix::fromString(4, request.url.getParam("matrix")), 
+  auto logic_position = Position(
+    Matrix::fromString(4, request.url.getParam("matrix")),
     BoxNd::fromString(request.url.getParam("box"),/*bInterleave*/false).withPointDim(3));
 
+  auto query = dataset->createPointQuery(logic_position, field, time);
+  query->end_resolution = endh;
+
   if (!query->setPoints(nsamples))
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->setPoints failed " + query->getLastErrorMsg());
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->setPoints failed " + query->errormsg);
 
   auto access = dataset->createAccess();
 
-  dataset->beginQuery(query);
+  dataset->beginPointQuery(query);
 
   if (!query->isRunning())
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginBoxQuery() failed " + query->errormsg);
 
-  if (!dataset->executeQuery(access, query))
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeQuery() failed " + query->getLastErrorMsg());
+  if (!dataset->executePointQuery(access, query))
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeBoxQuery() failed " + query->errormsg);
 
   buffer = query->buffer;
 

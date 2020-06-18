@@ -7,8 +7,8 @@ from OpenVisus import *
 class TextXIdx(unittest.TestCase):
 
 	def testXIdx(self):
-		self.filename="temp/test.xidx"
-		self.verify_filename="temp/verify.xidx"
+		self.filename="tmp/debug_xidx/test.xidx"
+		self.verify_filename="tmp/debug_xidx/verify.xidx"
 		self.WriteXIdx()
 		self.ReadXIdx()
 		self.VerifyXIdx()
@@ -19,7 +19,7 @@ class TextXIdx(unittest.TestCase):
 
 		# create metadata file
 		meta = XIdxFile()
-	 
+
 		# create time group
 		time_group = Group("TimeSeries", GroupType(GroupType.TEMPORAL_GROUP_TYPE))
 

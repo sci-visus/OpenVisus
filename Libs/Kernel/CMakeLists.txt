@@ -24,7 +24,6 @@ source_group("Core" FILES
 	include/Visus/Time.h src/Time.cpp
 	include/Visus/Url.h src/Url.cpp
 	include/Visus/Utils.h src/Utils.cpp
-	include/Visus/UUID.h src/UUID.cpp
 	include/Visus/SharedLibrary.h src/SharedLibrary.cpp
 	include/Visus/json.hpp)
 
@@ -100,8 +99,8 @@ IF (WIN32 OR APPLE)
 endif()
 
 if (VISUS_SLAM)
-	file(GLOB SlamCppSources ../slamcpp/*.h ../slamcpp/*.cpp)
-	source_group("slamcpp" FILES ${SlamCppSources})
+	file(GLOB SlamSources ../slamcpp/*.h ../slamcpp/*.cpp ../slampy/*.py)
+	source_group("slam" FILES ${SlamSources})
 endif()
 
 file(GLOB cryptlite_Sources src/cryptlite/*.h src/cryptlite/*.c)
@@ -135,12 +134,22 @@ function(AssignSourceGroup GroupName StartDir)
 	endforeach()
 endfunction()
 
-file(GLOB SamplesSources ${CMAKE_SOURCE_DIR}/Samples/jupyter/*.ipynb ${CMAKE_SOURCE_DIR}/Samples/python/*.py ${CMAKE_SOURCE_DIR}/Samples/python/CloudStorage/*.py) 
-AssignSourceGroup(Samples ${CMAKE_SOURCE_DIR} ${SamplesSources})
+file(GLOB SamplesSources 
+	${CMAKE_SOURCE_DIR}/README.md
+	${CMAKE_SOURCE_DIR}/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/OpenVisusConfig.cmake
+	${CMAKE_SOURCE_DIR}/.github/workflows/BuildOpenVisus.yml
+	${CMAKE_SOURCE_DIR}/Libs/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/*.ipynb 
+	${CMAKE_SOURCE_DIR}/Samples/jupyter/*.ipynb 
+	${CMAKE_SOURCE_DIR}/Samples/python/*.py 
+	${CMAKE_SOURCE_DIR}/Samples/python/CloudStorage/*.py) 
 
-		
+AssignSourceGroup(CMakeSourceDir ${CMAKE_SOURCE_DIR} ${SamplesSources})
+
 file(GLOB Sources 
-	include/Visus/*.*  src/*.hxx src/*.cpp ${MMFiles} ${SlamCppSources}
+	include/Visus/*.*  src/*.hxx src/*.cpp ${MMFiles} 
+	${SlamSources} 
 	${SamplesSources}
 	${cryptlite_Sources} 
 	${dtl_Sources} 
@@ -169,15 +178,18 @@ target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../..
 
 if (VISUS_NET)
 	target_compile_options(VisusKernel PRIVATE -DVISUS_NET=1)
-	target_link_libraries(VisusKernel PRIVATE curl)
+	target_link_libraries(VisusKernel  PRIVATE curl)
 endif()
 
 if (VISUS_IMAGE)
 	target_compile_options(VisusKernel PRIVATE -DVISUS_IMAGE=1)
-	target_link_libraries(VisusKernel PRIVATE FreeImage)
+	target_link_libraries(VisusKernel  PRIVATE FreeImage)
 endif()
 
-# set git revision
+target_compile_definitions(VisusKernel  PRIVATE VISUS_BUILDING_VISUSKERNEL=1)
+target_include_directories(VisusKernel  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+
+# -DGIT_REVISION
 find_package(Git)
 if(GIT_FOUND)
 	execute_process(
@@ -190,40 +202,23 @@ if(GIT_FOUND)
 	endif()
 endif()
 
+# link libraries
 if(WIN32)
 	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
-
 elseif(APPLE)
 	target_link_libraries(VisusKernel PUBLIC "-framework CoreFoundation" "-framework Foundation")
-	# fixes problem of "_objc_readClassPair" missing
-	set_target_properties(VisusKernel PROPERTIES XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME "NO")
-		
+	set_target_properties(VisusKernel PROPERTIES XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME "NO") # fixes problem of "_objc_readClassPair" missing
 else()
-	# uuid support
-  include(CheckIncludeFiles)
-  unset(HAS_UUID_H)
-  check_include_files(uuid/uuid.h HAS_UUID_H)
-  if (HAS_UUID_H)
-    target_compile_options(VisusKernel PRIVATE -DHAS_UUID_H=1)
-   else()
-    target_compile_options(VisusKernel PRIVATE -DHAS_UUID_H=0)
-  endif()
-
-	target_link_libraries(VisusKernel PUBLIC dl rt util)
-	if (HAS_UUID_H)
-		target_link_libraries(VisusKernel PUBLIC uuid)
-	endif()
-	target_link_libraries(VisusKernel PUBLIC  pthread)
+	target_link_libraries(VisusKernel PUBLIC dl rt util pthread)
 endif()
 
-target_compile_definitions(VisusKernel  PRIVATE VISUS_BUILDING_VISUSKERNEL=1)
-target_include_directories(VisusKernel  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-
+# slam if enabled
 if (VISUS_SLAM)
 	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp)
 	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp/ExternalLibs/eigen)
 	target_include_directories(VisusKernel PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp/ExternalLibs/g2o)
 	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../slamcpp/ExternalLibs ${CMAKE_BINARY_DIR}/slamcpp/ExternalLibs)
-	target_link_libraries(VisusKernel PRIVATE g2o_core  g2o_solver_eigen  g2o_stuff g2o_types_data g2o_types_icp 
+	target_link_libraries(VisusKernel PRIVATE 
+		g2o_core  g2o_solver_eigen  g2o_stuff g2o_types_data g2o_types_icp 
 		g2o_types_sba g2o_types_sclam2d g2o_types_sim3 g2o_types_slam2d g2o_types_slam2d_addons g2o_types_slam3d g2o_types_slam3d_addons)
 endif()

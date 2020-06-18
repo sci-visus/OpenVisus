@@ -39,7 +39,6 @@ For support : support@visus.net
 #include <Visus/VisusConvert.h>
 #include <Visus/Access.h>
 #include <Visus/IdxFile.h>
-#include <Visus/DatasetFilter.h>
 #include <Visus/CloudStorage.h>
 #include <Visus/IdxDataset.h>
 #include <Visus/File.h>
@@ -75,7 +74,6 @@ public:
 };
 
 namespace Private {
-
 
 ///////////////////////////////////////////////////////////
 class CreateIdx : public VisusConvert::Step
@@ -159,60 +157,17 @@ public:
 
     idxfile.save(filename);
 
-    //no need to write data
-    if (!data)
-      return data;
-
-    //try to write data
-    auto dataset = LoadIdxDataset(filename);
-
-    //write all data to RAM
-    auto ram_access = dataset->createRamAccess(/* no memory limit*/0);
-    ram_access->bDisableWriteLocks = true; //only one process is writing in sync
-    if (!dataset->writeFullResolutionData(ram_access, dataset->getDefaultField(), dataset->getDefaultTime(), data))
-      ThrowException("Failed to write full res data");
-
-    for (auto& field : dataset->getFields())
-      field.default_compression = "zip";
-
-    dataset->idxfile.save(filename);
-
-    //read all data from RAM and write to DISK
-    //for each timestep...
-    for (auto time : dataset->getTimesteps().asVector())
+    if (data)
     {
-      //for each field...
-      for (auto& field : dataset->getFields())
-      {
-        auto r_access = ram_access;
-        auto w_access = dataset->createAccess();
-
-        r_access->beginRead();
-        w_access->beginWrite();
-
-        for (BigInt blockid = 0, TotBlocks = dataset->getTotalNumberOfBlocks(); blockid < TotBlocks; blockid++)
-        {
-          auto hz1 = w_access->getStartAddress(blockid);
-          auto hz2 = w_access->getEndAddress(blockid);
-          auto read_block = std::make_shared<BlockQuery>(dataset.get(), field, time, hz1, hz2, 'r', Aborted());
-          if (dataset->executeBlockQueryAndWait(r_access, read_block))
-          {
-            auto write_block = std::make_shared<BlockQuery>(dataset.get(), field, time, hz1, hz2, 'w', Aborted());
-            write_block->buffer = read_block->buffer;
-            if (!dataset->executeBlockQueryAndWait(w_access, write_block))
-              ThrowException("Failed to write block");
-          }
-        }
-
-        r_access->endRead();
-        w_access->endWrite();
-      }
+      auto db = LoadIdxDataset(filename);
+      db->compressDataset({ "zip" }, data);
     }
 
     return data;
   }
 
 };
+
 
 ///////////////////////////////////////////////////////////
 class Zeros : public VisusConvert::Step

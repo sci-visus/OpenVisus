@@ -45,24 +45,26 @@ def TestFilters(img_filename, filter):
 	# this is the original image
 	noise=OpenImage(img_filename)
 
+	temp_dir="tmp/test_minmax"
+
 	# create source dataset for comparison purpouse
-	src_db=CreateIdx(url="tmp/src.idx", dim=2, data=noise)
-	SaveImage("tmp/src.full.tif", src_db.read())
+	src_db=CreateIdx(url=temp_dir + '/src_db/visus.idx', rmtree=True, dim=2, data=noise)
+	SaveImage(temp_dir + "/src.full.tif", src_db.read())
 
 	# read data coarse to fine
 	num_refinements=5
 	src_levels=[it for it in src_db.read(num_refinements=num_refinements)]
 	for I,src in enumerate(src_levels):
-		SaveImage("tmp/src.{0}.{1}.tif".format(filter,I),src)
+		SaveImage(temp_dir + "/src.{0}.{1}.tif".format(filter,I),src)
 
 	# create filter_level dataset
 	# in order to compute filters I need to have 2 channels (i.e. A B C D -> A0 B0 C0 D0 )
-	filter_db=CreateIdx(url="tmp/filter.idx", dim=src_db.getPointDim(), data=AddChannel(noise), filters=[filter])
+	filter_db=CreateIdx(url=temp_dir + '/filter_db/visus.idx', rmtree=True, dim=src_db.getPointDim(), data=AddChannel(noise), filters=[filter])
 	
 	# compute the filter fine to coarse
-	filter_db.computeFilter(filter_db.getDefaultField())
+	filter_db.computeFilter(filter_db.getField(),4096)
 	
-	SaveImage("tmp/{0}.full.tif".format(filter), filter_db.read()[:,:,0])
+	SaveImage(temp_dir + "/{0}.full.tif".format(filter), filter_db.read()[:,:,0])
 
 	# read filtered data 
 	filter_levels=list(filter_db.read(num_refinements=num_refinements))
@@ -71,7 +73,7 @@ def TestFilters(img_filename, filter):
 		
 		# drop second channel (used for coefficients computation)
 		filter_level=filter_level[:,:,0]
-		SaveImage("tmp/reconstructed.{0}.{1}.tif".format(filter,I),filter_level)
+		SaveImage(temp_dir + "/reconstructed.{0}.{1}.tif".format(filter,I),filter_level)
 		
 		# check that the image is reconstructed just fine
 		if filter=="identity" or I==num_refinements-1:
@@ -98,7 +100,7 @@ def TestFilters(img_filename, filter):
 
 	# this is the data without the filter applied (i.e. how it is stored on disk)
 	filter_channels=filter_db.read(disable_filters=True)
-	SaveImage("tmp/disk.{0}.tif".format(filter),filter_channels, bSeparateChannels=True)	
+	SaveImage(temp_dir + "/disk.{0}.tif".format(filter),filter_channels, bSeparateChannels=True)	
 	
 
 

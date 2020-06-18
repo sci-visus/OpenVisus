@@ -1,8 +1,12 @@
 import os,sys
 import numpy 
 import inspect
+import tempfile
+import shutil
+
 
 from OpenVisus import *
+
 
 # //////////////////////////////////////////////////////////
 def CreateIdx(**args):
@@ -12,28 +16,35 @@ def CreateIdx(**args):
 
 	url=args["url"]
 
+	if "rmtree" in args and args["rmtree"]==True:
+		dir=os.path.dirname(url)
+		shutil.rmtree(dir, ignore_errors=True)
+
 	idx=IdxFile()
 		
+	buffer=None
 	if "data" in args:
 		data=args["data"]
 		dim=int(args["dim"])
 		Assert(dim>=2) # you must specify the point dim since it could be that data has multiple components
-		buffer=Array.fromNumPy(data,TargetDim=dim)
+		buffer=Array.fromNumPy(data,TargetDim=dim, bShareMem=True)
 		idx.logic_box=BoxNi(PointNi.zero(dim),PointNi(buffer.dims))
 		N=1 if dim==len(data.shape) else data.shape[-1]
-		idx.fields.push_back(Field.fromString("DATA uint8[{}] default_layout(row_major)".format(N)))
 
-	else:
-		if not "dims" in args:
-			raise Exception("please specify dimensions")
-
+	elif "dims" in args:
 		dims=PointNi(args["dims"])
 		idx.logic_box=BoxNi(PointNi.zero(dims.getPointDim()),dims)
+	else:
+		raise Exception("please specify dimensions or source data")
 
 	# add fields
 	if "fields" in args:
 		for field in  args["fields"]:
 			idx.fields.push_back(field)
+	elif buffer:
+		idx.fields.push_back(Field.fromString("DATA {} default_layout(row_major)".format(buffer.dtype.toString())))
+	else:
+		raise Exception("no field")
 
 	# bitsperblock
 	if "bitsperblock" in args:
@@ -58,10 +69,11 @@ def CreateIdx(**args):
 		idx.filename_template=args["filename_template"]
 
 	idx.save(url)
-	db=PyDataset(url)
+	db=LoadDataset(url)
 
-	if "data" in args:
-		db.write(args["data"])
+	if buffer:
+		compression=args["compression"] if "compression" in args else ["zip"]
+		db.compressDataset(compression, buffer)
 			
 	return db
 
@@ -69,13 +81,8 @@ def CreateIdx(**args):
 class PyDataset(object):
 	
 	# constructor
-	def __init__(self,url):
-		self.db = LoadDataset(url)
-
-	# Create
-	@staticmethod
-	def Create(**args):
-		return CreateIdx(args)
+	def __init__(self,db):
+		self.db = db
 
 	# __getattr__
 	def __getattr__(self,attr):
@@ -128,10 +135,10 @@ class PyDataset(object):
 		return [field.name for field in self.db.getFields()]
 		
 	# getField
-	def getField(self,value):
+	def getField(self,value=None):
 		
 		if value is None:
-			return self.db.getDefaultField()
+			return self.db.getField()
 
 		if isinstance(value,str):
 			return self.db.getField(value)
@@ -145,9 +152,9 @@ class PyDataset(object):
 	# readBlock
 	def readBlock(self, block_id, time=None, field=None, access=None, aborted=Aborted()):
 		Assert(access)
-		field=self.getDefaultField() if field is None else self.getField(field)	
-		time = self.getDefaultTime() if time is None else time
-		read_block = BlockQuery(self.db, field, time, access.getStartAddress(block_id), access.getEndAddress(block_id), ord('r'), aborted)
+		field=self.getField() if field is None else self.getField(field)	
+		time = self.getTime() if time is None else time
+		read_block = self.db.createBlockQuery(block_id, field, time, ord('r'), aborted)
 		self.executeBlockQueryAndWait(access, read_block)
 		if not read_block.ok(): return None
 		return Array.toNumPy(read_block.buffer, bShareMem=False)
@@ -155,9 +162,9 @@ class PyDataset(object):
 	# writeBlock
 	def writeBlock(self, block_id, time=None, field=None, access=None, data=None, aborted=Aborted()):
 		Assert(access and data)
-		field=self.getDefaultField() if field is None else self.getField(field)	
-		time = self.getDefaultTime() if time is None else time
-		write_block = BlockQuery(self.db, field, time, access.getStartAddress(block_id), access.getEndAddress(block_id), ord('w'), aborted)
+		field=self.getField() if field is None else self.getField(field)	
+		time = self.getTime() if time is None else time
+		write_block = self.db.createBlockQuery(block_id, field, time, ord('w'), aborted)
 		write_block.buffer=Array.fromNumPy(data,TargetDim=self.getPointDim(), bShareMem=True)
 		self.executeBlockQueryAndWait(access, write_block)
 		return write_block.ok()
@@ -181,26 +188,24 @@ class PyDataset(object):
 		
 		pdim=self.getPointDim()
 
-		field=self.getDefaultField() if field is None else self.getField(field)	
+		field=self.getField() if field is None else self.getField(field)	
 			
 		if time is None:
-			time = self.getDefaultTime()			
+			time = self.getTime()			
 
-		query = BoxQuery(self.db, field , time, ord('r'))
+		if logic_box is None:
+			logic_box=self.getLogicBox(x,y,z)
+
+		if isinstance(logic_box,(tuple,list)):
+			logic_box=BoxNi(PointNi(logic_box[0]),PointNi(logic_box[1]))
+
+		query = self.db.createBoxQuery(BoxNi(logic_box), field , time, ord('r'))
 		
 		if disable_filters:
 			query.disableFilters()
 		else:
 			query.enableFilters()
 		
-		if logic_box is None:
-			logic_box=self.getLogicBox(x,y,z)
-			
-		if isinstance(logic_box,(tuple,list)):
-			logic_box=BoxNi(PointNi(logic_box[0]),PointNi(logic_box[1]))
-			
-		query.logic_box=BoxNi(logic_box)
-
 		if max_resolution is None:
 			max_resolution=self.getMaxResolution()
 		
@@ -213,17 +218,17 @@ class PyDataset(object):
 			if res>=0:
 				query.end_resolutions.push_back(res)
 		
-		self.db.beginQuery(query)
+		self.db.beginBoxQuery(query)
 		
 		if not query.isRunning():
-			raise Exception("begin query failed {0}".format(query.getLastErrorMsg()))
+			raise Exception("begin query failed {0}".format(query.errormsg))
 			
 		if not access:
 			access=self.db.createAccess()
 			
 		def NoGenerator():
-			if not self.db.executeQuery(access, query):
-				raise Exception("query error {0}".format(query.getLastErrorMsg()))
+			if not self.db.executeBoxQuery(access, query):
+				raise Exception("query error {0}".format(query.errormsg))
 			# i cannot be sure how the numpy will be used outside or when the query will dealllocate the buffer
 			data=Array.toNumPy(query.buffer, bShareMem=False) 
 			return data
@@ -231,13 +236,13 @@ class PyDataset(object):
 		def WithGenerator():
 			while query.isRunning():
 
-				if not self.db.executeQuery(access, query):
-					raise Exception("query error {0}".format(query.getLastErrorMsg()))
+				if not self.db.executeBoxQuery(access, query):
+					raise Exception("query error {0}".format(query.errormsg))
 
 				# i cannot be sure how the numpy will be used outside or when the query will dealllocate the buffer
 				data=Array.toNumPy(query.buffer, bShareMem=False) 
 				yield data
-				self.db.nextQuery(query)	
+				self.db.nextBoxQuery(query)	
 
 		return NoGenerator() if query.end_resolutions.size()==1 else WithGenerator()
 			
@@ -245,7 +250,7 @@ class PyDataset(object):
 
 	# write
 	# IMPORTANT: usually db.write happens without write lock and syncronously (at least in python)
-	def write(self, data, x=0, y=0, z=0, time=None, field=None, access=None):
+	def write(self, data, x=0, y=0, z=0,logic_box=None, time=None, field=None, access=None):
 
 		"""
 		db=PyDataset.Load(url)
@@ -273,10 +278,9 @@ class PyDataset(object):
 		field=self.getField(field)
 		
 		if time is None:
-			time = self.getDefaultTime()
-			
-		query = BoxQuery(self.db, field , time , ord('w'))
-		
+			time = self.getTime()
+
+
 		dims=list(data.shape)
 		
 		# remove last components
@@ -288,16 +292,21 @@ class PyDataset(object):
 			dims=[1] + dims	
 		
 		dims=list(reversed(dims))	
-		
-		p1=PointNi([x,y,z][0:pdim])
-		query.logic_box=BoxNi(p1,p1+PointNi(dims))
-		
+
+		if logic_box is None:
+			p1=PointNi([x,y,z][0:pdim])
+			logic_box=BoxNi(p1,p1+PointNi(dims))
+
+		if isinstance(logic_box,(tuple,list)):
+			logic_box=BoxNi(PointNi(logic_box[0]),PointNi(logic_box[1]))
+
+		query = self.db.createBoxQuery(logic_box, field , time , ord('w'))
 		query.end_resolutions.push_back(self.getMaxResolution())
 		
-		self.db.beginQuery(query)
+		self.db.beginBoxQuery(query)
 		
 		if not query.isRunning():
-			raise Exception("begin query failed {0}".format(query.getLastErrorMsg()))
+			raise Exception("begin query failed {0}".format(query.errormsg))
 			
 		if not access:
 			access=IdxDiskAccess.create(self.db)
@@ -311,8 +320,8 @@ class PyDataset(object):
 		
 		query.buffer=buffer
 		
-		if not self.db.executeQuery(access, query):
-			raise Exception("query error {0}".format(query.getLastErrorMsg()))
+		if not self.db.executeBoxQuery(access, query):
+			raise Exception("query error {0}".format(query.errormsg))
 			
 	# writeSlabs
 	def writeSlabs(self,slices, x=0, y=0, z=0, time=None, field=None, max_memsize=1024*1024*1024, access=None):

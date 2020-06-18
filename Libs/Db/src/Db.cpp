@@ -76,17 +76,6 @@ void DbModule::attach()
   if (auto value = config->readInt("Configuration/OnDemandAccess/External/nconnections", 8))
     OnDemandAccess::Defaults::nconnections = value;
 
-
-  //remove broken files
-  {
-    auto config = getModuleConfig();
-    {
-      auto directory = config->readString("Configuration/IdxDataset/RemoveLockFiles/directory");
-      if (!directory.empty())
-        IdxDataset::tryRemoveLockAndCorruptedBinaryFiles(directory);
-    }
-  }
-
   PrintInfo("Attached DbModule");
 }
 

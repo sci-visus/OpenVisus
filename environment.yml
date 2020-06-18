@@ -1,0 +1,9 @@
+name: visus-environment
+channels:
+  - visus
+dependencies:
+  - python=3.7
+  - numpy
+  - matplotlib
+  - OpenVisus==2.1.44
+  - itkwidgets

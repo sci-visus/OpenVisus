@@ -91,11 +91,14 @@ Field Field::fromString(String sfield)
 
   //default_layout
   {
-    ret.default_layout = parseRoundBracketArgument(sfield, "default_layout");
+    if (StringUtils::contains(sfield, "default_layout"))
+      ret.default_layout = parseRoundBracketArgument(sfield, "default_layout");
 
-    //backward compatible: format(...)
-    if (ret.default_layout.empty())
+    else if (StringUtils::contains(sfield, "format"))
       ret.default_layout = parseRoundBracketArgument(sfield, "format");
+
+    else
+      ret.default_layout = ""; //empty (what it means will depend on IdxFile::version, see IdxFile::validate
   }
 
   //default_value

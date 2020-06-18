@@ -22,6 +22,7 @@ def DoSetup():
 	shutil.rmtree('./build', ignore_errors=True)	
 	shutil.rmtree('./dist', ignore_errors=True)	
 	shutil.rmtree('./.git', ignore_errors=True)	
+	shutil.rmtree('./tmp', ignore_errors=True)	
 	shutil.rmtree('./{}.egg-info'.format(PROJECT_NAME), ignore_errors=True)	
 
 	files=[]	

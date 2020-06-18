@@ -322,7 +322,7 @@ public:
           .write("xpointer", "xpointer(//Xidx/Group/Group)"));
 
         {
-          StringTree stree(child->getTypeName());
+          StringTree stree(child->getXIdxTypeName());
           child->write(stree);
           auto content = stree.toString();
           Utils::saveTextDocument(filename, content);

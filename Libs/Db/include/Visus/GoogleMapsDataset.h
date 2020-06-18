@@ -67,46 +67,51 @@ public:
   virtual ~GoogleMapsDataset() {
   }
 
-  //getTypeName
-  virtual String getTypeName() const override {
+  //castFrom
+  static SharedPtr<GoogleMapsDataset> castFrom(SharedPtr<Dataset> db) {
+    return std::dynamic_pointer_cast<GoogleMapsDataset>(db);
+  }
+
+  //getDatasetTypeName
+  virtual String getDatasetTypeName() const override {
     return "GoogleMapsDataset";
   }
 
-  //getTileCoordinate
-  Point3i getTileCoordinate(BigInt start_address,BigInt end_address);
+  //getBlockCoordinate
+  Point3i getBlockCoordinate(BigInt blockid);
 
 public:
 
-  //read 
-  virtual void read(Archive& ar) override;
+  //readDatasetFromArchive 
+  virtual void readDatasetFromArchive(Archive& ar) override;
 
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
 
-  //getAddressRangeSamples
-  virtual LogicSamples getAddressRangeSamples(BigInt start_address,BigInt end_address) override;
-
-  //getLevelSamples
-  virtual LogicSamples getLevelSamples(int H) override;
+  //getBlockSamples
+  virtual LogicSamples getBlockSamples(BigInt blockid) override;
 
 public:
 
-  //beginQuery
-  virtual void beginQuery(SharedPtr<BoxQuery> query) override;
+  //beginBoxQuery
+  virtual void beginBoxQuery(SharedPtr<BoxQuery> query) override;
 
-  //nextQuery
-  virtual void nextQuery(SharedPtr<BoxQuery> query) override;
+  //nextBoxQuery
+  virtual void nextBoxQuery(SharedPtr<BoxQuery> query) override;
 
-  //executeQuery
-  virtual bool executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
+  //executeBoxQuery
+  virtual bool executeBoxQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
 
-  //mergeBoxQueryWithBlock
-  virtual bool mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> blockquery) override;
+  //mergeBoxQueryWithBlockQuery
+  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> blockquery) override;
 
 private:
 
-  //setEndResolution
-  bool setEndResolution(SharedPtr<BoxQuery> query,int value);
+  //getLevelSamples
+  LogicSamples getLevelSamples(int H);
+
+  //setBoxQueryEndResolution
+  bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query,int value);
 
   //kdTraverse
   void kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_queries,SharedPtr<BoxQuery> query,BoxNi box,BigInt id,int H,int end_resolution);

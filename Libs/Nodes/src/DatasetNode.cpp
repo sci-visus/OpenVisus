@@ -98,7 +98,7 @@ void DatasetNode::write(Archive& ar) const
 
   auto body = dataset->getDatasetBody();
   body.name = "dataset";
-  body.setAttribute("typename",dataset->getTypeName());
+  body.setAttribute("typename",dataset->getDatasetTypeName());
   ar.addChild(body);
 }
 
@@ -110,7 +110,7 @@ void DatasetNode::read(Archive& ar)
 
   auto child = *ar.getChild("dataset");
   this->dataset = DatasetFactory::getSingleton()->createInstance(child.readString("typename"));VisusReleaseAssert(dataset);
-  dataset->read(child);
+  dataset->readDatasetFromArchive(child);
 }
 
 } //namespace Visus

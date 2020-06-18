@@ -38,10 +38,9 @@ For support : support@visus.net
 
 #include <Visus/DatasetArrayPlugin.h>
 #include <Visus/Dataset.h>
-#include <Visus/DatasetFilter.h>
+#include <Visus/IdxFilter.h>
 
 namespace Visus {
-
 
 ////////////////////////////////////////////////
 class DatasetArrayPluginParseArguments
@@ -59,8 +58,8 @@ public:
   //constructor
   DatasetArrayPluginParseArguments(Dataset* dataset_) : dataset(dataset_)
   {
-    this->time           = dataset->getDefaultTime();
-    this->field          = dataset->getDefaultField();
+    this->time           = dataset->getTime();
+    this->field          = dataset->getField();
     this->fromh          = 0; //default is max resolution
     this->toh            = dataset->getMaxResolution();
   }
@@ -128,7 +127,7 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
   StringTree ar("stat");
 
   ar.write("url",url);
-  ar.write("format", dataset->getTypeName());
+  ar.write("format", dataset->getDatasetTypeName());
   ar.write("logic_box", dataset->getLogicBox().toOldFormatString());
   ar.write("logic_size", dataset->getLogicBox().size());
   ar.write("timesteps",cstring(dataset->getTimesteps().getMin())+" " + cstring(dataset->getTimesteps().getMax()));
@@ -152,13 +151,12 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
 
   Time t1=Time::now();
 
-  auto query=std::make_shared<BoxQuery>(dataset.get(), args.field, args.time,'r');
-  query->logic_box=args.box;
+  auto query=dataset->createBoxQuery(args.box, args.field, args.time,'r');
   query->setResolutionRange(args.fromh, args.toh);
 
   if (args.bDisableFilters)
   {
-    PrintInfo("DatasetFilter disabled.Reason: command line has --disable-filters option");
+    PrintInfo("Filter disabled.Reason: command line has --disable-filters option");
     query->disableFilters();
   }
   else
@@ -166,12 +164,12 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
     query->enableFilters();
   }
 
-  dataset->beginQuery(query);
+  dataset->beginBoxQuery(query);
 
   auto access=dataset->createAccess();
-  if (!dataset->executeQuery(access,query))
+  if (!dataset->executeBoxQuery(access,query))
   {
-    PrintWarning("!dataset->executeQuery()");
+    PrintWarning("!dataset->executeBoxQuery()");
     return Array();
   }
 
@@ -211,16 +209,14 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
       PrintInfo("You did not specify logic box and input data has logic box !=dataset->getLogicBox()");
   }
 
-  auto query=std::make_shared<BoxQuery>(dataset.get(), args.field, args.time,'w');
-  query->logic_box=args.box;
-
+  auto query=dataset->createBoxQuery(args.box, args.field, args.time,'w');
   query->setResolutionRange(args.fromh,args.toh);
 
-  dataset->beginQuery(query);
+  dataset->beginBoxQuery(query);
 
   if (!query->isRunning())
   {
-    PrintWarning("dataset->beginQuery() failed");
+    PrintWarning("dataset->beginBoxQuery() failed");
     return false;
   }
 
@@ -246,9 +242,9 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
   query->buffer=src; 
 
   auto access=dataset->createAccess();
-  if (!dataset->executeQuery(access,query))
+  if (!dataset->executeBoxQuery(access,query))
   {
-    PrintWarning("!dataset->executeQuery()");
+    PrintWarning("!dataset->executeBoxQuery()");
     return false;
   }
 

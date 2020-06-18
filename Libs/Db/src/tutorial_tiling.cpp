@@ -99,10 +99,9 @@ void TilingExample(IdxDataset* dataset)
 
       //my check code (verify that the tile is really a query of a single block)
       {
-        auto query=std::make_shared<BoxQuery>(dataset, dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-        query->logic_box =box;
+        auto query=dataset->createBoxQuery(box, 'r');
         query->setResolutionRange(H == bitsperblock ? 0 : H, H);
-        dataset->beginQuery(query);
+        dataset->beginBoxQuery(query);
         VisusReleaseAssert(query->isRunning());
         VisusReleaseAssert(query->getNumberOfSamples()==dims);
       }
@@ -114,7 +113,7 @@ void TilingExample(IdxDataset* dataset)
 ///////////////////////////////////////////////////////////////////////////////////////
 void Tutorial_Tiling(String default_layout)
 {
-  String filename="temp/tiling.idx";
+  String filename="tmp/test_tiling/visus.idx";
 
   //create a sample IdxDataset
   IdxFile idxfile;

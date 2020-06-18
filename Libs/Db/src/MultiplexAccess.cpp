@@ -133,7 +133,7 @@ void MultiplexAccess::scheduleOp(int mode, int index, SharedPtr<BlockQuery> up_q
     }
   }
 
-  auto dw_query = std::make_shared<BlockQuery>(dataset, up_query->field, up_query->time, up_query->start_address, up_query->end_address, mode, up_query->aborted);
+  auto dw_query = dataset->createBlockQuery(up_query->blockid, up_query->field, up_query->time, mode, up_query->aborted);
   VisusAssert(dw_query->getNumberOfSamples() == up_query->getNumberOfSamples());
   VisusAssert(dw_query->logic_samples == up_query->logic_samples);
   dw_query->buffer = up_query->buffer;
@@ -210,7 +210,8 @@ void MultiplexAccess::runInBackground()
       //need to read
       if (dw_query->mode == 'r')
       {
-        dataset->executeBlockQuery(dw_access[index], dw_query).when_ready([this, up_query, dw_query, index](Void)
+        dataset->executeBlockQuery(dw_access[index], dw_query);
+        dw_query->done.when_ready([this, up_query, dw_query, index](Void)
         {
           //if fails try the next index
           if (dw_query->failed())
@@ -221,8 +222,7 @@ void MultiplexAccess::runInBackground()
           else
           {
             VisusAssert(dw_query->ok());
-            VisusAssert(up_query->start_address == dw_query->start_address);
-            VisusAssert(up_query->end_address == dw_query->end_address);
+            VisusAssert(up_query->blockid == dw_query->blockid);
             VisusAssert(up_query->getNumberOfSamples() == dw_query->getNumberOfSamples());
             VisusAssert(up_query->logic_samples == dw_query->logic_samples);
 
@@ -238,7 +238,8 @@ void MultiplexAccess::runInBackground()
         VisusAssert(dw_query->mode == 'w');
 
         //if fails or not I don't care, I try to cache to upper levels anyway
-        dataset->executeBlockQuery(dw_access[index], dw_query).when_ready([this, up_query, dw_query, index](Void) {
+        dataset->executeBlockQuery(dw_access[index], dw_query);
+        dw_query->done.when_ready([this, up_query, dw_query, index](Void) {
           scheduleOp('w', index - 1, up_query);
         });
       }

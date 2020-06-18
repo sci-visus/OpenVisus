@@ -48,8 +48,6 @@ For support : support@visus.net
 #include <Visus/NetService.h>
 #include <Visus/StringTree.h>
 
-#define IDX_FILE_DEFAULT_VERSION 6
-
 namespace Visus {
 
   
@@ -91,7 +89,7 @@ void IdxFile::validate(String url)
 {
   //version
   if (this->version == 0)
-    this->version = IDX_FILE_DEFAULT_VERSION;
+    this->version = 6;
 
   if (version <= 0)
   {
@@ -223,21 +221,25 @@ void IdxFile::validate(String url)
       return;
     }
 
-    //if not specified it means hzorder
-    if (field.default_layout.empty() || field.default_layout=="hzorder" || field.default_layout=="0")
+    if (field.default_layout.empty())
     {
-      field.default_layout="hzorder";
-    }
-    //use "rowmajor" or "1" to force row major
-    else if (field.default_layout=="rowmajor" || field.default_layout == "row_major" || field.default_layout=="1")
-    {
-      field.default_layout=""; //empty will mean rowmajor
+      field.default_layout = version < 6 ? "hzorder" : "";
     }
     else
     {
-      VisusAssert(false);
-      PrintWarning("unknown field.default_layout",field.default_layout);
-      field.default_layout="hzorder";
+      //for historical reason '0' means hzorder and '1' means rowmajor; empty means row major
+      if (field.default_layout.empty() || field.default_layout == "rowmajor" || field.default_layout == "row_major" || field.default_layout == "1")
+        field.default_layout = "";
+
+      else if (field.default_layout == "hzorder" || field.default_layout == "hz_order" || field.default_layout == "0")
+        field.default_layout = "hzorder";
+
+      else
+      {
+        VisusAssert(false);
+        PrintWarning("unknown field.default_layout", field.default_layout);
+        field.default_layout = ""; //rowmajor
+      }
     }
   }
 
@@ -385,8 +387,8 @@ String IdxFile::writeToOldFormat() const
         out<<"default_compression("<<field.default_compression <<")"<<" ";
     }
 
-    //format(...)
-    out<<"format("<<(field.default_layout.empty()?"1":"0")<<")"<<" ";
+    //default_layout(...) (1 means row major, 0 means hzorder)
+    out << "default_layout("<< (field.default_layout.empty()? "row_major" : field.default_layout) <<") ";
 
     //default_value
     out<<"default_value("<<field.default_value<<")"<<" ";

@@ -37,10 +37,10 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/QueryNode.h>
-#include <Visus/DatasetFilter.h>
 #include <Visus/Dataflow.h>
 #include <Visus/StringTree.h>
 #include <Visus/GoogleMapsDataset.h>
+#include <Visus/IdxFilter.h>
 
 namespace Visus {
 
@@ -178,17 +178,16 @@ public:
     {
       Time t1 = Time::now();
 
-      auto query = std::make_shared<PointQuery>(dataset.get(), field, time, 'r', this->aborted);
-      query->logic_position = logic_position;
+      auto query = dataset->createPointQuery(logic_position, field, time, this->aborted);
       query->end_resolution = resolutions[N];
       auto nsamples = dataset->guessPointQueryNumberOfSamples(logic_to_screen, logic_position, query->end_resolution);
       query->setPoints(nsamples);
 
-      dataset->beginQuery(query);
+      dataset->beginPointQuery(query);
 
       PrintInfo("PointQuery msec", t1.elapsedMsec(), "level", N, "/", resolutions.size(), "/", resolutions[N], "/", dataset->getMaxResolution(), "...");
 
-      if (!dataset->executeQuery(access, query))
+      if (!dataset->executePointQuery(access, query))
         return;
 
       auto output = query->buffer;
@@ -281,17 +280,17 @@ public:
     if (resolutions.empty())
       return;
 
-    auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r', this->aborted);
+    //remove transformation! (in doPublish I will add the physic clipping)
+    auto query = dataset->createBoxQuery(this->logic_position.toDiscreteAxisAlignedBox(), field, time, 'r', this->aborted);
     query->enableFilters();
-    query->merge_mode = InsertSamples;
-    query->logic_box = this->logic_position.toDiscreteAxisAlignedBox(); //remove transformation! (in doPublish I will add the physic clipping)
+    query->merge_mode = MergeMode::InsertSamples;
     query->end_resolutions = resolutions;
 
     query->incrementalPublish = [&](Array output) {
       doPublish(output, query);
     };
 
-    dataset->beginQuery(query);
+    dataset->beginBoxQuery(query);
 
     //could be that end_resolutions gets corrected (see google maps for example)
     resolutions = query->end_resolutions;
@@ -305,7 +304,7 @@ public:
 
       PrintInfo("BoxQuery msec", t1.elapsedMsec(), "level", N, "/", resolutions.size(), "/", resolutions[N], "/", dataset->getMaxResolution());
 
-      if (!dataset->executeQuery(access, query))
+      if (!dataset->executeBoxQuery(access, query))
         return;
 
       if (aborted())
@@ -327,7 +326,7 @@ public:
       doPublish(output, query);
 
       PrintInfo("Calling next query...");
-      dataset->nextQuery(query);
+      dataset->nextBoxQuery(query);
       PrintInfo("Done next query");
     }
   }
@@ -471,7 +470,7 @@ Field QueryNode::getField()
     return Field();
 
   auto fieldname = readValue<String>("fieldname");
-  return fieldname? dataset->getField(*fieldname) : dataset->getDefaultField();
+  return fieldname? dataset->getField(*fieldname) : dataset->getField();
 }
 
 
@@ -484,7 +483,7 @@ double QueryNode::getTime()
     return 0.0;
 
   auto time = readValue<double>("time");
-  return time ? *time : dataset->getDefaultTime();
+  return time ? *time : dataset->getTime();
 }
 
 

@@ -53,12 +53,102 @@ class IdxPointQueryHzAddressConversion;
 
 
   //////////////////////////////////////////////////////////////////////
-class VISUS_DB_API IdxDataset  : public Dataset 
+class VISUS_DB_API IdxDataset : public Dataset
 {
 public:
 
   //idxfile
   IdxFile idxfile;
+
+  //default constructor
+  IdxDataset();
+
+  //destructor
+  virtual ~IdxDataset();
+
+  //castFrom
+  static SharedPtr<IdxDataset> castFrom(SharedPtr<Dataset> db) {
+    return std::dynamic_pointer_cast<IdxDataset>(db);
+  }
+
+  //getDatasetTypeName
+  virtual String getDatasetTypeName() const override {
+    return "IdxDataset";
+  }
+
+public:
+
+  //createAccess
+  virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
+
+  //getBlockSamples
+  virtual LogicSamples getBlockSamples(BigInt blockid) override;
+
+  //convertBlockQueryToRowMajor
+  virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) override;
+
+public:
+
+  //beginBoxQuery
+  virtual void beginBoxQuery(SharedPtr<BoxQuery> query) override;
+
+  //nextBoxQuery
+  virtual void nextBoxQuery(SharedPtr<BoxQuery> query) override;
+
+  //executeBoxQuery
+  virtual bool executeBoxQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
+
+  //mergeBoxQueryWithBlockQuery
+  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> block_query) override;
+
+  //createBoxQueryRequest
+  virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query) override;
+
+  //createEquivalentBoxQuery
+  SharedPtr<BoxQuery> createEquivalentBoxQuery(int mode, SharedPtr<BlockQuery> block_query);
+
+  //adjustBoxQueryFilterBox
+  BoxNi adjustBoxQueryFilterBox(BoxQuery* query, IdxFilter* filter, BoxNi box, int H);
+
+public:
+
+  //beginPointQuery
+  virtual void beginPointQuery(SharedPtr<PointQuery> query) override;
+
+  //executeBoxQuery
+  virtual bool executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) override;
+
+  //createPointQueryRequest
+  virtual NetRequest createPointQueryRequest(SharedPtr<PointQuery> query) override;
+
+public:
+
+  // removeFiles all files bolonging to this visus file 
+  void removeFiles();
+
+  //compressDataset
+  void compressDataset(std::vector<String> compression, Array data=Array());
+
+public:
+
+  //createFilter
+  SharedPtr<IdxFilter> createFilter(const Field& field);
+
+  //computeFilter
+  bool computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow) ;
+
+  //computeFilter
+  void computeFilter(const Field& field, int window_size);
+
+public:
+
+  //readDatasetFromArchive
+  virtual void readDatasetFromArchive(Archive& ar) override;
+
+private:
+
+  friend class InsertBlockQueryHzOrderSamplesToBoxQuery;
+  friend class IdxMultipleDataset;
 
   SharedPtr<IdxBoxQueryHzAddressConversion> hzaddress_conversion_boxquery;
 
@@ -67,93 +157,25 @@ public:
   // So use only when stricly necessary! 
   SharedPtr<IdxPointQueryHzAddressConversion> hzaddress_conversion_pointquery;
 
-  //default constructor
-  IdxDataset();
-
-  //destructor
-  virtual ~IdxDataset();
-
-  //getTypeName
-  virtual String getTypeName() const override {
-    return "IdxDataset";
-  }
-
-  //tryRemoveLockAndCorruptedBinaryFiles
-  static void tryRemoveLockAndCorruptedBinaryFiles(String directory);
-
-  // removeFiles all files bolonging to this visus file 
-  void removeFiles();
-
-  //compressDataset
-  virtual void compressDataset(std::vector<String> compression) override;
-
   //getLevelSamples
-  virtual LogicSamples getLevelSamples(int H) override;
-
-  //adjustFilterBox
-  BoxNi adjustFilterBox(BoxQuery* query,DatasetFilter* filter,BoxNi box,int H);
-
-  //createEquivalentBoxQuery
-  SharedPtr<BoxQuery> createEquivalentBoxQuery(int mode,SharedPtr<BlockQuery> block_query);
+  LogicSamples getLevelSamples(int H);
 
   //setIdxFile
   void setIdxFile(IdxFile value);
 
-public:
-
-  //read
-  virtual void read(Archive& ar) override;
-
-  //createAccess
-  virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
-
-  //getAddressRangeSamples
-  virtual LogicSamples getAddressRangeSamples(BigInt start_address, BigInt end_address) override;
-
-  //convertBlockQueryToRowMajor
-  virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) override;
-
-  //createFilter
-  virtual SharedPtr<DatasetFilter> createFilter(const Field& field) override;
-
-public:
-
-  //beginQuery
-  virtual void beginQuery(SharedPtr<BoxQuery> query) override;
-
-  //nextQuery
-  virtual void nextQuery(SharedPtr<BoxQuery> query) override;
-
-  //executeQuery
-  virtual bool executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
-
-  //mergeBoxQueryWithBlock
-  virtual bool mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> block_query) override;
-
-  //createBoxQueryRequest
-  virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query) override;
-
-public:
-
-  //beginQuery
-  virtual void beginQuery(SharedPtr<PointQuery> query) override;
-
-  //executeQuery
-  virtual bool executeQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) override;
-
-  //createPointQueryRequest
-  virtual NetRequest createPointQueryRequest(SharedPtr<PointQuery> query) override;
-
-  //setEndResolution
-  bool setEndResolution(SharedPtr<BoxQuery> query, int value);
-
+  //setBoxQueryEndResolution
+  bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value);
 
 };
 
-
+//swig will use internal casting (see Db.i)
+#if !SWIG
 inline VISUS_DB_API SharedPtr<IdxDataset> LoadIdxDataset(String url) {
   return std::dynamic_pointer_cast<IdxDataset>(LoadDataset(url));
 }
+#endif
+
+VISUS_DB_API void SelfTestIdx(int max_seconds);
 
 } //namespace Visus
 
