@@ -5,5 +5,6 @@ dependencies:
   - python=3.7
   - numpy
   - matplotlib
-  - OpenVisus==2.1.44
+  - pillow
+  - OpenVisus==2.1.46
   - itkwidgets
