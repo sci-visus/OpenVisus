@@ -615,138 +615,139 @@ void IdxDataset::compressDataset(std::vector<String> compression, Array data)
   // for future version: here I'm making the assumption that a file contains multiple fields
   if (idxfile.version != 6)
     ThrowException("unsupported");
-    
-  PrintInfo("Compressing dataset",StringUtils::join(compression));
-  	
-  int nlevels=getMaxResolution() + 1;
-  VisusReleaseAssert(compression.size()<=nlevels);
+
+  //PrintInfo("Compressing dataset", StringUtils::join(compression));
+
+  int nlevels = getMaxResolution() + 1;
+  VisusReleaseAssert(compression.size() <= nlevels);
 
   // example ["zip","jpeg","jpeg"] means last level "jpeg", last-level-minus-one "jpeg" all others zip
   while (compression.size() < nlevels)
     compression.insert(compression.begin(), compression.front());
-  
+
   //save the new idx file oonly if compression is equal for all levels
   if (std::set<String>(compression.begin(), compression.end()).size() == 1)
   {
     for (auto& field : idxfile.fields)
       field.default_compression = compression[0];
 
-    String filename = Url(this->getUrl()).getPath();
+    String filename = Url(getUrl()).getPath();
     idxfile.save(filename);
   }
 
-  SharedPtr<Access> Raccess;
-
-  //data will replace current data
   if (data)
   {
+    //data will replace current data
     //write BoxQuery(==data) to BlockQuery(==RAM)
-    auto query = createBoxQuery(this->getLogicBox(), 'w');
+    auto query = createBoxQuery(getLogicBox(), 'w');
     beginBoxQuery(query);
     VisusReleaseAssert(query->isRunning());
     VisusAssert(query->getNumberOfSamples() == data.dims);
     query->buffer = data;
 
-    Raccess = createRamAccess(/* no memory limit*/0);
+    auto Waccess = std::make_shared<IdxDiskAccess>(this);
+    Waccess->disableWriteLock();
+    Waccess->disableAsync();
+
+    auto Raccess = createRamAccess(/* no memory limit*/0);
     Raccess->disableWriteLock();
     VisusReleaseAssert(executeBoxQuery(Raccess, query));
+
+    //read blocks are in RAM
+    Raccess->beginRead();
+    Waccess->beginWrite();
+    for (auto time : idxfile.timesteps.asVector())
+    {
+      for (BigInt blockid = 0, total_blocks = getTotalNumberOfBlocks(); blockid < total_blocks; blockid++)
+      {
+        for (auto field : idxfile.fields)
+        {
+          auto read_block = createBlockQuery(blockid, field, time, 'r');
+          if (!executeBlockQueryAndWait(Raccess, read_block))
+            continue;
+
+          //compression can depend on level
+          auto HzStart = Waccess->getStartAddress(read_block->blockid);
+          int H = HzOrder::getAddressResolution(idxfile.bitmask, HzStart);
+          VisusReleaseAssert(H >= 0 && H < compression.size());
+
+          auto field = read_block->field;
+          field.default_compression = compression[H];
+          auto write_block = createBlockQuery(read_block->blockid, field, read_block->time, 'w');
+          write_block->buffer = read_block->buffer;
+          VisusReleaseAssert(executeBlockQueryAndWait(Waccess, write_block));
+        }
+      }
+    }
+    Raccess->endRead();
+    Waccess->endWrite();
   }
   else
   {
-    auto access = std::make_shared<IdxDiskAccess>(this);
-    access->disableAsync();
-    access->disableWriteLock();
-    Raccess = Raccess;
-  }
+    //TODO: what if the file is huge and cannot fit in memory?
+    //maybe I can go block by block (in file order) "shrinking and cropping the file at the end")
 
-  auto Waccess = std::make_shared<IdxDiskAccess>(this);
-  Waccess->disableWriteLock();
-  Waccess->disableAsync();
+    auto Waccess = std::make_shared<IdxDiskAccess>(this);
+    Waccess->disableWriteLock();
+    Waccess->disableAsync();
 
-  Aborted aborted; 
+    auto Raccess = std::make_shared<IdxDiskAccess>(this);
+    Raccess->disableAsync();
+    Raccess->disableWriteLock();
 
-  //for each time
-  auto timesteps=idxfile.timesteps.asVector();
-  Int64 overall_file_size = 0;
-
-  int nfields = (int)idxfile.fields.size();
-  for (auto Wtime : timesteps)
-  {
-    auto Rtime = Wtime;
-
-    //for each file...
-    BigInt total_block = getTotalNumberOfBlocks();
-    BigInt tot_files = (total_block / idxfile.blocksperfile) + ((total_block % idxfile.blocksperfile) ? 1 : 0);
-
-    std::set<String> filenames;
-
-    for (BigInt fileid = 0; fileid < tot_files; fileid++)
+    Raccess->beginRead();
+    Waccess->beginWrite();
+    for (auto time : idxfile.timesteps.asVector())
     {
-      PrintInfo("Compressing file", fileid, "/", tot_files);
+      std::map<String, std::vector< SharedPtr<BlockQuery> > > write_blocks;
 
-      std::vector< std::vector<Array> > file_blocks(idxfile.blocksperfile, std::vector<Array>(nfields));
-
-      //read file blocks
-      Raccess->beginRead();
-      {
-        auto blockid = fileid * idxfile.blocksperfile;
-        for (BigInt B = 0; B < idxfile.blocksperfile && blockid < total_block; B++, blockid++)
+      auto flush = [&]() {
+        for (const auto& it : write_blocks)
         {
-          for (int F = 0; F < nfields; F++)
+          FileUtils::removeFile(it.first);
+          for (const auto& read_block : it.second)
           {
-            auto Rfield = idxfile.fields[F];
-            auto filename = Raccess->getFilename(Rfield, Rtime, blockid);
-
-            //prepare to remove file
-            if (!filename.empty() && FileUtils::existsFile(filename))
-              filenames.insert(filename);
-
-            auto read_block = createBlockQuery(blockid, Rfield, Rtime, 'r', aborted);
-
-            //could fail because block does not exist
-            if (executeBlockQueryAndWait(Raccess, read_block))
-              file_blocks[B][F] = read_block->buffer;
-          }
-        }
-      }
-      Raccess->endRead();
-
-      //now it's safe to remove old files
-      for (auto filename : filenames)
-        FileUtils::removeFile(filename);
-
-      //write file blocks
-      Waccess->beginWrite();
-      {
-        auto blockid = fileid * idxfile.blocksperfile;
-        for (BigInt B = 0; B < idxfile.blocksperfile; B++, blockid++)
-        {
-          for (int F = 0; F < idxfile.fields.size(); F++)
-          {
-            auto Wfield = idxfile.fields[F];
-            if (!file_blocks[B][F])
-              continue;
-
             //compression can depend on level
-            auto HzStart = Waccess->getStartAddress(blockid);
+            auto HzStart = Waccess->getStartAddress(read_block->blockid);
             int H = HzOrder::getAddressResolution(idxfile.bitmask, HzStart);
             VisusReleaseAssert(H >= 0 && H < compression.size());
-            Wfield.default_compression = compression[H];
 
-            auto write_block = createBlockQuery(blockid, Wfield, Wtime,  'w', aborted);
-            write_block->buffer = file_blocks[B][F];
-
-            if (!executeBlockQueryAndWait(Waccess, write_block))
-              ThrowException("Fatal error writing Wfield(", F, "block", blockid);
+            auto field = read_block->field;
+            field.default_compression = compression[H];
+            auto write_block = createBlockQuery(read_block->blockid, field, read_block->time, 'w');
+            write_block->buffer = read_block->buffer;
+            VisusReleaseAssert(executeBlockQueryAndWait(Waccess, write_block));
           }
         }
+        write_blocks.clear();
+      };
+
+      for (BigInt blockid = 0, total_blocks = getTotalNumberOfBlocks(); blockid < total_blocks; blockid++)
+      {
+        for (auto field : idxfile.fields)
+        {
+          auto filename = Raccess->getFilename(field, time, blockid);
+          VisusReleaseAssert(!filename.empty());
+
+          //first time I see this file, safe to remove old files and write pending blocks
+          if (write_blocks.find(filename) == write_blocks.end())
+            flush();
+
+          auto read_block = createBlockQuery(blockid, field, time, 'r');
+
+          //could fail because block does not exist
+          if (!executeBlockQueryAndWait(Raccess, read_block))
+            continue;
+
+          write_blocks[filename].push_back(read_block);
+        }
       }
-      Waccess->endWrite();
+      flush();
     }
+    Raccess->endRead();
+    Waccess->endWrite();
   }
 }
-
-
 
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -1873,7 +1874,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access,SharedPtr<PointQuery
 
 
 ///////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow) 
+bool IdxDataset::computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow, bool bVerbose )
 {
   //this works only for filter_size==2, otherwise the building of the sliding_window is very difficult
   VisusAssert(this->size == 2);
@@ -1893,7 +1894,9 @@ bool IdxDataset::computeFilter(SharedPtr<IdxFilter> filter, double time, Field f
   //convert the dataset  FINE TO COARSE, this can be really time consuming!!!!
   for (int H = this->getMaxResolution(); H >= 1; H--)
   {
-    PrintInfo("Applying filter to dataset resolution", H);
+    if (bVerbose)
+      PrintInfo("Applying filter to dataset resolution", H);
+
     int bit = bitmask[H];
 
     Int64 FILTERSTEP = filter->getFilterStep(H)[bit];
@@ -1995,9 +1998,11 @@ bool IdxDataset::computeFilter(SharedPtr<IdxFilter> filter, double time, Field f
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void IdxDataset::computeFilter(const Field& field, int window_size)
+void IdxDataset::computeFilter(const Field& field, int window_size,bool bVerbose)
 {
-  PrintInfo("starting filter computation...");
+  if (bVerbose)
+    PrintInfo("starting filter computation...");
+
   auto filter = createFilter(field);
 
   //the filter will be applied using this sliding window
@@ -2007,7 +2012,7 @@ void IdxDataset::computeFilter(const Field& field, int window_size)
 
   auto acess = createAccess();
   for (auto time : getTimesteps().asVector())
-    computeFilter(filter, time, field, acess, sliding_box);
+    computeFilter(filter, time, field, acess, sliding_box, bVerbose);
 }
 
 

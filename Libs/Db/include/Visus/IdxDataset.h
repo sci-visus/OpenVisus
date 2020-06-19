@@ -135,10 +135,10 @@ public:
   SharedPtr<IdxFilter> createFilter(const Field& field);
 
   //computeFilter
-  bool computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow) ;
+  bool computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow, bool bVerbose=false) ;
 
   //computeFilter
-  void computeFilter(const Field& field, int window_size);
+  void computeFilter(const Field& field, int window_size, bool bVerbose = false);
 
 public:
 

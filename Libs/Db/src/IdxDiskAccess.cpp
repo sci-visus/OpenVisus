@@ -595,7 +595,7 @@ public:
       return failed("Failed to write block write failed");
     }
 
-    getBlockHeader(query->field, blockid) =block_header;
+    getBlockHeader(query->field, blockid) = block_header;
 
     if (bVerbose)
       PrintInfo("IdxDiskAccess::write blockid",blockid,"ok");
@@ -795,7 +795,6 @@ private:
 
     if (bVerbose)
       PrintInfo("Opening file",filename,"mode", file_mode);
-
 
     //already exist
     if (this->file->open(filename, file_mode))

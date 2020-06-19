@@ -40,6 +40,7 @@ For support : support@visus.net
 #include <Visus/StringUtils.h>
 #include <Visus/Path.h>
 #include <Visus/Utils.h>
+#include <Visus/File.h>
 
 #include <tinyxml/tinyxml.h>
 
@@ -689,11 +690,14 @@ bool ConfigFile::load(String filename, bool bEnablePostProcessing)
     return false;
   }
 
+  if (!FileUtils::existsFile(filename))
+    return false;
+
   String content = Utils::loadTextDocument(filename);
   StringTree temp=StringTree::fromString(content, bEnablePostProcessing);
   if (!temp.valid())
   {
-    PrintWarning("visus config content is wrong or empty");
+    PrintWarning("visus config content is wrong");
     return false;
   }
 

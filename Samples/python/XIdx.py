@@ -4,6 +4,9 @@ import filecmp
 
 from OpenVisus import *
 
+def Print(*args, **kwargs):
+	pass
+
 class TextXIdx(unittest.TestCase):
 
 	def testXIdx(self):
@@ -98,16 +101,16 @@ class TextXIdx(unittest.TestCase):
 		domain = root_group.getDomain()
 		self.assertIsNotNone(domain)
 
-		print ("Time Domain[",domain.type.toString(),"]:")
+		Print("Time Domain[",domain.type.toString(),"]:")
 
-		# print attributes if any
+		# Printattributes if any
 		for att in domain.attributes:
-			print ("\t\tAttribute:", att.name, "Value:", att.value)
+			Print("\t\tAttribute:", att.name, "Value:", att.value)
 
 		t_count=0
 		# loop over the list of timesteps
 		for t in domain.getLinearizedIndexSpace():
-			print ("Timestep", t)
+			Print("Timestep", t)
 
 			# get the grid of timestep t
 			grid = root_group.getGroup(t_count)
@@ -119,46 +122,45 @@ class TextXIdx(unittest.TestCase):
 			grid_domain = grid.getDomain()
 			self.assertIsNotNone(grid_domain)
 
-			print ("\tGrid Domain[", grid_domain.type.toString(), "]")
+			Print("\tGrid Domain[", grid_domain.type.toString(), "]")
 
-			# print attributes if any
+			# Printattributes if any
 			for att in grid_domain.attributes:
-				print ("\t\tAttribute:", att.name, "Value:", att.value)
+				Print("\t\tAttribute:", att.name, "Value:", att.value)
 
 			if(grid_domain.type.value == DomainType.SPATIAL_DOMAIN_TYPE):
 				topology =	grid_domain.topology
 				geometry = grid_domain.geometry
-				print ("\tTopology", topology.type.toString(), "volume ", grid_domain.getVolume())
-				print ("\tGeometry", geometry.type.toString())
+				Print("\tTopology", topology.type.toString(), "volume ", grid_domain.getVolume())
+				Print("\tGeometry", geometry.type.toString())
 			elif(grid_domain.type.value == DomainType.MULTIAXIS_DOMAIN_TYPE):
 				# loop over the axis
 				for axis in grid_domain.axis:
-					print ("\tAxis", axis.name,"volume", axis.getVolume(),": [ ", end='')
+					Print("\tAxis", axis.name,"volume", axis.getVolume(),": [ ", end='')
 
 					for v in axis.getValues():
-						print (v, end='')
+						Print(v, end='')
+					Print(" ]")
 
-					print(" ]")
-
-					# print attributes of the axis if any
+					# Printattributes of the axis if any
 					for att in axis.attributes:
-						print ("\t\tAttribute:", att.name, "Value:", att.value)
+						Print("\t\tAttribute:", att.name, "Value:", att.value)
 
-				print("\n");
+				Print("\n");
 
 				# loop over variables
 				for var in grid.variables:
 					# get datasource used by the first variable
 					source = var.data_items[0].findDataSource();
-					print("\t\tVariable:", var.name)
+					Print("\t\tVariable:", var.name)
 					if(source):
-						print("\t\t\tdata source url: ", source.url)
+						Print("\t\t\tdata source url: ", source.url)
 					else:
-						print("\n")
+						Print("\n")
 
-					# print attributes of the variable if any
+					# Printattributes of the variable if any
 					for att in var.attributes:
-						print ("\t\tAttribute:", att.name, "Value:", att.value)
+						Print("\t\tAttribute:", att.name, "Value:", att.value)
 
 			# (Debug) Saving the content in a different file to compare with the original
 			metadata.save(self.verify_filename);
@@ -171,4 +173,4 @@ class TextXIdx(unittest.TestCase):
 	# ////////////////////////////////////////////////////////
 if __name__ == '__main__':
 	unittest.main(verbosity=2,exit=True)
-	print("All done")
+	Print("All done")

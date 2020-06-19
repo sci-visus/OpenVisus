@@ -64,7 +64,7 @@ class MyTestCase(unittest.TestCase):
 		
 		field=Field("data","uint8[3]","row_major")
 		db=CreateIdx(url='tmp/test_convert/visus.idx', rmtree=True, dims=[width,height,depth],fields=[field])
-		print(db.getDatasetBody().toString())
+		# print(db.getDatasetBody().toString())
 			
 		# write first slice at offset z=0
 		rgb=numpy.asarray(Image.open('datasets/cat/rgb.png'))
