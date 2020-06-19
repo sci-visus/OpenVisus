@@ -877,18 +877,17 @@ private:
 
 
 ////////////////////////////////////////////////////////////////////
-IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config) 
+IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree config) 
 {
-  auto idxfile=dataset->idxfile;
-
   Url url = dataset->getUrl();
   
+  //create if the file does not exist
   if (config.hasAttribute("url"))
   {
     url = config.readString("url");
+
     if (!url.valid())
       ThrowException(cstring("cannot use", url, "for IdxDiskAccess::create, reason wrong url"));
-
 
     PrintInfo("Trying to use", url, "as cache location...");
 
@@ -963,6 +962,12 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
 
   if (bVerbose)
     PrintInfo("IdxDiskAccess created url",url,"async",async_tpool?"yes":"no");
+}
+
+
+////////////////////////////////////////////////////////////////////
+IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset, StringTree config)
+    : IdxDiskAccess(dataset, dataset->idxfile, config) {
 }
 
 ////////////////////////////////////////////////////////////////////

@@ -2,6 +2,7 @@
 import os,sys
 import unittest
 from PIL import Image
+import random
 
 from OpenVisus import *
 
@@ -63,7 +64,7 @@ class MyTestCase(unittest.TestCase):
 		width,height,depth=256,256,100
 		
 		field=Field("data","uint8[3]","row_major")
-		db=CreateIdx(url='tmp/test_convert/visus.idx', rmtree=True, dims=[width,height,depth],fields=[field])
+		db=CreateIdx(url='tmp/test_convert/visus.idx', rmtree=True, dims=[width,height,depth], fields=[field])
 		# print(db.getDatasetBody().toString())
 			
 		# write first slice at offset z=0
@@ -79,6 +80,19 @@ class MyTestCase(unittest.TestCase):
 			level=data[0,:,:]
 			Assert(I<2 or (rgb==level).all())
 			
+	def testCompression(self):
+		dims=(128,128,128)
+		db=CreateIdx(url="tmp/test_convert/visus.idx",rmtree=True, blocksperfile=4, dims=(dims),fields=[Field("data","uint8")])
+		data=numpy.zeros(dims,numpy.uint8)
+		# add some random sample
+		for z in [random.randint(0, dims[2]-1) for I in range(int(dims[2]/2))]:
+			for y in [random.randint(0, dims[1]-1) for I in range(int(dims[1]/2))]:
+				for x in [random.randint(0, dims[0]-1) for I in range(int(dims[0]/2))]:
+					data[z,y,x]=random.randint(0, 255)
+		db.write(data)
+		db.compressDataset(["zip"])
+		data_check=db.read()
+		Assert((data==data_check).all())
 
 
 # ///////////////////////////////////////////////////////////
