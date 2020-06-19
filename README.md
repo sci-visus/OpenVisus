@@ -1,43 +1,4 @@
-
-```
-Copyright (c) 2010-2018 ViSUS L.L.C., 
-Scientific Computing and Imaging Institute of the University of Utah
- 
-ViSUS L.L.C., 50 W. Broadway, Ste. 300, 84101-2044 Salt Lake City, UT
-University of Utah, 72 S Central Campus Dr, Room 3750, 84112 Salt Lake City, UT
- 
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions and the following disclaimer.
-
-* Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimer in the documentation
-and/or other materials provided with the distribution.
-
-* Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-For additional information about this project contact: pascucci@acm.org
-For support: support@visus.net
-```
-
-# ViSUS Visualization project  
+# OpenViSUS Visualization project  
 
 ![GitHub Actions](https://github.com/sci-visus/OpenVisus/workflows/BuildOpenVisus/badge.svg)
 
@@ -48,82 +9,48 @@ These softwares are distributed under the permissive BSD license.
 
 Table of content:
 
-[PIP Distribution](#pip-distribution)
+- [Binary Distribution](#binary-distribution)
 
-[Conda Distribution](#conda-distribution)
+- [Windows compilation](#windows-compilation)
 
-[Minimal compilation](#minimal-compilation)
+- [MacOSX compilation](#macosx-compilation)
 
-[Windows compilation](#windows-compilation)
+- [Linux compilation](#linux-compilation)
 
-[MacOSX compilation](#macosx-compilation)
-
-[Linux compilation](#linux-compilation)
-
-[Commit CI](#commit-ci)
+- [Minimal compilation](#minimal-compilation)
 
 
 <!--//////////////////////////////////////////////////////////////////////// -->
-## PIP distribution
+## Binary distribution
 
-Type (you can remove `user` if you want to install as `root`):
+If you are using `pip`
 
 ```
+# For Linux sometimes you have to install some python libraries 
+# sudo apt-get install python3.6 libpython3/6
+
 python -m pip install --user --upgrade OpenVisus
 python -m OpenVisus configure --user
 python -m OpenVisus viewer
 ```
 
-Also give a look to [quick_tour](https://github.com/sci-visus/OpenVisus/blob/master/quick_tour.ipynb)
-
-NOTE For Linux sometimes you have to install libraries (example: `sudo apt-get install python3.6 libpython3/6`)
-
-<!--//////////////////////////////////////////////////////////////////////// -->
-## Conda distribution
-
-Type:
+If you are using `conda`:
 
 ```
-conda uninstall -y openvisus # optional
-conda install -y -c visus openvisus
+conda install --yes --channel visus openvisus
 python -m OpenVisus configure 
 python -m OpenVisus viewer
 ```
 
-Also give a look to [quick_tour](https://github.com/sci-visus/OpenVisus/blob/master/quick_tour.ipynb)
+Give a look to directory `Samples/python` and Jupyter examples:
 
-<!--//////////////////////////////////////////////////////////////////////// -->
-## Minimal compilation
+[Samples/jupyter/quick_tour.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/quick_tour.ipynb)
 
-Just do:
+[Samples/jupyter/Agricolture.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/Agricolture.ipynb)
 
-```
-git clone https://github.com/sci-visus/OpenVisus
-cd OpenVisus
-mkdir build
-cd build
-```
+[Samples/jupyter/Climate.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/Climate.ipynb)
 
-On windows:
-
-```
-cmake -G "Visual Studio 16 2019" -A "x64" -DVISUS_MINIMAL=1 ../ 
-cmake --build . --target ALL_BUILD --config Release
-```
-
-On Apple:
-
-```
-cmake -GXcode -DVISUS_MINIMAL=1 ../
-cmake --build ./ --target ALL_BUILD --config Release 
-```
-
-On Linux:
-
-```
-cmake -DVISUS_MINIMAL=1 ../
-cmake --build ./ --target all 
-```
+[Samples/jupyter/ReadAndView.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/ReadAndView.ipynb)
 
 
 <!--//////////////////////////////////////////////////////////////////////// -->
@@ -284,12 +211,39 @@ python -m pip install --upgrade pip
 export PYTHONPATH=./Release
 python -m OpenVisus configure --user
 python -m OpenVisus viewer
-``
+```
+
+<!--//////////////////////////////////////////////////////////////////////// -->
+## Minimal compilation
+
+Minimal compilation disable image support, network support, Python extensions and supports 
+only OpenVisus IDX file format:
+
+
+```
+git clone https://github.com/sci-visus/OpenVisus
+cd OpenVisus
+mkdir build
+cd build
+
+# on windows
+cmake -G "Visual Studio 16 2019" -A "x64" -DVISUS_MINIMAL=1 ../ 
+cmake --build . --target ALL_BUILD --config Release
+
+# on apple
+cmake -GXcode -DVISUS_MINIMAL=1 ../
+cmake --build ./ --target ALL_BUILD --config Release 
+
+# on linux
+cmake -DVISUS_MINIMAL=1 ../
+cmake --build ./ --target all 
+```
+
 
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## Commit CI
 
-Type:
+For OpenVisus developers only:
 
 ```
 TAG=$(python Libs/swig/setup.py new-tag) && echo ${TAG}

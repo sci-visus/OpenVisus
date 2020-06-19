@@ -105,10 +105,11 @@ if (TARGET VisusGui)
 	AddPythonTarget("CMakePredefinedTargets" viewer1   -m OpenVisus viewer1)
 	AddPythonTarget("CMakePredefinedTargets" viewer2   -m OpenVisus viewer2)	
 
-	AddPythonTarget("Jupyter" quick_tour.ipynb     -m OpenVisus jupyter quick_tour.ipynb)
-	AddPythonTarget("Jupyter" Agricolture.ipynb    -m OpenVisus jupyter Samples/jupyter/Agricolture.ipynb)
-	AddPythonTarget("Jupyter" Climate.ipynb        -m OpenVisus jupyter Samples/jupyter/Climate.ipynb)
-	AddPythonTarget("Jupyter" ReadAndView.ipynb    -m OpenVisus jupyter Samples/jupyter/ReadAndView.ipynb)
+	AddPythonTarget("Jupyter" quick_tour.ipynb              -m OpenVisus jupyter Samples/jupyter/quick_tour.ipynb)
+	AddPythonTarget("Jupyter" Agricolture.ipynb             -m OpenVisus jupyter Samples/jupyter/Agricolture.ipynb)
+	AddPythonTarget("Jupyter" Climate.ipynb                 -m OpenVisus jupyter Samples/jupyter/Climate.ipynb)
+	AddPythonTarget("Jupyter" ReadAndView.ipynb             -m OpenVisus jupyter Samples/jupyter/ReadAndView.ipynb)
+	AddPythonTarget("Jupyter" TestIdxBlockCompression.ipynb -m OpenVisus jupyter Samples/jupyter/TestIdxBlockCompression.ipynb)
 endif()
 
 

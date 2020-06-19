@@ -199,13 +199,6 @@ void PrintLine(String file, int line, int level, String msg)
     __redirect_log__.first(msg, __redirect_log__.second);
 }
 
-
-
-//check 64 bit file IO is enabled!
-#if __GNUC__ && !__APPLE__
-VisusAssert(sizeof(off_t) == 8, "internal error");
-#endif
-
 int          CommandLine::argn=0;
 const char** CommandLine::argv ;
 
@@ -361,8 +354,12 @@ void KernelModule::attach()
   if (bAttached)
     return;
 
-
   bAttached = true;
+
+  //check 64 bit file IO is enabled!
+#if __GNUC__ && !__APPLE__
+  VisusReleaseAssert(sizeof(off_t) == 8);
+#endif
 
   //check types
   VisusReleaseAssert(sizeof(Int8) == 1 && sizeof(Uint8) == 1 && sizeof(char) == 1);

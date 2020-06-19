@@ -494,7 +494,7 @@ def Main(args):
 		MidxToIdx(action_args)
 		sys.exit(0)
 
-	# !!!!!!!!!!!!! DEPRECATED !!!!!!!!!!!!!!!! (give a look to quick_tour)
+	# deprecated, old visus(convert)
 	# example: -m OpenVisus convert create tmp/visus.idx --box "0 511 0 511" --fields "scalar uint8 default_compression(lz4) + vector uint8[3] default_compression(lz4)" 
 	if action=="convert":
 		VisusConvert().runFromArgs(action_args)

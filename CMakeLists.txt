@@ -134,8 +134,6 @@ if (1)
 	INSTALL(FILES     LICENSE                     DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
 	INSTALL(FILES     README.md                   DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
 	INSTALL(FILES     datasets/visus.config       DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
-	INSTALL(FILES     quick_tour.ipynb            DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
-
 	INSTALL(FILES     OpenVisusConfig.cmake       DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/lib/cmake/OpenVisus/)
 
 
