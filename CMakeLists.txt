@@ -1,10 +1,14 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 
-option(VISUS_MINIMAL OFF)
+option(VISUS_MINIMAL ON)
 if (VISUS_MINIMAL)
 
 	PROJECT(OpenVisus) 
-
+	
+	# *************************
+	# MINIMAL OpenVisus library VIsusIO
+	# *************************
+	
 	file(GLOB_RECURSE Sources Libs/Kernel/*.cpp Libs/Kernel/*.c Libs/Db/*.cpp)
 		
 	IF (APPLE)
@@ -33,8 +37,13 @@ if (VISUS_MINIMAL)
 		
 	endif()
 	
-	add_executable(visus Executable/visus/main.cpp)
-	target_link_libraries(visus PUBLIC VisusIO)
+	# *************************
+	# example how to write IDX for Kype
+	# *************************
+	
+	add_executable(kyle main.cpp)
+	target_link_libraries(kyle PUBLIC VisusIO)
+	
 
 	return()
 

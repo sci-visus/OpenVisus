@@ -203,8 +203,8 @@ public:
   MinFilter(IdxDataset* dataset,const Field& field) : IdxFilter(dataset,field, /*filter_size*/2,"MinFilter")
   {
     bNeedExtraComponent=true; //always need an extra sample to store the SWAP info
-    VisusAssert(getDType().ncomponents()>1);
     ncomponents=field.dtype.ncomponents();
+    VisusAssert(ncomponents > 1);
     VisusAssert((ncomponents-1)<=sizeof(CppType)*8);
   }
 
@@ -269,8 +269,8 @@ public:
   MaxFilter(IdxDataset* dataset,const Field& field) : IdxFilter(dataset,field, /*filter_size*/2,"MaxFilter")
   {
     bNeedExtraComponent = true; //always need an extra sample to store the SWAP info
-    VisusAssert(getDType().ncomponents()>1);
     ncomponents=field.dtype.ncomponents();
+    VisusAssert(ncomponents > 1);
     VisusAssert((ncomponents-1)<=sizeof(CppType)*8);
   }
 
@@ -335,8 +335,8 @@ public:
   DeHaarDiscreteFilter(IdxDataset* dataset,const Field& field) : IdxFilter(dataset,field,/*filter_size*/2,"DeHaarDiscreteFilter")
   {
     bNeedExtraComponent = true; //always need an extra sample to store the sign
-    VisusAssert(getDType().ncomponents()>1); 
     ncomponents=field.dtype.ncomponents();
+    VisusAssert(ncomponents > 1);
     VisusAssert((ncomponents-1)<=sizeof(CppType)*8);
     VisusAssert(sizeof(R)>=sizeof(CppType)); 
   }
