@@ -653,16 +653,16 @@ void IdxDataset::compressDataset(std::vector<String> compression, Array data)
     Raccess->disableWriteLock();
     VisusReleaseAssert(executeBoxQuery(Raccess, query));
 
-    //read blocks are in RAM
+    //read blocks are in RAM assuming there is no file yet stored on disk
     Raccess->beginRead();
     Waccess->beginWrite();
     for (auto time : idxfile.timesteps.asVector())
     {
       for (BigInt blockid = 0, total_blocks = getTotalNumberOfBlocks(); blockid < total_blocks; blockid++)
       {
-        for (auto field : idxfile.fields)
+        for (auto Rfield : idxfile.fields)
         {
-          auto read_block = createBlockQuery(blockid, field, time, 'r');
+          auto read_block = createBlockQuery(blockid, Rfield, time, 'r');
           if (!executeBlockQueryAndWait(Raccess, read_block))
             continue;
 
@@ -671,9 +671,9 @@ void IdxDataset::compressDataset(std::vector<String> compression, Array data)
           int H = HzOrder::getAddressResolution(idxfile.bitmask, HzStart);
           VisusReleaseAssert(H >= 0 && H < compression.size());
 
-          auto field = read_block->field;
-          field.default_compression = compression[H];
-          auto write_block = createBlockQuery(read_block->blockid, field, read_block->time, 'w');
+          auto Wfield = Rfield;
+          Wfield.default_compression = compression[H];
+          auto write_block = createBlockQuery(read_block->blockid, Wfield, read_block->time, 'w');
           write_block->buffer = read_block->buffer;
           VisusReleaseAssert(executeBlockQueryAndWait(Waccess, write_block));
         }
@@ -684,68 +684,98 @@ void IdxDataset::compressDataset(std::vector<String> compression, Array data)
   }
   else
   {
-    //TODO: what if the file is huge and cannot fit in memory?
-    //maybe I can go block by block (in file order) "shrinking and cropping the file at the end")
+    String suffix = ".~compressed";
 
-    auto Waccess = std::make_shared<IdxDiskAccess>(this);
-    Waccess->disableWriteLock();
-    Waccess->disableAsync();
+    String idx_filename = getUrl();
+    VisusReleaseAssert(FileUtils::existsFile(idx_filename));
+    String compressed_idx_filename = idx_filename + suffix;
 
-    auto Raccess = std::make_shared<IdxDiskAccess>(this);
+    auto compressed_idx_file = this->idxfile;
+    compressed_idx_file.filename_template = idxfile.filename_template + suffix;
+    compressed_idx_file.save(compressed_idx_filename);
+
+    auto Waccess = std::make_shared<IdxDiskAccess>(this, compressed_idx_file);
+    auto Raccess = std::make_shared<IdxDiskAccess>(this, idxfile);
+
     Raccess->disableAsync();
     Raccess->disableWriteLock();
 
-    Raccess->beginRead();
-    Waccess->beginWrite();
+    Waccess->disableWriteLock();
+    Waccess->disableAsync();
+
     for (auto time : idxfile.timesteps.asVector())
     {
-      std::map<String, std::vector< SharedPtr<BlockQuery> > > write_blocks;
+      String prev_filename;
+      auto setFilename = [&](String value)
+      {
+        //wait for a filename change
+        if (prev_filename == value)
+          return;
 
-      auto flush = [&]() {
-        for (const auto& it : write_blocks)
+        // close any read file handle only if it's the last read op
+        if (value.empty())
+          Raccess->endRead();
+
+        //close any write file handle
+        Waccess->endWrite();
+
+        //mv filename.~compressed -> filename
+        if (!prev_filename.empty())
         {
-          FileUtils::removeFile(it.first);
-          for (const auto& read_block : it.second)
-          {
-            //compression can depend on level
-            auto HzStart = Waccess->getStartAddress(read_block->blockid);
-            int H = HzOrder::getAddressResolution(idxfile.bitmask, HzStart);
-            VisusReleaseAssert(H >= 0 && H < compression.size());
-
-            auto field = read_block->field;
-            field.default_compression = compression[H];
-            auto write_block = createBlockQuery(read_block->blockid, field, read_block->time, 'w');
-            write_block->buffer = read_block->buffer;
-            VisusReleaseAssert(executeBlockQueryAndWait(Waccess, write_block));
-          }
+          VisusReleaseAssert(FileUtils::removeFile(prev_filename));
+          VisusReleaseAssert(FileUtils::moveFile(prev_filename + suffix, prev_filename));
         }
-        write_blocks.clear();
+
+        prev_filename = value;
+
+        if (value.empty())
+        {
+          Raccess->beginRead();
+        }
+        else
+        {
+          //remove any file coming from an old compression process
+          FileUtils::removeFile(value + suffix);
+        }
+
+        Waccess->beginWrite();
       };
 
+      Raccess->beginRead();
+      Waccess->beginWrite();
       for (BigInt blockid = 0, total_blocks = getTotalNumberOfBlocks(); blockid < total_blocks; blockid++)
       {
-        for (auto field : idxfile.fields)
+        for (auto Rfield : idxfile.fields)
         {
-          auto filename = Raccess->getFilename(field, time, blockid);
-          VisusReleaseAssert(!filename.empty());
-
-          //first time I see this file, safe to remove old files and write pending blocks
-          if (write_blocks.find(filename) == write_blocks.end())
-            flush();
-
-          auto read_block = createBlockQuery(blockid, field, time, 'r');
+          auto filename = Raccess->getFilename(Rfield, time, blockid);
+          auto read_block = createBlockQuery(blockid, Rfield, time, 'r');
 
           //could fail because block does not exist
           if (!executeBlockQueryAndWait(Raccess, read_block))
             continue;
 
-          write_blocks[filename].push_back(read_block);
+          //prepare for writing... 
+          setFilename(filename);
+
+          //compression can depend on level
+          auto HzStart = Waccess->getStartAddress(read_block->blockid);
+          int H = HzOrder::getAddressResolution(idxfile.bitmask, HzStart);
+          VisusReleaseAssert(H >= 0 && H < compression.size());
+
+          auto Wfield = Rfield;
+          Wfield.default_compression = compression[H];
+          auto write_block = createBlockQuery(read_block->blockid, Wfield, read_block->time, 'w');
+          write_block->buffer = read_block->buffer;
+          VisusReleaseAssert(executeBlockQueryAndWait(Waccess, write_block));
         }
       }
-      flush();
+      setFilename("");
+      Raccess->endRead();
+      Waccess->endWrite();
     }
-    Raccess->endRead();
-    Waccess->endWrite();
+    
+    VisusReleaseAssert(FileUtils::existsFile(compressed_idx_filename));
+    FileUtils::removeFile(compressed_idx_filename);
   }
 }
 

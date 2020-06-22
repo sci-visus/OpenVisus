@@ -58,8 +58,11 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(IdxDiskAccess)
 
-    //constructor
-    IdxDiskAccess(IdxDataset* dataset, StringTree config = StringTree());
+  //constructor
+  IdxDiskAccess(IdxDataset* dataset, IdxFile value, StringTree config = StringTree());
+
+  //constructor
+  IdxDiskAccess(IdxDataset* dataset, StringTree config = StringTree());
 
   //destructor 
   virtual ~IdxDiskAccess();
@@ -95,9 +98,9 @@ public:
 
 private:
 
-  UniquePtr<Access> sync, async;
+  UniquePtr<Access>     sync, async;
   SharedPtr<ThreadPool> async_tpool;
-  IdxFile   idxfile;
+  IdxFile               idxfile;
 
 }; 
 
