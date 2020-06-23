@@ -475,7 +475,6 @@ SharedPtr<PointQuery> Dataset::createPointQuery(Position logic_position, Field f
 }
 
 
-
 ////////////////////////////////////////////////////////////////////////////////////
 bool Dataset::insertSamples(
   LogicSamples Wsamples, Array Wbuffer,
@@ -549,8 +548,11 @@ bool Dataset::insertSamples(
   auto wfrom = Wsamples.logicToPixel(box.p1); auto wto = Wsamples.logicToPixel(box.p2); auto wstep = delta.rightShift(Wsamples.shift);
   auto rfrom = Rsamples.logicToPixel(box.p1); auto rto = Rsamples.logicToPixel(box.p2); auto rstep = delta.rightShift(Rsamples.shift);
 
-  VisusAssert(PointNi::max(wfrom, PointNi(pdim)) == wfrom); wto = PointNi::min(wto, Wbuffer.dims); wstep = PointNi::min(wstep, Wbuffer.dims);
-  VisusAssert(PointNi::max(rfrom, PointNi(pdim)) == rfrom); rto = PointNi::min(rto, Rbuffer.dims); rstep = PointNi::min(rstep, Rbuffer.dims);
+  VisusAssert(PointNi::max(wfrom, PointNi(pdim)) == wfrom); 
+  VisusAssert(PointNi::max(rfrom, PointNi(pdim)) == rfrom); 
+
+  wto = PointNi::min(wto, Wbuffer.dims); wstep = PointNi::min(wstep, Wbuffer.dims);
+  rto = PointNi::min(rto, Rbuffer.dims); rstep = PointNi::min(rstep, Rbuffer.dims);
 
   //first insert samples in the right position!
   if (!ArrayUtils::insert(Wbuffer, wfrom, wto, wstep, Rbuffer, rfrom, rto, rstep, aborted))
@@ -633,8 +635,14 @@ bool Dataset::interpolateSamples(
   auto wfrom = Wsamples.logicToPixel(box.p1); auto wto = Wsamples.logicToPixel(box.p2); auto wstep = delta.rightShift(Wsamples.shift);
   auto rfrom = Rsamples.logicToPixel(box.p1); auto rto = Rsamples.logicToPixel(box.p2); auto rstep = delta.rightShift(Rsamples.shift);
 
-  VisusAssert(PointNi::max(wfrom, PointNi(pdim)) == wfrom); wto = PointNi::min(wto, Wbuffer.dims); wstep = PointNi::min(wstep, Wbuffer.dims);
-  VisusAssert(PointNi::max(rfrom, PointNi(pdim)) == rfrom); rto = PointNi::min(rto, Rbuffer.dims); rstep = PointNi::min(rstep, Rbuffer.dims);
+  VisusAssert(PointNi::max(wfrom, PointNi(pdim)) == wfrom); 
+  VisusAssert(PointNi::max(rfrom, PointNi(pdim)) == rfrom); 
+
+  wto = PointNi::min(wto, Wbuffer.dims); 
+  rto = PointNi::min(rto, Rbuffer.dims); 
+
+  wstep = PointNi::min(wstep, Wbuffer.dims);
+  rstep = PointNi::min(rstep, Rbuffer.dims);
 
   //first insert samples in the right position!
   if (!ArrayUtils::insert(Wbuffer, wfrom, wto, wstep, Rbuffer, rfrom, rto, rstep, aborted))

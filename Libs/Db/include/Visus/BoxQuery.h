@@ -86,7 +86,6 @@ public:
   String       errormsg;
 
   BoxNi                      logic_box;
-  bool                       bInsertSamples = true;
   int                        start_resolution = 0;
   int                        end_resolution = -1;
   std::vector<int>           end_resolutions;

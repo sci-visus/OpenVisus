@@ -1140,9 +1140,9 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr
         Note also that merge can fail simply because there are no samples to merge at a certain level
         */
 
-        insertSamples(Lsamples, Lbuffer, Wsamples,Wbuffer, query->aborted);
-        insertSamples(Lsamples, Lbuffer, Rsamples,Rbuffer, query->aborted);
-        insertSamples(Wsamples, Wbuffer, Lsamples,Lbuffer, query->aborted);
+        insertSamples(Lsamples, Lbuffer, Wsamples, Wbuffer, query->aborted);
+        insertSamples(Lsamples, Lbuffer, Rsamples, Rbuffer, query->aborted);
+        insertSamples(Wsamples, Wbuffer, Lsamples, Lbuffer, query->aborted);
       }
 
       return query->aborted()? false : true;
@@ -1150,7 +1150,6 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr
     else
     {
       VisusAssert(hstart==hend);
-
       return insertSamples(Wsamples,Wbuffer, Rsamples, Rbuffer, query->aborted);
     }
   }
@@ -1389,27 +1388,31 @@ void IdxDataset::nextBoxQuery(SharedPtr<BoxQuery> query)
   int end_resolution = query->end_resolutions[index];
   VisusReleaseAssert(setBoxQueryEndResolution(query,end_resolution));
 
+  auto failed = [&](String reason) {
+    if (query->aborted())
+      reason = "query aborted";
+    return query->setFailed(reason);
+  };
+
   //asssume no merging
   query->buffer = Array();
 
   if (!query->allocateBufferIfNeeded())
-    return query->setFailed("out of memory");
+    return failed("out of memory");
 
   //cannot merge, scrgiorgio: can it really happen??? (maybe when I produce numpy arrays by projecting script...)
   if (!Rsamples.valid() || Rsamples.nsamples != Rbuffer.dims)
     return;
 
-  //TODO!
-  query->bInsertSamples = false;
-  if (query->bInsertSamples)
+  if (this->bInsertSamples)
   {
     if (!insertSamples(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
-      return query->setFailed(query->aborted() ? "query aborted" : "Merging failed for unknown reasons");
+      return failed("merge of samples (insert) failed");
   }
   else
   {
     if (!interpolateSamples(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
-      return query->setFailed(query->aborted() ? "query aborted" : "Merging failed for unknown reasons");
+      return failed("merge of samples (interpolate) failed");
   }
 
   query->filter.query = Rfilter_query;
@@ -1486,16 +1489,15 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
         if (!Wquery->allocateBufferIfNeeded())
           return false;
 
-        if (Wquery->bInsertSamples)
-        {
-          if (!insertSamples(Wquery->logic_samples, Wquery->buffer, Rquery->logic_samples, Rquery->buffer, Wquery->aborted))
-            return false;
-        }
-        else 
-        {
-          if (!interpolateSamples(Wquery->logic_samples, Wquery->buffer, Rquery->logic_samples, Rquery->buffer, Wquery->aborted))
-            return false;
-        }
+        //scrgiorgio: I think here the right thing is to set new samples to 0 so that the image can be reconstructed right (i.e. inverse wavelets)
+        //NOTE: both seems to work with SelfTestIdx
+#if 1
+        if (!insertSamples(Wquery->logic_samples, Wquery->buffer, Rquery->logic_samples, Rquery->buffer, Wquery->aborted))
+          return false;
+#else
+        if (!interpolateSamples(Wquery->logic_samples, Wquery->buffer, Rquery->logic_samples, Rquery->buffer, Wquery->aborted))
+          return false;
+#endif
 
         //note: start_resolution/end_resolution do not change
         Wquery->setCurrentResolution(Rquery->getCurrentResolution());
