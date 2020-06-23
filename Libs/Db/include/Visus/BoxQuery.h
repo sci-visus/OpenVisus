@@ -86,7 +86,7 @@ public:
   String       errormsg;
 
   BoxNi                      logic_box;
-  MergeMode                  merge_mode = MergeMode::InsertSamples;
+  bool                       bInsertSamples = true;
   int                        start_resolution = 0;
   int                        end_resolution = -1;
   std::vector<int>           end_resolutions;
@@ -172,9 +172,6 @@ public:
     this->start_resolution = A;
     this->end_resolutions = { B };
   }
-
-  //mergeWith
-  bool mergeWith(BoxQuery& other, Aborted aborted);
 
   //disableFilters
   void disableFilters() {

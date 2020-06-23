@@ -444,6 +444,17 @@ public:
 
 public:
 
+  //insertSamples
+  static bool insertSamples(
+    LogicSamples Wsamples, Array Wbuffer,
+    LogicSamples Rsamples, Array Rbuffer, Aborted aborted);
+
+  static bool interpolateSamples(
+    LogicSamples Wsamples, Array Wbuffer,
+    LogicSamples Rsamples, Array Rbuffer, Aborted aborted);
+
+public:
+
   //readDatasetFromArchive 
   virtual void readDatasetFromArchive(Archive& ar) = 0;
 

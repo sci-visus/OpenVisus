@@ -46,8 +46,7 @@ namespace Visus {
 
 enum class MergeMode
 {
-  DoNotMergeSamples = 0,
-  InsertSamples,
+  InsertSamples=0,
   InterpolateSamples
 };
 
@@ -149,12 +148,6 @@ public:
     }
     return value;
   }
-
-  //mergeSamples
-  static bool merge(
-    LogicSamples Wsamples, Array Wbuffer,
-    LogicSamples Rsamples, Array Rbuffer,
-    MergeMode merge_mode, Aborted aborted);
 
 
 };

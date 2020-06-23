@@ -268,7 +268,6 @@ void Tutorial_6(String default_layout)
     
     auto query=dataset->createBoxQuery(query_box, 'r');
     query->enableFilters();
-    query->merge_mode= MergeMode::InsertSamples;
 
     //I go level by level for debugging
     for (int H=0;H<=dataset->getMaxResolution();H++)
