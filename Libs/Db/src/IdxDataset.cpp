@@ -1907,7 +1907,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access,SharedPtr<PointQuery
 bool IdxDataset::computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow, bool bVerbose )
 {
   //this works only for filter_size==2, otherwise the building of the sliding_window is very difficult
-  VisusAssert(this->size == 2);
+  VisusAssert(filter->size == 2);
 
   DatasetBitmask bitmask = this->getBitmask();
   BoxNi          box = this->getLogicBox();
