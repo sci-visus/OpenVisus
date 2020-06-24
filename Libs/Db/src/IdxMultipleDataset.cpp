@@ -719,10 +719,6 @@ bool IdxMultipleDataset::executeBoxQuery(SharedPtr<Access> ACCESS,SharedPtr<BoxQ
     return false;
   }
 
-  //a projection happened? results will be unmergeable!
-  if (OUTPUT.dims != QUERY->logic_samples.nsamples)
-    QUERY->merge_mode = MergeMode::DoNotMergeSamples;
-
   QUERY->buffer = OUTPUT;
   QUERY->setCurrentResolution(QUERY->end_resolution);
   return true;

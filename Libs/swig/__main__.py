@@ -191,52 +191,6 @@ def InstallAndUsePyQt5(bUserInstall=False):
 				SetRPath(filename,"$ORIGIN:$ORIGIN/bin:" + os.path.join(PyQt5_HOME,'Qt/lib'))
 
 
-# ////////////////////////////////////////////////
-def TestWriteSpeed(args):
-	parser = argparse.ArgumentParser(description="Test IO write speed")
-	parser.add_argument("--filename", type=str, help="Temporary filename", required=False,default="~temp.bin")
-	parser.add_argument("--blocksize", type=str, help="Block size", required=False,default="64*1024")
-	args = parser.parse_args(args)
-	args.blocksize=int(eval(args.blocksize))
-	print(action,"filename",args.filename, "blocksize",args.blocksize)
-
-	buffer=Array(args.blocksize, DType.fromString("uint8"))
-	if os.path.exists(args.filename):
-		os.remove(args.filename)
-	file=File()
-	Assert(file.createAndOpen(args.filename, "w"))
-	t1 = Time.now()
-	nwritten=0
-	cont=0
-	while True:
-		Assert(file.write(nwritten, args.blocksize, buffer.c_ptr()))
-		nwritten+=args.blocksize
-		cont+=1
-		if cont> 0 and (cont % 8196) == 0:
-			print(int(nwritten / (1024.0 * 1024.0 * t1.elapsedSec())), "MB/sec", int(nwritten/(1024*1024)),"MB")
-	file.close()
-
-# ////////////////////////////////////////////////
-def TestReadSpeed(args):
-	parser = argparse.ArgumentParser(description="Test IO read speed")
-	parser.add_argument("--filename", type=str, help="Temporary filename", required=False,default="~temp.bin")
-	parser.add_argument("--blocksize", type=str, help="Block size", required=False,default="64*1024")
-	args = parser.parse_args(args)
-	args.blocksize=int(eval(args.blocksize))
-	print(action,"filename",args.filename, "blocksize",args.blocksize)
-
-	file=File()
-	Assert(file.open(args.filename, "r"))
-	buffer=Array(args.blocksize, DType.fromString("uint8"))
-	t1 = Time.now()
-	nread,cont=0,0
-	while file.read(nread, args.blocksize, buffer.c_ptr()):
-		nread += args.blocksize
-		cont+=1
-		if cont> 0 and (cont % 8196) == 0:
-			print(int(nread / (1024.0 * 1024.0 * t1.elapsedSec())), " MB/sec", int(nread/(1024*1024)),"MB")
-	file.close()
-	print("nread",nread/(1024*1024),"MB")
 
 # ////////////////////////////////////////////////
 def TestNetworkSpeed(args):
@@ -518,15 +472,6 @@ def Main(args):
 		SelfTestIdx(300)
 		sys.exit(0)
 		
-	# example python -m OpenVisus test-write-speed --filename "d:/~temp.bin" --blocksize "64*1024"
-	if action=="test-write-speed":
-		TestWriteSpeed(action_args)
-		sys.exit(0)
-
-	if action=="test-read-speed":
-		TestReadSpeeds(action_args)
-		sys.exit(0)
-
 	# example -m OpenVisus test-network-speed  --nconnections 1 --nrequests 100 --url "http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled" 
 	if action=="test-network-speed":
 		TestNetworkSpeed(action_args)

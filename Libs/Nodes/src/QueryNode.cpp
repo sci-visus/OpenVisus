@@ -283,7 +283,6 @@ public:
     //remove transformation! (in doPublish I will add the physic clipping)
     auto query = dataset->createBoxQuery(this->logic_position.toDiscreteAxisAlignedBox(), field, time, 'r', this->aborted);
     query->enableFilters();
-    query->merge_mode = MergeMode::InsertSamples;
     query->end_resolutions = resolutions;
 
     query->incrementalPublish = [&](Array output) {

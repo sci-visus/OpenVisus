@@ -333,7 +333,7 @@ void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_q
 //////////////////////////////////////////////////////////////
 bool GoogleMapsDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> blockquery)
 {
-  return LogicSamples::merge(query->logic_samples, query->buffer, blockquery->logic_samples, blockquery->buffer, MergeMode::InsertSamples, query->aborted);
+  return insertSamples(query->logic_samples, query->buffer, blockquery->logic_samples, blockquery->buffer, query->aborted);
 }
 
 //////////////////////////////////////////////////////////////

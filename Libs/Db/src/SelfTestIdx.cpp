@@ -199,7 +199,6 @@ public:
     int                  lasth = Utils::getRandInteger(firsth, maxh);
     int                  deltah = firsth == lasth ? 1 : Utils::getRandInteger(1, lasth - firsth);
     BoxNi                box = Utils::getRandInteger(0, 1) ? dataset->getLogicBox() : getRandomBox();
-    bool                 bInterpolate = Utils::getRandInteger(0, 1) ? true : false;
 
     static int nactivation = 0;
     nactivation++;
@@ -207,7 +206,6 @@ public:
     auto access = dataset->createAccess();
 
     auto query = dataset->createBoxQuery(box, 'r');
-    query->merge_mode = (bInterpolate ? MergeMode::InterpolateSamples : MergeMode::InsertSamples);
 
     for (int h = firsth; h <= lasth; h = h + deltah)
       query->end_resolutions.push_back(h);
@@ -250,7 +248,7 @@ public:
         nsample++;
       }
 
-      PrintInfo("done query", "first_resolution", firsth, "last_resolution", lasth, "delta_between_resolution", deltah, "merge_mode", bInterpolate ? "interpolate" : "insert");
+      PrintInfo("done query", "first_resolution", firsth, "last_resolution", lasth, "delta_between_resolution", deltah);
     }
   }
 

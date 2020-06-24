@@ -1061,7 +1061,11 @@ public:
 
   //max
   static PointN max(const PointN& a, const PointN& b) {
-    return applyOperation< MaxOp>(a, b);
+    return applyOperation<MaxOp>(a, b);
+  }
+
+  static PointN clamp(const PointN& v, const PointN& a,const PointN& b) {
+    return applyOperation<ClampOp>(v,a,b);
   }
 
   //module2
@@ -1312,8 +1316,10 @@ private:
   struct DivOp { static T compute(T a, T b) { return a / b; } };
   struct ModOp { static T compute(T a, T b) { return a % b; } };
 
-  struct MinOp { static T compute(T a, T b) { return std::min(a, b); } };
-  struct MaxOp { static T compute(T a, T b) { return std::max(a, b); } };
+  struct MinOp   { static T compute(T a, T b) { return std::min(a, b); } };
+  struct MaxOp   { static T compute(T a, T b) { return std::max(a, b); } };
+
+  struct ClampOp { static T compute(T v, T a, T b) { return Utils::clamp(v, a, b); } };
 
   struct LShiftOp { static T compute(T a, T b) { return a << b; } };
   struct RShiftOp { static T compute(T a, T b) { return a >> b; } };
@@ -1388,6 +1394,23 @@ private:
     ret.coords[4] = Operation::compute(a.coords[4], b.coords[4]);
     return ret;
   }
+
+  //applyOperation
+  template <typename Operation>
+  static PointN applyOperation(const PointN& v, const PointN& a, const PointN& b)
+  {
+    auto pdim = a.getPointDim();
+    VisusAssert(pdim == b.getPointDim());
+    PointN ret(pdim);
+    ret.coords[0] = Operation::compute(v.coords[0], a.coords[0], b.coords[0]);
+    ret.coords[1] = Operation::compute(v.coords[1], a.coords[1], b.coords[0]);
+    ret.coords[2] = Operation::compute(v.coords[2], a.coords[2], b.coords[0]);
+    ret.coords[3] = Operation::compute(v.coords[3], a.coords[3], b.coords[0]);
+    ret.coords[4] = Operation::compute(v.coords[4], a.coords[4], b.coords[0]);
+    return ret;
+  }
+
+
 
   //checkAll
   template <typename Condition>

@@ -1140,9 +1140,9 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr
         Note also that merge can fail simply because there are no samples to merge at a certain level
         */
 
-        LogicSamples::merge(Lsamples, Lbuffer, Wsamples,Wbuffer, MergeMode::InsertSamples, query->aborted);
-        LogicSamples::merge(Lsamples, Lbuffer, Rsamples,Rbuffer, MergeMode::InsertSamples, query->aborted);
-        LogicSamples::merge(Wsamples, Wbuffer, Lsamples,Lbuffer, MergeMode::InsertSamples, query->aborted);
+        insertSamples(Lsamples, Lbuffer, Wsamples, Wbuffer, query->aborted);
+        insertSamples(Lsamples, Lbuffer, Rsamples, Rbuffer, query->aborted);
+        insertSamples(Wsamples, Wbuffer, Lsamples, Lbuffer, query->aborted);
       }
 
       return query->aborted()? false : true;
@@ -1150,8 +1150,7 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr
     else
     {
       VisusAssert(hstart==hend);
-
-      return LogicSamples::merge(Wsamples,Wbuffer, Rsamples,Rbuffer, MergeMode::InsertSamples,query->aborted);
+      return insertSamples(Wsamples,Wbuffer, Rsamples, Rbuffer, query->aborted);
     }
   }
   else
@@ -1389,27 +1388,28 @@ void IdxDataset::nextBoxQuery(SharedPtr<BoxQuery> query)
   int end_resolution = query->end_resolutions[index];
   VisusReleaseAssert(setBoxQueryEndResolution(query,end_resolution));
 
+  auto failed = [&](String reason) {
+    if (query->aborted())
+      reason = "query aborted";
+    return query->setFailed(reason);
+  };
+
   //asssume no merging
   query->buffer = Array();
 
-  //try to merge with previous resolution
-  if (query->merge_mode != MergeMode::DoNotMergeSamples && Rsamples.valid() && Rsamples.nsamples == Rbuffer.dims)
-  {
-    if (!query->allocateBufferIfNeeded())
-      return query->setFailed("out of memory");
+  if (!query->allocateBufferIfNeeded())
+    return failed("out of memory");
 
-    if (!LogicSamples::merge(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->merge_mode, query->aborted))
-    {
-      if (query->aborted())
-        return query->setFailed("query aborted");
+  //cannot merge, scrgiorgio: can it really happen??? (maybe when I produce numpy arrays by projecting script...)
+  if (!Rsamples.valid() || Rsamples.nsamples != Rbuffer.dims)
+    return;
 
-      VisusAssert(false);
-      return query->setFailed("Merging failed for unknown reasons");
-    }
+  //try insertSamples here if you have problems or slowness here
+  if (!interpolateSamples(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
+    return failed("merge of samples (interpolate) failed");
 
-    query->filter.query = Rfilter_query;
-    query->setCurrentResolution(Rcurrent_resolution);
-  }
+  query->filter.query = Rfilter_query;
+  query->setCurrentResolution(Rcurrent_resolution);
 }
 
 
@@ -1465,7 +1465,6 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
       auto Wquery = createBoxQuery(adjusted_logic_box, query->field, query->time, 'r', query->aborted);
       Wquery->setResolutionRange(0,H);
       Wquery->disableFilters();
-      Wquery->merge_mode = MergeMode::InsertSamples;
 
       beginBoxQuery(Wquery);
 
@@ -1480,11 +1479,17 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
       //try to merge previous results
       if (auto Rquery = query->filter.query)
       {
-        if (!Wquery->mergeWith(*Rquery, query->aborted))
-        {
-          VisusAssert(query->aborted());
+        if (!Wquery->allocateBufferIfNeeded())
           return false;
-        }
+
+        //interpolateSamples seems to be wrong here, produces a lot of artifacts (see david_wavelets)! 
+        //could be that I'm inserting wrong coefficients?
+        //for now insertSamples seems to work just fine, "interpolating" missing blocks/samples
+        if (!insertSamples(Wquery->logic_samples, Wquery->buffer, Rquery->logic_samples, Rquery->buffer, Wquery->aborted))
+          return false;
+
+        //note: start_resolution/end_resolution do not change
+        Wquery->setCurrentResolution(Rquery->getCurrentResolution());
       }
 
       if (!this->executeBoxQuery(access, Wquery))

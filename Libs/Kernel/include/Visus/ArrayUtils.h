@@ -128,9 +128,6 @@ public:
     Array& wbuffer, PointNi wfrom, PointNi wto, PointNi wstep,
     Array  rbuffer, PointNi rfrom, PointNi rto, PointNi rstep, Aborted aborted = Aborted());
 
-  // interpolate
-  static bool interpolate(Array& dst, PointNi from, PointNi to, PointNi step, Aborted aborted = Aborted());
-
   //paste src image into dst image
   static bool paste(Array& dst, BoxNi Dbox, Array src, BoxNi Sbox, Aborted aborted = Aborted());
 
