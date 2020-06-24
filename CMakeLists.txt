@@ -4,6 +4,9 @@ option(VISUS_MINIMAL OFF)
 if (VISUS_MINIMAL)
 
 	PROJECT(OpenVisus) 
+	
+	set(CMAKE_CXX_STANDARD              11)
+	set(CMAKE_CXX_STANDARD_REQUIRED     ON)
 
 	file(GLOB_RECURSE Sources Libs/Kernel/*.cpp Libs/Kernel/*.c Libs/Db/*.cpp)
 		
