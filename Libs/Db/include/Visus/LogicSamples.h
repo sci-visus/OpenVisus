@@ -44,11 +44,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-enum class MergeMode
-{
-  InsertSamples=0,
-  InterpolateSamples
-};
 
 ////////////////////////////////////////////////////////
 class VISUS_DB_API LogicSamples 
