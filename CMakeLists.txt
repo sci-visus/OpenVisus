@@ -4,11 +4,10 @@ option(VISUS_MINIMAL ON)
 if (VISUS_MINIMAL)
 
 	PROJECT(OpenVisus) 
-	
-	# *************************
-	# MINIMAL OpenVisus library VIsusIO
-	# *************************
-	
+
+	set(CMAKE_CXX_STANDARD              11)
+	set(CMAKE_CXX_STANDARD_REQUIRED     ON)
+
 	file(GLOB_RECURSE Sources Libs/Kernel/*.cpp Libs/Kernel/*.c Libs/Db/*.cpp)
 		
 	IF (APPLE)
@@ -37,14 +36,9 @@ if (VISUS_MINIMAL)
 		
 	endif()
 	
-	# *************************
-	# example how to write IDX for Kype
-	# *************************
-	
 	add_executable(kyle main.cpp)
 	target_link_libraries(kyle PUBLIC VisusIO)
 	
-
 	return()
 
 endif()

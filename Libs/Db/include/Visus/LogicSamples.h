@@ -44,12 +44,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-enum class MergeMode
-{
-  DoNotMergeSamples = 0,
-  InsertSamples,
-  InterpolateSamples
-};
 
 ////////////////////////////////////////////////////////
 class VISUS_DB_API LogicSamples 
@@ -149,12 +143,6 @@ public:
     }
     return value;
   }
-
-  //mergeSamples
-  static bool merge(
-    LogicSamples Wsamples, Array Wbuffer,
-    LogicSamples Rsamples, Array Rbuffer,
-    MergeMode merge_mode, Aborted aborted);
 
 
 };
