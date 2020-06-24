@@ -2564,11 +2564,12 @@ Node* Viewer::addRender(String uuid, Node* parent, String palette)
   {
     //render
     Node *render_node = nullptr;
-    if (VisusModule::getModuleConfig()->readString("Configuration/VisusViewer/DefaultRenderNode/value") == "ospray") {
+#if VISUS_OSPRAY
       render_node = new OSPRayRenderNode();
-    } else {
+#else
       render_node = new RenderArrayNode();
-    }
+#endif
+
     ret = render_node;
     render_node->setUUID(uuid);
     render_node->setName("RenderArray");

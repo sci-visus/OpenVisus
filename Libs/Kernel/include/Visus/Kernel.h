@@ -52,7 +52,9 @@ For support : support@visus.net
 #if WIN32
 
     //otherwise min() max() macro are declared
-  #define NOMINMAX 
+  #ifndef NOMINMAX
+  #define NOMINMAX
+  #endif
 
   //...needs to have dll-interface to be used by clients of class...
   #pragma warning(disable:4251) 

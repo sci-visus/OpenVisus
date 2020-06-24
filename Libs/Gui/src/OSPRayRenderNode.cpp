@@ -46,7 +46,6 @@ For support : support@visus.net
 #if VISUS_OSPRAY
 #include <ospray/ospray.h>
 #include <ospray/ospray_cpp.h>
-
 #endif
 
 namespace Visus {
