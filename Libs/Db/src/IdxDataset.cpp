@@ -1482,8 +1482,10 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
         if (!Wquery->allocateBufferIfNeeded())
           return false;
 
-        //try insertSamples here if you have problems
-        if (!interpolateSamples(Wquery->logic_samples, Wquery->buffer, Rquery->logic_samples, Rquery->buffer, Wquery->aborted))
+        //interpolateSamples seems to be wrong here, produces a lot of artifacts (see david_wavelets)! 
+        //could be that I'm inserting wrong coefficients?
+        //for now insertSamples seems to work just fine, "interpolating" missing blocks/samples
+        if (!insertSamples(Wquery->logic_samples, Wquery->buffer, Rquery->logic_samples, Rquery->buffer, Wquery->aborted))
           return false;
 
         //note: start_resolution/end_resolution do not change
