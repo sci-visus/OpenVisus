@@ -484,6 +484,12 @@ bool Dataset::insertSamples(
   if (!Wsamples.valid() || !Rsamples.valid())
     return false;
 
+  if (Wbuffer.dtype != Rbuffer.dtype || Wbuffer.dims != Wsamples.nsamples || Rbuffer.dims != Rsamples.nsamples)
+  {
+    VisusAssert(false);
+    return false;
+  }
+
   //cannot find intersection (i.e. no sample to merge)
   BoxNi box = Wsamples.logic_box.getIntersection(Rsamples.logic_box);
   if (!box.isFullDim())
@@ -541,11 +547,7 @@ bool Dataset::insertSamples(
 
   VisusAssert(box.isFullDim());
 
-  VisusAssert(Wbuffer.dims == Wsamples.nsamples);
-  VisusAssert(Rbuffer.dims == Rsamples.nsamples);
-  VisusAssert(Wbuffer.dtype == Rbuffer.dtype);
-
-  auto wfrom = Wsamples.logicToPixel(box.p1); auto wto = Wsamples.logicToPixel(box.p2); auto wstep = delta.rightShift(Wsamples.shift);
+  auto wfrom = Wsamples.logicToPixel(box.p1); auto wto = Wsamples.logicToPixel(box.p2); auto wstep = delta.rightShift(Wsamples.shift); 
   auto rfrom = Rsamples.logicToPixel(box.p1); auto rto = Rsamples.logicToPixel(box.p2); auto rstep = delta.rightShift(Rsamples.shift);
 
   VisusAssert(PointNi::max(wfrom, PointNi(pdim)) == wfrom); 
@@ -562,7 +564,65 @@ bool Dataset::insertSamples(
 }
 
 
-////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+class InterpolateOp
+{
+public:
+
+  //execute
+  template <class CppType>
+  bool execute(LogicSamples Wsamples, Array Wbuffer, LogicSamples Rsamples, Array Rbuffer, Aborted aborted)
+  {
+    auto pdim = Wbuffer.getPointDim(); VisusAssert(Rbuffer.getPointDim() == pdim);
+    auto zero = PointNi(pdim);
+    auto one  = PointNi(pdim);
+
+    auto Wstride = Wbuffer.dims.stride();
+    auto Rstride = Rbuffer.dims.stride();
+
+    VisusReleaseAssert(Wbuffer.dtype == Rbuffer.dtype);
+    int N = Wbuffer.dtype.ncomponents(); 
+
+    //for each component...
+    for (int C = 0; C < N; C++)
+    {
+      if (aborted())
+        return false;
+
+      GetComponentSamples<CppType> W(Wbuffer, C); PointNi Wpixel; Int64   Wpos = 0;
+      GetComponentSamples<CppType> R(Rbuffer, C); PointNi Rpixel; PointNi Rpos(pdim);
+
+      #define W2R(I) (Utils::clamp<Int64>(((Wsamples.logic_box.p1[I] + (Wpixel[I] << Wsamples.shift[I])) - Rsamples.logic_box.p1[I]) >> Rsamples.shift[I], 0, Rbuffer.dims[I] - 1))
+
+      if (pdim == 2)
+      {
+        for (Wpixel[1] = 0; Wpixel[1] < Wbuffer.dims[1]; Wpixel[1]++) { Rpixel[1] = W2R(1); Rpos[1]= Rpixel[1] * Rstride[1];
+        for (Wpixel[0] = 0; Wpixel[0] < Wbuffer.dims[0]; Wpixel[0]++) { Rpixel[0] = W2R(0); Rpos[0]= Rpixel[0] * Rstride[0] + Rpos[1];
+          W[Wpos++] = R[Rpos[0]];
+        }}
+      }
+      else if (pdim == 3)
+      {
+        for (Wpixel[2] = 0; Wpixel[2] < Wbuffer.dims[2]; Wpixel[2]++) { Rpixel[2] = W2R(2); Rpos[2] = Rpixel[2] * Rstride[2];
+        for (Wpixel[1] = 0; Wpixel[1] < Wbuffer.dims[1]; Wpixel[1]++) { Rpixel[1] = W2R(1); Rpos[1] = Rpixel[1] * Rstride[1] + Rpos[2];
+        for (Wpixel[0] = 0; Wpixel[0] < Wbuffer.dims[0]; Wpixel[0]++) { Rpixel[0] = W2R(0); Rpos[0] = Rpixel[0] * Rstride[0] + Rpos[1];
+          W[Wpos++] = R[Rpos[0]];
+        }}}
+      }
+      else
+      {
+        for (auto it = ForEachPoint(Wbuffer.dims); !it.end(); it.next())
+        {
+          Wpixel = it.pos;
+          Rpixel = PointNi::clamp(Rsamples.logicToPixel(Wsamples.pixelToLogic(Wpixel)), zero, Rbuffer.dims - one);
+          W[Wpixel.dot(Wstride)] = R[Rpixel.dot(Rstride)];
+        }
+      }
+    }
+    return true;
+  }
+};
+
 bool Dataset::interpolateSamples(
   LogicSamples Wsamples, Array Wbuffer,
   LogicSamples Rsamples, Array Rbuffer,
@@ -571,85 +631,22 @@ bool Dataset::interpolateSamples(
   if (!Wsamples.valid() || !Rsamples.valid())
     return false;
 
-  //cannot find intersection (i.e. no sample to merge)
-  BoxNi box = Wsamples.logic_box.getIntersection(Rsamples.logic_box);
-  if (!box.isFullDim())
-    return false;
-
-  /*
-  Example of the problem to solve:
-
-  Wsamples:=-2 + kw*6         -2,          4,          10,            *16*,            22,            28,            34,            40,            *46*,            52,            58,  ...)
-  Rsamples:=-4 + kr*5    -4,         1,        6,         11,         *16*,          21,       25,            ,31         36,          41,         *46*,          51,         56,       ...)
-
-  give kl,kw,kr independent integers all >=0
-
-  leastCommonMultiple(2,6,5)= 2*3*5 =30
-
-  First "common" value (i.e. minimum value satisfying all 3 conditions) is 16
-  */
-
-  int pdim = Rbuffer.getPointDim();
-  PointNi delta(pdim);
-  for (int D = 0; D < pdim; D++)
+  if (Wbuffer.dtype != Rbuffer.dtype || Wbuffer.dims != Wsamples.nsamples || Rbuffer.dims != Rsamples.nsamples)
   {
-    Int64 lcm = Utils::leastCommonMultiple(Rsamples.delta[D], Wsamples.delta[D]);
-
-    Int64 P1 = box.p1[D];
-    Int64 P2 = box.p2[D];
-
-    while (
-      !Utils::isAligned(P1, Wsamples.logic_box.p1[D], Wsamples.delta[D]) ||
-      !Utils::isAligned(P1, Rsamples.logic_box.p1[D], Rsamples.delta[D]))
-    {
-      //NOTE: if the value is already aligned, alignRight does nothing
-      P1 = Utils::alignRight(P1, Wsamples.logic_box.p1[D], Wsamples.delta[D]);
-      P1 = Utils::alignRight(P1, Rsamples.logic_box.p1[D], Rsamples.delta[D]);
-
-      //cannot find any alignment, going beyond the valid range
-      if (P1 >= P2)
-        return false;
-
-      //continue in the search IIF it's not useless
-      if ((P1 - box.p1[D]) >= lcm)
-      {
-        //should be acceptable to be here, it just means that there are no samples to merge... 
-        //but since 99% of the time Visus has pow-2 alignment it is high unlikely right now... adding the VisusAssert just for now
-        VisusAssert(false);
-        return false;
-      }
-    }
-
-    delta[D] = lcm;
-    P2 = Utils::alignRight(P2, P1, delta[D]);
-    box.p1[D] = P1;
-    box.p2[D] = P2;
+    VisusAssert(false);
+    return false;
   }
 
-  VisusAssert(box.isFullDim());
-
-  VisusAssert(Wbuffer.dims == Wsamples.nsamples);
-  VisusAssert(Rbuffer.dims == Rsamples.nsamples);
-  VisusAssert(Wbuffer.dtype == Rbuffer.dtype);
-
-  auto wfrom = Wsamples.logicToPixel(box.p1); auto wto = Wsamples.logicToPixel(box.p2); auto wstep = delta.rightShift(Wsamples.shift);
-  auto rfrom = Rsamples.logicToPixel(box.p1); auto rto = Rsamples.logicToPixel(box.p2); auto rstep = delta.rightShift(Rsamples.shift);
-
-  VisusAssert(PointNi::max(wfrom, PointNi(pdim)) == wfrom); 
-  VisusAssert(PointNi::max(rfrom, PointNi(pdim)) == rfrom); 
-
-  wto = PointNi::min(wto, Wbuffer.dims); 
-  rto = PointNi::min(rto, Rbuffer.dims); 
-
-  wstep = PointNi::min(wstep, Wbuffer.dims);
-  rstep = PointNi::min(rstep, Rbuffer.dims);
-
-  //first insert samples in the right position!
-  if (!ArrayUtils::insert(Wbuffer, wfrom, wto, wstep, Rbuffer, rfrom, rto, rstep, aborted))
+  InterpolateOp op;
+  if (!ExecuteOnCppSamples(op, Wbuffer.dtype, Wsamples, Wbuffer, Rsamples, Rbuffer, aborted))
     return false;
 
-  //eventually interpolate the samples got so far (NOTE: interpolate can be slow!)
-  return ArrayUtils::interpolate(Wbuffer, wfrom, wto, wstep, aborted);
+  //I must be sure that 'inserted samples' from Rbuffer must be untouched in Wbuffer
+  //this is for wavelets where I need the coefficients to be right
+  if (!insertSamples(Wsamples, Wbuffer, Rsamples, Rbuffer, aborted))
+    return false;
+
+  return true;
 }
 
 

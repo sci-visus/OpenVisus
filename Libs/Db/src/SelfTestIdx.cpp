@@ -206,7 +206,6 @@ public:
     auto access = dataset->createAccess();
 
     auto query = dataset->createBoxQuery(box, 'r');
-    dataset->bInsertSamples = Utils::getRandInteger(0, 1)?true:false;
 
     for (int h = firsth; h <= lasth; h = h + deltah)
       query->end_resolutions.push_back(h);
@@ -249,7 +248,7 @@ public:
         nsample++;
       }
 
-      PrintInfo("done query", "first_resolution", firsth, "last_resolution", lasth, "delta_between_resolution", deltah, "InsertSamples", dataset->bInsertSamples);
+      PrintInfo("done query", "first_resolution", firsth, "last_resolution", lasth, "delta_between_resolution", deltah);
     }
   }
 

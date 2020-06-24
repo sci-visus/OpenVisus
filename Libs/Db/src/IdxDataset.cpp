@@ -1404,16 +1404,9 @@ void IdxDataset::nextBoxQuery(SharedPtr<BoxQuery> query)
   if (!Rsamples.valid() || Rsamples.nsamples != Rbuffer.dims)
     return;
 
-  if (this->bInsertSamples)
-  {
-    if (!insertSamples(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
-      return failed("merge of samples (insert) failed");
-  }
-  else
-  {
-    if (!interpolateSamples(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
-      return failed("merge of samples (interpolate) failed");
-  }
+  //try insertSamples here if you have problems or slowness here
+  if (!interpolateSamples(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
+    return failed("merge of samples (interpolate) failed");
 
   query->filter.query = Rfilter_query;
   query->setCurrentResolution(Rcurrent_resolution);
@@ -1489,15 +1482,9 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
         if (!Wquery->allocateBufferIfNeeded())
           return false;
 
-        //scrgiorgio: I think here the right thing is to set new samples to 0 so that the image can be reconstructed right (i.e. inverse wavelets)
-        //NOTE: both seems to work with SelfTestIdx
-#if 1
-        if (!insertSamples(Wquery->logic_samples, Wquery->buffer, Rquery->logic_samples, Rquery->buffer, Wquery->aborted))
-          return false;
-#else
+        //try insertSamples here if you have problems
         if (!interpolateSamples(Wquery->logic_samples, Wquery->buffer, Rquery->logic_samples, Rquery->buffer, Wquery->aborted))
           return false;
-#endif
 
         //note: start_resolution/end_resolution do not change
         Wquery->setCurrentResolution(Rquery->getCurrentResolution());

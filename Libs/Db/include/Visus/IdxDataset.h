@@ -60,9 +60,6 @@ public:
   //idxfile
   IdxFile idxfile;
 
-  //bInsertSamples
-  bool bInsertSamples = true;
-
   //default constructor
   IdxDataset();
 
