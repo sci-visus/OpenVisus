@@ -819,8 +819,6 @@ BoxNi IdxDataset::adjustBoxQueryFilterBox(BoxQuery* query,IdxFilter* filter,BoxN
   return box;
 }
 
-
-
 //////////////////////////////////////////////////////////////////
 LogicSamples IdxDataset::getBlockSamples(BigInt blockid)
 {
@@ -879,7 +877,6 @@ SharedPtr<BoxQuery> IdxDataset::createEquivalentBoxQuery(int mode,SharedPtr<Bloc
   return ret;
 }
 
-
 ////////////////////////////////////////////////////////
 bool IdxDataset::convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) 
 {
@@ -920,7 +917,6 @@ bool IdxDataset::convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query)
 
   return true;
 }
-
 
 ////////////////////////////////////////////////////////////////////
 SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuery)
@@ -996,13 +992,11 @@ void IdxDataset::readDatasetFromArchive(Archive& ar)
   setIdxFile(idxfile);
 }
 
-
 static CriticalSection                                                                HZADDRESS_CONVERSION_BOXQUERY_LOCK;
 static std::map<String, SharedPtr<IdxBoxQueryHzAddressConversion> >                   HZADDRESS_CONVERSION_BOXQUERY;
 
 static CriticalSection                                                                HZADDRESS_CONVERSION_POINTQUERY_LOCK;
 static std::map<std::pair<String,int> , SharedPtr<IdxPointQueryHzAddressConversion> > HZADDRESS_CONVERSION_POINTQUERY;
-
 
 ////////////////////////////////////////////////////////////
 void IdxDataset::setIdxFile(IdxFile value)
@@ -1062,7 +1056,6 @@ void IdxDataset::setIdxFile(IdxFile value)
     }
   }
 }
-
 
 //////////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> block_query)
@@ -1160,95 +1153,6 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr
   }
 }
 
-
-
-/////////////////////////////////////////////////////////////////////////
-NetRequest IdxDataset::createBoxQueryRequest(SharedPtr<BoxQuery> query)
-{
-  /*
-    *****NOTE FOR REMOTE QUERIES:*****
-
-    I always restart from scratch so I will do Query0[0,resolutions[0]], Query1[0,resolutions[1]], Query2[0,resolutions[2]]  without any merging
-    In this way I transfer a little more data on the network (without compression in the worst case the ratio is 2.0)
-    but I can use lossy compression and jump levels
-    in the old code I was using:
-
-      Query0[0,resolutions[0]  ]
-      Query1[0,resolutions[0]+1] <-- by merging prev_single and Query[resolutions[0]+1,resolutions[0]+1]
-      Query1[0,resolutions[0]+2] <-- by merging prev_single and Query[resolutions[0]+2,resolutions[0]+2]
-      ...
-
-        -----------------------------
-        | overall     |single       |
-        | --------------------------|
-    Q0  | 2^0*T       |             |
-    Q1  | 2^1*T       | 2^0*T       |
-    ..  |             |             |
-    Qn  | 2^n*T       | 2^(n-1)*T   |
-        -----------------------------
-
-    OLD CODE transfers singles = T*(2^0+2^1+...+2^(n-1))=T*2^n    (see http://it.wikipedia.org/wiki/Serie_geometrica)
-    NEW CODE transfers overall = T*(2^0+2^1+...+2^(n  ))=T*2^n+1
-
-    RATIO:=overall_transfer/single_transfer=2.0
-
-    With the new code I have the following advantages:
-
-        (*) I don't have to go level by level after Q0. By "jumping" levels I send less data
-        (*) I can use lossy compression (in the old code I needed lossless compression to rebuild the data for Qi with i>0)
-        (*) not all datasets support the merging (see IdxMultipleDataset and GoogleMapsDataset)
-        (*) the filters (example wavelets) are applied always on the server side (in the old code filters were applied on the server only for Q0)
-  */
-
-
-  VisusAssert(query->mode == 'r');
-
-  Url url = this->getUrl();
-
-  NetRequest ret;
-  ret.url = url.getProtocol() + "://" + url.getHostname() + ":" + cstring(url.getPort()) + "/mod_visus";
-  ret.url.params = url.params;  //I may have some extra params I want to keep!
-  ret.url.setParam("action", "boxquery");
-  ret.url.setParam("dataset", url.getParam("dataset"));
-  ret.url.setParam("time", url.getParam("time", cstring(query->time)));
-  ret.url.setParam("compression", url.getParam("compression", "zip")); //for networking I prefer to use zip
-  ret.url.setParam("field", query->field.name);
-  ret.url.setParam("fromh", cstring(query->start_resolution));
-  ret.url.setParam("toh", cstring(query->getEndResolution()));
-  ret.url.setParam("maxh", cstring(getMaxResolution())); //backward compatible
-  ret.url.setParam("box", query->logic_box.toOldFormatString());
-  ret.aborted = query->aborted;
-  return ret;
-}
-
-/////////////////////////////////////////////////////////////////////////
-NetRequest IdxDataset::createPointQueryRequest(SharedPtr<PointQuery> query)
-{
-  VisusAssert(query->mode == 'r');
-
-  Url url=this->getUrl();
-
-  NetRequest ret;
-  ret.url = url.getProtocol() + "://" + url.getHostname() + ":" + cstring(url.getPort()) + "/mod_visus";
-  ret.url.params = url.params;  //I may have some extra params I want to keep!
-  ret.url.setParam("action", "pointquery");
-  ret.url.setParam("dataset", url.getParam("dataset"));
-  ret.url.setParam("time", url.getParam("time", cstring(query->time)));
-  ret.url.setParam("compression", url.getParam("compression", "zip")); //for networking I prefer to use zip
-  ret.url.setParam("field", query->field.name);
-  ret.url.setParam("fromh", cstring(0)); //backward compatible
-  ret.url.setParam("toh", cstring(query->end_resolution));
-  ret.url.setParam("maxh", cstring(getMaxResolution())); //backward compatible
-  ret.url.setParam("matrix"  ,query->logic_position.getTransformation().toString());
-  ret.url.setParam("box"     ,query->logic_position.getBoxNd().toBox3().toString(/*bInterleave*/false));
-  ret.url.setParam("nsamples",query->getNumberOfPoints().toString());
-  PrintInfo(ret.url);  
-  ret.aborted = query->aborted;
-  return ret;
-}
-
-
-
 //////////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value)
 {
@@ -1301,7 +1205,6 @@ bool IdxDataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value)
   return true;
 
 }
-
 
 //////////////////////////////////////////////////////////////////////////////////////////
 void IdxDataset::beginBoxQuery(SharedPtr<BoxQuery> query) 
@@ -1366,53 +1269,6 @@ void IdxDataset::beginBoxQuery(SharedPtr<BoxQuery> query)
   query->setFailed();
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
-void IdxDataset::nextBoxQuery(SharedPtr<BoxQuery> query)
-{
-  if (!query)
-    return;
-
-  if (!(query->isRunning() && query->getCurrentResolution() == query->getEndResolution()))
-    return;
-
-  //reached the end? 
-  if (query->end_resolution == query->end_resolutions.back())
-    return query->setOk();
-
-  auto Rcurrent_resolution = query->getCurrentResolution();
-  auto Rsamples = query->logic_samples;
-  auto Rbuffer = query->buffer;
-  auto Rfilter_query = query->filter.query;
-
-  int index = Utils::find(query->end_resolutions, query->end_resolution) + 1;
-  int end_resolution = query->end_resolutions[index];
-  VisusReleaseAssert(setBoxQueryEndResolution(query,end_resolution));
-
-  auto failed = [&](String reason) {
-    if (query->aborted())
-      reason = "query aborted";
-    return query->setFailed(reason);
-  };
-
-  //asssume no merging
-  query->buffer = Array();
-
-  if (!query->allocateBufferIfNeeded())
-    return failed("out of memory");
-
-  //cannot merge, scrgiorgio: can it really happen??? (maybe when I produce numpy arrays by projecting script...)
-  if (!Rsamples.valid() || Rsamples.nsamples != Rbuffer.dims)
-    return;
-
-  //try insertSamples here if you have problems or slowness here
-  if (!interpolateSamples(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
-    return failed("merge of samples (interpolate) failed");
-
-  query->filter.query = Rfilter_query;
-  query->setCurrentResolution(Rcurrent_resolution);
-}
-
-
 ///////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
 {
@@ -1463,7 +1319,7 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
       BoxNi adjusted_logic_box = adjustBoxQueryFilterBox(query.get(), filter.get(), query->filter.adjusted_logic_box, H);
 
       auto Wquery = createBoxQuery(adjusted_logic_box, query->field, query->time, 'r', query->aborted);
-      Wquery->setResolutionRange(0,H);
+      Wquery->setResolutionRange(0, H);
       Wquery->disableFilters();
 
       beginBoxQuery(Wquery);
@@ -1508,7 +1364,7 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
     }
 
     query->logic_samples = query->filter.query->logic_samples;
-    query->buffer        = query->filter.query->buffer;
+    query->buffer = query->filter.query->buffer;
 
     VisusAssert(query->buffer.dims == query->getNumberOfSamples());
     query->setCurrentResolution(query->end_resolution);
@@ -1532,9 +1388,9 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
 
   auto aborted = query->aborted;
 
-  #define PUSH()  (*((stack)++))=(item)
-  #define POP()   (item)=(*(--(stack)))
-  #define EMPTY() ((stack)==(STACK))
+#define PUSH()  (*((stack)++))=(item)
+#define POP()   (item)=(*(--(stack)))
+#define EMPTY() ((stack)==(STACK))
 
   //collect blocks
   std::vector<BigInt> blocks;
@@ -1596,14 +1452,14 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
 
   } //for levels
 
-  #undef PUSH 
-  #undef POP  
-  #undef EMPTY 
+#undef PUSH 
+#undef POP  
+#undef EMPTY 
 
   if (aborted())
     return false;
 
-  int NREAD  = 0;
+  int NREAD = 0;
   int NWRITE = 0;
   WaitAsync< Future<Void> > async_read;
 
@@ -1617,11 +1473,11 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
   //PrintInfo("Executing query...");
 
   //rehentrant call...(just to not close the file too soon)
-  bool bWasWriting = access->isWriting(); 
+  bool bWasWriting = access->isWriting();
   bool bWasReading = access->isReading();
 
   if (bWriting)
-  {  
+  {
     if (!bWasWriting)
       access->beginWrite();
   }
@@ -1708,6 +1564,110 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
 
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////
+void IdxDataset::nextBoxQuery(SharedPtr<BoxQuery> query)
+{
+  if (!query)
+    return;
+
+  if (!(query->isRunning() && query->getCurrentResolution() == query->getEndResolution()))
+    return;
+
+  //reached the end? 
+  if (query->end_resolution == query->end_resolutions.back())
+    return query->setOk();
+
+  auto Rcurrent_resolution = query->getCurrentResolution();
+  auto Rsamples = query->logic_samples;
+  auto Rbuffer = query->buffer;
+  auto Rfilter_query = query->filter.query;
+
+  int index = Utils::find(query->end_resolutions, query->end_resolution) + 1;
+  int end_resolution = query->end_resolutions[index];
+  VisusReleaseAssert(setBoxQueryEndResolution(query,end_resolution));
+
+  auto failed = [&](String reason) {
+    if (query->aborted())
+      reason = "query aborted";
+    return query->setFailed(reason);
+  };
+
+  //asssume no merging
+  query->buffer = Array();
+
+  if (!query->allocateBufferIfNeeded())
+    return failed("out of memory");
+
+  //cannot merge, scrgiorgio: can it really happen??? (maybe when I produce numpy arrays by projecting script...)
+  if (!Rsamples.valid() || Rsamples.nsamples != Rbuffer.dims)
+    return;
+
+  //try insertSamples here if you have problems or slowness here
+  if (!interpolateSamples(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
+    return failed("merge of samples (interpolate) failed");
+
+  query->filter.query = Rfilter_query;
+  query->setCurrentResolution(Rcurrent_resolution);
+}
+
+/////////////////////////////////////////////////////////////////////////
+NetRequest IdxDataset::createBoxQueryRequest(SharedPtr<BoxQuery> query)
+{
+  /*
+    *****NOTE FOR REMOTE QUERIES:*****
+
+    I always restart from scratch so I will do Query0[0,resolutions[0]], Query1[0,resolutions[1]], Query2[0,resolutions[2]]  without any merging
+    In this way I transfer a little more data on the network (without compression in the worst case the ratio is 2.0)
+    but I can use lossy compression and jump levels
+    in the old code I was using:
+
+      Query0[0,resolutions[0]  ]
+      Query1[0,resolutions[0]+1] <-- by merging prev_single and Query[resolutions[0]+1,resolutions[0]+1]
+      Query1[0,resolutions[0]+2] <-- by merging prev_single and Query[resolutions[0]+2,resolutions[0]+2]
+      ...
+
+        -----------------------------
+        | overall     |single       |
+        | --------------------------|
+    Q0  | 2^0*T       |             |
+    Q1  | 2^1*T       | 2^0*T       |
+    ..  |             |             |
+    Qn  | 2^n*T       | 2^(n-1)*T   |
+        -----------------------------
+
+    OLD CODE transfers singles = T*(2^0+2^1+...+2^(n-1))=T*2^n    (see http://it.wikipedia.org/wiki/Serie_geometrica)
+    NEW CODE transfers overall = T*(2^0+2^1+...+2^(n  ))=T*2^n+1
+
+    RATIO:=overall_transfer/single_transfer=2.0
+
+    With the new code I have the following advantages:
+
+        (*) I don't have to go level by level after Q0. By "jumping" levels I send less data
+        (*) I can use lossy compression (in the old code I needed lossless compression to rebuild the data for Qi with i>0)
+        (*) not all datasets support the merging (see IdxMultipleDataset and GoogleMapsDataset)
+        (*) the filters (example wavelets) are applied always on the server side (in the old code filters were applied on the server only for Q0)
+  */
+
+
+  VisusAssert(query->mode == 'r');
+
+  Url url = this->getUrl();
+
+  NetRequest ret;
+  ret.url = url.getProtocol() + "://" + url.getHostname() + ":" + cstring(url.getPort()) + "/mod_visus";
+  ret.url.params = url.params;  //I may have some extra params I want to keep!
+  ret.url.setParam("action", "boxquery");
+  ret.url.setParam("dataset", url.getParam("dataset"));
+  ret.url.setParam("time", url.getParam("time", cstring(query->time)));
+  ret.url.setParam("compression", url.getParam("compression", "zip")); //for networking I prefer to use zip
+  ret.url.setParam("field", query->field.name);
+  ret.url.setParam("fromh", cstring(query->start_resolution));
+  ret.url.setParam("toh", cstring(query->getEndResolution()));
+  ret.url.setParam("maxh", cstring(getMaxResolution())); //backward compatible
+  ret.url.setParam("box", query->logic_box.toOldFormatString());
+  ret.aborted = query->aborted;
+  return ret;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 void IdxDataset::beginPointQuery(SharedPtr<PointQuery> query)
@@ -1748,7 +1708,6 @@ void IdxDataset::beginPointQuery(SharedPtr<PointQuery> query)
 
   query->setRunning();
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::executePointQuery(SharedPtr<Access> access,SharedPtr<PointQuery> query)  
@@ -1907,6 +1866,31 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access,SharedPtr<PointQuery
   return true;
 }
 
+/////////////////////////////////////////////////////////////////////////
+NetRequest IdxDataset::createPointQueryRequest(SharedPtr<PointQuery> query)
+{
+  VisusAssert(query->mode == 'r');
+
+  Url url = this->getUrl();
+
+  NetRequest ret;
+  ret.url = url.getProtocol() + "://" + url.getHostname() + ":" + cstring(url.getPort()) + "/mod_visus";
+  ret.url.params = url.params;  //I may have some extra params I want to keep!
+  ret.url.setParam("action", "pointquery");
+  ret.url.setParam("dataset", url.getParam("dataset"));
+  ret.url.setParam("time", url.getParam("time", cstring(query->time)));
+  ret.url.setParam("compression", url.getParam("compression", "zip")); //for networking I prefer to use zip
+  ret.url.setParam("field", query->field.name);
+  ret.url.setParam("fromh", cstring(0)); //backward compatible
+  ret.url.setParam("toh", cstring(query->end_resolution));
+  ret.url.setParam("maxh", cstring(getMaxResolution())); //backward compatible
+  ret.url.setParam("matrix", query->logic_position.getTransformation().toString());
+  ret.url.setParam("box", query->logic_position.getBoxNd().toBox3().toString(/*bInterleave*/false));
+  ret.url.setParam("nsamples", query->getNumberOfPoints().toString());
+  PrintInfo(ret.url);
+  ret.aborted = query->aborted;
+  return ret;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow, bool bVerbose )
