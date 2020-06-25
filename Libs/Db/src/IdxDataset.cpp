@@ -1153,6 +1153,9 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr
   }
 }
 
+
+
+
 //////////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value)
 {
@@ -1669,6 +1672,10 @@ NetRequest IdxDataset::createBoxQueryRequest(SharedPtr<BoxQuery> query)
   return ret;
 }
 
+
+
+
+
 ///////////////////////////////////////////////////////////////////////////////////////
 void IdxDataset::beginPointQuery(SharedPtr<PointQuery> query)
 {
@@ -1891,6 +1898,10 @@ NetRequest IdxDataset::createPointQueryRequest(SharedPtr<PointQuery> query)
   ret.aborted = query->aborted;
   return ret;
 }
+
+
+
+
 
 ///////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow, bool bVerbose )
