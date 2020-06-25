@@ -59,6 +59,10 @@ if (POLICY CMP0078)
   cmake_policy(SET CMP0078 OLD)  # swig related
 endif()
 
+if (POLICY CMP0087)
+  cmake_policy(SET CMP0087 NEW)  # cmake generator expression in install
+endif()
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)  
 SET(MSVC_INCREMENTAL_DEFAULT OFF) # disable incremental linking for windows
 
@@ -105,6 +109,10 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/Libs/slamcpp/slam.cpp")
 	set(VISUS_DEFAULT_SLAM 1)
 endif()
 
+if(EXISTS "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/README.txt")
+	set(VISUS_DEFAULT_OSPRAY ON)
+endif()
+
 if (WIN32 OR APPLE)
 	set(VISUS_DEFAULT_MODVISUS OFF)
 endif()
@@ -135,6 +143,12 @@ endif()
 
 if (VISUS_PYTHON)
 	find_package(Python COMPONENTS Interpreter Development REQUIRED)
+endif()
+
+if (VISUS_OSPRAY)
+	set(OSPCOMMON_TBB_ROOT "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/tbb")
+	find_package(ospray 2.0   REQUIRED HINTS ${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/ospray/lib/cmake/ospray-2.1.1)
+	find_package(ospcommon    REQUIRED HINTS ${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/ospcommon/lib/cmake/ospcommon-1.3.0)
 endif()
 
 add_subdirectory(ExternalLibs)
@@ -182,6 +196,39 @@ if (1)
 		# copy  *.dll
 		include(InstallRequiredSystemLibraries)
 		INSTALL(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/bin/)
+
+		# install ospray depedencies
+		if (VISUS_OSPRAY)
+			get_filename_component(OSPRAY_BINDIR "${ospray_DIR}/../../../bin"  REALPATH)
+			FILE(GLOB OSPRAY_DLLS ${OSPRAY_BINDIR}/*.dll)
+			INSTALL(FILES ${OSPRAY_DLLS} DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/bin)
+		endif()
+
+		# if you want to see what libraries you will need
+		if (FALSE)
+			install(CODE "
+				file(GET_RUNTIME_DEPENDENCIES
+					RESOLVED_DEPENDENCIES_VAR		deps_found 
+					UNRESOLVED_DEPENDENCIES_VAR     deps_not_found
+					CONFLICTING_DEPENDENCIES_PREFIX deps_conflict
+					DIRECTORIES ${OSPRAY_BINDIR} 
+					EXECUTABLES $<TARGET_FILE:visusviewer>)
+				foreach(it \${deps_found})
+					if (NOT it MATCHES \".*system32.*\")
+						MESSAGE(STATUS \"\${it} (FOUND)\")
+					endif()
+				endforeach()
+				foreach(it \${deps_not_found})
+					if (NOT it MATCHES \".*ms-win.*\" AND NOT it MATCHES \".*ext-ms.*\")
+						MESSAGE(STATUS \"\${it} (NOT FOUND)\")
+					endif()
+				endforeach()
+				foreach(it \${deps_conflict})
+					MESSAGE(STATUS \"\${it} (CONFLICT)\")
+				endforeach()
+			")
+		endif()
+
 	endif()
 	
 endif()

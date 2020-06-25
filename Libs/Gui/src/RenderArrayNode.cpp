@@ -58,15 +58,8 @@ class RenderArrayNode::Pimpl
 {
 public:
 
-  RenderArrayNode* owner;
-
-  //constructor
-  Pimpl(RenderArrayNode* owner_) : owner(owner_) {
-  }
-
   //destructor
-  virtual ~Pimpl() {
-  }
+  virtual ~Pimpl() {}
 
   //setData
   virtual void setData(Array data, SharedPtr<Palette> palette) = 0;
@@ -185,12 +178,13 @@ public:
 
   };
 
+  RenderArrayNode* owner;
   Array data;
   SharedPtr<GLTexture> data_texture;
   SharedPtr<GLTexture> palette_texture;
 
   //constructor
-  OpenGLRenderArrayNode(RenderArrayNode* owner) : RenderArrayNode::Pimpl(owner) {
+  OpenGLRenderArrayNode(RenderArrayNode* owner_) : owner(owner_) {
   }
 
   //destructor
@@ -400,21 +394,12 @@ public:
 };
 
 
-void RenderArrayNode::allocShaders()
-{
-  //nothing to do
-}
-
-void RenderArrayNode::releaseShaders()
-{
-  OpenGLRenderArrayNode::MyShader::shaders().clear();
-}
-
-
 /////////////////////////////////////////////////////////////////////////////////////
 #if VISUS_OSPRAY
 class OSPRayRenderArrayNode : public RenderArrayNode::Pimpl{
 public:
+
+  RenderArrayNode* owner;
 
   // Note: The C++ wrappers automatically manage life time tracking and reference
   // counting for the OSPRay objects, and OSPRay internally tracks references to
@@ -436,7 +421,7 @@ public:
   std::array<int, 2> imgDims = { -1,-1 };
 
   //constructor
-  OSPRayRenderArrayNode(RenderArrayNode* owner) : RenderArrayNode::Pimpl(owner)
+  OSPRayRenderArrayNode(RenderArrayNode* owner_) : owner(owner_)
   {
     world = cpp::World();
     camera = cpp::Camera("perspective");
@@ -713,7 +698,6 @@ public:
 
 #endif // #if VISUS_OSPRAY
 
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 RenderArrayNode::RenderArrayNode()
 {
@@ -931,6 +915,17 @@ void RenderArrayNode::read(Archive& ar)
     setRenderType(value);
   }
 }
+
+void RenderArrayNode::allocShaders()
+{
+  //nothing to do
+}
+
+void RenderArrayNode::releaseShaders()
+{
+  OpenGLRenderArrayNode::MyShader::shaders().clear();
+}
+
  
 /////////////////////////////////////////////////////////
 class RenderArrayNodeView :

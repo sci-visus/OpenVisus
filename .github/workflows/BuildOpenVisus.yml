@@ -65,6 +65,7 @@ jobs:
            ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow jupyter matplotlib --upgrade 1>/dev/null 
 
            git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
+           git clone https://github.com/sci-visus/ospray_win.git                                     ExternalLibs/ospray_win
            
            mkdir -p build
            cd build
@@ -262,6 +263,7 @@ jobs:
            set -x  # very verbose  
            
            git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
+           git clone https://github.com/sci-visus/ospray_win.git                                     ExternalLibs/ospray_win
            
            mkdir -p build 
            cd build

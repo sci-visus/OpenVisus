@@ -3,11 +3,7 @@ set(CMAKE_AUTORCC ON)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-option(VISUS_OSPRAY "Enable ospray" OFF)
-if (VISUS_OSPRAY)
-	find_package(ospray 2.0 REQUIRED)
-	find_package(ospcommon  REQUIRED)
-endif()
+
 
 SET(RootSources
 	./include/Visus/FreeTransform.h ./src/FreeTransform.cpp
