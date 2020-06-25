@@ -58,10 +58,6 @@ class PyProducer(Node):
 	def getTypeName(self):
 		return "PyProducer"
 
-	# getOsDependentTypeName
-	def getOsDependentTypeName(self):
-		return "PyProducer"
-
 	# processInput (overriding from Node)
 	def processInput(self):
 		print("PyProducer::processInput")
@@ -81,10 +77,6 @@ class PyReceiver(Node):
 	# getTypeName
 	def getTypeName(self):
 		return "PyReceiver"
-
-	# getOsDependentTypeName
-	def getOsDependentTypeName(self):
-		return "PyReceiver"    
 
 	# processInput (overriding from Node)
 	def processInput(self):
@@ -128,7 +120,7 @@ class TestDataflow(unittest.TestCase):
 
 # ////////////////////////////////////////////////////////
 if __name__ == '__main__':
-	VISUS_REGISTER_NODE_CLASS("PyProducer", "PyProducer", lambda : PyProducer())
-	VISUS_REGISTER_NODE_CLASS("PyReceiver", "PyReceiver", lambda : PyReceiver())
+	VISUS_REGISTER_NODE_CLASS("PyProducer", lambda : PyProducer())
+	VISUS_REGISTER_NODE_CLASS("PyReceiver", lambda : PyReceiver())
 	unittest.main(verbosity=2,exit=True)
 

@@ -61,9 +61,76 @@ public:
     QueryOk
   };
 
+  Dataset*     dataset = nullptr;
+  int          mode = 0;
+  Field        field;
+  double       time = 0;
+  Aborted      aborted;
+
+  Array        buffer;
+  int          status = QueryCreated;
+  String       errormsg;
+
+  Future<Void> done;
+
   //constructor
   Query() {
+    this->done = Promise<Void>().get_future();
   }
+
+  //destructor
+  ~Query() {
+  }
+
+  //getStatus
+  int getStatus() const {
+    return status;
+  }
+
+  //setStatus
+  void setStatus(int value)
+  {
+    if (this->status == value) 
+      return;
+
+    this->status = value;
+
+    if (bool bFinalStatus = (status == QueryOk) || (status == QueryFailed))
+      this->done.get_promise()->set_value(Void());
+  }
+
+  //ok
+  bool ok() const {
+    return status == QueryOk;
+  }
+
+  //failed
+  bool failed() const {
+    return status == QueryFailed;
+  }
+
+  //running
+  bool isRunning() const {
+    return status == QueryRunning;
+  }
+
+  //setRunning
+  void setRunning() {
+    setStatus(QueryRunning);
+  }
+
+  //setOk
+  void setOk() {
+    setStatus(QueryOk);
+  }
+
+  //setOk
+  void setFailed(String error_msg = "") {
+    if (!error_msg.empty())
+      this->errormsg = error_msg;
+    setStatus(QueryFailed);
+  }
+
 
 };
 

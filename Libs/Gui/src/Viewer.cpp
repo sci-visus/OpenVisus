@@ -1305,6 +1305,8 @@ bool Viewer::open(String url,Node* parent)
         return false;
       }
 
+      PrintInfo("worldbox",getWorldBox().toString());
+
       PrintInfo("open", url, "done");
 
       if (widgets.treeview)

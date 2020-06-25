@@ -59,6 +59,11 @@ public:
   ~FunnelNode(){
   }
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "FunnelNode";
+  }
+
   //processInput
   virtual bool processInput() override;
 

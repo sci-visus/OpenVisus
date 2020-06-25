@@ -70,14 +70,14 @@ public:
   }
 
   //destructor
-  virtual ~ScriptingNode()
-  {
+  virtual ~ScriptingNode() {
   }
 
-  //getOsDependentTypeName (virtual so that I can override it in python)
-  virtual String getOsDependentTypeName() const override {
+  //getTypeName
+  virtual String getTypeName() const override {
     return "ScriptingNode";
   }
+
 
   //getCode
   String getCode() {

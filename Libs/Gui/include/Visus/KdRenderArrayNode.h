@@ -71,6 +71,11 @@ public:
   virtual ~KdRenderArrayNode() {
   }
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "KdRenderArrayNode";
+  }
+
   //getKdArray
   SharedPtr<KdArray> getKdArray() const {
     return kdarray;

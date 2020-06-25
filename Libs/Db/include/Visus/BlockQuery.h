@@ -80,19 +80,8 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(BlockQuery)
 
-  Dataset*     dataset = nullptr;
-  int          mode = 0;
-  Field        field;
-  double       time = 0;
-  Aborted      aborted;
-
-  Array        buffer;
-  int          status = QueryCreated;
-  String       errormsg;
-
   BigInt       blockid = 0;
   LogicSamples logic_samples;
-  Future<Void> done;
 
   //constructor
   BlockQuery() {
@@ -104,59 +93,14 @@ public:
     return &ret;
   }
 
+  //readBlockEvent
   static void readBlockEvent() {
     global_stats()->nread++;
   }
 
+  //writeBlockEvent
   static void writeBlockEvent() {
     global_stats()->nwrite++;
-  }
-
-  //getStatus
-  int getStatus() const {
-    return status;
-  }
-
-  //setStatus
-  void setStatus(int value)
-  {
-    if (this->status == value) return;
-    this->status = value;
-    //final?
-    if (ok() || failed())
-      this->done.get_promise()->set_value(Void());
-  }
-
-  //ok
-  bool ok() const {
-    return status == QueryOk;
-  }
-
-  //failed
-  bool failed() const {
-    return status == QueryFailed;
-  }
-
-  //running
-  bool isRunning() const {
-    return status == QueryRunning;
-  }
-
-  //setRunning
-  void setRunning() {
-    setStatus(QueryRunning);
-  }
-
-  //setOk
-  void setOk() {
-    setStatus(QueryOk);
-  }
-
-  //setOk
-  void setFailed(String error_msg = "") {
-    setStatus(QueryFailed);
-    if (!error_msg.empty())
-      this->errormsg = error_msg;
   }
 
   //getNumberOfSamples

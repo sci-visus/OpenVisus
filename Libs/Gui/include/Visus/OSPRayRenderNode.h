@@ -63,6 +63,11 @@ public:
   //destructor
   virtual ~OSPRayRenderNode();
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "OSPRayRenderNode";
+  }
+
   //initEngine
   static void initEngine();
 

@@ -441,7 +441,7 @@ void DataflowFrameView::addNode(Node* node)
 
   NodeWidget* widget=new NodeWidget(this,node);
   widget->setTitle(node->getName());
-  widget->setWidget(new QLabel(node->getOsDependentTypeName().c_str()));
+  widget->setWidget(new QLabel(node->getTypeName().c_str()));
 
   Rectangle2d& r=node->frameview_bounds;
   if (!r.valid())

@@ -59,6 +59,11 @@ public:
   //destructor
   virtual ~FieldNode();
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "FieldNode";
+  }
+
   //getFieldName
   String getFieldName() const {
     return fieldname;

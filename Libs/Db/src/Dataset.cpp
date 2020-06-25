@@ -76,7 +76,6 @@ SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, dou
   ret->time = time;
   ret->mode = mode; VisusAssert(mode == 'r' || mode == 'w');
   ret->aborted = aborted;
-  ret->done = Promise<Void>().get_future();
   ret->blockid = blockid;
   ret->logic_samples = getBlockSamples(blockid);
   return ret;
@@ -184,7 +183,7 @@ bool Dataset::executePointQueryOnServer(SharedPtr<PointQuery> query)
     return false;
   }
 
-  auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
+  auto decoded = response.getCompatibleArrayBody(query->getNumberOfPoints(), query->field.dtype);
   if (!decoded) {
     query->setFailed("failed to decode body");
     return false;

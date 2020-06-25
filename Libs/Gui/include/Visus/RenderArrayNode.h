@@ -70,6 +70,11 @@ public:
   //destructor
   virtual ~RenderArrayNode();
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "RenderArrayNode";
+  }
+
   //getData
   Array getData() const {
     VisusAssert(VisusHasMessageLock()); return data;

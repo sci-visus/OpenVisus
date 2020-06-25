@@ -1241,7 +1241,7 @@ NetRequest IdxDataset::createPointQueryRequest(SharedPtr<PointQuery> query)
   ret.url.setParam("maxh", cstring(getMaxResolution())); //backward compatible
   ret.url.setParam("matrix"  ,query->logic_position.getTransformation().toString());
   ret.url.setParam("box"     ,query->logic_position.getBoxNd().toBox3().toString(/*bInterleave*/false));
-  ret.url.setParam("nsamples",query->getNumberOfSamples().toString());
+  ret.url.setParam("nsamples",query->getNumberOfPoints().toString());
   PrintInfo(ret.url);  
   ret.aborted = query->aborted;
   return ret;
@@ -1743,7 +1743,7 @@ void IdxDataset::beginPointQuery(SharedPtr<PointQuery> query)
   if (query->end_resolution < 0 || query->end_resolution>getMaxResolution())
     return query->setFailed("wrong end_resolution");
 
-  if (query->getNumberOfSamples().innerProduct() <= 0)
+  if (query->getNumberOfPoints().innerProduct() <= 0)
     return query->setFailed("wrong nsamples");
 
   query->setRunning();
@@ -1792,7 +1792,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access,SharedPtr<PointQuery
     return false;
   }
 
-  auto nsamples = query->getNumberOfSamples();
+  auto nsamples = query->getNumberOfPoints();
   auto tot = nsamples.innerProduct();
 
   VisusAssert((Int64)query->points.c_size() == DTypes::INT64_RGB.getByteSize(nsamples));

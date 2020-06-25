@@ -61,6 +61,11 @@ public:
   virtual ~ModelViewNode() {
   }
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "ModelViewNode";
+  }
+
   //getModelView
   const Matrix& getModelView() const {
     return T;

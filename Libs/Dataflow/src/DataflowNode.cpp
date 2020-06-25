@@ -55,11 +55,7 @@ Node::~Node()
   for (auto it=outputs.begin();it!=outputs.end();it++) delete it->second;
 }
 
-////////////////////////////////////////////////////////////
-String Node::getTypeName() const
-{
-  return NodeFactory::getSingleton()->getTypeName(*this);
-}
+
 
 ////////////////////////////////////////////////////////////
 void Node::execute(Archive& ar) 

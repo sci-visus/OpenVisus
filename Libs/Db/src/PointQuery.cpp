@@ -86,7 +86,7 @@ bool PointQuery::setPoints(PointNi nsamples)
 ////////////////////////////////////////////////////////////////////
 bool PointQuery::allocateBufferIfNeeded()
 {
-  auto nsamples = getNumberOfSamples();
+  auto nsamples = getNumberOfPoints();
 
   if (!buffer)
   {

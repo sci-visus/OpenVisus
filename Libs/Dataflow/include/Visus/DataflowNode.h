@@ -108,11 +108,8 @@ public:
   virtual ~Node();
 
   //getTypeName
-  virtual String getTypeName() const override;
-
-  //getOsDependentTypeName
-  virtual String getOsDependentTypeName() const {
-    return typeid(*this).name();
+  virtual String getTypeName() const override {
+    return "Node";
   }
 
   //getName
@@ -410,43 +407,38 @@ public:
   }
 
   //registerClass
-  void registerClass(String portable_typename, String os_typename, NodeCreator* VISUS_DISOWN(creator)) {
-    //PrintInfo("Registering C++ class", portable_typename, os_typename);
-    if (creators.find(portable_typename) != creators.end()) delete creators[portable_typename];
-    creators[portable_typename] = creator;
-    portable_typenames.setValue(os_typename, portable_typename);
+  void registerClass(String TypeName, NodeCreator* VISUS_DISOWN(creator)) {
+    //PrintInfo("Registering C++ class", TypeName);
+    if (creators.find(TypeName) != creators.end()) delete creators[TypeName];
+    creators[TypeName] = creator;
   }
 
   //registerClass
   template <typename NodeClass>
-  void registerClass(String portable_typename) {
-    return registerClass(portable_typename, typeid(NodeClass).name(), new CppNodeCreator<NodeClass>());
+  void registerClass(String TypeName) {
+    return registerClass(TypeName, new CppNodeCreator<NodeClass>());
   }
 
   //createInstance
-  VISUS_NEWOBJECT(Node*) createInstance(String portable_typename)
+  VISUS_NEWOBJECT(Node*) createInstance(String TypeName)
   {
-    auto it = creators.find(portable_typename);
-    if (it == creators.end()) return nullptr;
+    auto it = creators.find(TypeName);
+    if (it == creators.end()) {
+      PrintInfo("cannot find TypeName", TypeName);
+      return nullptr;
+    }
     return it->second->createInstance();
   }
 
   //createInstance
   template <class NodeClass>
-  VISUS_NEWOBJECT(NodeClass*) createInstance(String portable_typename)
+  VISUS_NEWOBJECT(NodeClass*) createInstance(String TypeName)
   {
-    Node* obj = createInstance(portable_typename);
-    if (NodeClass* ret = dynamic_cast<NodeClass*>(obj)) return ret;
+    Node* obj = createInstance(TypeName);
+    if (auto ret = dynamic_cast<NodeClass*>(obj)) 
+      return ret;
     if (obj) delete obj;
     return nullptr;
-  }
-
-  //getTypeName
-  String getTypeName(const Node& instance)
-  {
-    String os_dependent_typename = instance.getOsDependentTypeName();
-    VisusAssert(portable_typenames.hasValue(os_dependent_typename));
-    return portable_typenames.getValue(os_dependent_typename);
   }
 
 private:
@@ -456,7 +448,6 @@ private:
   }
 
   std::map<String, NodeCreator*> creators;
-  StringMap                      portable_typenames;
 
 
   //_______________________________________________
@@ -486,7 +477,6 @@ private:
 };
 
 
-//VISUS_REGISTER_NODE_CLASS
 #define VISUS_REGISTER_NODE_CLASS(NodeClass) \
     Visus::NodeFactory::getSingleton()->registerClass<NodeClass>(#NodeClass) \
     /*--*/

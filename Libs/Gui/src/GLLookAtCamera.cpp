@@ -465,8 +465,8 @@ void GLLookAtCamera::read(Archive& ar)
   ar.read("center", this->center);
   ar.read("vup", this->vup);
   ar.read("fov", this->fov);
-  ar.write("znear", this->zNear);
-  ar.write("zfar", this->zFar);
+  ar.read("znear", this->zNear);
+  ar.read("zfar", this->zFar);
   ar.read("split_frustum", split_frustum);
 }
 

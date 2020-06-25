@@ -58,6 +58,11 @@ public:
   //DatasetNode
   virtual ~DatasetNode();
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "DatasetNode";
+  }
+
   //getDataset
   SharedPtr<Dataset> getDataset() const {
     return this->dataset;
