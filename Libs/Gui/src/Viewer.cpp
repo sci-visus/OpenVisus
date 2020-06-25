@@ -65,7 +65,6 @@ For support : support@visus.net
 #include <Visus/ScriptingNode.h>
 #include <Visus/PaletteNode.h>
 #include <Visus/RenderArrayNode.h>
-#include <Visus/OSPRayRenderNode.h>
 #include <Visus/ModelViewNode.h>
 #include <Visus/KdRenderArrayNode.h>
 #include <Visus/KdQueryNode.h>
@@ -431,15 +430,6 @@ void Viewer::execute(Archive& ar)
     ar.read("parent", parent);
     ar.read("palette", palette);
     addKdRender(uuid, findNodeByUUID(parent), palette);
-    return;
-  }
-
-  if (ar.name == "AddOSPRay") {
-    String uuid, parent, palette;
-    ar.read("uuid", uuid);
-    ar.read("parent", parent);
-    ar.read("palette", palette);
-    addOSPRay(uuid, findNodeByUUID(parent), palette);
     return;
   }
 
@@ -2565,13 +2555,7 @@ Node* Viewer::addRender(String uuid, Node* parent, String palette)
     StringTree("RemoveNode", "uuid", uuid));
   {
     //render
-    Node *render_node = nullptr;
-#if VISUS_OSPRAY
-      render_node = new OSPRayRenderNode();
-#else
-      render_node = new RenderArrayNode();
-#endif
-
+    Node *render_node = new RenderArrayNode();
     ret = render_node;
     render_node->setUUID(uuid);
     render_node->setName("RenderArray");
@@ -2594,46 +2578,6 @@ Node* Viewer::addRender(String uuid, Node* parent, String palette)
   return ret;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-Node* Viewer::addOSPRay(String uuid, Node* parent, String palette)
-{
-  if (!parent)
-    parent = getRoot();
-
-  if (uuid.empty())
-    uuid = dataflow->guessNodeUIID("ospray");
-
-  dropSelection();
-
-  Node* ret = nullptr;
-  beginUpdate(
-    StringTree("AddOSPRay", "uuid", uuid, "parent", getUUID(parent), "palette", palette),
-    StringTree("RemoveNode", "uuid", uuid));
-  {
-    //render
-    auto render_node = new OSPRayRenderNode();
-    ret = render_node;
-    render_node->setUUID(uuid);
-    render_node->setName("OSPrayRender");
-    addNode(parent, render_node);
-    connectNodes(parent, render_node);
-
-    //palette
-    if (!palette.empty())
-    {
-      auto palette_node = new PaletteNode(palette);
-      palette_node->setUUID(concatenate(uuid, "/palette"));
-      palette_node->setName("Palette");
-      addNode(render_node, palette_node);
-      connectNodes(parent, palette_node); //this is for statistics
-      connectNodes(palette_node, render_node);
-    }
-
-  }
-  endUpdate();
-
-  return ret;
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 KdRenderArrayNode* Viewer::addKdRender(String uuid, Node* parent, String palette)

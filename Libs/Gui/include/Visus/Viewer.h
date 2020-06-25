@@ -72,7 +72,6 @@ class QueryNode;
 class ScriptingNode;
 class PaletteNode;
 class RenderArrayNode;
-class OSPRayRenderNode;
 class ModelViewNode;
 class KdRenderArrayNode;
 class KdQueryNode;
@@ -657,9 +656,6 @@ public:
 
   //addKdRender
   KdRenderArrayNode* addKdRender(String uuid, Node* parent, String palette = "");
-
-  //addOSPRay
-  Node* addOSPRay(String uuid, Node* parent, String palette = "");
 
   //addGroup
   Node* addGroup(String uuid, Node* parent, String name = "");

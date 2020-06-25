@@ -25,9 +25,7 @@ set(NodeSources
 	./include/Visus/JTreeRenderNode.h 
 	./include/Visus/JTreeRenderNodeView.h   
 	./src/JTreeRenderNode.cpp
-	./include/Visus/JTreeNodeView.h  
-	./include/Visus/OSPRayRenderNode.h     
-	./src/OSPRayRenderNode.cpp   
+	./include/Visus/JTreeNodeView.h 
 	./include/Visus/RenderArrayNode.h   
 	./src/RenderArrayNode.cpp        
 	./include/Visus/IsoContourNode.h
