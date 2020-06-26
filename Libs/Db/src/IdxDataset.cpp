@@ -512,7 +512,7 @@ public:
     PointNi p0     = block_samples.logic_box.p1;
     PointNi shift  = block_samples.shift;
 
-    auto points = (Int64*)query->points.c_ptr();
+    auto points = query->points->c_ptr<Int64*>();
 
     switch (pdim)
     {
@@ -1779,7 +1779,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access,SharedPtr<PointQuery
     VisusAssert(false);
 #endif
 
-    auto SRC = (Int64*)query->points.c_ptr();
+    auto SRC = (Int64*)query->points->c_ptr();
     for (int N = 0; N < tot; N++, SRC += pdim)
     {
       if (aborted()) {
@@ -1799,7 +1799,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access,SharedPtr<PointQuery
   {
     BigInt zaddress;
     int    shift;
-    auto   SRC = (Int64*)query->points.c_ptr();
+    auto   SRC = (Int64*)query->points->c_ptr();
     auto   loc = this->hzaddress_conversion_pointquery->loc;
 
     for (int N = 0; N < tot; N++, SRC += pdim)
