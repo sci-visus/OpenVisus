@@ -195,9 +195,7 @@ bool writeIDX(volume* f, const char* filename)
     std::shared_ptr<BoxQuery> query = dataset->createBoxQuery(BoxNi(p1,p2), 'w');
     dataset->beginBoxQuery(query);
 
-    if (!query->isRunning())
-      throw std::exception("query failed");
-
+    VisusReleaseAssert(query->isRunning());
     //scrgiorgio: Here I'm assuming f->data[Z] will point to a chunk of CONTIGUOUS memory of size== sizeof(Float32) * f->N_x * f->N_y (i.e. a slice of your data)
     query->buffer = Array(query->getNumberOfSamples(), query->field.dtype, HeapMemory::createUnmanaged(f->data[Z], sizeof(Float32) * f->N_x * f->N_y));
 

@@ -10,7 +10,11 @@ if (VISUS_MINIMAL)
 
 	file(GLOB_RECURSE Sources Libs/Kernel/*.cpp Libs/Kernel/*.c Libs/Db/*.cpp)
 		
-	IF (APPLE)
+	if (CMAKE_CXX_COMPILER MATCHES ".*clang")
+	  set(CMAKE_COMPILER_IS_CLANGXX 1)
+	endif ()
+
+	IF (APPLE AND CMAKE_COMPILER_IS_CLANGXX)
 		file(GLOB SourcesMM Libs/Kernel/src/*.mm)
 	endif()	
 		
@@ -26,9 +30,12 @@ if (VISUS_MINIMAL)
 		target_link_libraries(VisusIO  PRIVATE Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
 		
 	elseif (APPLE)
-		target_compile_options(VisusIO PRIVATE  -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
-		target_link_libraries(VisusIO  PRIVATE "-framework CoreFoundation" "-framework Foundation")
-		set_target_properties(VisusIO  PROPERTIES XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME "NO")  # fixes problem of "_objc_readClassPair" missing
+	
+		if (CMAKE_COMPILER_IS_CLANGXX)
+			target_compile_options(VisusIO PRIVATE  -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
+			target_link_libraries(VisusIO  PRIVATE "-framework CoreFoundation" "-framework Foundation")
+			set_target_properties(VisusIO  PROPERTIES XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME "NO")  # fixes problem of "_objc_readClassPair" missing
+		endif()
 		
 	else()
 		target_compile_options(VisusIO PRIVATE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE=1 -Wno-attributes)

@@ -129,7 +129,7 @@ For support : support@visus.net
 
 namespace Visus {
 
-#if __APPLE__
+#if __APPLE__ && !__GNUC__
   
 //see Kernel.mm
 String GetMainBundlePath();
@@ -391,7 +391,7 @@ void KernelModule::attach()
   VisusReleaseAssert(sizeof(S133) == 133);
 
 
-#if __APPLE__
+#if __APPLE__ && !__GNUC__
   InitAutoReleasePool();
 #endif
 
@@ -518,7 +518,7 @@ void KernelModule::detach()
 
   Private::VisusConfig::releaseSingleton();
 
-#if __APPLE__
+#if __APPLE__ && !__GNUC__
   DestroyAutoReleasePool();
 #endif
 }

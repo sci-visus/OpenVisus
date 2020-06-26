@@ -59,6 +59,7 @@ For support : support@visus.net
   #include <sys/socket.h>
   #include <sys/mman.h>
   #include <sys/stat.h>
+  #include <climits>
 
 #else
   #include <unistd.h>
