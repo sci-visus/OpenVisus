@@ -170,38 +170,33 @@ public:
   //runPointQueryJob
   void runPointQueryJob()
   {
-    auto resolutions = guessPointQueryEndResolutions();
-    if (resolutions.empty())
-      return;
+    auto query = dataset->createPointQuery(logic_position, field, time, guessPointQueryEndResolutions(), this->aborted);
 
-    for (int N = 0; N < (int)resolutions.size(); N++)
+    dataset->beginPointQuery(query);
+
+    int I = 0; while (query->isRunning())
     {
       Time t1 = Time::now();
 
-      auto query = dataset->createPointQuery(logic_position, field, time, this->aborted);
-      query->end_resolution = resolutions[N];
-      auto nsamples = dataset->guessPointQueryNumberOfSamples(logic_to_screen, logic_position, query->end_resolution);
-      query->setPoints(nsamples);
+      auto npoints = dataset->guessPointQueryNumberOfSamples(logic_to_screen, logic_position, query->end_resolution);
+      query->setPoints(npoints);
 
-      dataset->beginPointQuery(query);
-
-      PrintInfo("PointQuery msec", t1.elapsedMsec(), "level", N, "/", resolutions.size(), "/", resolutions[N], "/", dataset->getMaxResolution(), "...");
+      PrintInfo("PointQuery msec", t1.elapsedMsec(), "level", I, "/", query->end_resolutions.size(), "/", query->end_resolution, "/", dataset->getMaxResolution(), "npoints", npoints, "...");
 
       if (!dataset->executePointQuery(access, query))
         return;
 
-      auto output = query->buffer;
-
-      if (true)
-      {
-        PrintInfo("PointQuery finished msec", t1.elapsedMsec(), "level", N, "/", resolutions.size(), "/", resolutions[N], "/", dataset->getMaxResolution(),
-          "dims", output.dims, "dtype", output.dtype, "access", access ? "yes" : "nullptr", "url", dataset->getUrl());
-      }
+      auto output = query->buffer.clone();
+      PrintInfo("PointQuery finished msec", t1.elapsedMsec(), "level", I, "/", query->end_resolutions.size(), "/", query->end_resolution, "/", dataset->getMaxResolution(),
+        "dims", output.dims, "dtype", output.dtype, "access", access ? "yes" : "nullptr", "url", dataset->getUrl());
 
       DataflowMessage msg;
       output.bounds = dataset->logicToPhysic(query->logic_position);
       msg.writeValue("array", output);
       node->publish(msg);
+      I++;
+
+      dataset->nextPointQuery(query);
     }
   }
 

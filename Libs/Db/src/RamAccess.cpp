@@ -121,8 +121,7 @@ public:
     if (it == index.end())
       return false;
 
-    if (!ArrayUtils::deepCopy(query->buffer, it->second->buffer))
-      return false;
+    query->buffer = it->second->buffer.clone();
 
     VisusAssert(query->field.name == it->second->field.name);
     VisusAssert(query->time == it->second->time);
@@ -152,12 +151,7 @@ public:
       cached = new Cached();
     }
 
-    if (!ArrayUtils::deepCopy(cached->buffer, query->buffer))
-    {
-      delete cached;
-      return false;
-    }
-
+    cached->buffer = query->buffer.clone();
     cached->field = query->field;
     cached->time = query->time;
     cached->blockid = query->blockid;

@@ -461,7 +461,7 @@ PointNi Dataset::guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, 
 }
 
 /////////////////////////////////////////////////////////
-SharedPtr<PointQuery> Dataset::createPointQuery(Position logic_position, Field field, double time, Aborted aborted)
+SharedPtr<PointQuery> Dataset::createPointQuery(Position logic_position, Field field, double time, std::vector<int> end_resolutions, Aborted aborted)
 {
   auto ret = std::make_shared<PointQuery>();
   ret->dataset = this;
@@ -470,6 +470,7 @@ SharedPtr<PointQuery> Dataset::createPointQuery(Position logic_position, Field f
   ret->mode = 'r';
   ret->aborted = aborted;
   ret->logic_position = logic_position;
+  ret->end_resolutions = end_resolutions;
   return ret;
 }
 

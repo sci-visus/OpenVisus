@@ -1340,7 +1340,7 @@ bool Viewer::open(String url,Node* parent)
       if ((dataset->getKdQueryMode() != KdQueryMode::NotSpecified) || rendertype == "kdrender")
         addKdQuery("", dataset_node);
 
-      else if (dataset->getPointDim() == 3)
+      else if (false && dataset->getPointDim() == 3)
         addVolume("", dataset_node);
 
       else

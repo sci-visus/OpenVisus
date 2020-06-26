@@ -118,6 +118,9 @@ public:
   //executeBoxQuery
   virtual bool executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) override;
 
+  //nextPointQuery
+  virtual void nextPointQuery(SharedPtr<PointQuery> query) override;
+
   //createPointQueryRequest
   virtual NetRequest createPointQueryRequest(SharedPtr<PointQuery> query) override;
 

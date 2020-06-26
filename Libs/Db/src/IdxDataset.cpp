@@ -484,9 +484,6 @@ public:
 
     int sample_bitsize=query->field.dtype.getBitSize();
 
-    if (!query->allocateBufferIfNeeded())
-      return false;
-
     auto& Wbuffer=      query->buffer; auto write=GetSamples<Sample>(Wbuffer);
     auto& Rbuffer=block_query->buffer; auto read =GetSamples<Sample>(Rbuffer);
 
@@ -888,9 +885,7 @@ bool IdxDataset::convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query)
   }
 
   //note I cannot use buffer of block_query because I need them to execute other queries
-  Array row_major;
-  if (!ArrayUtils::deepCopy(row_major,block_query->buffer)) 
-    return false;
+  Array row_major= block_query->buffer.clone();
 
   auto query= createEquivalentBoxQuery('r',block_query);
   beginBoxQuery(query);
@@ -1771,25 +1766,19 @@ void IdxDataset::beginPointQuery(SharedPtr<PointQuery> query)
   if (!getTimesteps().containsTimestep(query->time))
     return query->setFailed("wrong time");
 
-  if (query->end_resolution < 0)
-    query->end_resolution = this->getMaxResolution();
-
-  if (query->end_resolution < 0 || query->end_resolution>getMaxResolution())
-    return query->setFailed("wrong end_resolution");
-
-  if (query->getNumberOfPoints().innerProduct() <= 0)
-    return query->setFailed("wrong nsamples");
-
+  query->end_resolution = query->end_resolutions.front();
   query->setRunning();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::executePointQuery(SharedPtr<Access> access,SharedPtr<PointQuery> query)  
+bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query)
 {
   if (!query)
     return false;
 
-  if (!query->isRunning())
+  VisusReleaseAssert(query->mode == 'r');
+
+  if (!(query->isRunning() && query->getCurrentResolution() < query->getEndResolution()))
     return false;
 
   if (query->aborted())
@@ -1798,37 +1787,36 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access,SharedPtr<PointQuery
     return false;
   }
 
-  //for 'r' queries I can postpone the allocation
-  if (query->mode == 'w' && !query->buffer)
-  {
-    query->setFailed("write buffer not set");
-    return false;
-  }
-
   if (!access)
     return executePointQueryOnServer(query);
 
-  //TODO
-  VisusReleaseAssert(query->mode == 'r');
+  auto bitmask = getBitmask();
+  auto bounds = this->getLogicBox();
+  auto last_bitmask = ((BigInt)1) << (getMaxResolution());
+  auto hzorder = HzOrder(bitmask);
+  auto depth_mask = hzorder.getLevelP2Included(query->end_resolution);
+  auto bitsperblock = access->bitsperblock;
+  auto aborted = query->aborted;
 
-  auto            bitmask = getBitmask();
-  BoxNi           bounds = this->getLogicBox();
-  BigInt          last_bitmask = ((BigInt)1) << (getMaxResolution());
-  auto            hzorder = HzOrder(bitmask);
-  PointNi         depth_mask = hzorder.getLevelP2Included(query->end_resolution);
-  int             bitsperblock = access->bitsperblock;
-  Aborted         aborted = query->aborted;
+  auto npoints = query->getNumberOfPoints();
+  auto tot = npoints.innerProduct();
 
-  if (!query->allocateBufferIfNeeded())
+  if (query->buffer.dims != npoints)
   {
-    query->setFailed("out of memory"); 
-    return false;
+    if (!query->buffer.resize(npoints, query->field.dtype, __FILE__, __LINE__))
+    {
+      query->setFailed("out of memory");
+      return false;
+    }
+      
+    query->buffer.fillWithValue(query->field.default_value);
   }
 
-  auto nsamples = query->getNumberOfPoints();
-  auto tot = nsamples.innerProduct();
 
-  VisusAssert((Int64)query->points.c_size() == DTypes::INT64_RGB.getByteSize(nsamples));
+  VisusAssert(buffer.dtype == field.dtype);
+  VisusAssert(buffer.c_size() == getByteSize());
+  VisusAssert(buffer.dims.innerProduct() == nsamples.innerProduct());
+  VisusAssert((Int64)query->points.c_size() == DTypes::INT64_RGB.getByteSize(nsamplenpointss));
 
   //first BigInt is hzaddress, second Int32 is offset inside buffer
   auto hzaddresses = std::vector< std::pair<BigInt, Int32> >(tot, std::make_pair(-1, 0));
@@ -1936,9 +1924,28 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access,SharedPtr<PointQuery
   }
 
   VisusAssert(query->buffer.dims == query->getNumberOfSamples());
-  query->setOk();
+  query->cur_resolution = query->end_resolution;
   return true;
 }
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+void IdxDataset::nextPointQuery(SharedPtr<PointQuery> query)
+{
+  if (!query)
+    return;
+
+  if (!(query->isRunning() && query->getCurrentResolution() == query->getEndResolution()))
+    return;
+
+  //reached the end? 
+  if (query->end_resolution == query->end_resolutions.back())
+    return query->setOk();
+
+  int index = Utils::find(query->end_resolutions, query->end_resolution);
+  query->end_resolution = query->end_resolutions[index + 1];
+}
+
 
 /////////////////////////////////////////////////////////////////////////
 NetRequest IdxDataset::createPointQueryRequest(SharedPtr<PointQuery> query)

@@ -129,6 +129,14 @@ public:
   //destructor
   virtual ~Array() {
   }
+
+  //clone
+  Array clone() const
+  {
+    Array ret = *this;
+    ret.heap = this->heap->clone();
+    return ret;
+  }
   
   //valid (NOTE an array is valid even if it has zero samples, like in 'preview' mode)
   bool valid() const {

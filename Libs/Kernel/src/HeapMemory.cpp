@@ -77,11 +77,11 @@ SharedPtr<HeapMemory> HeapMemory::createManaged(void* p, Int64 n)
 
 
 ////////////////////////////////////////////////////////
-SharedPtr<HeapMemory> HeapMemory::cloneHeap() const
+SharedPtr<HeapMemory> HeapMemory::clone() const
 {
   auto ret=std::make_shared<HeapMemory>();
   if (!ret->resize(this->n,__FILE__,__LINE__))
-    return nullptr;
+    ThrowException("clone error");
   memcpy(ret->c_ptr(),this->c_ptr(),(size_t)n);
   return ret;
 }

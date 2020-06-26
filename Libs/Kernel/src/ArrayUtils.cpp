@@ -36,7 +36,7 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/ArrayUtils.h>
+#include <Visus/Array.h>
 #include <Visus/Encoder.h>
 #include <Visus/Color.h>
 #include <Visus/Path.h>
@@ -1070,7 +1070,10 @@ public:
   {
     PointNi rdims = rbuffer.dims;
     if (wdims == rdims)
-      return ArrayUtils::deepCopy(wbuffer, rbuffer);
+    {
+      wbuffer = rbuffer.clone();
+      return true;
+    }
 
     if (!rdims.innerProduct() || !wdims.innerProduct())
       return false;
