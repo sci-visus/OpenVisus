@@ -1565,6 +1565,78 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
   return true;
 }
 
+
+
+////////////////////////////////////////////////////////////////////////////////
+class InterpolateOp
+{
+public:
+
+  //execute
+  template <class CppType>
+  bool execute(LogicSamples Wsamples, Array Wbuffer, LogicSamples Rsamples, Array Rbuffer, Aborted aborted)
+  {
+    if (!Wsamples.valid() || !Rsamples.valid())
+      return false;
+
+    if (Wbuffer.dtype != Rbuffer.dtype || Wbuffer.dims != Wsamples.nsamples || Rbuffer.dims != Rsamples.nsamples)
+    {
+      VisusAssert(false);
+      return false;
+    }
+
+    auto pdim = Wbuffer.getPointDim(); VisusAssert(Rbuffer.getPointDim() == pdim);
+    auto zero = PointNi(pdim);
+    auto one = PointNi(pdim);
+
+    auto Wstride = Wbuffer.dims.stride();
+    auto Rstride = Rbuffer.dims.stride();
+
+    VisusReleaseAssert(Wbuffer.dtype == Rbuffer.dtype);
+    int N = Wbuffer.dtype.ncomponents();
+
+    //for each component...
+    for (int C = 0; C < N; C++)
+    {
+      if (aborted())
+        return false;
+
+      GetComponentSamples<CppType> W(Wbuffer, C); PointNi Wpixel; Int64   Wpos = 0;
+      GetComponentSamples<CppType> R(Rbuffer, C); PointNi Rpixel; PointNi Rpos(pdim);
+
+      #define W2R(I) (Utils::clamp<Int64>(((Wsamples.logic_box.p1[I] + (Wpixel[I] << Wsamples.shift[I])) - Rsamples.logic_box.p1[I]) >> Rsamples.shift[I], 0, Rbuffer.dims[I] - 1))
+
+      if (pdim == 2)
+      {
+        for (Wpixel[1] = 0; Wpixel[1] < Wbuffer.dims[1]; Wpixel[1]++) {Rpixel[1] = W2R(1); Rpos[1] = Rpixel[1] * Rstride[1];
+        for (Wpixel[0] = 0; Wpixel[0] < Wbuffer.dims[0]; Wpixel[0]++) {Rpixel[0] = W2R(0); Rpos[0] = Rpixel[0] * Rstride[0] + Rpos[1];
+          W[Wpos++] = R[Rpos[0]];
+        }}
+      }
+      else if (pdim == 3)
+      {
+        for (Wpixel[2] = 0; Wpixel[2] < Wbuffer.dims[2]; Wpixel[2]++) {Rpixel[2] = W2R(2); Rpos[2] = Rpixel[2] * Rstride[2];
+        for (Wpixel[1] = 0; Wpixel[1] < Wbuffer.dims[1]; Wpixel[1]++) {Rpixel[1] = W2R(1); Rpos[1] = Rpixel[1] * Rstride[1] + Rpos[2];
+        for (Wpixel[0] = 0; Wpixel[0] < Wbuffer.dims[0]; Wpixel[0]++) {Rpixel[0] = W2R(0); Rpos[0] = Rpixel[0] * Rstride[0] + Rpos[1];
+          W[Wpos++] = R[Rpos[0]];
+        }}}
+      }
+      else
+      {
+        for (auto it = ForEachPoint(Wbuffer.dims); !it.end(); it.next())
+        {
+          Wpixel = it.pos;
+          Rpixel = PointNi::clamp(Rsamples.logicToPixel(Wsamples.pixelToLogic(Wpixel)), zero, Rbuffer.dims - one);
+          W[Wpos++] = R[Rpixel.dot(Rstride)];
+        }
+      }
+    }
+    return true;
+  }
+};
+
+
+
 //////////////////////////////////////////////////////////////////////////////////////////
 void IdxDataset::nextBoxQuery(SharedPtr<BoxQuery> query)
 {
@@ -1597,8 +1669,9 @@ void IdxDataset::nextBoxQuery(SharedPtr<BoxQuery> query)
   if (!Rsamples.valid() || Rsamples.nsamples != Rbuffer.dims)
     return;
 
-  //try insertSamples here if you have problems or slowness here
-  if (!interpolateSamples(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
+  //solve the problem of missing blocks here...
+  InterpolateOp op;
+  if (!ExecuteOnCppSamples(op, query->buffer.dtype, query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
     return query->setFailed(query->aborted() ? "query aborted" : "merge of samples (interpolate) failed");
 
   //I must be sure that 'inserted samples' from Rbuffer must be untouched in Wbuffer
@@ -1668,9 +1741,6 @@ NetRequest IdxDataset::createBoxQueryRequest(SharedPtr<BoxQuery> query)
   ret.aborted = query->aborted;
   return ret;
 }
-
-
-
 
 
 ///////////////////////////////////////////////////////////////////////////////////////

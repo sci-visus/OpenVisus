@@ -449,10 +449,6 @@ public:
     LogicSamples Wsamples, Array Wbuffer,
     LogicSamples Rsamples, Array Rbuffer, Aborted aborted);
 
-  static bool interpolateSamples(
-    LogicSamples Wsamples, Array Wbuffer,
-    LogicSamples Rsamples, Array Rbuffer, Aborted aborted);
-
 public:
 
   //readDatasetFromArchive 
