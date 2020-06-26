@@ -1341,7 +1341,7 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
         if (!Wquery->allocateBufferIfNeeded())
           return false;
 
-        //interpolateSamples seems to be wrong here, produces a lot of artifacts (see david_wavelets)! 
+        //interpolate samples seems to be wrong here, produces a lot of artifacts (see david_wavelets)! 
         //could be that I'm inserting wrong coefficients?
         //for now insertSamples seems to work just fine, "interpolating" missing blocks/samples
         if (!insertSamples(Wquery->logic_samples, Wquery->buffer, Rquery->logic_samples, Rquery->buffer, Wquery->aborted))
@@ -1563,8 +1563,6 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
   VisusAssert(query->buffer.dims == query->getNumberOfSamples());
   query->setCurrentResolution(query->end_resolution);
   return true;
-
-
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -1589,17 +1587,11 @@ void IdxDataset::nextBoxQuery(SharedPtr<BoxQuery> query)
   int end_resolution = query->end_resolutions[index];
   VisusReleaseAssert(setBoxQueryEndResolution(query,end_resolution));
 
-  auto failed = [&](String reason) {
-    if (query->aborted())
-      reason = "query aborted";
-    return query->setFailed(reason);
-  };
-
   //asssume no merging
   query->buffer = Array();
 
   if (!query->allocateBufferIfNeeded())
-    return failed("out of memory");
+    return query->setFailed(query->aborted() ? "query aborted" : "out of memory");
 
   //cannot merge, scrgiorgio: can it really happen??? (maybe when I produce numpy arrays by projecting script...)
   if (!Rsamples.valid() || Rsamples.nsamples != Rbuffer.dims)
@@ -1607,7 +1599,12 @@ void IdxDataset::nextBoxQuery(SharedPtr<BoxQuery> query)
 
   //try insertSamples here if you have problems or slowness here
   if (!interpolateSamples(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
-    return failed("merge of samples (interpolate) failed");
+    return query->setFailed(query->aborted() ? "query aborted" : "merge of samples (interpolate) failed");
+
+  //I must be sure that 'inserted samples' from Rbuffer must be untouched in Wbuffer
+  //this is for wavelets where I need the coefficients to be right
+  if (!insertSamples(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
+    return query->setFailed(query->aborted() ? "query aborted" : "merge of samples (insert) failed");
 
   query->filter.query = Rfilter_query;
   query->setCurrentResolution(Rcurrent_resolution);

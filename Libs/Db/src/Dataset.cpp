@@ -572,6 +572,15 @@ public:
   template <class CppType>
   bool execute(LogicSamples Wsamples, Array Wbuffer, LogicSamples Rsamples, Array Rbuffer, Aborted aborted)
   {
+    if (!Wsamples.valid() || !Rsamples.valid())
+      return false;
+
+    if (Wbuffer.dtype != Rbuffer.dtype || Wbuffer.dims != Wsamples.nsamples || Rbuffer.dims != Rsamples.nsamples)
+    {
+      VisusAssert(false);
+      return false;
+    }
+
     auto pdim = Wbuffer.getPointDim(); VisusAssert(Rbuffer.getPointDim() == pdim);
     auto zero = PointNi(pdim);
     auto one  = PointNi(pdim);
@@ -627,25 +636,8 @@ bool Dataset::interpolateSamples(
   LogicSamples Rsamples, Array Rbuffer,
   Aborted aborted)
 {
-  if (!Wsamples.valid() || !Rsamples.valid())
-    return false;
-
-  if (Wbuffer.dtype != Rbuffer.dtype || Wbuffer.dims != Wsamples.nsamples || Rbuffer.dims != Rsamples.nsamples)
-  {
-    VisusAssert(false);
-    return false;
-  }
-
   InterpolateOp op;
-  if (!ExecuteOnCppSamples(op, Wbuffer.dtype, Wsamples, Wbuffer, Rsamples, Rbuffer, aborted))
-    return false;
-
-  //I must be sure that 'inserted samples' from Rbuffer must be untouched in Wbuffer
-  //this is for wavelets where I need the coefficients to be right
-  if (!insertSamples(Wsamples, Wbuffer, Rsamples, Rbuffer, aborted))
-    return false;
-
-  return true;
+  return ExecuteOnCppSamples(op, Wbuffer.dtype, Wsamples, Wbuffer, Rsamples, Rbuffer, aborted);
 }
 
 
