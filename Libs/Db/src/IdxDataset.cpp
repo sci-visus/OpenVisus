@@ -468,90 +468,6 @@ public:
 
 };
 
-/////////////////////////////////////////////////////////////////////////////////////////////
-class InsertBlockQuerySamplesIntoPointQuery 
-{
-public:
-
-  //operator()
-  template <class Sample>
-  bool execute(IdxDataset* vf,PointQuery* query,BlockQuery* block_query,std::pair<BigInt,Int32>* A,std::pair<BigInt,Int32>* B,Aborted aborted)
-  {
-    auto bitsperblock = vf->getDefaultBitsPerBlock();
-
-    BigInt HzFrom = (block_query->blockid + 0) << bitsperblock;
-    BigInt HzTo   = (block_query->blockid + 1) << bitsperblock;
-
-    int sample_bitsize=query->field.dtype.getBitSize();
-
-    auto& Wbuffer=      query->buffer; auto write=GetSamples<Sample>(Wbuffer);
-    auto& Rbuffer=block_query->buffer; auto read =GetSamples<Sample>(Rbuffer);
-
-    if (bool bIsHzOrder=block_query->buffer.layout=="hzorder")
-    {
-      for (auto cursor=A;!aborted() && cursor<B;cursor++)
-        write[cursor->second]=read[cint64(cursor->first-HzFrom)];
-      return !aborted();
-    }
-
-    VisusAssert(Rbuffer.layout.empty());
-    int            maxh          = vf->getMaxResolution();
-    DatasetBitmask bitmask       = vf->getBitmask();
-    int            pdim          = vf->getPointDim();
-    HzOrder        hzorder         (bitmask, maxh);
-    PointNi        depth_mask    = hzorder.getLevelP2Included(query->end_resolution);
-
-    LogicSamples block_samples= block_query->logic_samples;
-    if (!block_samples.valid())
-      return false;
-
-    PointNi stride = Rbuffer.dims.stride();
-    PointNi p0     = block_samples.logic_box.p1;
-    PointNi shift  = block_samples.shift;
-
-    auto points = query->points->c_ptr<Int64*>();
-
-    switch (pdim)
-    {
-      #define HZOFFSET(__coord__) (stride[__coord__] * ((((points+cursor->second*pdim)[__coord__] & depth_mask[__coord__])-p0[__coord__])>>shift[__coord__]))
-      case 1:
-        for (auto cursor=A;!aborted() && cursor<B;cursor++)
-          write[cursor->second]=read[HZOFFSET(0)];
-        return !aborted();
-
-      case 2:
-        for (auto cursor=A;!aborted() && cursor<B;cursor++)
-          write[cursor->second]=read[HZOFFSET(0)+HZOFFSET(1)];
-        return !aborted();
-
-      case 3:
-        for (auto cursor=A;!aborted() && cursor<B;cursor++)
-          write[cursor->second]=read[HZOFFSET(0)+HZOFFSET(1)+HZOFFSET(2)];
-        return !aborted();
-
-      case 4:
-        for (auto cursor=A;!aborted() && cursor<B;cursor++)
-          write[cursor->second]=read[HZOFFSET(0)+HZOFFSET(1)+HZOFFSET(2)+HZOFFSET(3)];
-        return !aborted();
-
-      case 5:
-        for (auto cursor=A;!aborted() && cursor<B;cursor++)
-          write[cursor->second]=read[HZOFFSET(0)+HZOFFSET(1)+HZOFFSET(2)+HZOFFSET(3)+HZOFFSET(4)];
-        return !aborted();
-
-      default:
-        ThrowException("todo");
-        return false;
-
-      #undef HZOFFSET
-    }
-
-    VisusAssert(false);
-    return false;
-  }
-
-};
-
 //////////////////////////////////////////////////////////////////////////////////////////
 IdxDataset::IdxDataset() {
 }
@@ -1770,7 +1686,50 @@ void IdxDataset::beginPointQuery(SharedPtr<PointQuery> query)
   query->setRunning();
 }
 
-///////////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+class InsertBlockQuerySamplesIntoPointQuery
+{
+public:
+
+  //operator()
+  template <class Sample>
+  bool execute(IdxDataset* vf, PointQuery* query, BlockQuery* block_query, PointNi depth_mask, std::vector< std::pair<int, int> > v, Aborted aborted)
+  {
+    auto& Wbuffer = query->buffer;       auto write = GetSamples<Sample>(Wbuffer);
+    auto& Rbuffer = block_query->buffer; auto read  = GetSamples<Sample>(Rbuffer);
+
+    if (block_query->buffer.layout == "hzorder")
+    {
+      for (auto& it : v)
+        write[it.first] = read[it.second];
+
+      return true;
+    }
+    else
+    {
+      VisusAssert(Rbuffer.layout.empty());
+      PointNi stride = Rbuffer.dims.stride();
+      PointNi block_origin = block_query->logic_samples.logic_box.p1;
+      PointNi block_shift  = block_query->logic_samples.shift;
+      auto points = query->points->c_ptr<Int64*>();
+      int pdim = vf->getPointDim();
+      switch (pdim)
+      {
+        #define OFFSET(I) (stride[I] * ((((points+it.first * pdim)[I] & depth_mask[I])-block_origin[I])>>block_shift[I]))
+        case 1: for (auto& it : v) write[it.first] = read[OFFSET(0)]; return true;
+        case 2: for (auto& it : v) write[it.first] = read[OFFSET(0) + OFFSET(1)]; return true;
+        case 3: for (auto& it : v) write[it.first] = read[OFFSET(0) + OFFSET(1) + OFFSET(2)]; return true;
+        case 4: for (auto& it : v) write[it.first] = read[OFFSET(0) + OFFSET(1) + OFFSET(2) + OFFSET(3)]; return true;
+        case 5: for (auto& it : v) write[it.first] = read[OFFSET(0) + OFFSET(1) + OFFSET(2) + OFFSET(3) + OFFSET(4)]; return true;
+        #undef OFFSET
+      }
+      VisusAssert(false);
+      return false;
+    }
+  }
+};
+
 bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query)
 {
   if (!query)
@@ -1796,6 +1755,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
   auto hzorder = HzOrder(bitmask);
   auto depth_mask = hzorder.getLevelP2Included(query->end_resolution);
   auto bitsperblock = access->bitsperblock;
+  auto samplesperblock = 1 << bitsperblock;
   auto aborted = query->aborted;
 
   auto npoints = query->getNumberOfPoints();
@@ -1812,14 +1772,12 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
     query->buffer.fillWithValue(query->field.default_value);
   }
 
+  VisusAssert(query->buffer.dtype == query->field.dtype);
+  VisusAssert(query->buffer.c_size() == query->getByteSize());
+  VisusAssert(query->buffer.dims == query->npoints);
+  VisusAssert((Int64)query->points->c_size() == npoints.innerProduct() * sizeof(Int64)*3);
 
-  VisusAssert(buffer.dtype == field.dtype);
-  VisusAssert(buffer.c_size() == getByteSize());
-  VisusAssert(buffer.dims.innerProduct() == nsamples.innerProduct());
-  VisusAssert((Int64)query->points.c_size() == DTypes::INT64_RGB.getByteSize(nsamplenpointss));
-
-  //first BigInt is hzaddress, second Int32 is offset inside buffer
-  auto hzaddresses = std::vector< std::pair<BigInt, Int32> >(tot, std::make_pair(-1, 0));
+  std::map<BigInt, std::vector< std::pair<int, int> > > blocks;
 
   int pdim = this->getPointDim();
   PointNi p(pdim);
@@ -1835,6 +1793,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
 #endif
 
     auto SRC = (Int64*)query->points->c_ptr();
+    BigInt hzaddress;
     for (int N = 0; N < tot; N++, SRC += pdim)
     {
       if (aborted()) {
@@ -1846,7 +1805,8 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
       if (pdim >= 3) { p[2] = SRC[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; }
       if (pdim >= 4) { p[3] = SRC[3]; if (!(p[3] >= bounds.p1[3] && p[3] < bounds.p2[3])) continue; p[3] &= depth_mask[3]; }
       if (pdim >= 5) { p[4] = SRC[4]; if (!(p[4] >= bounds.p1[4] && p[4] < bounds.p2[4])) continue; p[4] &= depth_mask[4]; }
-      hzaddresses[N] = std::make_pair(hzorder.getAddress(p), N);
+      hzaddress = hzorder.getAddress(p);
+      blocks[hzaddress >> bitsperblock].push_back(std::make_pair(N, (int)(hzaddress % samplesperblock)));
     }
   }
   //the conversion from point to Hz will be faster
@@ -1856,6 +1816,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
     int    shift;
     auto   SRC = (Int64*)query->points->c_ptr();
     auto   loc = this->hzaddress_conversion_pointquery->loc;
+    BigInt hzaddress;
 
     for (int N = 0; N < tot; N++, SRC += pdim)
     {
@@ -1863,17 +1824,15 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
         query->setFailed("query aborted"); 
         return false;
       }
-      if (pdim >= 1) { p[0] = SRC[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; shift = (loc[0][p[0]].second); zaddress = loc[0][p[0]].first; }
+      if (pdim >= 1) { p[0] = SRC[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; shift =         (       loc[0][p[0]].second); zaddress  = loc[0][p[0]].first; }
       if (pdim >= 2) { p[1] = SRC[1]; if (!(p[1] >= bounds.p1[1] && p[1] < bounds.p2[1])) continue; p[1] &= depth_mask[1]; shift = std::min(shift, loc[1][p[1]].second); zaddress |= loc[1][p[1]].first; }
       if (pdim >= 3) { p[2] = SRC[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; shift = std::min(shift, loc[2][p[2]].second); zaddress |= loc[2][p[2]].first; }
       if (pdim >= 4) { p[3] = SRC[3]; if (!(p[3] >= bounds.p1[3] && p[3] < bounds.p2[3])) continue; p[3] &= depth_mask[3]; shift = std::min(shift, loc[3][p[3]].second); zaddress |= loc[3][p[3]].first; }
       if (pdim >= 5) { p[4] = SRC[4]; if (!(p[4] >= bounds.p1[4] && p[4] < bounds.p2[4])) continue; p[4] &= depth_mask[4]; shift = std::min(shift, loc[4][p[4]].second); zaddress |= loc[4][p[4]].first; }
-      hzaddresses[N] = std::make_pair(((zaddress | last_bitmask) >> shift), N);
+      hzaddress = ((zaddress | last_bitmask) >> shift);
+      blocks[hzaddress >> bitsperblock].push_back(std::make_pair(N, int(hzaddress % samplesperblock)));
     }
   }
-
-  //sort the address 
-  std::sort(hzaddresses.begin(), hzaddresses.end());
 
   //do the for loop block aligned
   WaitAsync< Future<Void> > wait_async;
@@ -1883,34 +1842,23 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
   if (!bWasReading)
     access->beginRead();
 
-  for (int A = 0, B = 0; !aborted() && A < (int)hzaddresses.size(); A = B)
+  for (auto it : blocks)
   {
-    if (hzaddresses[A].first < 0) {
-      while (B < (int)hzaddresses.size() && hzaddresses[B].first < 0)
-        ++B;
-      continue;
-    }
-
-    //align to the block
-    BigInt HzFrom = (hzaddresses[A].first >> bitsperblock) << bitsperblock;
-    BigInt HzTo = HzFrom + (((BigInt)1) << bitsperblock);
-    VisusAssert(hzaddresses[A].first >= HzFrom && hzaddresses[A].first < HzTo);
-
-    //end of the block
-    while (B < (int)hzaddresses.size() && (hzaddresses[B].first >= HzFrom && hzaddresses[B].first < HzTo))
-      ++B;
-
-    auto blockid = HzFrom >> bitsperblock;
+    auto blockid = it.first;
+    auto v = it.second;
     auto block_query = createBlockQuery(blockid, query->field, query->time, 'r', aborted);
     this->executeBlockQuery(access, block_query);
-    wait_async.pushRunning(block_query->done).when_ready([this, query, block_query, &hzaddresses, A, B, aborted](Void) {
+    wait_async.pushRunning(block_query->done).when_ready([this, query, block_query, v, aborted, depth_mask](Void) {
 
       if (aborted() || block_query->failed())
         return;
 
       InsertBlockQuerySamplesIntoPointQuery op;
-      NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get(), &hzaddresses[0] + A, &hzaddresses[0] + B, aborted);
-      });
+      NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get(), depth_mask, v, aborted);
+
+      if (aborted())
+        return;
+    });
   }
 
   if (!bWasReading)
@@ -1923,7 +1871,6 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
     return false;
   }
 
-  VisusAssert(query->buffer.dims == query->getNumberOfSamples());
   query->cur_resolution = query->end_resolution;
   return true;
 }
