@@ -115,7 +115,7 @@ For support : support@visus.net
 #endif
 
 //this solve a problem of old Linux distribution (like Centos 5)
-#if __GNUC__ && !__APPLE__
+#if __GNUC__ && !__clang__
 	#include <arpa/inet.h>
 	#include <byteswap.h>
 	#ifndef htole32
