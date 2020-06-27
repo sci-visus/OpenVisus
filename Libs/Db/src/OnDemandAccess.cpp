@@ -53,7 +53,7 @@ For support : support@visus.net
 #include <unistd.h>
 #include <signal.h>
 
-#if !__APPLE__
+#if !__clang__
   #include <sys/types.h>
   #include <sys/wait.h>
 #endif

@@ -40,7 +40,7 @@ For support : support@visus.net
 #include <Visus/GLCanvas.h>
 #include <Visus/StringTree.h>
 
-#if __APPLE__
+#if __clang__
   #include <OpenGL/CGLTypes.h>
   #include <OpenGL/OpenGL.h>
   #include <IOKit/graphics/IOGraphicsLib.h>
@@ -53,7 +53,7 @@ namespace Visus {
 VISUS_IMPLEMENT_SINGLETON_CLASS(GLInfo)
 
 ///////////////////////////////////////////////////////////////
-#if __APPLE__
+#if __clang__
 Int64 getTotalVideoMemoryBytes()
 {
   CGLRendererInfoObj info;
@@ -116,7 +116,7 @@ static Int64 ReadPerfInt64Value(CFStringRef name)
   }
   return ret;
 }
-#endif //__APPLE__
+#endif 
 
 
 ///////////////////////////////////////////////
@@ -149,7 +149,7 @@ GLInfo::GLInfo() : visus_used_memory(0),os_total_memory(0),extension_GL_NVX_gpu_
   glGetIntegerv(GL_MAX_CLIP_PLANES, &this->max_clip_planes);
   #endif
 
-  #if __APPLE__
+  #if __clang__
   {
     this->os_total_memory=getTotalVideoMemoryBytes();
   }
@@ -172,7 +172,7 @@ GLInfo::GLInfo() : visus_used_memory(0),os_total_memory(0),extension_GL_NVX_gpu_
 //////////////////////////////////////////////////////////
 Int64 GLInfo::getGpuUsedMemory()
 {
-  #if __APPLE__
+  #if __clang__
   {
     return ReadPerfInt64Value(CFSTR("vramUsedBytes"));
   }

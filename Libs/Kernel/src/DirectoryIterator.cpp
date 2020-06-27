@@ -39,12 +39,12 @@ For support : support@visus.net
 #include <Visus/DirectoryIterator.h>
 #include <Visus/StringUtils.h>
 
-#if !__APPLE__ || VISUS_WRAPPED_IN_MM
+#if !__clang__ || VISUS_WRAPPED_IN_MM
 
 #if WIN32
 #include <Windows.h>
 
-#elif __APPLE__
+#elif __clang__
 #import <Foundation/NSAutoreleasePool.h>
 #import <Foundation/Foundation.h>
 #include <unistd.h>
@@ -123,11 +123,8 @@ public:
     }
   }
 };
-#endif
 
-
-////////////////////////////////////////////////
-#if __APPLE__
+#elif __clang__
 class DirectoryIterator::Pimpl
 {
 public:
@@ -205,11 +202,7 @@ public:
   }
 }; 
 
-#endif
-
-
-////////////////////////////////////////////////
-#if __GNUC__ && !__APPLE__
+#else
 class DirectoryIterator::Pimpl
 {
   String directory;
@@ -332,4 +325,4 @@ void DirectoryIterator::findAllFilesEndingWith(std::vector<String>& dst,String s
 
 } //namespace Visus
 
-#endif //#if !__APPLE__ || VISUS_WRAPPED_IN_MM
+#endif 

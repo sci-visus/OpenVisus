@@ -1,48 +1,5 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 
-option(VISUS_MINIMAL OFF)
-if (VISUS_MINIMAL)
-
-	PROJECT(OpenVisus) 
-	
-	set(CMAKE_CXX_STANDARD              11)
-	set(CMAKE_CXX_STANDARD_REQUIRED     ON)
-
-	file(GLOB_RECURSE Sources Libs/Kernel/*.cpp Libs/Kernel/*.c Libs/Db/*.cpp)
-		
-	IF (APPLE)
-		file(GLOB SourcesMM Libs/Kernel/src/*.mm)
-	endif()	
-		
-	add_library(VisusIO STATIC ${Sources} ${SourcesMM})
-	target_compile_definitions(VisusIO  PUBLIC  VISUS_STATIC_KERNEL_LIB=1 VISUS_STATIC_DB_LIB=1)
-	target_include_directories(VisusIO  
-		PUBLIC  ${CMAKE_SOURCE_DIR}/Libs/Kernel/include
-		PUBLIC  ${CMAKE_SOURCE_DIR}/Libs/Db/include
-		PRIVATE ${CMAKE_SOURCE_DIR}/Libs/Kernel/src)
-
-	if (WIN32)
-		target_compile_options(VisusIO PRIVATE -DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS /bigobj)
-		target_link_libraries(VisusIO  PRIVATE Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
-		
-	elseif (APPLE)
-		target_compile_options(VisusIO PRIVATE  -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
-		target_link_libraries(VisusIO  PRIVATE "-framework CoreFoundation" "-framework Foundation")
-		set_target_properties(VisusIO  PROPERTIES XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME "NO")  # fixes problem of "_objc_readClassPair" missing
-		
-	else()
-		target_compile_options(VisusIO PRIVATE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE=1 -Wno-attributes)
-		target_link_libraries(VisusIO  PRIVATE dl rt util pthread)
-		
-	endif()
-	
-	add_executable(visus Executable/visus/main.cpp)
-	target_link_libraries(visus PUBLIC VisusIO)
-
-	return()
-
-endif()
-
 if(POLICY CMP0020)
   cmake_policy(SET CMP0020 NEW) # qt-related
 endif()
@@ -68,13 +25,60 @@ SET(MSVC_INCREMENTAL_DEFAULT OFF) # disable incremental linking for windows
 
 PROJECT(OpenVisus) 
 
+if (MSVC)
+	set(MSVC_VER 1)
+elseif (CMAKE_CXX_COMPILER MATCHES ".*clang")
+	set(CLANG 1)
+	set(GNUC  1)
+else()
+	set(GNUC  1)
+endif()
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_STANDARD              11)
 set(CMAKE_CXX_STANDARD_REQUIRED     ON)
 
-if (APPLE)
+if (CLANG)
 	set(CMAKE_MACOSX_BUNDLE TRUE)
 	set(CMAKE_MACOSX_RPATH  TRUE)
+endif()
+
+option(VISUS_MINIMAL OFF)
+if (VISUS_MINIMAL)
+
+	file(GLOB_RECURSE Sources Libs/Kernel/*.cpp Libs/Kernel/*.c Libs/Db/*.cpp)
+		
+	IF (CLANG)
+		file(GLOB SourcesMM Libs/Kernel/src/*.mm)
+	endif()	
+		
+	add_library(VisusIO STATIC ${Sources} ${SourcesMM})
+	target_compile_definitions(VisusIO  PUBLIC  VISUS_STATIC_KERNEL_LIB=1 VISUS_STATIC_DB_LIB=1)
+	target_include_directories(VisusIO  
+		PUBLIC  ${CMAKE_SOURCE_DIR}/Libs/Kernel/include
+		PUBLIC  ${CMAKE_SOURCE_DIR}/Libs/Db/include
+		PRIVATE ${CMAKE_SOURCE_DIR}/Libs/Kernel/src)
+
+	if (WIN32)
+		target_compile_options(VisusIO PRIVATE -DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS /bigobj)
+		target_link_libraries(VisusIO  PRIVATE Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
+		
+	elseif (CLANG)
+		target_compile_options(VisusIO PRIVATE  -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
+		target_link_libraries(VisusIO  PRIVATE "-framework CoreFoundation" "-framework Foundation")
+		set_target_properties(VisusIO  PROPERTIES XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME "NO")  # fixes problem of "_objc_readClassPair" missing
+		
+	else()
+		target_compile_options(VisusIO PRIVATE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE=1 -Wno-attributes)
+		target_link_libraries(VisusIO  PRIVATE dl rt util pthread)
+		
+	endif()
+	
+	add_executable(visus Executable/visus/main.cpp)
+	target_link_libraries(visus PUBLIC VisusIO)
+
+	return()
+
 endif()
 
 include(FindPackageHandleStandardArgs)
@@ -102,7 +106,7 @@ set(VISUS_DEFAULT_XIDX     ON) # not really used?
 set(VISUS_DEFAULT_DATAFLOW ON)
 set(VISUS_DEFAULT_PYTHON   ON)
 set(VISUS_DEFAULT_GUI      ON)
-set(VISUS_DEFAULT_MODVISUS ON)
+set(VISUS_DEFAULT_MODVISUS OFF)
 set(VISUS_DEFAULT_OSPRAY   OFF)
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/Libs/slamcpp/slam.cpp")
@@ -113,8 +117,8 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/README.txt")
 	set(VISUS_DEFAULT_OSPRAY ON)
 endif()
 
-if (WIN32 OR APPLE)
-	set(VISUS_DEFAULT_MODVISUS OFF)
+if (GNUC AND NOT CLANG)
+	set(VISUS_DEFAULT_MODVISUS ON)
 endif()
 
 option(VISUS_NET      "Enable VISUS_NET"      ${VISUS_DEFAULT_NET})

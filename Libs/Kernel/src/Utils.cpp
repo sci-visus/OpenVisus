@@ -49,7 +49,7 @@ For support : support@visus.net
 #include <fstream>
 #include <assert.h>
 
-#if __GNUC__ && !__APPLE__
+#if __GNUC__ && !__clang__
 #include <signal.h>
 #endif
 
@@ -93,7 +93,7 @@ void Utils::breakInDebugger()
   {
 #if WIN32
     _CrtDbgBreak();
-#elif __APPLE__
+#elif __clang__
     asm("int $3");
 #else
     ::kill(0, SIGTRAP);

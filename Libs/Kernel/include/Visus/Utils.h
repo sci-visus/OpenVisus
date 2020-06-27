@@ -392,7 +392,7 @@ namespace Utils
     {
       value ? _InterlockedOr8(byte, mask) : _InterlockedAnd8(byte, ~mask);
     }
-#elif __APPLE__
+#elif __clang__
     {
       //I can use also OSAtomicTestAndSet and OSAtomicTestAndClear but they seems to use "bit" in reversed order...
       value ? __sync_fetch_and_or(byte, mask) : __sync_fetch_and_and(byte, ~mask);

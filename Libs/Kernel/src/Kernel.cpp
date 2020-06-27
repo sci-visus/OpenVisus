@@ -71,7 +71,7 @@ For support : support@visus.net
 #  include <pwd.h>
 #  include <sys/socket.h>
 #  include <unistd.h>
-#  if __APPLE__
+#  if __clang__
 #    include <mach/mach.h>
 #    include <mach/mach_host.h>
 #    include <mach-o/dyld.h>
@@ -102,7 +102,7 @@ For support : support@visus.net
 
 #  if WIN32
 #    include <WinSock2.h>
-#  elif __APPLE__
+#  elif __clang__
 #  else
 #    include <arpa/inet.h>
 #  endif
@@ -118,7 +118,6 @@ For support : support@visus.net
 #if __GNUC__ && !__APPLE__
 	#include <arpa/inet.h>
 	#include <byteswap.h>
-
 	#ifndef htole32
 		extern "C" uint32_t htole32(uint32_t x) { 
 		  return bswap_32(htonl(x));
@@ -129,7 +128,7 @@ For support : support@visus.net
 
 namespace Visus {
 
-#if __APPLE__
+#if __clang__
   
 //see Kernel.mm
 String GetMainBundlePath();
@@ -357,7 +356,7 @@ void KernelModule::attach()
   bAttached = true;
 
   //check 64 bit file IO is enabled!
-#if __GNUC__ && !__APPLE__
+#if __GNUC__ && !__clang__
   VisusReleaseAssert(sizeof(off_t) == 8);
 #endif
 
@@ -390,8 +389,7 @@ void KernelModule::attach()
   VisusReleaseAssert(sizeof(S129) == 129);
   VisusReleaseAssert(sizeof(S133) == 133);
 
-
-#if __APPLE__
+#if __clang__
   InitAutoReleasePool();
 #endif
 
@@ -518,7 +516,7 @@ void KernelModule::detach()
 
   Private::VisusConfig::releaseSingleton();
 
-#if __APPLE__
+#if __clang__
   DestroyAutoReleasePool();
 #endif
 }

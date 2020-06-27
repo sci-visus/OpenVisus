@@ -38,15 +38,12 @@ For support : support@visus.net
 
 #include <Visus/Kernel.h>
 
-#if __APPLE__
+#if __clang__
   #import <Foundation/NSAutoreleasePool.h>
   #import <Foundation/Foundation.h>
   #include <CoreFoundation/CoreFoundation.h>
   #include <Foundation/NSString.h>
   #include <Foundation/NSBundle.h>
-#endif
-
-#if __APPLE__
 
 namespace Visus {
   
@@ -69,6 +66,7 @@ namespace Visus {
   }
   
 }//namespace Visus
+
 #endif
 
 
