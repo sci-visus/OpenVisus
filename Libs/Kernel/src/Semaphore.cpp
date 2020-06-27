@@ -41,7 +41,7 @@ For support : support@visus.net
 #if WIN32
 #include <Windows.h>
 
-#elif __APPLE__
+#elif __clang__
 #include <dispatch/dispatch.h>
 
 #else
@@ -87,7 +87,7 @@ public:
   }
 
 };
-#elif __APPLE__
+#elif __clang__
 class Semaphore::Pimpl
 {
 public:

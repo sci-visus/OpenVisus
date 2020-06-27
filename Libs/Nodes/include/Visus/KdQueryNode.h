@@ -58,6 +58,11 @@ public:
   //destructor
   virtual ~KdQueryNode();
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "KdQueryNode";
+  }
+
   //processInput
   virtual bool processInput() override;
 

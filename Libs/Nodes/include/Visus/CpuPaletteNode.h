@@ -58,6 +58,11 @@ public:
   //destructor
   virtual ~CpuPaletteNode();
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "CpuPaletteNode";
+  }
+
   //processInput
   virtual bool processInput() override;
 

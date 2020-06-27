@@ -45,7 +45,7 @@ For support : support@visus.net
 #include <Windows.h>
 #include <Psapi.h>
 
-#elif __APPLE__
+#elif __clang__
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <mach/task.h>
@@ -77,7 +77,7 @@ RamResource::RamResource()
       GlobalMemoryStatusEx(&status);
       os_total_memory=status.ullTotalPhys;
     }
-    #elif __APPLE__
+    #elif __clang__
     {
       int mib[2]={CTL_HW,HW_MEMSIZE};
       size_t length = sizeof(os_total_memory);
@@ -107,7 +107,7 @@ Int64 RamResource::getVisusUsedMemory() const
     GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof (pmc));
     return pmc.PagefileUsage;
   }
-  #elif __APPLE__
+  #elif __clang__
   {
     struct task_basic_info t_info;
     mach_msg_type_number_t t_info_count = TASK_BASIC_INFO_COUNT;
@@ -138,7 +138,7 @@ Int64 RamResource::getOsUsedMemory() const
     GlobalMemoryStatusEx(&status);
     return status.ullTotalPhys-status.ullAvailPhys;
   }
-  #elif __APPLE__
+  #elif __clang__
   {
     vm_statistics_data_t vm_stats;
     mach_port_t mach_port = mach_host_self();

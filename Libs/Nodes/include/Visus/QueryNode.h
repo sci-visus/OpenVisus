@@ -58,6 +58,11 @@ public:
   //destructor
   virtual ~QueryNode();
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "QueryNode";
+  }
+
   //getDataset()
   SharedPtr<Dataset> getDataset();
 

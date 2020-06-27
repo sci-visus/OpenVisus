@@ -58,6 +58,11 @@ public:
   //destructor
   virtual ~TimeNode();
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "TimeNode";
+  }
+
   //getCurrentTime
   double getCurrentTime() const {
     return current_time;

@@ -87,6 +87,11 @@ public:
   ~VoxelScoopNode() {
   }
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "VoxelScoopNode";
+  }
+
   //doSimplify
   bool doSimplify() const {
     return simplify;

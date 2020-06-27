@@ -63,6 +63,11 @@ public:
   //destructor
   ~JTreeNode();
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "JTreeNode";
+  }
+
   //getMinimaTree
   bool getMinimaTree() const {
     return minima_tree;

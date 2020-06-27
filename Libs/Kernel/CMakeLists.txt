@@ -94,7 +94,7 @@ source_group("Misc" FILES
 	./include/Visus/PointCloud.h ./src/PointCloud.cpp
 	./include/Visus/Annotation.h ./src/Annotation.cpp)
 
-IF (WIN32 OR APPLE)
+IF (WIN32 OR CLANG)
 	file(GLOB MMFiles src/*.mm)
 endif()
 
@@ -165,7 +165,7 @@ if (WIN32)
 	target_compile_options(VisusKernel PUBLIC -DWIN32_LEAN_AND_MEAN)
 	target_compile_options(VisusKernel PUBLIC -D_CRT_SECURE_NO_WARNINGS)
 	target_compile_options(VisusKernel PUBLIC /bigobj)
-elseif (APPLE)
+elseif (CLANG)
 	target_compile_options(VisusKernel PUBLIC -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
 else()
 	target_compile_options(VisusKernel PUBLIC -D_FILE_OFFSET_BITS=64)
@@ -205,7 +205,7 @@ endif()
 # link libraries
 if(WIN32)
 	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
-elseif(APPLE)
+elseif(CLANG)
 	target_link_libraries(VisusKernel PUBLIC "-framework CoreFoundation" "-framework Foundation")
 	set_target_properties(VisusKernel PROPERTIES XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME "NO") # fixes problem of "_objc_readClassPair" missing
 else()

@@ -48,10 +48,6 @@ class MyRenderNode(PyScriptingNode):
 	def getTypeName(self):    
 		return "MyRenderNode"
 
-	# getOsDependentTypeName
-	def getOsDependentTypeName(self):
-		return "MyRenderNode"
-
 	# glRender
 	def glRender(self, gl):
 		gl.pushFrustum()
@@ -85,7 +81,7 @@ class MyRenderNode(PyScriptingNode):
 # //////////////////////////////////////////////
 def Main(argv):		
 	
-	VISUS_REGISTER_NODE_CLASS("MyRenderNode", "MyRenderNode", lambda : MyRenderNode())
+	VISUS_REGISTER_NODE_CLASS("MyRenderNode", lambda : MyRenderNode())
 
 	viewer=PyViewer()
 	viewer.open("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1") 

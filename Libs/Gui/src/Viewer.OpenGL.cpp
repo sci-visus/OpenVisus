@@ -42,7 +42,6 @@ For support : support@visus.net
 
 #include <Visus/QueryNode.h>
 #include <Visus/RenderArrayNode.h>
-#include <Visus/OSPRayRenderNode.h>
 #include <Visus/KdRenderArrayNode.h>
 #include <Visus/ModelViewNode.h>
 #include <Visus/IsoContourRenderNode.h>
@@ -347,10 +346,6 @@ int Viewer::glGetRenderQueue(Node* node)
   //RenderArrayNode
   if (auto array_render=dynamic_cast<RenderArrayNode*>(node))
     return array_render->getDataDimension()>2? 2: 3;
-
-  //RenderArrayNode
-  if (auto render = dynamic_cast<OSPRayRenderNode*>(node))
-    return render->getDataDimension()>2 ? 2 : 3;
 
   //KdRenderArrayNode
   if (auto kdarray_render_node=dynamic_cast<KdRenderArrayNode*>(node))

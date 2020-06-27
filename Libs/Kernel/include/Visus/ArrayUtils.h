@@ -81,16 +81,6 @@ public:
 
 public:
 
-  //deepCopy
-  static bool deepCopy(Array& dst, Array src)
-  {
-    auto heap=src.heap->cloneHeap();
-    if (!heap) return false;
-    dst = src;
-    dst.heap = heap;
-    return true;
-  }
-
   //computeRange
   static Range computeRange(Array src, int C, Aborted aborted = Aborted());
 

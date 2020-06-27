@@ -59,6 +59,11 @@ public:
   //destructor
   virtual ~StatisticsNode();
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "StatisticsNode";
+  }
+
   //processInput
   virtual bool processInput() override;
 

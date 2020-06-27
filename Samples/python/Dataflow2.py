@@ -16,9 +16,6 @@ class MyReceiverNode(Node):
 	def getTypeName(self):
 		return "MyReceiverNode"
 
-	def getOsDependentTypeName(self):
-		return "MyReceiverNode"
-
 	def processInput(self):
 		print("processInput")
 		return super().processInput()
@@ -104,5 +101,5 @@ class MyTest(unittest.TestCase):
 		dataflow.joinProcessing()		
 
 if __name__ == '__main__':
-	VISUS_REGISTER_NODE_CLASS("MyReceiverNode","MyReceiverNode", lambda : MyReceiverNode())
+	VISUS_REGISTER_NODE_CLASS("MyReceiverNode", lambda : MyReceiverNode())
 	unittest.main(verbosity=2,exit=True)

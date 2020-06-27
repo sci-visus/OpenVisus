@@ -54,7 +54,7 @@ For support : support@visus.net
   #pragma warning(disable:4996)
   #pragma comment(lib, "advapi32.lib")
 
-#elif __APPLE__
+#elif __clang__
   #include <unistd.h>
   #include <sys/socket.h>
   #include <sys/mman.h>

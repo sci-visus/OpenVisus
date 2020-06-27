@@ -1,55 +1,5 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 
-option(VISUS_MINIMAL ON)
-if (VISUS_MINIMAL)
-
-	PROJECT(OpenVisus) 
-
-	set(CMAKE_CXX_STANDARD              11)
-	set(CMAKE_CXX_STANDARD_REQUIRED     ON)
-
-	file(GLOB_RECURSE Sources Libs/Kernel/*.cpp Libs/Kernel/*.c Libs/Db/*.cpp)
-		
-	if (CMAKE_CXX_COMPILER MATCHES ".*clang")
-	  set(CMAKE_COMPILER_IS_CLANGXX 1)
-	endif ()
-
-	IF (APPLE AND CMAKE_COMPILER_IS_CLANGXX)
-		file(GLOB SourcesMM Libs/Kernel/src/*.mm)
-	endif()	
-		
-	add_library(VisusIO STATIC ${Sources} ${SourcesMM})
-	target_compile_definitions(VisusIO  PUBLIC  VISUS_STATIC_KERNEL_LIB=1 VISUS_STATIC_DB_LIB=1)
-	target_include_directories(VisusIO  
-		PUBLIC  ${CMAKE_SOURCE_DIR}/Libs/Kernel/include
-		PUBLIC  ${CMAKE_SOURCE_DIR}/Libs/Db/include
-		PRIVATE ${CMAKE_SOURCE_DIR}/Libs/Kernel/src)
-
-	if (WIN32)
-		target_compile_options(VisusIO PRIVATE -DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS /bigobj)
-		target_link_libraries(VisusIO  PRIVATE Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
-		
-	elseif (APPLE)
-	
-		if (CMAKE_COMPILER_IS_CLANGXX)
-			target_compile_options(VisusIO PRIVATE  -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
-			target_link_libraries(VisusIO  PRIVATE "-framework CoreFoundation" "-framework Foundation")
-			set_target_properties(VisusIO  PROPERTIES XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME "NO")  # fixes problem of "_objc_readClassPair" missing
-		endif()
-		
-	else()
-		target_compile_options(VisusIO PRIVATE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE=1 -Wno-attributes)
-		target_link_libraries(VisusIO  PRIVATE dl rt util pthread)
-		
-	endif()
-	
-	add_executable(kyle main.cpp)
-	target_link_libraries(kyle PUBLIC VisusIO)
-	
-	return()
-
-endif()
-
 if(POLICY CMP0020)
   cmake_policy(SET CMP0020 NEW) # qt-related
 endif()
@@ -66,18 +16,69 @@ if (POLICY CMP0078)
   cmake_policy(SET CMP0078 OLD)  # swig related
 endif()
 
+if (POLICY CMP0087)
+  cmake_policy(SET CMP0087 NEW)  # cmake generator expression in install
+endif()
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)  
 SET(MSVC_INCREMENTAL_DEFAULT OFF) # disable incremental linking for windows
 
 PROJECT(OpenVisus) 
 
+if (MSVC)
+	set(MSVC_VER 1)
+elseif (CMAKE_CXX_COMPILER MATCHES ".*clang")
+	set(CLANG 1)
+	set(GNUC  1)
+else()
+	set(GNUC  1)
+endif()
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_STANDARD              11)
 set(CMAKE_CXX_STANDARD_REQUIRED     ON)
 
-if (APPLE)
+if (CLANG)
 	set(CMAKE_MACOSX_BUNDLE TRUE)
 	set(CMAKE_MACOSX_RPATH  TRUE)
+endif()
+
+option(VISUS_MINIMAL OFF)
+if (VISUS_MINIMAL)
+
+	file(GLOB_RECURSE Sources Libs/Kernel/*.cpp Libs/Kernel/*.c Libs/Db/*.cpp)
+		
+	IF (CLANG)
+		file(GLOB SourcesMM Libs/Kernel/src/*.mm)
+	endif()	
+		
+	add_library(VisusIO STATIC ${Sources} ${SourcesMM})
+	target_compile_definitions(VisusIO  PUBLIC  VISUS_STATIC_KERNEL_LIB=1 VISUS_STATIC_DB_LIB=1)
+	target_include_directories(VisusIO  
+		PUBLIC  ${CMAKE_SOURCE_DIR}/Libs/Kernel/include
+		PUBLIC  ${CMAKE_SOURCE_DIR}/Libs/Db/include
+		PRIVATE ${CMAKE_SOURCE_DIR}/Libs/Kernel/src)
+
+	if (WIN32)
+		target_compile_options(VisusIO PRIVATE -DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS /bigobj)
+		target_link_libraries(VisusIO  PRIVATE Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
+		
+	elseif (CLANG)
+		target_compile_options(VisusIO PRIVATE  -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
+		target_link_libraries(VisusIO  PRIVATE "-framework CoreFoundation" "-framework Foundation")
+		set_target_properties(VisusIO  PROPERTIES XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME "NO")  # fixes problem of "_objc_readClassPair" missing
+		
+	else()
+		target_compile_options(VisusIO PRIVATE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE=1 -Wno-attributes)
+		target_link_libraries(VisusIO  PRIVATE dl rt util pthread)
+		
+	endif()
+	
+	add_executable(visus Executable/visus/main.cpp)
+	target_link_libraries(visus PUBLIC VisusIO)
+
+	return()
+
 endif()
 
 include(FindPackageHandleStandardArgs)
@@ -105,15 +106,19 @@ set(VISUS_DEFAULT_XIDX     ON) # not really used?
 set(VISUS_DEFAULT_DATAFLOW ON)
 set(VISUS_DEFAULT_PYTHON   ON)
 set(VISUS_DEFAULT_GUI      ON)
-set(VISUS_DEFAULT_MODVISUS ON)
+set(VISUS_DEFAULT_MODVISUS OFF)
 set(VISUS_DEFAULT_OSPRAY   OFF)
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/Libs/slamcpp/slam.cpp")
 	set(VISUS_DEFAULT_SLAM 1)
 endif()
 
-if (WIN32 OR APPLE)
-	set(VISUS_DEFAULT_MODVISUS OFF)
+if(EXISTS "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/README.txt")
+	set(VISUS_DEFAULT_OSPRAY ON)
+endif()
+
+if (GNUC AND NOT CLANG)
+	set(VISUS_DEFAULT_MODVISUS ON)
 endif()
 
 option(VISUS_NET      "Enable VISUS_NET"      ${VISUS_DEFAULT_NET})
@@ -142,6 +147,12 @@ endif()
 
 if (VISUS_PYTHON)
 	find_package(Python COMPONENTS Interpreter Development REQUIRED)
+endif()
+
+if (VISUS_OSPRAY)
+	set(OSPCOMMON_TBB_ROOT "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/tbb")
+	find_package(ospray 2.0   REQUIRED HINTS ${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/ospray/lib/cmake/ospray-2.1.1)
+	find_package(ospcommon    REQUIRED HINTS ${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/ospcommon/lib/cmake/ospcommon-1.3.0)
 endif()
 
 add_subdirectory(ExternalLibs)
@@ -189,6 +200,39 @@ if (1)
 		# copy  *.dll
 		include(InstallRequiredSystemLibraries)
 		INSTALL(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/bin/)
+
+		# install ospray depedencies
+		if (VISUS_OSPRAY)
+			get_filename_component(OSPRAY_BINDIR "${ospray_DIR}/../../../bin"  REALPATH)
+			FILE(GLOB OSPRAY_DLLS ${OSPRAY_BINDIR}/*.dll)
+			INSTALL(FILES ${OSPRAY_DLLS} DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/bin)
+		endif()
+
+		# if you want to see what libraries you will need
+		if (FALSE)
+			install(CODE "
+				file(GET_RUNTIME_DEPENDENCIES
+					RESOLVED_DEPENDENCIES_VAR		deps_found 
+					UNRESOLVED_DEPENDENCIES_VAR     deps_not_found
+					CONFLICTING_DEPENDENCIES_PREFIX deps_conflict
+					DIRECTORIES ${OSPRAY_BINDIR} 
+					EXECUTABLES $<TARGET_FILE:visusviewer>)
+				foreach(it \${deps_found})
+					if (NOT it MATCHES \".*system32.*\")
+						MESSAGE(STATUS \"\${it} (FOUND)\")
+					endif()
+				endforeach()
+				foreach(it \${deps_not_found})
+					if (NOT it MATCHES \".*ms-win.*\" AND NOT it MATCHES \".*ext-ms.*\")
+						MESSAGE(STATUS \"\${it} (NOT FOUND)\")
+					endif()
+				endforeach()
+				foreach(it \${deps_conflict})
+					MESSAGE(STATUS \"\${it} (CONFLICT)\")
+				endforeach()
+			")
+		endif()
+
 	endif()
 	
 endif()

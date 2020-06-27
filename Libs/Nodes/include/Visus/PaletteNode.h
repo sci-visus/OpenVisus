@@ -59,6 +59,11 @@ public:
   //destructor
   virtual ~PaletteNode();
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "PaletteNode";
+  }
+
   //getPalette
   SharedPtr<Palette> getPalette() const {
     return palette;

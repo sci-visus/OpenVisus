@@ -5,8 +5,8 @@ GuiModule.attach()
 from OpenVisus.scripting_node  import *
 from OpenVisus.viewer          import *
 
-def VISUS_REGISTER_NODE_CLASS(TypeName, PyTypeName, creator):
-	# print("Registering Python class",TypeName,PyTypeName)
+def VISUS_REGISTER_NODE_CLASS(TypeName, creator):
+	# print("Registering Python class",TypeName)
 	from OpenVisus.VisusDataflowPy import NodeCreator,NodeFactory
 	class PyNodeCreator(NodeCreator):
 		def __init__(self,creator):
@@ -14,6 +14,7 @@ def VISUS_REGISTER_NODE_CLASS(TypeName, PyTypeName, creator):
 			self.creator=creator
 		def createInstance(self):
 			return self.creator()
-	NodeFactory.getSingleton().registerClass(TypeName, PyTypeName , PyNodeCreator(creator))
+	NodeFactory.getSingleton().registerClass(TypeName, PyNodeCreator(creator))
 
-VISUS_REGISTER_NODE_CLASS("ScriptingNode", "PyScriptingNode", lambda : PyScriptingNode())
+VISUS_REGISTER_NODE_CLASS("ScriptingNode",   lambda : PyScriptingNode())
+VISUS_REGISTER_NODE_CLASS("PyScriptingNode", lambda : PyScriptingNode())

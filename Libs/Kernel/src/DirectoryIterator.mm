@@ -38,7 +38,7 @@ For support : support@visus.net
 
 #include <Visus/DirectoryIterator.h>
 
-#if __APPLE__
+#if __clang__
 #define VISUS_WRAPPED_IN_MM 1
 #include "DirectoryIterator.cpp"
 #endif

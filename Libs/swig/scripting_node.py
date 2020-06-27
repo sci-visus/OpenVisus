@@ -189,15 +189,11 @@ class PyScriptingNode(ScriptingNode):
 	def __init__(self):
 		super().__init__()
 		self.editor=None
-		
+
 	# getTypeName
-	def getTypeName(self):		
-		return "PyScriptingNode"
+	def getTypeName(self):
+		return "ScriptingNode" # i'm returning the same string anyway
 		
-	# getOsDependentTypeName
-	def getOsDependentTypeName(self):
-		return "PyScriptingNode"
-	
 	# setCode
 	def setCode(self,value):
 		super().setCode(value)

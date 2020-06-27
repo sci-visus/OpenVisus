@@ -88,7 +88,7 @@ String SharedLibrary::getFilenameInBinaryDirectory(String name)
 {
 #if WIN32
   return Path(KnownPaths::BinaryDirectory).getChild(name + ".dll");
-#elif __APPLE__
+#elif __clang__
   return Path(KnownPaths::BinaryDirectory).getChild("lib" + name + ".dylib");
 #else
   return Path(KnownPaths::BinaryDirectory).getChild("lib" + name + ".so");

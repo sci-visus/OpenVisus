@@ -56,7 +56,7 @@ class VISUS_GUI_API RenderArrayNode :
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(RenderArrayNode)
+  VISUS_PIMPL_CLASS(RenderArrayNode)
 
   //(run time) fast rendering
   bool bFastRendering=false;
@@ -69,6 +69,11 @@ public:
 
   //destructor
   virtual ~RenderArrayNode();
+
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "RenderArrayNode";
+  }
 
   //getData
   Array getData() const {
@@ -171,6 +176,14 @@ public:
     setProperty("SetMagnifyFilter", this->magnify_filter, value);
   }
 
+  //getRenderType
+  String getRenderType() const {
+    return render_type;
+  }
+
+  //setRenderType
+  void setRenderType(String value);
+
   //glRender
   virtual void glRender(GLCanvas& gl) override;
 
@@ -199,24 +212,19 @@ public:
 
 private:
 
-  class MyGLObject; friend class MyGLObject;
-
   SharedPtr<ReturnReceipt>    return_receipt;
 
   Array                       data;
-  SharedPtr<GLTexture>        data_texture;
-
   SharedPtr<Palette>          palette;
-  SharedPtr<GLTexture>        palette_texture;
 
-  GLMaterial lighting_material;
-  bool       lighting_enabled=false;
-  bool       palette_enabled=false;
-  bool       use_view_direction=false;
-  int        max_num_slices=0;
-  int        minify_filter=GL_LINEAR;
-  int        magnify_filter=GL_LINEAR;
-
+  GLMaterial                  lighting_material;
+  bool                        lighting_enabled=false;
+  bool                        palette_enabled=false;
+  bool                        use_view_direction=false;
+  int                         max_num_slices=0;
+  int                         minify_filter=GL_LINEAR;
+  int                         magnify_filter=GL_LINEAR;
+  String                      render_type; // '' | 'gl' | 'ospray'
 
 }; //end class
 

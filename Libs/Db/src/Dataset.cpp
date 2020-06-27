@@ -76,7 +76,6 @@ SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, dou
   ret->time = time;
   ret->mode = mode; VisusAssert(mode == 'r' || mode == 'w');
   ret->aborted = aborted;
-  ret->done = Promise<Void>().get_future();
   ret->blockid = blockid;
   ret->logic_samples = getBlockSamples(blockid);
   return ret;
@@ -184,7 +183,7 @@ bool Dataset::executePointQueryOnServer(SharedPtr<PointQuery> query)
     return false;
   }
 
-  auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
+  auto decoded = response.getCompatibleArrayBody(query->getNumberOfPoints(), query->field.dtype);
   if (!decoded) {
     query->setFailed("failed to decode body");
     return false;
@@ -462,7 +461,7 @@ PointNi Dataset::guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, 
 }
 
 /////////////////////////////////////////////////////////
-SharedPtr<PointQuery> Dataset::createPointQuery(Position logic_position, Field field, double time, Aborted aborted)
+SharedPtr<PointQuery> Dataset::createPointQuery(Position logic_position, Field field, double time, std::vector<int> end_resolutions, Aborted aborted)
 {
   auto ret = std::make_shared<PointQuery>();
   ret->dataset = this;
@@ -471,6 +470,7 @@ SharedPtr<PointQuery> Dataset::createPointQuery(Position logic_position, Field f
   ret->mode = 'r';
   ret->aborted = aborted;
   ret->logic_position = logic_position;
+  ret->end_resolutions = end_resolutions;
   return ret;
 }
 
@@ -563,91 +563,6 @@ bool Dataset::insertSamples(
   return true;
 }
 
-
-////////////////////////////////////////////////////////////////////////////////
-class InterpolateOp
-{
-public:
-
-  //execute
-  template <class CppType>
-  bool execute(LogicSamples Wsamples, Array Wbuffer, LogicSamples Rsamples, Array Rbuffer, Aborted aborted)
-  {
-    auto pdim = Wbuffer.getPointDim(); VisusAssert(Rbuffer.getPointDim() == pdim);
-    auto zero = PointNi(pdim);
-    auto one  = PointNi(pdim);
-
-    auto Wstride = Wbuffer.dims.stride();
-    auto Rstride = Rbuffer.dims.stride();
-
-    VisusReleaseAssert(Wbuffer.dtype == Rbuffer.dtype);
-    int N = Wbuffer.dtype.ncomponents(); 
-
-    //for each component...
-    for (int C = 0; C < N; C++)
-    {
-      if (aborted())
-        return false;
-
-      GetComponentSamples<CppType> W(Wbuffer, C); PointNi Wpixel; Int64   Wpos = 0;
-      GetComponentSamples<CppType> R(Rbuffer, C); PointNi Rpixel; PointNi Rpos(pdim);
-
-      #define W2R(I) (Utils::clamp<Int64>(((Wsamples.logic_box.p1[I] + (Wpixel[I] << Wsamples.shift[I])) - Rsamples.logic_box.p1[I]) >> Rsamples.shift[I], 0, Rbuffer.dims[I] - 1))
-
-      if (pdim == 2)
-      {
-        for (Wpixel[1] = 0; Wpixel[1] < Wbuffer.dims[1]; Wpixel[1]++) { Rpixel[1] = W2R(1); Rpos[1]= Rpixel[1] * Rstride[1];
-        for (Wpixel[0] = 0; Wpixel[0] < Wbuffer.dims[0]; Wpixel[0]++) { Rpixel[0] = W2R(0); Rpos[0]= Rpixel[0] * Rstride[0] + Rpos[1];
-          W[Wpos++] = R[Rpos[0]];
-        }}
-      }
-      else if (pdim == 3)
-      {
-        for (Wpixel[2] = 0; Wpixel[2] < Wbuffer.dims[2]; Wpixel[2]++) { Rpixel[2] = W2R(2); Rpos[2] = Rpixel[2] * Rstride[2];
-        for (Wpixel[1] = 0; Wpixel[1] < Wbuffer.dims[1]; Wpixel[1]++) { Rpixel[1] = W2R(1); Rpos[1] = Rpixel[1] * Rstride[1] + Rpos[2];
-        for (Wpixel[0] = 0; Wpixel[0] < Wbuffer.dims[0]; Wpixel[0]++) { Rpixel[0] = W2R(0); Rpos[0] = Rpixel[0] * Rstride[0] + Rpos[1];
-          W[Wpos++] = R[Rpos[0]];
-        }}}
-      }
-      else
-      {
-        for (auto it = ForEachPoint(Wbuffer.dims); !it.end(); it.next())
-        {
-          Wpixel = it.pos;
-          Rpixel = PointNi::clamp(Rsamples.logicToPixel(Wsamples.pixelToLogic(Wpixel)), zero, Rbuffer.dims - one);
-          W[Wpixel.dot(Wstride)] = R[Rpixel.dot(Rstride)];
-        }
-      }
-    }
-    return true;
-  }
-};
-
-bool Dataset::interpolateSamples(
-  LogicSamples Wsamples, Array Wbuffer,
-  LogicSamples Rsamples, Array Rbuffer,
-  Aborted aborted)
-{
-  if (!Wsamples.valid() || !Rsamples.valid())
-    return false;
-
-  if (Wbuffer.dtype != Rbuffer.dtype || Wbuffer.dims != Wsamples.nsamples || Rbuffer.dims != Rsamples.nsamples)
-  {
-    VisusAssert(false);
-    return false;
-  }
-
-  InterpolateOp op;
-  if (!ExecuteOnCppSamples(op, Wbuffer.dtype, Wsamples, Wbuffer, Rsamples, Rbuffer, aborted))
-    return false;
-
-  //I must be sure that 'inserted samples' from Rbuffer must be untouched in Wbuffer
-  //this is for wavelets where I need the coefficients to be right
-  if (!insertSamples(Wsamples, Wbuffer, Rsamples, Rbuffer, aborted))
-    return false;
-
-  return true;
-}
 
 
 } //namespace Visus 

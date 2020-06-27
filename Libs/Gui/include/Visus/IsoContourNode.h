@@ -108,6 +108,11 @@ public:
   //destructor
   virtual ~IsoContourNode();
 
+  //getTypeName
+  virtual String getTypeName() const  override {
+    return "IsoContourNode";
+  }
+
   //processInput
   virtual bool processInput() override;
 

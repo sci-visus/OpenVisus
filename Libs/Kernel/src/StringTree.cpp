@@ -185,7 +185,7 @@ private:
 
 #if WIN32
     String platform_name = "win";
-#elif __APPLE__
+#elif __clang__
     String platform_name = "osx";
 #else
     String platform_name = "unix";

@@ -62,6 +62,11 @@ public:
   //destructor
   virtual ~GLCameraNode();
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "GLCameraNode";
+  }
+
   //getGLCamera
   SharedPtr<GLCamera> getGLCamera() const {
     return glcamera;

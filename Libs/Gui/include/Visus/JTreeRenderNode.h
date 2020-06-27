@@ -66,6 +66,11 @@ public:
   //destructor
   virtual ~JTreeRenderNode();
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "JTreeRenderNode";
+  }
+
   //getRadius
   double getRadius() const {
     return radius;

@@ -39,7 +39,7 @@ For support : support@visus.net
 #include <Visus/IsoContourNode.h>
 #include <Visus/Dataflow.h>
 
-#if __GNUC__ && !__APPLE__
+#if __GNUC__ && !__clang__
 #pragma GCC diagnostic ignored "-Wnarrowing"
 #endif
 

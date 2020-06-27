@@ -64,6 +64,11 @@ public:
   //destructor
   virtual ~IsoContourRenderNode();
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "IsoContourRenderNode";
+  }
+
   //glRender
   virtual void glRender(GLCanvas& gl) override;
    
