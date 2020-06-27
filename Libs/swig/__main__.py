@@ -159,36 +159,37 @@ def InstallAndUsePyQt5(bUserInstall=False):
 		raise Exception("internal error")
 
 	# on windows it's enough to use sys.path (see *.i %pythonbegin section)
-	if not WIN32:
+	if WIN32:
+		pass
 		
-		if APPLE:		
+	elif APPLE:		
 
-			dylibs=glob.glob("bin/*.dylib")
-			so=glob.glob("*.so")
-			apps=["%s/Contents/MacOS/%s"   % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("bin/*.app")]
-			all_bins=so + dylibs + apps
+		dylibs=glob.glob("bin/*.dylib")
+		so=glob.glob("*.so")
+		apps=["%s/Contents/MacOS/%s"   % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("bin/*.app")]
+		all_bins=so + dylibs + apps
 			
-			# remove any reference to absolute Qt (it happens with brew which has absolute path), make it relocable with rpath as is in PyQt5
-			for filename in all_bins:
-				lines  = GetCommandOutput("otool -L %s | grep 'lib/Qt.*\.framework' | awk '{print $1;}'" % filename, shell=True).splitlines()
-				for Old in lines:
-					New="@rpath/Qt" + Old.split("lib/Qt")[1]
-					ExecuteCommand(["install_name_tool","-change", Old, New, filename])	
+		# remove any reference to absolute Qt (it happens with brew which has absolute path), make it relocable with rpath as is in PyQt5
+		for filename in all_bins:
+			lines  = GetCommandOutput("otool -L %s | grep 'lib/Qt.*\.framework' | awk '{print $1;}'" % filename, shell=True).splitlines()
+			for Old in lines:
+				New="@rpath/Qt" + Old.split("lib/Qt")[1]
+				ExecuteCommand(["install_name_tool","-change", Old, New, filename])	
 					
-			QtLib=os.path.join(PyQt5_HOME,'Qt/lib')
+		QtLib=os.path.join(PyQt5_HOME,'Qt/lib')
 
-			for filename in so + dylibs:
-				SetRPath(filename, "@loader_path/:@loader_path/bin:" + QtLib)
+		for filename in so + dylibs:
+			SetRPath(filename, "@loader_path/:@loader_path/bin:" + QtLib)
 				
-			for filename in apps:
-				SetRPath(filename, "@loader_path/:@loader_path/../../../:" + QtLib)
+		for filename in apps:
+			SetRPath(filename, "@loader_path/:@loader_path/../../../:" + QtLib)
 						
-			ShowDeps(all_bins)
+		ShowDeps(all_bins)
 				
-		else:
+	else:
 			
-			for filename in glob.glob("*.so") + glob.glob("bin/*.so") + ["bin/visus","bin/visusviewer"]:
-				SetRPath(filename,"$ORIGIN:$ORIGIN/bin:" + os.path.join(PyQt5_HOME,'Qt/lib'))
+		for filename in glob.glob("*.so") + glob.glob("bin/*.so") + ["bin/visus","bin/visusviewer"]:
+			SetRPath(filename,"$ORIGIN:$ORIGIN/bin:" + os.path.join(PyQt5_HOME,'Qt/lib'))
 
 
 
