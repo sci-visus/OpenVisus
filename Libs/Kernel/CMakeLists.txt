@@ -9,7 +9,6 @@ source_group("Core" FILES
 	include/Visus/ByteOrder.h src/ByteOrder.cpp	
 	include/Visus/Color.h src/Color.cpp
 	include/Visus/Diff.h src/Diff.cpp
-	include/Visus/DirectoryIterator.h src/DirectoryIterator.cpp	 src/DirectoryIterator.mm	
 	include/Visus/File.h src/File.cpp
 	include/Visus/HeapMemory.h src/HeapMemory.cpp
 	include/Visus/ScopedVector.h
@@ -24,8 +23,8 @@ source_group("Core" FILES
 	include/Visus/Time.h src/Time.cpp
 	include/Visus/Url.h src/Url.cpp
 	include/Visus/Utils.h src/Utils.cpp
-	include/Visus/SharedLibrary.h src/SharedLibrary.cpp
-	include/Visus/json.hpp)
+	include/Visus/json.hpp
+	src/Os.hxx)
 
 source_group("Thread" FILES
 	./include/Visus/CriticalSection.h ./src/CriticalSection.cpp	

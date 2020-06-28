@@ -41,6 +41,7 @@ For support : support@visus.net
 #include <Visus/Path.h>
 #include <Visus/Utils.h>
 #include <Visus/File.h>
+#include "Os.hxx"
 
 #include <tinyxml/tinyxml.h>
 
@@ -183,13 +184,7 @@ private:
     //TODO: mini parser here?
     bool bCondition = false;
 
-#if WIN32
-    String platform_name = "win";
-#elif __clang__
-    String platform_name = "osx";
-#else
-    String platform_name = "unix";
-#endif
+    auto platform_name = Os::getPlatformName();
 
     if      (condition_expr ==  "win"  ) bCondition = platform_name == "win";
     else if (condition_expr == "!win"  ) bCondition = platform_name != "win";

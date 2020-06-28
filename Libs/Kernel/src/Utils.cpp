@@ -43,15 +43,12 @@ For support : support@visus.net
 #include <Visus/NetService.h>
 #include <Visus/File.h>
 #include <Visus/CloudStorage.h>
+#include "Os.hxx"
 
 #include <cctype>
 #include <iomanip>
 #include <fstream>
 #include <assert.h>
-
-#if __GNUC__ && !__clang__
-#include <signal.h>
-#endif
 
 #if WIN32
 #include <Windows.h>
@@ -90,16 +87,7 @@ int Utils::getPid()
 void Utils::breakInDebugger()
 {
 #ifdef _DEBUG
-  {
-#if WIN32
-    _CrtDbgBreak();
-#elif __clang__
-    asm("int $3");
-#else
-    ::kill(0, SIGTRAP);
-    assert(0);
-#endif
-  }
+  Os::BreakInDebugger();
 #endif
 }
 

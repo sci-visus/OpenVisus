@@ -46,7 +46,7 @@ For support : support@visus.net
 #include <Visus/Encoder.h>
 #include <Visus/StringTree.h>
 #include <Visus/NetService.h>
-#include <Visus/SharedLibrary.h>
+#include "Os.hxx"
 
 #include <assert.h>
 #include <type_traits>
@@ -57,28 +57,6 @@ For support : support@visus.net
 #include <clocale>
 #include <cctype>
 
-#if WIN32
-#  pragma warning(disable:4996)
-#  include <Windows.h>
-#  include <ShlObj.h>
-#  include <winsock2.h>
-#else
-#  ifndef _GNU_SOURCE
-#    define _GNU_SOURCE
-#  endif
-#  include <dlfcn.h>
-#  include <signal.h>
-#  include <pwd.h>
-#  include <sys/socket.h>
-#  include <unistd.h>
-#  if __clang__
-#    include <mach/mach.h>
-#    include <mach/mach_host.h>
-#    include <mach-o/dyld.h>
-#  else
-#    include <sys/sysinfo.h>
-#  endif
-#endif
 
 #include <Visus/Frustum.h>
 #include <Visus/Graph.h>
@@ -99,45 +77,13 @@ For support : support@visus.net
 #include "ArrayPluginRawArray.hxx"
 
 #if VISUS_IMAGE
-
-#  if WIN32
-#    include <WinSock2.h>
-#  elif __clang__
-#  else
-#    include <arpa/inet.h>
-#  endif
-
 #  include <FreeImage.h>
-
 #  include "ArrayPluginFreeimage.hxx"
 #  include "EncoderFreeImage.hxx"
-
-#endif
-
-//this solve a problem of old Linux distribution (like Centos 5)
-#if __GNUC__ && !__clang__
-	#include <arpa/inet.h>
-	#include <byteswap.h>
-	#ifndef htole32
-		extern "C" uint32_t htole32(uint32_t x) { 
-		  return bswap_32(htonl(x));
-		}
-	#endif
 #endif
 
 
 namespace Visus {
-
-#if __clang__
-  
-//see Kernel.mm
-String GetMainBundlePath();
-  
-void InitAutoReleasePool();
-  
-void DestroyAutoReleasePool();
-  
-#endif
 
 String OpenVisus_VERSION="";
 
@@ -389,9 +335,7 @@ void KernelModule::attach()
   VisusReleaseAssert(sizeof(S129) == 129);
   VisusReleaseAssert(sizeof(S133) == 133);
 
-#if __clang__
-  InitAutoReleasePool();
-#endif
+  Os::InitAutoReleasePool();
 
   srand(0);
   std::setlocale(LC_ALL, "en_US.UTF-8");
@@ -485,18 +429,6 @@ void KernelModule::attach()
     Encoders::getSingleton()->registerEncoder("tif", [](String specs) {return std::make_shared<FreeImageEncoder>(specs); });
 #endif
   }
-
-  //test plugin
-#if 0
-  auto lib = std::make_shared<SharedLibrary>();
-  if (lib->load(SharedLibrary::getFilenameInBinaryDirectory("MyPlugin")))
-  {
-    auto get_instance = (SharedPlugin * (*)())example.findSymbol("GetSharedPluginInstance");
-    VisusReleaseAssert(get_instance);
-    auto plugin = get_instance();
-    plugin->lib = lib;
-  }
-#endif
 }
 
 
@@ -516,9 +448,7 @@ void KernelModule::detach()
 
   Private::VisusConfig::releaseSingleton();
 
-#if __clang__
-  DestroyAutoReleasePool();
-#endif
+  Os::DestroyAutoReleasePool();
 }
 
 } //namespace Visus

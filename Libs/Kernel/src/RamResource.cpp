@@ -40,26 +40,9 @@ For support : support@visus.net
 #include <Visus/Utils.h>
 #include <Visus/StringTree.h>
 #include <Visus/StringUtils.h>
+#include "Os.hxx"
 
-#if WIN32
-#include <Windows.h>
-#include <Psapi.h>
 
-#elif __clang__
-#include <sys/types.h>
-#include <sys/sysctl.h>
-#include <mach/task.h>
-#include <mach/mach_init.h>
-#include <mach/vm_statistics.h>
-#include <mach/mach_types.h>
-#include <mach/mach_host.h>
-
-#else
-#include <sys/types.h>
-#include <sys/sysinfo.h>
-#include <unistd.h>
-
-#endif
 
 namespace Visus {
 
@@ -68,30 +51,7 @@ VISUS_IMPLEMENT_SINGLETON_CLASS(RamResource)
 ///////////////////////////////////////////////////////////////////////////
 RamResource::RamResource() 
 {
-  //os_total_memory
-  {
-    #if WIN32
-    {
-      MEMORYSTATUSEX status;
-      status.dwLength = sizeof(status);
-      GlobalMemoryStatusEx(&status);
-      os_total_memory=status.ullTotalPhys;
-    }
-    #elif __clang__
-    {
-      int mib[2]={CTL_HW,HW_MEMSIZE};
-      size_t length = sizeof(os_total_memory);
-      os_total_memory=0;
-      sysctl(mib, 2, &os_total_memory, &length, NULL, 0);
-    }
-    #else
-    {
-      struct sysinfo memInfo;
-      sysinfo (&memInfo);
-      os_total_memory=((Int64)memInfo.totalram)*memInfo.mem_unit;
-    }
-    #endif
-  }
+  os_total_memory = Os::GetTotalMemory();
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -101,82 +61,13 @@ RamResource::~RamResource()
 ///////////////////////////////////////////////////////////////////////////
 Int64 RamResource::getVisusUsedMemory() const
 {
-  #if WIN32
-  {
-    PROCESS_MEMORY_COUNTERS pmc;
-    GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof (pmc));
-    return pmc.PagefileUsage;
-  }
-  #elif __clang__
-  {
-    struct task_basic_info t_info;
-    mach_msg_type_number_t t_info_count = TASK_BASIC_INFO_COUNT;
-    task_info(current_task(), TASK_BASIC_INFO, (task_info_t)&t_info, &t_info_count);
-    size_t size = t_info.resident_size;
-    return (Int64)size;
-  }
-  #else
-  {
-    long rss = 0L;
-    FILE* fp = NULL;
-    if ( (fp = fopen( "/proc/self/statm", "r" ))== NULL) return 0;
-    if (fscanf( fp, "%*s%ld", &rss ) != 1 )
-      {fclose( fp ); return 0; }
-    fclose(fp);
-    return (Int64)rss * (Int64)sysconf( _SC_PAGESIZE);
-  }
-  #endif
+  return Os::GetProcessUsedMemory();
 }
 
 ///////////////////////////////////////////////////////////////////////////
 Int64 RamResource::getOsUsedMemory() const
 {
-  #if WIN32
-  {
-    MEMORYSTATUSEX status;
-    status.dwLength = sizeof(status);
-    GlobalMemoryStatusEx(&status);
-    return status.ullTotalPhys-status.ullAvailPhys;
-  }
-  #elif __clang__
-  {
-    vm_statistics_data_t vm_stats;
-    mach_port_t mach_port = mach_host_self();
-    mach_msg_type_number_t count = sizeof(vm_stats) / sizeof(natural_t);
-    vm_size_t page_size;
-    host_page_size(mach_port, &page_size);
-    host_statistics(mach_port, HOST_VM_INFO,(host_info_t)&vm_stats, &count);
-    return ((int64_t)vm_stats.active_count +
-            (int64_t)vm_stats.inactive_count +
-            (int64_t)vm_stats.wire_count) *  (int64_t)page_size;
-  }
-  #else
-  {
-    struct sysinfo memInfo;
-    sysinfo (&memInfo);
-
-    Int64 ret = memInfo.totalram - memInfo.freeram;    
-    //Read /proc/meminfo to get cached ram (freed upon request)
-    FILE *fp;
-    int MAXLEN = 1000;
-    char buf[MAXLEN];
-    fp = fopen("/proc/meminfo", "r");
-
-    if(fp){
-      for(int i = 0; i <= 3; i++) {
-        if (fgets(buf, MAXLEN, fp)==nullptr)
-          buf[0]=0;
-      }
-      char *p1 = strchr(buf, (int)':');
-      unsigned long cacheram = strtoull(p1+1, NULL, 10)*1000;
-      ret -= cacheram;
-      fclose(fp);
-    }
-    
-    ret *= memInfo.mem_unit;
-    return ret;
-  }
-  #endif
+  return Os::GetOsUsedMemory();
 }
 
 //////////////////////////////////////////////////////////////////
@@ -202,14 +93,6 @@ bool RamResource::allocateMemory(Int64 reqsize)
     Int64 os_free_memory=((Int64)(getOsTotalMemory()*0.80))-getVisusUsedMemory();
     if (reqsize>os_free_memory)
     {
-#if 0
-      PrintWarning("RamResource out of memory ",
-                    "reqsize(",StringUtils::getStringFromByteSize(reqsize),
-                    "visus_used_memory", StringUtils::getStringFromByteSize(getVisusUsedMemory()),
-                    "os_used_memory", StringUtils::getStringFromByteSize(getOsUsedMemory()),
-                    "os_total_memory", StringUtils::getStringFromByteSize(getOsTotalMemory()),
-                    "visus_free_memory", StringUtils::getStringFromByteSize(os_free_memory));
-#endif
       return false;
     }
     return true;

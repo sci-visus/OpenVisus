@@ -389,18 +389,10 @@ namespace Utils
     char mask = 1 << (bit & 0x07);
 
 #if WIN32
-    {
       value ? _InterlockedOr8(byte, mask) : _InterlockedAnd8(byte, ~mask);
-    }
-#elif __clang__
-    {
+#else
       //I can use also OSAtomicTestAndSet and OSAtomicTestAndClear but they seems to use "bit" in reversed order...
       value ? __sync_fetch_and_or(byte, mask) : __sync_fetch_and_and(byte, ~mask);
-    }
-#else
-    {
-      value ? __sync_fetch_and_or(byte, mask) : __sync_fetch_and_and(byte, ~mask);
-    }
 #endif
   }
 

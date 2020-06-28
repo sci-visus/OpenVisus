@@ -36,37 +36,23 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Kernel.h>
-
 #if __clang__
-  #import <Foundation/NSAutoreleasePool.h>
-  #import <Foundation/Foundation.h>
-  #include <CoreFoundation/CoreFoundation.h>
-  #include <Foundation/NSString.h>
-  #include <Foundation/NSBundle.h>
 
-namespace Visus {
-  
-  static void* auto_release_pool = nullptr;
+#import <Foundation/NSAutoreleasePool.h>
+#import <Foundation/Foundation.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <Foundation/NSString.h>
+#include <Foundation/NSBundle.h>
 
-  //////////////////////////////////////////////////////
-  String GetMainBundlePath() {
-    return String(((char*)[[[NSBundle mainBundle] bundlePath] UTF8String]));
-  }
+static void* mm_auto_release_pool = nullptr;
+
+void mm_InitAutoReleasePool() {  
+    mm_auto_release_pool = [[NSAutoreleasePool alloc] init];
+}
   
-  //////////////////////////////////////////////////////
-  void InitAutoReleasePool() {
-    
-    auto_release_pool = [[NSAutoreleasePool alloc] init];
-  }
-  
-  //////////////////////////////////////////////////////
-  void DestroyAutoReleasePool() {
-    [((NSAutoreleasePool*)auto_release_pool) release];
-  }
-  
-}//namespace Visus
+void mm_DestroyAutoReleasePool() {
+    [((NSAutoreleasePool*)mm_auto_release_pool) release];
+}
 
 #endif
-
 
