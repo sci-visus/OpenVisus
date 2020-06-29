@@ -393,7 +393,7 @@ void SelfTestIdx(int max_seconds)
   }
 
 
-#if defined(WIN32) && defined(_DEBUG)
+#if defined(_DEBUG)
   {printf("Selftest OK. Press a char to finish\n"); getchar(); }
 #endif
 }

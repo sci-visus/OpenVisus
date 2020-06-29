@@ -111,7 +111,8 @@ Viewer::Viewer(String title) : QMainWindow()
 
   connect(this, &Viewer::postFlushMessages, this, &Viewer::internalFlushMessages, Qt::QueuedConnection);
 
-  this->log.fstream.open(KnownPaths::VisusHome.getChild("visus." + Time::now().getFormattedLocalTime()+ ".log"));
+  this->log.fstream.open(KnownPaths::VisusHome + "/visus." + Time::now().getFormattedLocalTime()+ ".log");
+  VisusAssert(this->log.fstream.is_open());
 
   setWindowTitle(title.c_str());
 
@@ -719,7 +720,7 @@ void Viewer::enableSaveSession()
 {
   save_session_timer.reset(new QTimer());
   
-  String filename = config.readString("Configuration/VisusViewer/SaveSession/filename", KnownPaths::VisusHome.getChild("viewer_session.xml"));
+  String filename = config.readString("Configuration/VisusViewer/SaveSession/filename", KnownPaths::VisusHome + "/viewer_session.xml");
   
   int every_sec    =cint(config.readString("Configuration/VisusViewer/SaveSession/sec","60")); //1 min!
 
@@ -1230,7 +1231,7 @@ void Viewer::reloadVisusConfig(bool bChooseAFile)
 {
   if (bChooseAFile)
   {
-    static String last_dir(KnownPaths::VisusHome.toString());
+    static String last_dir(KnownPaths::VisusHome);
     String filename = cstring(QFileDialog::getOpenFileName(nullptr, "Choose a file to open...", last_dir.c_str(), "*"));
     if (filename.empty()) return;
     last_dir = Path(filename).getParent();
@@ -1485,7 +1486,7 @@ void Viewer::saveFile(String url, bool bSaveHistory)
 {
   if (url.empty())
   {
-    static String last_dir(KnownPaths::VisusHome.toString());
+    static String last_dir(KnownPaths::VisusHome);
     url = cstring(QFileDialog::getSaveFileName(nullptr, "Choose a file to save...", last_dir.c_str(), "*.xml"));
     if (url.empty()) return ;
     last_dir = Path(url).getParent();

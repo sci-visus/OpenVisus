@@ -41,7 +41,7 @@ For support : support@visus.net
 
 #include <Visus/Db.h>
 
-#if defined(WIN32) && defined(_DEBUG) 
+#if WIN32 && defined(_DEBUG) 
 #   undef _DEBUG
 #   include <Python.h>
 #   define _DEBUG 1

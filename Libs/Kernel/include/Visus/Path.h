@@ -143,15 +143,10 @@ private:
 class VISUS_KERNEL_API KnownPaths
 {
 public:
-
-  static Path VisusHome;
-  static Path BinaryDirectory;
-
-  //working directory
-  static Path CurrentWorkingDirectory();  
-
+  static String VisusHome;
+  static String BinaryDirectory;
+  static String CurrentWorkingDirectory();
 private:
-
   KnownPaths()=delete;
 };
 

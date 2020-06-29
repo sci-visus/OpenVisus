@@ -46,7 +46,7 @@ For support : support@visus.net
 #include <Visus/Encoder.h>
 #include <Visus/StringTree.h>
 #include <Visus/NetService.h>
-#include "Os.hxx"
+#include "osdep.hxx"
 
 #include <assert.h>
 #include <type_traits>
@@ -101,22 +101,16 @@ ConfigFile* VisusModule::getModuleConfig() {
   return Private::VisusConfig::getSingleton();
 }
 
-//////////////////////////////////////////////////////////////////
-void PrintMessageToTerminal(const String& value) {
-
-#if WIN32
-  OutputDebugStringA(value.c_str());
-#endif
-
-  std::cout << value;
-}
-
 
 //////////////////////////////////////////////////////////////////
 static std::pair< void (*)(String msg, void*), void*> __redirect_log__;
 
 void RedirectLogTo(void(*callback)(String msg, void*), void* user_data) {
   __redirect_log__ = std::make_pair(callback, user_data);
+}
+
+void PrintMessageToTerminal(const String& value) {
+  osdep::PrintMessageToTerminal(value);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -227,70 +221,21 @@ void ThrowExceptionEx(String file,int line, String what)
   throw std::runtime_error(msg);
 }
 
-#if WIN32
-static void __do_not_remove_my_function__() {
-}
-#else
-VISUS_SHARED_EXPORT void __do_not_remove_my_function__() {
-}
-#endif
+
 
 
 ///////////////////////////////////////////////////////////
 static void InitKnownPaths()
 {
-  //VisusHome
-  {
-    // Allow override of VisusHome
-    if (auto VISUS_HOME = getenv("VISUS_HOME"))
-    {
-      KnownPaths::VisusHome = Path(String(VISUS_HOME));
-    }
-    else
-    {
-      #if WIN32
-      {
-        char buff[2048]; memset(buff, 0, sizeof(buff));
-        SHGetSpecialFolderPath(0, buff, CSIDL_PERSONAL, FALSE);
-        KnownPaths::VisusHome = Path(buff).getChild("visus");
-      }
-      #else
-      {
-				if (auto homedir = getenv("HOME"))
-          KnownPaths::VisusHome = Path(homedir).getChild("visus");
+  KnownPaths::VisusHome = osdep::getHomeDirectory() + "/visus";
 
-        else if (auto pw = getpwuid(getuid()))
-          KnownPaths::VisusHome = Path(pw->pw_dir).getChild("visus");
-      }
-      #endif
-    }
-  }
+  // Allow override of VisusHome
+  if (auto VISUS_HOME = getenv("VISUS_HOME"))
+    KnownPaths::VisusHome = Path(VISUS_HOME);
 
   FileUtils::createDirectory(KnownPaths::VisusHome);
-
-  //Current application file (i.e. where VisusKernel shared library is)
-  {
-    #if WIN32
-    {
-      //see https://stackoverflow.com/questions/6924195/get-dll-path-at-runtime
-      HMODULE handle;
-      GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)__do_not_remove_my_function__, &handle);
-      VisusReleaseAssert(handle);
-      char buff[2048]; memset(buff, 0, sizeof(buff));
-      GetModuleFileName(handle, buff, sizeof(buff));
-      KnownPaths::BinaryDirectory = Path(buff).getParent();
-    }
-    #else
-    {
-      Dl_info dlInfo;
-      dladdr((const void*)__do_not_remove_my_function__, &dlInfo);
-      VisusReleaseAssert(dlInfo.dli_sname && dlInfo.dli_saddr);
-      KnownPaths::BinaryDirectory = Path(dlInfo.dli_fname).getParent();
-    }
-    #endif
-  }
+  KnownPaths::BinaryDirectory = Path(osdep::getCurrentApplicationFile()).getParent();
 }
-  
 bool KernelModule::bAttached = false;
 
 //////////////////////////////////////////////////////
@@ -335,27 +280,13 @@ void KernelModule::attach()
   VisusReleaseAssert(sizeof(S129) == 129);
   VisusReleaseAssert(sizeof(S133) == 133);
 
-  Os::InitAutoReleasePool();
+  osdep::InitAutoReleasePool();
 
   srand(0);
   std::setlocale(LC_ALL, "en_US.UTF-8");
   Thread::getMainThreadId() = std::this_thread::get_id();
 
-  //this is for generic network code
-#if WIN32
-  {
-    WSADATA data;
-    WSAStartup(MAKEWORD(2, 2), &data);
-  }
-#else
-  {
-    struct sigaction act, oact; //The SIGPIPE signal will be received if the peer has gone away
-    act.sa_handler = SIG_IGN;   //and an attempt is made to write data to the peer. Ignoring this
-    sigemptyset(&act.sa_mask);  //signal causes the write operation to receive an EPIPE error.
-    act.sa_flags = 0;           //Thus, the user is informed about what happened.
-    sigaction(SIGPIPE, &act, &oact);
-  }
-#endif
+  osdep::startup();
 
   Private::VisusConfig::allocSingleton();
 
@@ -367,8 +298,9 @@ void KernelModule::attach()
 
   for (auto filename : {
     visus_config_commandline_filename ,
-    KnownPaths::CurrentWorkingDirectory().getChild("visus.config").toString(),
-    KnownPaths::VisusHome.getChild("visus.config").toString() })
+    KnownPaths::CurrentWorkingDirectory() + "/visus.config",
+    KnownPaths::VisusHome + "/visus.config" 
+    })
   {
     if (filename.empty())
       continue;
@@ -448,7 +380,7 @@ void KernelModule::detach()
 
   Private::VisusConfig::releaseSingleton();
 
-  Os::DestroyAutoReleasePool();
+  osdep::DestroyAutoReleasePool();
 }
 
 } //namespace Visus

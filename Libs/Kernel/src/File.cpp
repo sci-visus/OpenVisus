@@ -40,7 +40,7 @@ For support : support@visus.net
 #include <Visus/Thread.h>
 #include <Visus/Utils.h>
 #include <Visus/Time.h>
-#include "Os.hxx"
+#include "osdep.hxx"
 
 namespace Visus {
 
@@ -178,13 +178,7 @@ bool FileUtils::createDirectory(Path path,bool bCreateParents)
       return false;
   }
 
-  auto dirname = path.toString();
-
-#if WIN32
-  return CreateDirectory(TEXT(dirname.c_str()), NULL)!=0;
-#else
-  return ::mkdir(dirname.c_str(), 0775) == 0; //user(rwx) group(rwx) others(r-x)
-#endif
+  return osdep::createDirectory(path.toString());
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -194,12 +188,7 @@ bool FileUtils::removeDirectory(Path path)
     return false;
 
   String fullpath=path.toString();
-
-#if WIN32
-  return ::_rmdir(fullpath.c_str()) == 0 ? true : false;
-#else
-  return ::rmdir(fullpath.c_str()) == 0 ? true : false;
-#endif
+  return osdep::createDirectory(fullpath);
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -215,11 +204,7 @@ void FileUtils::lock(Path path)
   VisusAssert(!path.empty());
   String fullpath=path.toString();
 
-#if WIN32
-  int pid = ::_getpid();
-#else
-  int pid = ::getpid();
-#endif
+  int pid = Utils::getPid();
 
   String lock_filename=fullpath+ ".lock";
 
@@ -306,17 +291,7 @@ bool FileUtils::moveFile(String src_filename, String dst_filename)
 /////////////////////////////////////////////////////////////////////////
 bool FileUtils::createLink(String existing_file, String new_file)
 {
-#ifdef WIN32
-  if (CreateHardLink(new_file.c_str(), existing_file.c_str(), nullptr) == 0)
-  {
-    PrintWarning("Error creating link", Win32FormatErrorMessage(GetLastError()));
-    return false;
-  }
-
-  return true;
-#else
-  return symlink(existing_file.c_str(), new_file.c_str()) == 0;
-#endif
+  return osdep::createLink(existing_file, new_file);
 }
 
 } //namespace Visus

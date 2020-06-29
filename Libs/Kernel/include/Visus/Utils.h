@@ -252,13 +252,7 @@ namespace Utils
   }
 
   //getRandDouble in the range [a,b]
-  inline double getRandDouble(double a = 0.0, double b = 1.0) {
-#if WIN32
-    {return a + (((double)rand()) / (double)RAND_MAX)*(b - a); }
-#else
-    {return a + drand48()*(b - a); }
-#endif
-  }
+  VISUS_KERNEL_API double getRandDouble(double a = 0.0, double b = 1.0);
 
   //degreeToRadiant
   inline double degreeToRadiant(double value) {
@@ -378,17 +372,10 @@ namespace Utils
   //setBit
   inline void setBit(unsigned char* buffer, Int64 bit, bool value)
   {
-    //WRONG if different threads are writing to the same byte
-#if 0
-    unsigned char& byte = buffer[bit >> 3];
-    int mask = 1 << (bit & 0x07);
-    byte = value ? (byte | mask) : (byte & ~mask);
-#endif
-
     volatile char* byte = (char*)buffer + (bit >> 3);
     char mask = 1 << (bit & 0x07);
 
-#if WIN32
+#if _MSC_VER
       value ? _InterlockedOr8(byte, mask) : _InterlockedAnd8(byte, ~mask);
 #else
       //I can use also OSAtomicTestAndSet and OSAtomicTestAndClear but they seems to use "bit" in reversed order...
@@ -436,9 +423,6 @@ namespace Utils
   //breakInDebugger
   VISUS_KERNEL_API void breakInDebugger();
 
-  //safe_strerror
-  VISUS_KERNEL_API String safe_strerror(int err);
-
   //loadTextDocument
   VISUS_KERNEL_API String loadTextDocument(String url);
 
@@ -450,9 +434,6 @@ namespace Utils
 
   //saveBinaryDocument
   VISUS_KERNEL_API void saveBinaryDocument(String url, SharedPtr<HeapMemory> src);
-
-  //LLtoUTM
-  VISUS_KERNEL_API void LLtoUTM(const double Lat, const double Long, double &UTMNorthing, double &UTMEasting);
 
   //getPid
   VISUS_KERNEL_API int getPid();

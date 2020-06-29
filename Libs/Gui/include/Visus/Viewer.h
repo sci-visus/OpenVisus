@@ -161,6 +161,7 @@ public:
       "QToolButton       {background: transparent;} "
       "QToolButton:hover {background: lightGray ; border: 1px solid #6593cf;} ");
 #endif
+
     if (!icon.isNull())
       ret->setIcon(icon);
 

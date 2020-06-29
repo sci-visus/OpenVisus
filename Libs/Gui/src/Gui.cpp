@@ -69,8 +69,8 @@ For support : support@visus.net
 #include <QDirIterator>
 
 #if VISUS_OSPRAY
-#  if WIN32
-#    pragma warning(disable:4005)
+#  if _MSC_VER
+#  pragma warning(disable:4005)
 #  endif
 #  include <ospray/ospray.h>
 #  include <ospray/ospray_cpp.h>

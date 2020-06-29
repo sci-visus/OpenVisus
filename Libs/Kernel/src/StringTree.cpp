@@ -41,7 +41,7 @@ For support : support@visus.net
 #include <Visus/Path.h>
 #include <Visus/Utils.h>
 #include <Visus/File.h>
-#include "Os.hxx"
+#include "osdep.hxx"
 
 #include <tinyxml/tinyxml.h>
 
@@ -184,7 +184,7 @@ private:
     //TODO: mini parser here?
     bool bCondition = false;
 
-    auto platform_name = Os::getPlatformName();
+    auto platform_name = osdep::getPlatformName();
 
     if      (condition_expr ==  "win"  ) bCondition = platform_name == "win";
     else if (condition_expr == "!win"  ) bCondition = platform_name != "win";
@@ -325,9 +325,9 @@ public:
   {
     std::map<String,StringTree*> templates;
     StringMap      aliases;
-    aliases.setValue("VisusHome"              , KnownPaths::VisusHome                .toString());
-    aliases.setValue("BinaryDirectory"        , KnownPaths::BinaryDirectory          .toString());
-    aliases.setValue("CurrentWorkingDirectory", KnownPaths::CurrentWorkingDirectory().toString());
+    aliases.setValue("VisusHome"              , KnownPaths::VisusHome                );
+    aliases.setValue("BinaryDirectory"        , KnownPaths::BinaryDirectory          );
+    aliases.setValue("CurrentWorkingDirectory", KnownPaths::CurrentWorkingDirectory());
 
     StringTree dst(src.name);
     accept(dst,src,templates,aliases);

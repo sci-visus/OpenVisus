@@ -37,74 +37,11 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/Time.h>
-
-#if WIN32
-#pragma warning(disable:4996)
-#include <time.h>
-#include <sys/timeb.h>
-#else
-#include <unistd.h>
-#include <sys/time.h>
-#endif
-
+#include "osdep.hxx"
 
 #include <iomanip>
 
 namespace Visus {
-
-//////////////////////////////////////////////////////////////////////
-static struct tm millisToLocal(const Int64 millis) 
-{
-  struct tm result;
-  const Int64 seconds = millis / 1000;
-
-  if (seconds < 86400LL || seconds >= 2145916800LL)
-  {
-    // use extended maths for dates beyond 1970 to 2037..
-    const int timeZoneAdjustment = 31536000 - (int) (Time (1971, 0, 1, 0, 0).getUTCMilliseconds() / 1000);
-    const Int64 jdm = seconds + timeZoneAdjustment + 210866803200LL;
-
-    const int days = (int) (jdm / 86400LL);
-    const int a = 32044 + days;
-    const int b = (4 * a + 3) / 146097;
-    const int c = a - (b * 146097) / 4;
-    const int d = (4 * c + 3) / 1461;
-    const int e = c - (d * 1461) / 4;
-    const int m = (5 * e + 2) / 153;
-
-    result.tm_mday  = e - (153 * m + 2) / 5 + 1;
-    result.tm_mon   = m + 2 - 12 * (m / 10);
-    result.tm_year  = b * 100 + d - 6700 + (m / 10);
-    result.tm_wday  = (days + 1) % 7;
-    result.tm_yday  = -1;
-
-    int t = (int) (jdm % 86400LL);
-    result.tm_hour  = t / 3600;
-    t %= 3600;
-    result.tm_min   = t / 60;
-    result.tm_sec   = t % 60;
-    result.tm_isdst = -1;
-  }
-  else
-  {
-    time_t now = static_cast <time_t> (seconds);
-
-    #if WIN32
-      #ifdef _INC_TIME_INL
-      if (now >= 0 && now <= 0x793406fff)
-        localtime_s (&result, &now);
-      else
-        memset (&result, 0, sizeof (result));
-      #else
-      result = *localtime (&now);
-      #endif
-    #else
-      localtime_r(&now, &result); // more thread-safe
-    #endif
-  }
-
-  return result;
-}
 
 
 //////////////////////////////////////////////////////////////////////
@@ -165,21 +102,8 @@ Time::Time (const int year,
 //==============================================================================
 Int64 Time::getTimeStamp() 
 {
-  #if WIN32
-    struct _timeb t;
-   #ifdef _INC_TIME_INL
-    _ftime_s (&t);
-   #else
-    _ftime (&t);
-   #endif
-    return ((Int64) t.time) * 1000 + t.millitm;
-  #else
-    struct timeval tv;
-    gettimeofday (&tv, nullptr);
-    return ((Int64) tv.tv_sec) * 1000 + tv.tv_usec / 1000;
-  #endif
+  return osdep::getTimeStamp();
 }
-
 
 //==============================================================================
   String Time::getFormattedLocalTime() const
@@ -229,13 +153,13 @@ String Time::getMonthName(int monthNumber, bool threeLetterVersion)
 }
 
 //==============================================================================
-int Time::getYear() const           { return millisToLocal (utc_msec).tm_year + 1900; }
-int Time::getMonth() const          { return millisToLocal (utc_msec).tm_mon; }
-int Time::getDayOfYear() const      { return millisToLocal (utc_msec).tm_yday; }
-int Time::getDayOfMonth() const     { return millisToLocal (utc_msec).tm_mday; }
-int Time::getDayOfWeek() const      { return millisToLocal (utc_msec).tm_wday; }
-int Time::getHours() const          { return millisToLocal (utc_msec).tm_hour; }
-int Time::getMinutes() const        { return millisToLocal (utc_msec).tm_min; }
+int Time::getYear() const           { return osdep::millisToLocal (utc_msec).tm_year + 1900; }
+int Time::getMonth() const          { return osdep::millisToLocal (utc_msec).tm_mon; }
+int Time::getDayOfYear() const      { return osdep::millisToLocal (utc_msec).tm_yday; }
+int Time::getDayOfMonth() const     { return osdep::millisToLocal (utc_msec).tm_mday; }
+int Time::getDayOfWeek() const      { return osdep::millisToLocal (utc_msec).tm_wday; }
+int Time::getHours() const          { return osdep::millisToLocal (utc_msec).tm_hour; }
+int Time::getMinutes() const        { return osdep::millisToLocal (utc_msec).tm_min; }
 int Time::getSeconds() const        { return extendedModulo(utc_msec / 1000, 60); }
 int Time::getMilliseconds() const   { return extendedModulo(utc_msec, 1000); }
 

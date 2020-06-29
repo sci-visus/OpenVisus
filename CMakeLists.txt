@@ -63,7 +63,17 @@ set (CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR} CACHE STRING "CMAKE_INSTALL_PREFIX
 option(VISUS_MINIMAL OFF)
 if (VISUS_MINIMAL)
 
-	file(GLOB_RECURSE Sources Libs/Kernel/*.cpp Libs/Kernel/*.c Libs/Db/*.cpp)
+	file(GLOB_RECURSE Sources 
+		Libs/Kernel/*.cpp 
+		Libs/Kernel/*.c 
+		Libs/Db/*.cpp
+		ExternalLibs/cryptlite/*.C
+		ExternalLibs/dtl/*.cpp 
+		ExternalLibs/lz4/*.C 
+		ExternalLibs/tinyxml/*.cpp
+		ExternalLibs/zfp/*.cpp
+		ExternalLibs/zlib/*.c
+		)
 		
 	IF (CLANG)
 		file(GLOB SourcesMM Libs/Kernel/src/*.mm)
@@ -78,7 +88,7 @@ if (VISUS_MINIMAL)
 
 	if (WIN32)
 		target_compile_options(VisusIO PRIVATE -DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS /bigobj)
-		target_link_libraries(VisusIO  PRIVATE Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
+		target_link_libraries(VisusIO  PRIVATE Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib advapi32.lib)
 	elseif (CLANG)
 		target_compile_options(VisusIO PRIVATE  -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
 		target_link_libraries(VisusIO  PRIVATE "-framework CoreFoundation" "-framework Foundation")

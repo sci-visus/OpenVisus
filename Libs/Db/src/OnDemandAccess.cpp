@@ -319,10 +319,10 @@ public:
   template <typename CppType>
   inline CppType generateSample(const Point3d& p) const
   {
-    int xi = p[0]*invstep;
-    int yi = p[1]*invstep;
-    int zi = p[2]*invstep;
-    return (xi % 2 ^ (yi + 1) % 2 ^ zi % 2) ? 255 : 0;
+    int xi = int(p[0]*invstep);
+    int yi = int(p[1]*invstep);
+    int zi = int(p[2]*invstep);
+    return CppType((xi % 2 ^ (yi + 1) % 2 ^ zi % 2) ? 255 : 0);
   }
 };
 
@@ -357,9 +357,9 @@ public:
     {
       x = (z_x*z_x - z_y*z_y) + c_x;
       y = (z_y*z_x + z_x*z_y) + c_y;
-      if ((x*x + y*y) > 4.0) return double(i) / iter;
+      if ((x*x + y*y) > 4.0) return CppType(double(i) / iter);
     }
-    return 0.0;
+    return CppType(0.0);
   }
 };
 

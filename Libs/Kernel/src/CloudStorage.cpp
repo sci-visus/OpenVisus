@@ -46,9 +46,6 @@ For support : support@visus.net
 
 #include <cctype>
 
-#if WIN32
-#pragma warning(disable:4996)
-#endif
 
 namespace Visus {
 

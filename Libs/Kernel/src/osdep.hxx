@@ -43,10 +43,13 @@ For support : support@visus.net
 #include <Visus/File.h>
 #include <Visus/Semaphore.h>
 #include <Visus/Thread.h>
+#include <Visus/Time.h>
+
+#include <iostream>
+#include <fcntl.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 
 #if WIN32
 #include <Windows.h>
@@ -57,9 +60,10 @@ For support : support@visus.net
 #include <sddl.h>
 #include <ShlObj.h>
 #include <winsock2.h>
+#include <time.h>
+#include <sys/timeb.h>
 
 #pragma warning(disable:4996)
-#pragma comment(lib, "advapi32.lib")
 
 static std::string Win32FormatErrorMessage(DWORD ErrorCode)
 {
@@ -72,32 +76,52 @@ static std::string Win32FormatErrorMessage(DWORD ErrorCode)
   return ret;
 }
 
+#define getIpCat(cat)    htonl(cat)
+typedef int socklen_t;
+#define SHUT_RD   SD_RECEIVE 
+#define SHUT_WR   SD_SEND 
+#define SHUT_RDWR SD_BOTH 
+
+#define Stat64 ::_stat64
+#define LSeeki64 _lseeki64
+
 #elif __clang__
 #include <unistd.h>
+#include <signal.h>
+#include <dlfcn.h>
+#include <errno.h>
+#include <pwd.h>
+#include <netdb.h> 
+#include <strings.h>
+#include <pthread.h>
+#include <climits>
+
 #include <sys/socket.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <climits>
-#include <dispatch/dispatch.h>
-#include <mach/mach.h>
-#include <mach/mach_host.h>
-#include <mach-o/dyld.h>
-#include <dlfcn.h>
-#include <signal.h>
-#include <pwd.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include <sys/types.h>
 #include <sys/sysctl.h>
+#include <sys/ioctl.h>
+#include <sys/time.h>
+
+#include <mach/mach.h>
 #include <mach/task.h>
 #include <mach/mach_init.h>
+#include <mach/mach_host.h>
 #include <mach/vm_statistics.h>
 #include <mach/mach_types.h>
-#include <mach/mach_host.h>
+#include <mach-o/dyld.h>
+
+#include <arpa/inet.h>
+#include <dispatch/dispatch.h>
+#include <netinet/tcp.h>
 
 void mm_InitAutoReleasePool();
 void mm_DestroyAutoReleasePool();
 
+#define getIpCat(cat)          ::cat
+#define closesocket(socketref) ::close(socketref)
+#define Stat64                 ::stat
+#define LSeeki64               ::lseek
 
 #else
 #ifndef _GNU_SOURCE
@@ -107,29 +131,30 @@ void mm_DestroyAutoReleasePool();
 #include <errno.h>
 #include <unistd.h>
 #include <limits.h>
+#include <dlfcn.h>
+#include <pwd.h>
+#include <pthread.h>
+#include <netdb.h> 
+#include <strings.h>
+#include <signal.h>
+#include <byteswap.h>
+
 #include <sys/sendfile.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/sysinfo.h>
-#include <dlfcn.h>
-#include <signal.h>
-#include <pwd.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
 #include <sys/types.h>
-#include <sys/sysinfo.h>
-#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/time.h>
 
-//this solve a problem of old Linux distribution (like Centos 5)
-#if !__clang__
-  #include <arpa/inet.h>
-  #include <byteswap.h>
-  #ifndef htole32
-  extern "C" uint32_t htole32(uint32_t x) {
-    return bswap_32(htonl(x));
-  }
-  #endif
-#endif
+#include <arpa/inet.h>
+#include <netinet/tcp.h>
+
+#define getIpCat(cat)          ::cat
+#define closesocket(socketref) ::close(socketref)
+#define Stat64                 ::stat
+#define LSeeki64               ::lseek
 
 #endif
 
@@ -146,20 +171,23 @@ void mm_DestroyAutoReleasePool();
 #define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
 #endif
 
-
-#if WIN32
-#define Stat64 ::_stat64
-#else
-#define Stat64 ::stat
+//this solve a problem of old Linux distribution (like Centos 5)
+#if __GNUC__ && !__clang__
+#ifndef htole32
+extern "C" uint32_t htole32(uint32_t x) {
+  return bswap_32(htonl(x));
+}
+#endif
 #endif
 
 namespace Visus {
 
-#if WIN32
-
+/////////////////////////////////////////////////////////////////////////////////////////
 class Semaphore::Pimpl
 {
 public:
+#if WIN32
+
   HANDLE handle;
 
   //constructor
@@ -192,12 +220,7 @@ public:
       ThrowException("critical error, cannot up() the semaphore");
   }
 
-};
 #elif __clang__
-
-class Semaphore::Pimpl
-{
-public:
 
   dispatch_semaphore_t sem;
 
@@ -232,12 +255,7 @@ public:
     dispatch_semaphore_signal(this->sem);
   }
 
-};
 #else
-
-class Semaphore::Pimpl
-{
-public:
 
   sem_t sem;
 
@@ -274,10 +292,37 @@ public:
       ThrowException("critical error, cannot up() the semaphore");
   }
 
-};
 #endif
+}; //end class
 
-/////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
+class RWLock::Pimpl
+{
+public:
+#if WIN32
+
+  SRWLOCK lock;
+  inline Pimpl() { InitializeSRWLock(&lock); }
+  inline void enterRead() { AcquireSRWLockShared(&lock); }
+  inline void exitRead() { ReleaseSRWLockShared(&lock); }
+  inline void enterWrite() { AcquireSRWLockExclusive(&lock); }
+  inline void exitWrite() { ReleaseSRWLockExclusive(&lock); }
+
+
+#else 
+
+  pthread_rwlock_t lock;
+  Pimpl() { pthread_rwlock_init(&lock, 0); }
+  ~Pimpl() { pthread_rwlock_destroy(&lock); }
+  inline void enterRead() { pthread_rwlock_rdlock(&lock); }
+  inline void exitRead() { pthread_rwlock_unlock(&lock); }
+  inline void enterWrite() { pthread_rwlock_wrlock(&lock); }
+  inline void exitWrite() { pthread_rwlock_unlock(&lock); }
+
+#endif 
+}; //end class
+
+/////////////////////////////////////////////////////////////////////////////////////////
 class PosixFile : public File::Pimpl
 {
 public:
@@ -342,11 +387,7 @@ public:
       if (nattempt)
         FileUtils::createDirectory(Path(filename).getParent());
 
-#if WIN32
-      this->handle = ::_open(filename.c_str(), imode, create_flags);
-#else
       this->handle = ::open(filename.c_str(), imode, create_flags);
-#endif    
 
       if (isOpen())
         break;
@@ -376,11 +417,7 @@ public:
     if (!isOpen())
       return;
 
-#if WIN32
-    ::_close(this->handle);
-#else
     ::close(this->handle);
-#endif     
 
     this->handle = -1;
     this->cursor = -1;
@@ -395,11 +432,7 @@ public:
     if (!isOpen())
       return false;
 
-#if WIN32
-    Int64 ret = ::_lseeki64(this->handle, 0, SEEK_END);
-#else
-    Int64 ret = ::lseek(this->handle, 0, SEEK_END);
-#endif
+    Int64 ret = LSeeki64(this->handle, 0, SEEK_END);
 
     if (ret < 0)
     {
@@ -426,12 +459,7 @@ public:
     for (Int64 remaining = tot; remaining;)
     {
       int chunk = (remaining >= INT_MAX) ? INT_MAX : (int)remaining;
-
-#if WIN32
-      int n = ::_write(this->handle, buffer, chunk);
-#else
       int n = ::write(this->handle, buffer, chunk);
-#endif 
 
       if (n <= 0)
       {
@@ -465,12 +493,7 @@ public:
     for (Int64 remaining = tot; remaining;)
     {
       int chunk = (remaining >= INT_MAX) ? INT_MAX : (int)remaining;
-
-#if WIN32
-      int n = ::_read(this->handle, buffer, chunk);
-#else
       int n = ::read(this->handle, buffer, chunk);
-#endif     
 
       if (n <= 0)
       {
@@ -508,11 +531,7 @@ private:
     if (this->cursor >= 0 && this->cursor == value)
       return true;
 
-#if WIN32
-    bool bOk = ::_lseeki64(this->handle, value, SEEK_SET) >= 0;
-#else
-    bool bOk = ::lseek(this->handle, value, SEEK_SET) >= 0;
-#endif
+    bool bOk = LSeeki64(this->handle, value, SEEK_SET) >= 0;
 
     if (!bOk) {
       this->cursor = -1;
@@ -547,7 +566,188 @@ private:
 
 };
 
-/////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
+class MemoryMappedFile : public File::Pimpl
+{
+public:
+
+  //constructor
+  MemoryMappedFile() {
+  }
+
+  //destryctor
+  virtual ~MemoryMappedFile() {
+    close();
+  }
+
+  //isOpen
+  virtual bool isOpen() const override {
+    return mem != nullptr;
+  }
+
+  //canRead
+  virtual bool canRead() const override {
+    return can_read;
+  }
+
+  //canWrite
+  virtual bool canWrite() const override {
+    return can_write;
+  }
+
+  //getFilename
+  virtual String getFilename() const override {
+    return this->filename;
+  }
+
+  //open
+  virtual bool open(String filename, String file_mode, File::Options options) override
+  {
+    close();
+
+    bool bMustCreate = options & File::MustCreateFile;
+
+    //not supported
+    if (file_mode.find("w") != String::npos || bMustCreate) {
+      VisusAssert(false);
+      return false;
+    }
+
+#if WIN32
+    {
+      this->file = CreateFileA(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+
+      if (file == INVALID_HANDLE_VALUE) {
+        close();
+        return false;
+      }
+
+      this->nbytes = GetFileSize(file, nullptr);
+      this->mapping = CreateFileMapping(file, nullptr, PAGE_READONLY, 0, 0, nullptr);
+
+      if (mapping == nullptr) {
+        close();
+        return false;
+      }
+
+      this->mem = (char*)MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0);
+    }
+#else
+    {
+      this->fd = ::open(filename.c_str(), O_RDONLY);
+      if (this->fd == -1) {
+        close();
+        return false;
+      }
+
+      struct stat sb;
+      if (fstat(fd, &sb) == -1) {
+        close();
+        return false;
+      }
+
+      this->nbytes = sb.st_size;
+      this->mem = (char*)mmap(nullptr, nbytes, PROT_READ, MAP_PRIVATE, fd, 0);
+    }
+#endif
+
+    if (!mem) {
+      close();
+      return false;
+    }
+
+
+    onOpenEvent();
+    this->filename = filename;
+    this->can_read = file_mode.find("r") != String::npos;
+    this->can_write = file_mode.find("w") != String::npos;
+    return true;
+  }
+
+  //close
+  virtual void close() override
+  {
+    if (!isOpen())
+      return;
+
+#if WIN32
+    {
+      if (mem)
+        UnmapViewOfFile(mem);
+
+      if (mapping)
+        CloseHandle(mapping);
+
+      if (file != INVALID_HANDLE_VALUE)
+        CloseHandle(file);
+
+      mapping = nullptr;
+      file = INVALID_HANDLE_VALUE;
+    }
+#else
+    {
+      if (mem)
+        munmap(mem, nbytes);
+
+      if (fd != -1)
+      {
+        ::close(fd);
+        fd = -1;
+      }
+    }
+#endif
+
+    this->can_read = false;
+    this->can_write = false;
+    this->nbytes = 0;
+    this->mem = nullptr;
+    this->filename = "";
+  }
+
+  //size
+  virtual Int64 size() override {
+    return nbytes;
+  }
+
+  //write  
+  virtual bool write(Int64 pos, Int64 tot, const unsigned char* buffer) override
+  {
+    if (!isOpen() || (pos + tot) > this->nbytes)
+      return false;
+
+    memcpy(mem + pos, buffer, (size_t)tot);
+    onWriteEvent(tot);
+    return true;
+  }
+
+  //read
+  virtual bool read(Int64 pos, Int64 tot, unsigned char* buffer) override
+  {
+    if (!isOpen() || (pos + tot) > this->nbytes)
+      return false;
+
+    memcpy(buffer, mem + pos, (size_t)tot);
+    onReadEvent(tot);
+    return true;
+  }
+
+private:
+
+#if WIN32
+  void* file = nullptr;
+  void* mapping = nullptr;
+#else
+  int         fd = -1;
+#endif
+
+  bool        can_read = false;
+  bool        can_write = false;
+  String      filename;
+  Int64       nbytes = 0;
+  char* mem = nullptr;
+
+};
+
 #if WIN32
 class Win32File : public File::Pimpl
 {
@@ -763,190 +963,9 @@ private:
 };
 #endif
 
-////////////////////////////////////////////////////////////////////////////////////////////
-class MemoryMappedFile : public File::Pimpl
-{
-public:
-
-  //constructor
-  MemoryMappedFile() {
-  }
-
-  //destryctor
-  virtual ~MemoryMappedFile() {
-    close();
-  }
-
-  //isOpen
-  virtual bool isOpen() const override {
-    return mem != nullptr;
-  }
-
-  //canRead
-  virtual bool canRead() const override {
-    return can_read;
-  }
-
-  //canWrite
-  virtual bool canWrite() const override {
-    return can_write;
-  }
-
-  //getFilename
-  virtual String getFilename() const override {
-    return this->filename;
-  }
-
-  //open
-  virtual bool open(String filename, String file_mode, File::Options options) override
-  {
-    close();
-
-    bool bMustCreate = options & File::MustCreateFile;
-
-    //not supported
-    if (file_mode.find("w") != String::npos || bMustCreate) {
-      VisusAssert(false);
-      return false;
-    }
-
-#if defined(WIN32)
-    {
-      this->file = CreateFileA(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-
-      if (file == INVALID_HANDLE_VALUE) {
-        close();
-        return false;
-      }
-
-      this->nbytes = GetFileSize(file, nullptr);
-      this->mapping = CreateFileMapping(file, nullptr, PAGE_READONLY, 0, 0, nullptr);
-
-      if (mapping == nullptr) {
-        close();
-        return false;
-      }
-
-      this->mem = (char*)MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0);
-    }
-#else
-    {
-      this->fd = ::open(filename.c_str(), O_RDONLY);
-      if (this->fd == -1) {
-        close();
-        return false;
-      }
-
-      struct stat sb;
-      if (fstat(fd, &sb) == -1) {
-        close();
-        return false;
-      }
-
-      this->nbytes = sb.st_size;
-      this->mem = (char*)mmap(nullptr, nbytes, PROT_READ, MAP_PRIVATE, fd, 0);
-    }
-#endif
-
-    if (!mem) {
-      close();
-      return false;
-    }
-
-
-    onOpenEvent();
-    this->filename = filename;
-    this->can_read = file_mode.find("r") != String::npos;
-    this->can_write = file_mode.find("w") != String::npos;
-    return true;
-  }
-
-  //close
-  virtual void close() override
-  {
-    if (!isOpen())
-      return;
-
-#if defined(WIN32)
-    {
-      if (mem)
-        UnmapViewOfFile(mem);
-
-      if (mapping)
-        CloseHandle(mapping);
-
-      if (file != INVALID_HANDLE_VALUE)
-        CloseHandle(file);
-
-      mapping = nullptr;
-      file = INVALID_HANDLE_VALUE;
-    }
-#else
-    {
-      if (mem)
-        munmap(mem, nbytes);
-
-      if (fd != -1)
-      {
-        ::close(fd);
-        fd = -1;
-      }
-    }
-#endif
-
-    this->can_read = false;
-    this->can_write = false;
-    this->nbytes = 0;
-    this->mem = nullptr;
-    this->filename = "";
-  }
-
-  //size
-  virtual Int64 size() override {
-    return nbytes;
-  }
-
-  //write  
-  virtual bool write(Int64 pos, Int64 tot, const unsigned char* buffer) override
-  {
-    if (!isOpen() || (pos + tot) > this->nbytes)
-      return false;
-
-    memcpy(mem + pos, buffer, (size_t)tot);
-    onWriteEvent(tot);
-    return true;
-  }
-
-  //read
-  virtual bool read(Int64 pos, Int64 tot, unsigned char* buffer) override
-  {
-    if (!isOpen() || (pos + tot) > this->nbytes)
-      return false;
-
-    memcpy(buffer, mem + pos, (size_t)tot);
-    onReadEvent(tot);
-    return true;
-  }
-
-private:
-
-#if defined(_WIN32)
-  void* file = nullptr;
-  void* mapping = nullptr;
-#else
-  int         fd = -1;
-#endif
-
-  bool        can_read = false;
-  bool        can_write = false;
-  String      filename;
-  Int64       nbytes = 0;
-  char* mem = nullptr;
-
-};
 
 /// /////////////////////////////////////////////////////////////////////////////////////////
-class Os {
+class osdep {
 
 public:
 
@@ -1081,10 +1100,230 @@ public:
 #endif
   }
 
+  //millisToLocal
+  static struct tm millisToLocal(const Int64 millis)
+  {
+    struct tm result;
+    const Int64 seconds = millis / 1000;
+
+    if (seconds < 86400LL || seconds >= 2145916800LL)
+    {
+      // use extended maths for dates beyond 1970 to 2037..
+      const int timeZoneAdjustment = 31536000 - (int)(Time(1971, 0, 1, 0, 0).getUTCMilliseconds() / 1000);
+      const Int64 jdm = seconds + timeZoneAdjustment + 210866803200LL;
+
+      const int days = (int)(jdm / 86400LL);
+      const int a = 32044 + days;
+      const int b = (4 * a + 3) / 146097;
+      const int c = a - (b * 146097) / 4;
+      const int d = (4 * c + 3) / 1461;
+      const int e = c - (d * 1461) / 4;
+      const int m = (5 * e + 2) / 153;
+
+      result.tm_mday = e - (153 * m + 2) / 5 + 1;
+      result.tm_mon = m + 2 - 12 * (m / 10);
+      result.tm_year = b * 100 + d - 6700 + (m / 10);
+      result.tm_wday = (days + 1) % 7;
+      result.tm_yday = -1;
+
+      int t = (int)(jdm % 86400LL);
+      result.tm_hour = t / 3600;
+      t %= 3600;
+      result.tm_min = t / 60;
+      result.tm_sec = t % 60;
+      result.tm_isdst = -1;
+    }
+    else
+    {
+      time_t now = static_cast <time_t> (seconds);
+
+#if WIN32
+#ifdef _INC_TIME_INL
+      if (now >= 0 && now <= 0x793406fff)
+        localtime_s(&result, &now);
+      else
+        memset(&result, 0, sizeof(result));
+#else
+      result = *localtime(&now);
+#endif
+#else
+      localtime_r(&now, &result); // more thread-safe
+#endif
+    }
+
+    return result;
+  }
+
+  //Utils::
+  static double GetRandDouble(double a, double b) {
+#if WIN32
+    {return a + (((double)rand()) / (double)RAND_MAX) * (b - a); }
+#else
+    {return a + drand48() * (b - a); }
+#endif
+  }
+
+  //createDirectory
+  static bool createDirectory(String dirname)
+  {
+#if WIN32
+    return CreateDirectory(TEXT(dirname.c_str()), NULL) != 0;
+#else
+    return ::mkdir(dirname.c_str(), 0775) == 0; //user(rwx) group(rwx) others(r-x)
+#endif
+  }
+
+  //removeDirectory
+  static bool removeDirectory(String value)
+  {
+    return ::rmdir(value.c_str()) == 0 ? true : false;
+  }
+
+  //createLink
+  static bool createLink(String existing_file, String new_file)
+  {
+#if WIN32
+    if (CreateHardLink(new_file.c_str(), existing_file.c_str(), nullptr) == 0)
+    {
+      PrintWarning("Error creating link", Win32FormatErrorMessage(GetLastError()));
+      return false;
+    }
+    return true;
+#else
+    return symlink(existing_file.c_str(), new_file.c_str()) == 0;
+#endif
+  }
+
+  //getTimeStamp
+  static Int64 getTimeStamp()
+  {
+#if WIN32
+    struct _timeb t;
+#ifdef _INC_TIME_INL
+    _ftime_s(&t);
+#else
+    _ftime(&t);
+#endif
+    return ((Int64)t.time) * 1000 + t.millitm;
+#else
+    struct timeval tv;
+    gettimeofday(&tv, nullptr);
+    return ((Int64)tv.tv_sec) * 1000 + tv.tv_usec / 1000;
+#endif
+  }
+
+  //safe_strerror
+  static String safe_strerror(int err)
+  {
+    const int buffer_size = 512;
+    char buf[buffer_size];
+#if WIN32
+    strerror_s(buf, sizeof(buf), err);
+#else
+    if (strerror_r(err, buf, sizeof(buf)) != 0)
+      buf[0] = 0;
+#endif
+
+    return String(buf);
+  }
+
+  //CurrentWorkingDirectory
+  static String CurrentWorkingDirectory()
+  {
+#if WIN32
+    {
+      char buff[2048];
+      ::GetCurrentDirectory(sizeof(buff), buff);
+      std::replace(buff, buff + sizeof(buff), '\\', '/');
+      return buff;
+    }
+#else
+    {
+      char buff[2048];
+      return getcwd(buff, sizeof(buff));
+    }
+#endif
+  }
+
+  //PrintMessageToTerminal
+  static void PrintMessageToTerminal(const String& value) {
+#if WIN32
+    OutputDebugStringA(value.c_str());
+#endif
+    std::cout << value;
+  }
+
+  //getHomeDirectory
+  static String getHomeDirectory()
+  {
+#if WIN32
+    {
+      char buff[2048]; 
+      memset(buff, 0, sizeof(buff));
+      SHGetSpecialFolderPath(0, buff, CSIDL_PERSONAL, FALSE);
+      return buff;
+    }
+#else
+    {
+      if (auto homedir = getenv("HOME"))
+        return homedir;
+
+      else if (auto pw = getpwuid(getuid()))
+        return pw->pw_dir;
+    }
+#endif
+
+    ThrowException("internal error");
+    return "/";
+  }
+
+#if WIN32
+  static void __do_not_remove_my_function__() {
+  }
+#else
+  VISUS_SHARED_EXPORT void __do_not_remove_my_function__() {
+  }
+#endif
+
+  //getCurrentApplicationFile
+  static String getCurrentApplicationFile()
+  {
+#if WIN32
+      //see https://stackoverflow.com/questions/6924195/get-dll-path-at-runtime
+      HMODULE handle;
+      GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)__do_not_remove_my_function__, &handle);
+      VisusReleaseAssert(handle);
+      char buff[2048];
+      memset(buff, 0, sizeof(buff));
+      GetModuleFileName(handle, buff, sizeof(buff));
+      return buff;
+#else
+      Dl_info dlInfo;
+      dladdr((const void*)__do_not_remove_my_function__, &dlInfo);
+      VisusReleaseAssert(dlInfo.dli_sname && dlInfo.dli_saddr);
+      return dlInfo.dli_fname;
+#endif
+  }
+
+  //startup
+  static void startup()
+  {
+    //this is for generic network code
+#if WIN32
+    WSADATA data;
+    WSAStartup(MAKEWORD(2, 2), &data);
+#else
+    struct sigaction act, oact; //The SIGPIPE signal will be received if the peer has gone away
+    act.sa_handler = SIG_IGN;   //and an attempt is made to write data to the peer. Ignoring this
+    sigemptyset(&act.sa_mask);  //signal causes the write operation to receive an EPIPE error.
+    act.sa_flags = 0;           //Thus, the user is informed about what happened.
+    sigaction(SIGPIPE, &act, &oact);
+#endif
+  }
+
 }; //end class
 
 }//namespace Visus
-
 
 #endif //__VISUS_OS_H__
 

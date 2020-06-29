@@ -45,10 +45,6 @@ For support : support@visus.net
 #include <Visus/OnDemandAccess.h>
 #include <Visus/ModVisusAccess.h>
 
-#ifdef WIN32
-#pragma warning(disable:4996) // 'sprintf': This function or variable may be unsafe
-#endif
-
 namespace Visus {
 
 
@@ -1788,7 +1784,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
     PrintWarning("The hzaddress_conversion_pointquery has not been created, so loc-by-loc queries will be a lot slower!!!!");
 
     //so you investigate why it's happening! .... I think only for the iphone could make sense....
-#if defined(WIN32) && defined(_DEBUG)
+#if defined(_DEBUG)
     VisusAssert(false);
 #endif
 

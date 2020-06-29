@@ -43,54 +43,33 @@ For support : support@visus.net
 #include <Visus/NetService.h>
 #include <Visus/File.h>
 #include <Visus/CloudStorage.h>
-#include "Os.hxx"
+#include "osdep.hxx"
 
 #include <cctype>
 #include <iomanip>
 #include <fstream>
 #include <assert.h>
 
-#if WIN32
-#include <Windows.h>
-#include <process.h>
-#else
-#include <unistd.h>
-#endif
-
 namespace Visus {
   
 ///////////////////////////////////////////////////////////////////////////////////////
-String Utils::safe_strerror(int err)
+int Utils::getPid()
 {
-  const int buffer_size = 512;
-  char buf[buffer_size];
-#if WIN32
-  strerror_s(buf, sizeof(buf), err);
-#else
-  if (strerror_r(err, buf, sizeof(buf))!=0)
-    buf[0]=0;
-#endif
-  return String(buf);
+  return ::getpid();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
-int Utils::getPid()
-{
-#if WIN32
-  return _getpid();
-#else
-  return getpid();
-#endif
+double Utils::getRandDouble(double a, double b) {
+  return osdep::GetRandDouble(a, b); 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
 void Utils::breakInDebugger()
 {
 #ifdef _DEBUG
-  Os::BreakInDebugger();
+  osdep::BreakInDebugger();
 #endif
 }
-
 
 //////////////////////////////////////////////////////////////////
 String Utils::loadTextDocument(String s_url)
@@ -244,84 +223,6 @@ void Utils::saveBinaryDocument(String filename,SharedPtr<HeapMemory> src)
 
   file.close();
 }
-
-
-
-
-
-//////////////////////////////////////////////////
-void Utils::LLtoUTM(const double Lat, const double Long, double &UTMNorthing, double &UTMEasting)
-{
-  const double WGS84_A = 6378137.0;
-  const double UTM_K0 = 0.9996;
-  const double WGS84_E = 0.0818191908;
-  const double UTM_E2 = (WGS84_E*WGS84_E);
-
-  double a = WGS84_A;
-  double eccSquared = UTM_E2;
-  double k0 = UTM_K0;
-
-  double LongOrigin;
-  double eccPrimeSquared;
-  double N, T, C, A, M;
-
-  //Make sure the longitude is between -180.00 .. 179.9
-  double LongTemp = (Long + 180) - int((Long + 180) / 360) * 360 - 180;
-
-  double LatRad = Utils::degreeToRadiant(Lat);
-  double LongRad = Utils::degreeToRadiant(LongTemp);
-  double LongOriginRad;
-  int    ZoneNumber;
-
-  ZoneNumber = int((LongTemp + 180) / 6) + 1;
-
-  if (Lat >= 56.0 && Lat < 64.0 && LongTemp >= 3.0 && LongTemp < 12.0)
-    ZoneNumber = 32;
-
-  // Special zones for Svalbard
-  if (Lat >= 72.0 && Lat < 84.0)
-  {
-    if (LongTemp >= 0.0  && LongTemp < 9.0) ZoneNumber = 31;
-    else if (LongTemp >= 9.0  && LongTemp < 21.0) ZoneNumber = 33;
-    else if (LongTemp >= 21.0 && LongTemp < 33.0) ZoneNumber = 35;
-    else if (LongTemp >= 33.0 && LongTemp < 42.0) ZoneNumber = 37;
-  }
-  // +3 puts origin in middle of zone
-  LongOrigin = (ZoneNumber - 1) * 6 - 180 + 3;
-  LongOriginRad = Utils::degreeToRadiant(LongOrigin);
-
-  eccPrimeSquared = (eccSquared) / (1 - eccSquared);
-
-  N = a / sqrt(1 - eccSquared * sin(LatRad)*sin(LatRad));
-  T = tan(LatRad)*tan(LatRad);
-  C = eccPrimeSquared * cos(LatRad)*cos(LatRad);
-  A = cos(LatRad)*(LongRad - LongOriginRad);
-
-  M = a * ((1 - eccSquared / 4 - 3 * eccSquared*eccSquared / 64
-    - 5 * eccSquared*eccSquared*eccSquared / 256) * LatRad
-    - (3 * eccSquared / 8 + 3 * eccSquared*eccSquared / 32
-      + 45 * eccSquared*eccSquared*eccSquared / 1024)*sin(2 * LatRad)
-    + (15 * eccSquared*eccSquared / 256
-      + 45 * eccSquared*eccSquared*eccSquared / 1024)*sin(4 * LatRad)
-    - (35 * eccSquared*eccSquared*eccSquared / 3072)*sin(6 * LatRad));
-
-  UTMEasting = (double)
-    (k0*N*(A + (1 - T + C)*A*A*A / 6
-      + (5 - 18 * T + T * T + 72 * C - 58 * eccPrimeSquared)*A*A*A*A*A / 120)
-      + 500000.0);
-
-  UTMNorthing = (double)
-    (k0*(M + N * tan(LatRad)
-      *(A*A / 2 + (5 - T + 9 * C + 4 * C*C)*A*A*A*A / 24
-        + (61 - 58 * T + T * T + 600 * C - 330 * eccPrimeSquared)*A*A*A*A*A*A / 720)));
-
-  if (Lat < 0)
-  {
-    //10000000 meter offset for southern hemisphere
-    UTMNorthing += 10000000.0;
-  }
-}
-
 
 } //namespace Visus
 

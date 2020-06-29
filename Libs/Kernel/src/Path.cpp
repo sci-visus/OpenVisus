@@ -37,34 +37,18 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/Path.h>
+#include "osdep.hxx"
 
-#if WIN32
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
 
 namespace Visus {
 
-Path KnownPaths::VisusHome;
-Path KnownPaths::BinaryDirectory;
+String KnownPaths::VisusHome;
+String KnownPaths::BinaryDirectory;
 
 ///////////////////////////////////////////////////////////////////////
-Path KnownPaths::CurrentWorkingDirectory()
+String KnownPaths::CurrentWorkingDirectory()
 {
-  char buff[2048];
-
-#if WIN32
-  {
-    GetCurrentDirectory(sizeof(buff), buff);
-    std::replace(buff, buff+sizeof(buff), '\\', '/');
-    return Path(buff,false);
-  }
-#else
-  {
-    return Path(getcwd(buff, sizeof(buff)),false);
-  }
-#endif
+  return osdep::CurrentWorkingDirectory();
 }
 
 
@@ -94,51 +78,51 @@ bool Path::isGoodNormalizedPath(String path)
 
 
 ///////////////////////////////////////////////////////////////////////
-const String Path::normalizePath(String path)
+const String Path::normalizePath(String value)
 {
-  if (path.empty())
+  if (value.empty())
     return "";
 
-  auto cwd = KnownPaths::CurrentWorkingDirectory().path;
-
   //replace alias
-  if (StringUtils::find(path,"$(")>=0)
-  {
-    path=StringUtils::replaceAll(path,"$(VisusHome)"              ,KnownPaths::VisusHome.path);
-    path=StringUtils::replaceAll(path,"$(BinaryDirectory)"        ,KnownPaths::BinaryDirectory.path);
-    path=StringUtils::replaceAll(path,"$(CurrentWorkingDirectory)", cwd);
-  }
+  if (StringUtils::contains(value, "$(VisusHome)"))
+    value = StringUtils::replaceAll(value, "$(VisusHome)", KnownPaths::VisusHome);
+
+  if (StringUtils::contains(value,"$(BinaryDirectory)"))
+    value =StringUtils::replaceAll(value,"$(BinaryDirectory)",KnownPaths::BinaryDirectory);
+
+  if (StringUtils::contains(value, "$(CurrentWorkingDirectory)"))
+    value=StringUtils::replaceAll(value,"$(CurrentWorkingDirectory)", KnownPaths::CurrentWorkingDirectory());
 
   //don't want window separators
-  path=StringUtils::replaceAll(path,"\\", "/");
+  value =StringUtils::replaceAll(value,"\\", "/");
 
   // example [./something ]  -> CurrentWorkingDirectory/./something
   //         [../something]  -> CurrentWorkingDirectory/../something
-  if (StringUtils::startsWith(path,"./") || StringUtils::startsWith(path,"../"))
-    path= cwd + "/" + path;
+  if (StringUtils::startsWith(value,"./") || StringUtils::startsWith(value,"../"))
+    value = KnownPaths::CurrentWorkingDirectory() + "/" + value;
 
   // example [~/something] -> VisusHome/something
-  if (StringUtils::startsWith(path,"~"))
-    path=KnownPaths::VisusHome.path + path.substr(1);
+  if (StringUtils::startsWith(value,"~"))
+    value =KnownPaths::VisusHome + value.substr(1);
 
   //example [c:/something/] -> [c:/something]
-  if (StringUtils::endsWith(path,"/") && path!="/") 
-    path=path.substr(0,path.length()-1);
+  if (StringUtils::endsWith(value,"/") && value !="/")
+    value = value.substr(0, value.length()-1);
     
   //example [//something] -> [/something] 
-  while (StringUtils::startsWith(path,"//"))
-    path=path.substr(1);
+  while (StringUtils::startsWith(value,"//"))
+    value = value.substr(1);
 
   //example [/C:] -> [C:]
-  if (path.size()>=3 && path[0]=='/' && isalpha(path[1]) && path[2]==':')
-    path=path.substr(1);
+  if (value.size()>=3 && value[0]=='/' && isalpha(value[1]) && value[2]==':')
+    value = value.substr(1);
 
   //NEED TO START WITH A ROOT DIR (example [/] or [c:])
-  if (!(((path.size()>=1 && path[0]=='/') || (path.size()>=2 && isalpha(path[0]) && path[1]==':'))))
-    path= cwd + "/" + path;
+  if (!(((value.size()>=1 && value[0]=='/') || (value.size()>=2 && isalpha(value[0]) && value[1]==':'))))
+    value = KnownPaths::CurrentWorkingDirectory() + "/" + value;
 
-  VisusAssert(isGoodNormalizedPath(path));
-  return path;
+  VisusAssert(isGoodNormalizedPath(value));
+  return value;
 }
 
 //////////////////////////////////////////////////////////

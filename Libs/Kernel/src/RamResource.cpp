@@ -40,7 +40,7 @@ For support : support@visus.net
 #include <Visus/Utils.h>
 #include <Visus/StringTree.h>
 #include <Visus/StringUtils.h>
-#include "Os.hxx"
+#include "osdep.hxx"
 
 
 
@@ -51,7 +51,7 @@ VISUS_IMPLEMENT_SINGLETON_CLASS(RamResource)
 ///////////////////////////////////////////////////////////////////////////
 RamResource::RamResource() 
 {
-  os_total_memory = Os::GetTotalMemory();
+  os_total_memory = osdep::GetTotalMemory();
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -61,13 +61,13 @@ RamResource::~RamResource()
 ///////////////////////////////////////////////////////////////////////////
 Int64 RamResource::getVisusUsedMemory() const
 {
-  return Os::GetProcessUsedMemory();
+  return osdep::GetProcessUsedMemory();
 }
 
 ///////////////////////////////////////////////////////////////////////////
 Int64 RamResource::getOsUsedMemory() const
 {
-  return Os::GetOsUsedMemory();
+  return osdep::GetOsUsedMemory();
 }
 
 //////////////////////////////////////////////////////////////////

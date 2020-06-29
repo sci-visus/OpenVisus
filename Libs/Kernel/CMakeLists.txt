@@ -1,7 +1,8 @@
 
 source_group("" FILES
 	include/Visus/Kernel.h src/Kernel.cpp src/Kernel.mm
-	include/Visus/Python.h)
+	include/Visus/Python.h
+	src/osdep.hxx)
 
 source_group("Core" FILES
 	include/Visus/Aborted.h
@@ -23,8 +24,7 @@ source_group("Core" FILES
 	include/Visus/Time.h src/Time.cpp
 	include/Visus/Url.h src/Url.cpp
 	include/Visus/Utils.h src/Utils.cpp
-	include/Visus/json.hpp
-	src/Os.hxx)
+	include/Visus/json.hpp)
 
 source_group("Thread" FILES
 	./include/Visus/CriticalSection.h ./src/CriticalSection.cpp	
@@ -102,24 +102,37 @@ if (VISUS_SLAM)
 	source_group("slam" FILES ${SlamSources})
 endif()
 
-file(GLOB cryptlite_Sources src/cryptlite/*.h src/cryptlite/*.c)
+macro(DisableWarning Sources)
+	if (WIN32)
+		set_source_files_properties(${Sources} PROPERTIES COMPILE_FLAGS "/W0")
+	else()
+		set_source_files_properties(${Sources} PROPERTIES COMPILE_FLAGS "-w")
+	endif()
+endmacro()
+
+file(GLOB cryptlite_Sources ${CMAKE_SOURCE_DIR}/ExternalLibs/cryptlite/*.h ${CMAKE_SOURCE_DIR}/ExternalLibs/cryptlite/*.c)
 source_group("ExternalLibs\\cryptlite" FILES ${cryptlite_Sources})
+DisableWarning(${cryptlite_Sources})
 	
-file(GLOB dtl_Sources src/dtl/*.hpp src/dtl/*.c)
+file(GLOB dtl_Sources ${CMAKE_SOURCE_DIR}/ExternalLibs/dtl/*.hpp ${CMAKE_SOURCE_DIR}/ExternalLibs/dtl/*.c)
 source_group("ExternalLibs\\dtl" FILES ${dtl_Sources})
+DisableWarning(${dtl_Sources})
 
-file(GLOB lz4_Sources src/lz4/*.h src/lz4/*.c)
+file(GLOB lz4_Sources ${CMAKE_SOURCE_DIR}/ExternalLibs/lz4/*.h ${CMAKE_SOURCE_DIR}/ExternalLibs/lz4/*.c)
 source_group("ExternalLibs\\lz4" FILES ${lz4_Sources})
+DisableWarning(${lz4_Sources})
 
-file(GLOB tinyxml_Sources src/tinyxml/*.h src/tinyxml/*.cpp)
+file(GLOB tinyxml_Sources ${CMAKE_SOURCE_DIR}/ExternalLibs/tinyxml/*.h ${CMAKE_SOURCE_DIR}/ExternalLibs/tinyxml/*.cpp)
 source_group("ExternalLibs\\tinyxml" FILES ${tinyxml_Sources})
+DisableWarning(${tinyxml_Sources})
 
-file(GLOB zfp_Sources src/zfp/*.h src/zfp/*.cpp src/zfp/*.inl)
+file(GLOB zfp_Sources ${CMAKE_SOURCE_DIR}/ExternalLibs/zfp/*.h ${CMAKE_SOURCE_DIR}/ExternalLibs/zfp/*.cpp ${CMAKE_SOURCE_DIR}/ExternalLibs/zfp/*.inl)
 source_group("ExternalLibs\\zfp" FILES ${zfp_Sources})
+DisableWarning(${zfp_Sources})
 	
-file(GLOB zlib_Sources src/zlib/*.h src/zlib/*.c)
+file(GLOB zlib_Sources ${CMAKE_SOURCE_DIR}/ExternalLibs/zlib/*.h ${CMAKE_SOURCE_DIR}/ExternalLibs/zlib/*.c)
 source_group("ExternalLibs\\zlib" FILES ${zlib_Sources})	
-
+DisableWarning(${zlib_Sources})
 
 function(AssignSourceGroup GroupName StartDir)
 	foreach(_it_ IN ITEMS ${ARGN})
@@ -147,7 +160,10 @@ file(GLOB SamplesSources
 AssignSourceGroup(CMakeSourceDir ${CMAKE_SOURCE_DIR} ${SamplesSources})
 
 file(GLOB Sources 
-	include/Visus/*.*  src/*.hxx src/*.cpp ${MMFiles} 
+	include/Visus/*.*  
+	src/*.hxx 
+	src/*.cpp 
+	${MMFiles} 
 	${SlamSources} 
 	${SamplesSources}
 	${cryptlite_Sources} 
@@ -173,7 +189,7 @@ else()
 endif()
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs)
+target_include_directories(VisusKernel PRIVATE ${CMAKE_SOURCE_DIR}/ExternalLibs)
 
 if (VISUS_NET)
 	target_compile_options(VisusKernel PRIVATE -DVISUS_NET=1)
@@ -203,7 +219,7 @@ endif()
 
 # link libraries
 if(WIN32)
-	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
+	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib advapi32.lib)
 elseif(CLANG)
 	target_link_libraries(VisusKernel PUBLIC "-framework CoreFoundation" "-framework Foundation")
 	set_target_properties(VisusKernel PROPERTIES XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME "NO") # fixes problem of "_objc_readClassPair" missing

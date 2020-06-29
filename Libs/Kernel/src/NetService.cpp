@@ -42,6 +42,7 @@ For support : support@visus.net
 #include <Visus/File.h>
 #include <Visus/StringTree.h>
 #include <Visus/Thread.h>
+#include "osdep.hxx"
 
 #include <thread>
 #include <list>
@@ -49,11 +50,6 @@ For support : support@visus.net
 
 
 #if VISUS_NET
-#  if WIN32
-#     include <winsock2.h>
-#  else
-#    include <sys/socket.h>
-#  endif
 #  include <curl/curl.h>
 #endif
 

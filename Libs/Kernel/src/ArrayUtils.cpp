@@ -45,9 +45,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-#if WIN32
-#pragma warning(disable:4244) //conversion from .., possible loss of data
-#endif
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1643,7 +1640,7 @@ public:
     {
       for (int C = 0; C < ncomponents; C++)
       {
-        int SampleId = 0;
+        Int64 SampleId = 0;
         GetComponentSamples<CppType> DST(dst, C); GetSamples<Uint8> DST_ALPHA(*dst.alpha);
         GetComponentSamples<CppType> SRC(src, C); GetSamples<Uint8> SRC_ALPHA(*src.alpha);
 
@@ -1666,7 +1663,7 @@ public:
               {
                 auto alpha = SRC_ALPHA[SampleId] / 255.0;
                 DST[SampleId] += (CppType)(alpha*SRC[SampleId]);
-                DST_ALPHA[SampleId] = 255.0;
+                DST_ALPHA[SampleId] = 255;
               }
             }
           }
@@ -1679,7 +1676,7 @@ public:
     {
       for (int C = 0; C < ncomponents; C++)
       {
-        int SampleId = 0;
+        Int64 SampleId = 0;
         GetComponentSamples<CppType> DST(dst, C); GetSamples<Uint8> DST_ALPHA(*dst.alpha);
         GetComponentSamples<CppType> SRC(src, C); GetSamples<Uint8> SRC_ALPHA(*src.alpha);
 
@@ -1701,7 +1698,7 @@ public:
               if (SRC_ALPHA[SampleId])
               {
                 DST[SampleId] = SRC[SampleId];
-                DST_ALPHA[SampleId] = 255.0;
+                DST_ALPHA[SampleId] = 255;
               }
             }
           }
@@ -1726,7 +1723,7 @@ public:
 
       for (int C = 0; C < ncomponents; C++)
       {
-        int SampleId = 0;
+        Int64 SampleId = 0;
         GetComponentSamples<CppType> DST(dst, C); GetSamples<Uint8> DST_ALPHA(*dst.alpha);
         GetComponentSamples<CppType> SRC(src, C); GetSamples<Uint8> SRC_ALPHA(*src.alpha);
         GetComponentSamples<Float64> NUM(num, C);
@@ -1753,7 +1750,7 @@ public:
                 NUM[SampleId] += alpha * SRC[SampleId];
                 DEN[SampleId] += alpha;
                 DST[SampleId] = (CppType)(NUM[SampleId] / DEN[SampleId]);
-                DST_ALPHA[SampleId] = 255.0;
+                DST_ALPHA[SampleId] = 255;
               }
             }
           }
@@ -1773,7 +1770,7 @@ public:
         for (int C = 0; C < ncomponents; C++)
         {
           GetComponentSamples<Float64> DST(best_distance, C);
-          for (int I = 0, Tot = dims.innerProduct(); I < Tot; I++)
+          for (Int64 I = 0, Tot = dims.innerProduct(); I < Tot; I++)
             DST[I] = NumericLimits<double>::highest();
         }
       }
@@ -1824,7 +1821,7 @@ public:
                 {
                   BEST_DISTANCE[SampleId] = distance;
                   DST[SampleId] = SRC[SampleId];
-                  DST_ALPHA[SampleId] = 255.0;
+                  DST_ALPHA[SampleId] = 255;
                 }
               }
             }
@@ -1835,7 +1832,7 @@ public:
       {
         for (int C = 0; C < ncomponents; C++)
         {
-          int SampleId = 0;
+          Int64 SampleId = 0;
           GetComponentSamples<CppType> DST(dst, C); GetSamples<Uint8> DST_ALPHA(*dst.alpha);
           GetComponentSamples<CppType> SRC(src, C); GetSamples<Uint8> SRC_ALPHA(*src.alpha);
           GetComponentSamples<Float64> BEST_DISTANCE(best_distance, C);
@@ -1889,7 +1886,7 @@ public:
                   {
                     BEST_DISTANCE[SampleId] = distance;
                     DST[SampleId] = SRC[SampleId];
-                    DST_ALPHA[SampleId] = 255.0;
+                    DST_ALPHA[SampleId] = 255;
                   }
                 }
               }
