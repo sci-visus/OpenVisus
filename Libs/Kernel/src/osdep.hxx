@@ -47,6 +47,7 @@ For support : support@visus.net
 
 #include <iostream>
 #include <fcntl.h>
+#include <cstring>
 
 #include <sys/types.h>
 #include <sys/stat.h>
