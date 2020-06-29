@@ -135,7 +135,7 @@ void GuiModule::attach()
     qApp->setAttribute(Qt::AA_UseHighDpiPixmaps, true);
 
     //otherwise volume render looks bad on my old macbook pro
-#if __clang__
+#if __APPLE__
     auto format = QSurfaceFormat::defaultFormat();
     format.setProfile(QSurfaceFormat::CoreProfile);
     QSurfaceFormat::setDefaultFormat(format);

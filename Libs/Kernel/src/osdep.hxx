@@ -172,7 +172,7 @@ void mm_DestroyAutoReleasePool();
 #endif
 
 //this solve a problem of old Linux distribution (like Centos 5)
-#if __GNUC__ && !__clang__
+#if __GNUC__ && !__APPLE__
 #ifndef htole32
 extern "C" uint32_t htole32(uint32_t x) {
   return bswap_32(htonl(x));
@@ -974,7 +974,7 @@ public:
   {
 #if WIN32
     return "win";
-#elif __clang__
+#elif __APPLE__
     return "osx";
 #else
     return "unix";

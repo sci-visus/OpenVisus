@@ -247,7 +247,7 @@ void KernelModule::attach()
   bAttached = true;
 
   //check 64 bit file IO is enabled!
-#if __GNUC__ && !__clang__
+#if __GNUC__ && !__APPLE__
   VisusReleaseAssert(sizeof(off_t) == 8);
 #endif
 
