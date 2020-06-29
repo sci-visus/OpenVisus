@@ -68,7 +68,7 @@ public:
   }
 
   // constructor
-  Matrix(std::vector<double> mat) {
+  explicit Matrix(std::vector<double> mat) {
     this->dim = (int)sqrt(mat.size());
     this->mat = mat;
     VisusAssert(this->dim * this->dim == mat.size());
@@ -88,12 +88,15 @@ public:
   }
 
   // constructor
-  explicit Matrix(double a00, double a01, double a02, double a10, double a11, double a12, double a20, double a21, double a22)
+  explicit Matrix(
+  	double a00, double a01, double a02, 
+  	double a10, double a11, double a12, 
+  	double a20, double a21, double a22)
     : Matrix(std::vector<double>({ a00,a01,a02, a10,a11,a12, a20,a21,a22 })) {
   }
 
   //constructor for 16 doubles (row major!)
-  inline explicit Matrix(
+  explicit Matrix(
     double a00, double a01, double a02, double a03,
     double a10, double a11, double a12, double a13,
     double a20, double a21, double a22, double a23,
@@ -106,7 +109,7 @@ public:
   }
 
   //constructor: transform the default axis to the system X,Y,Z in P
-  inline explicit Matrix(Point3d X, Point3d Y, Point3d Z, Point3d P)
+  explicit Matrix(Point3d X, Point3d Y, Point3d Z, Point3d P)
     : Matrix(
         X[0], Y[0], Z[0], P[0],
         X[1], Y[1], Z[1], P[1],
@@ -115,7 +118,7 @@ public:
   }
 
   //constructor
-  Matrix(Point3d c0, Point3d c1, Point3d c2) 
+  explicit Matrix(Point3d c0, Point3d c1, Point3d c2) 
     : Matrix(
       c0[0], c1[0], c2[0],
       c0[1], c1[1], c2[1],
@@ -123,7 +126,7 @@ public:
   }
 
   //constructor
-  Matrix(Matrix Rot, PointNd t)
+  explicit Matrix(Matrix Rot, PointNd t)
     : Matrix(Rot.getSpaceDim() + 1) 
   {
     for (int R = 0; R < Rot.getSpaceDim(); R++)

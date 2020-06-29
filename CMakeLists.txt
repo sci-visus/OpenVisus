@@ -84,7 +84,8 @@ if (VISUS_MINIMAL)
 	target_include_directories(VisusIO  
 		PUBLIC  ${CMAKE_SOURCE_DIR}/Libs/Kernel/include
 		PUBLIC  ${CMAKE_SOURCE_DIR}/Libs/Db/include
-		PRIVATE ${CMAKE_SOURCE_DIR}/Libs/Kernel/src)
+		PRIVATE ${CMAKE_SOURCE_DIR}/Libs/Kernel/src
+		PRIVATE ${CMAKE_SOURCE_DIR}/ExternalLibs)
 
 	if (WIN32)
 		target_compile_options(VisusIO PRIVATE -DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS /bigobj)
@@ -94,7 +95,7 @@ if (VISUS_MINIMAL)
 		target_link_libraries(VisusIO  PRIVATE "-framework CoreFoundation" "-framework Foundation")
 		set_target_properties(VisusIO  PROPERTIES XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME "NO")  # fixes problem of "_objc_readClassPair" missing
 	else()
-		target_compile_options(VisusIO PRIVATE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE=1 -Wno-attributes)
+		target_compile_options(VisusIO PRIVATE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE=1 -Wno-attributes -Wno-deprecated-declarations)
 		target_link_libraries(VisusIO  PRIVATE dl rt util pthread)
 	endif()
 

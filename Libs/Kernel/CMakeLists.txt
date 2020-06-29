@@ -2,6 +2,7 @@
 source_group("" FILES
 	include/Visus/Kernel.h src/Kernel.cpp src/Kernel.mm
 	include/Visus/Python.h
+	src/osdep.cpp
 	src/osdep.hxx)
 
 source_group("Core" FILES
