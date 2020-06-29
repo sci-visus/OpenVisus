@@ -178,8 +178,9 @@ public:
   HANDLE handle;
    Pimpl(int initial_value) {handle = CreateSemaphore(nullptr, initial_value, 0x7FFFFFFF, nullptr); VisusAssert(handle != NULL);}
   ~Pimpl()                  {CloseHandle(handle);}
-  void down()               {VisusReleaseAssert(WaitForSingleObject(handle, INFINITE) == WAIT_OBJECT_0);}}
+  void down()               {VisusReleaseAssert(WaitForSingleObject(handle, INFINITE) == WAIT_OBJECT_0);}
   void up  ()               {VisusReleaseAssert(ReleaseSemaphore(handle, 1, nullptr));}
+  bool tryDown()            {return WaitForSingleObject(handle, 0) == WAIT_OBJECT_0;}
 
 #elif __APPLE__
   dispatch_semaphore_t sem;
