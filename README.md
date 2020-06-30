@@ -12,8 +12,6 @@ Table of content:
 
 - [Binary Distribution](#binary-distribution)
 
-- [Minimal compilation](#minimal-compilation)
-
 - [Windows compilation Visual Studio](#windows-compilation-visual-studio)
 
 - [Windows compilation mingw](#windows-compilation-mingw)
@@ -23,6 +21,8 @@ Table of content:
 - [MacOSX compilation gcc](#macosx-compilation-gcc)
 
 - [Linux compilation gcc](#linux-compilation-gcc)
+
+- [Minimal compilation](#minimal-compilation)
 
 
 <!--//////////////////////////////////////////////////////////////////////// -->
@@ -56,57 +56,6 @@ Give a look to directory `Samples/python` and Jupyter examples:
 [Samples/jupyter/Climate.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/Climate.ipynb)
 
 [Samples/jupyter/ReadAndView.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/ReadAndView.ipynb)
-
-<!--//////////////////////////////d////////////////////////////////////////// -->
-## Minimal compilation
-
-Minimal compilation disable 
-
-- Image support
-- Network support
-- Python supports
-
-it enables only minimal IDX read/write operations.
-
-Add `-DVISUS_MINIMAL=1`. And stop at the CMake `install` step below.
-
-As an example on Linux:
-
-```
-mkdir build_gcc
-cd build_gcc
-export CC=gcc-9
-export CXX=g++-9
-cmake -G"Unix Makefiles" -DVISUS_MINIMAL=1 ../
-make -j
-make install
-cd ..
-```
-
-To use the minimal library create a Makefile with the following content (change paths as needed):
-
-```
-CXX=g++-9 -std=c++11
-
-OpenVisus_DIR=./build_gcc/Release/OpenVisus
-
-CXX_FLAGS=\
-	-I$(OpenVisus_DIR)/include/Db \
-	-I$(OpenVisus_DIR)/include/Kernel \
-	-DVISUS_STATIC_KERNEL_LIB=1 \
-	-DVISUS_STATIC_DB_LIB=1
-
-main: main.o
-	$(CXX) -o $@ $< -L${OpenVisus_DIR}/lib -lVisusIO
- 
-main.o: main.cpp 
-	$(CXX) $(CXX_FLAGS) -c -o $@ $< 
-
-clean:
-	rm -f  main main.o
-
-.PHONY: clean
-```
 
 
 
@@ -171,7 +120,7 @@ set PATH=%PATH%;C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin
 
 cmake -G "MinGW Makefiles" -DVISUS_MINIMAL=1 ../ 
 cmake --build . --target all       --config Release
-cmake --build . --target INSTALL   --config Release
+cmake --build . --target install   --config Release
 
 set PYTHON_PATH=.\Release
 python -m OpenVisus configure --user
@@ -237,8 +186,8 @@ Build the repository (change as needed):
 ```
 
 # change the path for your gcc
-export CC=/usr/local/Cellar/gcc/9.1.0/bin/gcc-9
-export CXX=/usr/local/Cellar/gcc/9.1.0/bin/g++-9
+export CC=cc-9
+export CXX=g++-9
 
 
 git clone https://github.com/sci-visus/OpenVisus
@@ -351,6 +300,99 @@ python -m OpenVisus configure --user
 python -m OpenVisus viewer
 ```
 
+
+<!--//////////////////////////////d////////////////////////////////////////// -->
+## Minimal compilation
+
+Minimal compilation disable 
+
+- Image support
+- Network support
+- Python supports
+
+it enables only minimal IDX read/write operations.
+
+
+For Windows/Visual Studio:
+
+```
+mkdir build
+cd build
+cmake -G "Visual Studio 16 2019" -A "x64" -DVISUS_MINIMAL=1 ../ 
+cmake --build . --target ALL_BUILD --config Release
+cmake --build . --target INSTALL   --config Release
+```
+
+For Windows/mingw
+
+```
+choco install -y mingw
+set PATH=%PATH%;C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin
+mkdir build
+cd build
+cmake -G "MinGW Makefiles" -DVISUS_MINIMAL=1 ../ 
+cmake --build . --target all       --config Release
+cmake --build . --target install   --config Release
+```
+
+For Apple/Xcode
+
+```
+mkdir build 
+cd build
+cmake -GXcode -DVISUS_MINIMAL=1 ../
+cmake --build ./ --target ALL_BUILD --config Release --parallel 4
+cmake --build ./ --target install   --config Release
+```
+
+For Apple/gcc:
+
+```
+export CC=cc-9
+export CXX=g++-9
+mkdir build
+cd build
+cmake -G"Unix Makefiles" -DVISUS_MINIMAL=1 ../
+make -j 
+make install
+```
+
+
+For Linux/gcc:
+
+```
+mkdir build 
+cd build
+cmake -DVISUS_MINIMAL ../
+make -j
+make install
+```
+
+
+To use the VisusIO you can create a Makefile (change as needed):
+
+```
+CXX=g++-9 -std=c++11
+
+OpenVisus_DIR=build/Release/OpenVisus
+
+CXX_FLAGS=\
+	-I$(OpenVisus_DIR)/include/Db \
+	-I$(OpenVisus_DIR)/include/Kernel \
+	-DVISUS_STATIC_KERNEL_LIB=1 \
+	-DVISUS_STATIC_DB_LIB=1
+
+main: main.o
+	$(CXX) -o $@ $< -L${OpenVisus_DIR}/lib -lVisusIO
+ 
+main.o: main.cpp 
+	$(CXX) $(CXX_FLAGS) -c -o $@ $< 
+
+clean:
+	rm -f  main main.o
+
+.PHONY: clean
+```
 
 
 
