@@ -184,13 +184,13 @@ def InstallAndUsePyQt5(bUserInstall=False):
 				# this is for PIP which uses *.framework
 				# eample ../Qt*.framework -> @rpath/Qt*.framework
 				for Old in GetCommandOutput("otool -L %s | grep '.*/Qt.*\.framework' | awk '{print $1;}'" % filename, shell=True).splitlines():
-					New="@rpath/Qt" + Old.split("/Qt")[1]
+					New="@rpath/Qt" + Old.split("/Qt", 1)[1]
 					ExecuteCommand(["install_name_tool","-change", Old, New, filename])	
 					
 				# this is for conda
 				# example .../libQt5*.dylib -> @rpath/libQt5*.dylib
 				for Old in GetCommandOutput("otool -L %s | grep '.*/libQt5.*\.dylib' | awk '{print $1;}'" % filename, shell=True).splitlines():
-					New="@rpath/libQt5" + Old.split("libQt5")[1]
+					New="@rpath/libQt5" + Old.split("libQt5", 1)[1]
 					ExecuteCommand(["install_name_tool","-change", Old, New, filename])	
 					
 				if filename in apps:
