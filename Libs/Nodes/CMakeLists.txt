@@ -9,7 +9,7 @@ target_link_libraries(VisusNodes PUBLIC VisusDb VisusDataflow)
 target_compile_definitions(VisusNodes  PRIVATE VISUS_BUILDING_VISUSNODES=1)
 target_include_directories(VisusNodes  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-
+INSTALL(DIRECTORY include/Visus DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Nodes/)
 
 
 

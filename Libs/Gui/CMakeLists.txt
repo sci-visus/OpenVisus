@@ -115,6 +115,6 @@ endif()
 
 set_target_properties(VisusGui PROPERTIES FOLDER "")
 
-
+INSTALL(DIRECTORY include/Visus DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Gui/)
 
 

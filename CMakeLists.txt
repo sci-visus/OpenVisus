@@ -140,147 +140,116 @@ if (VISUS_MINIMAL)
 		target_link_libraries(VisusIO  PRIVATE dl rt util pthread)
 	endif()
 
-	return()
-	
+	INSTALL(DIRECTORY Libs/Kernel/include/Visus   DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Kernel/)
+	INSTALL(DIRECTORY Libs/Db/include/Visus       DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Db/)
+
+else()
+
+	set(VISUS_DEFAULT_NET      ON)
+	set(VISUS_DEFAULT_IMAGE    ON)
+	set(VISUS_DEFAULT_XIDX     ON) # not really used?
+	set(VISUS_DEFAULT_DATAFLOW ON)
+	set(VISUS_DEFAULT_PYTHON   ON)
+	set(VISUS_DEFAULT_GUI      ON)
+	set(VISUS_DEFAULT_MODVISUS OFF)
+	set(VISUS_DEFAULT_OSPRAY   OFF)
+
+	if(EXISTS "${CMAKE_SOURCE_DIR}/Libs/slamcpp/slam.cpp")
+		set(VISUS_DEFAULT_SLAM 1)
+	endif()
+
+	if(EXISTS "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/README.txt")
+		set(VISUS_DEFAULT_OSPRAY ON)
+	endif()
+
+	if (NOT APPLE AND NOT WIN32)
+		set(VISUS_DEFAULT_MODVISUS ON)
+	endif()
+
+	option(VISUS_NET      "Enable VISUS_NET"      ${VISUS_DEFAULT_NET})
+	option(VISUS_IMAGE    "Enable VISUS_IMAGE"    ${VISUS_DEFAULT_IMAGE})
+	option(VISUS_XIDX     "Enable VISUS_XIDX"     ${VISUS_DEFAULT_XIDX})
+	option(VISUS_DATAFLOW "Enable VISUS_DATAFLOW" ${VISUS_DEFAULT_DATAFLOW})
+	option(VISUS_PYTHON   "Enable VISUS_PYTHON"   ${VISUS_DEFAULT_PYTHON})
+	option(VISUS_GUI      "Enable VISUS_GUI"      ${VISUS_DEFAULT_GUI})
+	option(VISUS_MODVISUS "Enable VISUS_MODVISUS" ${VISUS_DEFAULT_MODVISUS})
+	option(VISUS_SLAM     "Enable VISUS_SLAM"     ${VISUS_DEFAULT_SLAM})
+	option(VISUS_OSPRAY   "Enable VISUS_OSPRAY"   ${VISUS_DEFAULT_OSPRAY})
+
+	MESSAGE(STATUS "VISUS_NET      ${VISUS_NET}")
+	MESSAGE(STATUS "VISUS_IMAGE    ${VISUS_IMAGE}")
+	MESSAGE(STATUS "VISUS_XIDX     ${VISUS_XIDX}")
+	MESSAGE(STATUS "VISUS_DATAFLOW ${VISUS_DATAFLOW}")
+	MESSAGE(STATUS "VISUS_PYTHON   ${VISUS_PYTHON}")
+	MESSAGE(STATUS "VISUS_GUI      ${VISUS_GUI}")
+	MESSAGE(STATUS "VISUS_MODVISUS ${VISUS_MODVISUS}")
+	MESSAGE(STATUS "VISUS_SLAM     ${VISUS_SLAM}")
+	MESSAGE(STATUS "VISUS_OSPRAY   ${VISUS_OSPRAY}")
+
+	include(FindPackageHandleStandardArgs)
+
+	if (VISUS_GUI)
+		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS ${Qt5_DIR} NO_DEFAULT_PATH)
+	endif()
+
+	if (VISUS_PYTHON)
+		find_package(Python COMPONENTS Interpreter Development REQUIRED)
+	endif()
+
+	if (VISUS_OSPRAY)
+		set(OSPCOMMON_TBB_ROOT "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/tbb")
+		find_package(ospray 2.0   REQUIRED HINTS ${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/ospray/lib/cmake/ospray-2.1.1)
+		find_package(ospcommon    REQUIRED HINTS ${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/ospcommon/lib/cmake/ospcommon-1.3.0)
+	endif()
+
+	add_subdirectory(ExternalLibs)
+	add_subdirectory(Libs)
+	add_subdirectory(Executable)
+
 endif()
-
-set(VISUS_DEFAULT_NET      ON)
-set(VISUS_DEFAULT_IMAGE    ON)
-set(VISUS_DEFAULT_XIDX     ON) # not really used?
-set(VISUS_DEFAULT_DATAFLOW ON)
-set(VISUS_DEFAULT_PYTHON   ON)
-set(VISUS_DEFAULT_GUI      ON)
-set(VISUS_DEFAULT_MODVISUS OFF)
-set(VISUS_DEFAULT_OSPRAY   OFF)
-
-if(EXISTS "${CMAKE_SOURCE_DIR}/Libs/slamcpp/slam.cpp")
-	set(VISUS_DEFAULT_SLAM 1)
-endif()
-
-if(EXISTS "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/README.txt")
-	set(VISUS_DEFAULT_OSPRAY ON)
-endif()
-
-if (NOT APPLE AND NOT WIN32)
-	set(VISUS_DEFAULT_MODVISUS ON)
-endif()
-
-option(VISUS_NET      "Enable VISUS_NET"      ${VISUS_DEFAULT_NET})
-option(VISUS_IMAGE    "Enable VISUS_IMAGE"    ${VISUS_DEFAULT_IMAGE})
-option(VISUS_XIDX     "Enable VISUS_XIDX"     ${VISUS_DEFAULT_XIDX})
-option(VISUS_DATAFLOW "Enable VISUS_DATAFLOW" ${VISUS_DEFAULT_DATAFLOW})
-option(VISUS_PYTHON   "Enable VISUS_PYTHON"   ${VISUS_DEFAULT_PYTHON})
-option(VISUS_GUI      "Enable VISUS_GUI"      ${VISUS_DEFAULT_GUI})
-option(VISUS_MODVISUS "Enable VISUS_MODVISUS" ${VISUS_DEFAULT_MODVISUS})
-option(VISUS_SLAM     "Enable VISUS_SLAM"     ${VISUS_DEFAULT_SLAM})
-option(VISUS_OSPRAY   "Enable VISUS_OSPRAY"   ${VISUS_DEFAULT_OSPRAY})
-
-MESSAGE(STATUS "VISUS_NET      ${VISUS_NET}")
-MESSAGE(STATUS "VISUS_IMAGE    ${VISUS_IMAGE}")
-MESSAGE(STATUS "VISUS_XIDX     ${VISUS_XIDX}")
-MESSAGE(STATUS "VISUS_DATAFLOW ${VISUS_DATAFLOW}")
-MESSAGE(STATUS "VISUS_PYTHON   ${VISUS_PYTHON}")
-MESSAGE(STATUS "VISUS_GUI      ${VISUS_GUI}")
-MESSAGE(STATUS "VISUS_MODVISUS ${VISUS_MODVISUS}")
-MESSAGE(STATUS "VISUS_SLAM     ${VISUS_SLAM}")
-MESSAGE(STATUS "VISUS_OSPRAY   ${VISUS_OSPRAY}")
-
-include(FindPackageHandleStandardArgs)
-
-if (VISUS_GUI)
-	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS ${Qt5_DIR} NO_DEFAULT_PATH)
-endif()
-
-if (VISUS_PYTHON)
-	find_package(Python COMPONENTS Interpreter Development REQUIRED)
-endif()
-
-if (VISUS_OSPRAY)
-	set(OSPCOMMON_TBB_ROOT "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/tbb")
-	find_package(ospray 2.0   REQUIRED HINTS ${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/ospray/lib/cmake/ospray-2.1.1)
-	find_package(ospcommon    REQUIRED HINTS ${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/ospcommon/lib/cmake/ospcommon-1.3.0)
-endif()
-
-add_subdirectory(ExternalLibs)
-add_subdirectory(Libs)
-add_subdirectory(Executable)
 
 # install step
 if (1)
+	INSTALL(FILES     LICENSE                                 DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
+	INSTALL(FILES     README.md                               DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
+	INSTALL(DIRECTORY Copyrights                              DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
 
-	INSTALL(FILES     LICENSE                     DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
-	INSTALL(FILES     README.md                   DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
-	INSTALL(FILES     datasets/visus.config       DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
-	INSTALL(FILES     OpenVisusConfig.cmake       DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/lib/cmake/OpenVisus/)
+	if (NOT VISUS_MINIMAL)
+		INSTALL(FILES     OpenVisusConfig.cmake                   DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/lib/cmake/OpenVisus/)
+		INSTALL(FILES     datasets/visus.config                   DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
+		INSTALL(DIRECTORY datasets                                DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
+		INSTALL(FILES     Samples/simple_query/CMakeLists.txt     DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/simple_query/)
+		INSTALL(FILES     Samples/simple_query/main.cpp           DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/simple_query/)
+		INSTALL(FILES     Samples/simple_viewer2d/CMakeLists.txt  DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/simple_viewer2d/)
+		INSTALL(FILES     Samples/simple_viewer2d/main.cpp        DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/simple_viewer2d/)
+	endif()
 
+	if (VISUS_PYTHON)
+		FILE(GLOB PyFiles Libs/swig/*.py)
+		INSTALL(FILES     ${PyFiles}                          DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
+		INSTALL(DIRECTORY Samples/jupyter                     DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/)
+		INSTALL(DIRECTORY Samples/python                      DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/)
+	endif()
 
 	if(VISUS_GUI)
 		set(__qt_ver__ ${CMAKE_BINARY_DIR}/QT_VERSION)
 		file(GENERATE OUTPUT ${__qt_ver__} CONTENT "${Qt5Core_VERSION_STRING}")
 		INSTALL(FILES ${__qt_ver__}               DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
 	endif()
-		
-	FILE(GLOB PyFiles Libs/swig/*.py)
-	INSTALL(FILES     ${PyFiles}                              DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
 
-	INSTALL(FILES Samples/simple_query/CMakeLists.txt         DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/simple_query/)
-	INSTALL(FILES Samples/simple_query/main.cpp               DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/simple_query/)
-
-	INSTALL(FILES Samples/simple_viewer2d/CMakeLists.txt      DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/simple_viewer2d/)
-	INSTALL(FILES Samples/simple_viewer2d/main.cpp            DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/simple_viewer2d/)
-
-	INSTALL(DIRECTORY Copyrights                              DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
-	INSTALL(DIRECTORY Samples/jupyter                         DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/)
-	INSTALL(DIRECTORY Samples/python                          DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/)
-
-	INSTALL(DIRECTORY datasets                                DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
-
-	INSTALL(DIRECTORY Libs/Kernel/include/Visus   DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Kernel/)
-	INSTALL(DIRECTORY Libs/XIdx/include/Visus     DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/XIdx/)
-	INSTALL(DIRECTORY Libs/Db/include/Visus       DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Db/)
-	INSTALL(DIRECTORY Libs/Dataflow/include/Visus DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Dataflow/)
-	INSTALL(DIRECTORY Libs/Nodes/include/Visus    DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Nodes/)
-	INSTALL(DIRECTORY Libs/Gui/include/Visus      DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Gui/)
-		
+	# copy  windows *.dll
 	if (WIN32)
-		# copy  *.dll
 		include(InstallRequiredSystemLibraries)
 		INSTALL(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/bin/)
-
-		# install ospray depedencies
-		if (VISUS_OSPRAY)
-			get_filename_component(OSPRAY_BINDIR "${ospray_DIR}/../../../bin"  REALPATH)
-			FILE(GLOB OSPRAY_DLLS ${OSPRAY_BINDIR}/*.dll)
-			INSTALL(FILES ${OSPRAY_DLLS} DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/bin)
-		endif()
-
-		# if you want to see what libraries you will need
-		if (FALSE)
-			install(CODE "
-				file(GET_RUNTIME_DEPENDENCIES
-					RESOLVED_DEPENDENCIES_VAR		deps_found 
-					UNRESOLVED_DEPENDENCIES_VAR     deps_not_found
-					CONFLICTING_DEPENDENCIES_PREFIX deps_conflict
-					DIRECTORIES ${OSPRAY_BINDIR} 
-					EXECUTABLES $<TARGET_FILE:visusviewer>)
-				foreach(it \${deps_found})
-					if (NOT it MATCHES \".*system32.*\")
-						MESSAGE(STATUS \"\${it} (FOUND)\")
-					endif()
-				endforeach()
-				foreach(it \${deps_not_found})
-					if (NOT it MATCHES \".*ms-win.*\" AND NOT it MATCHES \".*ext-ms.*\")
-						MESSAGE(STATUS \"\${it} (NOT FOUND)\")
-					endif()
-				endforeach()
-				foreach(it \${deps_conflict})
-					MESSAGE(STATUS \"\${it} (CONFLICT)\")
-				endforeach()
-			")
-		endif()
-
 	endif()
 		
+	# install windows ospray depedencies
+	if (WIN32 AND VISUS_OSPRAY)
+		get_filename_component(OSPRAY_BINDIR "${ospray_DIR}/../../../bin"  REALPATH)
+		FILE(GLOB OSPRAY_DLLS ${OSPRAY_BINDIR}/*.dll)
+		INSTALL(FILES ${OSPRAY_DLLS} DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/bin)
+	endif()
+
 endif()
 
 

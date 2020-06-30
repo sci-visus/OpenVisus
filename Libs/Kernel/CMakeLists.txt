@@ -104,27 +104,24 @@ if (VISUS_SLAM)
 endif()
 
 file(GLOB cryptlite_Sources src/cryptlite/*.h src/cryptlite/*.c)
+file(GLOB dtl_Sources       src/dtl/*.hpp src/dtl/*.c)
+file(GLOB tinyxml_Sources   src/tinyxml/*.h src/tinyxml/*.cpp)
+file(GLOB lz4_Sources       src/lz4/*.h src/lz4/*.c)	
+file(GLOB zlib_Sources      src/zlib/*.h src/zlib/*.c)
+file(GLOB zfp_Sources       src/zfp/*.h src/zfp/*.cpp src/zfp/*.inl)
+
 source_group("ExternalLibs\\cryptlite" FILES ${cryptlite_Sources})
+source_group("ExternalLibs\\dtl"       FILES ${dtl_Sources})
+source_group("ExternalLibs\\lz4"       FILES ${lz4_Sources})
+source_group("ExternalLibs\\tinyxml"   FILES ${tinyxml_Sources})
+source_group("ExternalLibs\\zfp"       FILES ${zfp_Sources})
+source_group("ExternalLibs\\zlib"      FILES ${zlib_Sources})
+
 DisableWarning(${cryptlite_Sources})
-	
-file(GLOB dtl_Sources src/dtl/*.hpp src/dtl/*.c)
-source_group("ExternalLibs\\dtl" FILES ${dtl_Sources})
 DisableWarning(${dtl_Sources})
-
-file(GLOB lz4_Sources src/lz4/*.h src/lz4/*.c)
-source_group("ExternalLibs\\lz4" FILES ${lz4_Sources})
 DisableWarning(${lz4_Sources})
-
-file(GLOB tinyxml_Sources src/tinyxml/*.h src/tinyxml/*.cpp)
-source_group("ExternalLibs\\tinyxml" FILES ${tinyxml_Sources})
 DisableWarning(${tinyxml_Sources})
-
-file(GLOB zfp_Sources src/zfp/*.h src/zfp/*.cpp src/zfp/*.inl)
-source_group("ExternalLibs\\zfp" FILES ${zfp_Sources})
 DisableWarning(${zfp_Sources})
-	
-file(GLOB zlib_Sources src/zlib/*.h src/zlib/*.c)
-source_group("ExternalLibs\\zlib" FILES ${zlib_Sources})	
 DisableWarning(${zlib_Sources})
 
 function(AssignSourceGroup GroupName StartDir)
@@ -168,6 +165,7 @@ file(GLOB Sources
 	src/*.hxx 
 	src/*.cpp 
 	${MMFiles} 
+	${SlamSources}
 	${OtherSources} 
 	${SamplesSources}
 	${cryptlite_Sources} 
@@ -199,14 +197,15 @@ if (GNUC)
 endif()
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_include_directories(VisusKernel PRIVATE ${CMAKE_SOURCE_DIR}/ExternalLibs)
 
 if (VISUS_NET)
+	target_include_directories(VisusKernel PRIVATE ${CMAKE_SOURCE_DIR}/ExternalLibs)
 	target_compile_options(VisusKernel PRIVATE -DVISUS_NET=1)
 	target_link_libraries(VisusKernel  PRIVATE curl)
 endif()
 
 if (VISUS_IMAGE)
+	target_include_directories(VisusKernel PRIVATE ${CMAKE_SOURCE_DIR}/ExternalLibs)
 	target_compile_options(VisusKernel PRIVATE -DVISUS_IMAGE=1)
 	target_link_libraries(VisusKernel  PRIVATE FreeImage)
 endif()
@@ -247,3 +246,5 @@ if (VISUS_SLAM)
 		g2o_core  g2o_solver_eigen  g2o_stuff g2o_types_data g2o_types_icp 
 		g2o_types_sba g2o_types_sclam2d g2o_types_sim3 g2o_types_slam2d g2o_types_slam2d_addons g2o_types_slam3d g2o_types_slam3d_addons)
 endif()
+
+INSTALL(DIRECTORY include/Visus   DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Kernel/)

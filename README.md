@@ -12,6 +12,8 @@ Table of content:
 
 - [Binary Distribution](#binary-distribution)
 
+- [Minimal compilation](#minimal-compilation)
+
 - [Windows compilation Visual Studio](#windows-compilation-visual-studio)
 
 - [Windows compilation mingw](#windows-compilation-mingw)
@@ -21,8 +23,6 @@ Table of content:
 - [MacOSX compilation gcc](#macosx-compilation-gcc)
 
 - [Linux compilation gcc](#linux-compilation-gcc)
-
-- [Minimal compilation](#minimal-compilation)
 
 
 <!--//////////////////////////////////////////////////////////////////////// -->
@@ -57,6 +57,18 @@ Give a look to directory `Samples/python` and Jupyter examples:
 
 [Samples/jupyter/ReadAndView.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/ReadAndView.ipynb)
 
+<!--//////////////////////////////////////////////////////////////////////// -->
+## Minimal compilation
+
+Minimal compilation disable 
+
+- Image support
+- Network support
+- Python supports
+
+it enables only minimal IDX read/write operations.
+
+Add `-DVISUS_MINIMAL=1`. And stop at the CMake `install` step below
 
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## Windows compilation Visual Studio
@@ -118,7 +130,7 @@ set PATH=%PATH%;C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin
 
 
 cmake -G "MinGW Makefiles" -DVISUS_MINIMAL=1 ../ 
-cmake --build . --target all --config Release
+cmake --build . --target all       --config Release
 cmake --build . --target INSTALL   --config Release
 
 set PYTHON_PATH=.\Release
@@ -224,7 +236,6 @@ python3 -m OpenVisus viewer2
 python3 -m pip install --upgrade jupyter
 python3 -m jupyter notebook ../Samples/jupyter/Agricolture.ipynb
 ```
-```
 
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## Linux compilation gcc
@@ -300,18 +311,7 @@ python -m OpenVisus configure --user
 python -m OpenVisus viewer
 ```
 
-<!--//////////////////////////////////////////////////////////////////////// -->
-## Minimal compilation
 
-Minimal compilation disable 
-
-	- Image support
-	- Network support
-	- Python supports
-
-it enables only minimal IDX read/write operations.
-
-Add -DVISUS_MINIMAL=1 to the cmake configure/generate step.
 
 
 <!--//////////////////////////////////////////////////////////////////////// -->
