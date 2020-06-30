@@ -66,7 +66,7 @@ target_link_libraries(mod_visus PUBLIC VisusDb)
 
 if (WIN32)
 	# nop
-else
+else()
 	target_include_directories(mod_visus PRIVATE ${APR_INCLUDE_DIR} ${APRUTIL_INCLUDE_DIR} ${HTTPD_INCLUDE_DIR} )
 	target_link_libraries(mod_visus PRIVATE      ${APR_LIBRARY} ${APRUTIL_LIBRARY})
 endif()

@@ -152,6 +152,9 @@ file(GLOB OtherSources
 	${CMAKE_SOURCE_DIR}/ExternalLibs/libressl/crypto/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/ExternalLibs/libressl/ssl/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/ExternalLibs/libressl/tls/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/Executable/mod_visus/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/Executable/viewer/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/Executable/visus/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/Libs/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/*.ipynb 
 	${CMAKE_SOURCE_DIR}/Samples/jupyter/*.ipynb 
