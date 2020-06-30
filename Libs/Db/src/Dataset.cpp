@@ -134,65 +134,6 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
 }
 
 
-////////////////////////////////////////////////////////////////////
-bool Dataset::executeBoxQueryOnServer(SharedPtr<BoxQuery> query)
-{
-  auto request = createBoxQueryRequest(query);
-
-  if (!request.valid())
-  {
-    query->setFailed("cannot create box query request");
-    return false;
-  }
-
-  auto response = NetService::getNetResponse(request);
-
-  if (!response.isSuccessful())
-  {
-    query->setFailed(cstring("network request failed",cnamed("errormsg",response.getErrorMessage())));
-    return false;
-  }
-
-  auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
-  if (!decoded) {
-    query->setFailed("failed to decode body");
-    return false;
-  }
-
-  query->buffer = decoded;
-  query->setCurrentResolution(query->end_resolution);
-  return true;
-}
-
-////////////////////////////////////////////////////////////////////
-bool Dataset::executePointQueryOnServer(SharedPtr<PointQuery> query)
-{
-  auto request = createPointQueryRequest(query);
-
-  if (!request.valid())
-  {
-    query->setFailed("cannot create point query request");
-    return false;
-  }
-
-  auto response = NetService::getNetResponse(request);
-
-  if (!response.isSuccessful())
-  {
-    query->setFailed(cstring("network request failed ",cnamed("errormsg", response.getErrorMessage())));
-    return false;
-  }
-
-  auto decoded = response.getCompatibleArrayBody(query->getNumberOfPoints(), query->field.dtype);
-  if (!decoded) {
-    query->setFailed("failed to decode body");
-    return false;
-  }
-
-  query->buffer = decoded;
-  query->setOk();
-  return true;
-}
 
 
 ///////////////////////////////////////////////////////////

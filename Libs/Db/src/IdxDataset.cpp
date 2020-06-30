@@ -1179,6 +1179,38 @@ void IdxDataset::beginBoxQuery(SharedPtr<BoxQuery> query)
   query->setFailed();
 }
 
+
+////////////////////////////////////////////////////////////////////
+bool IdxDataset::executeBoxQueryOnServer(SharedPtr<BoxQuery> query)
+{
+  auto request = createBoxQueryRequest(query);
+
+  if (!request.valid())
+  {
+    query->setFailed("cannot create box query request");
+    return false;
+  }
+
+  auto response = NetService::getNetResponse(request);
+
+  if (!response.isSuccessful())
+  {
+    query->setFailed(cstring("network request failed", cnamed("errormsg", response.getErrorMessage())));
+    return false;
+  }
+
+  auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
+  if (!decoded) {
+    query->setFailed("failed to decode body");
+    return false;
+  }
+
+  query->buffer = decoded;
+  query->setCurrentResolution(query->end_resolution);
+  return true;
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
 {
@@ -1682,6 +1714,36 @@ void IdxDataset::beginPointQuery(SharedPtr<PointQuery> query)
   query->setRunning();
 }
 
+
+////////////////////////////////////////////////////////////////////
+bool IdxDataset::executePointQueryOnServer(SharedPtr<PointQuery> query)
+{
+  auto request = createPointQueryRequest(query);
+
+  if (!request.valid())
+  {
+    query->setFailed("cannot create point query request");
+    return false;
+  }
+
+  auto response = NetService::getNetResponse(request);
+
+  if (!response.isSuccessful())
+  {
+    query->setFailed(cstring("network request failed ", cnamed("errormsg", response.getErrorMessage())));
+    return false;
+  }
+
+  auto decoded = response.getCompatibleArrayBody(query->getNumberOfPoints(), query->field.dtype);
+  if (!decoded) {
+    query->setFailed("failed to decode body");
+    return false;
+  }
+
+  query->buffer = decoded;
+  query->cur_resolution = query->end_resolution;
+  return true;
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 class InsertBlockQuerySamplesIntoPointQuery

@@ -406,9 +406,6 @@ public:
     return NetRequest();
   }
 
-  //executeBoxQueryOnServer
-  virtual bool executeBoxQueryOnServer(SharedPtr<BoxQuery> query);
-
 public:
 
   //________________________________________________
@@ -442,9 +439,6 @@ public:
   virtual NetRequest createPointQueryRequest(SharedPtr<PointQuery> query) {
     return NetRequest();
   }
-
-  //executePointQueryOnServer
-  virtual bool executePointQueryOnServer(SharedPtr<PointQuery> query);
 
 public:
 

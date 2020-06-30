@@ -148,7 +148,7 @@ public:
   //readDatasetFromArchive
   virtual void readDatasetFromArchive(Archive& ar) override;
 
-private:
+protected:
 
   friend class InsertBlockQueryHzOrderSamplesToBoxQuery;
   friend class IdxMultipleDataset;
@@ -168,6 +168,12 @@ private:
 
   //setBoxQueryEndResolution
   bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value);
+
+  //executeBoxQueryOnServer
+  bool executeBoxQueryOnServer(SharedPtr<BoxQuery> query);
+
+  //executePointQueryOnServer
+  bool executePointQueryOnServer(SharedPtr<PointQuery> query);
 
 };
 
