@@ -388,9 +388,8 @@ jobs:
      
            docker run \
               -v $(pwd):/root/OpenVisus \
-              -v ${CONDA_PREFIX}:${CONDA_PREFIX} \
               -e PYTHON_VERSION=${{ matrix.python-version }} \
-              -e Qt5_DIR=${CONDA_PREFIX}/lib/cmake/Qt5 \
+              -e Qt5_DIR=/opt/qt59 \
               -w /root/OpenVisus \
               visus/portable-linux-binaries \
               /bin/bash -c "./scripts/build_linux.sh"
