@@ -94,7 +94,7 @@ source_group("Misc" FILES
 	./include/Visus/PointCloud.h ./src/PointCloud.cpp
 	./include/Visus/Annotation.h ./src/Annotation.cpp)
 
-IF (WIN32 OR CLANG)
+IF (MSVC OR CLANG)
 	file(GLOB MMFiles src/*.mm)
 endif()
 
@@ -139,25 +139,33 @@ function(AssignSourceGroup GroupName StartDir)
 	endforeach()
 endfunction()
 
-file(GLOB SamplesSources 
+file(GLOB OtherSources 
 	${CMAKE_SOURCE_DIR}/README.md
 	${CMAKE_SOURCE_DIR}/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/OpenVisusConfig.cmake
 	${CMAKE_SOURCE_DIR}/.github/workflows/BuildOpenVisus.yml
+	${CMAKE_SOURCE_DIR}/ExternalLibs/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/ExternalLibs/curl/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/ExternalLibs/curl/lib/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/ExternalLibs/FreeImage/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/ExternalLibs/libressl/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/ExternalLibs/libressl/crypto/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/ExternalLibs/libressl/ssl/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/ExternalLibs/libressl/tls/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/Libs/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/*.ipynb 
 	${CMAKE_SOURCE_DIR}/Samples/jupyter/*.ipynb 
 	${CMAKE_SOURCE_DIR}/Samples/python/*.py 
 	${CMAKE_SOURCE_DIR}/Samples/python/CloudStorage/*.py) 
 
-AssignSourceGroup(CMakeSourceDir ${CMAKE_SOURCE_DIR} ${SamplesSources})
+AssignSourceGroup(CMakeSourceDir ${CMAKE_SOURCE_DIR} ${OtherSources})
 
 file(GLOB Sources 
 	include/Visus/*.*  
 	src/*.hxx 
 	src/*.cpp 
 	${MMFiles} 
-	${SlamSources} 
+	${OtherSources} 
 	${SamplesSources}
 	${cryptlite_Sources} 
 	${dtl_Sources} 
@@ -170,12 +178,18 @@ add_library(VisusKernel SHARED ${Sources})
 set_target_properties(VisusKernel PROPERTIES FOLDER "")
 
 if (WIN32)
-	target_compile_options(VisusKernel PUBLIC -DWIN32_LEAN_AND_MEAN)
+	if (MSVC)
+		target_compile_options(VisusKernel PUBLIC /bigobj)
+	endif()
 	target_compile_options(VisusKernel PUBLIC -D_CRT_SECURE_NO_WARNINGS)
-	target_compile_options(VisusKernel PUBLIC /bigobj)
-elseif (CLANG)
+	target_compile_options(VisusKernel PUBLIC -DWIN32_LEAN_AND_MEAN)
+endif()
+
+if (CLANG)
 	target_compile_options(VisusKernel PUBLIC -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
-else()
+endif()
+
+if (GNUC)
 	target_compile_options(VisusKernel PUBLIC -D_FILE_OFFSET_BITS=64)
 	target_compile_options(VisusKernel PUBLIC -D_LARGEFILE64_SOURCE=1)
 	target_compile_options(VisusKernel PUBLIC -Wno-attributes)	
@@ -211,7 +225,7 @@ if(GIT_FOUND)
 endif()
 
 # link libraries
-if(WIN32)
+if (WIN32)
 	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib advapi32.lib)
 elseif(APPLE)
 	target_link_libraries(VisusKernel PUBLIC "-framework CoreFoundation" "-framework Foundation")

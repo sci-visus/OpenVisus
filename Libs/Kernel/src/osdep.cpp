@@ -39,7 +39,7 @@ For support : support@visus.net
 #include <Visus/Kernel.h>
 #include "osdep.hxx"
 
-#if __GNUC__ && !__APPLE__
+#if __GNUC__ && !__APPLE__ && !WIN32
 	//this solve a problem of old Linux distribution (like Centos 5)
 	#ifndef htole32
 		#include <byteswap.h>
@@ -51,8 +51,7 @@ For support : support@visus.net
 
 namespace Visus {
 	
-	
-#if WIN32
+#if WIN32 
   static void __do_not_remove_my_function__() {
   }
 #else
@@ -62,7 +61,7 @@ namespace Visus {
 
 
 
-#if WIN32
+#if WIN32 
 static std::string Win32FormatErrorMessage(DWORD ErrorCode)
 {
   TCHAR* buff = nullptr;
@@ -94,7 +93,7 @@ bool PosixFile::open(String filename, String file_mode, File::Options options)
   {
     imode |= O_CREAT | O_EXCL;
 
-#if WIN32
+#if WIN32 
     create_flags |= (S_IREAD | S_IWRITE);
 #else
     create_flags |= (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
@@ -290,7 +289,7 @@ bool MemoryMappedFile::open(String filename, String file_mode, File::Options opt
     return false;
   }
 
-#if WIN32
+#if WIN32 
   {
     this->file = CreateFileA(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 
@@ -347,7 +346,7 @@ void MemoryMappedFile::close()
   if (!isOpen())
     return;
 
-#if WIN32
+#if WIN32 
   {
     if (mem)
       UnmapViewOfFile(mem);
@@ -406,7 +405,7 @@ bool MemoryMappedFile::read(Int64 pos, Int64 tot, unsigned char* buffer)
 }
 
 
-#if WIN32
+#if WIN32 
 
 
 /////////////////////////////////////////////////////////////////////
@@ -597,8 +596,12 @@ String osdep::getPlatformName()
 //////////////////////////////////////////////////////////
 void osdep::BreakInDebugger()
 {
-#if WIN32
-  _CrtDbgBreak();
+#if WIN32 
+  #if __MSVC_VER
+    _CrtDbgBreak();
+  #else
+    DebugBreak();
+  #endif
 #elif __APPLE__
   asm("int $3");
 #else
@@ -624,7 +627,7 @@ void osdep::DestroyAutoReleasePool() {
 //////////////////////////////////////////////////////////
 Int64 osdep::GetTotalMemory()
 {
-#if WIN32
+#if WIN32 
   MEMORYSTATUSEX status;
   status.dwLength = sizeof(status);
   GlobalMemoryStatusEx(&status);
@@ -645,7 +648,7 @@ Int64 osdep::GetTotalMemory()
 //////////////////////////////////////////////////////////
 Int64 osdep::GetProcessUsedMemory()
 {
-#if WIN32
+#if WIN32 
   PROCESS_MEMORY_COUNTERS pmc;
   GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
   return pmc.PagefileUsage;
@@ -672,7 +675,7 @@ Int64 osdep::GetProcessUsedMemory()
 
 //////////////////////////////////////////////////////////
 double osdep::GetRandDouble(double a, double b) {
-#if WIN32
+#if WIN32 
   {return a + (((double)rand()) / (double)RAND_MAX) * (b - a); }
 #else
   {return a + drand48() * (b - a); }
@@ -682,7 +685,7 @@ double osdep::GetRandDouble(double a, double b) {
 //////////////////////////////////////////////////////////
 bool osdep::createDirectory(String dirname)
 {
-#if WIN32
+#if WIN32 
   return CreateDirectory(TEXT(dirname.c_str()), NULL) != 0;
 #else
   return ::mkdir(dirname.c_str(), 0775) == 0; //user(rwx) group(rwx) others(r-x)
@@ -698,7 +701,7 @@ bool osdep::removeDirectory(String value)
 //////////////////////////////////////////////////////////
 bool osdep::createLink(String existing_file, String new_file)
 {
-#if WIN32
+#if WIN32 
   if (CreateHardLink(new_file.c_str(), existing_file.c_str(), nullptr) == 0)
   {
     PrintWarning("Error creating link", Win32FormatErrorMessage(GetLastError()));
@@ -713,7 +716,7 @@ bool osdep::createLink(String existing_file, String new_file)
 //////////////////////////////////////////////////////////
 Int64 osdep::getTimeStamp()
 {
-#if WIN32
+#if WIN32 
   struct _timeb t;
 #ifdef _INC_TIME_INL
   _ftime_s(&t);
@@ -733,7 +736,7 @@ String osdep::safe_strerror(int err)
 {
   const int buffer_size = 512;
   char buf[buffer_size];
-#if WIN32
+#if WIN32 
   strerror_s(buf, sizeof(buf), err);
 #else
   if (strerror_r(err, buf, sizeof(buf)) != 0)
@@ -746,7 +749,7 @@ String osdep::safe_strerror(int err)
 //////////////////////////////////////////////////////////
 String osdep::CurrentWorkingDirectory()
 {
-#if WIN32
+#if WIN32 
   {
     char buff[2048];
     ::GetCurrentDirectory(sizeof(buff), buff);
@@ -763,7 +766,7 @@ String osdep::CurrentWorkingDirectory()
 
 //////////////////////////////////////////////////////////
 void osdep::PrintMessageToTerminal(const String& value) {
-#if WIN32
+#if WIN32 
   OutputDebugStringA(value.c_str());
 #endif
   std::cout << value;
@@ -772,7 +775,7 @@ void osdep::PrintMessageToTerminal(const String& value) {
 //////////////////////////////////////////////////////////
 String osdep::getHomeDirectory()
 {
-#if WIN32
+#if WIN32 
   {
     char buff[2048]; 
     memset(buff, 0, sizeof(buff));
@@ -797,7 +800,7 @@ String osdep::getHomeDirectory()
 void osdep::startup()
 {
   //this is for generic network code
-#if WIN32
+#if WIN32 
   WSADATA data;
   WSAStartup(MAKEWORD(2, 2), &data);
 #else
@@ -846,7 +849,7 @@ struct tm osdep::millisToLocal(const Int64 millis)
   {
     time_t now = static_cast <time_t> (seconds);
 
-#if WIN32
+#if WIN32 
 #ifdef _INC_TIME_INL
     if (now >= 0 && now <= 0x793406fff)
       localtime_s(&result, &now);
@@ -866,7 +869,7 @@ struct tm osdep::millisToLocal(const Int64 millis)
 //////////////////////////////////////////////////////////
 Int64 osdep::GetOsUsedMemory()
 {
-#if WIN32
+#if WIN32 
   MEMORYSTATUSEX status;
   status.dwLength = sizeof(status);
   GlobalMemoryStatusEx(&status);
@@ -912,7 +915,7 @@ Int64 osdep::GetOsUsedMemory()
 //////////////////////////////////////////////////////////
 String osdep::getCurrentApplicationFile()
 {
-#if WIN32
+#if WIN32 
     //see https://stackoverflow.com/questions/6924195/get-dll-path-at-runtime
     HMODULE handle;
     GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)__do_not_remove_my_function__, &handle);

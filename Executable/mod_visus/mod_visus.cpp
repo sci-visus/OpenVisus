@@ -46,7 +46,7 @@ For support : support@visus.net
 #include <Visus/Db.h>
 #include <Visus/StringTree.h>
 
-#if WIN32
+#if WIN32 
 
 #pragma warning(disable:4091)
 #include <winsock2.h>

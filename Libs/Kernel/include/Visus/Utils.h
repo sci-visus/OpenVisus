@@ -372,14 +372,16 @@ namespace Utils
   //setBit
   inline void setBit(unsigned char* buffer, Int64 bit, bool value)
   {
-    volatile char* byte = (char*)buffer + (bit >> 3);
-    char mask = 1 << (bit & 0x07);
-
-#if _MSC_VER
-      value ? _InterlockedOr8(byte, mask) : _InterlockedAnd8(byte, ~mask);
+    volatile char* Byte = (char*)buffer + (bit >> 3);
+    char Mask = 1 << (bit & 0x07);
+#if 1
+    value ? (*Byte | Mask) : (*Byte & (~Mask));
 #else
-      //I can use also OSAtomicTestAndSet and OSAtomicTestAndClear but they seems to use "bit" in reversed order...
-      value ? __sync_fetch_and_or(byte, mask) : __sync_fetch_and_and(byte, ~mask);
+    #if WIN32
+    value ? _InterlockedOr8(Byte, Mask) : _InterlockedAnd8(Byte, ~Mask);
+    #else
+    value ? __sync_fetch_and_or(Byte, Mask) : __sync_fetch_and_and(Byte, ~Mask);
+    #endif
 #endif
   }
 
