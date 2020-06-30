@@ -75,7 +75,6 @@ os.environ["QT_PLUGIN_PATH"]= os.path.join(QT5_DIR,"plugins")
 %feature("director") Visus::IsoContourNode;
 %feature("director") Visus::IsoContourRenderNode;
 %feature("director") Visus::RenderArrayNode;
-%feature("director") Visus::OSPRayRenderNode;
 %feature("director") Visus::KdRenderArrayNode;
 %feature("director") Visus::JTreeRenderNode;
 %feature("director") Visus::ScriptingNode;

@@ -37,68 +37,7 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/CriticalSection.h>
-
-#if WIN32
-#include <Windows.h>
-#else
-#include <pthread.h>
-#endif
-
-#include <iostream>
-
-namespace Visus {
-
-#if WIN32
-
-
-
-class RWLock::Pimpl
-{
-public:
-
-  SRWLOCK lock;
-
-  inline Pimpl() {
-    InitializeSRWLock(&lock);
-  }
-
-  inline void enterRead ()  {
-    AcquireSRWLockShared(&lock);
-  }
-
-  inline void exitRead()  {
-    ReleaseSRWLockShared(&lock);
-  }
-
-  inline void enterWrite() { 
-    AcquireSRWLockExclusive(&lock); 
-  }
-
-  inline void exitWrite() { 
-    ReleaseSRWLockExclusive(&lock); 
-  }
-};
-
-
-#else 
-
-
-class RWLock::Pimpl
-{
-public:
-  pthread_rwlock_t lock;
-   Pimpl() {pthread_rwlock_init   (&lock,0);}
-  ~Pimpl() {pthread_rwlock_destroy(&lock)  ;}
-  inline void enterRead () {pthread_rwlock_rdlock  (&lock);}
-  inline void exitRead  () {pthread_rwlock_unlock(&lock);}
-  inline void enterWrite() {pthread_rwlock_wrlock  (&lock);}
-  inline void exitWrite () {pthread_rwlock_unlock(&lock);}
-};
-
-#endif 
-
-} //namespace Visus
-
+#include "osdep.hxx"
 
 namespace Visus {
 

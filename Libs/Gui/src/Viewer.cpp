@@ -65,7 +65,6 @@ For support : support@visus.net
 #include <Visus/ScriptingNode.h>
 #include <Visus/PaletteNode.h>
 #include <Visus/RenderArrayNode.h>
-#include <Visus/OSPRayRenderNode.h>
 #include <Visus/ModelViewNode.h>
 #include <Visus/KdRenderArrayNode.h>
 #include <Visus/KdQueryNode.h>
@@ -112,7 +111,8 @@ Viewer::Viewer(String title) : QMainWindow()
 
   connect(this, &Viewer::postFlushMessages, this, &Viewer::internalFlushMessages, Qt::QueuedConnection);
 
-  this->log.fstream.open(KnownPaths::VisusHome.getChild("visus." + Time::now().getFormattedLocalTime()+ ".log"));
+  this->log.fstream.open(KnownPaths::VisusHome + "/visus." + Time::now().getFormattedLocalTime()+ ".log");
+  VisusAssert(this->log.fstream.is_open());
 
   setWindowTitle(title.c_str());
 
@@ -434,15 +434,6 @@ void Viewer::execute(Archive& ar)
     return;
   }
 
-  if (ar.name == "AddOSPRay") {
-    String uuid, parent, palette;
-    ar.read("uuid", uuid);
-    ar.read("parent", parent);
-    ar.read("palette", palette);
-    addOSPRay(uuid, findNodeByUUID(parent), palette);
-    return;
-  }
-
   if (ar.name == "TakeSnapshot")
   {
     String type,filename;
@@ -729,7 +720,7 @@ void Viewer::enableSaveSession()
 {
   save_session_timer.reset(new QTimer());
   
-  String filename = config.readString("Configuration/VisusViewer/SaveSession/filename", KnownPaths::VisusHome.getChild("viewer_session.xml"));
+  String filename = config.readString("Configuration/VisusViewer/SaveSession/filename", KnownPaths::VisusHome + "/viewer_session.xml");
   
   int every_sec    =cint(config.readString("Configuration/VisusViewer/SaveSession/sec","60")); //1 min!
 
@@ -1240,7 +1231,7 @@ void Viewer::reloadVisusConfig(bool bChooseAFile)
 {
   if (bChooseAFile)
   {
-    static String last_dir(KnownPaths::VisusHome.toString());
+    static String last_dir(KnownPaths::VisusHome);
     String filename = cstring(QFileDialog::getOpenFileName(nullptr, "Choose a file to open...", last_dir.c_str(), "*"));
     if (filename.empty()) return;
     last_dir = Path(filename).getParent();
@@ -1495,7 +1486,7 @@ void Viewer::saveFile(String url, bool bSaveHistory)
 {
   if (url.empty())
   {
-    static String last_dir(KnownPaths::VisusHome.toString());
+    static String last_dir(KnownPaths::VisusHome);
     url = cstring(QFileDialog::getSaveFileName(nullptr, "Choose a file to save...", last_dir.c_str(), "*.xml"));
     if (url.empty()) return ;
     last_dir = Path(url).getParent();
@@ -2565,13 +2556,7 @@ Node* Viewer::addRender(String uuid, Node* parent, String palette)
     StringTree("RemoveNode", "uuid", uuid));
   {
     //render
-    Node *render_node = nullptr;
-#if VISUS_OSPRAY
-      render_node = new OSPRayRenderNode();
-#else
-      render_node = new RenderArrayNode();
-#endif
-
+    Node *render_node = new RenderArrayNode();
     ret = render_node;
     render_node->setUUID(uuid);
     render_node->setName("RenderArray");
@@ -2594,46 +2579,6 @@ Node* Viewer::addRender(String uuid, Node* parent, String palette)
   return ret;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-Node* Viewer::addOSPRay(String uuid, Node* parent, String palette)
-{
-  if (!parent)
-    parent = getRoot();
-
-  if (uuid.empty())
-    uuid = dataflow->guessNodeUIID("ospray");
-
-  dropSelection();
-
-  Node* ret = nullptr;
-  beginUpdate(
-    StringTree("AddOSPRay", "uuid", uuid, "parent", getUUID(parent), "palette", palette),
-    StringTree("RemoveNode", "uuid", uuid));
-  {
-    //render
-    auto render_node = new OSPRayRenderNode();
-    ret = render_node;
-    render_node->setUUID(uuid);
-    render_node->setName("OSPrayRender");
-    addNode(parent, render_node);
-    connectNodes(parent, render_node);
-
-    //palette
-    if (!palette.empty())
-    {
-      auto palette_node = new PaletteNode(palette);
-      palette_node->setUUID(concatenate(uuid, "/palette"));
-      palette_node->setName("Palette");
-      addNode(render_node, palette_node);
-      connectNodes(parent, palette_node); //this is for statistics
-      connectNodes(palette_node, render_node);
-    }
-
-  }
-  endUpdate();
-
-  return ret;
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 KdRenderArrayNode* Viewer::addKdRender(String uuid, Node* parent, String palette)

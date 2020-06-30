@@ -76,10 +76,12 @@ public:
   VISUS_NON_COPYABLE_CLASS(BoxQuery)
 
   BoxNi                      logic_box;
+  LogicSamples               logic_samples;
+
   int                        start_resolution = 0;
+  int                        cur_resolution = -1;
   int                        end_resolution = -1;
   std::vector<int>           end_resolutions;
-  LogicSamples               logic_samples;
 
   //for idx
 #if !SWIG
@@ -116,7 +118,6 @@ public:
 #endif
 
   //internal use only
-  int  cur_resolution = -1;
 
   //constructor
   BoxQuery() {

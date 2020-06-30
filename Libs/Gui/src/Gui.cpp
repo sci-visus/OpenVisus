@@ -45,7 +45,6 @@ For support : support@visus.net
 #include <Visus/IsoContourNode.h>
 #include <Visus/IsoContourRenderNode.h>
 #include <Visus/RenderArrayNode.h>
-#include <Visus/OSPRayRenderNode.h>
 #include <Visus/KdRenderArrayNode.h>
 #include <Visus/JTreeNode.h>
 #include <Visus/JTreeRenderNode.h>
@@ -68,6 +67,14 @@ For support : support@visus.net
 #include <QApplication>
 
 #include <QDirIterator>
+
+#if VISUS_OSPRAY
+#  if WIN32
+#  pragma warning(disable:4005)
+#  endif
+#  include <ospray/ospray.h>
+#  include <ospray/ospray_cpp.h>
+#endif
 
 void GuiInitResources(){
   Q_INIT_RESOURCE(Gui);
@@ -104,13 +111,15 @@ void GuiModule::attach()
   NodesModule::attach();
   DataflowModule::attach();
 
-  OSPRayRenderNode::initEngine();
+#if VISUS_OSPRAY
+  if (ospInit(&CommandLine::argn, CommandLine::argv) != OSP_NO_ERROR)
+    ThrowException("Failed to initialize OSPRay");
+#endif
 
   VISUS_REGISTER_NODE_CLASS(GLCameraNode);
   VISUS_REGISTER_NODE_CLASS(IsoContourNode);
   VISUS_REGISTER_NODE_CLASS(IsoContourRenderNode);
   VISUS_REGISTER_NODE_CLASS(RenderArrayNode);
-  VISUS_REGISTER_NODE_CLASS(OSPRayRenderNode);
   VISUS_REGISTER_NODE_CLASS(KdRenderArrayNode);
   VISUS_REGISTER_NODE_CLASS(JTreeNode);
   VISUS_REGISTER_NODE_CLASS(JTreeRenderNode);
@@ -171,7 +180,9 @@ void GuiModule::detach()
 
   GuiCleanUpResources();
 
-  OSPRayRenderNode::shutdownEngine();
+#if VISUS_OSPRAY
+  ospShutdown();
+#endif
 
   NodesModule::detach();
   DataflowModule::detach();

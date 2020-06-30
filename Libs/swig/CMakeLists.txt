@@ -42,9 +42,9 @@ macro(AddSwigLibrary WrappedLib)
 		target_link_libraries(${NamePy} PUBLIC Python::Module) # Python library for Python extending
 	endif()
 
-	if (WIN32)
+	if (MSVC)
 		target_compile_definitions(${NamePy} PRIVATE /W0) 
-		target_compile_options(${NamePy} PRIVATE /bigobj)
+		target_compile_options(${NamePy}     PRIVATE /bigobj)
 	else()
 		set_target_properties(${NamePy} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
 	endif()

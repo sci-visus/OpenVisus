@@ -1,7 +1,9 @@
 
 source_group("" FILES
 	include/Visus/Kernel.h src/Kernel.cpp src/Kernel.mm
-	include/Visus/Python.h)
+	include/Visus/Python.h
+	src/osdep.cpp
+	src/osdep.hxx)
 
 source_group("Core" FILES
 	include/Visus/Aborted.h
@@ -9,11 +11,10 @@ source_group("Core" FILES
 	include/Visus/ByteOrder.h src/ByteOrder.cpp	
 	include/Visus/Color.h src/Color.cpp
 	include/Visus/Diff.h src/Diff.cpp
-	include/Visus/DirectoryIterator.h src/DirectoryIterator.cpp	 src/DirectoryIterator.mm	
 	include/Visus/File.h src/File.cpp
 	include/Visus/HeapMemory.h src/HeapMemory.cpp
 	include/Visus/ScopedVector.h
-	include/Visus/Model.h include/Visus/Model.cpp
+	include/Visus/Model.h src/Model.cpp
 	include/Visus/NumericLimits.h
 	include/Visus/Path.h src/Path.cpp
 	include/Visus/RamResource.h src/RamResource.cpp
@@ -24,7 +25,6 @@ source_group("Core" FILES
 	include/Visus/Time.h src/Time.cpp
 	include/Visus/Url.h src/Url.cpp
 	include/Visus/Utils.h src/Utils.cpp
-	include/Visus/SharedLibrary.h src/SharedLibrary.cpp
 	include/Visus/json.hpp)
 
 source_group("Thread" FILES
@@ -94,7 +94,7 @@ source_group("Misc" FILES
 	./include/Visus/PointCloud.h ./src/PointCloud.cpp
 	./include/Visus/Annotation.h ./src/Annotation.cpp)
 
-IF (WIN32 OR APPLE)
+IF (MSVC OR CLANG)
 	file(GLOB MMFiles src/*.mm)
 endif()
 
@@ -104,23 +104,25 @@ if (VISUS_SLAM)
 endif()
 
 file(GLOB cryptlite_Sources src/cryptlite/*.h src/cryptlite/*.c)
+file(GLOB dtl_Sources       src/dtl/*.hpp src/dtl/*.c)
+file(GLOB tinyxml_Sources   src/tinyxml/*.h src/tinyxml/*.cpp)
+file(GLOB lz4_Sources       src/lz4/*.h src/lz4/*.c)	
+file(GLOB zlib_Sources      src/zlib/*.h src/zlib/*.c)
+file(GLOB zfp_Sources       src/zfp/*.h src/zfp/*.cpp src/zfp/*.inl)
+
 source_group("ExternalLibs\\cryptlite" FILES ${cryptlite_Sources})
-	
-file(GLOB dtl_Sources src/dtl/*.hpp src/dtl/*.c)
-source_group("ExternalLibs\\dtl" FILES ${dtl_Sources})
+source_group("ExternalLibs\\dtl"       FILES ${dtl_Sources})
+source_group("ExternalLibs\\lz4"       FILES ${lz4_Sources})
+source_group("ExternalLibs\\tinyxml"   FILES ${tinyxml_Sources})
+source_group("ExternalLibs\\zfp"       FILES ${zfp_Sources})
+source_group("ExternalLibs\\zlib"      FILES ${zlib_Sources})
 
-file(GLOB lz4_Sources src/lz4/*.h src/lz4/*.c)
-source_group("ExternalLibs\\lz4" FILES ${lz4_Sources})
-
-file(GLOB tinyxml_Sources src/tinyxml/*.h src/tinyxml/*.cpp)
-source_group("ExternalLibs\\tinyxml" FILES ${tinyxml_Sources})
-
-file(GLOB zfp_Sources src/zfp/*.h src/zfp/*.cpp src/zfp/*.inl)
-source_group("ExternalLibs\\zfp" FILES ${zfp_Sources})
-	
-file(GLOB zlib_Sources src/zlib/*.h src/zlib/*.c)
-source_group("ExternalLibs\\zlib" FILES ${zlib_Sources})	
-
+DisableWarning(${cryptlite_Sources})
+DisableWarning(${dtl_Sources})
+DisableWarning(${lz4_Sources})
+DisableWarning(${tinyxml_Sources})
+DisableWarning(${zfp_Sources})
+DisableWarning(${zlib_Sources})
 
 function(AssignSourceGroup GroupName StartDir)
 	foreach(_it_ IN ITEMS ${ARGN})
@@ -134,22 +136,37 @@ function(AssignSourceGroup GroupName StartDir)
 	endforeach()
 endfunction()
 
-file(GLOB SamplesSources 
+file(GLOB OtherSources 
 	${CMAKE_SOURCE_DIR}/README.md
 	${CMAKE_SOURCE_DIR}/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/OpenVisusConfig.cmake
 	${CMAKE_SOURCE_DIR}/.github/workflows/BuildOpenVisus.yml
+	${CMAKE_SOURCE_DIR}/ExternalLibs/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/ExternalLibs/curl/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/ExternalLibs/curl/lib/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/ExternalLibs/FreeImage/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/ExternalLibs/libressl/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/ExternalLibs/libressl/crypto/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/ExternalLibs/libressl/ssl/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/ExternalLibs/libressl/tls/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/Executable/mod_visus/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/Executable/viewer/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/Executable/visus/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/Libs/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/*.ipynb 
 	${CMAKE_SOURCE_DIR}/Samples/jupyter/*.ipynb 
 	${CMAKE_SOURCE_DIR}/Samples/python/*.py 
 	${CMAKE_SOURCE_DIR}/Samples/python/CloudStorage/*.py) 
 
-AssignSourceGroup(CMakeSourceDir ${CMAKE_SOURCE_DIR} ${SamplesSources})
+AssignSourceGroup(CMakeSourceDir ${CMAKE_SOURCE_DIR} ${OtherSources})
 
 file(GLOB Sources 
-	include/Visus/*.*  src/*.hxx src/*.cpp ${MMFiles} 
-	${SlamSources} 
+	include/Visus/*.*  
+	src/*.hxx 
+	src/*.cpp 
+	${MMFiles} 
+	${SlamSources}
+	${OtherSources} 
 	${SamplesSources}
 	${cryptlite_Sources} 
 	${dtl_Sources} 
@@ -162,26 +179,33 @@ add_library(VisusKernel SHARED ${Sources})
 set_target_properties(VisusKernel PROPERTIES FOLDER "")
 
 if (WIN32)
-	target_compile_options(VisusKernel PUBLIC -DWIN32_LEAN_AND_MEAN)
+	if (MSVC)
+		target_compile_options(VisusKernel PUBLIC /bigobj)
+	endif()
 	target_compile_options(VisusKernel PUBLIC -D_CRT_SECURE_NO_WARNINGS)
-	target_compile_options(VisusKernel PUBLIC /bigobj)
-elseif (APPLE)
+	target_compile_options(VisusKernel PUBLIC -DWIN32_LEAN_AND_MEAN)
+endif()
+
+if (CLANG)
 	target_compile_options(VisusKernel PUBLIC -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
-else()
+endif()
+
+if (GNUC)
 	target_compile_options(VisusKernel PUBLIC -D_FILE_OFFSET_BITS=64)
 	target_compile_options(VisusKernel PUBLIC -D_LARGEFILE64_SOURCE=1)
 	target_compile_options(VisusKernel PUBLIC -Wno-attributes)	
 endif()
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs)
 
 if (VISUS_NET)
+	target_include_directories(VisusKernel PRIVATE ${CMAKE_SOURCE_DIR}/ExternalLibs)
 	target_compile_options(VisusKernel PRIVATE -DVISUS_NET=1)
 	target_link_libraries(VisusKernel  PRIVATE curl)
 endif()
 
 if (VISUS_IMAGE)
+	target_include_directories(VisusKernel PRIVATE ${CMAKE_SOURCE_DIR}/ExternalLibs)
 	target_compile_options(VisusKernel PRIVATE -DVISUS_IMAGE=1)
 	target_link_libraries(VisusKernel  PRIVATE FreeImage)
 endif()
@@ -203,8 +227,8 @@ if(GIT_FOUND)
 endif()
 
 # link libraries
-if(WIN32)
-	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
+if (WIN32)
+	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib advapi32.lib)
 elseif(APPLE)
 	target_link_libraries(VisusKernel PUBLIC "-framework CoreFoundation" "-framework Foundation")
 	set_target_properties(VisusKernel PROPERTIES XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME "NO") # fixes problem of "_objc_readClassPair" missing
@@ -222,3 +246,5 @@ if (VISUS_SLAM)
 		g2o_core  g2o_solver_eigen  g2o_stuff g2o_types_data g2o_types_icp 
 		g2o_types_sba g2o_types_sclam2d g2o_types_sim3 g2o_types_slam2d g2o_types_slam2d_addons g2o_types_slam3d g2o_types_slam3d_addons)
 endif()
+
+INSTALL(DIRECTORY include/Visus   DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Kernel/)

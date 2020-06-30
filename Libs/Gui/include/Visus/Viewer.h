@@ -72,7 +72,6 @@ class QueryNode;
 class ScriptingNode;
 class PaletteNode;
 class RenderArrayNode;
-class OSPRayRenderNode;
 class ModelViewNode;
 class KdRenderArrayNode;
 class KdQueryNode;
@@ -162,6 +161,7 @@ public:
       "QToolButton       {background: transparent;} "
       "QToolButton:hover {background: lightGray ; border: 1px solid #6593cf;} ");
 #endif
+
     if (!icon.isNull())
       ret->setIcon(icon);
 
@@ -657,9 +657,6 @@ public:
 
   //addKdRender
   KdRenderArrayNode* addKdRender(String uuid, Node* parent, String palette = "");
-
-  //addOSPRay
-  Node* addOSPRay(String uuid, Node* parent, String palette = "");
 
   //addGroup
   Node* addGroup(String uuid, Node* parent, String name = "");

@@ -36,39 +36,23 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Kernel.h>
+#if __clang__
 
-#if __APPLE__
-  #import <Foundation/NSAutoreleasePool.h>
-  #import <Foundation/Foundation.h>
-  #include <CoreFoundation/CoreFoundation.h>
-  #include <Foundation/NSString.h>
-  #include <Foundation/NSBundle.h>
+#import <Foundation/NSAutoreleasePool.h>
+#import <Foundation/Foundation.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <Foundation/NSString.h>
+#include <Foundation/NSBundle.h>
+
+static void* mm_auto_release_pool = nullptr;
+
+void mm_InitAutoReleasePool() {  
+    mm_auto_release_pool = [[NSAutoreleasePool alloc] init];
+}
+  
+void mm_DestroyAutoReleasePool() {
+    [((NSAutoreleasePool*)mm_auto_release_pool) release];
+}
+
 #endif
-
-#if __APPLE__
-
-namespace Visus {
-  
-  static void* auto_release_pool = nullptr;
-
-  //////////////////////////////////////////////////////
-  String GetMainBundlePath() {
-    return String(((char*)[[[NSBundle mainBundle] bundlePath] UTF8String]));
-  }
-  
-  //////////////////////////////////////////////////////
-  void InitAutoReleasePool() {
-    
-    auto_release_pool = [[NSAutoreleasePool alloc] init];
-  }
-  
-  //////////////////////////////////////////////////////
-  void DestroyAutoReleasePool() {
-    [((NSAutoreleasePool*)auto_release_pool) release];
-  }
-  
-}//namespace Visus
-#endif
-
 

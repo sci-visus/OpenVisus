@@ -241,7 +241,9 @@ namespace GuiFactory
   {
     auto ret=new QTextEdit();
     ret->setLineWrapMode(QTextEdit::NoWrap);
-    ret->setTabStopWidth(5);
+    
+    //deprecated
+    //ret->setTabStopWidth(5);
 
     auto font=QFontDatabase::systemFont(QFontDatabase::FixedFont);
     //font.setPointSize(fontsize);

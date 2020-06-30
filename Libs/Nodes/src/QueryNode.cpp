@@ -170,38 +170,33 @@ public:
   //runPointQueryJob
   void runPointQueryJob()
   {
-    auto resolutions = guessPointQueryEndResolutions();
-    if (resolutions.empty())
-      return;
+    auto query = dataset->createPointQuery(logic_position, field, time, guessPointQueryEndResolutions(), this->aborted);
 
-    for (int N = 0; N < (int)resolutions.size(); N++)
+    dataset->beginPointQuery(query);
+
+    int I = 0; while (query->isRunning())
     {
       Time t1 = Time::now();
 
-      auto query = dataset->createPointQuery(logic_position, field, time, this->aborted);
-      query->end_resolution = resolutions[N];
-      auto nsamples = dataset->guessPointQueryNumberOfSamples(logic_to_screen, logic_position, query->end_resolution);
-      query->setPoints(nsamples);
+      auto npoints = dataset->guessPointQueryNumberOfSamples(logic_to_screen, logic_position, query->end_resolution);
+      query->setPoints(npoints);
 
-      dataset->beginPointQuery(query);
-
-      PrintInfo("PointQuery msec", t1.elapsedMsec(), "level", N, "/", resolutions.size(), "/", resolutions[N], "/", dataset->getMaxResolution(), "...");
+      PrintInfo("PointQuery msec", t1.elapsedMsec(), "level", I, "/", query->end_resolutions.size(), "/", query->end_resolution, "/", dataset->getMaxResolution(), "npoints", npoints, "...");
 
       if (!dataset->executePointQuery(access, query))
         return;
 
-      auto output = query->buffer;
-
-      if (true)
-      {
-        PrintInfo("PointQuery finished msec", t1.elapsedMsec(), "level", N, "/", resolutions.size(), "/", resolutions[N], "/", dataset->getMaxResolution(),
-          "dims", output.dims, "dtype", output.dtype, "access", access ? "yes" : "nullptr", "url", dataset->getUrl());
-      }
+      auto output = query->buffer.clone();
+      PrintInfo("PointQuery finished msec", t1.elapsedMsec(), "level", I, "/", query->end_resolutions.size(), "/", query->end_resolution, "/", dataset->getMaxResolution(),
+        "dims", output.dims, "dtype", output.dtype, "access", access ? "yes" : "nullptr", "url", dataset->getUrl());
 
       DataflowMessage msg;
       output.bounds = dataset->logicToPhysic(query->logic_position);
       msg.writeValue("array", output);
       node->publish(msg);
+      I++;
+
+      dataset->nextPointQuery(query);
     }
   }
 
@@ -276,14 +271,13 @@ public:
   //runBoxQueryJob
   void runBoxQueryJob()
   {
-    auto resolutions = guessBoxQueryViewDependentResolutions();
-    if (resolutions.empty())
-      return;
-
     //remove transformation! (in doPublish I will add the physic clipping)
     auto query = dataset->createBoxQuery(this->logic_position.toDiscreteAxisAlignedBox(), field, time, 'r', this->aborted);
     query->enableFilters();
-    query->end_resolutions = resolutions;
+    query->end_resolutions = guessBoxQueryViewDependentResolutions();
+
+    if (query->end_resolutions.empty())
+      return;
 
     query->incrementalPublish = [&](Array output) {
       doPublish(output, query);
@@ -292,16 +286,15 @@ public:
     dataset->beginBoxQuery(query);
 
     //could be that end_resolutions gets corrected (see google maps for example)
-    resolutions = query->end_resolutions;
-
-    for (int N = 0; N < (int)resolutions.size(); N++)
+    int I = 0, N = (int)query->end_resolutions.size();
+    for (auto EndH: query->end_resolutions)
     {
       Time t1 = Time::now();
 
       if (aborted() || !query->isRunning())
         return;
 
-      PrintInfo("BoxQuery msec", t1.elapsedMsec(), "level", N, "/", resolutions.size(), "/", resolutions[N], "/", dataset->getMaxResolution());
+      PrintInfo("BoxQuery msec", t1.elapsedMsec(), "level", I, "/", N, "/", EndH, "/", dataset->getMaxResolution());
 
       if (!dataset->executeBoxQuery(access, query))
         return;
@@ -310,23 +303,17 @@ public:
         return;
 
       auto output = query->buffer;
-
-      if (true)
-      {
-        PrintInfo("BoxQuery finished msec", t1.elapsedMsec(),
-          "level", N, "/", resolutions.size(), "/", resolutions[N], "/", dataset->getMaxResolution(),
-          "dims", output.dims,
-          "dtype", output.dtype,
-          "mem", StringUtils::getStringFromByteSize(output.c_size()),
-          "access", access ? "yes" : "nullptr",
-          "url", dataset->getUrl());
-      }
+      PrintInfo("BoxQuery finished msec", t1.elapsedMsec(),
+        "level", I, "/", N, "/", EndH, "/", dataset->getMaxResolution(),
+        "dims", output.dims,
+        "dtype", output.dtype,
+        "mem", StringUtils::getStringFromByteSize(output.c_size()),
+        "access", access ? "yes" : "nullptr",
+        "url", dataset->getUrl());
 
       doPublish(output, query);
-
-      //PrintInfo("Calling next query...");
       dataset->nextBoxQuery(query);
-      //PrintInfo("Done next query");
+      I++;
     }
   }
 

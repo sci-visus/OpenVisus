@@ -46,7 +46,6 @@ For support : support@visus.net
 #include <Visus/TimeNode.h>
 #include <Visus/ScriptingNode.h>
 #include <Visus/RenderArrayNode.h>
-#include <Visus/OSPRayRenderNode.h>
 #include <Visus/StatisticsNode.h>
 #include <Visus/PaletteNode.h>
 #include <Visus/ModelViewNode.h>
@@ -463,9 +462,6 @@ DataflowTreeView* Viewer::createTreeView()
     if (dynamic_cast<RenderArrayNode*>(node))
       return icons->paint;
 
-    if (dynamic_cast<OSPRayRenderNode*>(node))
-      return icons->paint;
-
     if (dynamic_cast<StatisticsNode*>(node))
       return icons->statistics;
 
@@ -693,9 +689,6 @@ void Viewer::editNode(Node* node)
   if (auto model=dynamic_cast<RenderArrayNode*>(node))
     return model->createEditor();
 
-  if (auto model = dynamic_cast<OSPRayRenderNode*>(node))
-    return model->createEditor();
-
   if (auto model=dynamic_cast<IsoContourNode*>(node))
     return model->createEditor();
 
@@ -756,7 +749,7 @@ bool Viewer::takeSnapshot(bool bOnlyCanvas,String filename)
   {
     for (int I=0;;I++)
     {
-      filename = KnownPaths::VisusHome.getChild(concatenate("visus_snapshot.",StringUtils::formatNumber("%03d",I),".png"));
+      filename = concatenate(KnownPaths::VisusHome,"/visus_snapshot.",StringUtils::formatNumber("%03d",I),".png");
       if (!FileUtils::existsFile(filename))
         break;
     }

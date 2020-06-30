@@ -44,22 +44,6 @@ For support : support@visus.net
 #include <Visus/Path.h>
 #include <Visus/StringTree.h>
 
-#if WIN32
-
-#pragma warning (disable:4244)
-
-#else
-
-#include <unistd.h>
-#include <signal.h>
-
-#if !__APPLE__
-  #include <sys/types.h>
-  #include <sys/wait.h>
-#endif
-
-#endif
-
 namespace Visus {
 
 int OnDemandAccess::Defaults::nconnections=8;
@@ -88,49 +72,7 @@ public:
     netservice.reset();
   }
 
-  #if !WIN32
-
-  //popen2
-  static pid_t popen2(const char *command, int *infp, int *outfp)
-  {
-    const int WRITE = 1;
-    const int READ = 0;
-    int p_stdin[2], p_stdout[2];
-    pid_t pid;
-
-    if (pipe(p_stdin) != 0 || pipe(p_stdout) != 0)
-      return -1;
-
-    pid = fork();
-
-    if (pid < 0)
-      return pid;
-    else if (pid == 0)
-    {
-      close(p_stdin[WRITE]);
-      dup2(p_stdin[READ], READ);
-      close(p_stdout[READ]);
-      dup2(p_stdout[WRITE], WRITE);
-
-      execl("/bin/sh", "sh", "-c", command, NULL);
-      perror("execl");
-      exit(1);
-    }
-
-    if (infp == NULL)
-      close(p_stdin[WRITE]);
-    else
-      *infp = p_stdin[WRITE];
-
-    if (outfp == NULL)
-      close(p_stdout[READ]);
-    else
-      *outfp = p_stdout[READ];
-
-    return pid;
-  }
-  #endif
-
+  
   //generateBlock
   virtual void generateBlock(SharedPtr<BlockQuery> query) override
   {
@@ -191,27 +133,8 @@ public:
       params += " --box \"" + block_logicbox.toString(/*bInterleave*/true) + "\"";
       PrintInfo(params);
 
-#if WIN32
       //blocking call
       system(params.c_str());
-#else
-
-      //non-blocking call
-      int stdin, stdout;
-      pid_t pid = popen2(params.c_str(), &stdin, &stdout);
-
-      int status;
-      while (!waitpid(pid, &status, WNOHANG))
-      {
-        if (query->aborted())
-        {
-          kill(pid, SIGTERM);
-          break;
-        }
-        sleep(1);
-      }
-#endif
-
       PrintInfo("path",converter_url,"time",t1.elapsedMsec());
 
       // as noted above, this stage will return query failed, then depend on third layer of multiplex to get the data
@@ -396,10 +319,10 @@ public:
   template <typename CppType>
   inline CppType generateSample(const Point3d& p) const
   {
-    int xi = p[0]*invstep;
-    int yi = p[1]*invstep;
-    int zi = p[2]*invstep;
-    return (xi % 2 ^ (yi + 1) % 2 ^ zi % 2) ? 255 : 0;
+    int xi = int(p[0]*invstep);
+    int yi = int(p[1]*invstep);
+    int zi = int(p[2]*invstep);
+    return CppType((xi % 2 ^ (yi + 1) % 2 ^ zi % 2) ? 255 : 0);
   }
 };
 
@@ -434,9 +357,9 @@ public:
     {
       x = (z_x*z_x - z_y*z_y) + c_x;
       y = (z_y*z_x + z_x*z_y) + c_y;
-      if ((x*x + y*y) > 4.0) return double(i) / iter;
+      if ((x*x + y*y) > 4.0) return CppType(double(i) / iter);
     }
-    return 0.0;
+    return CppType(0.0);
   }
 };
 

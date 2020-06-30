@@ -3,11 +3,7 @@ set(CMAKE_AUTORCC ON)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-option(VISUS_OSPRAY "Enable ospray" OFF)
-if (VISUS_OSPRAY)
-	find_package(ospray 2.0 REQUIRED)
-	find_package(ospcommon  REQUIRED)
-endif()
+
 
 SET(RootSources
 	./include/Visus/FreeTransform.h ./src/FreeTransform.cpp
@@ -25,9 +21,7 @@ set(NodeSources
 	./include/Visus/JTreeRenderNode.h 
 	./include/Visus/JTreeRenderNodeView.h   
 	./src/JTreeRenderNode.cpp
-	./include/Visus/JTreeNodeView.h  
-	./include/Visus/OSPRayRenderNode.h     
-	./src/OSPRayRenderNode.cpp   
+	./include/Visus/JTreeNodeView.h 
 	./include/Visus/RenderArrayNode.h   
 	./src/RenderArrayNode.cpp        
 	./include/Visus/IsoContourNode.h
@@ -102,6 +96,7 @@ target_link_libraries(VisusGui PUBLIC Qt5::Core Qt5::Widgets Qt5::Gui Qt5::OpenG
 
 if (WIN32)
 	target_link_libraries(VisusGui PUBLIC opengl32.lib glu32.lib)
+	
 elseif (APPLE)
 	target_link_libraries(VisusGui PUBLIC 
 		"-framework OpenGL" 
@@ -115,10 +110,11 @@ elseif (APPLE)
 	
 else() 
 	target_link_libraries(VisusGui PUBLIC GL GLU X11)
+	
 endif()
 
 set_target_properties(VisusGui PROPERTIES FOLDER "")
 
-
+INSTALL(DIRECTORY include/Visus DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Gui/)
 
 

@@ -1,9 +1,5 @@
 import os,sys,glob,threading,platform,sysconfig,re,time,subprocess, errno, fnmatch, shutil
 
-WIN32=platform.system()=="Windows" or platform.system()=="win32"
-APPLE=platform.system()=="Darwin"
-LINUX=not APPLE and not WIN32
-
 # ////////////////////////////////////////////////////////////////////////////////
 def ThisDir(file):
 	return os.path.dirname(os.path.abspath(file))

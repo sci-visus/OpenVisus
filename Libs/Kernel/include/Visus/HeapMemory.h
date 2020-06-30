@@ -65,8 +65,8 @@ public:
   //createManaged
   static SharedPtr<HeapMemory> createManaged(void* p, Int64 n); 
 
-  //cloneHeap
-  SharedPtr<HeapMemory> cloneHeap() const;
+  //clone
+  SharedPtr<HeapMemory> clone() const;
 
   //reserve (i.e. change the c_capacity() but not the c_size() neither dims neither dtype)
   bool reserve(Int64 new_m, const char* file, int line);

@@ -62,7 +62,7 @@ For support : support@visus.net
   #define VISUS_SHARED_EXPORT __declspec (dllexport)
   #define VISUS_SHARED_IMPORT __declspec (dllimport)
 
-#else //#if WIN32
+#else 
 
   #define VISUS_SHARED_EXPORT __attribute__ ((visibility("default")))
   #define VISUS_SHARED_IMPORT 
@@ -149,15 +149,15 @@ VISUS_KERNEL_API inline String     cstring(Float32 v)            { return std::t
 VISUS_KERNEL_API inline String     cstring(Float64 v)            { return std::to_string(v); }
 VISUS_KERNEL_API inline String     cstring(Int64   v)            { return std::to_string(v); }
 VISUS_KERNEL_API inline String     cstring(Uint64  v)            { return std::to_string(v); }
-VISUS_KERNEL_API inline String     cstring(const String& value) { return value; }
-VISUS_KERNEL_API inline String     cstring(const char* value)   { return String(value); }
+VISUS_KERNEL_API inline String     cstring(const String& value)  { return value; }
+VISUS_KERNEL_API inline String     cstring(const char* value)    { return String(value); }
   
 #if !WIN32
-  VISUS_KERNEL_API inline String     cstring(size_t v)           { return std::to_string(v); }
+  VISUS_KERNEL_API inline String   cstring(size_t v)             { return std::to_string(v); }
 #endif
 
 #if !SWIG
-VISUS_KERNEL_API inline String     cstring(char* value)         { return String(value); }
+VISUS_KERNEL_API inline String     cstring(char* value)          { return String(value); }
 #endif
 
 template <typename Value>

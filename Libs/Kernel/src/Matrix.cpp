@@ -98,7 +98,7 @@ Matrix Matrix::lookAt(Point3d Eye,Point3d Center,Point3d Up)
   m(1, 2) = -forward[1];
   m(2, 2) = -forward[2];
 
-  return m.transpose() * translate(-1*Eye);
+  return m.transpose() * translate(PointNd(-1*Eye));
 }
 
 //////////////////////////////////////////////////////////////////////

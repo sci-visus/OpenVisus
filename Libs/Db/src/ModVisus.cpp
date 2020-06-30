@@ -684,24 +684,22 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
     Matrix::fromString(4, request.url.getParam("matrix")),
     BoxNd::fromString(request.url.getParam("box"),/*bInterleave*/false).withPointDim(3));
 
-  auto query = dataset->createPointQuery(logic_position, field, time);
+  auto query = dataset->createPointQuery(logic_position, field, time, { endh });
   query->end_resolution = endh;
-
-  if (!query->setPoints(nsamples))
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->setPoints failed " + query->errormsg);
-
-  auto access = dataset->createAccess();
 
   dataset->beginPointQuery(query);
 
   if (!query->isRunning())
     return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginBoxQuery() failed " + query->errormsg);
 
+  if (!query->setPoints(nsamples))
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->setPoints failed " + query->errormsg);
+
+  auto access = dataset->createAccess();
   if (!dataset->executePointQuery(access, query))
     return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeBoxQuery() failed " + query->errormsg);
 
   buffer = query->buffer;
-
 
   String palette = request.url.getParam("palette");
   if (!palette.empty() && buffer.dtype.ncomponents() == 1)

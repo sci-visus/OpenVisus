@@ -406,9 +406,6 @@ public:
     return NetRequest();
   }
 
-  //executeBoxQueryOnServer
-  virtual bool executeBoxQueryOnServer(SharedPtr<BoxQuery> query);
-
 public:
 
   //________________________________________________
@@ -418,11 +415,11 @@ public:
   PointNi guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, Position logic_position, int end_resolution);
 
   //constructor
-  SharedPtr<PointQuery> createPointQuery(Position logic_position, Field field, double time, Aborted aborted = Aborted());
+  SharedPtr<PointQuery> createPointQuery(Position logic_position, Field field, double time, std::vector<int> end_resolutions, Aborted aborted = Aborted());
 
   //createPointQuery
-  SharedPtr<PointQuery> createPointQuery(Position logic_position, Aborted aborted=Aborted()) {
-    return createPointQuery(logic_position, getField(), getTime(), aborted);
+  SharedPtr<PointQuery> createPointQuery(Position logic_position, std::vector<int> end_resolutions, Aborted aborted=Aborted()) {
+    return createPointQuery(logic_position, getField(), getTime(), end_resolutions, aborted);
   }
 
   //beginPointQuery
@@ -434,22 +431,19 @@ public:
     return false;
   }
 
+  //nextPointQuery
+  virtual void nextPointQuery(SharedPtr<PointQuery> query) {
+  }
+
   //createPointQueryRequest
   virtual NetRequest createPointQueryRequest(SharedPtr<PointQuery> query) {
     return NetRequest();
   }
 
-  //executePointQueryOnServer
-  virtual bool executePointQueryOnServer(SharedPtr<PointQuery> query);
-
 public:
 
   //insertSamples
   static bool insertSamples(
-    LogicSamples Wsamples, Array Wbuffer,
-    LogicSamples Rsamples, Array Rbuffer, Aborted aborted);
-
-  static bool interpolateSamples(
     LogicSamples Wsamples, Array Wbuffer,
     LogicSamples Rsamples, Array Rbuffer, Aborted aborted);
 

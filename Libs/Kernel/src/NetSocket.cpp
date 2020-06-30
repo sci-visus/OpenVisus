@@ -38,29 +38,8 @@ For support : support@visus.net
 
 #include <Visus/NetSocket.h>
 #include <Visus/StringTree.h>
+#include "osdep.hxx"
 
-#if WIN32
-#pragma warning(disable:4996)
-#include <WinSock2.h>
-#define getIpCat(cat)    htonl(cat)
-typedef int socklen_t;
-#define SHUT_RD   SD_RECEIVE 
-#define SHUT_WR   SD_SEND 
-#define SHUT_RDWR SD_BOTH 
-#else
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h> 
-#include <strings.h>
-#include <arpa/inet.h>
-#include <signal.h>
-#include <sys/ioctl.h>
-#include <netinet/tcp.h>
-#include <unistd.h>
-#define getIpCat(cat)          cat
-#define closesocket(socketref) ::close(socketref)
-#endif 
 
 namespace Visus {
 

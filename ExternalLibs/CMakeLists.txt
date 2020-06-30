@@ -1,7 +1,7 @@
 
 SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${ConfigName}/ExternalLib)
 
-if(WIN32)
+if (MSVC)
 	add_compile_options("/W0")
 else()
 	add_compile_options("-w")

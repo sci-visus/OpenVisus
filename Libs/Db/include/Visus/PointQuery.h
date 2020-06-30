@@ -55,9 +55,16 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(PointQuery)
 
-  int          end_resolution=-1;
-  Position     logic_position;
-  Array        points;
+
+  Position              logic_position;
+
+  PointNi               npoints;
+  SharedPtr<HeapMemory> points = std::make_shared<HeapMemory>();
+
+  int                   start_resolution = 0; //always zero
+  int                   cur_resolution = -1;
+  int                   end_resolution = -1;
+  std::vector<int>      end_resolutions;
 
   //constructor
   PointQuery() {
@@ -65,7 +72,7 @@ public:
 
   //getNumberOfPoints
   PointNi getNumberOfPoints() const {
-    return points.dims;
+    return npoints;
   }
 
   //getByteSize
@@ -76,8 +83,21 @@ public:
   //setPoints
   bool setPoints(PointNi nsamples);
 
-  //allocateBufferIfNeeded
-  bool allocateBufferIfNeeded();
+
+  //getCurrentResolution
+  int getCurrentResolution() const {
+    return this->cur_resolution;
+  }
+
+  //setCurrentResolution
+  void setCurrentResolution(int value) {
+    this->cur_resolution = value;
+  }
+
+  //getEndResolution
+  int getEndResolution() const {
+    return end_resolution;
+  }
 
 };
 

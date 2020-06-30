@@ -46,7 +46,7 @@ For support : support@visus.net
 #include <Visus/Db.h>
 #include <Visus/StringTree.h>
 
-#if WIN32
+#if WIN32 
 
 #pragma warning(disable:4091)
 #include <winsock2.h>
@@ -169,7 +169,7 @@ public:
     DbModule::attach();
     	
 #if VISUS_PYTHON    	
-    InitEmbeddedPython(argn, argv, KnownPaths::BinaryDirectory.toString() + "/../..", { "from OpenVisus import *" });
+    InitEmbeddedPython(argn, argv, KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
 #endif
 
     RedirectLogTo(MyWriteLog, this);
@@ -612,7 +612,7 @@ public:
     DbModule::attach();
     	
 #if VISUS_PYTHON    	
-    InitEmbeddedPython(narg, argv, KnownPaths::BinaryDirectory.toString() + "/../..", { "from OpenVisus import *" });
+    InitEmbeddedPython(narg, argv, KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
 #endif
 
     this->configureDatasets();
@@ -791,7 +791,7 @@ static void MyRegisterHook(apr_pool_t *p)
   ap_hook_child_init (MyHookChildInit  , NULL, NULL, APR_HOOK_MIDDLE);
 }
 
-#endif //!WIN32
+#endif 
 
 
 

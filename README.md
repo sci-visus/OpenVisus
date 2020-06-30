@@ -12,11 +12,15 @@ Table of content:
 
 - [Binary Distribution](#binary-distribution)
 
-- [Windows compilation](#windows-compilation)
+- [Windows compilation Visual Studio](#windows-compilation-visual-studio)
 
-- [MacOSX compilation](#macosx-compilation)
+- [Windows compilation mingw](#windows-compilation-mingw)
 
-- [Linux compilation](#linux-compilation)
+- [MacOSX compilation clang](#macosx-compilation-clang)
+
+- [MacOSX compilation gcc](#macosx-compilation-gcc)
+
+- [Linux compilation gcc](#linux-compilation-gcc)
 
 - [Minimal compilation](#minimal-compilation)
 
@@ -54,8 +58,9 @@ Give a look to directory `Samples/python` and Jupyter examples:
 [Samples/jupyter/ReadAndView.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/ReadAndView.ipynb)
 
 
+
 <!--//////////////////////////////////////////////////////////////////////// -->
-## Windows compilation
+## Windows compilation Visual Studio
 
 Install git, cmake and swig.  
 The fastest way is to use `chocolatey`:
@@ -68,11 +73,11 @@ Install Python3.x.
 
 Install Qt5 (http://download.qt.io/official_releases/online_installers/qt-unified-windows-x86-online.exe)
 
-To compile OpenVisus (change as needed):
+To compile OpenVisus (change the paths as needed):
 
 ```
-set Python_EXECUTABLE=<FillHere>
-set Qt5_DIR=</FillHere>
+set Python_EXECUTABLE=C:\Python37\python.exe
+set Qt5_DIR=D:\Qt\5.12.8\5.12.8\msvc2017_64\lib\cmake\Qt5
 
 python -m pip install numpy
 
@@ -89,8 +94,42 @@ python -m OpenVisus configure --user
 python -m OpenVisus viewer
 ```
 
+
 <!--//////////////////////////////////////////////////////////////////////// -->
-## MacOSX compilation
+## Windows compilation mingw
+
+NOTE: only VISUS_MINIMAL is supported.
+
+Install prerequisites. The fastest way is to use `chocolatey`:
+
+```
+choco install -y git cmake mingw
+```
+
+To compile OpenVisus (change the paths as needed):
+
+```
+git clone https://github.com/sci-visus/OpenVisus
+cd OpenVisus
+
+mkdir build_gcc
+cd build_gcc
+
+set PATH=%PATH%;C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin
+
+
+cmake -G "MinGW Makefiles" -DVISUS_MINIMAL=1 ../ 
+cmake --build . --target all       --config Release
+cmake --build . --target install   --config Release
+
+set PYTHON_PATH=.\Release
+python -m OpenVisus configure --user
+python -m OpenVisus viewer
+```
+
+
+<!--//////////////////////////////////////////////////////////////////////// -->
+## MacOSX compilation clang
 
 Make sure you have command line tools:
 
@@ -98,18 +137,17 @@ Make sure you have command line tools:
 sudo xcode-select --install || sudo xcode-select --reset
 ```
 
-
 Build the repository (change as needed):
 
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 
-# update submodules
-git pull --recurse-submodules
-
 # change as needed if you have python in another place
 Python_ROOT_DIR=/Library/Frameworks/Python.framework/Versions/3.6
+
+# install prerequisites
+brew install swig cmake
 
 # install qt5 (change as needed)
 brew install qt5
@@ -118,7 +156,6 @@ Qt5_DIR=$(brew --prefix qt5)/lib/cmake/Qt5
 mkdir build 
 cd build
 
-brew install swig cmake
 cmake -GXcode -DPython_ROOT_DIR=${Python_ROOT_DIR} -DQt5_DIR=${Qt5_DIR} ../
 cmake --build ./ --target ALL_BUILD --config Release --parallel 4
 cmake --build ./ --target install   --config Release
@@ -140,8 +177,57 @@ python3 -m pip install --upgrade jupyter
 python3 -m jupyter notebook ../Samples/jupyter/Agricolture.ipynb
 ```
 
+
 <!--//////////////////////////////////////////////////////////////////////// -->
-## Linux compilation
+## MacOSX compilation gcc
+
+Build the repository (change as needed):
+
+```
+
+# change the path for your gcc
+export CC=cc-9
+export CXX=g++-9
+
+
+git clone https://github.com/sci-visus/OpenVisus
+cd OpenVisus
+
+# change as needed if you have python in another place
+Python_ROOT_DIR=/Library/Frameworks/Python.framework/Versions/3.6
+
+# install prerequisites
+brew install swig cmake
+
+# install qt5 (change as needed)
+brew install qt5
+Qt5_DIR=$(brew --prefix qt5)/lib/cmake/Qt5
+
+mkdir build_gcc
+cd build_gcc
+cmake -G"Unix Makefiles" -DPython_ROOT_DIR=${Python_ROOT_DIR} -DQt5_DIR=${Qt5_DIR} ../
+cmake --build ./ --target all       --config Release --parallel 4
+cmake --build ./ --target install   --config Release
+
+export PYTHONPATH=$(pwd)/Release
+
+# this command will install PyQt5 and link OpenVisus to PyQt5 in user space (given that you don't want to run as root)
+python3 -m OpenVisus configure --user
+python3 -m OpenVisus test
+python3 -m OpenVisus viewer
+
+# OPTIONAL
+python3 -m pip install --upgrade opencv-python opencv-contrib-python 
+python3 -m OpenVisus viewer1
+python3 -m OpenVisus viewer2
+
+# OPTIONAL
+python3 -m pip install --upgrade jupyter
+python3 -m jupyter notebook ../Samples/jupyter/Agricolture.ipynb
+```
+
+<!--//////////////////////////////////////////////////////////////////////// -->
+## Linux compilation gcc
 
 We are showing as an example how to build OpenVisus on Ubuntu 16.
 
@@ -214,31 +300,100 @@ python -m OpenVisus configure --user
 python -m OpenVisus viewer
 ```
 
-<!--//////////////////////////////////////////////////////////////////////// -->
+
+<!--//////////////////////////////d////////////////////////////////////////// -->
 ## Minimal compilation
 
-Minimal compilation disable image support, network support, Python extensions and supports 
-only OpenVisus IDX file format:
+Minimal compilation disable 
 
+- Image support
+- Network support
+- Python supports
+
+it enables only minimal IDX read/write operations.
+
+
+For Windows/Visual Studio:
 
 ```
-git clone https://github.com/sci-visus/OpenVisus
-cd OpenVisus
 mkdir build
 cd build
-
-# on windows
 cmake -G "Visual Studio 16 2019" -A "x64" -DVISUS_MINIMAL=1 ../ 
 cmake --build . --target ALL_BUILD --config Release
-
-# on apple
-cmake -GXcode -DVISUS_MINIMAL=1 ../
-cmake --build ./ --target ALL_BUILD --config Release 
-
-# on linux
-cmake -DVISUS_MINIMAL=1 ../
-cmake --build ./ --target all 
+cmake --build . --target INSTALL   --config Release
 ```
+
+For Windows/mingw
+
+```
+choco install -y mingw
+set PATH=%PATH%;C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin
+mkdir build
+cd build
+cmake -G "MinGW Makefiles" -DVISUS_MINIMAL=1 ../ 
+cmake --build . --target all       --config Release
+cmake --build . --target install   --config Release
+```
+
+For Apple/Xcode
+
+```
+mkdir build 
+cd build
+cmake -GXcode -DVISUS_MINIMAL=1 ../
+cmake --build ./ --target ALL_BUILD --config Release --parallel 4
+cmake --build ./ --target install   --config Release
+```
+
+For Apple/gcc:
+
+```
+export CC=cc-9
+export CXX=g++-9
+mkdir build
+cd build
+cmake -G"Unix Makefiles" -DVISUS_MINIMAL=1 ../
+make -j 
+make install
+```
+
+
+For Linux/gcc:
+
+```
+mkdir build 
+cd build
+cmake -DVISUS_MINIMAL ../
+make -j
+make install
+```
+
+
+To use the VisusIO you can create a Makefile (change as needed):
+
+```
+CXX=g++-9 -std=c++11
+
+OpenVisus_DIR=build/Release/OpenVisus
+
+CXX_FLAGS=\
+	-I$(OpenVisus_DIR)/include/Db \
+	-I$(OpenVisus_DIR)/include/Kernel \
+	-DVISUS_STATIC_KERNEL_LIB=1 \
+	-DVISUS_STATIC_DB_LIB=1
+
+main: main.o
+	$(CXX) -o $@ $< -L${OpenVisus_DIR}/lib -lVisusIO
+ 
+main.o: main.cpp 
+	$(CXX) $(CXX_FLAGS) -c -o $@ $< 
+
+clean:
+	rm -f  main main.o
+
+.PHONY: clean
+```
+
 
 
 <!--//////////////////////////////////////////////////////////////////////// -->
