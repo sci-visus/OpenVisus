@@ -500,10 +500,16 @@ def Main(args):
 		os.chdir(this_dir)
 		from OpenVisus.gui import PyViewer,GuiModule
 		from PyQt5.QtWidgets import QApplication
-		viewer=PyViewer()
-		viewer.configureFromArgs(action_args)
-		QApplication.exec()
-		viewer=None
+		
+		# just want to test if shared libraries load or not
+		if "--exit" in action_args:
+			pass
+		else
+			viewer=PyViewer()
+			viewer.configureFromArgs(action_args)
+			QApplication.exec()
+			viewer=None
+
 		print("All done")
 		sys.exit(0)
 

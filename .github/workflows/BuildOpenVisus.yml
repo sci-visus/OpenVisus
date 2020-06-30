@@ -72,6 +72,7 @@ jobs:
            export PYTHONPATH=../
            ${Python_EXECUTABLE} -m OpenVisus configure 
            ${Python_EXECUTABLE} -m OpenVisus test
+           ${Python_EXECUTABLE} -m OpenVisus viewer --exit
                  
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
           
@@ -147,7 +148,8 @@ jobs:
 
            export PYTHONPATH=../
            ${Python_EXECUTABLE} -m OpenVisus configure
-           ${Python_EXECUTABLE} -m OpenVisus test  
+           ${Python_EXECUTABLE} -m OpenVisus test 
+           ${Python_EXECUTABLE} -m OpenVisus viewer --exit
               
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != ""  ]] ; then
@@ -231,12 +233,12 @@ jobs:
     - name: Compile OpenVisus 
       shell: bash -l {0}
       run: |
-           conda activate                                                                1>/dev/null
-           conda update -n base -c defaults conda                                        1>/dev/null
-           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 1>/dev/null
-           conda create -q -n tmp python=${{ matrix.python-version }} numpy              1>/dev/null
-           conda activate tmp                                                            1>/dev/null
-           conda install conda-build anaconda-client numpy  pillow jupyter matplotlib    1>/dev/null 
+           conda activate                                                                  1>/dev/null
+           conda update -n base -c defaults conda                                          1>/dev/null
+           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
+           conda create -q -n tmp python=${{ matrix.python-version }} numpy                1>/dev/null
+           conda activate tmp                                                              1>/dev/null
+           conda install conda-build anaconda-client numpy  pillow jupyter matplotlib pyqt 1>/dev/null 
            
            set -e  # stop or error
            set -x  # very verbose  
@@ -255,6 +257,7 @@ jobs:
            export PYTHONPATH=../
            python -m OpenVisus configure
            python -m OpenVisus test
+           python -m OpenVisus viewer --exit
 
            # https://anaconda.org/ViSUS/settings/access
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
@@ -309,12 +312,12 @@ jobs:
     - name: Compile OpenVisus 
       shell: bash -l {0}
       run: | 
-           conda activate                                                                1>/dev/null
-           conda update -n base -c defaults conda                                        1>/dev/null
-           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 1>/dev/null
-           conda create -q -n tmp python=${{ matrix.python-version }} numpy              1>/dev/null
-           conda activate tmp                                                            1>/dev/null
-           conda install conda-build anaconda-client numpy pillow jupyter matplotlib     1>/dev/null  
+           conda activate                                                                 1>/dev/null
+           conda update -n base -c defaults conda                                         1>/dev/null
+           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no  1>/dev/null
+           conda create -q -n tmp python=${{ matrix.python-version }} numpy               1>/dev/null
+           conda activate tmp                                                             1>/dev/null
+           conda install conda-build anaconda-client numpy pillow jupyter matplotlib pyqt 1>/dev/null  
            
            set -e  # stop or error
            set -x  # very verbose  
@@ -332,6 +335,7 @@ jobs:
            export PYTHONPATH=../
            python -m OpenVisus configure  
            python -m OpenVisus test
+           python -m OpenVisus viewer --exit
 
            # https://anaconda.org/ViSUS/settings/access
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
@@ -369,33 +373,36 @@ jobs:
     - name: Compile OpenVisus 
       shell: bash -l {0}
       run: |
+
+           conda activate                                                                  1>/dev/null
+           conda update -n base -c defaults conda                                          1>/dev/null
+           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
+           conda create -q -n tmp python=${{ matrix.python-version }} numpy                1>/dev/null
+           conda activate tmp                                                              1>/dev/null
+           conda install conda-build anaconda-client numpy pillow jupyter matplotlib pyqt  1>/dev/null 
+           
            set -e  # stop or error
            set -x  # very verbose 
-
+                      
            git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
      
            docker run \
-              -e PYTHON_VERSION=${{ matrix.python-version }} \
-              -e Qt5_DIR=/opt/qt59 \
               -v $(pwd):/root/OpenVisus \
+              -v ${CONDA_PREFIX}:${CONDA_PREFIX} \
+              -e PYTHON_VERSION=${{ matrix.python-version }} \
+              -e Qt5_DIR=${CONDA_PREFIX}/lib/cmake/Qt5 \
               -w /root/OpenVisus \
               visus/portable-linux-binaries \
               /bin/bash -c "./scripts/build_linux.sh"
            sudo chown -R root:root  ./build
            sudo chmod -R a+rwx      ./build
 
-           conda activate                                                                1>/dev/null
-           conda update -n base -c defaults conda                                        1>/dev/null
-           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no 1>/dev/null
-           conda create -q -n tmp python=${{ matrix.python-version }} numpy              1>/dev/null
-           conda activate tmp                                                            1>/dev/null
-           conda install conda-build anaconda-client numpy pillow jupyter matplotlib     1>/dev/null 
-           
            cd build/Release/OpenVisus
 
            export PYTHONPATH=../ 
            python -m OpenVisus configure || true # segmentation fault problem
            python -m OpenVisus test
+           python -m OpenVisus viewer --exit
 
            # https://anaconda.org/ViSUS/settings/access
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
