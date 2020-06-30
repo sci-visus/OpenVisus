@@ -504,7 +504,7 @@ def Main(args):
 		# just want to test if shared libraries load or not
 		if "--exit" in action_args:
 			pass
-		else
+		else:
 			viewer=PyViewer()
 			viewer.configureFromArgs(action_args)
 			QApplication.exec()
