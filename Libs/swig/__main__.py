@@ -487,6 +487,7 @@ def Main(args):
 		SelfTestIdx(300)
 		sys.exit(0)
 
+	# this is just to test run-time linking of shared libraries
 	if action=="test-gui":
 		from OpenVisus.VisusGuiPy import GuiModule
 		print("test-gui ok")
