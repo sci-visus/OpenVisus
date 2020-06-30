@@ -24,14 +24,8 @@ jobs:
       uses: lukka/get-cmake@latest
       
     # ____________________________________________
-    # this actions fails a lot, so I'm repeating 2 times
+    # this actions fails a lot
     - name: Install Swig 
-      uses: crazy-max/ghaction-chocolatey@v1
-      with:
-        args: install -y --allow-empty-checksums --no-progress cmake swig
-        
-    - name: Install Swig (2)
-      if: ${{ always() }} 
       uses: crazy-max/ghaction-chocolatey@v1
       with:
         args: install -y --allow-empty-checksums --no-progress cmake swig
@@ -219,17 +213,11 @@ jobs:
       uses: lukka/get-cmake@latest
       
     # ____________________________________________
-    # this actions fails a lot, so I'm repeating 2 times
+    # this actions fails a lot
     - name: Install Swig 
       uses: crazy-max/ghaction-chocolatey@v1
       with:
         args: install -y --allow-empty-checksums --no-progress cmake swig  
-        
-    - name: Install Swig (2)
-      if: ${{ always() }}
-      uses: crazy-max/ghaction-chocolatey@v1
-      with:
-        args: install -y --allow-empty-checksums --no-progress cmake swig        
         
         
     # ____________________________________________
@@ -239,15 +227,6 @@ jobs:
         miniconda-version: 'latest'    
         python-version: ${{ matrix.python-version }}
         
-    # ____________________________________________
-    - name: Install Qt 
-      uses: jurplel/install-qt-action@v2
-      with:
-        version: '5.9.2'
-        arch: 'win64_msvc2017_64'
-        install-deps: 'true'  
-        dir: C:\
-
     # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash -l {0}
@@ -267,7 +246,7 @@ jobs:
            
            mkdir -p build 
            cd build
-           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=$(which python) ../
+           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${CONDA_PREFIX}/Library/lib/cmake/Qt5" -DPython_EXECUTABLE=$(which python) ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4 
            cmake --build . --target INSTALL   --config Release
           
@@ -318,15 +297,6 @@ jobs:
     # ____________________________________________  
     - name: Install SDK 10.9
       run: cd /opt && git clone https://github.com/phracker/MacOSX-SDKs.git 
-              
-    # ____________________________________________
-    - name: Install Qt 
-      uses: jurplel/install-qt-action@v2
-      with:
-        version: '5.9.3'
-        target: 'desktop'
-        install-deps: 'true'  
-        dir: /opt
 
     # ____________________________________________
     - name: Install Miniconda 
@@ -353,13 +323,13 @@ jobs:
 
            mkdir -p build 
            cd build
-           cmake -GXcode -DPython_EXECUTABLE=$(which python) -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" ../
+           cmake -GXcode -DPython_EXECUTABLE=$(which python) -DQt5_DIR="${CONDA_PREFIX}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release
           
            cd Release/OpenVisus
 
-           export PYTHONPATH=../ 
+           export PYTHONPATH=../
            python -m OpenVisus configure  
            python -m OpenVisus test
 
