@@ -57,7 +57,7 @@ Give a look to directory `Samples/python` and Jupyter examples:
 
 [Samples/jupyter/ReadAndView.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/ReadAndView.ipynb)
 
-<!--//////////////////////////////////////////////////////////////////////// -->
+<!--//////////////////////////////d////////////////////////////////////////// -->
 ## Minimal compilation
 
 Minimal compilation disable 
@@ -68,7 +68,47 @@ Minimal compilation disable
 
 it enables only minimal IDX read/write operations.
 
-Add `-DVISUS_MINIMAL=1`. And stop at the CMake `install` step below
+Add `-DVISUS_MINIMAL=1`. And stop at the CMake `install` step below.
+
+As an example on Linux:
+
+```
+mkdir build_gcc
+cd build_gcc
+export CC=gcc-9
+export CXX=g++-9
+cmake -G"Unix Makefiles" -DVISUS_MINIMAL=1 ../
+make -j
+make install
+cd ..
+```
+
+To use the minimal library create a Makefile with the following content (change paths as needed):
+
+```
+CXX=g++-9 -std=c++11
+
+OpenVisus_DIR=./build_gcc/Release/OpenVisus
+
+CXX_FLAGS=\
+	-I$(OpenVisus_DIR)/include/Db \
+	-I$(OpenVisus_DIR)/include/Kernel \
+	-DVISUS_STATIC_KERNEL_LIB=1 \
+	-DVISUS_STATIC_DB_LIB=1
+
+main: main.o
+	$(CXX) -o $@ $< -L${OpenVisus_DIR}/lib -lVisusIO
+ 
+main.o: main.cpp 
+	$(CXX) $(CXX_FLAGS) -c -o $@ $< 
+
+clean:
+	rm -f  main main.o
+
+.PHONY: clean
+```
+
+
 
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## Windows compilation Visual Studio
