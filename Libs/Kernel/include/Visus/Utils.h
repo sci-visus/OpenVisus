@@ -372,18 +372,14 @@ namespace Utils
   //setBit
   inline void setBit(unsigned char* buffer, Int64 bit, bool value)
   {
-    volatile char* Byte = (char*)buffer + (bit >> 3);
-    char Mask = 1 << (bit & 0x07);
-#if 1
-    value ? (*Byte | Mask) : (*Byte & (~Mask));
-#else
-    #if WIN32
-    value ? _InterlockedOr8(Byte, Mask) : _InterlockedAnd8(Byte, ~Mask);
-    #else
-    value ? __sync_fetch_and_or(Byte, Mask) : __sync_fetch_and_and(Byte, ~Mask);
-    #endif
-#endif
+    //if you need atomic operation use setBitThreadSafe
+    Uint8& Byte = buffer[bit >> 3];
+    const Uint8 Mask = 1 << (bit & 0x07);
+    Byte = value ? (Byte | Mask) : (Byte & (~Mask));
   }
+
+  //setBitThreadSafe
+  VISUS_KERNEL_API void setBitThreadSafe(unsigned char* buffer, Int64 bit, bool value);
 
   //notoverflow_add, result=a+b overflow happens when (a+b)>MAX ---> b>MAX-a
   template <typename coord_t>

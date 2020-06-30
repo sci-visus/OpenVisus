@@ -64,6 +64,12 @@ double Utils::getRandDouble(double a, double b) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
+void Utils::setBitThreadSafe(unsigned char* buffer, Int64 bit, bool value)
+{
+  osdep::setBitThreadSafe(buffer, bit, value);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////
 void Utils::breakInDebugger()
 {
 #ifdef _DEBUG

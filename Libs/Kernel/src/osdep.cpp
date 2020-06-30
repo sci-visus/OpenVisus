@@ -932,5 +932,17 @@ String osdep::getCurrentApplicationFile()
 #endif
 }
 
+//////////////////////////////////////////////////////////
+void osdep::setBitThreadSafe(unsigned char* buffer, Int64 bit, bool value)
+{
+  volatile char* Byte = (char*)buffer + (bit >> 3);
+  char Mask = 1 << (bit & 0x07);
+#if WIN32
+  value ? _InterlockedOr8(Byte, Mask) : _InterlockedAnd8(Byte, ~Mask);
+#else
+  value ? __sync_fetch_and_or(Byte, Mask) : __sync_fetch_and_and(Byte, ~Mask);
+#endif
+}
+
 
 } //namespace Visus

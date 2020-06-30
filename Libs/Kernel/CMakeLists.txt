@@ -14,7 +14,7 @@ source_group("Core" FILES
 	include/Visus/File.h src/File.cpp
 	include/Visus/HeapMemory.h src/HeapMemory.cpp
 	include/Visus/ScopedVector.h
-	include/Visus/Model.h include/Visus/Model.cpp
+	include/Visus/Model.h src/Model.cpp
 	include/Visus/NumericLimits.h
 	include/Visus/Path.h src/Path.cpp
 	include/Visus/RamResource.h src/RamResource.cpp

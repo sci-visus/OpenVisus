@@ -480,6 +480,9 @@ public:
   //getCurrentApplicationFile
   static String getCurrentApplicationFile();
 
+  //setBitThreadSafe
+  static void setBitThreadSafe(unsigned char* buffer, Int64 bit, bool value);;
+
   //startup
   static void startup();
 
