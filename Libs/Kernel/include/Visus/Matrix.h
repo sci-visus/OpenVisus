@@ -380,12 +380,12 @@ public:
   // translate
   static Matrix translate(PointNd vt)
   {
-    Matrix ret(vt.getPointDim() + 1);
-    for (int R = 0; R < ret.dim - 1; R++)
-      ret(R, ret.dim - 1) = vt[R];
+  	auto dim=vt.getPointDim() + 1;
+    Matrix ret(dim);
+    for (int R = 0; R < dim - 1; R++)
+      ret.get(R, ret.dim - 1) = vt.get(R);
     return ret;
   }
-
 
   //translate
   inline static Matrix translate(int axis, double offset) {

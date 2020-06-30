@@ -14,9 +14,11 @@ Table of content:
 
 - [Windows compilation](#windows-compilation)
 
-- [MacOSX compilation](#macosx-compilation)
+- [MacOSX compilation clang](#macosx-compilation-clang)
 
-- [Linux compilation](#linux-compilation)
+- [MacOSX compilation gcc](#macosx-compilation-gcc)
+
+- [Linux compilation gcc](#linux-compilation-gcc)
 
 - [Minimal compilation](#minimal-compilation)
 
@@ -90,7 +92,7 @@ python -m OpenVisus viewer
 ```
 
 <!--//////////////////////////////////////////////////////////////////////// -->
-## MacOSX compilation
+## MacOSX compilation clang
 
 Make sure you have command line tools:
 
@@ -104,9 +106,6 @@ Build the repository (change as needed):
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-
-# update submodules
-git pull --recurse-submodules
 
 # change as needed if you have python in another place
 Python_ROOT_DIR=/Library/Frameworks/Python.framework/Versions/3.6
@@ -138,10 +137,61 @@ python3 -m OpenVisus viewer2
 # OPTIONAL
 python3 -m pip install --upgrade jupyter
 python3 -m jupyter notebook ../Samples/jupyter/Agricolture.ipynb
+
+
+
+<!--//////////////////////////////////////////////////////////////////////// -->
+## MacOSX compilation gcc
+
+
+Build the repository (change as needed):
+
+```
+
+# change the path for your gcc
+export CC=/usr/local/Cellar/gcc/9.1.0/bin/gcc-9
+export CXX=/usr/local/Cellar/gcc/9.1.0/bin/g++-9
+
+
+git clone https://github.com/sci-visus/OpenVisus
+cd OpenVisus
+
+# change as needed if you have python in another place
+Python_ROOT_DIR=/Library/Frameworks/Python.framework/Versions/3.6
+
+# install qt5 (change as needed)
+brew install qt5
+Qt5_DIR=$(brew --prefix qt5)/lib/cmake/Qt5
+
+mkdir build 
+cd build
+
+brew install swig cmake
+
+cmake -G"Unix Makefiles" -DPython_ROOT_DIR=${Python_ROOT_DIR} -DQt5_DIR=${Qt5_DIR} ../
+cmake --build ./ --target all       --config Release --parallel 4
+cmake --build ./ --target install   --config Release
+
+export PYTHONPATH=$(pwd)/Release
+
+# this command will install PyQt5 and link OpenVisus to PyQt5 in user space (given that you don't want to run as root)
+python3 -m OpenVisus configure --user
+python3 -m OpenVisus test
+python3 -m OpenVisus viewer
+
+# OPTIONAL
+python3 -m pip install --upgrade opencv-python opencv-contrib-python 
+python3 -m OpenVisus viewer1
+python3 -m OpenVisus viewer2
+
+# OPTIONAL
+python3 -m pip install --upgrade jupyter
+python3 -m jupyter notebook ../Samples/jupyter/Agricolture.ipynb
+```
 ```
 
 <!--//////////////////////////////////////////////////////////////////////// -->
-## Linux compilation
+## Linux compilation gcc
 
 We are showing as an example how to build OpenVisus on Ubuntu 16.
 
@@ -217,28 +267,15 @@ python -m OpenVisus viewer
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## Minimal compilation
 
-Minimal compilation disable image support, network support, Python extensions and supports 
-only OpenVisus IDX file format:
+Minimal compilation disable 
 
+	- Image support
+	- Network support
+	- Python supports
 
-```
-git clone https://github.com/sci-visus/OpenVisus
-cd OpenVisus
-mkdir build
-cd build
+it enables only minimal IDX read/write operations.
 
-# on windows
-cmake -G "Visual Studio 16 2019" -A "x64" -DVISUS_MINIMAL=1 ../ 
-cmake --build . --target ALL_BUILD --config Release
-
-# on apple
-cmake -GXcode -DVISUS_MINIMAL=1 ../
-cmake --build ./ --target ALL_BUILD --config Release 
-
-# on linux
-cmake -DVISUS_MINIMAL=1 ../
-cmake --build ./ --target all 
-```
+Add -DVISUS_MINIMAL=1 to the cmake configure/generate step.
 
 
 <!--//////////////////////////////////////////////////////////////////////// -->

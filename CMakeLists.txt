@@ -29,7 +29,6 @@ if (MSVC)
 	set(MSVC_VER 1)
 elseif (CMAKE_CXX_COMPILER MATCHES ".*clang")
 	set(CLANG 1)
-	set(GNUC  1)
 else()
 	set(GNUC  1)
 endif()
@@ -60,26 +59,51 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_N
 
 set (CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR} CACHE STRING "CMAKE_INSTALL_PREFIX" FORCE)
 
+macro(DisableWarning Sources)
+	if (WIN32)
+		set_source_files_properties(${Sources} PROPERTIES COMPILE_FLAGS "/W0")
+	else()
+		set_source_files_properties(${Sources} PROPERTIES COMPILE_FLAGS "-w")
+	endif()
+endmacro()
+
 option(VISUS_MINIMAL OFF)
+MESSAGE(STATUS "VISUS_MINIMAL  ${VISUS_MINIMAL}")
+
 if (VISUS_MINIMAL)
 
-	file(GLOB_RECURSE Sources 
-		Libs/Kernel/*.cpp 
-		Libs/Kernel/*.c 
-		Libs/Db/*.cpp
-		ExternalLibs/cryptlite/*.C
-		ExternalLibs/dtl/*.cpp 
-		ExternalLibs/lz4/*.C 
-		ExternalLibs/tinyxml/*.cpp
-		ExternalLibs/zfp/*.cpp
-		ExternalLibs/zlib/*.c
-		)
-		
+	file(GLOB cryptlite_Sources Libs/Kernel/src/cryptlite/*.c)
+	file(GLOB dtl_Sources       Libs/Kernel/src/dtl/*.c)
+	file(GLOB lz4_Sources       Libs/Kernel/src/lz4/*.c)
+	file(GLOB tinyxml_Sources   Libs/Kernel/src/tinyxml/*.cpp)
+	file(GLOB zfp_Sources       Libs/Kernel/src/zfp/*.cpp)
+	file(GLOB zlib_Sources      Libs/Kernel/src/zlib/*.c)
+	file(GLOB KernelSources     Libs/Kernel/src/*.cpp)
+	file(GLOB Db_Sources        Libs/Db/src/*.cpp)
+
+	DisableWarning(${cryptlite_Sources})
+	DisableWarning(${dtl_Sources})
+	DisableWarning(${lz4_Sources})
+	DisableWarning(${tinyxml_Sources})
+	DisableWarning(${zfp_Sources})	
+	DisableWarning(${zlib_Sources})		
+			
 	IF (CLANG)
-		file(GLOB SourcesMM Libs/Kernel/src/*.mm)
+		file(GLOB KernelSources_MM Libs/Kernel/src/*.mm)
 	endif()	
 		
-	add_library(VisusIO STATIC ${Sources} ${SourcesMM})
+	add_library(VisusIO STATIC 		
+		${cryptlite_Sources} 
+		${dtl_Sources} 
+		${lz4_Sources} 
+		${tinyxml_Sources} 
+		${zfp_Sources}
+		${zlib_Sources}
+		${KernelSources} 
+		${KernelSources_MM} 
+		${Db_Sources}
+	)
+		
 	target_compile_definitions(VisusIO  PUBLIC  VISUS_STATIC_KERNEL_LIB=1 VISUS_STATIC_DB_LIB=1)
 	target_include_directories(VisusIO  
 		PUBLIC  ${CMAKE_SOURCE_DIR}/Libs/Kernel/include
@@ -118,7 +142,7 @@ else()
 		set(VISUS_DEFAULT_OSPRAY ON)
 	endif()
 
-	if (GNUC AND NOT CLANG)
+	if (GNUC AND NOT APPLE)
 		set(VISUS_DEFAULT_MODVISUS ON)
 	endif()
 

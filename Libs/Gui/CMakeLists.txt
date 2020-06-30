@@ -96,7 +96,8 @@ target_link_libraries(VisusGui PUBLIC Qt5::Core Qt5::Widgets Qt5::Gui Qt5::OpenG
 
 if (WIN32)
 	target_link_libraries(VisusGui PUBLIC opengl32.lib glu32.lib)
-elseif (CLANG)
+	
+elseif (APPLE)
 	target_link_libraries(VisusGui PUBLIC 
 		"-framework OpenGL" 
 		"-framework AGL"
@@ -109,6 +110,7 @@ elseif (CLANG)
 	
 else() 
 	target_link_libraries(VisusGui PUBLIC GL GLU X11)
+	
 endif()
 
 set_target_properties(VisusGui PROPERTIES FOLDER "")
