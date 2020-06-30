@@ -486,31 +486,29 @@ def Main(args):
 		os.chdir(this_dir)
 		SelfTestIdx(300)
 		sys.exit(0)
+
+	if action=="test-gui":
+		from OpenVisus.VisusGuiPy import GuiModule
+		print("test-gui ok")
+		sys.exit(0)
 		
 	# example -m OpenVisus test-network-speed  --nconnections 1 --nrequests 100 --url "http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled" 
 	if action=="test-network-speed":
 		TestNetworkSpeed(action_args)
 		sys.exit(0)
 		
-
 	# ___________________________________________________________________ gui
 
 	# example: python -m OpenVisus viewer ....
 	if action=="viewer":
 		os.chdir(this_dir)
-		from OpenVisus.gui import PyViewer,GuiModule
+		from OpenVisus.gui import PyViewer, GuiModule
 		from PyQt5.QtWidgets import QApplication
-		
-		# just want to test if shared libraries load or not
-		if "--exit" in action_args:
-			pass
-		else:
-			viewer=PyViewer()
-			viewer.configureFromArgs(action_args)
-			QApplication.exec()
-			viewer=None
-
-		print("All done")
+		viewer=PyViewer()
+		viewer.configureFromArgs(action_args)
+		QApplication.exec()
+		viewer=None
+		print("viewer done")
 		sys.exit(0)
 
 	if action=="viewer1":

@@ -72,7 +72,7 @@ jobs:
            export PYTHONPATH=../
            ${Python_EXECUTABLE} -m OpenVisus configure 
            ${Python_EXECUTABLE} -m OpenVisus test
-           ${Python_EXECUTABLE} -m OpenVisus viewer --exit
+           ${Python_EXECUTABLE} -m OpenVisus test-gui
                  
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
           
@@ -149,7 +149,7 @@ jobs:
            export PYTHONPATH=../
            ${Python_EXECUTABLE} -m OpenVisus configure
            ${Python_EXECUTABLE} -m OpenVisus test 
-           ${Python_EXECUTABLE} -m OpenVisus viewer --exit
+           ${Python_EXECUTABLE} -m OpenVisus test-gui
               
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != ""  ]] ; then
@@ -257,7 +257,7 @@ jobs:
            export PYTHONPATH=../
            python -m OpenVisus configure
            python -m OpenVisus test
-           python -m OpenVisus viewer --exit
+           python -m OpenVisus test-gui
 
            # https://anaconda.org/ViSUS/settings/access
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
@@ -335,7 +335,7 @@ jobs:
            export PYTHONPATH=../
            python -m OpenVisus configure  
            python -m OpenVisus test
-           python -m OpenVisus viewer --exit
+           python -m OpenVisus test-gui
 
            # https://anaconda.org/ViSUS/settings/access
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
@@ -402,7 +402,7 @@ jobs:
            export PYTHONPATH=../ 
            python -m OpenVisus configure || true # segmentation fault problem
            python -m OpenVisus test
-           python -m OpenVisus viewer --exit
+           python -m OpenVisus test-gui
 
            # https://anaconda.org/ViSUS/settings/access
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
