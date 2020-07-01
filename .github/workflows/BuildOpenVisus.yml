@@ -55,27 +55,23 @@ jobs:
            
            PYTHON_VERSION=${{ matrix.python-version }}
            Python_EXECUTABLE=${pythonLocation}/python.exe
-
            ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow jupyter matplotlib --upgrade 1>/dev/null 
 
            git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
-           git clone https://github.com/sci-visus/ospray_win.git                                     ExternalLibs/ospray_win
-           
+           git clone https://github.com/sci-visus/ospray_win.git ExternalLibs/ospray_win
            mkdir -p build
            cd build
            cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4
            cmake --build . --target install   --config Release
           
-           cd Release/OpenVisus\
-
+           cd Release/OpenVisus
            export PYTHONPATH=../
            ${Python_EXECUTABLE} -m OpenVisus configure 
            ${Python_EXECUTABLE} -m OpenVisus test
            ${Python_EXECUTABLE} -m OpenVisus test-gui || true
                  
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-          
            if [[ "${GIT_TAG}" != "" ]] ; then
              ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=win_amd64
              ${Python_EXECUTABLE} -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }}   --skip-existing  "dist/*.whl" 
@@ -108,7 +104,7 @@ jobs:
     - name: Install CPython 
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}     
+        python-version: ${{ matrix.python-version }}
 
     # ____________________________________________  
     - name: Install SDK 10.9
@@ -132,20 +128,16 @@ jobs:
            
            PYTHON_VERSION=${{ matrix.python-version }}  
            Python_EXECUTABLE=${pythonLocation}/python 
-           
            ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow jupyter matplotlib --upgrade 1>/dev/null 
 
            git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
-
            mkdir -p build
-           cd build   
-           
-           cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk"  ../
+           cd build
+           cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release 
               
            cd Release/OpenVisus
-
            export PYTHONPATH=../
            ${Python_EXECUTABLE} -m OpenVisus configure
            ${Python_EXECUTABLE} -m OpenVisus test 
@@ -173,26 +165,38 @@ jobs:
       uses: actions/checkout@v2
       
     # ____________________________________________
+    - name: Install CPython 
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}      
+      
+    # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
       run: |
            set -e  # stop or error
            set -x  # very verbose  
            
-           git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
+           PYTHON_VERSION=${{ matrix.python-version }}  
+           Python_EXECUTABLE=${pythonLocation}/python 
+           ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow jupyter matplotlib --upgrade 1>/dev/null 
       
-           docker run \
-              -e PYTHON_VERSION=${{ matrix.python-version }} \
-              -e Qt5_DIR=/opt/qt512 \
-              -e PYPI_USERNAME=${{ secrets.PYPI_USERNAME }} \
-              -e PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }} \
-              -v $(pwd):/root/OpenVisus \
-              -w /root/OpenVisus \
-              visus/portable-linux-binaries \
-              /bin/bash -c "./scripts/build_linux.sh"
-           sudo chown -R root:root  ./build
-           sudo chmod -R a+rwx      ./build
+           git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
+           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=/opt/qt512 -v $(pwd):/root/OpenVisus  -w /root/OpenVisus visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
+           sudo chown -R root:root  build
+           sudo chmod -R a+rwx      build
 
+           cd build/Release/OpenVisus
+           export PYTHONPATH=../
+           ${Python_EXECUTABLE} -m OpenVisus configure 
+           ${Python_EXECUTABLE} -m OpenVisus test 
+           ${Python_EXECUTABLE} -m OpenVisus test-gui || true
+
+           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
+           if [[ "${GIT_TAG}" != "" ]] ; then
+              ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=manylinux2010_x86_64
+              ${Python_EXECUTABLE} -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }}  --skip-existing  "dist/*.whl" 
+           fi
 
 
   # ///////////////////////////////////////////////////////////////
@@ -244,8 +248,7 @@ jobs:
            set -x  # very verbose  
            
            git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
-           git clone https://github.com/sci-visus/ospray_win.git                                     ExternalLibs/ospray_win
-           
+           git clone https://github.com/sci-visus/ospray_win.git ExternalLibs/ospray_win
            mkdir -p build 
            cd build
            cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${CONDA_PREFIX}/Library/lib/cmake/Qt5" -DPython_EXECUTABLE=$(which python) ../
@@ -253,7 +256,6 @@ jobs:
            cmake --build . --target INSTALL   --config Release
           
            cd Release/OpenVisus
-
            export PYTHONPATH=../
            python -m OpenVisus configure
            python -m OpenVisus test
@@ -323,7 +325,6 @@ jobs:
            set -x  # very verbose  
            
            git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
-
            mkdir -p build 
            cd build
            cmake -GXcode -DPython_EXECUTABLE=$(which python) -DQt5_DIR="${CONDA_PREFIX}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" ../
@@ -331,7 +332,6 @@ jobs:
            cmake --build ./ --target install   --config Release
           
            cd Release/OpenVisus
-
            export PYTHONPATH=../
            python -m OpenVisus configure  
            python -m OpenVisus test
@@ -383,21 +383,13 @@ jobs:
            
            set -e  # stop or error
            set -x  # very verbose 
-                      
+           
            git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
-     
-           docker run \
-              -v $(pwd):/root/OpenVisus \
-              -e PYTHON_VERSION=${{ matrix.python-version }} \
-              -e Qt5_DIR=/opt/qt59 \
-              -w /root/OpenVisus \
-              visus/portable-linux-binaries \
-              /bin/bash -c "./scripts/build_linux.sh"
-           sudo chown -R root:root  ./build
-           sudo chmod -R a+rwx      ./build
-
+           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=/opt/qt59 -v $(pwd):/root/OpenVisus -w /root/OpenVisus visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
+           sudo chown -R root:root  build
+           sudo chmod -R a+rwx      build
+           
            cd build/Release/OpenVisus
-
            export PYTHONPATH=../ 
            python -m OpenVisus configure || true # segmentation fault problem
            python -m OpenVisus test
