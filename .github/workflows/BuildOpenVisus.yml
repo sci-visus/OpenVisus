@@ -143,7 +143,7 @@ jobs:
 
     # ____________________________________________
     - name: Compile OpenVisus on ubuntu cpython
-      if: matrix.os == 'ubuntu-latest' && python-type == 'cpython'
+      if: matrix.os == 'ubuntu-latest' && matrix.python-type == 'cpython'
       shell: bash 
       run: |
            docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=/opt/qt512 -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
@@ -152,7 +152,7 @@ jobs:
 
     # ____________________________________________
     - name: Compile OpenVisus on ubuntu conda
-      if: matrix.os == 'ubuntu-latest' && python-type == 'cpython'
+      if: matrix.os == 'ubuntu-latest' && matrix.python-type == 'cpython'
       shell: bash -l {0}
       run: |
            docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=/opt/qt59 -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
