@@ -145,8 +145,8 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       shell: bash -l {0}
       run: |
-            if [[  "${{ matrix.conda }}" == "false" ]] then ; Qt5_DIR=/opt/qt512 ; fi
-            if [[  "${{ matrix.conda }}" == "true"  ]] then ; Qt5_DIR=/opt/qt59  ; fi
+           if [[  "${{ matrix.conda }}" == "false" ]] then ; Qt5_DIR=/opt/qt512 ; fi
+           if [[  "${{ matrix.conda }}" == "true"  ]] then ; Qt5_DIR=/opt/qt59  ; fi
            docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=${Qt5_DIR} -v $PWD:$PWD  -w $PWD visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
