@@ -51,7 +51,7 @@ jobs:
         
     # ____________________________________________
     - name: Install CPython 
-      if: matrix.conda == "false"
+      if: matrix.conda == 'false'
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }} 
@@ -59,7 +59,7 @@ jobs:
         
     # ____________________________________________
     - name: Install Miniconda 
-      if: matrix.conda == "true"
+      if: matrix.conda == 'true'
       uses: goanpeca/setup-miniconda@v1
       with:
         miniconda-version: 'latest'    
@@ -69,7 +69,7 @@ jobs:
 
     # ____________________________________________
     - name: Configure Miniconda and install pyqt
-      if: matrix.conda == "true"
+      if: matrix.conda == 'true'
       shell: bash -l {0}
       run: |
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
@@ -77,7 +77,7 @@ jobs:
 
     # ____________________________________________
     - name: Install Qt for windows
-      if: matrix.os == 'windows-latest' && matrix.conda == "false"
+      if: matrix.os == 'windows-latest' && matrix.conda == 'false'
       uses: jurplel/install-qt-action@v2
       with:
         version: '5.12.8'
@@ -87,7 +87,7 @@ jobs:
         
      # ____________________________________________
     - name: Install Qt for macos
-      if: matrix.os == 'macos-latest' && matrix.conda == "false"
+      if: matrix.os == 'macos-latest' && matrix.conda == 'false'
       uses: jurplel/install-qt-action@v2
       with:
         version: '5.12.8'
@@ -97,7 +97,7 @@ jobs:
 
     # ____________________________________________
     - name: Install glu on ubuntu
-      if: matrix.os == 'ubuntu-latest' && matrix.conda == "false"
+      if: matrix.os == 'ubuntu-latest' && matrix.conda == 'false'
       shell: bash
       run: |
            sudo apt-get install libglu1-mesa-dev 1>/dev/null
@@ -164,7 +164,7 @@ jobs:
 
     # ____________________________________________
     - name: Distrib OpenVisus on pypi
-      if: matrix.conda == "false"
+      if: matrix.conda == 'false'
       shell: bash
       run: |
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
