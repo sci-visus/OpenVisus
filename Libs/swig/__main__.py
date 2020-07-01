@@ -128,6 +128,8 @@ def InstallAndUsePyQt5(bUserInstall=False):
 	except:
 		bIsConda=False
 		
+	
+	print("sys.executable",sys.executable, "IsConda",bIsConda)
 	if bIsConda:
 		conda.cli.main('conda', 'install', '-y',"libglu", "numpy", "pillow", "pyqt={}.{}".format(major,minor))
 		# do I need PyQtWebEngine for conda? considers Qt is 5.9 (very old)
