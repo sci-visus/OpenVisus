@@ -4,7 +4,6 @@ on: [push]
 
 jobs:
 
-
   # ///////////////////////////////////////////////////////////////
   BuildOpenVisus:
 
@@ -120,10 +119,12 @@ jobs:
       if: matrix.os == 'windows-latest'    
       shell: bash -l {0}
       run: |
-           if [[  "${{ matrix.conda }}" == "true" ]] ; then Qt5_Dir=${CONDA_PREFIX}/Library ; fi
+           if [[  "${{ matrix.conda }}" == "false" ]] ; then Python_EXECUTABLE=${pythonLocation}/python.exe ; fi
+           if [[  "${{ matrix.conda }}" == "true"  ]] ; then Python_EXECUTABLE=$(which python)              ; fi
+           if [[  "${{ matrix.conda }}" == "true"  ]] ; then Qt5_Dir=${CONDA_PREFIX}/Library ; fi
            mkdir -p build
            cd build
-           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=$(which python) ../
+           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4
            cmake --build . --target install   --config Release
 
@@ -132,10 +133,12 @@ jobs:
       if: matrix.os == 'macos-latest'
       shell: bash -l {0}
       run: |
-           if [[  "${{ matrix.conda }}" == "true" ]] ; then Qt5_Dir=${CONDA_PREFIX} ; fi
+           if [[  "${{ matrix.conda }}" == "false" ]] ; then Python_EXECUTABLE=${pythonLocation}/python.exe ; fi
+           if [[  "${{ matrix.conda }}" == "true"  ]] ; then Python_EXECUTABLE=$(which python)              ; fi      
+           if [[  "${{ matrix.conda }}" == "true"  ]] ; then Qt5_Dir=${CONDA_PREFIX} ; fi
            mkdir -p build
            cd build
-           cmake -GXcode -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" -DPython_EXECUTABLE=$(which python)  ../
+           cmake -GXcode -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" -DPython_EXECUTABLE=${Python_EXECUTABLE}  ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release 
 
@@ -193,10 +196,72 @@ jobs:
              anaconda --verbose --show-traceback  -t ${{ secrets.ANACONDA_TOKEN }}   upload "${CONDA_FILENAME}"
            fi
 
+  # ///////////////////////////////////////////////////////////////
+  BuildOpenVisusMinimal:
 
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false  
+      matrix:
+        python-version: [ '3.6' ] 
+        os: ["windows-latest", "macos-latest", "ubuntu-latest"]
 
-
-
-
-
-
+    steps:
+    
+    # ____________________________________________
+    - name: Install CMake
+      uses: lukka/get-cmake@latest
+      
+    # ____________________________________________
+    - name: Install mingw for windows
+      if: matrix.os == 'windows-latest'
+      uses: crazy-max/ghaction-chocolatey@v1
+      with:
+        args: install -y --allow-empty-checksums --no-progress mingw
+        
+    # ____________________________________________
+    - name: Install gcc for macos
+      if: matrix.os == 'macos-latest'
+      shell: bash 
+      run: brew install gcc@9
+      
+    # ____________________________________________
+    - name: git clone OpenVisus
+      uses: actions/checkout@v2
+      
+    # ____________________________________________
+    - name: Compile OpenVisus on mingw
+      if: matrix.os == 'windows-latest'
+      shell: cmd 
+      run: |
+           set PATH=%PATH%:c:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin
+           mkdir -p build
+           cd build
+           cmake -G "MinGW Makefiles" -DVISUS_MINIMAL=1 ../ 
+           cmake --build . --target all       --config Release --parallel 4
+           cmake --build . --target install   --config Release
+         
+    # ____________________________________________
+    - name: Compile OpenVisus on macos
+      if: matrix.os == 'macos-latest'    
+      shell: bash 
+      run: |
+           export CC=$(brew --prefix gcc@9)/bin/gcc-9
+           export CXX=$(brew --prefix gcc@9)/bin/g++-9
+           mkdir build 
+           cd build
+           cmake -G"Unix Makefiles" -DVISUS_MINIMAL=1 ../
+           make -j 
+           make install
+           
+    # ____________________________________________
+    - name: Compile OpenVisus on ubuntu
+      if: matrix.os == 'ubuntu-latest'
+      shell: bash 
+      run: |    
+           mkdir build 
+           cd build      
+           cmake -DVISUS_MINIMAL ../
+           make -j
+           make install
+           
