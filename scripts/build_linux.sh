@@ -11,4 +11,4 @@ cmake --build ./ --target install --config Release
 
 cd Release/OpenVisus
 export PYTHONPATH=../
-${Python_EXECUTABLE} configure || true  # segmentation fault problem
+${Python_EXECUTABLE} -m OpenVisus configure || true  # segmentation fault problem

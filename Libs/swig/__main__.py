@@ -159,51 +159,55 @@ def InstallAndUsePyQt5(bUserInstall=False):
 		raise Exception("internal error")
 
 	# on windows it's enough to use sys.path (see *.i %pythonbegin section)
-	if not WIN32:
+	if WIN32:
+		return
 		
+	if bIsConda:
+		CONDA_PREFIX=os.environ['CONDA_PREFIX']
+		print("CONDA_PREFIX",CONDA_PREFIX)
+		QT5_LIB_DIR="{}/lib".format(CONDA_PREFIX)
+	else:
 		QT5_LIB_DIR=os.path.join(PyQt5_HOME,'Qt/lib')
-		
-		# this can happen on conda
-		if not os.path.isdir(QT5_LIB_DIR):
-			QT5_LIB_DIR=PyQt5_HOME
-		
-		print("QT5_LIB_DIR",QT5_LIB_DIR)
-		
-		if APPLE:		
+	
+	print("QT5_LIB_DIR",QT5_LIB_DIR)
+	Assert(os.path.isdir(QT5_LIB_DIR))
+	
+	if APPLE:
 
-			dylibs=glob.glob("bin/*.dylib")
-			so=glob.glob("*.so")
-			apps=["%s/Contents/MacOS/%s"   % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("bin/*.app")]
-			all_bins=so + dylibs + apps
+		dylibs=glob.glob("bin/*.dylib")
+		so=glob.glob("*.so")
+		apps=["%s/Contents/MacOS/%s"   % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("bin/*.app")]
+		all_bins=so + dylibs + apps
+			
+		# remove any reference to absolute Qt (it happens with brew which has absolute path), make it relocable with rpath as is in PyQt5
+		for filename in all_bins:
+			
+			print("FIXING FILENAME",filename,"________________")
+			
+			# example .../libQt5*.dylib -> @rpath/libQt5*.dylib
+			if bIsConda:
+				for Old in GetCommandOutput("otool -L %s | grep '.*/libQt5.*\.dylib' | awk '{print $1;}'" % filename, shell=True).splitlines():
+					New="@rpath/libQt5" + Old.split("libQt5", 1)[1]
+					ExecuteCommand(["install_name_tool","-change", Old, New, filename])
 				
-			# remove any reference to absolute Qt (it happens with brew which has absolute path), make it relocable with rpath as is in PyQt5
-			for filename in all_bins:
-				
-				print("FIXING FILENAME",filename,"________________")
-				
-				# this is for PIP which uses *.framework
-				# eample ../Qt*.framework -> @rpath/Qt*.framework
+			# eample ../Qt*.framework -> @rpath/Qt*.framework
+			else:
 				for Old in GetCommandOutput("otool -L %s | grep '.*/Qt.*\.framework' | awk '{print $1;}'" % filename, shell=True).splitlines():
 					New="@rpath/Qt" + Old.split("/Qt", 1)[1]
 					ExecuteCommand(["install_name_tool","-change", Old, New, filename])	
-					
-				# this is for conda
-				# example .../libQt5*.dylib -> @rpath/libQt5*.dylib
-				for Old in GetCommandOutput("otool -L %s | grep '.*/libQt5.*\.dylib' | awk '{print $1;}'" % filename, shell=True).splitlines():
-					New="@rpath/libQt5" + Old.split("libQt5", 1)[1]
-					ExecuteCommand(["install_name_tool","-change", Old, New, filename])	
-					
-				if filename in apps:
-					SetRPath(filename, "@loader_path/:@loader_path/../../../:" + QT5_LIB_DIR)
-				else:
-					SetRPath(filename, "@loader_path/:@loader_path/bin:" + QT5_LIB_DIR)
-		
-			ShowDeps(all_bins)
-					
-		else:
 				
-			for filename in glob.glob("*.so") + glob.glob("bin/*.so") + ["bin/visus","bin/visusviewer"]:
-				SetRPath(filename,"$ORIGIN:$ORIGIN/bin:" + QT5_LIB_DIR)
+
+			if filename in apps:
+				SetRPath(filename, "@loader_path/:@loader_path/../../../:" + QT5_LIB_DIR)
+			else:
+				SetRPath(filename, "@loader_path/:@loader_path/bin:" + QT5_LIB_DIR)
+	
+		ShowDeps(all_bins)
+				
+	else:
+			
+		for filename in glob.glob("*.so") + glob.glob("bin/*.so") + ["bin/visus","bin/visusviewer"]:
+			SetRPath(filename,"$ORIGIN:$ORIGIN/bin:" + QT5_LIB_DIR)
 
 
 
