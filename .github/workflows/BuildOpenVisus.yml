@@ -5,7 +5,7 @@ on: [push]
 jobs:
 
   # ///////////////////////////////////////////////////////////////
-  BuildOpenVisus:
+  Build:
 
     runs-on: ${{ matrix.os }}
     strategy:
@@ -133,8 +133,8 @@ jobs:
       if: matrix.os == 'macos-latest'
       shell: bash -l {0}
       run: |
-           if [[  "${{ matrix.conda }}" == "false" ]] ; then Python_EXECUTABLE=${pythonLocation}/python.exe ; fi
-           if [[  "${{ matrix.conda }}" == "true"  ]] ; then Python_EXECUTABLE=$(which python)              ; fi      
+           if [[  "${{ matrix.conda }}" == "false" ]] ; then Python_EXECUTABLE=${pythonLocation}/python ; fi
+           if [[  "${{ matrix.conda }}" == "true"  ]] ; then Python_EXECUTABLE=$(which python)          ; fi      
            if [[  "${{ matrix.conda }}" == "true"  ]] ; then Qt5_Dir=${CONDA_PREFIX} ; fi
            mkdir -p build
            cd build
@@ -197,7 +197,7 @@ jobs:
            fi
 
   # ///////////////////////////////////////////////////////////////
-  BuildOpenVisusMinimal:
+  BuildMin:
 
     runs-on: ${{ matrix.os }}
     strategy:
@@ -260,8 +260,8 @@ jobs:
       shell: bash 
       run: |    
            mkdir build 
-           cd build      
-           cmake -DVISUS_MINIMAL ../
+           cd build 
+           cmake -DVISUS_MINIMAL=1 ../
            make -j
            make install
            
