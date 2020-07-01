@@ -130,7 +130,9 @@ def InstallAndUsePyQt5(bUserInstall=False):
 	print("sys.executable",sys.executable, "is_conda",is_conda)
 	if is_conda:
 		import conda.cli
-		conda.cli.main('conda', 'install', '-y',"libglu", "numpy", "pillow", "pyqt={}.{}".format(major,minor))
+		conda.cli.main('conda', 'install', '-y',"numpy", "pillow", "pyqt={}.{}".format(major,minor))
+		conda.cli.main('conda', 'install', '-y','-c', 'conda-forge', 'libglu')
+		
 		# do I need PyQtWebEngine for conda? considers Qt is 5.9 (very old)
 		# it has webengine and sip included
 
