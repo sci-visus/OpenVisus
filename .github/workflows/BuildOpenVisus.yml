@@ -182,7 +182,13 @@ jobs:
            ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow jupyter matplotlib --upgrade 1>/dev/null 
       
            git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
-           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=/opt/qt512 -v $(pwd):/root/OpenVisus  -w /root/OpenVisus visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
+           docker run \
+              -e PYTHON_VERSION=${{ matrix.python-version }} \
+              -e Qt5_DIR=/opt/qt512 \
+              -v $PWD:$PWD  \
+              -w $PWD \
+              visus/portable-linux-binaries \
+              /bin/bash -c "./scripts/build_linux.sh"
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
 
@@ -385,13 +391,19 @@ jobs:
            set -x  # very verbose 
            
            git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
-           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=/opt/qt59 -v $(pwd):/root/OpenVisus -w /root/OpenVisus visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
+           docker run \
+              -e PYTHON_VERSION=${{ matrix.python-version }} \
+              -e Qt5_DIR=/opt/qt59 \
+              -v $PWD:$PWD \
+              -w $PWD \
+              visus/portable-linux-binaries \
+              /bin/bash -c "./scripts/build_linux.sh"
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
            
            cd build/Release/OpenVisus
            export PYTHONPATH=../ 
-           python -m OpenVisus configure || true # segmentation fault problem
+           python -m OpenVisus configure
            python -m OpenVisus test
            python -m OpenVisus test-gui || true
 

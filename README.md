@@ -316,8 +316,7 @@ it enables only minimal IDX read/write operations.
 For Windows/Visual Studio:
 
 ```
-mkdir build
-cd build
+mkdir build && cd build
 cmake -G "Visual Studio 16 2019" -A "x64" -DVISUS_MINIMAL=1 ../ 
 cmake --build . --target ALL_BUILD --config Release
 cmake --build . --target INSTALL   --config Release
@@ -328,8 +327,7 @@ For Windows/mingw
 ```
 choco install -y mingw
 set PATH=%PATH%;C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin
-mkdir build
-cd build
+mkdir build && cd build
 cmake -G "MinGW Makefiles" -DVISUS_MINIMAL=1 ../ 
 cmake --build . --target all       --config Release
 cmake --build . --target install   --config Release
@@ -338,8 +336,7 @@ cmake --build . --target install   --config Release
 For Apple/Xcode
 
 ```
-mkdir build 
-cd build
+mkdir build  && cd build
 cmake -GXcode -DVISUS_MINIMAL=1 ../
 cmake --build ./ --target ALL_BUILD --config Release --parallel 4
 cmake --build ./ --target install   --config Release
@@ -348,10 +345,11 @@ cmake --build ./ --target install   --config Release
 For Apple/gcc:
 
 ```
+
+brew install gcc
 export CC=cc-9
 export CXX=g++-9
-mkdir build
-cd build
+mkdir build && cd build
 cmake -G"Unix Makefiles" -DVISUS_MINIMAL=1 ../
 make -j 
 make install
@@ -361,8 +359,7 @@ make install
 For Linux/gcc:
 
 ```
-mkdir build 
-cd build
+mkdir build && cd build
 cmake -DVISUS_MINIMAL ../
 make -j
 make install
