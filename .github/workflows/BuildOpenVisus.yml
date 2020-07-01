@@ -47,34 +47,56 @@ jobs:
         dir: C:\
 
     # ____________________________________________
+    - name: Clone visuscpp  
+      run: git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
+
+    # ____________________________________________
+    - name: Clone opsray 
+      run: git clone https://github.com/sci-visus/ospray_win.git ExternalLibs/ospray_win
+
+    # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
+      env: 
+        Python_EXECUTABLE: ${pythonLocation}/python.exe
       run: |
-           set -e  # stop or error
-           set -x  # very verbose  
-           
-           PYTHON_VERSION=${{ matrix.python-version }}
-           Python_EXECUTABLE=${pythonLocation}/python.exe
-           
-           git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
-           git clone https://github.com/sci-visus/ospray_win.git ExternalLibs/ospray_win
+           set -e  
+           set -x    
            mkdir -p build
            cd build
            cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4
            cmake --build . --target install   --config Release
-          
-           cd Release/OpenVisus
+
+    # ____________________________________________
+    - name: Test OpenVisus 
+      shell: bash
+      env: 
+        Python_EXECUTABLE: ${pythonLocation}/python.exe
+      run: |
+           set -e  
+           set -x 
+           cd build/Release/OpenVisus
            export PYTHONPATH=../
            ${Python_EXECUTABLE} -m OpenVisus configure 
            ${Python_EXECUTABLE} -m OpenVisus test
            ${Python_EXECUTABLE} -m OpenVisus test-gui || true
-                 
+
+    # ____________________________________________
+    - name: Distrib OpenVisus 
+      shell: bash
+      env: 
+        PYTHON_VERSION: ${{ matrix.python-version }}
+        Python_EXECUTABLE: ${pythonLocation}/python.exe
+      run: |
+           set -e  
+           set -x       
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" ]] ; then
+             cd build/Release/OpenVisus
              ${Python_EXECUTABLE} -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
              ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=win_amd64
-             ${Python_EXECUTABLE} -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }}   --skip-existing  "dist/*.whl" 
+             ${Python_EXECUTABLE} -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --skip-existing  "dist/*.whl" 
            fi               
       
 
@@ -120,33 +142,52 @@ jobs:
         dir: /opt
 
     # ____________________________________________
+    - name: Clone visuscpp    
+      run: git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
+
+    # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
+      env: 
+        Python_EXECUTABLE: ${pythonLocation}/python
       run: |   
-           set -e  # stop or error
-           set -x  # very verbose  
-           
-           PYTHON_VERSION=${{ matrix.python-version }}  
-           Python_EXECUTABLE=${pythonLocation}/python 
-           
-           git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
+           set -e  
+           set -x    
            mkdir -p build
            cd build
            cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release 
-              
-           cd Release/OpenVisus
+
+    # ____________________________________________
+    - name: Test OpenVisus 
+      shell: bash
+      env: 
+        Python_EXECUTABLE: ${pythonLocation}/python
+      run: |   
+           set -e  
+           set -x    
+           cd build/Release/OpenVisus
            export PYTHONPATH=../
            ${Python_EXECUTABLE} -m OpenVisus configure
            ${Python_EXECUTABLE} -m OpenVisus test 
            ${Python_EXECUTABLE} -m OpenVisus test-gui || true
-              
-           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
+
+    # ____________________________________________
+    - name: Distrib OpenVisus 
+      shell: bash
+      env: 
+        PYTHON_VERSION: ${{ matrix.python-version }}
+        Python_EXECUTABLE: ${pythonLocation}/python
+      run: |      
+           set -e  
+           set -x    
+           cd build/Release/OpenVisus
            if [[ "${GIT_TAG}" != ""  ]] ; then
+              GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
               ${Python_EXECUTABLE} -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
               ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}  --plat-name=macosx_10_9_x86_64     
-              ${Python_EXECUTABLE} -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }}  --skip-existing  "dist/*.whl" 
+              ${Python_EXECUTABLE} -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --skip-existing  "dist/*.whl" 
            fi   
 
        
@@ -169,18 +210,19 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}      
+
+    # ____________________________________________
+    - name: Clone visuscpp    
+      run: git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
       
     # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
+      env: 
+        Python_EXECUTABLE: ${pythonLocation}/python
       run: |
-           set -e  # stop or error
-           set -x  # very verbose  
-           
-           PYTHON_VERSION=${{ matrix.python-version }}  
-           Python_EXECUTABLE=${pythonLocation}/python 
-           
-           git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
+           set -e  
+           set -x    
            docker run \
               -e PYTHON_VERSION=${{ matrix.python-version }} \
               -e Qt5_DIR=/opt/qt512 \
@@ -191,6 +233,14 @@ jobs:
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
 
+    # ____________________________________________
+    - name: Test OpenVisus 
+      shell: bash
+      env: 
+        Python_EXECUTABLE: ${pythonLocation}/python
+      run: |
+           set -e  
+           set -x   
            sudo apt-get install libglu1-mesa-dev
            cd build/Release/OpenVisus
            export PYTHONPATH=../
@@ -198,11 +248,21 @@ jobs:
            ${Python_EXECUTABLE} -m OpenVisus test 
            ${Python_EXECUTABLE} -m OpenVisus test-gui || true
 
+    # ____________________________________________
+    - name: Distrib OpenVisus 
+      shell: bash
+      env: 
+        PYTHON_VERSION: ${{ matrix.python-version }}
+        Python_EXECUTABLE: ${pythonLocation}/python
+      run: |
+           set -e  
+           set -x       
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" ]] ; then
+              cd build/Release/OpenVisus
               ${Python_EXECUTABLE} -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
               ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=manylinux2010_x86_64
-              ${Python_EXECUTABLE} -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }}  --skip-existing  "dist/*.whl" 
+              ${Python_EXECUTABLE} -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --skip-existing  "dist/*.whl" 
            fi
 
 
@@ -232,16 +292,23 @@ jobs:
       with:
         args: install -y --allow-empty-checksums --no-progress cmake swig  
         
-        
     # ____________________________________________
     - name: Install Miniconda 
       uses: goanpeca/setup-miniconda@v1
       with:
         miniconda-version: 'latest'    
         python-version: ${{ matrix.python-version }}
+
+    # ____________________________________________
+    - name: Clone visuscpp     
+      run: git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
+
+    # ____________________________________________
+    - name: Clone opsray    
+      run: git clone https://github.com/sci-visus/ospray_win.git ExternalLibs/ospray_win
         
     # ____________________________________________
-    - name: Compile OpenVisus 
+    - name: Create Miniconda 
       shell: bash -l {0}
       run: |
            conda activate                                                                  1>/dev/null
@@ -250,34 +317,49 @@ jobs:
            conda create -q -n tmp python=${{ matrix.python-version }}                      1>/dev/null
            conda activate tmp                                                              1>/dev/null 
            conda install pyqt                                                              1>/dev/null
-           
-           set -e  # stop or error
-           set -x  # very verbose  
-           
-           git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
-           git clone https://github.com/sci-visus/ospray_win.git ExternalLibs/ospray_win
+
+    # ____________________________________________
+    - name: Compile OpenVisus 
+      shell: bash -l {0}
+      run: |
+           set -e  
+           set -x   
+           conda activate tmp
            mkdir -p build 
            cd build
            cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${CONDA_PREFIX}/Library/lib/cmake/Qt5" -DPython_EXECUTABLE=$(which python) ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4 
            cmake --build . --target INSTALL   --config Release
-          
-           cd Release/OpenVisus
+
+    # ____________________________________________
+    - name: Test OpenVisus 
+      shell: bash -l {0}
+      run: |
+           set -e  
+           set -x   
+           conda activate tmp
+           cd build/Release/OpenVisus
            export PYTHONPATH=../
            python -m OpenVisus configure
            python -m OpenVisus test
            python -m OpenVisus test-gui || true
 
-           # https://anaconda.org/ViSUS/settings/access
+    # ____________________________________________
+    - name: Distrib OpenVisus 
+      shell: bash -l {0}   
+      run: |
+           set -e  
+           set -x   
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != ""  ]] ; then
+             conda activate tmp
+             cd build/Release/OpenVisus
              conda install anaconda-client 1>/dev/null || true
              rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
              python setup.py -q bdist_conda 1>/dev/null
              CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1) 
-             anaconda --verbose --show-traceback  -t ${{ secrets.ANACONDA_TOKEN }}  upload "${CONDA_FILENAME}"
+             anaconda --verbose --show-traceback  -t ${{ secrets.ANACONDA_TOKEN }}   upload "${CONDA_FILENAME}"
            fi
-
         
   # ///////////////////////////////////////////////////////////////
   Conda-MacOs:
@@ -317,44 +399,64 @@ jobs:
       with:
         miniconda-version: 'latest'    
         python-version: ${{ matrix.python-version }}
+
+    # ____________________________________________
+    - name: Clone visuscpp 
+      run: git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
         
+    # ____________________________________________
+    - name: Create Miniconda 
+      shell: bash -l {0}
+      run: |
+           conda activate                                                                  1>/dev/null
+           conda update -n base -c defaults conda                                          1>/dev/null
+           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
+           conda create -q -n tmp python=${{ matrix.python-version }}                      1>/dev/null
+           conda activate tmp                                                              1>/dev/null 
+           conda install pyqt                                                              1>/dev/null
+
     # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash -l {0}
       run: | 
-           conda activate                                                                 1>/dev/null
-           conda update -n base -c defaults conda                                         1>/dev/null
-           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no  1>/dev/null
-           conda create -q -n tmp python=${{ matrix.python-version }}                     1>/dev/null
-           conda activate tmp                                                             1>/dev/null 
-           conda install pyqt                                                             1>/dev/null
-           
-           set -e  # stop or error
-           set -x  # very verbose  
-           
-           git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
+           set -e  
+           set -x    
+           conda activate tmp
            mkdir -p build 
            cd build
            cmake -GXcode -DPython_EXECUTABLE=$(which python) -DQt5_DIR="${CONDA_PREFIX}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release
-          
-           cd Release/OpenVisus
+         
+    # ____________________________________________
+    - name: Test OpenVisus 
+      shell: bash -l {0}
+      run: |
+           set -e  
+           set -x   
+           conda activate tmp
+           cd build/Release/OpenVisus
            export PYTHONPATH=../
            python -m OpenVisus configure
            python -m OpenVisus test
-           python -m OpenVisus test-gui || true
+           python -m OpenVisus test-gui || true         
 
-           # https://anaconda.org/ViSUS/settings/access
+    # ____________________________________________
+    - name: Distrib OpenVisus 
+      shell: bash -l {0}
+      run: |
+           set -e  
+           set -x   
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != ""  ]] ; then
+             conda activate tmp
+             cd build/Release/OpenVisus
              conda install anaconda-client 1>/dev/null || true
              rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
              python setup.py -q bdist_conda 1>/dev/null
              CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1) 
              anaconda --verbose --show-traceback  -t ${{ secrets.ANACONDA_TOKEN }}  upload "${CONDA_FILENAME}"
            fi
-  
 
   # ///////////////////////////////////////////////////////////////
   Conda-Ubuntu:
@@ -376,24 +478,27 @@ jobs:
       with:
         miniconda-version: 'latest'    
         python-version: ${{ matrix.python-version }}
-                    
-      
     # ____________________________________________
-    - name: Compile OpenVisus 
+    - name: Clone visuscpp 
+      run:  git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
+
+    # ____________________________________________
+    - name: Create Miniconda 
       shell: bash -l {0}
       run: |
-
            conda activate                                                                  1>/dev/null
            conda update -n base -c defaults conda                                          1>/dev/null
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
            conda create -q -n tmp python=${{ matrix.python-version }}                      1>/dev/null
            conda activate tmp                                                              1>/dev/null 
            conda install pyqt                                                              1>/dev/null
-           
-           set -e  # stop or error
-           set -x  # very verbose 
-           
-           git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
+
+    # ____________________________________________
+    - name: Compile OpenVisus 
+      shell: bash -l {0}
+      run: |
+           set -e  
+           set -x 
            docker run \
               -e PYTHON_VERSION=${{ matrix.python-version }} \
               -e Qt5_DIR=/opt/qt59 \
@@ -403,20 +508,33 @@ jobs:
               /bin/bash -c "./scripts/build_linux.sh"
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
-           
+        
+     # ____________________________________________
+    - name: Test OpenVisus 
+      shell: bash -l {0}
+      run: |
+           set -e  
+           set -x   
+           conda activate tmp
            cd build/Release/OpenVisus
-           export PYTHONPATH=../ 
-           python -m OpenVisus configure  || true  # segmentation fault problem
+           export PYTHONPATH=../
+           python -m OpenVisus configure || true  # segmentation fault problem
            python -m OpenVisus test
-           python -m OpenVisus test-gui || true
+           python -m OpenVisus test-gui || true           
 
-           # https://anaconda.org/ViSUS/settings/access
+    # ____________________________________________
+    - name: Distrib OpenVisus 
+      shell: bash -l {0}  
+      run: |
+           set -e  
+           set -x   
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != ""  ]] ; then
-             conda install anaconda-client 1>/dev/null || trie
+             conda activate tmp
+             cd build/Release/OpenVisus
+             conda install anaconda-client 1>/dev/null || true
              rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
              python setup.py -q bdist_conda 1>/dev/null
              CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1) 
              anaconda --verbose --show-traceback  -t ${{ secrets.ANACONDA_TOKEN }}  upload "${CONDA_FILENAME}"
            fi
-
