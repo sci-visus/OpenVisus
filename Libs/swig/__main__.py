@@ -121,16 +121,15 @@ def InstallAndUsePyQt5(bUserInstall=False):
 	QT_VERSION=ReadTextFile("QT_VERSION")
 	print("Installing PyQt5...",QT_VERSION)
 	major,minor=QT_VERSION.split('.')[0:2]
-
-	try:
-		import conda.cli
-		bIsConda=True
-	except:
-		bIsConda=False
 		
+		
+	# see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
+	is_conda = os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history'))
 	
-	print("sys.executable",sys.executable, "IsConda",bIsConda)
-	if bIsConda:
+
+	print("sys.executable",sys.executable, "is_conda",is_conda)
+	if is_conda:
+		import conda.cli
 		conda.cli.main('conda', 'install', '-y',"libglu", "numpy", "pillow", "pyqt={}.{}".format(major,minor))
 		# do I need PyQtWebEngine for conda? considers Qt is 5.9 (very old)
 		# it has webengine and sip included
@@ -168,7 +167,7 @@ def InstallAndUsePyQt5(bUserInstall=False):
 	if WIN32:
 		return
 		
-	if bIsConda:
+	if is_conda:
 		CONDA_PREFIX=os.environ['CONDA_PREFIX']
 		print("CONDA_PREFIX",CONDA_PREFIX)
 		QT5_LIB_DIR="{}/lib".format(CONDA_PREFIX)
@@ -191,7 +190,7 @@ def InstallAndUsePyQt5(bUserInstall=False):
 			print("FIXING FILENAME",filename,"________________")
 			
 			# example .../libQt5*.dylib -> @rpath/libQt5*.dylib
-			if bIsConda:
+			if is_conda:
 				for Old in GetCommandOutput("otool -L %s | grep '.*/libQt5.*\.dylib' | awk '{print $1;}'" % filename, shell=True).splitlines():
 					New="@rpath/libQt5" + Old.split("libQt5", 1)[1]
 					ExecuteCommand(["install_name_tool","-change", Old, New, filename])

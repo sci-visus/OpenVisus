@@ -71,6 +71,7 @@ jobs:
       if: matrix.python-type == 'conda'
       shell: bash -l {0}
       run: |
+           conda update -n base -c defaults conda                                          1>/dev/null
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
            conda install pyqt                                                              1>/dev/null        
 
@@ -134,7 +135,7 @@ jobs:
       shell: bash -l {0}
       run: |
            if [[  "${{ matrix.python-type }}" == "cpython" ]] ; then Python_EXECUTABLE=${pythonLocation}/python ; fi
-           if [[  "${{ matrix.python-type }}" == "conda"   ]] ; then Python_EXECUTABLE=$(which python)          ; fi      
+           if [[  "${{ matrix.python-type }}" == "conda"   ]] ; then Python_EXECUTABLE=$(which python)          ; fi
            if [[  "${{ matrix.python-type }}" == "conda"   ]] ; then Qt5_Dir=${CONDA_PREFIX} ; fi
            mkdir -p build
            cd build
@@ -159,11 +160,14 @@ jobs:
     - name: Test OpenVisus 
       shell: bash -l {0}
       run: |
+           set -x
+           if [[  "${{ matrix.python-type }}" == "cpython" ]] ; then Python=${pythonLocation}/python ; fi
+           if [[  "${{ matrix.python-type }}" == "conda"   ]] ; then Python=python                   ; fi
            cd build/Release/OpenVisus
            export PYTHONPATH=../
-           python  -m OpenVisus configure  || true  # segmentation fault problem on linux
-           python  -m OpenVisus test
-           python  -m OpenVisus test-gui || true
+           ${Python}  -m OpenVisus configure  || true  # segmentation fault problem on linux
+           ${Python}  -m OpenVisus test
+           ${Python}  -m OpenVisus test-gui 
 
     # ____________________________________________
     - name: Distrib OpenVisus on pypi
@@ -173,13 +177,13 @@ jobs:
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" ]] ; then
              cd build/Release/OpenVisus
-             python -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
-             PYTHON_VERSION=${{ matrix.python-version }}
+             Version=${{ matrix.python-version }}
              if [[  "${{ matrix.os }}" == "windows-latest" ]] ; then PLATFORM_NAME=win_amd64            ; fi
              if [[  "${{ matrix.os }}" == "macos-latest"   ]] ; then PLATFORM_NAME=macosx_10_9_x86_64   ; fi
-             if [[  "${{ matrix.os }}" == "ubuntu-latest"  ]] ; then PLATFORM_NAME=manylinux2010_x86_64 ; fi
-             python setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=${PLATFORM_NAME}
-             python -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --skip-existing  "dist/*.whl" 
+             if [[  "${{ matrix.os }}" == "ubuntu-latest"  ]] ; then PLATFORM_NAME=manylinux2010_x86_64 ; fi             
+             ${pythonLocation}/python -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
+             ${pythonLocation}/python setup.py -q bdist_wheel --python-tag=cp${Version:0:1}${Version:2:1} --plat-name=${PLATFORM_NAME}
+             ${pythonLocation}/python -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --skip-existing  "dist/*.whl" 
            fi               
 
     # ____________________________________________
