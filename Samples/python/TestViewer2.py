@@ -17,7 +17,11 @@ import PyQt5
 from   PyQt5.QtCore    import *
 from   PyQt5.QtWidgets import *
 from   PyQt5.QtGui     import *
-import PyQt5.sip
+
+try:
+    from PyQt5 import sip as  sip
+except ImportError:
+    import sip
 
 from PyQt5.QtWidgets import QApplication
 
@@ -88,7 +92,7 @@ def Main(argv):
 
 	# example of adding a PyQt5 widget to C++ Qt
 	mywidget=MyWidget()
-	viewer.addDockWidget("MyWidget",ToCppQtWidget(PyQt5.sip.unwrapinstance(mywidget)))
+	viewer.addDockWidget("MyWidget",ToCppQtWidget(sip.unwrapinstance(mywidget)))
 
 	# example of adding a python node to the dataflow
 	root=viewer.getRoot()

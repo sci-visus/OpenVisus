@@ -55,8 +55,7 @@ jobs:
            
            PYTHON_VERSION=${{ matrix.python-version }}
            Python_EXECUTABLE=${pythonLocation}/python.exe
-           ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow jupyter matplotlib --upgrade 1>/dev/null 
-
+           
            git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
            git clone https://github.com/sci-visus/ospray_win.git ExternalLibs/ospray_win
            mkdir -p build
@@ -73,6 +72,7 @@ jobs:
                  
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" ]] ; then
+             ${Python_EXECUTABLE} -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
              ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=win_amd64
              ${Python_EXECUTABLE} -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }}   --skip-existing  "dist/*.whl" 
            fi               
@@ -128,8 +128,7 @@ jobs:
            
            PYTHON_VERSION=${{ matrix.python-version }}  
            Python_EXECUTABLE=${pythonLocation}/python 
-           ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow jupyter matplotlib --upgrade 1>/dev/null 
-
+           
            git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
            mkdir -p build
            cd build
@@ -145,6 +144,7 @@ jobs:
               
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != ""  ]] ; then
+              ${Python_EXECUTABLE} -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
               ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}  --plat-name=macosx_10_9_x86_64     
               ${Python_EXECUTABLE} -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }}  --skip-existing  "dist/*.whl" 
            fi   
@@ -179,8 +179,7 @@ jobs:
            
            PYTHON_VERSION=${{ matrix.python-version }}  
            Python_EXECUTABLE=${pythonLocation}/python 
-           ${Python_EXECUTABLE} -m pip install numpy setuptools wheel twine Pillow jupyter matplotlib --upgrade 1>/dev/null 
-      
+           
            git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
            docker run \
               -e PYTHON_VERSION=${{ matrix.python-version }} \
@@ -192,6 +191,7 @@ jobs:
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
 
+           sudo apt-get install libglu1-mesa-dev
            cd build/Release/OpenVisus
            export PYTHONPATH=../
            ${Python_EXECUTABLE} -m OpenVisus configure  || true  # segmentation fault problem
@@ -200,6 +200,7 @@ jobs:
 
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" ]] ; then
+              ${Python_EXECUTABLE} -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
               ${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=manylinux2010_x86_64
               ${Python_EXECUTABLE} -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }}  --skip-existing  "dist/*.whl" 
            fi
@@ -248,7 +249,6 @@ jobs:
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
            conda create -q -n tmp python=${{ matrix.python-version }} numpy                1>/dev/null
            conda activate tmp                                                              1>/dev/null
-           conda install conda-build anaconda-client numpy  pillow jupyter matplotlib pyqt 1>/dev/null 
            
            set -e  # stop or error
            set -x  # very verbose  
@@ -270,9 +270,10 @@ jobs:
            # https://anaconda.org/ViSUS/settings/access
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != ""  ]] ; then
-             rm -Rf $(find ${CONDA} -iname "openvisus*.tar.bz2")  || true
+             conda install anaconda-client 1>/dev/null || true
+             rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
              python setup.py -q bdist_conda 1>/dev/null
-             CONDA_FILENAME=$(find ${CONDA} -iname "openvisus*.tar.bz2"  | head -n 1) 
+             CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1) 
              anaconda --verbose --show-traceback  -t ${{ secrets.ANACONDA_TOKEN }}  upload "${CONDA_FILENAME}"
            fi
 
@@ -324,8 +325,7 @@ jobs:
            conda update -n base -c defaults conda                                         1>/dev/null
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no  1>/dev/null
            conda create -q -n tmp python=${{ matrix.python-version }} numpy               1>/dev/null
-           conda activate tmp                                                             1>/dev/null
-           conda install conda-build anaconda-client numpy pillow jupyter matplotlib pyqt 1>/dev/null  
+           conda activate tmp                                                             1>/dev/null 
            
            set -e  # stop or error
            set -x  # very verbose  
@@ -346,9 +346,10 @@ jobs:
            # https://anaconda.org/ViSUS/settings/access
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != ""  ]] ; then
-             rm -Rf $(find ${CONDA} -iname "openvisus*.tar.bz2")  || true
+             conda install anaconda-client 1>/dev/null || true
+             rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
              python setup.py -q bdist_conda 1>/dev/null
-             CONDA_FILENAME=$(find ${CONDA} -iname "openvisus*.tar.bz2"  | head -n 1) 
+             CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1) 
              anaconda --verbose --show-traceback  -t ${{ secrets.ANACONDA_TOKEN }}  upload "${CONDA_FILENAME}"
            fi
   
@@ -385,7 +386,6 @@ jobs:
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
            conda create -q -n tmp python=${{ matrix.python-version }} numpy                1>/dev/null
            conda activate tmp                                                              1>/dev/null
-           conda install conda-build anaconda-client numpy pillow jupyter matplotlib pyqt  1>/dev/null 
            
            set -e  # stop or error
            set -x  # very verbose 
@@ -410,9 +410,10 @@ jobs:
            # https://anaconda.org/ViSUS/settings/access
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != ""  ]] ; then
-             rm -Rf $(find ${CONDA} -iname "openvisus*.tar.bz2")  || true
+             conda install anaconda-client 1>/dev/null || trie
+             rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
              python setup.py -q bdist_conda 1>/dev/null
-             CONDA_FILENAME=$(find ${CONDA} -iname "openvisus*.tar.bz2"  | head -n 1) 
+             CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1) 
              anaconda --verbose --show-traceback  -t ${{ secrets.ANACONDA_TOKEN }}  upload "${CONDA_FILENAME}"
            fi
 
