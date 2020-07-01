@@ -57,11 +57,10 @@ jobs:
     # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
-      env: 
-        Python_EXECUTABLE: ${{ pythonLocation }}/python.exe
       run: |
            set -e  
            set -x    
+           Python_EXECUTABLE=${{ pythonLocation }}/python.exe
            mkdir -p build
            cd build
            cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} ../
@@ -71,11 +70,10 @@ jobs:
     # ____________________________________________
     - name: Test OpenVisus 
       shell: bash
-      env: 
-        Python_EXECUTABLE: ${{ pythonLocation }}/python.exe
       run: |
            set -e  
-           set -x 
+           set -x    
+           Python_EXECUTABLE=${{ pythonLocation }}/python.exe
            cd build/Release/OpenVisus
            export PYTHONPATH=../
            ${Python_EXECUTABLE} -m OpenVisus configure 
@@ -85,12 +83,11 @@ jobs:
     # ____________________________________________
     - name: Distrib OpenVisus 
       shell: bash
-      env: 
-        PYTHON_VERSION: ${{ matrix.python-version }}
-        Python_EXECUTABLE: ${{ pythonLocation }}/python.exe
       run: |
            set -e  
-           set -x       
+           set -x    
+           PYTHON_VERSION=${{ matrix.python-version }}
+           Python_EXECUTABLE=${{ pythonLocation }}/python.exe
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" ]] ; then
              cd build/Release/OpenVisus
@@ -148,11 +145,10 @@ jobs:
     # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
-      env: 
-        Python_EXECUTABLE: ${{ pythonLocation }}/python
       run: |   
            set -e  
-           set -x    
+           set -x
+           Python_EXECUTABLE=${{ pythonLocation }}/python
            mkdir -p build
            cd build
            cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" ../
@@ -162,11 +158,10 @@ jobs:
     # ____________________________________________
     - name: Test OpenVisus 
       shell: bash
-      env: 
-        Python_EXECUTABLE: ${{ pythonLocation }}/python
       run: |   
            set -e  
-           set -x    
+           set -x 
+           Python_EXECUTABLE=${{ pythonLocation }}/python
            cd build/Release/OpenVisus
            export PYTHONPATH=../
            ${Python_EXECUTABLE} -m OpenVisus configure
@@ -176,12 +171,11 @@ jobs:
     # ____________________________________________
     - name: Distrib OpenVisus 
       shell: bash
-      env: 
-        PYTHON_VERSION: ${{ matrix.python-version }}
-        Python_EXECUTABLE: ${{ pythonLocation }}/python
       run: |      
            set -e  
-           set -x    
+           set -x
+           PYTHON_VERSION=${{ matrix.python-version }}
+           Python_EXECUTABLE=${{ pythonLocation }}/python
            cd build/Release/OpenVisus
            if [[ "${GIT_TAG}" != ""  ]] ; then
               GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
@@ -218,31 +212,22 @@ jobs:
     # ____________________________________________
     - name: Compile OpenVisus 
       shell: bash
-      env: 
-        Python_EXECUTABLE: ${{ pythonLocation }}/python
       run: |
            set -e  
-           set -x    
-           docker run \
-              -e PYTHON_VERSION=${{ matrix.python-version }} \
-              -e Qt5_DIR=/opt/qt512 \
-              -v $PWD:$PWD  \
-              -w $PWD \
-              visus/portable-linux-binaries \
-              /bin/bash -c "./scripts/build_linux.sh"
+           set -x
+           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=/opt/qt512 -v $PWD:$PWD  -w $PWD visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
 
     # ____________________________________________
     - name: Test OpenVisus 
       shell: bash
-      env: 
-        Python_EXECUTABLE: ${{ pythonLocation }}/python
       run: |
            set -e  
            set -x   
            sudo apt-get install libglu1-mesa-dev 1>/dev/null
            cd build/Release/OpenVisus
+           Python_EXECUTABLE=${{ pythonLocation }}/python
            export PYTHONPATH=../
            ${Python_EXECUTABLE} -m OpenVisus configure  || true  # segmentation fault problem
            ${Python_EXECUTABLE} -m OpenVisus test 
@@ -251,12 +236,11 @@ jobs:
     # ____________________________________________
     - name: Distrib OpenVisus 
       shell: bash
-      env: 
-        PYTHON_VERSION: ${{ matrix.python-version }}
-        Python_EXECUTABLE: ${{ pythonLocation }}/python
       run: |
            set -e  
-           set -x       
+           set -x    
+           PYTHON_VERSION=${{ matrix.python-version }}
+           Python_EXECUTABLE=${{ pythonLocation }}/python  
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" ]] ; then
               cd build/Release/OpenVisus
@@ -499,13 +483,7 @@ jobs:
       run: |
            set -e  
            set -x 
-           docker run \
-              -e PYTHON_VERSION=${{ matrix.python-version }} \
-              -e Qt5_DIR=/opt/qt59 \
-              -v $PWD:$PWD \
-              -w $PWD \
-              visus/portable-linux-binaries \
-              /bin/bash -c "./scripts/build_linux.sh"
+           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=/opt/qt59 -v $PWD:$PWD -w $PWD visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
         
