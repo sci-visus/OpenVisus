@@ -132,12 +132,13 @@ def InstallAndUsePyQt5(bUserInstall=False):
 		import conda.cli
 		conda.cli.main('conda', 'install', '-y',"numpy", "pillow", "pyqt={}.{}".format(major,minor))
 		conda.cli.main('conda', 'install', '-y','-c', 'conda-forge', 'libglu')
+		conda.cli.main('conda', 'update', '-y', 'numpy') # for some unknown reason I get: RuntimeError: module compiled against API version 0xc but this version of numpy is 0xa
 		
 		# do I need PyQtWebEngine for conda? considers Qt is 5.9 (very old)
 		# it has webengine and sip included
 
 	else:
-		cmd=[sys.executable,"-m", "pip", "install"]
+		cmd=[sys.executable,"-m", "pip", "install", "--upgrade"]
 		
 		if bUserInstall: 
 			cmd+=["--user"]
