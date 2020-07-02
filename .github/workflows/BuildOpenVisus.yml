@@ -19,10 +19,11 @@ jobs:
     
     # ____________________________________________
     - name: Filter jobs
+      shell: bash
       run: |
-           if [[ "${{ matrix.python-type }}" == "conda" &&  "${{ matrix.python-version }}" != "3.8" ]] ; then
+           if [[ "${{ matrix.python-type }}" == "conda" && "${{ matrix.python-version }}" != "3.8" ]] ; then
              echo "Skipping (${{ matrix.python-version }} ${{ matrix.os }} ${{ matrix.python-type }}) since python 3.8 is not yet supported on conda"
-             exit 0           
+             exit 0
            fi
            
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
