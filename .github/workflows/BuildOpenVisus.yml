@@ -11,26 +11,23 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [  '3.6', '3.7', '3.8' ] 
+        python-version: [  '3.6' ] 
         os: ["windows-latest", "macos-latest", "ubuntu-latest"]
         python-type: ["cpython", "conda"]
-      
+        exclude:
+           - python-version: 3.8
+             os: windows-latest
+             python-type: conda
+           - python-version: 3.8
+             os: macos-latest
+             python-type: conda
+           - python-version: 3.8
+             os: ubuntu-latest
+             python-type: conda
+             
     steps:
     
-    # ____________________________________________
-    - name: Filter jobs
-      shell: bash
-      run: |
-           if [[ "${{ matrix.python-type }}" == "conda" && "${{ matrix.python-version }}" != "3.8" ]] ; then
-             echo "Skipping (${{ matrix.python-version }} ${{ matrix.os }} ${{ matrix.python-type }}) since python 3.8 is not yet supported on conda"
-             exit 0
-           fi
-           
-           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-           if [[ "${GIT_TAG}" == ""  &&  "${{ matrix.python-version }}" != "3.6" ]] ; then
-             echo "Skipping (${{ matrix.python-version }} ${{ matrix.os }} ${{ matrix.python-type }}) since it is not a tagged version"
-             exit 0
-           fi
+
     
     # ____________________________________________
     - name: Install CMake
