@@ -28,6 +28,15 @@ jobs:
     steps:
     
     # ____________________________________________
+    - name: Filter jobs
+      run: |
+           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
+           if [[ "${GIT_TAG}" == ""  &&  "${{ matrix.python-version }}" != "3.6" ]] ; then
+             print "Skipping (${{ matrix.python-version }} ${{ matrix.python-os }} ${{ matrix.python-type }}) since it is not a tagged version"
+             exit 0
+           fi
+    
+    # ____________________________________________
     - name: Install CMake
       uses: lukka/get-cmake@latest
       
@@ -101,7 +110,7 @@ jobs:
 
     # ____________________________________________
     - name: Install glu on ubuntu
-      if: matrix.os == 'ubuntu-latest' && matrix.python-type == 'cpython'
+      if: matrix.os == 'ubuntu-latest'
       shell: bash
       run: sudo apt-get install libglu1-mesa-dev 1>/dev/null
 
@@ -154,21 +163,16 @@ jobs:
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release 
 
-    # ____________________________________________
-    - name: Compile OpenVisus on ubuntu cpython
-      if: matrix.os == 'ubuntu-latest' && matrix.python-type == 'cpython'
-      shell: bash 
-      run: |
-           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=/opt/qt512 -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
-           sudo chown -R root:root  build
-           sudo chmod -R a+rwx      build
+ 
 
     # ____________________________________________
-    - name: Compile OpenVisus on ubuntu conda
-      if: matrix.os == 'ubuntu-latest' && matrix.python-type == 'cpython'
+    - name: Compile OpenVisus on ubuntu
+      if: matrix.os == 'ubuntu-latest' 
       shell: bash -l {0}
       run: |
-           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=/opt/qt59 -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
+           if [[ "${{ matrix.python-type }}" == "cpython" ]] ; then Qt5_DIR=/opt/qt512  ; fi
+           if [[ "${{ matrix.python-type }}" == "conda"   ]] ; then Qt5_DIR=/opt/qt59   ; fi
+           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=$Qt5_DIR -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
 
