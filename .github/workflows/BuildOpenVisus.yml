@@ -36,7 +36,7 @@ jobs:
       if: matrix.os == 'windows-latest'
       uses: crazy-max/ghaction-chocolatey@v1
       with:
-        args: install -y --allow-empty-checksums --no-progress cmake swig
+        args: install -y --allow-empty-checksums --no-progress swig
         
     # ____________________________________________  
     - name: Install Swig for macos
@@ -46,7 +46,13 @@ jobs:
     # ____________________________________________  
     - name: Install SDK 10.9 for macos 
       if: matrix.os == 'macos-latest'
-      run: cd /opt && git clone https://github.com/phracker/MacOSX-SDKs.git 
+      shell: bash 
+      uses: nick-invision/retry@v1
+      with:
+        max_attempts: 3
+        timeout_minutes: 5
+        retry_wait_seconds: 5
+        command: 'cd /opt && git clone https://github.com/phracker/MacOSX-SDKs.git '
            
     # ____________________________________________
     - name: Install CPython 
@@ -106,12 +112,24 @@ jobs:
       
     # ____________________________________________
     - name: git clone visuscpp  
-      run: git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
+      shell: bash 
+      uses: nick-invision/retry@v1
+      with:
+        max_attempts: 3
+        timeout_minutes: 4
+        retry_wait_seconds: 5
+        command: 'git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp'
 
     # ____________________________________________
     - name: git clone opsray for windows
-      if: matrix.os == 'windows-latest'    
-      run: git clone https://github.com/sci-visus/ospray_win.git  ExternalLibs/ospray_win
+      shell: bash 
+      if: matrix.os == 'windows-latest'
+      uses: nick-invision/retry@v1
+      with:
+        max_attempts: 3
+        timeout_minutes: 4
+        retry_wait_seconds: 5
+        command: 'git clone https://github.com/sci-visus/ospray_win.git  ExternalLibs/ospray_win'
 
     # ____________________________________________
     - name: Compile OpenVisus on windows
@@ -140,8 +158,6 @@ jobs:
            cmake -GXcode -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" -DPython_EXECUTABLE=${Python_EXECUTABLE}  ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release 
-
- 
 
     # ____________________________________________
     - name: Compile OpenVisus on ubuntu
@@ -205,7 +221,7 @@ jobs:
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != ""  ]] ; then
              cd build/Release/OpenVisus
-             conda install anaconda-client 1>/dev/null || true
+             conda install anaconda-client conda-build 1>/dev/null || true #conda-build is needed for 'bdist_conda'
              rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
              python setup.py -q bdist_conda 1>/dev/null
              CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1) 
@@ -274,7 +290,7 @@ jobs:
     - name: Compile OpenVisus on ubuntu
       if: matrix.os == 'ubuntu-latest'
       shell: bash 
-      run: |    
+      run: |
            mkdir build 
            cd build 
            cmake -DVISUS_MINIMAL=1 ../
