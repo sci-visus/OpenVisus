@@ -152,13 +152,13 @@ def InstallAndUsePyQt5(bUserInstall=False):
 
 		ExecuteCommand(cmd,check_result=True)
 
-		# this should cover the case where I just installed PyQt5
-		PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip()
-		found_QT_VERSION=GetCommandOutput([sys.executable,"-c","from PyQt5 import Qt; print(vars(Qt)['QT_VERSION_STR'])"]).strip().split(".")
-		print("Linking','PyQt5_HOME",PyQt5_HOME, 'found_QT_VERSION',found_QT_VERSION)
-		
-		if found_QT_VERSION[0]!=major or found_QT_VERSION[1]!=minor:
-			raise Exception("THere is a problem with getting the right Qt5 version. Please try 'export PYTHONNOUSERSITE=True' needed({}.{}) found({}.{})".format(major,minor,found_QT_VERSION[0],found_QT_VERSION[1],))
+	# this should cover the case where I just installed PyQt5
+	PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip()
+	found_QT_VERSION=GetCommandOutput([sys.executable,"-c","from PyQt5 import Qt; print(vars(Qt)['QT_VERSION_STR'])"]).strip().split(".")
+	print("Linking','PyQt5_HOME",PyQt5_HOME, 'found_QT_VERSION',found_QT_VERSION)
+	
+	if found_QT_VERSION[0]!=major or found_QT_VERSION[1]!=minor:
+		raise Exception("THere is a problem with getting the right Qt5 version. Please try 'export PYTHONNOUSERSITE=True' needed({}.{}) found({}.{})".format(major,minor,found_QT_VERSION[0],found_QT_VERSION[1],))
 	
 	if not os.path.isdir(PyQt5_HOME):
 		print("Error directory does not exists")
