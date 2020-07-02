@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [  '3.6', '3.7', '3.8' ] 
+        python-version: [  '3.6' ] 
         os: ["windows-latest", "macos-latest", "ubuntu-latest"]
         python-type: ["cpython", "conda"]
         exclude:
@@ -106,12 +106,16 @@ jobs:
       
     # ____________________________________________
     - name: git clone visuscpp  
-      run: git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
+      run: |
+           URL=https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
+           git clone $URL || git clone $URL || git clone $URL
 
     # ____________________________________________
     - name: git clone opsray for windows
       if: matrix.os == 'windows-latest'    
-      run: git clone https://github.com/sci-visus/ospray_win.git ExternalLibs/ospray_win
+      run: |
+           URL=https://github.com/sci-visus/ospray_win.git ExternalLibs/ospray_win
+           git clone $URL || git clone $URL || git clone $URL
 
     # ____________________________________________
     - name: Compile OpenVisus on windows
@@ -161,9 +165,11 @@ jobs:
 
     # ____________________________________________
     - name: Test OpenVisus on cpython
-      shell: bash -l {0}
+      if: matrix.python-type == 'cpython'
+      shell: bash
       run: |
            set -x
+           which python
            cd build/Release/OpenVisus
            export PYTHONPATH=../
            ${pythonLocation}/python  -m OpenVisus configure  || true  # segmentation fault problem on linux
@@ -172,9 +178,11 @@ jobs:
 
     # ____________________________________________
     - name: Test OpenVisus on conda
+      if: matrix.python-type == 'conda'
       shell: bash -l {0}
       run: |
            set -x
+           which python
            cd build/Release/OpenVisus
            export PYTHONPATH=../
            python -m OpenVisus configure  || true  # segmentation fault problem on linux
