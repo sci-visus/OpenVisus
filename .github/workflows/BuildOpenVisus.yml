@@ -32,8 +32,8 @@ jobs:
       run: |
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" == ""  &&  "${{ matrix.python-version }}" != "3.6" ]] ; then
-             print "Skipping (${{ matrix.python-version }} ${{ matrix.python-os }} ${{ matrix.python-type }}) since it is not a tagged version"
-             exit 0
+             print "Skipping (${{ matrix.python-version }} ${{ matrix.os }} ${{ matrix.python-type }}) since it is not a tagged version"
+             exit 1
            fi
     
     # ____________________________________________
