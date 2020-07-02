@@ -27,8 +27,6 @@ jobs:
              
     steps:
     
-
-    
     # ____________________________________________
     - name: Install CMake
       uses: lukka/get-cmake@latest
@@ -48,12 +46,7 @@ jobs:
     # ____________________________________________  
     - name: Install SDK 10.9 for macos 
       if: matrix.os == 'macos-latest'
-      run: |
-           cd /opt 
-           URL=https://github.com/phracker/MacOSX-SDKs.git 
-           git clone $URL || \
-           git clone $URL || \
-           git clone $URL
+      run: cd /opt && git clone https://github.com/phracker/MacOSX-SDKs.git 
            
     # ____________________________________________
     - name: Install CPython 
@@ -113,20 +106,12 @@ jobs:
       
     # ____________________________________________
     - name: git clone visuscpp  
-      run: |
-           URL=https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git
-           git clone $URL Libs/slamcpp || \
-           git clone $URL Libs/slamcpp || \
-           git clone $URL Libs/slamcpp
+      run: git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp
 
     # ____________________________________________
     - name: git clone opsray for windows
       if: matrix.os == 'windows-latest'    
-      run: |
-           URL=https://github.com/sci-visus/ospray_win.git 
-           git clone $URL ExternalLibs/ospray_win || \
-           git clone $URL ExternalLibs/ospray_win || \
-           git clone $URL ExternalLibs/ospray_win
+      run: git clone https://github.com/sci-visus/ospray_win.git  ExternalLibs/ospray_win
 
     # ____________________________________________
     - name: Compile OpenVisus on windows
