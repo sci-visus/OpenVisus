@@ -42,8 +42,13 @@ python -m OpenVisus viewer
 If you are using `conda`:
 
 ```
-conda install --yes --channel visus openvisus
-python -m OpenVisus configure 
+conda install -y --channel visus openvisus
+
+# IMPORTANT trick to avoid problems with other pip packages installed in ~/.local (see https://github.com/conda/conda/issues/7173)
+export PYTHONNOUSERSITE=True 
+
+conda install -y conda
+python -m OpenVisus configure
 python -m OpenVisus viewer
 ```
 

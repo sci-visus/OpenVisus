@@ -121,30 +121,30 @@ def InstallAndUsePyQt5(bUserInstall=False):
 	QT_VERSION=ReadTextFile("QT_VERSION")
 	print("Installing PyQt5...",QT_VERSION)
 	major,minor=QT_VERSION.split('.')[0:2]
-		
-		
+
 	# see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
 	is_conda = os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history'))
 	
-
+	# NOTE: I'm installing packages here because I have problems specifying them in setup.py. Worth to give another try?
 	print("sys.executable",sys.executable, "is_conda",is_conda)
 	if is_conda:
 		import conda.cli
-		conda.cli.main('conda', 'install', '-y',"numpy", "pillow", "pyqt={}.{}".format(major,minor))
+		conda.cli.main('conda', 'install', '-y',"numpy", "pillow", "opencv", "pyqt={}.{}".format(major,minor))
 		conda.cli.main('conda', 'install', '-y','-c', 'conda-forge', 'libglu')
-		conda.cli.main('conda', 'update', '-y', 'numpy') # for some unknown reason I get: RuntimeError: module compiled against API version 0xc but this version of numpy is 0xa
+		
+		# for some unknown reason I get: RuntimeError: module compiled against API version 0xc but this version of numpy is 0xa
+		conda.cli.main('conda', 'update', '-y', 'numpy') 
 		
 		# do I need PyQtWebEngine for conda? considers Qt is 5.9 (very old)
 		# it has webengine and sip included
 
 	else:
-		cmd=[sys.executable,"-m", "pip", "install", "--upgrade"]
+		cmd=[sys.executable,"-m", "pip", "install", "--upgrade"] 
 		
 		if bUserInstall: 
 			cmd+=["--user"]
 			
-		cmd+=["numpy","pillow"]
-		cmd+=["PyQt5~={}.{}.0".format(major,minor)]
+		cmd+=["numpy","pillow","opencv-python", "PyQt5~={}.{}.0".format(major,minor)]
 
 		if int(major)==5 and int(minor)>=12:
 			cmd+=["PyQtWebEngine~={}.{}.0".format(major,minor)]
@@ -152,15 +152,13 @@ def InstallAndUsePyQt5(bUserInstall=False):
 
 		ExecuteCommand(cmd,check_result=True)
 
-	try:
-		import PyQt5
-		PyQt5_HOME=os.path.dirname(PyQt5.__file__)
-
-	except:
 		# this should cover the case where I just installed PyQt5
 		PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip()
-
-	print("Linking PyQt5_HOME",PyQt5_HOME)
+		found_QT_VERSION=GetCommandOutput([sys.executable,"-c","from PyQt5 import Qt; print(vars(Qt)['QT_VERSION_STR'])"]).strip().split(".")
+		print("Linking','PyQt5_HOME",PyQt5_HOME, 'found_QT_VERSION',found_QT_VERSION)
+		
+		if found_QT_VERSION[0]!=major or found_QT_VERSION[1]!=minor:
+			raise Exception("THere is a problem with getting the right Qt5 version. Please try 'export PYTHONNOUSERSITE=True' needed({}.{}) found({}.{})".format(major,minor,found_QT_VERSION[0],found_QT_VERSION[1],))
 	
 	if not os.path.isdir(PyQt5_HOME):
 		print("Error directory does not exists")
