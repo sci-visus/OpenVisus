@@ -122,21 +122,29 @@ def InstallAndUsePyQt5(bUserInstall=False):
 	print("Installing PyQt5...",QT_VERSION)
 	major,minor=QT_VERSION.split('.')[0:2]
 
-	try:
+	# see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
+	is_conda = os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history'))
+	
+	# NOTE: I'm installing packages here because I have problems specifying them in setup.py. Worth to give another try?
+	print("sys.executable",sys.executable, "is_conda",is_conda)
+	if is_conda:
 		import conda.cli
-		bIsConda=True
-	except:
-		bIsConda=False
+		conda.cli.main('conda', 'install', '-y',"numpy", "pillow", "opencv", "pyqt={}.{}".format(major,minor))
+		conda.cli.main('conda', 'install', '-y','-c', 'conda-forge', 'libglu')
 		
-	if bIsConda:
-		conda.cli.main('conda', 'install', '-y', "pyqt={}.{}".format(major,minor))
+		# for some unknown reason I get: RuntimeError: module compiled against API version 0xc but this version of numpy is 0xa
+		conda.cli.main('conda', 'update', '-y', 'numpy') 
+		
 		# do I need PyQtWebEngine for conda? considers Qt is 5.9 (very old)
 		# it has webengine and sip included
 
 	else:
-		cmd=[sys.executable,"-m", "pip", "install"]
-		if bUserInstall: cmd+=["--user"]
-		cmd+=["PyQt5~={}.{}.0".format(major,minor)]
+		cmd=[sys.executable,"-m", "pip", "install", "--upgrade"] 
+		
+		if bUserInstall: 
+			cmd+=["--user"]
+			
+		cmd+=["numpy","pillow","opencv-python", "PyQt5~={}.{}.0".format(major,minor)]
 
 		if int(major)==5 and int(minor)>=12:
 			cmd+=["PyQtWebEngine~={}.{}.0".format(major,minor)]
@@ -144,66 +152,68 @@ def InstallAndUsePyQt5(bUserInstall=False):
 
 		ExecuteCommand(cmd,check_result=True)
 
-	try:
-		import PyQt5
-		PyQt5_HOME=os.path.dirname(PyQt5.__file__)
-
-	except:
-		# this should cover the case where I just installed PyQt5
-		PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip()
-
-	print("Linking PyQt5_HOME",PyQt5_HOME)
+	# this should cover the case where I just installed PyQt5
+	PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip()
+	found_QT_VERSION=GetCommandOutput([sys.executable,"-c","from PyQt5 import Qt; print(vars(Qt)['QT_VERSION_STR'])"]).strip().split(".")
+	print("Linking','PyQt5_HOME",PyQt5_HOME, 'found_QT_VERSION',found_QT_VERSION)
+	
+	if found_QT_VERSION[0]!=major or found_QT_VERSION[1]!=minor:
+		raise Exception("THere is a problem with getting the right Qt5 version. Please try 'export PYTHONNOUSERSITE=True' needed({}.{}) found({}.{})".format(major,minor,found_QT_VERSION[0],found_QT_VERSION[1],))
 	
 	if not os.path.isdir(PyQt5_HOME):
 		print("Error directory does not exists")
 		raise Exception("internal error")
 
 	# on windows it's enough to use sys.path (see *.i %pythonbegin section)
-	if not WIN32:
+	if WIN32:
+		return
 		
+	if is_conda:
+		CONDA_PREFIX=os.environ['CONDA_PREFIX']
+		print("CONDA_PREFIX",CONDA_PREFIX)
+		QT5_LIB_DIR="{}/lib".format(CONDA_PREFIX)
+	else:
 		QT5_LIB_DIR=os.path.join(PyQt5_HOME,'Qt/lib')
-		
-		# this can happen on conda
-		if not os.path.isdir(QT5_LIB_DIR):
-			QT5_LIB_DIR=PyQt5_HOME
-		
-		print("QT5_LIB_DIR",QT5_LIB_DIR)
-		
-		if APPLE:		
+	
+	print("QT5_LIB_DIR",QT5_LIB_DIR)
+	Assert(os.path.isdir(QT5_LIB_DIR))
+	
+	if APPLE:
 
-			dylibs=glob.glob("bin/*.dylib")
-			so=glob.glob("*.so")
-			apps=["%s/Contents/MacOS/%s"   % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("bin/*.app")]
-			all_bins=so + dylibs + apps
-				
-			# remove any reference to absolute Qt (it happens with brew which has absolute path), make it relocable with rpath as is in PyQt5
-			for filename in all_bins:
-				
-				print("FIXING FILENAME",filename,"________________")
-				
-				# this is for PIP which uses *.framework
-				# eample ../Qt*.framework -> @rpath/Qt*.framework
-				for Old in GetCommandOutput("otool -L %s | grep '.*/Qt.*\.framework' | awk '{print $1;}'" % filename, shell=True).splitlines():
-					New="@rpath/Qt" + Old.split("/Qt")[1]
-					ExecuteCommand(["install_name_tool","-change", Old, New, filename])	
-					
-				# this is for conda
-				# example .../libQt5*.dylib -> @rpath/libQt5*.dylib
+		dylibs=glob.glob("bin/*.dylib")
+		so=glob.glob("*.so")
+		apps=["%s/Contents/MacOS/%s"   % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("bin/*.app")]
+		all_bins=so + dylibs + apps
+			
+		# remove any reference to absolute Qt (it happens with brew which has absolute path), make it relocable with rpath as is in PyQt5
+		for filename in all_bins:
+			
+			print("FIXING FILENAME",filename,"________________")
+			
+			# example .../libQt5*.dylib -> @rpath/libQt5*.dylib
+			if is_conda:
 				for Old in GetCommandOutput("otool -L %s | grep '.*/libQt5.*\.dylib' | awk '{print $1;}'" % filename, shell=True).splitlines():
-					New="@rpath/libQt5" + Old.split("libQt5")[1]
-					ExecuteCommand(["install_name_tool","-change", Old, New, filename])	
-					
-				if filename in apps:
-					SetRPath(filename, "@loader_path/:@loader_path/../../../:" + QT5_LIB_DIR)
-				else:
-					SetRPath(filename, "@loader_path/:@loader_path/bin:" + QT5_LIB_DIR)
-		
-			ShowDeps(all_bins)
-					
-		else:
+					New="@rpath/libQt5" + Old.split("libQt5", 1)[1]
+					ExecuteCommand(["install_name_tool","-change", Old, New, filename])
 				
-			for filename in glob.glob("*.so") + glob.glob("bin/*.so") + ["bin/visus","bin/visusviewer"]:
-				SetRPath(filename,"$ORIGIN:$ORIGIN/bin:" + QT5_LIB_DIR)
+			# eample ../Qt*.framework -> @rpath/Qt*.framework
+			else:
+				for Old in GetCommandOutput("otool -L %s | grep '.*/Qt.*\.framework' | awk '{print $1;}'" % filename, shell=True).splitlines():
+					New="@rpath/Qt" + Old.split("/Qt", 1)[1]
+					ExecuteCommand(["install_name_tool","-change", Old, New, filename])	
+				
+
+			if filename in apps:
+				SetRPath(filename, "@loader_path/:@loader_path/../../../:" + QT5_LIB_DIR)
+			else:
+				SetRPath(filename, "@loader_path/:@loader_path/bin:" + QT5_LIB_DIR)
+	
+		ShowDeps(all_bins)
+				
+	else:
+			
+		for filename in glob.glob("*.so") + glob.glob("bin/*.so") + ["bin/visus","bin/visusviewer"]:
+			SetRPath(filename,"$ORIGIN:$ORIGIN/bin:" + QT5_LIB_DIR)
 
 
 
@@ -486,25 +496,30 @@ def Main(args):
 		os.chdir(this_dir)
 		SelfTestIdx(300)
 		sys.exit(0)
+
+	# this is just to test run-time linking of shared libraries
+	if action=="test-gui":
+		from OpenVisus.VisusGuiPy import GuiModule
+		print("test-gui ok")
+		sys.exit(0)
 		
 	# example -m OpenVisus test-network-speed  --nconnections 1 --nrequests 100 --url "http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled" 
 	if action=="test-network-speed":
 		TestNetworkSpeed(action_args)
 		sys.exit(0)
 		
-
 	# ___________________________________________________________________ gui
 
 	# example: python -m OpenVisus viewer ....
 	if action=="viewer":
 		os.chdir(this_dir)
-		from OpenVisus.gui import PyViewer,GuiModule
+		from OpenVisus.gui import PyViewer, GuiModule
 		from PyQt5.QtWidgets import QApplication
 		viewer=PyViewer()
 		viewer.configureFromArgs(action_args)
 		QApplication.exec()
 		viewer=None
-		print("All done")
+		print("viewer done")
 		sys.exit(0)
 
 	if action=="viewer1":

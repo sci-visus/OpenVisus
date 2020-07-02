@@ -148,7 +148,7 @@ class PyMovie:
 # //////////////////////////////////////////////
 def ExportSlicesToMovie(out_movie, db, axis,preserve_ratio=True):
 		
-	offsets=range(db.getLogicBox().p1[axis],db.getLogicBox().p2[axis],1):
+	offsets=range(db.getLogicBox().p1[axis],db.getLogicBox().p2[axis],1)
 
 	for offset in offsets:
 

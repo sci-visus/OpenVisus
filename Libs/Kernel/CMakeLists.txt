@@ -153,6 +153,7 @@ file(GLOB OtherSources
 	${CMAKE_SOURCE_DIR}/Executable/viewer/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/Executable/visus/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/Libs/CMakeLists.txt
+	${CMAKE_SOURCE_DIR}/Scripts/build_linux.sh
 	${CMAKE_SOURCE_DIR}/*.ipynb 
 	${CMAKE_SOURCE_DIR}/Samples/jupyter/*.ipynb 
 	${CMAKE_SOURCE_DIR}/Samples/python/*.py 
@@ -247,4 +248,3 @@ if (VISUS_SLAM)
 		g2o_types_sba g2o_types_sclam2d g2o_types_sim3 g2o_types_slam2d g2o_types_slam2d_addons g2o_types_slam3d g2o_types_slam3d_addons)
 endif()
 
-INSTALL(DIRECTORY include/Visus   DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Kernel/)

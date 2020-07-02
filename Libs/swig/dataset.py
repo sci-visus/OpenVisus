@@ -1,11 +1,15 @@
 import os,sys
-import numpy 
 import inspect
 import tempfile
 import shutil
 
-
 from OpenVisus import *
+
+#in configure step I dont have numpy yet
+try:
+	import numpy 
+except:
+	pass
 
 
 # //////////////////////////////////////////////////////////
