@@ -105,18 +105,20 @@ For support : support@visus.net
 	#include <mach-o/dyld.h>
 	
 	#include <arpa/inet.h>
-	#include <dispatch/dispatch.h>
 	#include <netinet/tcp.h>
-	
-	#if __clang__
-	void mm_InitAutoReleasePool();
-	void mm_DestroyAutoReleasePool();
-	#endif
-	
+
 	#define getIpCat(__value__)    __value__
 	#define closesocket(socketref) ::close(socketref)
 	#define Stat64                 ::stat
 	#define LSeeki64               ::lseek
+	
+	#if __clang__
+		#include <dispatch/dispatch.h>
+		void mm_InitAutoReleasePool();
+		void mm_DestroyAutoReleasePool();
+	#else
+		#include <semaphore.h>
+	#endif
 
 //////////////////////////////////////////////////
 #else
@@ -182,7 +184,7 @@ public:
   void up  ()               {VisusReleaseAssert(ReleaseSemaphore(handle, 1, nullptr));}
   bool tryDown()            {return WaitForSingleObject(handle, 0) == WAIT_OBJECT_0;}
 
-#elif __APPLE__
+#elif __clang__
   dispatch_semaphore_t sem;
    Pimpl(int initial_value) {sem = dispatch_semaphore_create(initial_value);VisusReleaseAssert(sem);}
   ~Pimpl()                  {dispatch_release(sem);}

@@ -194,7 +194,7 @@ endif()
 if (GNUC)
 	target_compile_options(VisusKernel PUBLIC -D_FILE_OFFSET_BITS=64)
 	target_compile_options(VisusKernel PUBLIC -D_LARGEFILE64_SOURCE=1)
-	target_compile_options(VisusKernel PUBLIC -Wno-attributes)	
+	target_compile_options(VisusKernel PUBLIC -Wno-attributes -Wno-deprecated-declarations)	
 endif()
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

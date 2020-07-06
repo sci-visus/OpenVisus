@@ -186,13 +186,19 @@ python3 -m jupyter notebook ../Samples/jupyter/Agricolture.ipynb
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## MacOSX compilation gcc
 
+Maybe you need to install gcc:
+
+```
+brew install gcc@9
+```
+
 Build the repository (change as needed):
 
 ```
 
 # change the path for your gcc
-export CC=cc-9
-export CXX=g++-9
+export CC=$(brew --prefix gcc@9)/bin/gcc-9
+export CXX=$(brew --prefix gcc@9)/bin/g++-9
 
 
 git clone https://github.com/sci-visus/OpenVisus
@@ -211,7 +217,7 @@ Qt5_DIR=$(brew --prefix qt5)/lib/cmake/Qt5
 mkdir build_gcc
 cd build_gcc
 cmake -G"Unix Makefiles" -DPython_ROOT_DIR=${Python_ROOT_DIR} -DQt5_DIR=${Qt5_DIR} ../
-cmake --build ./ --target all       --config Release --parallel 4
+cmake --build ./ --target all       --config Release --parallel 8
 cmake --build ./ --target install   --config Release
 
 export PYTHONPATH=$(pwd)/Release
