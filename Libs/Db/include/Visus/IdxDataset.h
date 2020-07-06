@@ -121,9 +121,6 @@ public:
   //nextPointQuery
   virtual void nextPointQuery(SharedPtr<PointQuery> query) override;
 
-  //createPointQueryRequest
-  virtual NetRequest createPointQueryRequest(SharedPtr<PointQuery> query) override;
-
 public:
 
   // removeFiles all files bolonging to this visus file 
@@ -171,9 +168,6 @@ protected:
 
   //executeBoxQueryOnServer
   bool executeBoxQueryOnServer(SharedPtr<BoxQuery> query);
-
-  //executePointQueryOnServer
-  bool executePointQueryOnServer(SharedPtr<PointQuery> query);
 
 };
 

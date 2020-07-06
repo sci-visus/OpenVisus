@@ -1715,35 +1715,6 @@ void IdxDataset::beginPointQuery(SharedPtr<PointQuery> query)
 }
 
 
-////////////////////////////////////////////////////////////////////
-bool IdxDataset::executePointQueryOnServer(SharedPtr<PointQuery> query)
-{
-  auto request = createPointQueryRequest(query);
-
-  if (!request.valid())
-  {
-    query->setFailed("cannot create point query request");
-    return false;
-  }
-
-  auto response = NetService::getNetResponse(request);
-
-  if (!response.isSuccessful())
-  {
-    query->setFailed(cstring("network request failed ", cnamed("errormsg", response.getErrorMessage())));
-    return false;
-  }
-
-  auto decoded = response.getCompatibleArrayBody(query->getNumberOfPoints(), query->field.dtype);
-  if (!decoded) {
-    query->setFailed("failed to decode body");
-    return false;
-  }
-
-  query->buffer = decoded;
-  query->cur_resolution = query->end_resolution;
-  return true;
-}
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 class InsertBlockQuerySamplesIntoPointQuery
@@ -1798,131 +1769,190 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
   if (!(query->isRunning() && query->getCurrentResolution() < query->getEndResolution()))
     return false;
 
-  if (query->aborted())
+
+  auto aborted = query->aborted;
+  if (aborted())
   {
     query->setFailed("query aboted");
     return false;
   }
 
+  //pure remote?
   if (!access)
-    return executePointQueryOnServer(query);
-
-  auto bitmask = getBitmask();
-  auto bounds = this->getLogicBox();
-  auto last_bitmask = ((BigInt)1) << (getMaxResolution());
-  auto hzorder = HzOrder(bitmask);
-  auto depth_mask = hzorder.getLevelP2Included(query->end_resolution);
-  auto bitsperblock = access->bitsperblock;
-  auto samplesperblock = 1 << bitsperblock;
-  auto aborted = query->aborted;
-
-  auto npoints = query->getNumberOfPoints();
-  auto tot = npoints.innerProduct();
-
-  if (query->buffer.dims != npoints)
   {
-    if (!query->buffer.resize(npoints, query->field.dtype, __FILE__, __LINE__))
+    Url url = this->getUrl();
+
+    NetRequest request;
+    request.url = url.getProtocol() + "://" + url.getHostname() + ":" + cstring(url.getPort()) + "/mod_visus";
+    request.url.params = url.params;  //I may have some extra params I want to keep!
+    request.url.setParam("action", "pointquery");
+    request.url.setParam("dataset", url.getParam("dataset"));
+    request.url.setParam("time", url.getParam("time", cstring(query->time)));
+    request.url.setParam("compression", url.getParam("compression", "zip")); //for networking I prefer to use zip
+    request.url.setParam("field", query->field.name);
+    request.url.setParam("fromh", cstring(0)); //backward compatible
+    request.url.setParam("toh", cstring(query->end_resolution));
+    request.url.setParam("maxh", cstring(getMaxResolution())); //backward compatible
+    request.url.setParam("matrix", query->logic_position.getTransformation().toString());
+    request.url.setParam("box", query->logic_position.getBoxNd().toBox3().toString(/*bInterleave*/false));
+    request.url.setParam("nsamples", query->getNumberOfPoints().toString());
+    request.aborted = query->aborted;
+
+    PrintInfo(request.url);
+
+    if (!request.valid())
     {
-      query->setFailed("out of memory");
+      query->setFailed("cannot create point query request");
       return false;
     }
-      
-    query->buffer.fillWithValue(query->field.default_value);
-  }
 
-  VisusAssert(query->buffer.dtype == query->field.dtype);
-  VisusAssert(query->buffer.c_size() == query->getByteSize());
-  VisusAssert(query->buffer.dims == query->npoints);
-  VisusAssert((Int64)query->points->c_size() == npoints.innerProduct() * sizeof(Int64)*3);
-
-  std::map<BigInt, std::vector< std::pair<int, int> > > blocks;
-
-  int pdim = this->getPointDim();
-  PointNi p(pdim);
-
-  //if this is not available I use the slower conversion p->zaddress->Hz
-  if (!this->hzaddress_conversion_pointquery)
-  {
-    PrintWarning("The hzaddress_conversion_pointquery has not been created, so loc-by-loc queries will be a lot slower!!!!");
-
-    //so you investigate why it's happening! .... I think only for the iphone could make sense....
-#if defined(_DEBUG)
-    VisusAssert(false);
-#endif
-
-    auto SRC = (Int64*)query->points->c_ptr();
-    BigInt hzaddress;
-    for (int N = 0; N < tot; N++, SRC += pdim)
+    auto response = NetService::getNetResponse(request);
+    if (!response.isSuccessful())
     {
-      if (aborted()) {
-        query->setFailed("query aborted"); 
-        return false;
-      }
-      if (pdim >= 1) { p[0] = SRC[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; }
-      if (pdim >= 2) { p[1] = SRC[1]; if (!(p[1] >= bounds.p1[1] && p[1] < bounds.p2[1])) continue; p[1] &= depth_mask[1]; }
-      if (pdim >= 3) { p[2] = SRC[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; }
-      if (pdim >= 4) { p[3] = SRC[3]; if (!(p[3] >= bounds.p1[3] && p[3] < bounds.p2[3])) continue; p[3] &= depth_mask[3]; }
-      if (pdim >= 5) { p[4] = SRC[4]; if (!(p[4] >= bounds.p1[4] && p[4] < bounds.p2[4])) continue; p[4] &= depth_mask[4]; }
-      hzaddress = hzorder.getAddress(p);
-      blocks[hzaddress >> bitsperblock].push_back(std::make_pair(N, (int)(hzaddress % samplesperblock)));
+      query->setFailed(cstring("network request failed ", cnamed("errormsg", response.getErrorMessage())));
+      return false;
     }
+
+    auto decoded = response.getCompatibleArrayBody(query->getNumberOfPoints(), query->field.dtype);
+    if (!decoded) {
+      query->setFailed("failed to decode body");
+      return false;
+    }
+
+    query->buffer = decoded;
   }
-  //the conversion from point to Hz will be faster
   else
   {
-    BigInt zaddress;
-    int    shift;
-    auto   SRC = (Int64*)query->points->c_ptr();
-    auto   loc = this->hzaddress_conversion_pointquery->loc;
-    BigInt hzaddress;
+    auto bitmask = getBitmask();
+    auto bounds = this->getLogicBox();
+    auto last_bitmask = ((BigInt)1) << (getMaxResolution());
+    auto hzorder = HzOrder(bitmask);
+    auto depth_mask = hzorder.getLevelP2Included(query->end_resolution);
+    auto bitsperblock = access->bitsperblock;
+    auto samplesperblock = 1 << bitsperblock;
 
-    for (int N = 0; N < tot; N++, SRC += pdim)
+    auto npoints = query->getNumberOfPoints();
+    auto tot = npoints.innerProduct();
+
+    if (query->buffer.dims != npoints)
     {
-      if (aborted()) {
-        query->setFailed("query aborted"); 
-        return false;
+      //solve the problem of missing blocks
+      if (query->buffer)
+      {
+        if (!(query->buffer = ArrayUtils::resample(npoints, query->buffer)))
+        {
+          query->setFailed("out of memory");
+          return false;
+        }
       }
-      if (pdim >= 1) { p[0] = SRC[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; shift =         (       loc[0][p[0]].second); zaddress  = loc[0][p[0]].first; }
-      if (pdim >= 2) { p[1] = SRC[1]; if (!(p[1] >= bounds.p1[1] && p[1] < bounds.p2[1])) continue; p[1] &= depth_mask[1]; shift = std::min(shift, loc[1][p[1]].second); zaddress |= loc[1][p[1]].first; }
-      if (pdim >= 3) { p[2] = SRC[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; shift = std::min(shift, loc[2][p[2]].second); zaddress |= loc[2][p[2]].first; }
-      if (pdim >= 4) { p[3] = SRC[3]; if (!(p[3] >= bounds.p1[3] && p[3] < bounds.p2[3])) continue; p[3] &= depth_mask[3]; shift = std::min(shift, loc[3][p[3]].second); zaddress |= loc[3][p[3]].first; }
-      if (pdim >= 5) { p[4] = SRC[4]; if (!(p[4] >= bounds.p1[4] && p[4] < bounds.p2[4])) continue; p[4] &= depth_mask[4]; shift = std::min(shift, loc[4][p[4]].second); zaddress |= loc[4][p[4]].first; }
-      hzaddress = ((zaddress | last_bitmask) >> shift);
-      blocks[hzaddress >> bitsperblock].push_back(std::make_pair(N, int(hzaddress % samplesperblock)));
+      else
+      {
+        if (!query->buffer.resize(npoints, query->field.dtype, __FILE__, __LINE__))
+        {
+          query->setFailed("out of memory");
+          return false;
+        }
+
+        query->buffer.fillWithValue(query->field.default_value);
+      }
     }
+
+    VisusAssert(query->buffer.dtype == query->field.dtype);
+    VisusAssert(query->buffer.c_size() == query->getByteSize());
+    VisusAssert(query->buffer.dims == query->npoints);
+    VisusAssert((Int64)query->points->c_size() == npoints.innerProduct() * sizeof(Int64) * 3);
+
+
+    //blockid-> (offset of query buffer, block offset)
+    std::map<BigInt, std::vector< std::pair<int, int> > > blocks;
+
+    int pdim = this->getPointDim();
+    PointNi p(pdim);
+
+    //if this is not available I use the slower conversion p->zaddress->Hz
+    if (!this->hzaddress_conversion_pointquery)
+    {
+      PrintWarning("The hzaddress_conversion_pointquery has not been created, so loc-by-loc queries will be a lot slower!!!!");
+
+      //so you investigate why it's happening! .... I think only for the iphone could make sense....
+#if defined(_DEBUG)
+      VisusAssert(false);
+#endif
+
+      auto SRC = (Int64*)query->points->c_ptr();
+      BigInt hzaddress;
+      for (int N = 0; N < tot; N++, SRC += pdim)
+      {
+        if (aborted()) {
+          query->setFailed("query aborted");
+          return false;
+        }
+        if (pdim >= 1) { p[0] = SRC[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; }
+        if (pdim >= 2) { p[1] = SRC[1]; if (!(p[1] >= bounds.p1[1] && p[1] < bounds.p2[1])) continue; p[1] &= depth_mask[1]; }
+        if (pdim >= 3) { p[2] = SRC[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; }
+        if (pdim >= 4) { p[3] = SRC[3]; if (!(p[3] >= bounds.p1[3] && p[3] < bounds.p2[3])) continue; p[3] &= depth_mask[3]; }
+        if (pdim >= 5) { p[4] = SRC[4]; if (!(p[4] >= bounds.p1[4] && p[4] < bounds.p2[4])) continue; p[4] &= depth_mask[4]; }
+        hzaddress = hzorder.getAddress(p);
+        blocks[hzaddress >> bitsperblock].push_back(std::make_pair(N, (int)(hzaddress % samplesperblock)));
+      }
+    }
+    //the conversion from point to Hz will be faster
+    else
+    {
+      BigInt zaddress;
+      int    shift;
+      auto   SRC = (Int64*)query->points->c_ptr();
+      auto   loc = this->hzaddress_conversion_pointquery->loc;
+      BigInt hzaddress;
+
+      for (int N = 0; N < tot; N++, SRC += pdim)
+      {
+        if (aborted()) {
+          query->setFailed("query aborted");
+          return false;
+        }
+        if (pdim >= 1) { p[0] = SRC[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; shift = (loc[0][p[0]].second); zaddress = loc[0][p[0]].first; }
+        if (pdim >= 2) { p[1] = SRC[1]; if (!(p[1] >= bounds.p1[1] && p[1] < bounds.p2[1])) continue; p[1] &= depth_mask[1]; shift = std::min(shift, loc[1][p[1]].second); zaddress |= loc[1][p[1]].first; }
+        if (pdim >= 3) { p[2] = SRC[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; shift = std::min(shift, loc[2][p[2]].second); zaddress |= loc[2][p[2]].first; }
+        if (pdim >= 4) { p[3] = SRC[3]; if (!(p[3] >= bounds.p1[3] && p[3] < bounds.p2[3])) continue; p[3] &= depth_mask[3]; shift = std::min(shift, loc[3][p[3]].second); zaddress |= loc[3][p[3]].first; }
+        if (pdim >= 5) { p[4] = SRC[4]; if (!(p[4] >= bounds.p1[4] && p[4] < bounds.p2[4])) continue; p[4] &= depth_mask[4]; shift = std::min(shift, loc[4][p[4]].second); zaddress |= loc[4][p[4]].first; }
+        hzaddress = ((zaddress | last_bitmask) >> shift);
+        blocks[hzaddress >> bitsperblock].push_back(std::make_pair(N, int(hzaddress % samplesperblock)));
+      }
+    }
+
+    //do the for loop block aligned
+    WaitAsync< Future<Void> > wait_async;
+
+    bool bWasReading = access->isReading();
+
+    if (!bWasReading)
+      access->beginRead();
+
+    for (auto it : blocks)
+    {
+      auto blockid = it.first;
+      auto v = it.second;
+      auto block_query = createBlockQuery(blockid, query->field, query->time, 'r', aborted);
+      this->executeBlockQuery(access, block_query);
+      wait_async.pushRunning(block_query->done).when_ready([this, query, block_query, v, aborted, depth_mask](Void) {
+
+        if (aborted() || block_query->failed())
+          return;
+
+        InsertBlockQuerySamplesIntoPointQuery op;
+        NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get(), depth_mask, v, aborted);
+
+        if (aborted())
+          return;
+      });
+    }
+
+    if (!bWasReading)
+      access->endRead();
+
+    wait_async.waitAllDone();
   }
-
-  //do the for loop block aligned
-  WaitAsync< Future<Void> > wait_async;
-
-  bool bWasReading = access->isReading();
-
-  if (!bWasReading)
-    access->beginRead();
-
-  for (auto it : blocks)
-  {
-    auto blockid = it.first;
-    auto v = it.second;
-    auto block_query = createBlockQuery(blockid, query->field, query->time, 'r', aborted);
-    this->executeBlockQuery(access, block_query);
-    wait_async.pushRunning(block_query->done).when_ready([this, query, block_query, v, aborted, depth_mask](Void) {
-
-      if (aborted() || block_query->failed())
-        return;
-
-      InsertBlockQuerySamplesIntoPointQuery op;
-      NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get(), depth_mask, v, aborted);
-
-      if (aborted())
-        return;
-    });
-  }
-
-  if (!bWasReading)
-    access->endRead();
-
-  wait_async.waitAllDone();
 
   if (aborted()) {
     query->setFailed("query aborted");
@@ -1950,36 +1980,6 @@ void IdxDataset::nextPointQuery(SharedPtr<PointQuery> query)
   int index = Utils::find(query->end_resolutions, query->end_resolution);
   query->end_resolution = query->end_resolutions[index + 1];
 }
-
-
-/////////////////////////////////////////////////////////////////////////
-NetRequest IdxDataset::createPointQueryRequest(SharedPtr<PointQuery> query)
-{
-  VisusAssert(query->mode == 'r');
-
-  Url url = this->getUrl();
-
-  NetRequest ret;
-  ret.url = url.getProtocol() + "://" + url.getHostname() + ":" + cstring(url.getPort()) + "/mod_visus";
-  ret.url.params = url.params;  //I may have some extra params I want to keep!
-  ret.url.setParam("action", "pointquery");
-  ret.url.setParam("dataset", url.getParam("dataset"));
-  ret.url.setParam("time", url.getParam("time", cstring(query->time)));
-  ret.url.setParam("compression", url.getParam("compression", "zip")); //for networking I prefer to use zip
-  ret.url.setParam("field", query->field.name);
-  ret.url.setParam("fromh", cstring(0)); //backward compatible
-  ret.url.setParam("toh", cstring(query->end_resolution));
-  ret.url.setParam("maxh", cstring(getMaxResolution())); //backward compatible
-  ret.url.setParam("matrix", query->logic_position.getTransformation().toString());
-  ret.url.setParam("box", query->logic_position.getBoxNd().toBox3().toString(/*bInterleave*/false));
-  ret.url.setParam("nsamples", query->getNumberOfPoints().toString());
-  PrintInfo(ret.url);
-  ret.aborted = query->aborted;
-  return ret;
-}
-
-
-
 
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -415,7 +415,7 @@ public:
   PointNi guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, Position logic_position, int end_resolution);
 
   //constructor
-  SharedPtr<PointQuery> createPointQuery(Position logic_position, Field field, double time, std::vector<int> end_resolutions, Aborted aborted = Aborted());
+  virtual SharedPtr<PointQuery> createPointQuery(Position logic_position, Field field, double time, std::vector<int> end_resolutions, Aborted aborted = Aborted());
 
   //createPointQuery
   SharedPtr<PointQuery> createPointQuery(Position logic_position, std::vector<int> end_resolutions, Aborted aborted=Aborted()) {
@@ -433,11 +433,6 @@ public:
 
   //nextPointQuery
   virtual void nextPointQuery(SharedPtr<PointQuery> query) {
-  }
-
-  //createPointQueryRequest
-  virtual NetRequest createPointQueryRequest(SharedPtr<PointQuery> query) {
-    return NetRequest();
   }
 
 public:
