@@ -177,11 +177,9 @@ public:
     int I = 0; while (query->isRunning())
     {
       Time t1 = Time::now();
+      query->setPoints(dataset->guessPointQueryNumberOfSamples(logic_to_screen, logic_position, query->end_resolution));
 
-      auto npoints = dataset->guessPointQueryNumberOfSamples(logic_to_screen, logic_position, query->end_resolution);
-      query->setPoints(npoints);
-
-      PrintInfo("PointQuery msec", t1.elapsedMsec(), "level", I, "/", query->end_resolutions.size(), "/", query->end_resolution, "/", dataset->getMaxResolution(), "npoints", npoints, "...");
+      PrintInfo("PointQuery msec", t1.elapsedMsec(), "level", I, "/", query->end_resolutions.size(), "/", query->end_resolution, "/", dataset->getMaxResolution(), "npoints", query->getNumberOfPoints(), "...");
 
       if (!dataset->executePointQuery(access, query))
         return;
