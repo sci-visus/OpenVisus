@@ -147,9 +147,6 @@ public:
 };
 
 
-
-
-
 //////////////////////////////////////////////////////////////////////
 #include <Visus/IdxFile.h>
 #include <Visus/IdxDataset.h>
@@ -157,39 +154,39 @@ public:
 
 using namespace Visus;
 
-void writeIDX(const volume* f, std::string filename)
+/////////////////////////////////////////////////////////////////
+void CreateIdx(std::string idx_filename,std::string dtype, int N_x,int N_y,int N_z)
 {
-  //create the *.idx file 
   IdxFile idxfile;
-  idxfile.logic_box = BoxNi(PointNi(0, 0, 0), PointNi(f->N_x, f->N_y, f->N_z));
-  Field field("myfield", DTypes::FLOAT32);
-  field.default_compression = "zip";
+  idxfile.logic_box = BoxNi(PointNi(0, 0, 0), PointNi(N_x, N_y, N_z));
+  Field field("myfield", DType::fromString(dtype));
+  field.default_compression = ""; 
   field.default_layout = "row_major";
   idxfile.fields.push_back(field);
-  idxfile.save(filename);
-
-  //write data slice by slice 
-  //NOTE: in order to speed up things, it's possible to write 3d data, but your memory buffers must be contigous
-  std::shared_ptr<IdxDataset> dataset = LoadIdxDataset(filename);
-  	
-	SharedPtr<IdxDiskAccess> access=IdxDiskAccess::create(dataset.get());
-	access->disableAsync(); 
-	access->disableWriteLock(); 
-  	
-  for (Int64 Z = 0; Z < f->N_z; Z++)
-  {
-		PointNi p1(	    0,	    0, Z + 0);
-		PointNi p2(f->N_x, f->N_y, Z + 1);
-		std::shared_ptr<BoxQuery> query = dataset->createBoxQuery(BoxNi(p1,p2), 'w');
-		dataset->beginBoxQuery(query);
-		VisusReleaseAssert(query->isRunning());
-		float* zSlice=f->extractZSlice(Z);
-		query->buffer = Array(query->getNumberOfSamples(), query->field.dtype, HeapMemory::createUnmanaged(zSlice, sizeof(float) * f->N_x * f->N_y));
-		VisusReleaseAssert(dataset->executeBoxQuery(access, query));
-		delete [] zSlice;
-  }
+  idxfile.save(idx_filename);	
 }
 
+
+/////////////////////////////////////////////////////////////////
+void WriteIDX(std::shared_ptr<IdxDataset> dataset,SharedPtr<IdxDiskAccess> access,BoxNi box, void* buffer, int buffer_size)
+{
+	std::shared_ptr<BoxQuery> query = dataset->createBoxQuery(box, 'w');
+	dataset->beginBoxQuery(query);
+	VisusReleaseAssert(query->isRunning());
+	VisusReleaseAssert(buffer_size==query->field.dtype.getByteSize(box.size()));
+	query->buffer = Array(query->getNumberOfSamples(), query->field.dtype, HeapMemory::createUnmanaged(buffer, buffer_size));
+	VisusReleaseAssert(dataset->executeBoxQuery(access, query));
+}
+
+/////////////////////////////////////////////////////////////////
+Array ReadIdx(std::shared_ptr<IdxDataset> dataset,SharedPtr<IdxDiskAccess> access,BoxNi box)
+{
+	std::shared_ptr<BoxQuery> query = dataset->createBoxQuery(box, 'r');
+	dataset->beginBoxQuery(query);
+	VisusReleaseAssert(query->isRunning());
+	VisusReleaseAssert(dataset->executeBoxQuery(access, query));
+	return query->buffer;
+}
 
 
 /////////////////////////////////////////////////////////////////
@@ -201,7 +198,7 @@ int main()
 	const int numChunks = 2;
 	
 	DbModule::attach();
-	
+		
 	int maxSlicesPerChunk = int(ceil(float(N_z)/float(numChunks)));
 	for (int ichunk = 0; ichunk < numChunks; ichunk++)
 	{
@@ -214,20 +211,47 @@ int main()
 		volume* f = new volume();
 		f->init(N_x, N_y, N_z_chunk, z_offset);
 		
-		std::cout<<"\treconstruct..."<<std::endl;
+		
+		std::cout<<"   reconstruct..."<<std::endl;
 		f->reconstruct();
 		
-		std::cout<<"\trawwrite..."<<std::endl;
+		std::cout<<"   rawwrite..."<<std::endl;
 		f->rawwrite("zSlice");
 		
-		std::cout<<"\twriteIdx..."<<std::endl;
-		writeIDX(f,"volume.idx");
+		//create OpenVius dataset
+		std::string idx_filename=concatenate("volume.",ichunk,".idx");
+		CreateIdx(idx_filename, "float32", N_x, N_y, N_z_chunk);
+		
+		//NOTE: writing/reading slice by slice is not the best for OpenVisus
+		//better is to write all the memory in one-shot but we need a different memory layout
+		std::cout<<"   Idx read/write..."<<std::endl;
+	  std::shared_ptr<IdxDataset> dataset = LoadIdxDataset(idx_filename);
+		SharedPtr<IdxDiskAccess> access=IdxDiskAccess::create(dataset.get());
+		access->disableAsync(); 
+		access->disableWriteLock();
+		 			
+		for (Int64 Z = 0; Z < f->N_z; Z++)
+  	{
+  		float* zSlice=f->extractZSlice(Z);
+  		int  zSlice_csize=sizeof(float)*f->N_x*f->N_y;
+  		
+  		//this is the bounding box of a single slice 
+  		BoxNi slice_box(PointNi(0,0,Z),PointNi(f->N_x, f->N_y, Z + 1));
+  		
+			WriteIDX(dataset, access, slice_box, zSlice, zSlice_csize);
+			
+			auto read_back=ReadIdx(dataset, access, slice_box);
+			
+			//just check you get back the same data
+			VisusReleaseAssert(memcmp(read_back.c_ptr(),zSlice, zSlice_csize)==0);
+			
+			delete [] zSlice;
+		}
 		
 		delete f;
 	}
 	
 	DbModule::detach();
-	
 	
 	return 0;
 }

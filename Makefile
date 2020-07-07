@@ -1,4 +1,4 @@
-CC=g++-9 -std=c++11
+CXX=g++-9 -std=c++11
 
 OpenVisus_DIR=/Users/scrgiorgio/Desktop/OpenVisus/build_gcc/Release/OpenVisus
 
