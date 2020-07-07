@@ -149,7 +149,7 @@ git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 
 # change as needed if you have python in another place
-Python_ROOT_DIR=/Library/Frameworks/Python.framework/Versions/3.6
+Python_EXECUTABLE=/Library/Frameworks/Python.framework/Versions/3.6/bin/python3
 
 # install prerequisites
 brew install swig cmake
@@ -161,7 +161,7 @@ Qt5_DIR=$(brew --prefix qt5)/lib/cmake/Qt5
 mkdir build 
 cd build
 
-cmake -GXcode -DPython_ROOT_DIR=${Python_ROOT_DIR} -DQt5_DIR=${Qt5_DIR} ../
+cmake -GXcode -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} ../
 cmake --build ./ --target ALL_BUILD --config Release --parallel 4
 cmake --build ./ --target install   --config Release
 
@@ -205,7 +205,7 @@ git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 
 # change as needed if you have python in another place
-Python_ROOT_DIR=/Library/Frameworks/Python.framework/Versions/3.6
+Python_EXECUTABLE=/Library/Frameworks/Python.framework/Versions/3.6/bin/python3
 
 # install prerequisites
 brew install swig cmake
@@ -216,7 +216,7 @@ Qt5_DIR=$(brew --prefix qt5)/lib/cmake/Qt5
 
 mkdir build_gcc
 cd build_gcc
-cmake -G"Unix Makefiles" -DPython_ROOT_DIR=${Python_ROOT_DIR} -DQt5_DIR=${Qt5_DIR} ../
+cmake -G"Unix Makefiles" -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} ../
 cmake --build ./ --target all       --config Release --parallel 8
 cmake --build ./ --target install   --config Release
 

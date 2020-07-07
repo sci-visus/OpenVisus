@@ -367,14 +367,13 @@ void KernelModule::attach()
   //self-test for semaphores (DO NOT REMOVE, it force the creation the static Semaphore__id__)
   if (true)
 	{
-		Semaphore sem(1);
+		Semaphore sem;
+		sem.up();
 		sem.down();
 		VisusReleaseAssert(sem.tryDown()==false);
 		sem.up();
 		VisusReleaseAssert(sem.tryDown()==true);
-	}  
-  
-  
+	}
 }
 
 

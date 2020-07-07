@@ -42,7 +42,6 @@ namespace Visus {
 
 ////////////////////////////////////////////////////////////
 ThreadPool::ThreadPool(String basename,int num_workers) 
-  : nwaiting(0)
 {
   for (int I=0;I<num_workers;I++)
   {
