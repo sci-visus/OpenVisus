@@ -40,6 +40,28 @@ For support : support@visus.net
 #include "osdep.hxx"
 
 namespace Visus {
+	
+/////////////////////////////////////////////////////////////////////////////////////////
+class RWLock::Pimpl
+{
+public:
+#if WIN32
+  SRWLOCK lock;
+  inline Pimpl()           { InitializeSRWLock(&lock); }
+  inline void enterRead()  { AcquireSRWLockShared(&lock); }
+  inline void exitRead()   { ReleaseSRWLockShared(&lock); }
+  inline void enterWrite() { AcquireSRWLockExclusive(&lock); }
+  inline void exitWrite()  { ReleaseSRWLockExclusive(&lock); }
+#else 
+  pthread_rwlock_t lock;
+   Pimpl()                 { pthread_rwlock_init(&lock, 0); }
+  ~Pimpl()                 { pthread_rwlock_destroy(&lock); }
+  inline void enterRead()  { pthread_rwlock_rdlock(&lock); }
+  inline void exitRead()   { pthread_rwlock_unlock(&lock); }
+  inline void enterWrite() { pthread_rwlock_wrlock(&lock); }
+  inline void exitWrite()  { pthread_rwlock_unlock(&lock); }
+#endif 
+}; //end class
 
 ////////////////////////////////////////////////////////////////////
 RWLock::RWLock()

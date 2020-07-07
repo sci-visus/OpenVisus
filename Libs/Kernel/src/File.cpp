@@ -45,6 +45,713 @@ For support : support@visus.net
 namespace Visus {
 
 
+
+/////////////////////////////////////////////////////////////////////////////////////////
+class PosixFile : public File::Pimpl
+{
+public:
+
+
+  String filename;
+  bool   can_read = false;
+  bool   can_write = false;
+
+  int    handle = -1;
+  Int64  cursor = -1;
+
+  //constructor
+  PosixFile() {
+  }
+
+  //destructor
+  virtual ~PosixFile() {
+    close();
+  }
+
+  //isOpen
+  virtual bool isOpen() const override {
+    return this->handle != -1;
+  }
+
+  //canRead
+  virtual bool canRead() const override {
+    return can_read;
+  }
+
+  //canWrite
+  virtual bool canWrite() const override {
+    return can_write;
+  }
+
+  //getFilename
+  virtual String getFilename() const override {
+    return this->filename;
+  }
+
+  //open
+  virtual bool open(String filename, String file_mode, File::Options options) override;
+
+  //close
+  virtual void close() override;
+
+  //size
+  virtual Int64 size() override;
+
+  //write 
+  virtual bool write(Int64 pos, Int64 tot, const unsigned char* buffer) override;
+
+  //read
+  virtual bool read(Int64 pos, Int64 tot, unsigned char* buffer) override;
+
+  //seek
+  bool seek(Int64 value);
+
+  //GetOpenErrorExplanation
+  static String GetOpenErrorExplanation();
+
+};
+
+
+
+/////////////////////////////////////////////////////////////////////
+bool PosixFile::open(String filename, String file_mode, File::Options options) 
+{
+  bool bRead = StringUtils::contains(file_mode, "r");
+  bool bWrite = StringUtils::contains(file_mode, "w");
+  bool bMustCreate = options & File::MustCreateFile;
+
+  int imode = O_BINARY;
+  if (bRead && bWrite) imode |= O_RDWR;
+  else if (bRead)           imode |= O_RDONLY;
+  else if (bWrite)          imode |= O_WRONLY;
+  else  VisusAssert(false);
+
+  int create_flags = 0;
+
+  if (bMustCreate)
+  {
+    imode |= O_CREAT | O_EXCL;
+
+#if WIN32 
+    create_flags |= (S_IREAD | S_IWRITE);
+#else
+    create_flags |= (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+#endif
+  }
+
+  for (int nattempt = 0; nattempt < (bMustCreate ? 2 : 1); nattempt++)
+  {
+    if (nattempt)
+      FileUtils::createDirectory(Path(filename).getParent());
+
+    this->handle = ::open(filename.c_str(), imode, create_flags);
+
+    if (isOpen())
+      break;
+  }
+
+  if (!isOpen())
+  {
+    if (!(bMustCreate && errno == EEXIST) && !(!bMustCreate && errno == ENOENT))
+    {
+      std::ostringstream out; out << Thread::getThreadId();
+      PrintWarning("Thread[", out.str(), "] ERROR opening file ", filename, GetOpenErrorExplanation());
+    }
+    return false;
+  }
+
+  onOpenEvent();
+  this->can_read = bRead;
+  this->can_write = bWrite;
+  this->filename = filename;
+  this->cursor = 0;
+  return true;
+}
+
+/////////////////////////////////////////////////////////////////////
+void PosixFile::close() 
+{
+  if (!isOpen())
+    return;
+
+  ::close(this->handle);
+
+  this->handle = -1;
+  this->cursor = -1;
+  this->can_read = false;
+  this->can_write = false;
+  this->filename = "";
+}
+
+/////////////////////////////////////////////////////////////////////
+Int64 PosixFile::size() 
+{
+  if (!isOpen())
+    return false;
+
+  Int64 ret = LSeeki64(this->handle, 0, SEEK_END);
+
+  if (ret < 0)
+  {
+    this->cursor = -1;
+    return ret;
+  }
+
+  this->cursor = ret;
+  return ret;
+}
+
+/////////////////////////////////////////////////////////////////////
+bool PosixFile::write(Int64 pos, Int64 tot, const unsigned char* buffer) 
+{
+  if (!isOpen() || tot < 0 || !can_write)
+    return false;
+
+  if (tot == 0)
+    return true;
+
+  if (!seek(pos))
+    return false;
+
+  for (Int64 remaining = tot; remaining;)
+  {
+    int chunk = (remaining >= INT_MAX) ? INT_MAX : (int)remaining;
+    int n = ::write(this->handle, buffer, chunk);
+
+    if (n <= 0)
+    {
+      this->cursor = -1;
+      return false;
+    }
+
+    onWriteEvent(n);
+    remaining -= n;
+    buffer += n;
+  }
+
+  if (this->cursor >= 0)
+    this->cursor += tot;
+
+  return true;
+}
+
+/////////////////////////////////////////////////////////////////////
+bool PosixFile::read(Int64 pos, Int64 tot, unsigned char* buffer) 
+{
+  if (!isOpen() || tot < 0 || !can_read)
+    return false;
+
+  if (tot == 0)
+    return true;
+
+  if (!seek(pos))
+    return false;
+
+  for (Int64 remaining = tot; remaining;)
+  {
+    int chunk = (remaining >= INT_MAX) ? INT_MAX : (int)remaining;
+    int n = ::read(this->handle, buffer, chunk);
+
+    if (n <= 0)
+    {
+      this->cursor = -1;
+      return false;
+    }
+
+    onReadEvent(n);
+    remaining -= n;
+    buffer += n;
+  }
+
+  if (this->cursor >= 0)
+    this->cursor += tot;
+
+  return true;
+}
+
+
+/////////////////////////////////////////////////////////////////////
+bool PosixFile::seek(Int64 value)
+{
+  if (!isOpen())
+    return false;
+
+  // useless call
+  if (this->cursor >= 0 && this->cursor == value)
+    return true;
+
+  bool bOk = LSeeki64(this->handle, value, SEEK_SET) >= 0;
+
+  if (!bOk) {
+    this->cursor = -1;
+    return false;
+  }
+  else
+  {
+    this->cursor = value;
+    return true;
+  }
+}
+
+/////////////////////////////////////////////////////////////////////
+String PosixFile::GetOpenErrorExplanation()
+{
+  switch (errno)
+  {
+  case EACCES:
+    return "EACCES Tried to open a read-only file for writing, file's sharing mode does not allow the specified operations, or the given path is a directory.";
+  case EEXIST:
+    return"EEXIST _O_CREAT and _O_EXCL flags specified, but filename already exists.";
+  case EINVAL:
+    return"EINVAL Invalid oflag or pmode argument.";
+  case EMFILE:
+    return"EMFILE No more file descriptors are available (too many files are open).";
+  case ENOENT:
+    return"ENOENT File or path not found.";
+  default:
+    return cstring("Unknown errno", errno);
+  }
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////
+class MemoryMappedFile : public File::Pimpl
+{
+public:
+
+#if WIN32
+  void* file = nullptr;
+  void* mapping = nullptr;
+#else
+  int fd = -1;
+#endif
+
+  bool        can_read = false;
+  bool        can_write = false;
+  String      filename;
+  Int64       nbytes = 0;
+  char* mem = nullptr;
+
+  //constructor
+  MemoryMappedFile() {
+  }
+
+  //destryctor
+  virtual ~MemoryMappedFile() {
+    close();
+  }
+
+  //isOpen
+  virtual bool isOpen() const override {
+    return mem != nullptr;
+  }
+
+  //canRead
+  virtual bool canRead() const override {
+    return can_read;
+  }
+
+  //canWrite
+  virtual bool canWrite() const override {
+    return can_write;
+  }
+
+  //getFilename
+  virtual String getFilename() const override {
+    return this->filename;
+  }
+
+  //open
+  virtual bool open(String filename, String file_mode, File::Options options) override;
+
+  //close
+  virtual void close() override;
+
+  //size
+  virtual Int64 size() override {
+    return nbytes;
+  }
+
+  //write  
+  virtual bool write(Int64 pos, Int64 tot, const unsigned char* buffer) override;
+
+  //read
+  virtual bool read(Int64 pos, Int64 tot, unsigned char* buffer) override;
+
+};
+
+
+
+
+/////////////////////////////////////////////////////////////////////
+bool MemoryMappedFile::open(String filename, String file_mode, File::Options options) 
+{
+  close();
+
+  bool bMustCreate = options & File::MustCreateFile;
+
+  //not supported
+  if (file_mode.find("w") != String::npos || bMustCreate) {
+    VisusAssert(false);
+    return false;
+  }
+
+#if WIN32 
+  {
+    this->file = CreateFileA(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+
+    if (file == INVALID_HANDLE_VALUE) {
+      close();
+      return false;
+    }
+
+    this->nbytes = GetFileSize(file, nullptr);
+    this->mapping = CreateFileMapping(file, nullptr, PAGE_READONLY, 0, 0, nullptr);
+
+    if (mapping == nullptr) {
+      close();
+      return false;
+    }
+
+    this->mem = (char*)MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0);
+  }
+#else
+  {
+    this->fd = ::open(filename.c_str(), O_RDONLY);
+    if (this->fd == -1) {
+      close();
+      return false;
+    }
+
+    struct stat sb;
+    if (fstat(fd, &sb) == -1) {
+      close();
+      return false;
+    }
+
+    this->nbytes = sb.st_size;
+    this->mem = (char*)mmap(nullptr, nbytes, PROT_READ, MAP_PRIVATE, fd, 0);
+  }
+#endif
+
+  if (!mem) {
+    close();
+    return false;
+  }
+
+
+  onOpenEvent();
+  this->filename = filename;
+  this->can_read = file_mode.find("r") != String::npos;
+  this->can_write = file_mode.find("w") != String::npos;
+  return true;
+}
+
+/////////////////////////////////////////////////////////////////////
+void MemoryMappedFile::close() 
+{
+  if (!isOpen())
+    return;
+
+#if WIN32 
+  {
+    if (mem)
+      UnmapViewOfFile(mem);
+
+    if (mapping)
+      CloseHandle(mapping);
+
+    if (file != INVALID_HANDLE_VALUE)
+      CloseHandle(file);
+
+    mapping = nullptr;
+    file = INVALID_HANDLE_VALUE;
+  }
+#else
+  {
+    if (mem)
+      munmap(mem, nbytes);
+
+    if (fd != -1)
+    {
+      ::close(fd);
+      fd = -1;
+    }
+  }
+#endif
+
+  this->can_read = false;
+  this->can_write = false;
+  this->nbytes = 0;
+  this->mem = nullptr;
+  this->filename = "";
+}
+
+
+
+/////////////////////////////////////////////////////////////////////
+bool MemoryMappedFile::write(Int64 pos, Int64 tot, const unsigned char* buffer) 
+{
+  if (!isOpen() || (pos + tot) > this->nbytes)
+    return false;
+
+  memcpy(mem + pos, buffer, (size_t)tot);
+  onWriteEvent(tot);
+  return true;
+}
+
+/////////////////////////////////////////////////////////////////////
+bool MemoryMappedFile::read(Int64 pos, Int64 tot, unsigned char* buffer) 
+{
+  if (!isOpen() || (pos + tot) > this->nbytes)
+    return false;
+
+  memcpy(buffer, mem + pos, (size_t)tot);
+  onReadEvent(tot);
+  return true;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////
+#if WIN32
+class Win32File : public File::Pimpl
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(Win32File)
+  
+  String filename;
+  bool   can_read = false;
+  bool   can_write = false;
+  HANDLE handle = INVALID_HANDLE_VALUE;
+  Int64  cursor = -1;  
+
+  //constructor
+  Win32File() {
+  }
+
+  //destructor
+  virtual ~Win32File() {
+    close();
+  }
+
+  //isOpen
+  virtual bool isOpen() const override {
+    return handle != INVALID_HANDLE_VALUE;
+  }
+
+  //open
+  virtual bool open(String filename, String file_mode, File::Options options) override;
+  
+  //close
+  virtual void close() override;
+
+  //canRead
+  virtual bool canRead() const override {
+    return can_read;
+  }
+
+  //canWrite
+  virtual bool canWrite() const override {
+    return can_write;
+  }
+
+  //getFilename
+  virtual String getFilename() const override {
+    return filename;
+  }
+
+  //size
+  virtual Int64 size() override;
+
+  //write  
+  virtual bool write(Int64 pos, Int64 tot, const unsigned char* buffer) override;
+
+  //read (should be portable to 32 and 64 bit OS)
+  virtual bool read(Int64 pos, Int64 tot, unsigned char* buffer) override;
+
+  //seek
+  virtual bool seek(Int64 value);
+
+};
+
+
+
+/////////////////////////////////////////////////////////////////////
+bool Win32File::open(String filename, String file_mode, File::Options options) {
+
+  bool bRead = StringUtils::contains(file_mode, "r");
+  bool bWrite = StringUtils::contains(file_mode, "w");
+  bool bMustCreate = options & File::MustCreateFile;
+
+  this->handle = CreateFile(
+    filename.c_str(),
+    (bRead ? GENERIC_READ : 0) | (bWrite ? GENERIC_WRITE : 0),
+    bWrite ? 0 : FILE_SHARE_READ,
+    NULL,
+    bMustCreate ? CREATE_NEW : OPEN_EXISTING,
+    FILE_ATTRIBUTE_NORMAL, // | FILE_FLAG_NO_BUFFERING DOES NOT WORK..because I must align to blocksize
+    NULL);
+
+  if (!isOpen())
+  {
+    close();
+    return false;
+  }
+
+  onOpenEvent();
+  this->can_read = bRead;
+  this->can_write = bWrite;
+  this->filename = filename;
+  this->cursor = 0;
+  return true;
+}
+
+/////////////////////////////////////////////////////////////////////
+void Win32File::close() 
+{
+  if (!isOpen())
+    return;
+
+  CloseHandle(handle);
+  this->handle = INVALID_HANDLE_VALUE;
+  this->can_read = false;
+  this->can_write = false;
+  this->filename = "";
+  this->cursor = -1;
+}
+
+
+/////////////////////////////////////////////////////////////////////
+Int64 Win32File::size() {
+
+  if (!isOpen())
+    return false;
+
+  LARGE_INTEGER ret;
+  ZeroMemory(&ret, sizeof(ret));
+
+  LARGE_INTEGER zero;
+  ZeroMemory(&zero, sizeof(zero));
+
+  bool bOk = SetFilePointerEx(this->handle, zero, &ret, FILE_END);
+  if (!bOk)
+    return (this->cursor = -1);
+  else
+    return (this->cursor = ret.QuadPart);
+}
+
+
+/////////////////////////////////////////////////////////////////////
+bool Win32File::write(Int64 pos, Int64 tot, const unsigned char* buffer) {
+
+  if (!isOpen() || tot < 0 || !can_write)
+    return false;
+
+  if (tot == 0)
+    return true;
+
+  if (!seek(pos))
+    return false;
+
+  for (Int64 remaining = tot; remaining;)
+  {
+    int chunk = (remaining >= INT_MAX) ? INT_MAX : (int)remaining;
+
+    DWORD _num_write_ = 0;
+    int n = WriteFile(handle, buffer, chunk, &_num_write_, NULL) ? _num_write_ : 0;
+
+    if (n <= 0)
+    {
+      this->cursor = -1;
+      return false;
+    }
+
+    onWriteEvent(n);
+    remaining -= n;
+    buffer += n;
+  }
+
+  if (this->cursor >= 0)
+    this->cursor += tot;
+
+  return true;
+
+}
+
+/////////////////////////////////////////////////////////////////////
+bool Win32File::read(Int64 pos, Int64 tot, unsigned char* buffer)  {
+
+  if (!isOpen() || tot < 0 || !can_read)
+    return false;
+
+  if (tot == 0)
+    return true;
+
+  if (!seek(pos))
+    return false;
+
+  for (Int64 remaining = tot; remaining;)
+  {
+    int chunk = (remaining >= INT_MAX) ? INT_MAX : (int)remaining;
+
+    DWORD __num_read__ = 0;
+    int n = ReadFile(handle, buffer, chunk, &__num_read__, NULL) ? __num_read__ : 0;
+
+    if (n <= 0)
+    {
+      this->cursor = -1;
+      return false;
+    }
+
+    onReadEvent(n);
+    remaining -= n;
+    buffer += n;
+  }
+
+  if (this->cursor >= 0)
+    this->cursor += tot;
+
+  return true;
+
+}
+
+
+/////////////////////////////////////////////////////////////////////
+bool Win32File::seek(Int64 value)
+{
+  if (!isOpen())
+    return false;
+
+  // useless call
+  if (this->cursor >= 0 && this->cursor == value)
+    return true;
+
+  LARGE_INTEGER offset;
+  ZeroMemory(&offset, sizeof(offset));
+  offset.QuadPart = value;
+
+  LARGE_INTEGER new_file_pointer;
+  ZeroMemory(&new_file_pointer, sizeof(new_file_pointer));
+  bool bOk = SetFilePointerEx(handle, offset, &new_file_pointer, FILE_BEGIN);
+
+  if (!bOk) {
+    this->cursor = -1;
+    return false;
+  }
+  else
+  {
+    this->cursor = value;
+    return true;
+  }
+}
+
+
+#endif
+
+
+
+
 /////////////////////////////////////////////////////////////////////////
 bool File::open(String filename, String file_mode, Options options)
 {

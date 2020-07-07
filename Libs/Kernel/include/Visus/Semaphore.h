@@ -50,8 +50,9 @@ public:
 
   VISUS_PIMPL_CLASS(Semaphore)
 
-  //constructor
-  Semaphore(int initial_value=0);
+  //constructor (NOTE I removed initial_value because in dangerous on macos
+  //see https://heldercorreia.com/semaphores-in-mac-os-x-fd7a7418e13b
+  Semaphore();
 
   //destructor
   ~Semaphore();
