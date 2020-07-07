@@ -279,6 +279,8 @@ void KernelModule::attach()
   VisusReleaseAssert(sizeof(S065) == 65);
   VisusReleaseAssert(sizeof(S129) == 129);
   VisusReleaseAssert(sizeof(S133) == 133);
+  
+
 
   osdep::InitAutoReleasePool();
 
@@ -361,6 +363,18 @@ void KernelModule::attach()
     Encoders::getSingleton()->registerEncoder("tif", [](String specs) {return std::make_shared<FreeImageEncoder>(specs); });
 #endif
   }
+  
+  //self-test for semaphores (DO NOT REMOVE, it force the creation the static Semaphore__id__)
+  if (true)
+	{
+		Semaphore sem(1);
+		sem.down();
+		VisusReleaseAssert(sem.tryDown()==false);
+		sem.up();
+		VisusReleaseAssert(sem.tryDown()==true);
+	}  
+  
+  
 }
 
 

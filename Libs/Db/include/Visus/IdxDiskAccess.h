@@ -74,6 +74,9 @@ public:
 
   //disableAsync
   void disableAsync();
+  
+  //disableWriteLock
+  void disableWriteLock();
 
   //getFilename
   virtual String getFilename(Field field, double time, BigInt blockid) const override;
