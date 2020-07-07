@@ -206,7 +206,12 @@ class PyScriptingNode(ScriptingNode):
 		self.abortProcessing()
 		self.joinProcessing()
 
-		return_receipt = self.createPassThroughtReceipt()
+		# NOTE: I'm dropping any return_receipt because It's too dangerous to keep objects around with a gc
+		if True:
+			return_receipt=None
+		else:
+			return_receipt = self.createPassThroughtReceipt()
+
 		input = self.readArray("array")
 		
 		if input is None:
