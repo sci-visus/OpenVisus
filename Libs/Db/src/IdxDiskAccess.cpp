@@ -992,6 +992,14 @@ void IdxDiskAccess::disableAsync()
   async_tpool.reset();
 }
 
+
+////////////////////////////////////////////////////////////////////
+void IdxDiskAccess::disableWriteLock()
+{
+  this->bDisableWriteLocks=true;
+}
+
+
 ////////////////////////////////////////////////////////////////////
 String IdxDiskAccess::getFilename(Field field,double time,BigInt blockid) const 
 {

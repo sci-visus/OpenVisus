@@ -192,6 +192,59 @@ public:
   bool tryDown()            {return dispatch_semaphore_wait(this->sem, DISPATCH_TIME_NOW) == 0;}
   void up()                 {dispatch_semaphore_signal(this->sem);}
   
+#elif __APPLE__
+ 
+ 	//apple does not support unnamed semaphore
+	//see https://heldercorreia.com/semaphores-in-mac-os-x-fd7a7418e13b
+
+  sem_t* sem=nullptr;
+
+  Pimpl(int initial_value) 
+  {
+  	static std::atomic<Int64> __id__(0);
+  	
+  	while (true)
+  	{
+	  	std::string name=concatenate("visus",(Int64)(++__id__));
+	   	sem=sem_open(name.c_str(), O_CREAT | O_EXCL, 0644, initial_value); 
+	   	
+	   	if (sem!=SEM_FAILED)
+	   	{
+	   		// marks the semaphore to be destroyed when all processes stop using it.
+	   		sem_unlink(name.c_str());
+	   		return;
+	   	}
+	   	
+	   	if (errno==ENAMETOOLONG)
+   		{
+   			__id__.exchange(0);
+   			continue;
+   		}   	
+	   	
+	 		PrintInfo("sem_open() failed", name, strerror(errno));
+	 		VisusReleaseAssert(false);
+	  }
+   	
+  }
+  
+  ~Pimpl() {
+  	sem_close(sem);
+  }
+  
+
+  void down() {
+  	while (sem_wait(sem)== -1) 
+  		VisusReleaseAssert(errno == EINTR);
+  }
+  
+  bool tryDown() {
+  	return sem_trywait(sem) == 0;
+  }
+  
+  void up() {
+  	VisusReleaseAssert(sem_post(sem) == 0);
+  }
+  
 #else
   sem_t sem;
    Pimpl(int initial_value) {sem_init(&sem, 0, initial_value);}
