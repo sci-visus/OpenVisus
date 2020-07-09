@@ -11,15 +11,8 @@ from PyQt5.QtCore    import *
 class MyJob(NodeJob):
 	
 	# constructor
-	def __init__(self, node, input, return_receipt):
+	def __init__(self):
 		super().__init__()
-		self.node=node
-		self.code=node.getCode()
-		self.input=input
-		self.msg=	DataflowMessage()
-		
-		if return_receipt:
-			self.msg.setReturnReceipt(return_receipt)		
 
 	# printMessage
 	def printMessage(self,*args):
@@ -206,11 +199,7 @@ class PyScriptingNode(ScriptingNode):
 		self.abortProcessing()
 		self.joinProcessing()
 
-		# NOTE: I'm dropping any return_receipt because It's too dangerous to keep objects around with a gc
-		if True:
-			return_receipt=None
-		else:
-			return_receipt = self.createPassThroughtReceipt()
+		return_receipt = self.createPassThroughtReceipt()
 
 		input = self.readArray("array")
 		
@@ -218,8 +207,19 @@ class PyScriptingNode(ScriptingNode):
 			return False
 
 		self.setBounds(input.bounds)
-		job=MyJob(self, input, return_receipt)
+
+		job=MyJob()
+		job.node=self
+		job.code=self.getCode()
+		job.input=input
+		job.msg=DataflowMessage()
+		job.msg.setReturnReceipt(return_receipt)
+
+		# python won't use it anymore (this is to force deallocation)
+		del return_receipt 
+
 		self.addNodeJob(job)
+		
 		return True 
 		
 	# createEditor
