@@ -288,7 +288,7 @@ void Tutorial_6(String default_layout)
       {
         int H=query->getCurrentResolution();
 
-        Path filename=Path(String("tmp/tutorial6/")  + filters[NFilter] + "/" + StringUtils::replaceFirst(dtype.toString(),"*","_") + String(Overall ?"_all":"_piece"))
+        Path filename=Path(String("tmp/tutorial_6/")  + filters[NFilter] + "/" + StringUtils::replaceFirst(dtype.toString(),"*","_") + String(Overall ?"_all":"_piece"))
           .getChild("snapshot" + String(H<10?"0":"") + cstring(H)  + (".png"));
 
         FileUtils::createDirectory(filename.getParent());

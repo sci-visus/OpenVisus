@@ -45,8 +45,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-
-
 ///////////////////////////////////////////////////////////////////////////////////////////////
 Array ArrayUtils::loadImage(String url,std::vector<String> args)
 {
