@@ -53,11 +53,22 @@ def CreateIdx(**args):
 	# bitsperblock
 	if "bitsperblock" in args:
 		idx.bitsperblock=int(args["bitsperblock"])
+		
+	# compute db overall size
+	TOT=0
+	for field in idx.fields:
+		TOT+=field.dtype.getByteSize(idx.logic_box.size())
 
 	# blocks per file
 	if "blocksperfile" in args:
 		idx.blocksperfile=int(args["blocksperfile"])
 		
+	elif "data" in args or TOT<2*(1024*1024*1024):
+		idx.blocksperfile=-1 # all blocks in one file
+		
+	else:
+		idx.blocksperfile==0 # openvisus will guess (probably using multiple files)
+	
 	# is the user specifying filters?
 	if "filters" in args and args["filters"]:
 		filters=args["filters"]
