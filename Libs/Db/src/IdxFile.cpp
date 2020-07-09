@@ -129,6 +129,48 @@ void IdxFile::validate(String url)
     return;
   }
 
+  //check fields
+  if (fields.empty())
+  {
+    PrintWarning("no fields");
+    this->version = -1;
+    return;
+  }
+
+  for (int N = 0; N < (int)this->fields.size(); N++)
+  {
+    Field& field = this->fields[N];
+    field.index = cstring(N);
+
+    if (!field.valid())
+    {
+      PrintWarning("wrong field", field.name);
+      this->version = -1;
+      return;
+    }
+
+    if (field.default_layout.empty())
+    {
+      field.default_layout = version < 6 ? "hzorder" : "";
+    }
+    else
+    {
+      //for historical reason '0' means hzorder and '1' means rowmajor; empty means row major
+      if (field.default_layout.empty() || field.default_layout == "rowmajor" || field.default_layout == "row_major" || field.default_layout == "1")
+        field.default_layout = "";
+
+      else if (field.default_layout == "hzorder" || field.default_layout == "hz_order" || field.default_layout == "0")
+        field.default_layout = "hzorder";
+
+      else
+      {
+        VisusAssert(false);
+        PrintWarning("unknown field.default_layout", field.default_layout);
+        field.default_layout = ""; //rowmajor
+      }
+    }
+  }
+
   //bitsperblock
   if (bitsperblock == 0)
     bitsperblock = std::min(bitmask.getMaxResolution(), 16);
@@ -154,8 +196,14 @@ void IdxFile::validate(String url)
     blocksperfile = (int)totblocks;
     VisusAssert(blocksperfile == totblocks);
   }
+  //user specified a filename template which is one file only
+  else if (blocksperfile == 0 && !filename_template.empty() && !StringUtils::contains(filename_template, "%"))
+  {
+    blocksperfile = (int)totblocks;
+    VisusAssert(blocksperfile == totblocks);
+  }
   //need to guess blocksperfile
-  else if (blocksperfile==0)
+  else if (blocksperfile == 0)
   {
     //compute overall blockdim (ignoring the headers)
     int overall_blockdim = 0;
@@ -166,9 +214,9 @@ void IdxFile::validate(String url)
     const double likely_compression_ratio = 0.5;
     const int mb = 1024 * 1024;
     const int target_compressed_filesize = 16 * mb;
-    const int target_uncompressed_filesize = (int)(target_compressed_filesize  / likely_compression_ratio);
+    const int target_uncompressed_filesize = (int)(target_compressed_filesize / likely_compression_ratio);
 
-    blocksperfile = target_uncompressed_filesize/ overall_blockdim;
+    blocksperfile = target_uncompressed_filesize / overall_blockdim;
 
     if (blocksperfile > totblocks)
       blocksperfile = (int)totblocks;
@@ -198,50 +246,6 @@ void IdxFile::validate(String url)
     }
   }
 
-  //check fields
-  if (fields.empty())
-  {
-    PrintWarning("no fields");
-    this->version=-1;
-    return;
-  }
-
-  for (int N=0;N<(int)this->fields.size();N++)
-  {
-    Field& field=this->fields[N];
-
-    //old format stores multiple fields in the same file
-    if (version>=1 && version<=6)
-      field.index=cstring(N);
-
-    if (!field.valid())
-    {
-      PrintWarning("wrong field",field.name);
-      this->version=-1;
-      return;
-    }
-
-    if (field.default_layout.empty())
-    {
-      field.default_layout = version < 6 ? "hzorder" : "";
-    }
-    else
-    {
-      //for historical reason '0' means hzorder and '1' means rowmajor; empty means row major
-      if (field.default_layout.empty() || field.default_layout == "rowmajor" || field.default_layout == "row_major" || field.default_layout == "1")
-        field.default_layout = "";
-
-      else if (field.default_layout == "hzorder" || field.default_layout == "hz_order" || field.default_layout == "0")
-        field.default_layout = "hzorder";
-
-      else
-      {
-        VisusAssert(false);
-        PrintWarning("unknown field.default_layout", field.default_layout);
-        field.default_layout = ""; //rowmajor
-      }
-    }
-  }
 
   //filename_template
   if (filename_template.empty())
