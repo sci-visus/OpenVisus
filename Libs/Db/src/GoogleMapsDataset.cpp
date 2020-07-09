@@ -417,7 +417,7 @@ void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
 
   this->setDatasetBody(ar);
   this->setKdQueryMode(KdQueryMode::fromString(ar.readString("kdquery")));
-  this->setBitmask(DatasetBitmask::guess(PointNi(W,H)));
+  this->bitmask=DatasetBitmask::guess(PointNi(W,H));
   this->setDefaultBitsPerBlock(Utils::getLog2(tile_width*tile_height));
   this->setLogicBox(BoxNi(PointNi(0,0), PointNi(W, H)));
 

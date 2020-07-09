@@ -202,7 +202,7 @@ public:
         if (!query->isRunning())
           return;
 
-        auto splitbit = bitmask[node->resolution - 1 - bitsperblock];
+        auto splitbit    = bitmask[node->resolution - 1 - bitsperblock];
         auto upsamplebit = bitmask[node->resolution];
 
         bool bLeftChild = node->up->left.get() == node ? true : false;

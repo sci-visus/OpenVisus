@@ -91,7 +91,7 @@ public:
     int samplesperblock=getSamplesPerBlock();
     int blockdim    = (int)(field.dtype.getByteSize(samplesperblock));
 
-    DatasetBitmask bitmask=dataset->getBitmask();
+    DatasetBitmask bitmask=dataset->idxfile.bitmask;
     int pdim = bitmask.getPointDim();
 
     LogicSamples logic_samples=query->logic_samples;
@@ -312,7 +312,7 @@ public:
     auto bitsperblock = vf->getDefaultBitsPerBlock();
     int            samplesperblock = 1 << bitsperblock;
 
-    DatasetBitmask bitmask=vf->getBitmask();
+    DatasetBitmask bitmask=vf->idxfile.bitmask;
     int            max_resolution=vf->getMaxResolution();
     BigInt         HzFrom= (block_query->blockid + 0)<<bitsperblock;
     BigInt         HzTo  = (block_query->blockid + 1)<< bitsperblock;
@@ -475,7 +475,7 @@ IdxDataset::~IdxDataset(){
 ///////////////////////////////////////////////////////////
 LogicSamples IdxDataset::getLevelSamples(int H)
 {
-  HzOrder hzorder(getBitmask());
+  HzOrder hzorder(idxfile.bitmask);
   PointNi delta = hzorder.getLevelDelta(H);
   BoxNi box(hzorder.getLevelP1(H),hzorder.getLevelP2Included(H) + delta);
   auto ret=LogicSamples(box, delta);
@@ -693,7 +693,7 @@ void IdxDataset::compressDataset(std::vector<String> compression, Array data)
 BoxNi IdxDataset::adjustBoxQueryFilterBox(BoxQuery* query,IdxFilter* filter,BoxNi user_box,int H) 
 {
   //there are some case when I need alignment with pow2 box, for example when doing kdquery=box with filters
-  auto bitmask = getBitmask();
+  auto bitmask = idxfile.bitmask;
   HzOrder hzorder(bitmask);
   int pdim = bitmask.getPointDim();
 
@@ -773,7 +773,7 @@ SharedPtr<BoxQuery> IdxDataset::createEquivalentBoxQuery(int mode,SharedPtr<Bloc
   auto HzFrom = (block_query->blockid + 0) << bitsperblock;
   auto HzTo   = (block_query->blockid + 1) << bitsperblock;
 
-  auto bitmask = getBitmask();
+  auto bitmask = idxfile.bitmask;
   int fromh = HzOrder::getAddressResolution(bitmask, HzFrom);
   int toh   = HzOrder::getAddressResolution(bitmask, HzTo -1);
 
@@ -909,10 +909,8 @@ static std::map<std::pair<String,int> , SharedPtr<IdxPointQueryHzAddressConversi
 void IdxDataset::setIdxFile(IdxFile value)
 {
   this->idxfile=value;
-
   auto bitmask = value.bitmask;
-
-  setBitmask(bitmask);
+  this->bitmask=bitmask;
   setDefaultBitsPerBlock(value.bitsperblock);
   setLogicBox(value.logic_box);
   setDatasetBounds(value.bounds);
@@ -975,7 +973,7 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr
     VisusAssert(query->field.dtype==block_query->field.dtype);
 
     auto bitsperblock = getDefaultBitsPerBlock();
-    DatasetBitmask bitmask=this->getBitmask();
+    DatasetBitmask bitmask=this->idxfile.bitmask;
     BigInt         HzFrom= (block_query->blockid+0)<<bitsperblock;
     BigInt         HzTo  = (block_query->blockid+1)<<bitsperblock;
     int            hstart=std::max(query->getCurrentResolution() +1  ,HzOrder::getAddressResolution(bitmask,HzFrom));
@@ -1320,7 +1318,7 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
   FastLoopStack  item, * stack = NULL;
   FastLoopStack  STACK[DatasetBitmaskMaxLen + 1];
 
-  DatasetBitmask bitmask = this->getBitmask();
+  DatasetBitmask bitmask = this->idxfile.bitmask;
   HzOrder hzorder(bitmask);
 
   int max_resolution = getMaxResolution();
@@ -1823,7 +1821,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
   }
   else
   {
-    auto bitmask = getBitmask();
+    auto bitmask = idxfile.bitmask;
     auto bounds = this->getLogicBox();
     auto last_bitmask = ((BigInt)1) << (getMaxResolution());
     auto hzorder = HzOrder(bitmask);
@@ -1988,7 +1986,7 @@ bool IdxDataset::computeFilter(SharedPtr<IdxFilter> filter, double time, Field f
   //this works only for filter_size==2, otherwise the building of the sliding_window is very difficult
   VisusAssert(filter->size == 2);
 
-  DatasetBitmask bitmask = this->getBitmask();
+  DatasetBitmask bitmask = this->idxfile.bitmask;
   BoxNi          box = this->getLogicBox();
 
   int pdim = bitmask.getPointDim();

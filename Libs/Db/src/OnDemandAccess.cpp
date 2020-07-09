@@ -93,7 +93,6 @@ public:
 
     //where the samples will be in X Y Z, not a simply 1d array
 
-    auto bitmask = dataset->getBitmask();
     auto timestep = query->time;
     auto field = query->field.name;
     auto dataset_box = dataset->getLogicBox();

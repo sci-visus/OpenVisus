@@ -77,6 +77,11 @@ public:
     return "GoogleMapsDataset";
   }
 
+  //getPointDim
+  virtual int getPointDim() const override {
+    return 2;
+  }
+
   //getBlockCoordinate
   Point3i getBlockCoordinate(BigInt blockid);
 

@@ -76,6 +76,11 @@ public:
     return "IdxDataset";
   }
 
+  //getPointDim
+  virtual int getPointDim() const override {
+    return bitmask.getPointDim();
+  }
+
 public:
 
   //createAccess

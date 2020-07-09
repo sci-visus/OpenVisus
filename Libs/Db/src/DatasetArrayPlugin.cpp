@@ -132,7 +132,6 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
   ar.write("logic_size", dataset->getLogicBox().size());
   ar.write("timesteps",cstring(dataset->getTimesteps().getMin())+" " + cstring(dataset->getTimesteps().getMax()));
   ar.write("bitsperblock",dataset->getDefaultBitsPerBlock());
-  ar.write("bitmask",dataset->getBitmask());
 
   for (auto field : dataset->getFields())
     ar.writeObject("field", field);

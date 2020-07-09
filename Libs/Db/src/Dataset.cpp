@@ -48,6 +48,7 @@ For support : support@visus.net
 #include <Visus/Polygon.h>
 #include <Visus/IdxFile.h>
 #include <Visus/File.h>
+#include <Visus/GoogleMapsDataset.h>
 
 namespace Visus {
 
@@ -259,6 +260,90 @@ SharedPtr<BoxQuery> Dataset::createBoxQuery(BoxNi logic_box, Field field, double
   return ret;
 }
 
+
+////////////////////////////////////////////////
+std::vector<int> Dataset::guessBoxQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression)
+{
+  if (!logic_position.valid())
+    return {};
+
+  auto maxh = getMaxResolution();
+  auto endh = maxh;
+  auto pdim = getPointDim();
+
+  if (logic_to_screen.valid())
+  {
+    //important to work with orthogonal box
+    auto logic_box = logic_position.toAxisAlignedBox();
+
+    FrustumMap map(logic_to_screen);
+
+    std::vector<Point2d> screen_points;
+    for (auto p : logic_box.getPoints())
+      screen_points.push_back(map.projectPoint(p.toPoint3()));
+
+    //project on the screen
+    std::vector<double> screen_distance = { 0,0,0 };
+
+    for (auto edge : BoxNi::getEdges(pdim))
+    {
+      auto axis = edge.axis;
+      auto s0 = screen_points[edge.index0];
+      auto s1 = screen_points[edge.index1];
+      auto Sd = s0.distance(s1);
+      screen_distance[axis] = std::max(screen_distance[axis], Sd);
+    }
+
+    const int max_3d_texture_size = 2048;
+
+    auto nsamples = logic_box.size().toPoint3();
+    while (endh > 0)
+    {
+      std::vector<double> samples_per_pixel = {
+        nsamples[0] / screen_distance[0],
+        nsamples[1] / screen_distance[1],
+        nsamples[2] / screen_distance[2]
+      };
+
+      std::sort(samples_per_pixel.begin(), samples_per_pixel.end());
+
+      auto quality = sqrt(samples_per_pixel[0] * samples_per_pixel[1]);
+
+      //note: in 2D samples_per_pixel[2] is INF; in 3D with an ortho view XY samples_per_pixel[2] is INF (see std::sort)
+      bool bGood = quality < 1.0;
+
+      if (pdim == 3 && bGood)
+        bGood =
+        nsamples[0] <= max_3d_texture_size &&
+        nsamples[1] <= max_3d_texture_size &&
+        nsamples[2] <= max_3d_texture_size;
+
+      if (bGood)
+        break;
+
+      //by decreasing resolution I will get half of the samples on that axis
+      auto bit = bitmask[endh];
+      nsamples[bit] *= 0.5;
+      --endh;
+    }
+  }
+
+  //consider quality and progression
+  endh = Utils::clamp(endh + quality, 0, maxh);
+
+  std::vector<int> ret = { Utils::clamp(endh - progression, 0, maxh) };
+  while (ret.back() < endh)
+    ret.push_back(Utils::clamp(ret.back() + pdim, 0, endh));
+
+  if (auto google = dynamic_cast<GoogleMapsDataset*>(this))
+  {
+    for (auto& it : ret)
+      it = (it >> 1) << 1; //TODO: google maps does not have odd resolutions
+  }
+
+  return ret;
+}
+
 ////////////////////////////////////////////////
 void Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
 {
@@ -314,14 +399,96 @@ void Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<BlockQuery> q
   return;
 }
 
-
-//*********************************************************************
-// valerio's algorithm, find the final view dependent resolution (endh)
-// (the default endh is the maximum resolution available)
-//*********************************************************************
-
-PointNi Dataset::guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, Position logic_position, int end_resolution)
+/////////////////////////////////////////////////////////
+SharedPtr<PointQuery> Dataset::createPointQuery(Position logic_position, Field field, double time, Aborted aborted)
 {
+  auto ret = std::make_shared<PointQuery>();
+  ret->dataset = this;
+  ret->field = field = field;
+  ret->time = time;
+  ret->mode = 'r';
+  ret->aborted = aborted;
+  ret->logic_position = logic_position;
+  return ret;
+}
+
+
+
+/// ///////////////////////////////////////////////////////////////////////////
+std::vector<int> Dataset::guessPointQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression)
+{
+  if (!logic_position.valid())
+    return {};
+
+  auto maxh = getMaxResolution();
+  auto endh = maxh;
+  auto pdim = getPointDim();
+
+  if (logic_to_screen.valid())
+  {
+    std::vector<Point3d> logic_points;
+    std::vector<Point2d> screen_points;
+    FrustumMap map(logic_to_screen);
+    for (auto p : logic_position.getPoints())
+    {
+      auto logic_point = p.toPoint3();
+      logic_points.push_back(logic_point);
+      screen_points.push_back(map.projectPoint(logic_point));
+    }
+
+    // valerio's algorithm, find the final view dependent resolution (endh)
+    // (the default endh is the maximum resolution available)
+    BoxNi::Edge longest_edge;
+    double longest_screen_distance = NumericLimits<double>::lowest();
+    for (auto edge : BoxNi::getEdges(pdim))
+    {
+      double screen_distance = (screen_points[edge.index1] - screen_points[edge.index0]).module();
+
+      if (screen_distance > longest_screen_distance)
+      {
+        longest_edge = edge;
+        longest_screen_distance = screen_distance;
+      }
+    }
+
+    //I match the highest resolution on dataset axis (it's just an euristic!)
+    for (int A = 0; A < pdim; A++)
+    {
+      double logic_distance = fabs(logic_points[longest_edge.index0][A] - logic_points[longest_edge.index1][A]);
+      double samples_per_pixel = logic_distance / longest_screen_distance;
+      Int64  num = Utils::getPowerOf2((Int64)samples_per_pixel);
+      while (num > samples_per_pixel)
+        num >>= 1;
+
+      int H = maxh;
+      for (; num > 1 && H >= 0; H--)
+      {
+        if (bitmask[H] == A)
+          num >>= 1;
+      }
+
+      endh = std::min(endh, H);
+    }
+  }
+
+  //consider quality and progression
+  endh = Utils::clamp(endh + quality, 0, maxh);
+
+  std::vector<int> ret = { Utils::clamp(endh - progression, 0, maxh) };
+  while (ret.back() < endh)
+    ret.push_back(Utils::clamp(ret.back() + pdim, 0, endh));
+
+  return ret;
+}
+
+/// ///////////////////////////////////////////////////////////////////////////
+PointNi Dataset::guessPointQueryNumberOfSamples(Frustum logic_to_screen, Position logic_position, int end_resolution)
+{
+  //*********************************************************************
+  // valerio's algorithm, find the final view dependent resolution (endh)
+  // (the default endh is the maximum resolution available)
+  //*********************************************************************
+
   auto bitmask = getBitmask();
   int pdim = bitmask.getPointDim();
 
@@ -393,26 +560,10 @@ PointNi Dataset::guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, 
   }
 
   //important
-#if 1
   nsamples = nsamples.compactDims(); 
   nsamples.setPointDim(3, 1);
-#endif
 
   return nsamples;
-}
-
-/////////////////////////////////////////////////////////
-SharedPtr<PointQuery> Dataset::createPointQuery(Position logic_position, Field field, double time, std::vector<int> end_resolutions, Aborted aborted)
-{
-  auto ret = std::make_shared<PointQuery>();
-  ret->dataset = this;
-  ret->field = field = field;
-  ret->time = time;
-  ret->mode = 'r';
-  ret->aborted = aborted;
-  ret->logic_position = logic_position;
-  ret->end_resolutions = end_resolutions;
-  return ret;
 }
 
 

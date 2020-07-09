@@ -47,7 +47,7 @@ void TilingExample(IdxDataset* dataset)
   int maxh=dataset->getMaxResolution();
 
   int            bitsperblock    =  dataset->getDefaultBitsPerBlock();
-  DatasetBitmask bitmask         =  dataset->getBitmask();
+  DatasetBitmask bitmask         =  dataset->idxfile.bitmask;
   int            samplesperblock = 1<<bitsperblock;
 
   int pdim = bitmask.getPointDim();
