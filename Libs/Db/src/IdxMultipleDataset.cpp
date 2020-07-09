@@ -499,7 +499,7 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& AR)
       PHYSIC_BOX = PHYSIC_BOX.getUnion(dataset->getDatasetBounds().toAxisAlignedBox());
     }
   }
-  PrintInfo("MIDX physic_box", PHYSIC_BOX);
+  //PrintInfo("MIDX physic_box", PHYSIC_BOX);
   IDXFILE.bounds = Position(PHYSIC_BOX);
 
   //LOGIC_BOX
@@ -553,7 +553,7 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& AR)
   }
 
   IDXFILE.logic_box = LOGIC_BOX;
-  PrintInfo("MIDX logic_box", IDXFILE.logic_box);
+  //PrintInfo("MIDX logic_box", IDXFILE.logic_box);
 
   //set logic_to_LOGIC
   for (auto it : down_datasets)
@@ -568,7 +568,7 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& AR)
     auto LOGIC_PIXELS = Position(dataset->logic_to_LOGIC, logic_box).computeVolume();
     auto logic_pixels = Position(logic_box).computeVolume();
     auto ratio = logic_pixels / LOGIC_PIXELS; //ratio>1 means you are loosing pixels, ratio=1 is perfect, ratio<1 that you have more pixels than needed and you will interpolate
-    PrintInfo("  ", it.first, "volume(logic_pixels)", logic_pixels, "volume(LOGIC_PIXELS)", LOGIC_PIXELS, "ratio==logic_pixels/LOGIC_PIXELS", ratio);
+    //PrintInfo("  ", it.first, "volume(logic_pixels)", logic_pixels, "volume(LOGIC_PIXELS)", LOGIC_PIXELS, "ratio==logic_pixels/LOGIC_PIXELS", ratio);
   }
 
   //time
@@ -667,7 +667,7 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& AR)
   }
 
   IDXFILE.validate(URL);
-  PrintInfo("MIDX idxfile is the following", "\n", IDXFILE);
+  //PrintInfo("MIDX idxfile is the following", "\n", IDXFILE);
   setIdxFile(IDXFILE);
 
   //for non-mosaic I cannot use block query
@@ -677,7 +677,7 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& AR)
   AR.writeObject("idxfile", IDXFILE);
   setDatasetBody(AR);
 
-  PrintInfo(AR.toString());
+  //PrintInfo(AR.toString());
 }
 
 

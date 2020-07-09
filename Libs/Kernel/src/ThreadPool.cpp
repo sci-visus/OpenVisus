@@ -101,7 +101,8 @@ void ThreadPool::push(SharedPtr<ThreadPool> pool, std::function<void()> fn) {
 
 
 ////////////////////////////////////////////////////////////
-void ThreadPool::waitAll() {
+void ThreadPool::waitAll() 
+{
   while (true)
   {
     {
@@ -110,13 +111,8 @@ void ThreadPool::waitAll() {
         return;
     }
 
-    //this is a dangerous blocking call in case there is a Python GIL going on...
-#if 0
+    //note: possible deadlocks if I have the python GIL here
     wait_all.num_done.down();
-#else
-    while (!wait_all.num_done.tryDown())
-      Thread::sleep(20);
-#endif
 
     {
       ScopedLock lock(wait_all.lock);

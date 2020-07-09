@@ -18,6 +18,14 @@ using namespace Visus;
 %include <VisusPy.common>
 
 
+//IMPORTANT NOTE ABOUT:
+//%feature("director") Visus::ClassName
+//there is a bug in swig (see https://github.com/swig/swig/issues/306)
+//then calling the C++ part of a director, swig does not release the GIL.
+//say for example that the C++ will hold in a semaphore.down() waiting for a condition (but it has the GIL!)
+// meanwhile some other thread which should signal that semaphroe needs the GIL but cannot get it
+//SUMMARY: use virtuals only for very needed methods, and exclude ( %feature("nodirector") Visus::ClassName:methodName;) all others
+
 %shared_ptr(Visus::HeapMemory)
 %shared_ptr(Visus::StringTree)
 %shared_ptr(Visus::ConfigFile)

@@ -68,6 +68,8 @@ public:
   MyJob(QueryNode* node_,SharedPtr<Dataset> dataset_,SharedPtr<Access> access_)
     : node(node_),dataset(dataset_),access(access_)
   {
+    this->verbose = true;
+
     this->field = node->getField();
     this->time  = node->getTime();
     this->logic_position = node->getQueryLogicPosition();
@@ -212,15 +214,6 @@ public:
 
     msg.writeValue("array", output);
     node->publish(msg);
-  }
-
-  //abort
-  virtual void abort() override
-  {
-    if (!aborted())
-      PrintInfo("QueryNode job aborted");
-
-    NodeJob::abort();
   }
 
 };
