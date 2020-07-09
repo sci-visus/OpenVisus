@@ -64,7 +64,6 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
     field.filter=filter;
     idxfile.fields.push_back(field);
   }
-  idxfile.bitmask=DatasetBitmask();
   idxfile.bitsperblock=bitsperblock;
   idxfile.save(filename);
 
@@ -327,7 +326,7 @@ void Tutorial_6(String default_layout)
       dataset->nextBoxQuery(query);
     }
 
-    dataset->removeFiles();
+    FileUtils::removeDirectory(Path("tmp/tutorial_6"));
   }
 }
 

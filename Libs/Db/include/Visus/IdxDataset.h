@@ -128,9 +128,6 @@ public:
 
 public:
 
-  // removeFiles all files bolonging to this visus file 
-  void removeFiles();
-
   //compressDataset
   void compressDataset(std::vector<String> compression, Array data=Array());
 

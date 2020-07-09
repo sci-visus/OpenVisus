@@ -91,8 +91,7 @@ public:
     int samplesperblock=getSamplesPerBlock();
     int blockdim    = (int)(field.dtype.getByteSize(samplesperblock));
 
-    DatasetBitmask bitmask=dataset->idxfile.bitmask;
-    int pdim = bitmask.getPointDim();
+    auto pdim = dataset->getPointDim();
 
     LogicSamples logic_samples=query->logic_samples;
     if (!logic_samples.valid())
@@ -481,41 +480,6 @@ LogicSamples IdxDataset::getLevelSamples(int H)
   auto ret=LogicSamples(box, delta);
   VisusAssert(ret.valid());
   return ret;
-}
-
-
-////////////////////////////////////////////////////////////////////////
-void IdxDataset::removeFiles()
-{
-  HzOrder hzorder(idxfile.bitmask);
-  BigInt tot_blocks= getTotalNumberOfBlocks();
-  auto  samplesperblock=1<<idxfile.bitsperblock;
-  auto  access=std::make_shared<IdxDiskAccess>(this);
-
-  std::set<String> filenames;
-
-  for (auto time :  idxfile.timesteps.asVector())
-  {
-    for (auto field : idxfile.fields)
-    {
-      for (BigInt blockid=0;blockid<=tot_blocks;blockid++)
-      {
-        auto filename=access->getFilename(field,time,blockid);
-        if (filenames.count(filename))
-          continue;
-        filenames.insert(filename);
-
-        if (!FileUtils::existsFile(filename))
-          continue;
-
-        Path path(filename);
-        FileUtils::removeFile(path);
-
-        // this will work only if the parent directory is empty()
-        FileUtils::removeDirectory(path.getParent()); 
-      }
-    }
-  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -1057,7 +1021,6 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr
     return NeedToCopySamples(op,query->field.dtype,this,query.get(),block_query.get());
   }
 }
-
 
 
 

@@ -38,6 +38,7 @@ For support : support@visus.net
 
 #include <Visus/Encoder.h>
 #include <Visus/IdxDataset.h>
+#include <Visus/File.h>
 
 namespace Visus {
 
@@ -307,13 +308,7 @@ void SelfTestIdx(int max_seconds)
     Tutorial_3(default_layout);
     PrintInfo("...done");
 
-    //remove data from tutorial_1
-    try
-    {
-      auto dataset = LoadIdxDataset("tmp/tutorial_1/visus.idx");
-      dataset->removeFiles();
-    }
-    catch (...) {}
+    FileUtils::removeDirectory(Path("tmp/tutorial_1"));
 
     PrintInfo("Running Tutorial_6...");
     Tutorial_6(default_layout);
@@ -354,7 +349,7 @@ void SelfTestIdx(int max_seconds)
               selftest.executeRandomQuery();
           }
 
-          dataset->removeFiles();
+          FileUtils::removeDirectory(Path("tmp/self_test_idx"));
         }
       }
     }
@@ -388,7 +383,8 @@ void SelfTestIdx(int max_seconds)
         for (int n = 0; n < 10; n++)
           selftest.executeRandomQuery();
       }
-      dataset->removeFiles();
+
+      FileUtils::removeDirectory(Path("tmp/self_test_idx"));
     }
   }
 
