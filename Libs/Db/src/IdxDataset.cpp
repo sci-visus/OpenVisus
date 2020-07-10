@@ -1199,7 +1199,7 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
 
   if (query->aborted())
   {
-    query->setFailed("query aboted");
+    query->setFailed("query aborted");
     return false;
   }
 
@@ -1750,7 +1750,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
   auto aborted = query->aborted;
   if (aborted())
   {
-    query->setFailed("query aboted");
+    query->setFailed("query aborted");
     return false;
   }
 

@@ -326,7 +326,7 @@ bool GoogleMapsDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQ
 
   if (query->aborted())
   {
-    query->setFailed("query aboted");
+    query->setFailed("query aborted");
     return false;
   }
 
@@ -408,7 +408,7 @@ bool GoogleMapsDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQ
 
   if (query->aborted())
   {
-    query->setFailed("query aboted");
+    query->setFailed("query aborted"); 
     return false;
   }
 
