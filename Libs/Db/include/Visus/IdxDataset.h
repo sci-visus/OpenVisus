@@ -117,6 +117,16 @@ public:
 
 public:
 
+  //constructor
+  virtual SharedPtr<PointQuery> createPointQuery(Position logic_position, Field field, double time, Aborted aborted = Aborted()) override;
+
+
+  //guessPointQueryEndResolutions
+  virtual std::vector<int> guessPointQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression) override;
+
+  //guessPointQueryNumberOfSamples
+  PointNi guessPointQueryNumberOfSamples(Frustum logic_to_screen, Position logic_position, int end_resolution) override;
+
   //beginPointQuery
   virtual void beginPointQuery(SharedPtr<PointQuery> query) override;
 

@@ -1941,6 +1941,173 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
 }
 
 
+
+/////////////////////////////////////////////////////////
+SharedPtr<PointQuery> IdxDataset::createPointQuery(Position logic_position, Field field, double time, Aborted aborted)
+{
+  auto ret = std::make_shared<PointQuery>();
+  ret->dataset = this;
+  ret->field = field = field;
+  ret->time = time;
+  ret->mode = 'r';
+  ret->aborted = aborted;
+  ret->logic_position = logic_position;
+  return ret;
+}
+
+/// ///////////////////////////////////////////////////////////////////////////
+std::vector<int> IdxDataset::guessPointQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression)
+{
+  if (!logic_position.valid())
+    return {};
+
+  auto maxh = getMaxResolution();
+  auto endh = maxh;
+  auto pdim = getPointDim();
+
+  if (logic_to_screen.valid())
+  {
+    std::vector<Point3d> logic_points;
+    std::vector<Point2d> screen_points;
+    FrustumMap map(logic_to_screen);
+    for (auto p : logic_position.getPoints())
+    {
+      auto logic_point = p.toPoint3();
+      logic_points.push_back(logic_point);
+      screen_points.push_back(map.projectPoint(logic_point));
+    }
+
+    // valerio's algorithm, find the final view dependent resolution (endh)
+    // (the default endh is the maximum resolution available)
+    BoxNi::Edge longest_edge;
+    double longest_screen_distance = NumericLimits<double>::lowest();
+    for (auto edge : BoxNi::getEdges(pdim))
+    {
+      double screen_distance = (screen_points[edge.index1] - screen_points[edge.index0]).module();
+
+      if (screen_distance > longest_screen_distance)
+      {
+        longest_edge = edge;
+        longest_screen_distance = screen_distance;
+      }
+    }
+
+    //I match the highest resolution on dataset axis (it's just an euristic!)
+    for (int A = 0; A < pdim; A++)
+    {
+      double logic_distance = fabs(logic_points[longest_edge.index0][A] - logic_points[longest_edge.index1][A]);
+      double samples_per_pixel = logic_distance / longest_screen_distance;
+      Int64  num = Utils::getPowerOf2((Int64)samples_per_pixel);
+      while (num > samples_per_pixel)
+        num >>= 1;
+
+      int H = maxh;
+      for (; num > 1 && H >= 0; H--)
+      {
+        if (bitmask[H] == A)
+          num >>= 1;
+      }
+
+      endh = std::min(endh, H);
+    }
+  }
+
+  //consider quality and progression
+  endh = Utils::clamp(endh + quality, 0, maxh);
+
+  std::vector<int> ret = { Utils::clamp(endh - progression, 0, maxh) };
+  while (ret.back() < endh)
+    ret.push_back(Utils::clamp(ret.back() + pdim, 0, endh));
+
+  return ret;
+}
+
+/// ///////////////////////////////////////////////////////////////////////////
+PointNi IdxDataset::guessPointQueryNumberOfSamples(Frustum logic_to_screen, Position logic_position, int end_resolution)
+{
+  //*********************************************************************
+  // valerio's algorithm, find the final view dependent resolution (endh)
+  // (the default endh is the maximum resolution available)
+  //*********************************************************************
+
+  auto bitmask = this->idxfile.bitmask;
+  int pdim = bitmask.getPointDim();
+
+  if (!logic_position.valid())
+    return PointNi(pdim);
+
+  const int unit_box_edges[12][2] =
+  {
+    {0,1}, {1,2}, {2,3}, {3,0},
+    {4,5}, {5,6}, {6,7}, {7,4},
+    {0,4}, {1,5}, {2,6}, {3,7}
+  };
+
+  std::vector<Point3d> logic_points;
+  for (auto p : logic_position.getPoints())
+    logic_points.push_back(p.toPoint3());
+
+  std::vector<Point2d> screen_points;
+  if (logic_to_screen.valid())
+  {
+    FrustumMap map(logic_to_screen);
+    for (int I = 0; I < 8; I++)
+      screen_points.push_back(map.projectPoint(logic_points[I]));
+  }
+
+  PointNi virtual_worlddim = PointNi::one(pdim);
+  for (int H = 1; H <= end_resolution; H++)
+  {
+    int bit = bitmask[H];
+    virtual_worlddim[bit] <<= 1;
+  }
+
+  PointNi nsamples = PointNi::one(pdim);
+  for (int E = 0; E < 12; E++)
+  {
+    int query_axis = (E >= 8) ? 2 : (E & 1 ? 1 : 0);
+    Point3d P1 = logic_points[unit_box_edges[E][0]];
+    Point3d P2 = logic_points[unit_box_edges[E][1]];
+    Point3d edge_size = (P2 - P1).abs();
+
+    PointNi idx_size = this->getLogicBox().size();
+
+    // need to project onto IJK  axis
+    // I'm using this formula: x/virtual_worlddim[dataset_axis] = factor = edge_size[dataset_axis]/idx_size[dataset_axis]
+    for (int dataset_axis = 0; dataset_axis < 3; dataset_axis++)
+    {
+      double factor = (double)edge_size[dataset_axis] / (double)idx_size[dataset_axis];
+      Int64 x = (Int64)(virtual_worlddim[dataset_axis] * factor);
+      nsamples[query_axis] = std::max(nsamples[query_axis], x);
+    }
+  }
+
+  //view dependent, limit the nsamples to what the user can see on the screen!
+  if (!screen_points.empty())
+  {
+    PointNi view_dependent_dims = PointNi::one(pdim);
+    for (int E = 0; E < 12; E++)
+    {
+      int query_axis = (E >= 8) ? 2 : (E & 1 ? 1 : 0);
+      Point2d p1 = screen_points[unit_box_edges[E][0]];
+      Point2d p2 = screen_points[unit_box_edges[E][1]];
+      double pixel_distance_on_screen = (p2 - p1).module();
+      view_dependent_dims[query_axis] = std::max(view_dependent_dims[query_axis], (Int64)pixel_distance_on_screen);
+    }
+
+    nsamples[0] = std::min(view_dependent_dims[0], nsamples[0]);
+    nsamples[1] = std::min(view_dependent_dims[1], nsamples[1]);
+    nsamples[2] = std::min(view_dependent_dims[2], nsamples[2]);
+  }
+
+  //important
+  nsamples = nsamples.compactDims(); 
+  nsamples.setPointDim(3, 1);
+
+  return nsamples;
+}
+
+
 //////////////////////////////////////////////////////////////////////////////////////////
 void IdxDataset::nextPointQuery(SharedPtr<PointQuery> query)
 {
