@@ -338,11 +338,8 @@ public:
   //createRamAccess
   SharedPtr<Access> createRamAccess(Int64 available, bool can_read = true, bool can_write = true);
 
-  //getBlockSamples
-  virtual LogicSamples getBlockSamples(BigInt blockid) = 0;
-
   //createBlockQuery
-  SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, Field field, double time, int mode = 'r', Aborted aborted = Aborted());
+  virtual SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, Field field, double time, int mode = 'r', Aborted aborted = Aborted()) = 0;
 
   //createBlockQuery
   SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, int mode = 'r', Aborted aborted = Aborted()) {
@@ -396,9 +393,7 @@ public:
   }
 
   //mergeBoxQueryWithBlockQuery
-  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query){
-    return false;
-  }
+  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) = 0;
 
   //createBoxQueryRequest
   virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query) {

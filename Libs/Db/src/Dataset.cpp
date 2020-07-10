@@ -68,19 +68,6 @@ SharedPtr<Access> Dataset::createRamAccess(Int64 available, bool can_read, bool 
   return ret;
 }
 
-////////////////////////////////////////////////////////////////////
-SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted)
-{
-  auto ret = std::make_shared<BlockQuery>();
-  ret->dataset = this;
-  ret->field = field;
-  ret->time = time;
-  ret->mode = mode; VisusAssert(mode == 'r' || mode == 'w');
-  ret->aborted = aborted;
-  ret->blockid = blockid;
-  ret->logic_samples = getBlockSamples(blockid);
-  return ret;
-}
 
 ////////////////////////////////////////////////////////////////////
 SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
@@ -411,8 +398,6 @@ SharedPtr<PointQuery> Dataset::createPointQuery(Position logic_position, Field f
   ret->logic_position = logic_position;
   return ret;
 }
-
-
 
 /// ///////////////////////////////////////////////////////////////////////////
 std::vector<int> Dataset::guessPointQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression)

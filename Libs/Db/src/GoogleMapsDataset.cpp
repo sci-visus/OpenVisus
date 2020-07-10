@@ -78,7 +78,7 @@ public:
   //readBlock
   virtual void readBlock(SharedPtr<BlockQuery> query) override
   {
-    auto coord=dataset->getBlockCoordinate(query->blockid);
+    auto coord=dataset->blockIdToPoint(query->blockid);
 
     auto X=coord[0];
     auto Y=coord[1];
@@ -141,6 +141,92 @@ public:
 
 
 //////////////////////////////////////////////////////////////
+Point3i GoogleMapsDataset::blockIdToPoint(BigInt blockid)
+{
+  int bitsperblock = this->getDefaultBitsPerBlock();
+  int samplesperblock = 1 << bitsperblock;
+
+  //example:
+  
+  //bitsperblock=16  
+  //bitmask V010101010101010101010101010101010101010101010101010101010101
+
+  //blockid=0 H=16+Utils::getLog2(1+0)=16+0=16
+  //blockid=1 H=16+Utils::getLog2(1+1)=16+1=17
+  //blockid=2 H=16+Utils::getLog2(1+2)=16+1=17
+
+  int H = bitsperblock + Utils::getLog2(1 + blockid);
+  VisusAssert((H % 2) == 0);
+
+  Int64  first_block_in_level = (((Int64)1) << (H - bitsperblock)) - 1;
+  PointNi tile_coord = bitmask.deinterleave(blockid - first_block_in_level, H - bitsperblock);
+
+  return Point3i(
+    (int)(tile_coord[0]),
+    (int)(tile_coord[1]),
+    (H - bitsperblock) >> 1);
+}
+
+
+//////////////////////////////////////////////////////////////
+LogicSamples GoogleMapsDataset::getLevelSamples(int H)
+{
+  int bitsperblock = this->getDefaultBitsPerBlock();
+  VisusAssert((H % 2) == 0 && H >= bitsperblock);
+  int Z = (H - bitsperblock) >> 1;
+
+  int tile_width  = (int)(this->getLogicBox().p2[0]) >> Z;
+  int tile_height = (int)(this->getLogicBox().p2[1]) >> Z;
+
+  int ntiles_x = (int)(1 << Z);
+  int ntiles_y = (int)(1 << Z);
+
+  PointNi delta = PointNi::one(2);
+  delta[0] = tile_width  / this->tile_width;
+  delta[1] = tile_height / this->tile_height;
+
+  BoxNi box(PointNi(0, 0), PointNi(1, 1));
+  box.p2[0] = ntiles_x * tile_width;
+  box.p2[1] = ntiles_y * tile_height;
+
+  auto ret = LogicSamples(box, delta);
+  VisusAssert(ret.valid());
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////
+SharedPtr<BlockQuery> GoogleMapsDataset::createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted)
+{
+  auto ret = std::make_shared<BlockQuery>();
+  ret->dataset = this;
+  ret->field = field;
+  ret->time = time;
+  ret->mode = mode; VisusAssert(mode == 'r' || mode == 'w');
+  ret->aborted = aborted;
+  ret->blockid = blockid;
+
+  //logic samples
+  {
+    auto coord = blockIdToPoint(blockid);
+    auto X = coord[0];
+    auto Y = coord[1];
+    auto Z = coord[2];
+    int tile_width = (int)(this->getLogicBox().p2[0]) >> Z;
+    int tile_height = (int)(this->getLogicBox().p2[1]) >> Z;
+    PointNi delta = PointNi::one(2);
+    delta[0] = tile_width / this->tile_width;
+    delta[1] = tile_height / this->tile_height;
+    BoxNi box(PointNi(2), PointNi::one(2));
+    box.p1[0] = tile_width  * (X + 0); box.p2[0] = tile_width  * (X + 1);
+    box.p1[1] = tile_height * (Y + 0); box.p2[1] = tile_height * (Y + 1);
+    ret->logic_samples = LogicSamples(box, delta);
+  }
+
+  return ret;
+}
+
+
+//////////////////////////////////////////////////////////////
 bool GoogleMapsDataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query,int value)
 {
   VisusAssert(query->end_resolution < value);
@@ -189,24 +275,19 @@ void GoogleMapsDataset::beginBoxQuery(SharedPtr<BoxQuery> query)
     query->end_resolutions = { this->getMaxResolution() };
 
   //only even resolution
+  std::set<int> good;
+  for (auto it : query->end_resolutions)
   {
-    std::set<int> good;
-    for (auto it : query->end_resolutions)
-    {
-      auto value = (it >> 1) << 1;
-      good.insert(Utils::clamp(value, getDefaultBitsPerBlock(), getMaxResolution()));
-    }
-
-    query->end_resolutions = std::vector<int>(good.begin(), good.end());
+    auto value = (it >> 1) << 1;
+    good.insert(Utils::clamp(value, getDefaultBitsPerBlock(), getMaxResolution()));
   }
+
+  query->end_resolutions = std::vector<int>(good.begin(), good.end());
 
   for (auto end_resolution : query->end_resolutions)
   {
     if (setBoxQueryEndResolution(query, end_resolution))
-    {
-      query->setRunning();
-      return;
-    }
+      return query->setRunning();
   }
 
   query->setFailed();
@@ -272,66 +353,71 @@ bool GoogleMapsDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQ
   WaitAsync< Future<Void> > wait_async;
 
   BoxNi box = this->getLogicBox();
+  auto samplesperblock = 1 << this->getDefaultBitsPerBlock();
 
-  std::vector< SharedPtr<BlockQuery> > block_queries;
-  kdTraverse(block_queries, query, box,/*id*/1,/*H*/this->getDefaultBitsPerBlock(), end_resolution);
+  typedef struct
+  {
+    BoxNi box;
+    BigInt id;
+    int H;
+  }
+  item_t;
+
+  std::stack<item_t> stack;
+  stack.push({ box ,1,this->getDefaultBitsPerBlock() });
 
   access->beginRead();
+  while (!stack.empty() && !query->aborted())
   {
-    for (auto block_query : block_queries)
+    auto top=stack.top();
+    stack.pop();
+
+    auto box=top.box;
+    auto id=top.id;
+    auto H=top.H;
+
+    if (!box.getIntersection(query->logic_box).isFullDim())
+      continue;
+
+    //is the resolution I need?
+    if (H == end_resolution)
     {
+      VisusAssert(H % 2 == 0);
+      auto block_query = createBlockQuery(id - 1, query->field, query->time, 'r', query->aborted);
+
       executeBlockQuery(access, block_query);
       wait_async.pushRunning(block_query->done).when_ready([this, query, block_query](Void) {
-
         if (!query->aborted() && block_query->ok())
           mergeBoxQueryWithBlockQuery(query, block_query);
-        });
+      });
+    }
+    else
+    {
+      auto split_bit = bitmask[1 + H - this->getDefaultBitsPerBlock()];
+      auto middle = (box.p1[split_bit] + box.p2[split_bit]) >> 1;
+      auto left_box = box; left_box.p2[split_bit] = middle;
+      auto right_box = box; right_box.p1[split_bit] = middle;
+
+      stack.push({ right_box, id * 2 + 1, H + 1 });
+      stack.push({ left_box,  id * 2 + 0, H + 1 });
     }
   }
   access->endRead();
 
   wait_async.waitAllDone();
 
-  VisusAssert(query->buffer.dims == query->getNumberOfSamples());
-  query->setCurrentResolution(query->end_resolution);
+  if (query->aborted())
+  {
+    query->setFailed("query aboted");
+    return false;
+  }
 
+  query->setCurrentResolution(query->end_resolution);
   return true;
 }
 
-
 //////////////////////////////////////////////////////////////
-void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_queries,SharedPtr<BoxQuery> query,BoxNi box,BigInt id,int H,int end_resolution)
-{
-  if (query->aborted()) 
-    return;
-
-  if (!box.getIntersection(query->logic_box).isFullDim())
-    return;
-
-  int samplesperblock=1<<this->getDefaultBitsPerBlock();
-
-  if (H==end_resolution)
-  {
-    VisusAssert(H % 2==0);
-    auto block_query=createBlockQuery(id - 1, query->field,query->time,'r', query->aborted);
-    block_queries.push_back(block_query);
-    return;
-  }
-
-  DatasetBitmask bitmask=this->getBitmask();
-  int split_bit=bitmask[1+H - this->getDefaultBitsPerBlock()];
-  Int64 middle=(box.p1[split_bit]+box.p2[split_bit])>>1;
-
-  auto left_box  =box; left_box .p2[split_bit]=middle; 
-  auto right_box =box; right_box.p1[split_bit]=middle; 
-
-  kdTraverse(block_queries,query,left_box ,id*2+0,H+1,end_resolution);
-  kdTraverse(block_queries,query,right_box,id*2+1,H+1,end_resolution);
-}
-
-
-//////////////////////////////////////////////////////////////
-bool GoogleMapsDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> blockquery)
+bool GoogleMapsDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> blockquery)
 {
   return insertSamples(query->logic_samples, query->buffer, blockquery->logic_samples, blockquery->buffer, query->aborted);
 }
@@ -352,52 +438,15 @@ SharedPtr<Access> GoogleMapsDataset::createAccess(StringTree config, bool bForBl
 }
 
 
-
-//////////////////////////////////////////////////////////////
-Point3i GoogleMapsDataset::getBlockCoordinate(BigInt blockid)
-{
-  int bitsperblock=this->getDefaultBitsPerBlock();
-  int samplesperblock=((BigInt)1)<<bitsperblock;
-  auto bitmask = getBitmask();
-
-  int    H=bitsperblock+Utils::getLog2(1+ blockid);
-  VisusAssert((H % 2)==0);
-  Int64  first_block_in_level=(((Int64)1)<<(H-bitsperblock))-1;
-  PointNi tile_coord=bitmask.deinterleave(blockid -first_block_in_level,H-bitsperblock);
-
-  return Point3i(
-    (int)(tile_coord[0]),
-    (int)(tile_coord[1]),
-    (H-bitsperblock)>>1);
-}
-
-//////////////////////////////////////////////////////////////
-LogicSamples GoogleMapsDataset::getBlockSamples(BigInt blockid)
-{
-  auto coord= getBlockCoordinate(blockid);
-
-  auto X=coord[0];
-  auto Y=coord[1];
-  auto Z=coord[2];
-
-  int tile_width =(int)(this->getLogicBox().p2[0])>>Z;
-  int tile_height=(int)(this->getLogicBox().p2[1])>>Z;
-
-  PointNi delta=PointNi::one(2);
-  delta[0]=tile_width /this->tile_width;
-  delta[1]=tile_height/this->tile_height;
-
-  BoxNi box(PointNi(2), PointNi::one(2));
-  box.p1[0] = tile_width  * (X + 0); box.p2[0] = tile_width  * (X + 1);
-  box.p1[1] = tile_height * (Y + 0); box.p2[1] = tile_height * (Y + 1);
-
-  return LogicSamples(box,delta);
-}
-
 //////////////////////////////////////////////////////////////
 void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
 {
   String url = ar.readString("url");
+
+  //example: 22 levels, each tile has resolution 256*256 (==8bit*8bit)
+  //bitsperblock=16
+  // bitmask will be (22+8==30 '0' and 22+8==30 '1') 
+  //V010101010101010101010101010101010101010101010101010101010101
 
   ar.read("tiles", this->tiles, "http://mt1.google.com/vt/lyrs=s");
   ar.read("tile_width", tile_width, 256);
@@ -417,7 +466,7 @@ void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
 
   this->setDatasetBody(ar);
   this->setKdQueryMode(KdQueryMode::fromString(ar.readString("kdquery")));
-  this->bitmask=DatasetBitmask::guess(PointNi(W,H));
+  this->bitmask=DatasetBitmask::guess(PointNi(W,H)); 
   this->setDefaultBitsPerBlock(Utils::getLog2(tile_width*tile_height));
   this->setLogicBox(BoxNi(PointNi(0,0), PointNi(W, H)));
 
@@ -444,32 +493,6 @@ void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
 }
 
 
-
-//////////////////////////////////////////////////////////////
-LogicSamples GoogleMapsDataset::getLevelSamples(int H)
-{
-  int bitsperblock=this->getDefaultBitsPerBlock();
-  VisusAssert((H%2)==0 && H>=bitsperblock);
-  int Z=(H-bitsperblock)>>1;
-    
-  int tile_width =(int)(this->getLogicBox().p2[0])>>Z;
-  int tile_height=(int)(this->getLogicBox().p2[1])>>Z;
-    
-  int ntiles_x=(int)(1<<Z);
-  int ntiles_y=(int)(1<<Z);
-
-  PointNi delta=PointNi::one(2);
-  delta[0]=tile_width /this->tile_width;
-  delta[1]=tile_height/this->tile_height;
-    
-  BoxNi box(PointNi(0,0), PointNi(1,1));
-  box.p2[0] = ntiles_x*tile_width;
-  box.p2[1] = ntiles_y*tile_height;
-    
-  auto ret=LogicSamples(box,delta);
-  VisusAssert(ret.valid());
-  return ret;
-}
 
 
 } //namespace Visus

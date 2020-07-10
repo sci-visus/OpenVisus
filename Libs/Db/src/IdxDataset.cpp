@@ -692,39 +692,53 @@ BoxNi IdxDataset::adjustBoxQueryFilterBox(BoxQuery* query,IdxFilter* filter,BoxN
   return box;
 }
 
-//////////////////////////////////////////////////////////////////
-LogicSamples IdxDataset::getBlockSamples(BigInt blockid)
+
+////////////////////////////////////////////////////////////////////
+SharedPtr<BlockQuery> IdxDataset::createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted)
 {
-  const DatasetBitmask& bitmask=this->idxfile.bitmask;
-  int pdim = bitmask.getPointDim();
+  auto ret = std::make_shared<BlockQuery>();
 
-  HzOrder hzorder(bitmask);
+  ret->dataset = this;
+  ret->field = field;
+  ret->time = time;
+  ret->mode = mode; VisusAssert(mode == 'r' || mode == 'w');
+  ret->aborted = aborted;
+  ret->blockid = blockid;
 
-  auto bitsperblock = getDefaultBitsPerBlock();
-  auto HzFrom = (blockid + 0) << bitsperblock;
-  auto HzTo   = (blockid + 1) << bitsperblock;
-
-  int start_resolution=HzOrder::getAddressResolution(bitmask,HzFrom);
-  int end_resolution  =HzOrder::getAddressResolution(bitmask,HzTo-1);
-  VisusAssert((HzFrom>0 && start_resolution==end_resolution) || (HzFrom==0 && start_resolution==0));
-
-  PointNi delta(pdim);
-  if (HzFrom==0)
+  //logic samples
   {
-    int H=Utils::getLog2(HzTo-HzFrom);
-    delta=hzorder.getLevelDelta(H);
-    delta[bitmask[H]]>>=1; //I get twice the samples...
-  }
-  else
-  {
-    delta=hzorder.getLevelDelta(start_resolution);
+    const DatasetBitmask& bitmask = this->idxfile.bitmask;
+    int pdim = bitmask.getPointDim();
+
+    HzOrder hzorder(bitmask);
+
+    auto bitsperblock = getDefaultBitsPerBlock();
+    auto HzFrom = (blockid + 0) << bitsperblock;
+    auto HzTo   = (blockid + 1) << bitsperblock;
+
+    int start_resolution = HzOrder::getAddressResolution(bitmask, HzFrom);
+    int end_resolution = HzOrder::getAddressResolution(bitmask, HzTo - 1);
+    VisusAssert((HzFrom > 0 && start_resolution == end_resolution) || (HzFrom == 0 && start_resolution == 0));
+
+    PointNi delta(pdim);
+    if (HzFrom == 0)
+    {
+      int H = Utils::getLog2(HzTo - HzFrom);
+      delta = hzorder.getLevelDelta(H);
+      delta[bitmask[H]] >>= 1; //I get twice the samples...
+    }
+    else
+    {
+      delta = hzorder.getLevelDelta(start_resolution);
+    }
+
+    BoxNi box(hzorder.getPoint(HzFrom), hzorder.getPoint(HzTo - 1) + delta);
+
+    ret->logic_samples = LogicSamples(box, delta);
+    VisusAssert(ret->logic_samples.nsamples == HzOrder::getAddressRangeNumberOfSamples(bitmask, HzFrom, HzTo));
+    VisusAssert(ret->logic_samples.valid());
   }
 
-  BoxNi box(hzorder.getPoint(HzFrom),hzorder.getPoint(HzTo-1)+delta);
-
-  auto ret=LogicSamples(box,delta);
-  VisusAssert(ret.nsamples==HzOrder::getAddressRangeNumberOfSamples(bitmask,HzFrom,HzTo));
-  VisusAssert(ret.valid());
   return ret;
 }
 
@@ -788,6 +802,8 @@ bool IdxDataset::convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query)
 
   return true;
 }
+
+
 
 ////////////////////////////////////////////////////////////////////
 SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuery)

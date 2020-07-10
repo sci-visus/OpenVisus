@@ -52,13 +52,6 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(GoogleMapsDataset)
 
-  String           tiles;
-  DType            dtype;
-  Int64            tile_width=0;
-  Int64            tile_height = 0;
-  int              nlevels = 22;
-  String           compression;
-
   //constructor
   GoogleMapsDataset() {
   }
@@ -82,9 +75,6 @@ public:
     return 2;
   }
 
-  //getBlockCoordinate
-  Point3i getBlockCoordinate(BigInt blockid);
-
 public:
 
   //readDatasetFromArchive 
@@ -93,10 +83,10 @@ public:
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
 
-  //getBlockSamples
-  virtual LogicSamples getBlockSamples(BigInt blockid) override;
-
 public:
+
+  //createBlockQuery
+  virtual SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted) override;
 
   //beginBoxQuery
   virtual void beginBoxQuery(SharedPtr<BoxQuery> query) override;
@@ -112,14 +102,23 @@ public:
 
 private:
 
+  friend class GoogleMapsAccess;
+
+  String           tiles;
+  DType            dtype;
+  Int64            tile_width = 0;
+  Int64            tile_height = 0;
+  int              nlevels = 22;
+  String           compression;
+
+  //getBlockCoordinate
+  Point3i blockIdToPoint(BigInt blockid);
+
   //getLevelSamples
   LogicSamples getLevelSamples(int H);
 
   //setBoxQueryEndResolution
   bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query,int value);
-
-  //kdTraverse
-  void kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_queries,SharedPtr<BoxQuery> query,BoxNi box,BigInt id,int H,int end_resolution);
 
 };
 
