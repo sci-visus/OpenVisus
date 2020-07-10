@@ -409,6 +409,7 @@ public:
   //constructor
   virtual SharedPtr<PointQuery> createPointQuery(Position logic_position, Field field, double time, Aborted aborted = Aborted()) {
     ThrowException("not implemented");
+    return SharedPtr<PointQuery>();
   }
 
   //createPointQuery
@@ -419,11 +420,13 @@ public:
   //guessPointQueryEndResolutions
   virtual std::vector<int> guessPointQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression) {
     ThrowException("not implemented");
+    return {};
   }
 
   //guessPointQueryNumberOfSamples
   virtual PointNi guessPointQueryNumberOfSamples(Frustum logic_to_screen, Position logic_position, int end_resolution) {
     ThrowException("not implemented");
+    return PointNi();
   }
 
   //beginPointQuery
