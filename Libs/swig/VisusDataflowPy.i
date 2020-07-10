@@ -19,14 +19,15 @@ using namespace Visus;
 //%shared_ptr(Visus::NodeJob) NOTE: you cannot mix shared_ptr with directors
 
 %feature("director") Visus::Node;
-%feature("nodirector") Visus::Node::enterInDataflow;
-%feature("nodirector") Visus::Node::exitFromDataflow;
-%feature("nodirector") Visus::Node::abortProcessing;
-%feature("nodirector") Visus::Node::joinProcessing;
-%feature("nodirector") Visus::Node::messageHasBeenPublished;
+    %feature("nodirector") Visus::Node::enterInDataflow;
+    %feature("nodirector") Visus::Node::exitFromDataflow;
+    %feature("nodirector") Visus::Node::abortProcessing;
+    %feature("nodirector") Visus::Node::joinProcessing;
+    %feature("nodirector") Visus::Node::messageHasBeenPublished;
 
 %feature("director") Visus::NodeJob;
 %feature("director") Visus::NodeCreator;
+%feature("director") Visus::DataflowListener; //this is needed by PyViewer
 
 //VISUS_DISOWN -> DISOWN | DISOWN_FOR_DIRECTOR
 %apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::Node* disown };

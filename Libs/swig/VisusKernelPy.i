@@ -17,14 +17,20 @@ using namespace Visus;
 
 %include <VisusPy.common>
 
+//%feature("director") Visus::PLESE_README_ME_CAREFULLY
+/*
+see https://github.com/swig/swig/issues/306)
+Calling the C++ part of a director, swig does not release the GIL.
+Say for example that the C++ will hold in a semaphore.down() waiting for a condition (but it has the GIL!)
+Meanwhile some other thread which should signal that semaphroe needs the GIL but cannot get it
+SOLUTION: use virtuals only for very needed methods, and exclude ( %feature("nodirector") Visus::ClassName:methodName;) all others
 
-//IMPORTANT NOTE ABOUT:
-//%feature("director") Visus::ClassName
-//there is a bug in swig (see https://github.com/swig/swig/issues/306)
-//then calling the C++ part of a director, swig does not release the GIL.
-//say for example that the C++ will hold in a semaphore.down() waiting for a condition (but it has the GIL!)
-// meanwhile some other thread which should signal that semaphroe needs the GIL but cannot get it
-//SUMMARY: use virtuals only for very needed methods, and exclude ( %feature("nodirector") Visus::ClassName:methodName;) all others
+see https://blog.mbedded.ninja/programming/languages/python/python-swig-bindings-from-cplusplus/#cross-language-polymorphism-directors
+Normally, you can pass in the -threads argument when calling SWIG to make SWIG release the GIL upon every entry to your C/C++ library from Python
+(or if you are using CMake, call SET_PROPERTY(SOURCE MyInterfaceFile.i PROPERTY SWIG_FLAGS "-threads") ).
+However, this is not the case for any C/C++ class that has been converted into a director.
+*/
+
 
 %shared_ptr(Visus::HeapMemory)
 %shared_ptr(Visus::StringTree)
