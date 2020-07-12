@@ -61,6 +61,8 @@ public:
 
   VISUS_CLASS(NodeJob)
 
+  int verbose=0;
+
   //aborted
   Aborted aborted;
 
@@ -80,10 +82,13 @@ public:
 
 
   //abort
-  virtual void abort() {
+  void abort() {
+
+    if (verbose)
+      PrintInfo(typeid(this).name(),"aborted");
+
     this->aborted.setTrue();
   }
-
 
 };
 
@@ -167,11 +172,11 @@ public:
 
   //addNodeJob
 #if !SWIG
-  virtual void addNodeJob(SharedPtr<NodeJob> job);
+  void addNodeJob(SharedPtr<NodeJob> job);
 #endif
 
   //addNodeJob (needed for swig)
-  virtual void addNodeJob(NodeJob* VISUS_DISOWN(job)) {
+  void addNodeJob(NodeJob* VISUS_DISOWN(job)) {
     addNodeJob(SharedPtr<NodeJob>(job));
   }
 

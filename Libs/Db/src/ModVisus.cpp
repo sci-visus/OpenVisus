@@ -578,14 +578,14 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
   query->setResolutionRange(fromh, endh);
 
   //I apply the filter on server side only for the first coarse query (more data need to be processed on client side)
-  if (fromh == 0 && !bDisableFilters)
+  query->disableFilters();
+  if (auto idx = std::dynamic_pointer_cast<IdxDataset>(dataset))
   {
-    query->enableFilters();
-    query->filter.domain = (bKdBoxQuery ? dataset->getBitmask().getPow2Box() : dataset->getLogicBox());
-  }
-  else
-  {
-    query->disableFilters();
+    if (fromh == 0 && !bDisableFilters)
+    {
+      query->enableFilters();
+      query->filter.domain = (bKdBoxQuery ? idx->idxfile.bitmask.getPow2Box() : dataset->getLogicBox());
+    }
   }
 
   dataset->beginBoxQuery(query);
@@ -684,8 +684,8 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
     Matrix::fromString(4, request.url.getParam("matrix")),
     BoxNd::fromString(request.url.getParam("box"),/*bInterleave*/false).withPointDim(3));
 
-  auto query = dataset->createPointQuery(logic_position, field, time, { endh });
-  query->end_resolution = endh;
+  auto query = dataset->createPointQuery(logic_position, field, time);
+  query->end_resolutions = { endh };
 
   dataset->beginPointQuery(query);
 

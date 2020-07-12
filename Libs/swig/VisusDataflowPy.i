@@ -19,9 +19,15 @@ using namespace Visus;
 //%shared_ptr(Visus::NodeJob) NOTE: you cannot mix shared_ptr with directors
 
 %feature("director") Visus::Node;
+    %feature("nodirector") Visus::Node::enterInDataflow;
+    %feature("nodirector") Visus::Node::exitFromDataflow;
+    %feature("nodirector") Visus::Node::abortProcessing;
+    %feature("nodirector") Visus::Node::joinProcessing;
+    %feature("nodirector") Visus::Node::messageHasBeenPublished;
+
 %feature("director") Visus::NodeJob;
 %feature("director") Visus::NodeCreator;
-%feature("director") Visus::DataflowListener;
+%feature("director") Visus::DataflowListener; //this is needed by PyViewer
 
 //VISUS_DISOWN -> DISOWN | DISOWN_FOR_DIRECTOR
 %apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::Node* disown };
@@ -67,7 +73,6 @@ PyObject* __asPythonObject() {
 %include <Visus/DataflowPort.h>
 %include <Visus/DataflowNode.h>
 %include <Visus/Dataflow.h>
-
 
 %pythoncode %{
 def VISUS_REGISTER_NODE_CLASS(TypeName, creator):

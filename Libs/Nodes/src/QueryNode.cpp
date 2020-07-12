@@ -54,8 +54,6 @@ public:
   SharedPtr<Dataset>       dataset;
   SharedPtr<Access>        access;
   int                      pdim;
-  int                      maxh;
-  DatasetBitmask           bitmask;
 
   Field                    field;
   double                   time;
@@ -70,6 +68,8 @@ public:
   MyJob(QueryNode* node_,SharedPtr<Dataset> dataset_,SharedPtr<Access> access_)
     : node(node_),dataset(dataset_),access(access_)
   {
+    this->verbose = true;
+
     this->field = node->getField();
     this->time  = node->getTime();
     this->logic_position = node->getQueryLogicPosition();
@@ -78,8 +78,6 @@ public:
     this->progression = node->getProgression();
     this->verbose = node->isVerbose();
     this->pdim = dataset->getPointDim();
-    this->maxh = dataset->getMaxResolution();
-    this->bitmask = dataset->getBitmask();
 
     if (this->progression == QueryGuessProgression)
       this->progression = (pdim == 2) ? (pdim * 3) : (pdim * 4);
@@ -90,87 +88,11 @@ public:
   {
   }
 
-  //getEndResolutions
-  std::vector<int> getEndResolutions(int endh)
-  {
-    //consider quality and progression
-    endh = Utils::clamp(endh + quality, 0, maxh);
-
-    std::vector<int> ret = { Utils::clamp(endh - progression, 0, maxh) };
-    while (ret.back() < endh)
-      ret.push_back(Utils::clamp(ret.back() + pdim, 0, endh));
-
-    if (auto google = dynamic_cast<GoogleMapsDataset*>(dataset.get()))
-    {
-      for (auto& it : ret)
-        it = (it >> 1) << 1; //TODO: google maps does not have odd resolutions
-    }
-
-    return ret;
-  }
-
-  //guessPointQueryEndResolutions
-  std::vector<int> guessPointQueryEndResolutions()
-  {
-    if (!logic_position.valid())
-      return {};
-
-    auto endh = maxh;
-
-    if (!logic_to_screen.valid())
-      return getEndResolutions(endh);
-
-    std::vector<Point3d> logic_points;
-    std::vector<Point2d> screen_points;
-    FrustumMap map(logic_to_screen);
-    for (auto p : logic_position.getPoints())
-    {
-      auto logic_point = p.toPoint3();
-      logic_points.push_back(logic_point);
-      screen_points.push_back(map.projectPoint(logic_point));
-    }
-
-    // valerio's algorithm, find the final view dependent resolution (endh)
-    // (the default endh is the maximum resolution available)
-    BoxNi::Edge longest_edge;
-    double longest_screen_distance = NumericLimits<double>::lowest();
-    for (auto edge : BoxNi::getEdges(pdim))
-    {
-      double screen_distance = (screen_points[edge.index1] - screen_points[edge.index0]).module();
-
-      if (screen_distance > longest_screen_distance)
-      {
-        longest_edge = edge; 
-        longest_screen_distance = screen_distance;
-      }
-    }
-
-    //I match the highest resolution on dataset axis (it's just an euristic!)
-    for (int A = 0; A < pdim; A++)
-    {
-      double logic_distance = fabs(logic_points[longest_edge.index0][A] - logic_points[longest_edge.index1][A]);
-      double samples_per_pixel = logic_distance / longest_screen_distance;
-      Int64  num = Utils::getPowerOf2((Int64)samples_per_pixel);
-      while (num > samples_per_pixel)
-        num >>= 1;
-
-      int H = maxh;
-      for (; num > 1 && H >= 0; H--)
-      {
-        if (bitmask[H] == A)
-          num >>= 1;
-      }
-
-      endh = std::min(endh, H);
-    }
-
-    return getEndResolutions(endh);
-  }
-
   //runPointQueryJob
   void runPointQueryJob()
   {
-    auto query = dataset->createPointQuery(logic_position, field, time, guessPointQueryEndResolutions(), this->aborted);
+    auto query = dataset->createPointQuery(logic_position, field, time, this->aborted);
+    query->end_resolutions = dataset->guessPointQueryEndResolutions(logic_to_screen, logic_position, quality, progression);
 
     dataset->beginPointQuery(query);
 
@@ -198,73 +120,6 @@ public:
     }
   }
 
-  //guessBoxQueryViewDependentResolutions
-  std::vector<int> guessBoxQueryViewDependentResolutions()
-  {
-    if (!logic_position.valid())
-      return {};
-
-    auto endh = maxh;
-
-    if (!logic_to_screen.valid())
-      return getEndResolutions(endh);
-
-    //important to work with orthogonal box
-    auto logic_box = logic_position.toAxisAlignedBox();
-
-    FrustumMap map(logic_to_screen);
-
-    std::vector<Point2d> screen_points;
-    for (auto p : logic_box.getPoints())
-      screen_points.push_back(map.projectPoint(p.toPoint3()));
-
-    //project on the screen
-    std::vector<double> screen_distance = { 0,0,0 };
-
-    for (auto edge : BoxNi::getEdges(pdim))
-    {
-      auto axis = edge.axis;
-      auto s0 = screen_points[edge.index0];
-      auto s1 = screen_points[edge.index1];
-      auto Sd = s0.distance(s1);
-      screen_distance[axis] = std::max(screen_distance[axis], Sd);
-    }
-
-    const int max_3d_texture_size = 2048;
-
-    auto nsamples = logic_box.size().toPoint3();
-    while (endh > 0)
-    {
-      std::vector<double> samples_per_pixel = {
-        nsamples[0] / screen_distance[0],
-        nsamples[1] / screen_distance[1],
-        nsamples[2] / screen_distance[2]
-      };
-
-      std::sort(samples_per_pixel.begin(), samples_per_pixel.end());
-
-      auto quality = sqrt(samples_per_pixel[0] * samples_per_pixel[1]);
-
-      //note: in 2D samples_per_pixel[2] is INF; in 3D with an ortho view XY samples_per_pixel[2] is INF (see std::sort)
-      bool bGood = quality < 1.0;
-
-      if (pdim == 3 && bGood)
-        bGood =
-        nsamples[0] <= max_3d_texture_size &&
-        nsamples[1] <= max_3d_texture_size &&
-        nsamples[2] <= max_3d_texture_size;
-
-      if (bGood)
-        break;
-
-      //by decreasing resolution I will get half of the samples on that axis
-      auto bit = bitmask[endh];
-      nsamples[bit] *= 0.5;
-      --endh;
-    }
-
-    return getEndResolutions(endh);
-  }
 
   //runBoxQueryJob
   void runBoxQueryJob()
@@ -272,7 +127,7 @@ public:
     //remove transformation! (in doPublish I will add the physic clipping)
     auto query = dataset->createBoxQuery(this->logic_position.toDiscreteAxisAlignedBox(), field, time, 'r', this->aborted);
     query->enableFilters();
-    query->end_resolutions = guessBoxQueryViewDependentResolutions();
+    query->end_resolutions = dataset->guessBoxQueryEndResolutions(logic_to_screen,logic_position, quality, progression);
 
     if (query->end_resolutions.empty())
       return;
@@ -359,15 +214,6 @@ public:
 
     msg.writeValue("array", output);
     node->publish(msg);
-  }
-
-  //abort
-  virtual void abort() override
-  {
-    if (!aborted())
-      PrintInfo("QueryNode job aborted");
-
-    NodeJob::abort();
   }
 
 };

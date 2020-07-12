@@ -1,7 +1,7 @@
 import os,sys,shutil,setuptools
 
 PROJECT_NAME="OpenVisus"
-PROJECT_VERSION="2.1.76"
+PROJECT_VERSION="2.1.78"
 
 this_dir=os.path.dirname(os.path.abspath(__file__))
 

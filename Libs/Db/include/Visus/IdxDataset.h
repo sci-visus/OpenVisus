@@ -76,13 +76,18 @@ public:
     return "IdxDataset";
   }
 
+  //getPointDim
+  virtual int getPointDim() const override {
+    return bitmask.getPointDim();
+  }
+
 public:
 
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
 
-  //getBlockSamples
-  virtual LogicSamples getBlockSamples(BigInt blockid) override;
+  //createBlockQuery
+  virtual SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, Field field, double time, int mode = 'r', Aborted aborted = Aborted()) override;
 
   //convertBlockQueryToRowMajor
   virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) override;
@@ -98,11 +103,11 @@ public:
   //executeBoxQuery
   virtual bool executeBoxQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
 
-  //mergeBoxQueryWithBlockQuery
-  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> block_query) override;
-
   //createBoxQueryRequest
   virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query) override;
+
+  //mergeBoxQueryWithBlockQuery
+  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) override;
 
   //createEquivalentBoxQuery
   SharedPtr<BoxQuery> createEquivalentBoxQuery(int mode, SharedPtr<BlockQuery> block_query);
@@ -111,6 +116,16 @@ public:
   BoxNi adjustBoxQueryFilterBox(BoxQuery* query, IdxFilter* filter, BoxNi box, int H);
 
 public:
+
+  //constructor
+  virtual SharedPtr<PointQuery> createPointQuery(Position logic_position, Field field, double time, Aborted aborted = Aborted()) override;
+
+
+  //guessPointQueryEndResolutions
+  virtual std::vector<int> guessPointQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression) override;
+
+  //guessPointQueryNumberOfSamples
+  PointNi guessPointQueryNumberOfSamples(Frustum logic_to_screen, Position logic_position, int end_resolution) override;
 
   //beginPointQuery
   virtual void beginPointQuery(SharedPtr<PointQuery> query) override;
@@ -122,9 +137,6 @@ public:
   virtual void nextPointQuery(SharedPtr<PointQuery> query) override;
 
 public:
-
-  // removeFiles all files bolonging to this visus file 
-  void removeFiles();
 
   //compressDataset
   void compressDataset(std::vector<String> compression, Array data=Array());

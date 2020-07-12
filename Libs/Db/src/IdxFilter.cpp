@@ -59,7 +59,7 @@ static void ComputeFilter(IdxDataset* dataset,BoxQuery* query,const FilterClass*
   LogicSamples     logic_samples  = query->logic_samples;
   DType            dtype      = field.dtype;
   int              ncomponents= dtype.ncomponents();
-  DatasetBitmask   bitmask    = dataset->getBitmask();
+  DatasetBitmask   bitmask    = dataset->idxfile.bitmask;
   int              bit        = bitmask[H];
   PointNi          dims       = query->getNumberOfSamples();
   PointNi          stride     = dims.stride();
@@ -484,7 +484,7 @@ PointNi IdxFilter::getFilterStep(int H) const
     | (1)  step(0,1) filterstep(1,2)
   */
 
-  DatasetBitmask bitmask = dataset->getBitmask();
+  DatasetBitmask bitmask = dataset->idxfile.bitmask;
   int pdim = bitmask.getPointDim();
   PointNi step = bitmask.getPow2Box().size();
   for (int K = 0; K < H; K++)

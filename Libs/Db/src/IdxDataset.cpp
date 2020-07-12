@@ -91,8 +91,7 @@ public:
     int samplesperblock=getSamplesPerBlock();
     int blockdim    = (int)(field.dtype.getByteSize(samplesperblock));
 
-    DatasetBitmask bitmask=dataset->getBitmask();
-    int pdim = bitmask.getPointDim();
+    auto pdim = dataset->getPointDim();
 
     LogicSamples logic_samples=query->logic_samples;
     if (!logic_samples.valid())
@@ -312,7 +311,7 @@ public:
     auto bitsperblock = vf->getDefaultBitsPerBlock();
     int            samplesperblock = 1 << bitsperblock;
 
-    DatasetBitmask bitmask=vf->getBitmask();
+    DatasetBitmask bitmask=vf->idxfile.bitmask;
     int            max_resolution=vf->getMaxResolution();
     BigInt         HzFrom= (block_query->blockid + 0)<<bitsperblock;
     BigInt         HzTo  = (block_query->blockid + 1)<< bitsperblock;
@@ -475,47 +474,12 @@ IdxDataset::~IdxDataset(){
 ///////////////////////////////////////////////////////////
 LogicSamples IdxDataset::getLevelSamples(int H)
 {
-  HzOrder hzorder(getBitmask());
+  HzOrder hzorder(idxfile.bitmask);
   PointNi delta = hzorder.getLevelDelta(H);
   BoxNi box(hzorder.getLevelP1(H),hzorder.getLevelP2Included(H) + delta);
   auto ret=LogicSamples(box, delta);
   VisusAssert(ret.valid());
   return ret;
-}
-
-
-////////////////////////////////////////////////////////////////////////
-void IdxDataset::removeFiles()
-{
-  HzOrder hzorder(idxfile.bitmask);
-  BigInt tot_blocks= getTotalNumberOfBlocks();
-  auto  samplesperblock=1<<idxfile.bitsperblock;
-  auto  access=std::make_shared<IdxDiskAccess>(this);
-
-  std::set<String> filenames;
-
-  for (auto time :  idxfile.timesteps.asVector())
-  {
-    for (auto field : idxfile.fields)
-    {
-      for (BigInt blockid=0;blockid<=tot_blocks;blockid++)
-      {
-        auto filename=access->getFilename(field,time,blockid);
-        if (filenames.count(filename))
-          continue;
-        filenames.insert(filename);
-
-        if (!FileUtils::existsFile(filename))
-          continue;
-
-        Path path(filename);
-        FileUtils::removeFile(path);
-
-        // this will work only if the parent directory is empty()
-        FileUtils::removeDirectory(path.getParent()); 
-      }
-    }
-  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -693,7 +657,7 @@ void IdxDataset::compressDataset(std::vector<String> compression, Array data)
 BoxNi IdxDataset::adjustBoxQueryFilterBox(BoxQuery* query,IdxFilter* filter,BoxNi user_box,int H) 
 {
   //there are some case when I need alignment with pow2 box, for example when doing kdquery=box with filters
-  auto bitmask = getBitmask();
+  auto bitmask = idxfile.bitmask;
   HzOrder hzorder(bitmask);
   int pdim = bitmask.getPointDim();
 
@@ -728,39 +692,53 @@ BoxNi IdxDataset::adjustBoxQueryFilterBox(BoxQuery* query,IdxFilter* filter,BoxN
   return box;
 }
 
-//////////////////////////////////////////////////////////////////
-LogicSamples IdxDataset::getBlockSamples(BigInt blockid)
+
+////////////////////////////////////////////////////////////////////
+SharedPtr<BlockQuery> IdxDataset::createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted)
 {
-  const DatasetBitmask& bitmask=this->idxfile.bitmask;
-  int pdim = bitmask.getPointDim();
+  auto ret = std::make_shared<BlockQuery>();
 
-  HzOrder hzorder(bitmask);
+  ret->dataset = this;
+  ret->field = field;
+  ret->time = time;
+  ret->mode = mode; VisusAssert(mode == 'r' || mode == 'w');
+  ret->aborted = aborted;
+  ret->blockid = blockid;
 
-  auto bitsperblock = getDefaultBitsPerBlock();
-  auto HzFrom = (blockid + 0) << bitsperblock;
-  auto HzTo   = (blockid + 1) << bitsperblock;
-
-  int start_resolution=HzOrder::getAddressResolution(bitmask,HzFrom);
-  int end_resolution  =HzOrder::getAddressResolution(bitmask,HzTo-1);
-  VisusAssert((HzFrom>0 && start_resolution==end_resolution) || (HzFrom==0 && start_resolution==0));
-
-  PointNi delta(pdim);
-  if (HzFrom==0)
+  //logic samples
   {
-    int H=Utils::getLog2(HzTo-HzFrom);
-    delta=hzorder.getLevelDelta(H);
-    delta[bitmask[H]]>>=1; //I get twice the samples...
-  }
-  else
-  {
-    delta=hzorder.getLevelDelta(start_resolution);
+    const DatasetBitmask& bitmask = this->idxfile.bitmask;
+    int pdim = bitmask.getPointDim();
+
+    HzOrder hzorder(bitmask);
+
+    auto bitsperblock = getDefaultBitsPerBlock();
+    auto HzFrom = (blockid + 0) << bitsperblock;
+    auto HzTo   = (blockid + 1) << bitsperblock;
+
+    int start_resolution = HzOrder::getAddressResolution(bitmask, HzFrom);
+    int end_resolution = HzOrder::getAddressResolution(bitmask, HzTo - 1);
+    VisusAssert((HzFrom > 0 && start_resolution == end_resolution) || (HzFrom == 0 && start_resolution == 0));
+
+    PointNi delta(pdim);
+    if (HzFrom == 0)
+    {
+      int H = Utils::getLog2(HzTo - HzFrom);
+      delta = hzorder.getLevelDelta(H);
+      delta[bitmask[H]] >>= 1; //I get twice the samples...
+    }
+    else
+    {
+      delta = hzorder.getLevelDelta(start_resolution);
+    }
+
+    BoxNi box(hzorder.getPoint(HzFrom), hzorder.getPoint(HzTo - 1) + delta);
+
+    ret->logic_samples = LogicSamples(box, delta);
+    VisusAssert(ret->logic_samples.nsamples == HzOrder::getAddressRangeNumberOfSamples(bitmask, HzFrom, HzTo));
+    VisusAssert(ret->logic_samples.valid());
   }
 
-  BoxNi box(hzorder.getPoint(HzFrom),hzorder.getPoint(HzTo-1)+delta);
-
-  auto ret=LogicSamples(box,delta);
-  VisusAssert(ret.nsamples==HzOrder::getAddressRangeNumberOfSamples(bitmask,HzFrom,HzTo));
-  VisusAssert(ret.valid());
   return ret;
 }
 
@@ -773,7 +751,7 @@ SharedPtr<BoxQuery> IdxDataset::createEquivalentBoxQuery(int mode,SharedPtr<Bloc
   auto HzFrom = (block_query->blockid + 0) << bitsperblock;
   auto HzTo   = (block_query->blockid + 1) << bitsperblock;
 
-  auto bitmask = getBitmask();
+  auto bitmask = idxfile.bitmask;
   int fromh = HzOrder::getAddressResolution(bitmask, HzFrom);
   int toh   = HzOrder::getAddressResolution(bitmask, HzTo -1);
 
@@ -824,6 +802,8 @@ bool IdxDataset::convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query)
 
   return true;
 }
+
+
 
 ////////////////////////////////////////////////////////////////////
 SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuery)
@@ -909,10 +889,8 @@ static std::map<std::pair<String,int> , SharedPtr<IdxPointQueryHzAddressConversi
 void IdxDataset::setIdxFile(IdxFile value)
 {
   this->idxfile=value;
-
   auto bitmask = value.bitmask;
-
-  setBitmask(bitmask);
+  this->bitmask=bitmask;
   setDefaultBitsPerBlock(value.bitsperblock);
   setLogicBox(value.logic_box);
   setDatasetBounds(value.bounds);
@@ -975,7 +953,7 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr
     VisusAssert(query->field.dtype==block_query->field.dtype);
 
     auto bitsperblock = getDefaultBitsPerBlock();
-    DatasetBitmask bitmask=this->getBitmask();
+    DatasetBitmask bitmask=this->idxfile.bitmask;
     BigInt         HzFrom= (block_query->blockid+0)<<bitsperblock;
     BigInt         HzTo  = (block_query->blockid+1)<<bitsperblock;
     int            hstart=std::max(query->getCurrentResolution() +1  ,HzOrder::getAddressResolution(bitmask,HzFrom));
@@ -1059,7 +1037,6 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr
     return NeedToCopySamples(op,query->field.dtype,this,query.get(),block_query.get());
   }
 }
-
 
 
 
@@ -1222,7 +1199,7 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
 
   if (query->aborted())
   {
-    query->setFailed("query aboted");
+    query->setFailed("query aborted");
     return false;
   }
 
@@ -1320,7 +1297,7 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
   FastLoopStack  item, * stack = NULL;
   FastLoopStack  STACK[DatasetBitmaskMaxLen + 1];
 
-  DatasetBitmask bitmask = this->getBitmask();
+  DatasetBitmask bitmask = this->idxfile.bitmask;
   HzOrder hzorder(bitmask);
 
   int max_resolution = getMaxResolution();
@@ -1773,7 +1750,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
   auto aborted = query->aborted;
   if (aborted())
   {
-    query->setFailed("query aboted");
+    query->setFailed("query aborted");
     return false;
   }
 
@@ -1823,7 +1800,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
   }
   else
   {
-    auto bitmask = getBitmask();
+    auto bitmask = idxfile.bitmask;
     auto bounds = this->getLogicBox();
     auto last_bitmask = ((BigInt)1) << (getMaxResolution());
     auto hzorder = HzOrder(bitmask);
@@ -1964,6 +1941,173 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
 }
 
 
+
+/////////////////////////////////////////////////////////
+SharedPtr<PointQuery> IdxDataset::createPointQuery(Position logic_position, Field field, double time, Aborted aborted)
+{
+  auto ret = std::make_shared<PointQuery>();
+  ret->dataset = this;
+  ret->field = field = field;
+  ret->time = time;
+  ret->mode = 'r';
+  ret->aborted = aborted;
+  ret->logic_position = logic_position;
+  return ret;
+}
+
+/// ///////////////////////////////////////////////////////////////////////////
+std::vector<int> IdxDataset::guessPointQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression)
+{
+  if (!logic_position.valid())
+    return {};
+
+  auto maxh = getMaxResolution();
+  auto endh = maxh;
+  auto pdim = getPointDim();
+
+  if (logic_to_screen.valid())
+  {
+    std::vector<Point3d> logic_points;
+    std::vector<Point2d> screen_points;
+    FrustumMap map(logic_to_screen);
+    for (auto p : logic_position.getPoints())
+    {
+      auto logic_point = p.toPoint3();
+      logic_points.push_back(logic_point);
+      screen_points.push_back(map.projectPoint(logic_point));
+    }
+
+    // valerio's algorithm, find the final view dependent resolution (endh)
+    // (the default endh is the maximum resolution available)
+    BoxNi::Edge longest_edge;
+    double longest_screen_distance = NumericLimits<double>::lowest();
+    for (auto edge : BoxNi::getEdges(pdim))
+    {
+      double screen_distance = (screen_points[edge.index1] - screen_points[edge.index0]).module();
+
+      if (screen_distance > longest_screen_distance)
+      {
+        longest_edge = edge;
+        longest_screen_distance = screen_distance;
+      }
+    }
+
+    //I match the highest resolution on dataset axis (it's just an euristic!)
+    for (int A = 0; A < pdim; A++)
+    {
+      double logic_distance = fabs(logic_points[longest_edge.index0][A] - logic_points[longest_edge.index1][A]);
+      double samples_per_pixel = logic_distance / longest_screen_distance;
+      Int64  num = Utils::getPowerOf2((Int64)samples_per_pixel);
+      while (num > samples_per_pixel)
+        num >>= 1;
+
+      int H = maxh;
+      for (; num > 1 && H >= 0; H--)
+      {
+        if (bitmask[H] == A)
+          num >>= 1;
+      }
+
+      endh = std::min(endh, H);
+    }
+  }
+
+  //consider quality and progression
+  endh = Utils::clamp(endh + quality, 0, maxh);
+
+  std::vector<int> ret = { Utils::clamp(endh - progression, 0, maxh) };
+  while (ret.back() < endh)
+    ret.push_back(Utils::clamp(ret.back() + pdim, 0, endh));
+
+  return ret;
+}
+
+/// ///////////////////////////////////////////////////////////////////////////
+PointNi IdxDataset::guessPointQueryNumberOfSamples(Frustum logic_to_screen, Position logic_position, int end_resolution)
+{
+  //*********************************************************************
+  // valerio's algorithm, find the final view dependent resolution (endh)
+  // (the default endh is the maximum resolution available)
+  //*********************************************************************
+
+  auto bitmask = this->idxfile.bitmask;
+  int pdim = bitmask.getPointDim();
+
+  if (!logic_position.valid())
+    return PointNi(pdim);
+
+  const int unit_box_edges[12][2] =
+  {
+    {0,1}, {1,2}, {2,3}, {3,0},
+    {4,5}, {5,6}, {6,7}, {7,4},
+    {0,4}, {1,5}, {2,6}, {3,7}
+  };
+
+  std::vector<Point3d> logic_points;
+  for (auto p : logic_position.getPoints())
+    logic_points.push_back(p.toPoint3());
+
+  std::vector<Point2d> screen_points;
+  if (logic_to_screen.valid())
+  {
+    FrustumMap map(logic_to_screen);
+    for (int I = 0; I < 8; I++)
+      screen_points.push_back(map.projectPoint(logic_points[I]));
+  }
+
+  PointNi virtual_worlddim = PointNi::one(pdim);
+  for (int H = 1; H <= end_resolution; H++)
+  {
+    int bit = bitmask[H];
+    virtual_worlddim[bit] <<= 1;
+  }
+
+  PointNi nsamples = PointNi::one(pdim);
+  for (int E = 0; E < 12; E++)
+  {
+    int query_axis = (E >= 8) ? 2 : (E & 1 ? 1 : 0);
+    Point3d P1 = logic_points[unit_box_edges[E][0]];
+    Point3d P2 = logic_points[unit_box_edges[E][1]];
+    Point3d edge_size = (P2 - P1).abs();
+
+    PointNi idx_size = this->getLogicBox().size();
+
+    // need to project onto IJK  axis
+    // I'm using this formula: x/virtual_worlddim[dataset_axis] = factor = edge_size[dataset_axis]/idx_size[dataset_axis]
+    for (int dataset_axis = 0; dataset_axis < 3; dataset_axis++)
+    {
+      double factor = (double)edge_size[dataset_axis] / (double)idx_size[dataset_axis];
+      Int64 x = (Int64)(virtual_worlddim[dataset_axis] * factor);
+      nsamples[query_axis] = std::max(nsamples[query_axis], x);
+    }
+  }
+
+  //view dependent, limit the nsamples to what the user can see on the screen!
+  if (!screen_points.empty())
+  {
+    PointNi view_dependent_dims = PointNi::one(pdim);
+    for (int E = 0; E < 12; E++)
+    {
+      int query_axis = (E >= 8) ? 2 : (E & 1 ? 1 : 0);
+      Point2d p1 = screen_points[unit_box_edges[E][0]];
+      Point2d p2 = screen_points[unit_box_edges[E][1]];
+      double pixel_distance_on_screen = (p2 - p1).module();
+      view_dependent_dims[query_axis] = std::max(view_dependent_dims[query_axis], (Int64)pixel_distance_on_screen);
+    }
+
+    nsamples[0] = std::min(view_dependent_dims[0], nsamples[0]);
+    nsamples[1] = std::min(view_dependent_dims[1], nsamples[1]);
+    nsamples[2] = std::min(view_dependent_dims[2], nsamples[2]);
+  }
+
+  //important
+  nsamples = nsamples.compactDims(); 
+  nsamples.setPointDim(3, 1);
+
+  return nsamples;
+}
+
+
 //////////////////////////////////////////////////////////////////////////////////////////
 void IdxDataset::nextPointQuery(SharedPtr<PointQuery> query)
 {
@@ -1988,7 +2132,7 @@ bool IdxDataset::computeFilter(SharedPtr<IdxFilter> filter, double time, Field f
   //this works only for filter_size==2, otherwise the building of the sliding_window is very difficult
   VisusAssert(filter->size == 2);
 
-  DatasetBitmask bitmask = this->getBitmask();
+  DatasetBitmask bitmask = this->idxfile.bitmask;
   BoxNi          box = this->getLogicBox();
 
   int pdim = bitmask.getPointDim();

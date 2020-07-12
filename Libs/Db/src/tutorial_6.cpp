@@ -64,7 +64,6 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
     field.filter=filter;
     idxfile.fields.push_back(field);
   }
-  idxfile.bitmask=DatasetBitmask();
   idxfile.bitsperblock=bitsperblock;
   idxfile.save(filename);
 
@@ -289,7 +288,7 @@ void Tutorial_6(String default_layout)
       {
         int H=query->getCurrentResolution();
 
-        Path filename=Path(String("tmp/tutorial6/")  + filters[NFilter] + "/" + StringUtils::replaceFirst(dtype.toString(),"*","_") + String(Overall ?"_all":"_piece"))
+        Path filename=Path(String("tmp/tutorial_6/")  + filters[NFilter] + "/" + StringUtils::replaceFirst(dtype.toString(),"*","_") + String(Overall ?"_all":"_piece"))
           .getChild("snapshot" + String(H<10?"0":"") + cstring(H)  + (".png"));
 
         FileUtils::createDirectory(filename.getParent());
@@ -327,7 +326,7 @@ void Tutorial_6(String default_layout)
       dataset->nextBoxQuery(query);
     }
 
-    dataset->removeFiles();
+    FileUtils::removeDirectory(Path("tmp/tutorial_6"));
   }
 }
 

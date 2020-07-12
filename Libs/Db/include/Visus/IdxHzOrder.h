@@ -66,6 +66,10 @@ public:
 
   VISUS_CLASS(HzOrder)
 
+  DatasetBitmask bitmask;
+  int maxh = 0;
+  int pdim = 0;
+
   //default constructor
   HzOrder() {
   }
@@ -76,11 +80,6 @@ public:
 
   //constructor
   HzOrder(const DatasetBitmask& bitmask_) : HzOrder(bitmask_,bitmask_.getMaxResolution()) {
-  }
-
-  //getBitmask
-  const DatasetBitmask& getBitmask() const {
-    return bitmask;
   }
 
   //getMaxResolution
@@ -293,12 +292,6 @@ public:
     VisusAssert(nsamples.innerProduct()==cint64(hzto-hzfrom));
     return nsamples;
   }
-
-private:
-
-  DatasetBitmask bitmask;
-  int maxh = 0;
-  int pdim=0;
 
 };
 

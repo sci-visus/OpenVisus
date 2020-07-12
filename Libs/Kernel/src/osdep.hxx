@@ -353,7 +353,12 @@ public:
   //removeDirectory
   static bool removeDirectory(String value)
 	{
-	  return ::rmdir(value.c_str()) == 0 ? true : false;
+#if WIN32
+		String cmd = cstring("rmdir /Q /S ", StringUtils::replaceAll(value, "/", "\\"));
+#else
+		String cmd = cstring("rm -Rf ", StringUtils::replaceAll(value, "\\", "/"));
+#endif
+		return ::system(cmd.c_str()) == 0 || ::system(cmd.c_str()) == 0; //try 2 times
 	}  
 
   //createLink

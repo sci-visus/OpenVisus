@@ -71,12 +71,14 @@ os.environ["QT_PLUGIN_PATH"]= os.path.join(QT5_DIR,"plugins")
 %apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::Node* disown };
 
 %feature("director") Visus::Viewer;
+#if 0
 %feature("director") Visus::GLCameraNode;
 %feature("director") Visus::IsoContourNode;
 %feature("director") Visus::IsoContourRenderNode;
 %feature("director") Visus::RenderArrayNode;
 %feature("director") Visus::KdRenderArrayNode;
 %feature("director") Visus::JTreeRenderNode;
+#endif
 %feature("director") Visus::ScriptingNode;
 
 %shared_ptr(Visus::IsoContour)

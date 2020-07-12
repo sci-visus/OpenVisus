@@ -38,6 +38,10 @@ For support : support@visus.net
 
 %begin %{
 
+   #define __cpp_file__ __FILE__
+   #define __cpp_line__ __LINE__
+
+
   #if _WIN32
     //this is needed if you dont' have python debug library
     #pragma warning(disable: 4101)
@@ -51,9 +55,7 @@ For support : support@visus.net
 
 static String convertToString(PyObject* value)
 {
-    if (!value)
-        return "";
-
+    if (!value) return "";
     PyObject* py_str = PyObject_Str(value);
     auto tmp = SWIG_Python_str_AsChar(py_str);
     String ret = tmp ? tmp : "";
@@ -62,39 +64,115 @@ static String convertToString(PyObject* value)
     return ret;
 }
 
-static String GetPythonErrorMessage()
+//see https://github.com/facebookarchive/fblualib/blob/48127792da1223a2a07ea19c776ee285a400c892/fblualib/python/Utils.cpp
+// Format the current Python exception as a string.
+// Let Python do the work for us; call traceback.format_exception()
+class PyObjectHandle {
+ public:
+
+	enum IncRef { INCREF };
+
+	         PyObjectHandle()                                     : obj_(nullptr) { }
+	         PyObjectHandle(std::nullptr_t) noexcept              : obj_(nullptr) { }
+	explicit PyObjectHandle(PyObject* obj) noexcept               : obj_(obj) { }
+	         PyObjectHandle(IncRef, PyObject* obj) noexcept       : obj_(obj) {Py_XINCREF(obj_);}
+	         PyObjectHandle(const PyObjectHandle& other) noexcept : obj_(other.obj_) {Py_XINCREF(obj_);}
+	         PyObjectHandle(PyObjectHandle&& other) noexcept      : obj_(other.obj_) {other.obj_ = nullptr;}
+	        ~PyObjectHandle() noexcept {reset();}
+
+	PyObjectHandle& operator=(const PyObjectHandle& other) noexcept {
+		if (this != &other) {
+			Py_XDECREF(obj_);
+			obj_ = other.obj_;
+			Py_XINCREF(obj_);
+		}
+		return *this;
+	}
+
+	PyObjectHandle& operator=(PyObjectHandle&& other) noexcept {
+		if (this != &other) {
+			if (obj_) Py_DECREF(obj_);
+			obj_ = other.obj_;
+			other.obj_ = nullptr;
+		}
+		return *this;
+	}
+
+	PyObject* get() const noexcept { 
+		return obj_; 
+	}
+
+	PyObject* release() noexcept {
+		PyObject* o = obj_;
+		obj_ = nullptr;
+		return o;
+	}
+
+	void reset(PyObject* obj = nullptr) noexcept {
+		if (obj_) Py_DECREF(obj_);
+		obj_ = obj;
+	}
+
+	void reset(IncRef, PyObject* obj) noexcept {
+		Py_XINCREF(obj);
+		Py_XDECREF(obj_);
+		obj_ = obj;
+	 }
+
+	PyObject* operator->()   const noexcept { return get(); }
+	PyObject& operator*()    const noexcept { assert(get()); return *get(); }
+	explicit operator bool() const noexcept { return obj_; }
+
+ private:
+	PyObject* obj_;
+};
+
+std::string GetPythonErrorMessage() 
 {
-    //see http://www.solutionscan.org/154789-python
-    auto err = PyErr_Occurred();
-    if (!err)
-        return "";
+	if (!PyErr_Occurred()) 
+		return "<no error?>";
 
-    PyObject* type, * value, * traceback;
-    PyErr_Fetch(&type, &value, &traceback);
+	PyObject *exceptionObj,*valueObj,*tracebackObj;
+	PyErr_Fetch(&exceptionObj, &valueObj, &tracebackObj);
+	PyErr_NormalizeException(&exceptionObj, &valueObj, &tracebackObj);
 
-    std::ostringstream out;
+	PyObjectHandle exception(exceptionObj);
+	PyObjectHandle value    (valueObj);
+	PyObjectHandle traceback(tracebackObj);
 
-    out << "Python error: "
-        << convertToString(type) << " "
-        << convertToString(value) << " ";
+	if (!value) 
+		value.reset(PyObjectHandle::INCREF, Py_None);
 
-    auto module_name = PyString_FromString("traceback");
-    auto module = PyImport_Import(module_name);
-    Py_DECREF(module_name);
+	if (!traceback) 
+		traceback.reset(PyObjectHandle::INCREF, Py_None);
 
-    auto fn = module ? PyObject_GetAttrString(module, "format_exception") : nullptr;
-    if (fn && PyCallable_Check(fn))
-    {
-        if (auto descr = PyObject_CallFunctionObjArgs(fn, type, value, traceback, NULL))
-        {
-        out << convertToString(descr);
-        Py_DECREF(descr);
-        }
-    }
+	PyObjectHandle tbModule(PyImport_ImportModule("traceback"));
+	if (!tbModule) 
+		return "<import traceback failed>";
 
-    return out.str();
+	PyObject* tbDict = PyModule_GetDict(tbModule.get());
+	if (!tbDict) 
+		return "<no dict in traceback module>";
+
+	PyObject* formatFunc = PyDict_GetItemString(tbDict, "format_exception");
+	if (!formatFunc) 
+		return "<no format_exception in traceback module>";
+
+	PyObjectHandle formatted(PyObject_CallFunction(formatFunc, const_cast<char*>("OOO"), exception.get(), value.get(),traceback.get()));
+	if (!formatted)
+		return "<traceback.format_exception error>";
+
+	if (!PyList_Check(formatted.get()))
+		return "<traceback.format_exception didn't return a list>";
+
+	std::string out;
+	for (Py_ssize_t i = 0; i < PyList_GET_SIZE(formatted.get()); ++i) {
+		PyObject* obj = PyList_GET_ITEM(formatted.get(), i);
+		out.append(convertToString(obj));
+	}	
+
+	return out;
 }
-
 
 #include <sstream>
 #include <string>
@@ -206,12 +284,12 @@ else:
   } 
 
   catch (std::exception& e) {
-	auto msg=cstring("Error in swig director code","what", e.what(),"where",__FILE__,":",__LINE__, "\n", GetPythonErrorMessage());
+	auto msg=cstring("Error in swig director code","what", e.what(),"where",__cpp_file__,":",__cpp_line__, "\n", GetPythonErrorMessage());
 	PrintInfo(msg);
     SWIG_exception_fail(SWIG_SystemError, msg.c_str());
   }
   catch (...) {
-	auto msg=cstring("Error in swig director code","where",__FILE__,":",__LINE__, "\n", GetPythonErrorMessage());
+	auto msg=cstring("Error in swig director code","where",__cpp_file__,":",__cpp_line__, "\n", GetPythonErrorMessage());
 	PrintInfo(msg);
     SWIG_exception_fail(SWIG_SystemError, msg.c_str());
   }
@@ -219,7 +297,7 @@ else:
 
 %feature("director:except") {
    if ($error != NULL) {
-     auto msg=cstring("Error calling $symname","where",__FILE__,":",__LINE__, "\n", GetPythonErrorMessage());
+     auto msg=cstring("Error calling $symname","where",__cpp_file__,":",__cpp_line__, "\n", GetPythonErrorMessage());
      PrintInfo(msg);
      Swig::DirectorMethodException::raise(msg.c_str());
    }

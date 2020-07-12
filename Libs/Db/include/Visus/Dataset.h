@@ -131,18 +131,11 @@ public:
   virtual String getDatasetTypeName() const = 0;
 
   //getPointDim
-  int getPointDim() const {
-    return bitmask.getPointDim();
-  }
+  virtual int getPointDim() const = 0;
 
   //getBitmask
   const DatasetBitmask& getBitmask() const {
     return bitmask;
-  }
-
-  //setLogicBitmask
-  void setBitmask(const DatasetBitmask& value) {
-    this->bitmask = value;
   }
 
   //isServerMode
@@ -345,11 +338,8 @@ public:
   //createRamAccess
   SharedPtr<Access> createRamAccess(Int64 available, bool can_read = true, bool can_write = true);
 
-  //getBlockSamples
-  virtual LogicSamples getBlockSamples(BigInt blockid) = 0;
-
   //createBlockQuery
-  SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, Field field, double time, int mode = 'r', Aborted aborted = Aborted());
+  virtual SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, Field field, double time, int mode = 'r', Aborted aborted = Aborted()) = 0;
 
   //createBlockQuery
   SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, int mode = 'r', Aborted aborted = Aborted()) {
@@ -384,11 +374,17 @@ public:
     return createBoxQuery(logic_box, getField(), getTime(), mode, aborted);
   }
 
+  //guessBoxQueryEndResolutions
+  virtual std::vector<int> guessBoxQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression);
+
+  //beginBoxQuery
   virtual void beginBoxQuery(SharedPtr<BoxQuery> query) {
+    ThrowException("not implemented");
   }
 
   //nextBoxQuery
   virtual void nextBoxQuery(SharedPtr<BoxQuery> query) {
+    ThrowException("not implemented");
   }
 
   //executeBoxQuery
@@ -397,9 +393,7 @@ public:
   }
 
   //mergeBoxQueryWithBlockQuery
-  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query){
-    return false;
-  }
+  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) = 0;
 
   //createBoxQueryRequest
   virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query) {
@@ -411,28 +405,44 @@ public:
   //________________________________________________
   //point query stuff
 
-  //guessPointQueryNumberOfSamples
-  PointNi guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, Position logic_position, int end_resolution);
 
   //constructor
-  virtual SharedPtr<PointQuery> createPointQuery(Position logic_position, Field field, double time, std::vector<int> end_resolutions, Aborted aborted = Aborted());
+  virtual SharedPtr<PointQuery> createPointQuery(Position logic_position, Field field, double time, Aborted aborted = Aborted()) {
+    ThrowException("not implemented");
+    return SharedPtr<PointQuery>();
+  }
 
   //createPointQuery
-  SharedPtr<PointQuery> createPointQuery(Position logic_position, std::vector<int> end_resolutions, Aborted aborted=Aborted()) {
-    return createPointQuery(logic_position, getField(), getTime(), end_resolutions, aborted);
+  SharedPtr<PointQuery> createPointQuery(Position logic_position, Aborted aborted=Aborted()) {
+    return createPointQuery(logic_position, getField(), getTime(), aborted);
+  }
+
+  //guessPointQueryEndResolutions
+  virtual std::vector<int> guessPointQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression) {
+    ThrowException("not implemented");
+    return {};
+  }
+
+  //guessPointQueryNumberOfSamples
+  virtual PointNi guessPointQueryNumberOfSamples(Frustum logic_to_screen, Position logic_position, int end_resolution) {
+    ThrowException("not implemented");
+    return PointNi();
   }
 
   //beginPointQuery
   virtual void beginPointQuery(SharedPtr<PointQuery> query) {
+    ThrowException("not implemented");
   }
 
   //executePointQuery
   virtual bool executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) {
+    ThrowException("not implemented");
     return false;
   }
 
   //nextPointQuery
   virtual void nextPointQuery(SharedPtr<PointQuery> query) {
+    ThrowException("not implemented");
   }
 
 public:

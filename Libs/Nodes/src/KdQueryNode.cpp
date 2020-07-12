@@ -54,28 +54,24 @@ public:
 
   KdQueryNode*                  owner = nullptr;
 
-  bool                          verbose = false;
-
-  int                           kdquery_mode =KdQueryMode::NotSpecified;
-
-  Frustum                       logic_to_screen;
-
-  SharedPtr<KdArray>            kdarray;
-  SharedPtr<Access>             access;
-
   SharedPtr<Dataset>            dataset;
+  SharedPtr<Access>             access;
   Field                         field;
-  double                        time=0;
+  double                        time = 0;
+  Frustum                       logic_to_screen;
   Position                      logic_position;
+
+  bool                          verbose = false;
+  int                           kdquery_mode =KdQueryMode::NotSpecified;
+  SharedPtr<KdArray>            kdarray;
 
   int                           maxh;
   int                           pdim;
   DatasetBitmask                bitmask;
 
   Time                          last_publish = Time::now();
-  int                           publish_interval=0;
-  
   int                           bitsperblock=0;
+
   bool                          bBlocksAreFullRes=false;
 
   //constructor
@@ -87,18 +83,18 @@ public:
   }
 
   //publish
-  void publish(bool bForce)
+  void publish(bool bForce=false)
   {
     if (aborted() || !owner)
       return;
 
-    if (bForce || last_publish.elapsedMsec() > publish_interval)
-    {
-      DataflowMessage msg;
-      msg.writeValue("kdarray", kdarray);
-      owner->publish(msg);
-      last_publish = Time::now();
-    }
+    if (!bForce && last_publish.elapsedMsec() < (pdim == 3 ? 2000 : 200))
+      return;
+
+    DataflowMessage msg;
+    msg.writeValue("kdarray", kdarray);
+    owner->publish(msg);
+    last_publish = Time::now();
   }
 
   //readRoot
@@ -107,18 +103,24 @@ public:
     VisusAssert(!kdarray->root);
     VisusAssert(bitsperblock);
 
-    auto pow2_dims= bitmask.getPow2Dims();
-    auto pow2_box=bitmask.getPow2Box();
+    auto pow2_dims = bitmask.getPow2Dims();
+    auto pow2_box  = bitmask.getPow2Box();
 
     int max_resolution=this->maxh;
     VisusAssert(bitsperblock<=max_resolution);
 
-    int end_resolution=
-      (this->kdquery_mode ==KdQueryMode::UseBlockQuery && !bBlocksAreFullRes)?
-        std::min(bitsperblock + 1,max_resolution) : //I'm reading block 0+1 for block mode when the blocks are not fullres
-        bitsperblock;
+    int end_resolution;
+    if (KdQueryMode::UseBlockQuery && !bBlocksAreFullRes)
+    {
+      //I'm reading block 0+1 for block mode when the blocks are not fullres
+      end_resolution = std::min(bitsperblock + 1, max_resolution);
+    }
+    else
+    {
+      end_resolution = bitsperblock;
+    }
 
-    //I use a box query to get the data
+    //I use a box query to get the first data
     auto query=dataset->createBoxQuery(pow2_box, field, time,'r', this->aborted);
     query->setResolutionRange(0,end_resolution);
     dataset->beginBoxQuery(query);
@@ -147,6 +149,7 @@ public:
       }
     }
 
+    //create the root
     {
       ScopedWriteLock wlock(rlock);
       kdarray->root = std::make_shared<KdArrayNode>(1); //root has id equals to 1 (important for split)
@@ -182,7 +185,7 @@ public:
             node->fullres     = node->blockdata;
             node->displaydata = node->blockdata;
           }
-          publish(/*bForce*/false);
+          publish();
         }
       }
       else
@@ -202,7 +205,7 @@ public:
         if (!query->isRunning())
           return;
 
-        auto splitbit = bitmask[node->resolution - 1 - bitsperblock];
+        auto splitbit    = bitmask[node->resolution - 1 - bitsperblock];
         auto upsamplebit = bitmask[node->resolution];
 
         bool bLeftChild = node->up->left.get() == node ? true : false;
@@ -261,7 +264,7 @@ public:
           node->displaydata = displaydata;
         }
 
-        publish(/*bForce*/false);
+        publish();
       }
     }
 
@@ -275,8 +278,8 @@ public:
     return BigInt(bBlocksAreFullRes ? node->id - 1 : node->id); //IF !bBlocksAreFullRes node->id is the block number (considering that root has blocks 0 and 1)
   }
 
-  //isLeafNode
-  bool isLeafNode(KdArrayNode* node)
+  //isFinalNode
+  bool isFinalNode(KdArrayNode* node)
   {
     //reached the end resolution
     if (node->resolution >= maxh)
@@ -331,17 +334,30 @@ public:
     return quality >= 1.0 ? true : false;
   } 
 
-  //runJobUsingBlockQuery
-  void runJobUsingBlockQuery()
+  //runJob
+  void runJob()
   {
     ScopedReadLock rlock(kdarray->lock);
 
     if (!kdarray->root && !readRoot(rlock))
       return;
 
-    WaitAsync< Future<Void> > wait_async;
-    VisusAssert(access);
-    access->beginRead();
+    bool bUseBlockQuery = kdquery_mode == KdQueryMode::UseBlockQuery;
+    bool bUseBoxQuery   = !bUseBlockQuery;
+
+    //execute remote queries in async way
+    SharedPtr<NetService> netservice;
+    if (bUseBoxQuery && !access && Url(dataset->getUrl()).isRemote())
+      netservice = std::make_shared<NetService>(8);
+
+    WaitAsync< Future<NetResponse> > wait_async_netresponse; //for boxquery
+    WaitAsync< Future<Void>        > wait_async_blockquery;  //for blockquery
+
+    if (bUseBlockQuery)
+    {
+      VisusReleaseAssert(access);
+      access->beginRead();
+    }
 
     std::deque<KdArrayNode*> bfs;
     bfs.push_back(kdarray->root.get());
@@ -358,8 +374,16 @@ public:
         continue;
       }
 
-      //recursive splitting
-      if (!isLeafNode(node))
+      if (isFinalNode(node))
+      {
+        //drop unneeded levels
+        if (!node->isLeaf())
+        {
+          ScopedWriteLock wlock(rlock);
+          kdarray->clearChilds(node);
+        }
+      }
+      else
       {
         //make sure it's split
         if (node->isLeaf())
@@ -372,15 +396,6 @@ public:
         bfs.push_back(node->left.get());
         bfs.push_back(node->right.get());
       }
-      else
-      {
-        //drop unneeded levels
-        if (!node->isLeaf())
-        {
-          ScopedWriteLock wlock(rlock);
-          kdarray->clearChilds(node);
-        }
-      }
 
       //could be that I skipped the computation of fullres for aborted() signal
       computeFullRes(node, rlock);
@@ -389,169 +404,97 @@ public:
       if (node->fullres)
         continue;
 
-      //already got the blockdata
-      if (node->blockdata)
-        continue;
-
-      //for bBlocksAreFullRes I execute only final levels (since I don't need any merging)
-      if (bBlocksAreFullRes && !isLeafNode(node))
-        continue;
-
-      //retrieve the block data
-      auto blockquery = dataset->createBlockQuery(getBlockId(node), field, time, 'r', this->aborted);
-      dataset->executeBlockQuery(access, blockquery);
-      wait_async.pushRunning(blockquery->done).when_ready([this, blockquery, node, &rlock](Void) {
-
-        if (aborted() || blockquery->failed())
-          return;
-
-        VisusAssert(!node->fullres && !node->blockdata);
-
-        //make sure is row major
-        if (!blockquery->buffer.layout.empty())
-          dataset->convertBlockQueryToRowMajor(blockquery);
-
-        if (!blockquery->buffer)
-          return;
-
-        //need the write lock here
-        {
-          ScopedWriteLock wlock(rlock);
-          node->blockdata = blockquery->buffer;
-        }
-
-        computeFullRes(node, rlock);
-      });
-
-    };
-
-    access->endRead();
-
-    wait_async.waitAllDone();
-
-    if (aborted())
-      return;
-
-    publish(/*bForce*/true);
-
-    if (verbose)
-      this->access->printStatistics();
-  }
-
-  //runJobUsingQuery
-  void runJobUsingQuery()
-  {
-    ScopedReadLock rlock(kdarray->lock);
-
-    if (!kdarray->root && !readRoot(rlock))
-      return;
-
-    //execute remote queries in async way
-    SharedPtr<NetService> netservice;
-    if (!access && Url(dataset->getUrl()).isRemote())
-      netservice = std::make_shared<NetService>(8);
-
-    WaitAsync< Future<NetResponse> >  wait_async;
-
-    std::deque<KdArrayNode*> bfs;
-    bfs.push_back(kdarray->root.get());
-    while (!bfs.empty() && !aborted())
-    {
-      KdArrayNode* node = bfs.front(); bfs.pop_front();
-      VisusAssert(node);
-
-      //not visible, just drop it
-      if (!kdarray->isNodeVisible(node))
+      if (bUseBoxQuery)
       {
-        ScopedWriteLock wlock(rlock);
-        kdarray->clearChilds(node);
-        continue;
-      }
+        //for BoxQuery-mode I execute only final level
+        if (!isFinalNode(node))
+          continue;
 
-      //recursive splitting
-      if (!isLeafNode(node))
-      {
-        //make sure it's split
-        if (node->isLeaf())
+        auto query = dataset->createBoxQuery(node->logic_box, field, time, 'r', this->aborted);
+        query->setResolutionRange(0, node->resolution);
+        dataset->beginBoxQuery(query);
+        if (!query->isRunning() || !query->allocateBufferIfNeeded())
+          continue;
+
+        //remote 'BoxQuery'
+        if (netservice)
         {
-          ScopedWriteLock wlock(rlock);
-          kdarray->split(node, bitmask[1 + node->resolution - kdarray->root->resolution]); //jump the 'V'
-        }
+          auto request = dataset->createBoxQueryRequest(query);
+          wait_async_netresponse.pushRunning(NetService::push(netservice, request)).when_ready([this, query, node, &rlock](NetResponse response) 
+          {
+            VisusAssert(kdquery_mode == KdQueryMode::UseBoxQuery);
+            if (this->aborted() || !response.isSuccessful())
+              return;
 
-        bfs.push_back(node->left.get());
-        bfs.push_back(node->right.get());
+            auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
+            if (!decoded) return;
+
+            //need the write lock here
+            {
+              ScopedWriteLock wlock(rlock);
+              VisusAssert(!node->fullres);
+              node->fullres = decoded;
+              node->displaydata = decoded;
+            }
+
+            this->publish();
+          });
+        }
+        //execute in place (TODO: use thread here?)
+        else if (dataset->executeBoxQuery(access, query))
+        {
+          {
+            ScopedWriteLock wlock(rlock);
+            node->fullres     = query->buffer;
+            node->displaydata = query->buffer;
+          }
+
+          publish();
+        }
       }
       else
       {
-        //drop unneeded levels
-        if (!node->isLeaf())
+        //already got the blockdata
+        if (node->blockdata)
+          continue;
+
+        //for bBlocksAreFullRes I execute only final levels (since I don't need any merging)
+        if (bBlocksAreFullRes && !isFinalNode(node))
+          continue;
+
+        //retrieve the block data
+        auto blockquery = dataset->createBlockQuery(getBlockId(node), field, time, 'r', this->aborted);
+        dataset->executeBlockQuery(access, blockquery);
+        wait_async_blockquery.pushRunning(blockquery->done).when_ready([this, blockquery, node, &rlock](Void) 
         {
-          ScopedWriteLock wlock(rlock);
-          kdarray->clearChilds(node);
-        }
-      }
-
-      //could be that I skipped the computation of fullres for aborted() signal
-      computeFullRes(node, rlock);
-
-      //all done for the current node
-      if (node->fullres)
-        continue;
-
-      //for Query I execute only final level
-      if (!isLeafNode(node))
-        continue;
-
-      auto query = dataset->createBoxQuery(node->logic_box, field, time,'r', this->aborted);
-      query->setResolutionRange(0, node->resolution);
-
-      dataset->beginBoxQuery(query);
-
-      if (!query->isRunning() || !query->allocateBufferIfNeeded())
-        continue;
-
-      //remote 'Query'
-      if (netservice)
-      {
-        auto request = std::make_shared<NetRequest>(dataset->createBoxQueryRequest(query));
-
-        wait_async.pushRunning(NetService::push(netservice, *request)).when_ready([this, query, node, &rlock](NetResponse response) {
-
-          VisusAssert(kdquery_mode == KdQueryMode::UseBoxQuery);
-
-          if (this->aborted() || !response.isSuccessful())
+          if (aborted() || blockquery->failed())
             return;
 
-          auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
-          if (!decoded)
+          VisusAssert(!node->fullres && !node->blockdata);
+
+          //make sure is row major
+          if (!blockquery->buffer.layout.empty())
+            dataset->convertBlockQueryToRowMajor(blockquery);
+
+          if (!blockquery->buffer)
             return;
 
           //need the write lock here
           {
             ScopedWriteLock wlock(rlock);
-            VisusAssert(!node->fullres);
-            node->fullres     = decoded;
-            node->displaydata = decoded;
+            node->blockdata = blockquery->buffer;
           }
 
-          this->publish(false);
+          computeFullRes(node, rlock);
         });
       }
+    };
 
-      //execute in place (TODO: use thread here?)
-      else if (dataset->executeBoxQuery(access, query))
-      {
-        {
-          ScopedWriteLock wlock(rlock);
-          node->fullres = query->buffer;
-          node->displaydata = query->buffer;
-        }
+    if (bUseBlockQuery)
+      access->endRead();
 
-        publish(false);
-      }
-    }
-
-    wait_async.waitAllDone();
+    wait_async_netresponse.waitAllDone();
+    wait_async_blockquery.waitAllDone();
 
     if (aborted())
       return;
@@ -560,15 +503,6 @@ public:
 
     if (verbose)
       this->access->printStatistics();
-  }
-
-  //runJob
-  virtual void runJob() override
-  {
-    if (kdquery_mode == KdQueryMode::UseBlockQuery)
-      runJobUsingBlockQuery();
-    else
-      runJobUsingQuery();
   }
 
 };
@@ -583,8 +517,6 @@ KdQueryNode::KdQueryNode() {
 ///////////////////////////////////////////////////////////////////////////////////////////////
 KdQueryNode::~KdQueryNode() {
 }
-
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 bool KdQueryNode::processInput()
@@ -645,7 +577,6 @@ bool KdQueryNode::processInput()
   auto job=std::make_shared<KdQueryJob>();
   job->owner = this;
   job->kdquery_mode = kdquery_mode;
-  job->publish_interval = dataset->getPointDim() == 3 ? 2000 : 200;
   job->dataset=dataset;
   job->access=access;
   job->kdarray=kdarray;
