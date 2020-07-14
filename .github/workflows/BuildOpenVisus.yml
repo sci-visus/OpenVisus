@@ -46,12 +46,10 @@ jobs:
     # ____________________________________________  
     - name: Install SDK 10.9 for macos 
       if: matrix.os == 'macos-latest'
-      uses: nick-invision/retry@v1
-      with:
-        max_attempts: 3
-        timeout_minutes: 5
-        retry_wait_seconds: 5
-        command: 'cd /opt && rm -Rf MacOSX-SDKs && git clone https://github.com/phracker/MacOSX-SDKs.git '
+      run: |
+           cd /opt
+           sudo rm -Rf MacOSX-SDKs 
+           sudo git clone https://github.com/phracker/MacOSX-SDKs.git
            
     # ____________________________________________
     - name: Install CPython 
@@ -86,8 +84,7 @@ jobs:
       with:
         version: '5.12.8'
         arch: 'win64_msvc2017_64'
-        install-deps: 'true'  
-        dir: C:\
+        install-deps: 'true'
         
      # ____________________________________________
     - name: Install Qt for macos
@@ -96,14 +93,15 @@ jobs:
       with:
         version: '5.12.8'
         target: 'desktop'
-        install-deps: 'true'  
-        dir: /opt
+        install-deps: 'true'
 
     # ____________________________________________
     - name: Install glu on ubuntu
       if: matrix.os == 'ubuntu-latest'
       shell: bash
-      run: sudo apt-get install libglu1-mesa-dev 1>/dev/null
+      run: |
+           sudo apt-get update
+           sudo apt-get install libglu1-mesa-dev 1>/dev/null
 
     # ____________________________________________
     - name: git clone OpenVisus
