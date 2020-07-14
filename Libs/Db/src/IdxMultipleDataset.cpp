@@ -249,7 +249,7 @@ Array IdxMultipleDataset::executeDownQuery(BoxQuery* QUERY, SharedPtr<BoxQuery> 
 
   //already resampled
   auto NSAMPLES = QUERY->getNumberOfSamples();
-  if (query->down_info.BUFFER && query->down_info.BUFFER.dims == NSAMPLES)
+  if (query->down_info.BUFFER.valid() && query->down_info.BUFFER.dims == NSAMPLES)
     return query->down_info.BUFFER;
 
   //create a brand new BUFFER for doing the warpPerspective
@@ -484,7 +484,6 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& AR)
 
   IdxFile& IDXFILE = this->idxfile;
 
-  
   //set PHYSIC_BOX (union of physic boxes)
   auto PHYSIC_BOX = BoxNd::invalid();
   if (AR.hasAttribute("physic_box"))
@@ -571,7 +570,7 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& AR)
     //PrintInfo("  ", it.first, "volume(logic_pixels)", logic_pixels, "volume(LOGIC_PIXELS)", LOGIC_PIXELS, "ratio==logic_pixels/LOGIC_PIXELS", ratio);
   }
 
-  //time
+  //timesteps
   {
     if (down_datasets.size() == 1)
     {
@@ -668,7 +667,24 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& AR)
 
   IDXFILE.validate(URL);
   //PrintInfo("MIDX idxfile is the following", "\n", IDXFILE);
-  setIdxFile(IDXFILE);
+
+  //setIdxFile
+  {
+    this->idxfile = IDXFILE;
+    this->bitmask = IDXFILE.bitmask;
+
+    setDefaultBitsPerBlock(IDXFILE.bitsperblock);
+    setLogicBox(IDXFILE.logic_box);
+    setDatasetBounds(IDXFILE.bounds);
+    setTimesteps(IDXFILE.timesteps);
+
+    //already added fields
+    //for (auto field : IDXFILE.fields)
+    //  addField(field);
+
+    createBoxQueryAddressConversion();
+    createPointQueryAddressConversion();
+  }
 
   //for non-mosaic I cannot use block query
   //if (pdim==2)

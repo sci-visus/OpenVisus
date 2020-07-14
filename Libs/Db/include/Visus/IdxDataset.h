@@ -172,14 +172,17 @@ protected:
   //getLevelSamples
   LogicSamples getLevelSamples(int H);
 
-  //setIdxFile
-  void setIdxFile(IdxFile value);
-
   //setBoxQueryEndResolution
   bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value);
 
   //executeBoxQueryOnServer
   bool executeBoxQueryOnServer(SharedPtr<BoxQuery> query);
+
+  //createBoxQueryAddressConversion
+  void createBoxQueryAddressConversion();
+
+  //createPointQueryAddressConversion
+  void createPointQueryAddressConversion();
 
 };
 

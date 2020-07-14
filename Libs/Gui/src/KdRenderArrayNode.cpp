@@ -153,7 +153,7 @@ static bool isNodeFillingVisibleSpace(const SharedPtr<KdArray>& kdarray,KdArrayN
 {
   VisusAssert(node);
 
-  if (!kdarray->isNodeVisible(node) || node->displaydata)
+  if (!kdarray->isNodeVisible(node) || node->displaydata.valid())
     return true;
 
   return node->left  && isNodeFillingVisibleSpace(kdarray,node->left .get()) && 
@@ -165,7 +165,7 @@ static bool isNodeVisible(const SharedPtr<KdArray>& kdarray,KdArrayNode* node)
 {
   VisusAssert(node);
 
-  if (!node->displaydata || !kdarray->isNodeVisible(node))
+  if (!node->displaydata.valid() || !kdarray->isNodeVisible(node))
     return false;
 
   //don't allow any overlapping (i.e. if of any of my parents is currently displayed, I cannot show the current node)

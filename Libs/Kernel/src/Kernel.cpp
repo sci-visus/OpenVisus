@@ -314,14 +314,14 @@ void KernelModule::attach()
     if (bOk) break;
   }
 
-#if _DEBUG
+//#if _DEBUG
   PrintInfo(
     "VERSION", OpenVisus_VERSION,
     "GIT_REVISION", OpenVisus_GIT_REVISION,
     "VisusHome", KnownPaths::VisusHome, 
     "BinaryDirectory", KnownPaths::BinaryDirectory,
     "CurrentWorkingDirectory ", KnownPaths::CurrentWorkingDirectory());
-#endif
+  //#endif
 
   ArrayPlugins::allocSingleton();
   Encoders::allocSingleton();

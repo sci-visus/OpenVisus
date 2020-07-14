@@ -508,7 +508,7 @@ void IdxDataset::compressDataset(std::vector<String> compression, Array data)
     idxfile.save(filename);
   }
 
-  if (data)
+  if (data.valid())
   {
     //data will replace current data
     //write BoxQuery(==data) to BlockQuery(==RAM)
@@ -876,7 +876,22 @@ void IdxDataset::readDatasetFromArchive(Archive& ar)
 
   setDatasetBody(ar);
   setKdQueryMode(KdQueryMode::fromString(ar.readString("kdquery", Url(url).getParam("kdquery"))));
-  setIdxFile(idxfile);
+
+  //setIdxFile
+  {
+    this->idxfile = idxfile;
+    this->bitmask = idxfile.bitmask;
+    setDefaultBitsPerBlock(idxfile.bitsperblock);
+    setLogicBox(idxfile.logic_box);
+    setDatasetBounds(idxfile.bounds);
+    setTimesteps(idxfile.timesteps);
+
+    for (auto field : idxfile.fields)
+      addField(field);
+
+    createBoxQueryAddressConversion();
+    createPointQueryAddressConversion();
+  }
 }
 
 static CriticalSection                                                                HZADDRESS_CONVERSION_BOXQUERY_LOCK;
@@ -886,61 +901,52 @@ static CriticalSection                                                          
 static std::map<std::pair<String,int> , SharedPtr<IdxPointQueryHzAddressConversion> > HZADDRESS_CONVERSION_POINTQUERY;
 
 ////////////////////////////////////////////////////////////
-void IdxDataset::setIdxFile(IdxFile value)
+void IdxDataset::createBoxQueryAddressConversion()
 {
-  this->idxfile=value;
-  auto bitmask = value.bitmask;
-  this->bitmask=bitmask;
-  setDefaultBitsPerBlock(value.bitsperblock);
-  setLogicBox(value.logic_box);
-  setDatasetBounds(value.bounds);
-  setTimesteps(value.timesteps);
-  
-  for (auto field : value.fields)
-    addField(field);
-
-  //cache address conversion
+  auto key = bitmask.toString();
   {
-    auto key = bitmask.toString();
-    {
-      ScopedLock lock(HZADDRESS_CONVERSION_BOXQUERY_LOCK);
-      auto it = HZADDRESS_CONVERSION_BOXQUERY.find(key);
-      if (it != HZADDRESS_CONVERSION_BOXQUERY.end()) 
-        this->hzaddress_conversion_boxquery = it->second;
-    }
-
-    if (!this->hzaddress_conversion_boxquery)
-    {
-      this->hzaddress_conversion_boxquery = std::make_shared<IdxBoxQueryHzAddressConversion>(bitmask);
-      {
-        ScopedLock lock(HZADDRESS_CONVERSION_BOXQUERY_LOCK);
-        HZADDRESS_CONVERSION_BOXQUERY[key] = this->hzaddress_conversion_boxquery;
-      }
-    }
+    ScopedLock lock(HZADDRESS_CONVERSION_BOXQUERY_LOCK);
+    auto it = HZADDRESS_CONVERSION_BOXQUERY.find(key);
+    if (it != HZADDRESS_CONVERSION_BOXQUERY.end())
+      this->hzaddress_conversion_boxquery = it->second;
   }
 
-  //create the loc-cache only for 3d data, in 2d I know I'm not going to use it!
-  //instead in 3d I will use it a lot (consider a slice in odd position)
-  if (bitmask.getPointDim() >= 3 && !this->hzaddress_conversion_pointquery)
+  if (!this->hzaddress_conversion_boxquery)
   {
-    auto key = std::make_pair(bitmask.toString(), this->getMaxResolution());
+    this->hzaddress_conversion_boxquery = std::make_shared<IdxBoxQueryHzAddressConversion>(bitmask);
     {
-      ScopedLock lock(HZADDRESS_CONVERSION_POINTQUERY_LOCK);
-      auto it = HZADDRESS_CONVERSION_POINTQUERY.find(key);
-      if (it != HZADDRESS_CONVERSION_POINTQUERY.end())
-        this->hzaddress_conversion_pointquery = it->second;
-    }
-
-    if (!this->hzaddress_conversion_pointquery)
-    {
-      this->hzaddress_conversion_pointquery = std::make_shared<IdxPointQueryHzAddressConversion>(bitmask);
-      {
-        ScopedLock lock(HZADDRESS_CONVERSION_POINTQUERY_LOCK);
-        HZADDRESS_CONVERSION_POINTQUERY[key] = this->hzaddress_conversion_pointquery;
-      }
+      ScopedLock lock(HZADDRESS_CONVERSION_BOXQUERY_LOCK);
+      HZADDRESS_CONVERSION_BOXQUERY[key] = this->hzaddress_conversion_boxquery;
     }
   }
 }
+
+////////////////////////////////////////////////////////////
+void IdxDataset::createPointQueryAddressConversion()
+{
+  //create the loc-cache only for 3d data, in 2d I know I'm not going to use it!
+  //instead in 3d I will use it a lot (consider a slice in odd position)
+  if (bitmask.getPointDim() != 3 || this->hzaddress_conversion_pointquery)
+    return;
+
+  auto key = std::make_pair(bitmask.toString(), this->getMaxResolution());
+  {
+    ScopedLock lock(HZADDRESS_CONVERSION_POINTQUERY_LOCK);
+    auto it = HZADDRESS_CONVERSION_POINTQUERY.find(key);
+    if (it != HZADDRESS_CONVERSION_POINTQUERY.end())
+      this->hzaddress_conversion_pointquery = it->second;
+  }
+
+  if (!this->hzaddress_conversion_pointquery)
+  {
+    this->hzaddress_conversion_pointquery = std::make_shared<IdxPointQueryHzAddressConversion>(bitmask);
+    {
+      ScopedLock lock(HZADDRESS_CONVERSION_POINTQUERY_LOCK);
+      HZADDRESS_CONVERSION_POINTQUERY[key] = this->hzaddress_conversion_pointquery;
+    }
+  }
+}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> block_query)
@@ -1177,7 +1183,7 @@ bool IdxDataset::executeBoxQueryOnServer(SharedPtr<BoxQuery> query)
   }
 
   auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
-  if (!decoded) {
+  if (!decoded.valid()) {
     query->setFailed("failed to decode body");
     return false;
   }
@@ -1204,7 +1210,7 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
   }
 
   //for 'r' queries I can postpone the allocation
-  if (query->mode == 'w' && !query->buffer)
+  if (query->mode == 'w' && !query->buffer.valid())
   {
     query->setFailed("write buffer not set");
     return false;
@@ -1791,7 +1797,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
     }
 
     auto decoded = response.getCompatibleArrayBody(query->getNumberOfPoints(), query->field.dtype);
-    if (!decoded) {
+    if (!decoded.valid()) {
       query->setFailed("failed to decode body");
       return false;
     }
@@ -1814,9 +1820,10 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
     if (query->buffer.dims != npoints)
     {
       //solve the problem of missing blocks
-      if (query->buffer)
+      if (query->buffer.valid())
       {
-        if (!(query->buffer = ArrayUtils::resample(npoints, query->buffer)))
+        query->buffer = ArrayUtils::resample(npoints, query->buffer);
+        if (!query->buffer.valid())
         {
           query->setFailed("out of memory");
           return false;

@@ -174,11 +174,11 @@ public:
     if (aborted() || !node)
       return;
 
-    if (!node->fullres)
+    if (!node->fullres.valid())
     {
       if (bBlocksAreFullRes)
       {
-        if (node->blockdata)
+        if (node->blockdata.valid())
         {
           {
             ScopedWriteLock wlock(rlock);
@@ -191,7 +191,7 @@ public:
       else
       {
         //node->fullres = node->up->fullres+node->blockdata
-        if (!node->up->fullres || !node->blockdata)
+        if (!node->up->fullres.valid() || !node->blockdata.valid())
           return;
 
         auto query = dataset->createBoxQuery(node->logic_box, field, time, 'r', this->aborted);
@@ -214,11 +214,11 @@ public:
           ArrayUtils::splitAndGetFirst(node->up->fullres, splitbit, aborted) :
           ArrayUtils::splitAndGetSecond(node->up->fullres, splitbit, aborted);
 
-        if (aborted() || !fullres)
+        if (aborted() || !fullres.valid())
           return;
 
         fullres = ArrayUtils::upSample(fullres, upsamplebit, aborted);
-        if (aborted() || !fullres)
+        if (aborted() || !fullres.valid())
           return;
 
         VisusAssert(query->getNumberOfSamples() == fullres.dims);
@@ -401,7 +401,7 @@ public:
       computeFullRes(node, rlock);
 
       //all done for the current node
-      if (node->fullres)
+      if (node->fullres.valid())
         continue;
 
       if (bUseBoxQuery)
@@ -427,7 +427,8 @@ public:
               return;
 
             auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
-            if (!decoded) return;
+            if (!decoded.valid()) 
+              return;
 
             //need the write lock here
             {
@@ -455,7 +456,7 @@ public:
       else
       {
         //already got the blockdata
-        if (node->blockdata)
+        if (node->blockdata.valid())
           continue;
 
         //for bBlocksAreFullRes I execute only final levels (since I don't need any merging)
@@ -476,7 +477,7 @@ public:
           if (!blockquery->buffer.layout.empty())
             dataset->convertBlockQueryToRowMajor(blockquery);
 
-          if (!blockquery->buffer)
+          if (!blockquery->buffer.valid())
             return;
 
           //need the write lock here

@@ -363,7 +363,7 @@ void Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<BlockQuery> q
   if (!query->logic_samples.valid())
     return failed("logic_samples not valid");
 
-  if (mode == 'w' && !query->buffer)
+  if (mode == 'w' && !query->buffer.valid())
     return failed("no buffer to write");
 
   // override time  from from field

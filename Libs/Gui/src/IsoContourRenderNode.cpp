@@ -222,7 +222,7 @@ void IsoContourRenderNode::glRender(GLCanvas& gl)
   }
 
   //upload second field
-  if (mesh->second_field)
+  if (mesh->second_field.valid())
   {
     VisusAssert(shader->u_second_field.valid());
     auto& tex = mesh->second_field.texture;
@@ -231,7 +231,7 @@ void IsoContourRenderNode::glRender(GLCanvas& gl)
   }
 
   //upload palette
-  if (mesh->second_field)
+  if (mesh->second_field.valid())
   {
     VisusAssert(shader->u_palette.valid());
     auto& tex = palette->texture;

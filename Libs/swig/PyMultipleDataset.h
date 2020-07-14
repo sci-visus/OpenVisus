@@ -128,9 +128,17 @@ public:
       setModuleAttr("query_time", QUERY ? QUERY->time : DATASET->getTimesteps().getDefault());
 
       addModuleFunction("doPublish", [this](PyObject* self, PyObject* args) {
-        auto output = getModuleArrayAttr("output");
-        if (output && QUERY && QUERY->incrementalPublish)
-          QUERY->incrementalPublish(output);
+
+        auto output = getModuleAttr("output");
+
+        if (!output)
+          ThrowException("");
+
+        auto array = pythonObjectToArray(output);
+
+        if (array.valid() && QUERY && QUERY->incrementalPublish)
+          QUERY->incrementalPublish(array);
+
         return nullptr;
       });
 
@@ -159,9 +167,20 @@ public:
     ScopedAcquireGil acquire_gil;
     execCode(code);
 
-    auto ret = getModuleArrayAttr("output");
-    if (!ret && !aborted())
-      ThrowException("empty 'output' value");
+    auto output = getModuleAttr("output");
+
+    if (!output)
+      ThrowException("output not set");
+
+    auto ret = pythonObjectToArray(output);
+
+    if (!ret.valid())
+    {
+      if (aborted())
+        return ret;
+      else
+        ThrowException("output not valid");
+    }
 
     if (DATASET->debug_mode & IdxMultipleDataset::DebugSaveImages)
     {
@@ -398,15 +417,6 @@ private:
     return ret;
   }
 
-  //getModuleArrayAttr
-  Array getModuleArrayAttr(String name)
-  {
-    auto py_object = getModuleAttr(name);
-    if (!py_object)
-      ThrowException("cannot find", name, "in module");
-    return pythonObjectToArray(py_object);
-  }
-
   //newDynamicObject
   PyObject* newDynamicObject(std::function<PyObject* (String)> getattr)
   {
@@ -544,7 +554,7 @@ private:
 
           DATASET->executeDownQuery(QUERY, query);
 
-          if (!query->down_info.BUFFER || query->aborted())
+          if (!query->down_info.BUFFER.valid() || query->aborted())
             continue;
 
           blend.addBlendArg(query->down_info.BUFFER, query->down_info.PIXEL_TO_LOGIC, query->down_info.LOGIC_CENTROID);
@@ -555,7 +565,7 @@ private:
         for (auto it : QUERY->down_queries)
         {
           auto query = it.second;
-          if (!query || !query->down_info.BUFFER || query->aborted())
+          if (!query || !query->down_info.BUFFER.valid() || query->aborted())
             continue;
 
           blend.addBlendArg(query->down_info.BUFFER, query->down_info.PIXEL_TO_LOGIC, query->down_info.LOGIC_CENTROID);

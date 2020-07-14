@@ -143,11 +143,6 @@ public:
     return dtype.valid();
   }
 
-  //valid
-  operator bool() const {
-    return valid();
-  }
-
   //getPointDim
   int getPointDim() const {
     return dims.getPointDim();

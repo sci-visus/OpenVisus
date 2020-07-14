@@ -115,7 +115,7 @@ public:
         return readFailed(query);
 
       auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
-      if (!decoded)
+      if (!decoded.valid())
         return readFailed(query);
 
       query->buffer = decoded;

@@ -230,7 +230,7 @@ public:
       dataset->nextBoxQuery(query);
     }
 
-    VisusReleaseAssert(buffer);
+    VisusReleaseAssert(buffer.valid());
     {
       //verify written data
       int nsample = 0;

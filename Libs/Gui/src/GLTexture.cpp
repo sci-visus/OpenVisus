@@ -145,7 +145,7 @@ GLuint GLTexture::textureId(GLCanvas& gl)
     return texture_id;
 
   //already failed
-  if (!upload.array && upload.image.width() == 0)
+  if (!upload.array.valid() && upload.image.width() == 0)
     return 0;
 
   String failure_texture;
@@ -155,12 +155,12 @@ GLuint GLTexture::textureId(GLCanvas& gl)
   auto image = upload.image; upload.image = QImage();
 
   const uchar* pixels = nullptr;
-  if (array)
+  if (array.valid())
   {
     if (this->dtype != array.dtype)
     {
       auto casted = ArrayUtils::cast(array, this->dtype);
-      if (!casted)
+      if (!casted.valid())
       {
         PrintInfo( "Texture generation failed (failed to creatre casted array)");
         return 0;

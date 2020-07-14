@@ -650,7 +650,7 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
       }
 
       buffer = ArrayUtils::applyTransferFunction(tf, buffer);
-      if (!buffer)
+      if (!buffer.valid())
         return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "palette failed");
     }
   }
@@ -742,7 +742,7 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
       }
 
       buffer = ArrayUtils::applyTransferFunction(tf, buffer);
-      if (!buffer)
+      if (!buffer.valid())
         return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "palette failed");
     }
   }

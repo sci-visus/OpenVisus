@@ -198,7 +198,7 @@ public:
 
     Time t1 = Time::now();
 
-    if (!data || !data.dims.innerProduct() || !data.dtype.valid())
+    if (!data.valid() || !data.dims.innerProduct() || !data.dtype.valid())
     {
       this->data = Array();
       this->data_texture.reset();
@@ -464,7 +464,7 @@ public:
   //setData
   virtual void setData(Array data, SharedPtr<Palette> palette) override
   {
-    if (!data || data.getPointDim() != 3)
+    if (!data.valid() || data.getPointDim() != 3)
     {
       this->volumeValid = false;
       return;
@@ -795,7 +795,7 @@ void RenderArrayNode::setData(Array data,SharedPtr<Palette> palette)
   VisusAssert(VisusHasMessageLock());
 
   //invalid data?
-  if (!data || !data.dims.innerProduct() || !data.dtype.valid())
+  if (!data.valid() || !data.dims.innerProduct() || !data.dtype.valid())
   {
     data = Array();
     palette.reset();
@@ -878,7 +878,7 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   auto return_receipt = this->return_receipt;
   this->return_receipt.reset();
 
-  if (!data)
+  if (!data.valid())
     return;
 
   pimpl->glRender(gl);

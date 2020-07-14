@@ -110,7 +110,7 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
       return readFailed(query);
 
     auto decoded = ArrayUtils::decodeArray(blob.metadata, blob.body);
-    if (!decoded)
+    if (!decoded.valid())
       return readFailed(query);
 
     VisusAssert(decoded.dims == query->getNumberOfSamples());

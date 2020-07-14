@@ -175,7 +175,7 @@ void ModVisusAccess::flushBatch()
       }
 
       auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
-      if (!decoded)
+      if (!decoded.valid())
       {
         readFailed(query);
         continue;

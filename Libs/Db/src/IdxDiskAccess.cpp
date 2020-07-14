@@ -275,7 +275,7 @@ public:
       PrintInfo("Decoding buffer");
 
     auto decoded = ArrayUtils::decodeArray(compression, query->getNumberOfSamples(), query->field.dtype, encoded);
-    if (!decoded)
+    if (!decoded.valid())
       return failed("cannot decode the data");
 
     decoded.layout = layout;
@@ -502,7 +502,7 @@ public:
 
     //TODO: noninterruptile
     auto decoded = ArrayUtils::decodeArray(compression, query->getNumberOfSamples(), query->field.dtype, encoded);
-    if (!decoded)
+    if (!decoded.valid())
       return failed("cannot decode the data");
 
     decoded.layout = layout;

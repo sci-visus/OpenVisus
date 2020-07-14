@@ -113,8 +113,8 @@ public:
   {
     return 
       blockdata.c_size()
-      + ((fullres && fullres.heap!=blockdata.heap) ? fullres.c_size() : 0)
-      + ((displaydata && displaydata.heap!=blockdata.heap && displaydata.heap!=fullres.heap) ? displaydata.c_size() : 0);
+      + ((fullres.valid() && fullres.heap!=blockdata.heap) ? fullres.c_size() : 0)
+      + ((displaydata.valid() && displaydata.heap!=blockdata.heap && displaydata.heap!=fullres.heap) ? displaydata.c_size() : 0);
   }
 
 };
