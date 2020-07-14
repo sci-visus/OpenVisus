@@ -49,7 +49,7 @@ jobs:
       run: |
            cd /opt
            sudo rm -Rf MacOSX-SDKs 
-           sudo git clone https://github.com/phracker/MacOSX-SDKs.git'
+           sudo git clone https://github.com/phracker/MacOSX-SDKs.git
            
     # ____________________________________________
     - name: Install CPython 
