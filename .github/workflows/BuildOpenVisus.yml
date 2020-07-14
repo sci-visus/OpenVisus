@@ -84,8 +84,7 @@ jobs:
       with:
         version: '5.12.8'
         arch: 'win64_msvc2017_64'
-        install-deps: 'true'  
-        dir: C:\
+        install-deps: 'true'
         
      # ____________________________________________
     - name: Install Qt for macos
@@ -94,8 +93,7 @@ jobs:
       with:
         version: '5.12.8'
         target: 'desktop'
-        install-deps: 'true'  
-        dir: /opt
+        install-deps: 'true'
 
     # ____________________________________________
     - name: Install glu on ubuntu
