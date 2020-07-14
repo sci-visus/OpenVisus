@@ -62,22 +62,34 @@ class ModVisus::Datasets
 {
 public:
 
+  VISUS_NON_COPYABLE_CLASS(Datasets)
+
   //constructor
-  Datasets(const StringTree& config) 
-  {
-    StringTree datasets("datasets");
-    addPublicDatasets(datasets, config);
-    datasets_xml_body  = datasets.toXmlString();
-    datasets_json_body = datasets.toJSONString();
+  Datasets() : datasets("datasets"){
   }
 
   //destructor
   ~Datasets() {
   }
 
+  //addPublicDatasets
+  void addPublicDatasets(const StringTree& config)
+  {
+    this->addPublicDatasets(this->datasets, config);
+    this->xml_body  = this->datasets.toXmlString();
+    this->json_body = this->datasets.toJSONString();
+  }
+
   //getNumberOfDatasets
   int getNumberOfDatasets() const {
-    return (int)datasets_map.size();
+    return (int)map.size();
+  }
+
+  //findDataset
+  SharedPtr<Dataset> findDataset(String name) const
+  {
+    auto it = map.find(name);
+    return (it != map.end()) ? it->second : SharedPtr<Dataset>();
   }
 
   //createPublicUrl
@@ -89,45 +101,39 @@ public:
   String getDatasetsBody(String format = "xml") const
   {
     if (format == "json")
-      return datasets_json_body;
+      return json_body;
     else
-      return datasets_xml_body;
-  }
-
-  //findDataset
-  SharedPtr<Dataset> findDataset(String name) const
-  {
-    auto it = datasets_map.find(name);
-    return (it != datasets_map.end()) ? it->second : SharedPtr<Dataset>();
+      return xml_body;
   }
 
 private:
 
-  VISUS_NON_COPYABLE_CLASS(Datasets)
-
-  typedef std::map<String, SharedPtr<Dataset > > DatasetMap;
-
-  DatasetMap        datasets_map;
-  String            datasets_xml_body;
-  String            datasets_json_body;
+  StringTree                              datasets;
+  std::map<String, SharedPtr<Dataset > >  map;
+  String                                  xml_body;
+  String                                  json_body;
 
   //addPublicDataset
-  int addPublicDataset(StringTree& dst, String name, SharedPtr<Dataset> dataset) 
+  int addPublicDataset(StringTree& dst, String name, SharedPtr<Dataset> dataset)
   {
-    int ret = 1;
-    datasets_map[name] = dataset;
+    this->map[name] = dataset;
     dataset->setServerMode(true);
-    
-    StringTree public_dataset("dataset");
-    public_dataset.write("name", name);
-    public_dataset.write("url", createPublicUrl(name));
-    dst.addChild(public_dataset);
+
+    StringTree child("dataset");
+    child.write("name", name);
+    child.write("url", createPublicUrl(name));
+    dst.addChild(child);
 
     //automatically add the childs of a multiple datasets
-    if (auto midx=std::dynamic_pointer_cast<IdxMultipleDataset>(dataset))
+    int ret = 1;
+    if (auto midx = std::dynamic_pointer_cast<IdxMultipleDataset>(dataset))
     {
       for (auto it : midx->down_datasets)
-        ret += addPublicDataset(public_dataset, name + "/" + it.first, it.second);
+      {
+        auto child_name    = it.first;
+        auto child_dataset = it.second;
+        ret += addPublicDataset(child, name + "/" + child_name, child_dataset);
+      }
     }
 
     return ret;
@@ -136,52 +142,60 @@ private:
   //addPublicDatasets
   int addPublicDatasets(StringTree& dst, const StringTree& cursor)
   {
-    int ret = 0;
-
     //I want to maintain the group hierarchy!
     if (cursor.name == "group")
     {
+      int ret = 0;
       StringTree group(cursor.name);
       group.attributes = cursor.attributes;
       for (auto child : cursor.getChilds())
         ret += addPublicDatasets(group, *child);
+
       if (ret)
         dst.addChild(group);
+
       return ret;
     }
 
     //flattening the hierarchy!
-    if (cursor.name != "dataset") 
+    if (cursor.name != "dataset")
     {
+      int ret = 0;
       for (auto child : cursor.getChilds())
         ret += addPublicDatasets(dst, *child);
       return ret;
     }
 
-    //just ignore those with empty names or not public
-    String name = cursor.readString("name");
-    String url  = cursor.readString("url");
-    bool is_public = StringUtils::contains(cursor.readString("permissions"), "public");
-    if (name.empty() || !is_public || !Url(url).valid())
+    String url = cursor.readString("url");
+    if (!Url(url).valid())
       return 0;
 
+    bool is_public = StringUtils::contains(cursor.readString("permissions"), "public");
+    if (!is_public)
+      return 0;
+
+    String name = cursor.readString("name");
+    if (name.empty())
+      return 0;
+    
     SharedPtr<Dataset> dataset;
     try
     {
       dataset = LoadDatasetEx(cursor);
     }
-    catch(...) {
+    catch (...) {
       PrintWarning("dataset name", name, "load failed, skipping it");
       return 0;
     }
 
-    if (datasets_map.find(name) != datasets_map.end()) {
+    if (map.count(name)) {
       PrintWarning("dataset name", name, "already exists, skipping it");
       return 0;
     }
 
     return addPublicDataset(dst, name, dataset);
   }
+
 
 };
 
@@ -223,7 +237,8 @@ bool ModVisus::configureDatasets(const ConfigFile& config)
     this->dynamic = false;
   }
 
-  SharedPtr<Datasets> datasets = std::make_shared<Datasets>(config);
+  SharedPtr<Datasets> datasets = std::make_shared<Datasets>();
+  datasets->addPublicDatasets(config);
   this->m_datasets = datasets;
   
   if (dynamic)
@@ -268,7 +283,8 @@ bool ModVisus::reload()
     return false;
   }
 
-  auto datasets = std::make_shared<Datasets>(config);
+  auto datasets = std::make_shared<Datasets>();
+  datasets->addPublicDatasets(config);
   {
     ScopedWriteLock lock(this->rw_lock);
     this->m_datasets = datasets;
