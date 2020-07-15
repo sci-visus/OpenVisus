@@ -164,11 +164,7 @@ SharedPtr<BlockQuery> GoogleMapsDataset::createBlockQuery(BigInt blockid, Field 
     //  blockid=2 H=16+Utils::getLog2(1+2)=16+1=17
     //  blockid=3 H=16+Utils::getLog2(1+3)=16+2=18
     //  ....
-
     auto H = bitsperblock + Utils::getLog2(1 + blockid);
-
-    //I ask for blocks only at even levels
-    VisusAssert((H % 2) == 0);
 
     //Example:
     // H=bitsperblock+0   first_block_in_level=(1<<0)-1=0
@@ -176,12 +172,15 @@ SharedPtr<BlockQuery> GoogleMapsDataset::createBlockQuery(BigInt blockid, Field 
     // H=bitsperblock+2   first_block_in_level=(1<<2)-1=3
     Int64 first_block_in_level = (((Int64)1) << (H - bitsperblock)) - 1;
 
-    auto block_coord = bitmask.deinterleave(blockid - first_block_in_level, H - bitsperblock);
-
-    auto p0 = block_coord.innerMultiply(block_samples[H].logic_box.size());
+    auto coord = bitmask.deinterleave(blockid - first_block_in_level, H - bitsperblock);
+    auto p0 = coord.innerMultiply(block_samples[H].logic_box.size());
+    auto p1 = p0 + block_samples[H].logic_box.size();
 
     ret->H = H;
-    ret->logic_samples = LogicSamples(BoxNi(p0,p0+ block_samples[H].logic_box.size()) , block_samples[H].delta);
+    ret->logic_samples = LogicSamples(BoxNi(p0, p1) , block_samples[H].delta);
+
+    //I ask for blocks only at even levels
+    VisusAssert((H % 2) == 0);
   }
 
   return ret;
