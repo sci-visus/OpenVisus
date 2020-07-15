@@ -51,6 +51,8 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(GoogleMapsDataset)
 
+  String tiles_url;
+
   //constructor
   GoogleMapsDataset() {
   }
@@ -69,47 +71,8 @@ public:
     return "GoogleMapsDataset";
   }
 
-  //getPointDim
-  virtual int getPointDim() const override {
-    return 2;
-  }
-
-public:
-
   //readDatasetFromArchive 
   virtual void readDatasetFromArchive(Archive& ar) override;
-
-  //createAccess
-  virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
-
-public:
-
-  //createBlockQuery
-  virtual SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted) override;
-
-  //beginBoxQuery
-  virtual void beginBoxQuery(SharedPtr<BoxQuery> query) override;
-
-  //nextBoxQuery
-  virtual void nextBoxQuery(SharedPtr<BoxQuery> query) override;
-
-  //executeBoxQuery
-  virtual bool executeBoxQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
-
-  //mergeBoxQueryWithBlockQuery
-  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> blockquery) override;
-
-private:
-
-  friend class GoogleMapsAccess;
-
-  String tiles_url;
-
-  std::vector<LogicSamples> level_samples;
-  std::vector<LogicSamples> block_samples;
-
-  //setBoxQueryEndResolution
-  bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query,int value);
 
 };
 

@@ -45,8 +45,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-class GoogleMapsDataset;
-
 //////////////////////////////////////////////////////////////
 class VISUS_DB_API GoogleMapsAccess : public Access
 {
@@ -55,7 +53,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(GoogleMapsAccess)
 
   //constructor
-  GoogleMapsAccess(GoogleMapsDataset* dataset_, SharedPtr<NetService> netservice);
+  GoogleMapsAccess(Dataset* dataset, String tiles_url, SharedPtr<NetService> netservice);
 
   //destructor
   virtual ~GoogleMapsAccess() {
@@ -79,7 +77,7 @@ public:
 
 private:
 
-  GoogleMapsDataset*     dataset;
+  Dataset*               dataset;
   String                 tiles_url;
   SharedPtr<NetService>  netservice;
 

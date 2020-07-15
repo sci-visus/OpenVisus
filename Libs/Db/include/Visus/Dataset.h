@@ -131,7 +131,9 @@ public:
   virtual String getDatasetTypeName() const = 0;
 
   //getPointDim
-  virtual int getPointDim() const = 0;
+  int getPointDim() const {
+    return bitmask.getPointDim();
+  }
 
   //getBitmask
   const DatasetBitmask& getBitmask() const {
@@ -340,11 +342,8 @@ public:
     return createAccess(config, true);
   }
 
-  //createRamAccess
-  SharedPtr<Access> createRamAccess(Int64 available, bool can_read = true, bool can_write = true);
-
   //createBlockQuery
-  virtual SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, Field field, double time, int mode = 'r', Aborted aborted = Aborted()) = 0;
+  virtual SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, Field field, double time, int mode = 'r', Aborted aborted = Aborted());
 
   //createBlockQuery
   SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, int mode = 'r', Aborted aborted = Aborted()) {
@@ -383,22 +382,16 @@ public:
   virtual std::vector<int> guessBoxQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression);
 
   //beginBoxQuery
-  virtual void beginBoxQuery(SharedPtr<BoxQuery> query) {
-    ThrowException("not implemented");
-  }
+  virtual void beginBoxQuery(SharedPtr<BoxQuery> query);
 
   //nextBoxQuery
-  virtual void nextBoxQuery(SharedPtr<BoxQuery> query) {
-    ThrowException("not implemented");
-  }
+  virtual void nextBoxQuery(SharedPtr<BoxQuery> query);
 
   //executeBoxQuery
-  virtual bool executeBoxQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) {
-    return false;
-  }
+  virtual bool executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query);
 
   //mergeBoxQueryWithBlockQuery
-  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) = 0;
+  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query);
 
   //createBoxQueryRequest
   virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query) {
@@ -460,7 +453,7 @@ public:
 public:
 
   //readDatasetFromArchive 
-  virtual void readDatasetFromArchive(Archive& ar) = 0;
+  virtual void readDatasetFromArchive(Archive& ar);
 
 protected:
 
@@ -476,6 +469,16 @@ protected:
   bool                    bServerMode = false;
   int                     default_bitsperblock = 0;
   bool                    bBlocksAreFullRes = true;
+
+  friend class GoogleMapsAccess;
+
+  std::vector<LogicSamples> level_samples;
+  std::vector<LogicSamples> block_samples;
+
+
+  //setBoxQueryEndResolution
+  bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value);
+
 };
 
 ////////////////////////////////////////////////////////////////

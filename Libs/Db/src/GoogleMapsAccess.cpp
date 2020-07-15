@@ -37,19 +37,19 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/GoogleMapsAccess.h>
-#include <Visus/GoogleMapsDataset.h>
+#include <Visus/Dataset.h>
 
 namespace Visus {
 
   ////////////////////////////////////////////////////////////////////
-GoogleMapsAccess::GoogleMapsAccess(GoogleMapsDataset* dataset_, SharedPtr<NetService> netservice)
+GoogleMapsAccess::GoogleMapsAccess(Dataset* dataset_, String tiles_url, SharedPtr<NetService> netservice)
   : dataset(dataset_)
 {
   this->name = "GoogleMapsAccess";
   this->can_read = true;
   this->can_write = false;
   this->bitsperblock = dataset->getDefaultBitsPerBlock();
-  this->tiles_url = dataset->tiles_url;
+  this->tiles_url = tiles_url;
   this->netservice = netservice;
 }
 

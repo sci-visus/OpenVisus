@@ -44,6 +44,7 @@ For support : support@visus.net
 #include <Visus/IdxMultipleDataset.h>
 #include <Visus/OnDemandAccess.h>
 #include <Visus/ModVisusAccess.h>
+#include <Visus/RamAccess.h>
 
 namespace Visus {
 
@@ -525,7 +526,9 @@ void IdxDataset::compressDataset(std::vector<String> compression, Array data)
     Waccess->disableWriteLock();
     Waccess->disableAsync();
 
-    auto Raccess = createRamAccess(/* no memory limit*/0);
+    auto Raccess = std::make_shared<RamAccess>(getDefaultBitsPerBlock());
+    Raccess->setAvailableMemory(/* no memory limit*/0);
+
     Raccess->disableWriteLock();
     VisusReleaseAssert(executeBoxQuery(Raccess, query));
 
