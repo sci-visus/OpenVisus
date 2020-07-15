@@ -340,16 +340,15 @@ void IdxMultipleDataset::parseDataset(StringTree& cur,Matrix modelview)
   String url = cur.getAttribute("url");
   VisusAssert(!url.empty());
 
-  String default_name = concatenate("child_",StringUtils::formatNumber("%04d",(int)this->down_datasets.size()));
-
   String name = StringUtils::trim(cur.getAttribute("name", cur.getAttribute("id")));
   
   //override name if exist
-  if (name.empty() || this->down_datasets.find(name) != this->down_datasets.end())
-    name = default_name;
+  if (name.empty() || this->down_datasets.count(name))
+    name = concatenate("child_", StringUtils::formatNumber("%04d", (int)this->down_datasets.size()));
 
   url= removeAliases(url);
 
+  cur.write("name", name); //in case I changed it
   cur.write("url",url);
   auto child = LoadDatasetEx(cur);
 
@@ -472,7 +471,7 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& AR)
   setDatasetBody(AR);
   setKdQueryMode(KdQueryMode::fromString(AR.readString("kdquery")));
 
-  for (auto it : AR.childs)
+  for (auto& it : AR.childs)
     parseDatasets(*it,Matrix());
 
   if (down_datasets.empty())
@@ -692,8 +691,6 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& AR)
 
   AR.writeObject("idxfile", IDXFILE);
   setDatasetBody(AR);
-
-  //PrintInfo(AR.toString());
 }
 
 

@@ -416,6 +416,7 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
         prefix += cur->readString("name");
         cur->write("url", datasets->createPublicUrl(prefix));
       }
+
       for (auto child : cur->getChilds())
         stack.push(std::make_pair(prefix, child.get()));
     }
@@ -761,10 +762,7 @@ NetResponse ModVisus::handleRequest(NetRequest request)
   //default action
   if (request.url.getParam("action").empty())
   {
-    String user_agent = StringUtils::toLower(request.getHeader("User-Agent"));
-
     bool bSpecifyDataset = request.url.hasParam("dataset");
-    //bool bCommercialBrower = !user_agent.empty() && !StringUtils::contains(user_agent, "visus");
 
     if (bSpecifyDataset)
     {
