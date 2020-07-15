@@ -472,6 +472,7 @@ void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
       level_nsamples[bit] *= 2;
       block_nsamples[bit] *= 2;
 
+      //bit exit from bitsperblock window
       if (H - bitsperblock > 0)
         block_nsamples[bitmask[H - bitsperblock]] /= 2;
 
