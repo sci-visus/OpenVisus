@@ -79,6 +79,7 @@ public:
   virtual void readBlock(SharedPtr<BlockQuery> query) override
   {
     auto block_coord = query->logic_samples.logic_box.p1.innerDiv(dataset->block_samples[query->H].logic_box.size());
+
     auto X = block_coord[0];
     auto Y = block_coord[1];
     auto Z = (query->H - bitsperblock) >> 1; //I have only even levels
@@ -152,39 +153,35 @@ SharedPtr<BlockQuery> GoogleMapsDataset::createBlockQuery(BigInt blockid, Field 
 
   //logic samples
   {
-    //example:
+    auto bitsperblock = this->getDefaultBitsPerBlock();
 
-    //bitsperblock=16  
-    //bitmask V010101010101010101010101010101010101010101010101010101010101
+    //Get H from blockid. Example:
+    //  bitsperblock=16  
+    //  bitmask V010101010101010101010101010101010101010101010101010101010101
+    //
+    //  blockid=0 H=16+Utils::getLog2(1+0)=16+0=16
+    //  blockid=1 H=16+Utils::getLog2(1+1)=16+1=17
+    //  blockid=2 H=16+Utils::getLog2(1+2)=16+1=17
+    //  blockid=3 H=16+Utils::getLog2(1+3)=16+2=18
+    //  ....
 
-    //blockid=0 H=16+Utils::getLog2(1+0)=16+0=16
-    //blockid=1 H=16+Utils::getLog2(1+1)=16+1=17
-    //blockid=2 H=16+Utils::getLog2(1+2)=16+1=17
-    //blockid=3 H=16+Utils::getLog2(1+3)=16+2=18
-    //....
+    auto H = bitsperblock + Utils::getLog2(1 + blockid);
 
-    int bitsperblock = this->getDefaultBitsPerBlock();
-    ret->H = bitsperblock + Utils::getLog2(1 + blockid);
-    Int64 first_block_in_level = (((Int64)1) << (ret->H - bitsperblock)) - 1;
+    //I ask for blocks only at even levels
+    VisusAssert((H % 2) == 0);
 
-    auto level_coord = bitmask.deinterleave(blockid - first_block_in_level, ret->H - bitsperblock);
+    //Example:
+    // H=bitsperblock+0   first_block_in_level=(1<<0)-1=0
+    // H=bitsperblock+1   first_block_in_level=(1<<1)-1=1
+    // H=bitsperblock+2   first_block_in_level=(1<<2)-1=3
+    Int64 first_block_in_level = (((Int64)1) << (H - bitsperblock)) - 1;
 
-    auto delta=level_samples[ret->H].delta;
+    auto block_coord = bitmask.deinterleave(blockid - first_block_in_level, H - bitsperblock);
 
-    auto X = level_coord[0];
-    auto Y = level_coord[1];
-    auto Z = (ret->H - bitsperblock) >> 1;
+    auto p0 = block_coord.innerMultiply(block_samples[H].logic_box.size());
 
-    int tile_width = (int)(this->getLogicBox().p2[0]) >> Z;
-    int tile_height = (int)(this->getLogicBox().p2[1]) >> Z;
-
-    BoxNi box(PointNi(2), PointNi::one(2));
-    box.p1[0] = tile_width  * (X + 0); box.p2[0] = tile_width  * (X + 1);
-    box.p1[1] = tile_height * (Y + 0); box.p2[1] = tile_height * (Y + 1);
-    ret->logic_samples = LogicSamples(box, delta);
-
-    //I don't ask for blocks only at even levels
-    VisusAssert((ret->H % 2) == 0);
+    ret->H = H;
+    ret->logic_samples = LogicSamples(BoxNi(p0,p0+ block_samples[H].logic_box.size()) , block_samples[H].delta);
   }
 
   return ret;
@@ -482,8 +479,9 @@ void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
 
       level_samples.push_back(LogicSamples(bitmask.getPow2Box(), delta));
       block_samples.push_back(LogicSamples(BoxNi(PointNi::zero(pdim), block_nsamples.innerMultiply(delta)),delta));
-     
-      if (false && H >= bitsperblock)
+
+#if 0
+      if (H >= bitsperblock)
       {
         PrintInfo("H", H,
           "level_samples[H].logic_box", level_samples[H].logic_box,
@@ -491,6 +489,7 @@ void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
           "block_samples[H].logic_box", block_samples[H].logic_box,
           "block_samples[H].delta", block_samples[H].delta);
       }
+#endif
     }
   }
 
