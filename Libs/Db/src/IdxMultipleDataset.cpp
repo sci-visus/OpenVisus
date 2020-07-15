@@ -197,7 +197,7 @@ SharedPtr<BoxQuery> IdxMultipleDataset::createDownQuery(SharedPtr<Access> ACCESS
     return query;
   }
 
-  VisusAssert(!query->down_info.BUFFER);
+  VisusAssert(!query->down_info.BUFFER.valid());
 
   //if not multiple access i think it will be a pure remote query
   if (auto multiple_access = std::dynamic_pointer_cast<IdxMultipleAccess>(ACCESS))

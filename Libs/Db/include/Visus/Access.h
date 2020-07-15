@@ -140,7 +140,7 @@ public:
   //beginIO
   virtual void beginIO(int mode) {
     VisusReleaseAssert(!bReading && !bWriting);
-    this->bReading = mode == 'r';
+    this->bReading = mode == 'r' || mode == 'w';
     this->bWriting = mode == 'w';
   }
 

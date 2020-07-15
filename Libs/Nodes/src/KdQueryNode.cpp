@@ -433,7 +433,7 @@ public:
             //need the write lock here
             {
               ScopedWriteLock wlock(rlock);
-              VisusAssert(!node->fullres);
+              VisusAssert(!node->fullres.valid());
               node->fullres = decoded;
               node->displaydata = decoded;
             }
@@ -471,7 +471,7 @@ public:
           if (aborted() || blockquery->failed())
             return;
 
-          VisusAssert(!node->fullres && !node->blockdata);
+          VisusAssert(!node->fullres.valid() && !node->blockdata.valid());
 
           //make sure is row major
           if (!blockquery->buffer.layout.empty())

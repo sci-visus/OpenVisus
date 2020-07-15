@@ -1523,8 +1523,8 @@ public:
       if (aborted())
         return false;
 
-      GetComponentSamples<CppType> W(Wbuffer, C); PointNi Wpixel; Int64   Wpos = 0;
-      GetComponentSamples<CppType> R(Rbuffer, C); PointNi Rpixel; PointNi Rpos(pdim);
+      GetComponentSamples<CppType> W(Wbuffer, C); PointNi Wpixel(pdim); Int64   Wpos = 0;
+      GetComponentSamples<CppType> R(Rbuffer, C); PointNi Rpixel(pdim); PointNi Rpos(pdim);
 
       #define W2R(I) (Utils::clamp<Int64>(((Wsamples.logic_box.p1[I] + (Wpixel[I] << Wsamples.shift[I])) - Rsamples.logic_box.p1[I]) >> Rsamples.shift[I], 0, Rbuffer.dims[I] - 1))
 
@@ -1675,7 +1675,7 @@ void IdxDataset::beginPointQuery(SharedPtr<PointQuery> query)
     return;
 
   //if you want to set a buffer for 'w' queries, please do it after begin
-  VisusAssert(!query->buffer);
+  VisusAssert(!query->buffer.valid());
 
   if (getPointDim() != 3)
     return query->setFailed("pointquery supported only in 3d so far");

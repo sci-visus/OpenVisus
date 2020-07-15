@@ -326,7 +326,7 @@ void SelfTestIdx(int max_seconds)
     {
       for (int pdim = 2; pdim <= 5; pdim++)
       {
-        for (int nbits = 8; nbits <= 64; nbits += 8)
+        for (auto nbits : {8, 16, 32, 64} )
         {
           BoxNi user_box = GetRandomUserBox(pdim, Utils::getRandInteger(0, 1) ? true : false);
 
