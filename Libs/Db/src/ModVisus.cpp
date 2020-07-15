@@ -119,10 +119,9 @@ private:
     this->map[name] = dataset;
     dataset->setServerMode(true);
 
-    StringTree child("dataset");
-    child.write("name", name);
-    child.write("url", createPublicUrl(name));
-    dst.addChild(child);
+    auto child= dst.addChild("dataset");
+    child->write("name", name);
+    child->write("url", createPublicUrl(name));
 
     //automatically add the childs of a multiple datasets
     int ret = 1;
@@ -132,7 +131,7 @@ private:
       {
         auto child_name    = it.first;
         auto child_dataset = it.second;
-        ret += addPublicDataset(child, name + "/" + child_name, child_dataset);
+        ret += addPublicDataset(*child, name + "/" + child_name, child_dataset);
       }
     }
 
