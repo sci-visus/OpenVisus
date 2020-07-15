@@ -42,19 +42,15 @@ For support : support@visus.net
 namespace Visus {
 
   ////////////////////////////////////////////////////////////////////
-GoogleMapsAccess::GoogleMapsAccess(GoogleMapsDataset* dataset_, StringTree config_)
-  : dataset(dataset_), config(config_)
+GoogleMapsAccess::GoogleMapsAccess(GoogleMapsDataset* dataset_, SharedPtr<NetService> netservice)
+  : dataset(dataset_)
 {
   this->name = "GoogleMapsAccess";
-  this->can_read = StringUtils::find(config.readString("chmod", DefaultChMod), "r") >= 0;
-  this->can_write = StringUtils::find(config.readString("chmod", DefaultChMod), "w") >= 0;
-  this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock > 0);
+  this->can_read = true;
+  this->can_write = false;
+  this->bitsperblock = dataset->getDefaultBitsPerBlock();
   this->tiles_url = dataset->tiles_url;
-
-  bool disable_async = config.readBool("disable_async", dataset->isServerMode());
-
-  if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
-    this->netservice = std::make_shared<NetService>(nconnections);
+  this->netservice = netservice;
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -64,8 +60,9 @@ void GoogleMapsAccess::readBlock(SharedPtr<BlockQuery> query)
   VisusReleaseAssert((query->H % 2) == 0);
 
   auto p0 = query->logic_samples.logic_box.p1;
-  auto block_size = dataset->block_samples[query->H].logic_box.size();
-  auto block_coord = p0.innerDiv(block_size);
+  auto block_logic_size = dataset->block_samples[query->H].logic_box.size();
+  auto block_nsamples   = dataset->block_samples[query->H].nsamples;
+  auto block_coord = p0.innerDiv(block_logic_size);
 
   auto X = block_coord[0];
   auto Y = block_coord[1];
@@ -87,14 +84,10 @@ void GoogleMapsAccess::readBlock(SharedPtr<BlockQuery> query)
   request.aborted = query->aborted;
 
   //note [...,query] keep the query in memory
-  NetService::push(netservice, request).when_ready([this, query](NetResponse response) {
-
-    PointNi nsamples = PointNi::one(2);
-    nsamples[0] = dataset->tile_width;
-    nsamples[1] = dataset->tile_height;
-
-    response.setHeader("visus-compression", "jpg");
-    response.setHeader("visus-nsamples", nsamples.toString());
+  NetService::push(netservice, request).when_ready([this, query, block_nsamples](NetResponse response)
+  {
+    response.setHeader("visus-compression", query->field.default_compression);
+    response.setHeader("visus-nsamples", block_nsamples.toString());
     response.setHeader("visus-dtype", query->field.dtype.toString());
     response.setHeader("visus-layout", "");
 

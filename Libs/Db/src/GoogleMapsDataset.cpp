@@ -205,7 +205,7 @@ bool GoogleMapsDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQ
 
   //always need an access.. the google server cannot handle pure remote queries (i.e. compose the tiles on server side)
   if (!access)
-    access = std::make_shared<GoogleMapsAccess>(this);
+    access = createAccessForBlockQuery();
 
   int end_resolution = query->end_resolution;
 
@@ -283,8 +283,16 @@ SharedPtr<Access> GoogleMapsDataset::createAccess(StringTree config, bool bForBl
   String type = StringUtils::toLower(config.readString("type"));
 
   //I always need an access
-  if (type.empty() || type=="GoogleMapsAccess")
-    return std::make_shared<GoogleMapsAccess>(this, config);
+  if (type.empty() || type == "GoogleMapsAccess")
+  {
+    SharedPtr<NetService> netservice;
+    if (!bServerMode)
+    {
+      int nconnections = config.readInt("nconnections", 8);
+      netservice = std::make_shared<NetService>(nconnections);
+    }
+    return std::make_shared<GoogleMapsAccess>(this, netservice);
+  }
 
   return Dataset::createAccess(config, bForBlockQuery);
 }
@@ -302,16 +310,17 @@ void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
 
   String dtype = "uint8[3]";
   int nlevels = 22;
+  int tile_width, tile_height;
 
   ar.read("tiles", this->tiles_url, "http://mt1.google.com/vt/lyrs=s");
-  ar.read("tile_width", tile_width, 256);
+  ar.read("tile_width" , tile_width,  256);
   ar.read("tile_height", tile_height, 256);
 
   VisusReleaseAssert(tile_width>0 && tile_height>0);
 
   //any google level double the dimensions in x and y (i.e. i don't have even resolutions)
-  auto W= this->tile_width  * (((Int64)1)<<nlevels);
-  auto H= this->tile_height * (((Int64)1)<<nlevels);
+  auto W= tile_width  * (((Int64)1)<<nlevels);
+  auto H= tile_height * (((Int64)1)<<nlevels);
 
   this->setDatasetBody(ar);
   this->setKdQueryMode(KdQueryMode::fromString(ar.readString("kdquery")));
@@ -334,7 +343,9 @@ void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
   timesteps.addTimestep(0);
   setTimesteps(timesteps);
 
-  addField(Field("DATA",DType::fromString(dtype)));
+  Field field("DATA", DType::fromString(dtype));
+  field.default_compression = "jpg";
+  addField(field);
 
   //UseBoxQuery not supported? actually yes, but it's a nonsense since a query it's really a block query
   if (getKdQueryMode() == KdQueryMode::UseBoxQuery)

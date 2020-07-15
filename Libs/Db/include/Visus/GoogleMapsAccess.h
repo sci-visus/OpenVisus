@@ -55,7 +55,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(GoogleMapsAccess)
 
   //constructor
-  GoogleMapsAccess(GoogleMapsDataset* dataset_, StringTree config_ = StringTree());
+  GoogleMapsAccess(GoogleMapsDataset* dataset_, SharedPtr<NetService> netservice);
 
   //destructor
   virtual ~GoogleMapsAccess() {
@@ -80,7 +80,6 @@ public:
 private:
 
   GoogleMapsDataset*     dataset;
-  StringTree             config;
   String                 tiles_url;
   SharedPtr<NetService>  netservice;
 
