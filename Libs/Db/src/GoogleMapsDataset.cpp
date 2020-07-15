@@ -60,7 +60,7 @@ void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
   auto W = tile_width  * (((Int64)1) << nlevels);
   auto H = tile_height * (((Int64)1) << nlevels);
 
-  ar.write("kdquery", "UseBlockQuery");
+  //ar.write("kdquery", "UseBlockQuery");
   
   if (!ar.getChild("bitmask"))
   {

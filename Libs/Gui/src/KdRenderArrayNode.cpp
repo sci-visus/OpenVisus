@@ -366,13 +366,18 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
     }
   }
 
+  bool bRenderLines = false;
+
 #if _DEBUG
   if (config.texture_dim == 2)
+    bRenderLines = true;
+#endif
+
+  if (bRenderLines)
   {
     for (auto node : rendered)
       GLLineLoop(node->logic_box.castTo<BoxNd>().getPoints(), Colors::Black, 3).glRender(gl);
   }
-#endif
 
   gl.popDepthMask();
   gl.popDepthTest();

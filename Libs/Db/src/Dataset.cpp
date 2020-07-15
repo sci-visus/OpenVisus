@@ -55,8 +55,6 @@ namespace Visus {
 
 VISUS_IMPLEMENT_SINGLETON_CLASS(DatasetFactory)
 
-
-
 ////////////////////////////////////////////////////////////////////
 SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
 {
@@ -125,9 +123,6 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
   return SharedPtr<Access>();
 }
 
-
-
-
 ///////////////////////////////////////////////////////////
 Field Dataset::getFieldEx(String fieldname) const
 {
@@ -157,8 +152,6 @@ Field Dataset::getField(String name) const {
   }
 }
 
-
-
 ////////////////////////////////////////////////////////////////////////////////////
 StringTree FindDatasetConfig(StringTree ar, String url)
 {
@@ -181,7 +174,6 @@ StringTree FindDatasetConfig(StringTree ar, String url)
   ret.write("url", url);
   return ret;
 }
-
 
 /////////////////////////////////////////////////////////////////////////
 SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
@@ -229,112 +221,11 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
   return ret; 
 }
 
-
 ////////////////////////////////////////////////
 SharedPtr<Dataset> LoadDataset(String url) {
   auto ar = FindDatasetConfig(*DbModule::getModuleConfig(), url);
   return LoadDatasetEx(ar);
 }
-
-
-////////////////////////////////////////////////
-SharedPtr<BoxQuery> Dataset::createBoxQuery(BoxNi logic_box, Field field, double time, int mode, Aborted aborted)
-{
-  auto ret = std::make_shared<BoxQuery>();
-  ret->dataset = this;
-  ret->field = field;
-  ret->time = time;
-  ret->mode = mode; VisusAssert(mode == 'r' || mode == 'w');
-  ret->aborted = aborted;
-  ret->logic_box = logic_box;
-  ret->filter.domain = this->getLogicBox();
-  return ret;
-}
-
-
-////////////////////////////////////////////////
-std::vector<int> Dataset::guessBoxQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression)
-{
-  if (!logic_position.valid())
-    return {};
-
-  auto maxh = getMaxResolution();
-  auto endh = maxh;
-  auto pdim = getPointDim();
-
-  if (logic_to_screen.valid())
-  {
-    //important to work with orthogonal box
-    auto logic_box = logic_position.toAxisAlignedBox();
-
-    FrustumMap map(logic_to_screen);
-
-    std::vector<Point2d> screen_points;
-    for (auto p : logic_box.getPoints())
-      screen_points.push_back(map.projectPoint(p.toPoint3()));
-
-    //project on the screen
-    std::vector<double> screen_distance = { 0,0,0 };
-
-    for (auto edge : BoxNi::getEdges(pdim))
-    {
-      auto axis = edge.axis;
-      auto s0 = screen_points[edge.index0];
-      auto s1 = screen_points[edge.index1];
-      auto Sd = s0.distance(s1);
-      screen_distance[axis] = std::max(screen_distance[axis], Sd);
-    }
-
-    const int max_3d_texture_size = 2048;
-
-    auto nsamples = logic_box.size().toPoint3();
-    while (endh > 0)
-    {
-      std::vector<double> samples_per_pixel = {
-        nsamples[0] / screen_distance[0],
-        nsamples[1] / screen_distance[1],
-        nsamples[2] / screen_distance[2]
-      };
-
-      std::sort(samples_per_pixel.begin(), samples_per_pixel.end());
-
-      auto quality = sqrt(samples_per_pixel[0] * samples_per_pixel[1]);
-
-      //note: in 2D samples_per_pixel[2] is INF; in 3D with an ortho view XY samples_per_pixel[2] is INF (see std::sort)
-      bool bGood = quality < 1.0;
-
-      if (pdim == 3 && bGood)
-        bGood =
-        nsamples[0] <= max_3d_texture_size &&
-        nsamples[1] <= max_3d_texture_size &&
-        nsamples[2] <= max_3d_texture_size;
-
-      if (bGood)
-        break;
-
-      //by decreasing resolution I will get half of the samples on that axis
-      auto bit = bitmask[endh];
-      nsamples[bit] *= 0.5;
-      --endh;
-    }
-  }
-
-  //consider quality and progression
-  endh = Utils::clamp(endh + quality, 0, maxh);
-
-  std::vector<int> ret = { Utils::clamp(endh - progression, 0, maxh) };
-  while (ret.back() < endh)
-    ret.push_back(Utils::clamp(ret.back() + pdim, 0, endh));
-
-  if (auto google = dynamic_cast<GoogleMapsDataset*>(this))
-  {
-    for (auto& it : ret)
-      it = (it >> 1) << 1; //TODO: google maps does not have odd resolutions
-  }
-
-  return ret;
-}
-
 
 ////////////////////////////////////////////////////////////////////
 SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted)
@@ -436,12 +327,8 @@ void Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<BlockQuery> q
   return;
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////////
-bool Dataset::insertSamples(
-  LogicSamples Wsamples, Array Wbuffer,
-  LogicSamples Rsamples, Array Rbuffer,
-  Aborted aborted)
+bool Dataset::insertSamples(LogicSamples Wsamples, Array Wbuffer, LogicSamples Rsamples, Array Rbuffer, Aborted aborted)
 {
   if (!Wsamples.valid() || !Rsamples.valid())
     return false;
@@ -525,7 +412,102 @@ bool Dataset::insertSamples(
   return true;
 }
 
+////////////////////////////////////////////////
+SharedPtr<BoxQuery> Dataset::createBoxQuery(BoxNi logic_box, Field field, double time, int mode, Aborted aborted)
+{
+  auto ret = std::make_shared<BoxQuery>();
+  ret->dataset = this;
+  ret->field = field;
+  ret->time = time;
+  ret->mode = mode; VisusAssert(mode == 'r' || mode == 'w');
+  ret->aborted = aborted;
+  ret->logic_box = logic_box;
+  ret->filter.domain = this->getLogicBox();
+  return ret;
+}
 
+////////////////////////////////////////////////
+std::vector<int> Dataset::guessBoxQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression)
+{
+  if (!logic_position.valid())
+    return {};
+
+  auto maxh = getMaxResolution();
+  auto endh = maxh;
+  auto pdim = getPointDim();
+
+  if (logic_to_screen.valid())
+  {
+    //important to work with orthogonal box
+    auto logic_box = logic_position.toAxisAlignedBox();
+
+    FrustumMap map(logic_to_screen);
+
+    std::vector<Point2d> screen_points;
+    for (auto p : logic_box.getPoints())
+      screen_points.push_back(map.projectPoint(p.toPoint3()));
+
+    //project on the screen
+    std::vector<double> screen_distance = { 0,0,0 };
+
+    for (auto edge : BoxNi::getEdges(pdim))
+    {
+      auto axis = edge.axis;
+      auto s0 = screen_points[edge.index0];
+      auto s1 = screen_points[edge.index1];
+      auto Sd = s0.distance(s1);
+      screen_distance[axis] = std::max(screen_distance[axis], Sd);
+    }
+
+    const int max_3d_texture_size = 2048;
+
+    auto nsamples = logic_box.size().toPoint3();
+    while (endh > 0)
+    {
+      std::vector<double> samples_per_pixel = {
+        nsamples[0] / screen_distance[0],
+        nsamples[1] / screen_distance[1],
+        nsamples[2] / screen_distance[2]
+      };
+
+      std::sort(samples_per_pixel.begin(), samples_per_pixel.end());
+
+      auto quality = sqrt(samples_per_pixel[0] * samples_per_pixel[1]);
+
+      //note: in 2D samples_per_pixel[2] is INF; in 3D with an ortho view XY samples_per_pixel[2] is INF (see std::sort)
+      bool bGood = quality < 1.0;
+
+      if (pdim == 3 && bGood)
+        bGood =
+        nsamples[0] <= max_3d_texture_size &&
+        nsamples[1] <= max_3d_texture_size &&
+        nsamples[2] <= max_3d_texture_size;
+
+      if (bGood)
+        break;
+
+      //by decreasing resolution I will get half of the samples on that axis
+      auto bit = bitmask[endh];
+      nsamples[bit] *= 0.5;
+      --endh;
+    }
+  }
+
+  //consider quality and progression
+  endh = Utils::clamp(endh + quality, 0, maxh);
+
+  std::vector<int> ret = { Utils::clamp(endh - progression, 0, maxh) };
+  while (ret.back() < endh)
+    ret.push_back(Utils::clamp(ret.back() + pdim, 0, endh));
+
+  if (auto google = dynamic_cast<GoogleMapsDataset*>(this))
+  {
+    for (auto& it : ret)
+      it = (it >> 1) << 1; //TODO: google maps does not have odd resolutions
+  }
+
+  return ret;
+}
 
 //////////////////////////////////////////////////////////////
 void Dataset::beginBoxQuery(SharedPtr<BoxQuery> query)
@@ -577,8 +559,6 @@ void Dataset::beginBoxQuery(SharedPtr<BoxQuery> query)
 
   query->setFailed();
 }
-
-
 
 //////////////////////////////////////////////////////////////
 bool Dataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
@@ -831,7 +811,5 @@ void Dataset::readDatasetFromArchive(Archive& ar)
 #endif
   }
 }
-
-
 
 } //namespace Visus 
