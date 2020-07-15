@@ -80,9 +80,9 @@ public:
   {
     auto coord=dataset->blockIdToPoint(query->blockid);
 
-    auto X=coord[0];
-    auto Y=coord[1];
-    auto Z=coord[2];
+    auto X = coord[0];
+    auto Y = coord[1];
+    auto Z= (query->H - bitsperblock) >> 1;
 
     //mirror along Y
     Y=(int)((Int64(1)<<Z)-Y-1);
@@ -140,32 +140,6 @@ public:
 };
 
 
-//////////////////////////////////////////////////////////////
-Point3i GoogleMapsDataset::blockIdToPoint(BigInt blockid)
-{
-  int bitsperblock = this->getDefaultBitsPerBlock();
-  int samplesperblock = 1 << bitsperblock;
-
-  //example:
-  
-  //bitsperblock=16  
-  //bitmask V010101010101010101010101010101010101010101010101010101010101
-
-  //blockid=0 H=16+Utils::getLog2(1+0)=16+0=16
-  //blockid=1 H=16+Utils::getLog2(1+1)=16+1=17
-  //blockid=2 H=16+Utils::getLog2(1+2)=16+1=17
-
-  int H = bitsperblock + Utils::getLog2(1 + blockid);
-  VisusAssert((H % 2) == 0);
-
-  Int64  first_block_in_level = (((Int64)1) << (H - bitsperblock)) - 1;
-  PointNi tile_coord = bitmask.deinterleave(blockid - first_block_in_level, H - bitsperblock);
-
-  return Point3i(
-    (int)(tile_coord[0]),
-    (int)(tile_coord[1]),
-    (H - bitsperblock) >> 1);
-}
 
 
 //////////////////////////////////////////////////////////////
@@ -194,6 +168,29 @@ LogicSamples GoogleMapsDataset::getLevelSamples(int H)
   return ret;
 }
 
+
+//////////////////////////////////////////////////////////////
+PointNi GoogleMapsDataset::blockIdToPoint(BigInt blockid)
+{
+  int bitsperblock = this->getDefaultBitsPerBlock();
+  int samplesperblock = 1 << bitsperblock;
+
+  //example:
+
+  //bitsperblock=16  
+  //bitmask V010101010101010101010101010101010101010101010101010101010101
+
+  //blockid=0 H=16+Utils::getLog2(1+0)=16+0=16
+  //blockid=1 H=16+Utils::getLog2(1+1)=16+1=17
+  //blockid=2 H=16+Utils::getLog2(1+2)=16+1=17
+  //blockid=3 H=16+Utils::getLog2(1+3)=16+2=18
+  //....
+
+  int H = bitsperblock + Utils::getLog2(1 + blockid);
+  Int64  first_block_in_level = (((Int64)1) << (H - bitsperblock)) - 1;
+  return bitmask.deinterleave(blockid - first_block_in_level, H - bitsperblock);
+}
+
 ////////////////////////////////////////////////////////////////////
 SharedPtr<BlockQuery> GoogleMapsDataset::createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted)
 {
@@ -207,10 +204,14 @@ SharedPtr<BlockQuery> GoogleMapsDataset::createBlockQuery(BigInt blockid, Field 
 
   //logic samples
   {
+    int bitsperblock = this->getDefaultBitsPerBlock();
+    ret->H = bitsperblock + Utils::getLog2(1 + blockid);
+    VisusAssert((ret->H % 2) == 0); //I don't ask for blocks only at even levels
+
     auto coord = blockIdToPoint(blockid);
     auto X = coord[0];
     auto Y = coord[1];
-    auto Z = coord[2];
+    auto Z = (ret->H - bitsperblock) >> 1;
     int tile_width = (int)(this->getLogicBox().p2[0]) >> Z;
     int tile_height = (int)(this->getLogicBox().p2[1]) >> Z;
     PointNi delta = PointNi::one(2);

@@ -112,7 +112,7 @@ private:
   String           compression;
 
   //getBlockCoordinate
-  Point3i blockIdToPoint(BigInt blockid);
+  PointNi blockIdToPoint(BigInt blockid);
 
   //getLevelSamples
   LogicSamples getLevelSamples(int H);

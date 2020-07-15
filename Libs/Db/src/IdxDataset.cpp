@@ -734,6 +734,7 @@ SharedPtr<BlockQuery> IdxDataset::createBlockQuery(BigInt blockid, Field field, 
 
     BoxNi box(hzorder.getPoint(HzFrom), hzorder.getPoint(HzTo - 1) + delta);
 
+    ret->H = end_resolution;
     ret->logic_samples = LogicSamples(box, delta);
     VisusAssert(ret->logic_samples.nsamples == HzOrder::getAddressRangeNumberOfSamples(bitmask, HzFrom, HzTo));
     VisusAssert(ret->logic_samples.valid());
