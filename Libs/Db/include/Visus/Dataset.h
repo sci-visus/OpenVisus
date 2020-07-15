@@ -81,10 +81,9 @@ public:
     if (StringUtils::contains(value,"block") || value == "1" || value == "true")
       return KdQueryMode::UseBlockQuery;
 
-    if (StringUtils::contains(value, "box") || value == "0" || value == "false")
+    if (StringUtils::contains(value, "box"))
       return KdQueryMode::UseBoxQuery;
 
-    VisusAssert(false); //what does it mean?
     return KdQueryMode::NotSpecified;
   }
 
