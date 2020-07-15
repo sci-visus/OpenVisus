@@ -45,6 +45,8 @@ namespace Visus {
 ////////////////////////////////////////////////////////////////////
 SharedPtr<BlockQuery> GoogleMapsDataset::createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted)
 {
+  VisusReleaseAssert(bBlocksAreFullRes);
+
   auto ret = std::make_shared<BlockQuery>();
   ret->dataset = this;
   ret->field = field;
@@ -89,6 +91,8 @@ SharedPtr<BlockQuery> GoogleMapsDataset::createBlockQuery(BigInt blockid, Field 
 //////////////////////////////////////////////////////////////
 bool GoogleMapsDataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query,int value)
 {
+  VisusReleaseAssert(bBlocksAreFullRes);
+
   VisusAssert(query->end_resolution < value);
   query->end_resolution = value;
 
@@ -110,6 +114,8 @@ bool GoogleMapsDataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query,int v
 //////////////////////////////////////////////////////////////
 void GoogleMapsDataset::beginBoxQuery(SharedPtr<BoxQuery> query)
 {
+  VisusReleaseAssert(bBlocksAreFullRes);
+
   if (!query)
     return;
 
@@ -156,6 +162,8 @@ void GoogleMapsDataset::beginBoxQuery(SharedPtr<BoxQuery> query)
 //////////////////////////////////////////////////////////////
 void GoogleMapsDataset::nextBoxQuery(SharedPtr<BoxQuery> query)
 {
+  VisusReleaseAssert(bBlocksAreFullRes);
+
   if (!query)
     return;
 
@@ -179,6 +187,8 @@ void GoogleMapsDataset::nextBoxQuery(SharedPtr<BoxQuery> query)
 //////////////////////////////////////////////////////////////
 bool GoogleMapsDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
 {
+  VisusReleaseAssert(bBlocksAreFullRes);
+
   if (!query)
     return false;
 

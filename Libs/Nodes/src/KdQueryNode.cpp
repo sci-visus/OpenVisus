@@ -602,7 +602,7 @@ bool KdQueryNode::processInput()
     kdarray->clipping = dataset->logicToPhysic(logic_position);
     kdarray->bounds   = dataset->logicToPhysic(logic_box);
 
-    job->bBlocksAreFullRes = std::dynamic_pointer_cast<GoogleMapsDataset>(dataset) ? true : false;
+    job->bBlocksAreFullRes = dataset->areBlockFullRes();
 
     //TODO enable also for UseBlockQuery?
     if (kdquery_mode == KdQueryMode::UseBoxQuery)

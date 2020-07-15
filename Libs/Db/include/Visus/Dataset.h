@@ -138,6 +138,11 @@ public:
     return bitmask;
   }
 
+  //areBlockFullRes
+  bool areBlockFullRes() const {
+    return bBlocksAreFullRes;
+  }
+
   //isServerMode
   bool isServerMode() const {
     return bServerMode;
@@ -470,6 +475,7 @@ protected:
   int                     kdquery_mode = KdQueryMode::NotSpecified;
   bool                    bServerMode = false;
   int                     default_bitsperblock = 0;
+  bool                    bBlocksAreFullRes = true;
 };
 
 ////////////////////////////////////////////////////////////////
