@@ -111,11 +111,8 @@ private:
   int              nlevels = 22;
   String           compression;
 
-  //getBlockCoordinate
-  PointNi blockIdToPoint(BigInt blockid);
-
-  //getLevelSamples
-  LogicSamples getLevelSamples(int H);
+  std::vector<LogicSamples> level_samples;
+  std::vector<LogicSamples> block_samples;
 
   //setBoxQueryEndResolution
   bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query,int value);

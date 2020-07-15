@@ -82,6 +82,7 @@ public:
 
   BigInt       blockid = 0;
   int          H = 0;
+  PointNi      level_coord;
   LogicSamples logic_samples;
 
   //constructor

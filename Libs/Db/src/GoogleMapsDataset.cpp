@@ -78,10 +78,8 @@ public:
   //readBlock
   virtual void readBlock(SharedPtr<BlockQuery> query) override
   {
-    auto coord=dataset->blockIdToPoint(query->blockid);
-
-    auto X = coord[0];
-    auto Y = coord[1];
+    auto X = query->level_coord[0];
+    auto Y = query->level_coord[1];
     auto Z= (query->H - bitsperblock) >> 1;
 
     //mirror along Y
@@ -142,54 +140,6 @@ public:
 
 
 
-//////////////////////////////////////////////////////////////
-LogicSamples GoogleMapsDataset::getLevelSamples(int H)
-{
-  int bitsperblock = this->getDefaultBitsPerBlock();
-  VisusAssert((H % 2) == 0 && H >= bitsperblock);
-  int Z = (H - bitsperblock) >> 1;
-
-  int tile_width  = (int)(this->getLogicBox().p2[0]) >> Z;
-  int tile_height = (int)(this->getLogicBox().p2[1]) >> Z;
-
-  int ntiles_x = (int)(1 << Z);
-  int ntiles_y = (int)(1 << Z);
-
-  PointNi delta = PointNi::one(2);
-  delta[0] = tile_width  / this->tile_width;
-  delta[1] = tile_height / this->tile_height;
-
-  BoxNi box(PointNi(0, 0), PointNi(1, 1));
-  box.p2[0] = ntiles_x * tile_width;
-  box.p2[1] = ntiles_y * tile_height;
-
-  auto ret = LogicSamples(box, delta);
-  VisusAssert(ret.valid());
-  return ret;
-}
-
-
-//////////////////////////////////////////////////////////////
-PointNi GoogleMapsDataset::blockIdToPoint(BigInt blockid)
-{
-  int bitsperblock = this->getDefaultBitsPerBlock();
-  int samplesperblock = 1 << bitsperblock;
-
-  //example:
-
-  //bitsperblock=16  
-  //bitmask V010101010101010101010101010101010101010101010101010101010101
-
-  //blockid=0 H=16+Utils::getLog2(1+0)=16+0=16
-  //blockid=1 H=16+Utils::getLog2(1+1)=16+1=17
-  //blockid=2 H=16+Utils::getLog2(1+2)=16+1=17
-  //blockid=3 H=16+Utils::getLog2(1+3)=16+2=18
-  //....
-
-  int H = bitsperblock + Utils::getLog2(1 + blockid);
-  Int64  first_block_in_level = (((Int64)1) << (H - bitsperblock)) - 1;
-  return bitmask.deinterleave(blockid - first_block_in_level, H - bitsperblock);
-}
 
 ////////////////////////////////////////////////////////////////////
 SharedPtr<BlockQuery> GoogleMapsDataset::createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted)
@@ -204,23 +154,39 @@ SharedPtr<BlockQuery> GoogleMapsDataset::createBlockQuery(BigInt blockid, Field 
 
   //logic samples
   {
+    //example:
+
+    //bitsperblock=16  
+    //bitmask V010101010101010101010101010101010101010101010101010101010101
+
+    //blockid=0 H=16+Utils::getLog2(1+0)=16+0=16
+    //blockid=1 H=16+Utils::getLog2(1+1)=16+1=17
+    //blockid=2 H=16+Utils::getLog2(1+2)=16+1=17
+    //blockid=3 H=16+Utils::getLog2(1+3)=16+2=18
+    //....
+
     int bitsperblock = this->getDefaultBitsPerBlock();
     ret->H = bitsperblock + Utils::getLog2(1 + blockid);
-    VisusAssert((ret->H % 2) == 0); //I don't ask for blocks only at even levels
+    Int64 first_block_in_level = (((Int64)1) << (ret->H - bitsperblock)) - 1;
+    ret->level_coord = bitmask.deinterleave(blockid - first_block_in_level, ret->H - bitsperblock);
 
-    auto coord = blockIdToPoint(blockid);
-    auto X = coord[0];
-    auto Y = coord[1];
+
+    auto delta=level_samples[ret->H].delta;
+
+    auto X = ret->level_coord[0];
+    auto Y = ret->level_coord[1];
     auto Z = (ret->H - bitsperblock) >> 1;
+
     int tile_width = (int)(this->getLogicBox().p2[0]) >> Z;
     int tile_height = (int)(this->getLogicBox().p2[1]) >> Z;
-    PointNi delta = PointNi::one(2);
-    delta[0] = tile_width / this->tile_width;
-    delta[1] = tile_height / this->tile_height;
+
     BoxNi box(PointNi(2), PointNi::one(2));
     box.p1[0] = tile_width  * (X + 0); box.p2[0] = tile_width  * (X + 1);
     box.p1[1] = tile_height * (Y + 0); box.p2[1] = tile_height * (Y + 1);
     ret->logic_samples = LogicSamples(box, delta);
+
+    //I don't ask for blocks only at even levels
+    VisusAssert((ret->H % 2) == 0);
   }
 
   return ret;
@@ -237,7 +203,7 @@ bool GoogleMapsDataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query,int v
   auto user_box = query->logic_box.getIntersection(this->getLogicBox());
   VisusAssert(user_box.isFullDim());
 
-  auto Lsamples = getLevelSamples(end_resolution);
+  auto Lsamples = level_samples[end_resolution];
   auto box = Lsamples.alignBox(user_box);
 
   if (!box.isFullDim())
@@ -394,13 +360,13 @@ bool GoogleMapsDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQ
     }
     else
     {
-      auto split_bit = bitmask[1 + H - this->getDefaultBitsPerBlock()];
+      int bitsperblock = this->getDefaultBitsPerBlock();
+      auto split_bit = bitmask[1 + H - bitsperblock];
       auto middle = (box.p1[split_bit] + box.p2[split_bit]) >> 1;
-      auto left_box = box; left_box.p2[split_bit] = middle;
-      auto right_box = box; right_box.p1[split_bit] = middle;
-
-      stack.push({ right_box, id * 2 + 1, H + 1 });
-      stack.push({ left_box,  id * 2 + 0, H + 1 });
+      auto lbox = box; lbox.p2[split_bit] = middle;
+      auto rbox = box; rbox.p1[split_bit] = middle;
+      stack.push({ rbox, id * 2 + 1, H + 1 });
+      stack.push({ lbox, id * 2 + 0, H + 1 });
     }
   }
   access->endRead();
@@ -491,6 +457,45 @@ void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
   //UseBoxQuery not supported? actually yes, but it's a nonsense since a query it's really a block query
   if (getKdQueryMode() == KdQueryMode::UseBoxQuery)
     setKdQueryMode(KdQueryMode::UseBlockQuery);
+
+  //layout of levels and blocks
+  {
+    //auto bitmask = DatasetBitmask::fromString("V0011");
+
+    int pdim = bitmask.getPointDim();
+    int bitsperblock = getDefaultBitsPerBlock();
+    auto MaxH = bitmask.getMaxResolution();
+
+    level_samples.push_back(LogicSamples(bitmask.getPow2Box(), bitmask.getPow2Dims()));
+    block_samples.push_back(LogicSamples(bitmask.getPow2Box(), bitmask.getPow2Dims()));
+
+    auto level_nsamples = PointNi::one(pdim);
+    auto block_nsamples = PointNi::one(pdim);
+    for (int H = 1; H <= MaxH; H++)
+    {
+      auto bit = bitmask[H];
+      level_nsamples[bit] *= 2;
+      block_nsamples[bit] *= 2;
+
+      if (H - bitsperblock > 0)
+        block_nsamples[bitmask[H - bitsperblock]] /= 2;
+
+      auto delta = bitmask.getPow2Dims().innerDiv(level_nsamples);
+
+      level_samples.push_back(LogicSamples(bitmask.getPow2Box(), delta));
+      block_samples.push_back(LogicSamples(BoxNi(PointNi::zero(pdim), block_nsamples.innerMultiply(delta)),delta));
+     
+      if (false && H >= bitsperblock)
+      {
+        PrintInfo("H", H,
+          "level_samples[H].logic_box", level_samples[H].logic_box,
+          "level_samples[H].delta", level_samples[H].delta,
+          "block_samples[H].logic_box", block_samples[H].logic_box,
+          "block_samples[H].delta", block_samples[H].delta);
+      }
+    }
+  }
+
 }
 
 
