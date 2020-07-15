@@ -93,7 +93,7 @@ void GoogleMapsAccess::readBlock(SharedPtr<BlockQuery> query)
     nsamples[0] = dataset->tile_width;
     nsamples[1] = dataset->tile_height;
 
-    response.setHeader("visus-compression", dataset->compression);
+    response.setHeader("visus-compression", "jpg");
     response.setHeader("visus-nsamples", nsamples.toString());
     response.setHeader("visus-dtype", query->field.dtype.toString());
     response.setHeader("visus-layout", "");

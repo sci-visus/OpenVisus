@@ -300,17 +300,14 @@ void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
   // bitmask will be (22+8==30 '0' and 22+8==30 '1') 
   //V010101010101010101010101010101010101010101010101010101010101
 
+  String dtype = "uint8[3]";
+  int nlevels = 22;
+
   ar.read("tiles", this->tiles_url, "http://mt1.google.com/vt/lyrs=s");
   ar.read("tile_width", tile_width, 256);
   ar.read("tile_height", tile_height, 256);
-  ar.read("nlevels", this->nlevels, 22);
-  ar.read("compression", this->compression, "jpg");
-  ar.read("dtype",this->dtype,DTypes::UINT8_RGB);
 
   VisusReleaseAssert(tile_width>0 && tile_height>0);
-  VisusAssert(nlevels > 0);
-  VisusAssert(dtype.valid());
-  VisusAssert(!compression.empty());
 
   //any google level double the dimensions in x and y (i.e. i don't have even resolutions)
   auto W= this->tile_width  * (((Int64)1)<<nlevels);
@@ -337,7 +334,7 @@ void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
   timesteps.addTimestep(0);
   setTimesteps(timesteps);
 
-  addField(Field("DATA",dtype));
+  addField(Field("DATA",DType::fromString(dtype)));
 
   //UseBoxQuery not supported? actually yes, but it's a nonsense since a query it's really a block query
   if (getKdQueryMode() == KdQueryMode::UseBoxQuery)

@@ -104,11 +104,8 @@ private:
   friend class GoogleMapsAccess;
 
   String           tiles_url;
-  DType            dtype;
   Int64            tile_width = 0;
   Int64            tile_height = 0;
-  int              nlevels = 22;
-  String           compression;
 
   std::vector<LogicSamples> level_samples;
   std::vector<LogicSamples> block_samples;
