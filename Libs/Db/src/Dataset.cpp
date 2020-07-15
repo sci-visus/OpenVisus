@@ -733,10 +733,70 @@ void Dataset::readDatasetFromArchive(Archive& ar)
 {
   VisusAssert(bBlocksAreFullRes);
 
-  //auto bitmask = DatasetBitmask::fromString("V0011");
+  this->setDatasetBody(ar);
 
+  ar.getChild("bitmask")->read("value", bitmask);
+  VisusReleaseAssert(bitmask.valid());
+
+  int bitsperblock;
+  ar.getChild("bitsperblock")->read("value", bitsperblock);
+  VisusReleaseAssert(bitsperblock > 0);
+  this->setDefaultBitsPerBlock(bitsperblock);
+
+  BoxNi logic_box;
+  ar.getChild("box")->read("value", logic_box);
+  VisusReleaseAssert(logic_box.valid());
+  this->setLogicBox(logic_box);
+
+  //fields
+  for (auto child : ar.getChilds("field"))
+  {
+    Field field;
+    field.read(*child);
+    VisusReleaseAssert(field.valid());
+    addField(field);
+  }
+  VisusReleaseAssert(!fields.empty());
+
+  //timesteps
+  DatasetTimesteps timesteps;
+  timesteps.read(ar);
+  setTimesteps(timesteps);
+
+  this->setKdQueryMode(KdQueryMode::fromString(ar.readString("kdquery")));
+  
+  //bounds
+  Position bounds;
+  if (ar.hasAttribute("physic_box"))
+  {
+    BoxNd value;
+    ar.read("physic_box", value);
+    bounds = Position(value);
+
+  }
+  else if (auto child = ar.getChild("physic_box"))
+  {
+    BoxNd value;
+    child->read("value", value);
+    bounds = Position(value);
+  }
+  else if (auto child = ar.getChild("logic_to_physic"))
+  {
+    Matrix logic_to_physic;
+    child->read("value", logic_to_physic);
+    bounds = Position(logic_to_physic, logic_box);
+  }
+  else
+  {
+    bounds = Position(logic_box);
+  }
+
+  setDatasetBounds(bounds);
+  VisusReleaseAssert(bounds.valid());
+
+  //create samples for levels and blocks
   int pdim = bitmask.getPointDim();
-  int bitsperblock = getDefaultBitsPerBlock();
+  bitsperblock = getDefaultBitsPerBlock();
   auto MaxH = bitmask.getMaxResolution();
 
   level_samples.push_back(LogicSamples(bitmask.getPow2Box(), bitmask.getPow2Dims()));

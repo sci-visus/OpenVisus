@@ -75,15 +75,16 @@ public:
   {
     value = StringUtils::trim(StringUtils::toLower(value));
 
-    if (value == "block")
+    if (value.empty())
+      return KdQueryMode::NotSpecified;
+
+    if (StringUtils::contains(value,"block") || value == "1" || value == "true")
       return KdQueryMode::UseBlockQuery;
 
-    if (value == "box")
+    if (StringUtils::contains(value, "box") || value == "0" || value == "false")
       return KdQueryMode::UseBoxQuery;
 
-    if (cbool(value))
-      return KdQueryMode::UseBlockQuery;
-
+    VisusAssert(false); //what does it mean?
     return KdQueryMode::NotSpecified;
   }
 

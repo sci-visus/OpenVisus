@@ -53,42 +53,45 @@ void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
   //V010101010101010101010101010101010101010101010101010101010101
 
   const int nlevels = 22;
-  const String dtype = "uint8[3]";
-  const int tile_width = 256, tile_height = 256;
-
+  const int tile_width = 256;
+  const int tile_height = 256;
   ar.read("tiles", this->tiles_url, "http://mt1.google.com/vt/lyrs=s");
 
   auto W = tile_width  * (((Int64)1) << nlevels);
   auto H = tile_height * (((Int64)1) << nlevels);
+  
+  if (!ar.getChild("bitmask"))
+  {
+    auto value = DatasetBitmask::guess(PointNi(W, H));
+    ar.addChild("bitmask")->write("value", value);
+  }
 
-  auto bitmask = DatasetBitmask::guess(PointNi(W, H));
-  auto kdquery = ar.readString("kdquery");
-  auto bitsperblock = Utils::getLog2(tile_width * tile_height);
-  auto logic_box = BoxNi(PointNi(0, 0), PointNi(W, H));
+  if (!ar.getChild("box"))
+  {
+    auto value = BoxNi(PointNi(0, 0), PointNi(W, H));
+    ar.addChild("box")->write("value", value);
+  }
 
-  this->bitmask = bitmask;
-  this->setDatasetBody(ar);
-  this->setKdQueryMode(KdQueryMode::fromString(kdquery));
-  this->setDefaultBitsPerBlock(bitsperblock);
-  this->setLogicBox(logic_box);
+  if (!ar.getChild("bitsperblock"))
+  {
+    auto value = Utils::getLog2(tile_width * tile_height);
+    ar.addChild("bitsperblock")->write("value", value);
+  }
 
-  //using longiture [-180,+180]  latitude [-90,+90]  
-  if (ar.hasAttribute("physic_box"))
-    setDatasetBounds(BoxNd::fromString(ar.getAttribute("physic_box")));
-  else
-    setDatasetBounds(logic_box);
+  if (!ar.getChild("field"))
+  {
+    auto child = ar.addChild("field");
+    child->setAttribute("name","DATA");
+    child->setAttribute("dtype", "uint8[3]");
+    child->setAttribute("default_compression", "jpg");
+    child->setAttribute("default_layout", "rowmajor");
+  }
 
-  auto timesteps = DatasetTimesteps();
-  timesteps.addTimestep(0);
-  setTimesteps(timesteps);
-
-  Field field("DATA", DType::fromString(dtype));
-  field.default_compression = "jpg";
-  addField(field);
-
-  //UseBoxQuery not supported? actually yes, but it's a nonsense since a query it's really a block query
-  if (getKdQueryMode() == KdQueryMode::UseBoxQuery)
-    setKdQueryMode(KdQueryMode::UseBlockQuery);
+  if (!ar.getChild("timestep"))
+  {
+    auto child = ar.addChild("timestep");
+    child->setAttribute("when", "0");
+  }
 
   Dataset::readDatasetFromArchive(ar);
 }
