@@ -78,6 +78,9 @@ public:
   //readBlock
   virtual void readBlock(SharedPtr<BlockQuery> query) override
   {
+    //I have only even levels
+    VisusReleaseAssert((query->H % 2) == 0);
+
     auto block_coord = query->logic_samples.logic_box.p1.innerDiv(dataset->block_samples[query->H].logic_box.size());
 
     auto X = block_coord[0];
@@ -178,9 +181,6 @@ SharedPtr<BlockQuery> GoogleMapsDataset::createBlockQuery(BigInt blockid, Field 
 
     ret->H = H;
     ret->logic_samples = LogicSamples(BoxNi(p0, p1) , block_samples[H].delta);
-
-    //I ask for blocks only at even levels
-    VisusAssert((H % 2) == 0);
   }
 
   return ret;
@@ -309,7 +309,6 @@ bool GoogleMapsDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQ
     access = std::make_shared<GoogleMapsAccess>(this);
 
   int end_resolution = query->end_resolution;
-  VisusAssert(end_resolution % 2 == 0);
 
   WaitAsync< Future<Void> > wait_async;
 
@@ -343,13 +342,15 @@ bool GoogleMapsDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQ
     //is the resolution I need?
     if (H == end_resolution)
     {
-      VisusAssert(H % 2 == 0);
       auto block_query = createBlockQuery(id - 1, query->field, query->time, 'r', query->aborted);
 
       executeBlockQuery(access, block_query);
-      wait_async.pushRunning(block_query->done).when_ready([this, query, block_query](Void) {
-        if (!query->aborted() && block_query->ok())
-          mergeBoxQueryWithBlockQuery(query, block_query);
+      wait_async.pushRunning(block_query->done).when_ready([this, query, block_query](Void) 
+      {
+        if (query->aborted() || !block_query->ok())
+          return;
+
+        mergeBoxQueryWithBlockQuery(query, block_query);
       });
     }
     else
