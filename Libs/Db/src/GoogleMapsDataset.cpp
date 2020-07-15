@@ -37,110 +37,9 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/GoogleMapsDataset.h>
-#include <Visus/Access.h>
-#include <Visus/NetService.h>
-
+#include <Visus/GoogleMapsAccess.h>
 
 namespace Visus {
-
-//////////////////////////////////////////////////////////////
-class GoogleMapsAccess : public Access
-{
-public:
-
-  GoogleMapsDataset* dataset;
-
-  StringTree             config;
-  Url                    tiles;
-  SharedPtr<NetService>  netservice;
-
-  //constructor
-  GoogleMapsAccess(GoogleMapsDataset* dataset_,StringTree config_=StringTree()) 
-    : dataset(dataset_),config(config_) 
-  {
-    this->name = "GoogleMapsAccess";
-    this->can_read  = StringUtils::find(config.readString("chmod", DefaultChMod), "r") >= 0;
-    this->can_write = StringUtils::find(config.readString("chmod", DefaultChMod), "w") >= 0;
-    this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
-    this->tiles = dataset->tiles; 
-
-
-    bool disable_async = config.readBool("disable_async", dataset->isServerMode());
-
-    if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
-      this->netservice = std::make_shared<NetService>(nconnections);
-  }
-
-  //destructor
-  virtual ~GoogleMapsAccess(){
-  }
-
-  //readBlock
-  virtual void readBlock(SharedPtr<BlockQuery> query) override
-  {
-    //I have only even levels
-    VisusReleaseAssert((query->H % 2) == 0);
-
-    auto block_coord = query->logic_samples.logic_box.p1.innerDiv(dataset->block_samples[query->H].logic_box.size());
-
-    auto X = block_coord[0];
-    auto Y = block_coord[1];
-    auto Z = (query->H - bitsperblock) >> 1; //I have only even levels
-
-    //mirror along Y
-    Y=(int)((Int64(1)<<Z)-Y-1);
-      
-    auto url=Url(this->tiles);
-    url.setParam("x",cstring(X));
-    url.setParam("y",cstring(Y));
-    url.setParam("z",cstring(Z));
-
-    auto request=NetRequest(url);
-
-    if (!request.valid())
-      return readFailed(query);
-
-    request.aborted=query->aborted;
-
-    //note [...,query] keep the query in memory
-    NetService::push(netservice, request).when_ready([this, query](NetResponse response) {
-
-      PointNi nsamples = PointNi::one(2);
-      nsamples[0] = dataset->tile_width;
-      nsamples[1] = dataset->tile_height;
-
-      response.setHeader("visus-compression", dataset->compression);
-      response.setHeader("visus-nsamples", nsamples.toString());
-      response.setHeader("visus-dtype", query->field.dtype.toString());
-      response.setHeader("visus-layout", "");
-
-      if (query->aborted() || !response.isSuccessful())
-        return readFailed(query);
-
-      auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
-      if (!decoded.valid())
-        return readFailed(query);
-
-      query->buffer = decoded;
-
-      return readOk(query);
-    });
-  }
-
-  //writeBlock
-  virtual void writeBlock(SharedPtr<BlockQuery> query) override
-  {
-    VisusAssert(false);//not supported
-    writeFailed(query);
-  }
-
-  //printStatistics
-  virtual void printStatistics() override {
-    PrintInfo(name, "url", dataset->getUrl());
-    Access::printStatistics();
-  }
-
-};
 
 
 ////////////////////////////////////////////////////////////////////
@@ -314,7 +213,6 @@ bool GoogleMapsDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQ
 
   BoxNi box = this->getLogicBox();
 
-
   std::stack< std::tuple<BoxNi, BigInt, int> > stack;
   stack.push({ box ,0,this->getDefaultBitsPerBlock() });
 
@@ -402,7 +300,7 @@ void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
   // bitmask will be (22+8==30 '0' and 22+8==30 '1') 
   //V010101010101010101010101010101010101010101010101010101010101
 
-  ar.read("tiles", this->tiles, "http://mt1.google.com/vt/lyrs=s");
+  ar.read("tiles", this->tiles_url, "http://mt1.google.com/vt/lyrs=s");
   ar.read("tile_width", tile_width, 256);
   ar.read("tile_height", tile_height, 256);
   ar.read("nlevels", this->nlevels, 22);
@@ -485,10 +383,7 @@ void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
 #endif
     }
   }
-
 }
-
-
 
 
 } //namespace Visus

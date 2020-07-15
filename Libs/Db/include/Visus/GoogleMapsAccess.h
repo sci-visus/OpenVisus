@@ -36,91 +36,58 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef __VISUS_DB_GOOGLE_MAPS_DATASET_H
-#define __VISUS_DB_GOOGLE_MAPS_DATASET_H
+#ifndef __VISUS_DB_GOOGLE_MAPS_ACCESS_H
+#define __VISUS_DB_GOOGLE_MAPS_ACCESS_H
 
 #include <Visus/Db.h>
-#include <Visus/Dataset.h>
+#include <Visus/Access.h>
+#include <Visus/NetService.h>
 
 namespace Visus {
 
-////////////////////////////////////////////////////////
-class VISUS_DB_API GoogleMapsDataset : public Dataset
+class GoogleMapsDataset;
+
+//////////////////////////////////////////////////////////////
+class VISUS_DB_API GoogleMapsAccess : public Access
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(GoogleMapsDataset)
+  VISUS_NON_COPYABLE_CLASS(GoogleMapsAccess)
 
   //constructor
-  GoogleMapsDataset() {
-  }
+  GoogleMapsAccess(GoogleMapsDataset* dataset_, StringTree config_ = StringTree());
 
   //destructor
-  virtual ~GoogleMapsDataset() {
+  virtual ~GoogleMapsAccess() {
   }
 
-  //castFrom
-  static SharedPtr<GoogleMapsDataset> castFrom(SharedPtr<Dataset> db) {
-    return std::dynamic_pointer_cast<GoogleMapsDataset>(db);
+  //readBlock
+  virtual void readBlock(SharedPtr<BlockQuery> query) override;
+
+  //writeBlock
+  virtual void writeBlock(SharedPtr<BlockQuery> query) override
+  {
+    VisusAssert(false);//not supported
+    writeFailed(query);
   }
 
-  //getDatasetTypeName
-  virtual String getDatasetTypeName() const override {
-    return "GoogleMapsDataset";
+  //printStatistics
+  virtual void printStatistics() override {
+    PrintInfo(name, "url");
+    Access::printStatistics();
   }
-
-  //getPointDim
-  virtual int getPointDim() const override {
-    return 2;
-  }
-
-public:
-
-  //readDatasetFromArchive 
-  virtual void readDatasetFromArchive(Archive& ar) override;
-
-  //createAccess
-  virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
-
-public:
-
-  //createBlockQuery
-  virtual SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted) override;
-
-  //beginBoxQuery
-  virtual void beginBoxQuery(SharedPtr<BoxQuery> query) override;
-
-  //nextBoxQuery
-  virtual void nextBoxQuery(SharedPtr<BoxQuery> query) override;
-
-  //executeBoxQuery
-  virtual bool executeBoxQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
-
-  //mergeBoxQueryWithBlockQuery
-  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> blockquery) override;
 
 private:
 
-  friend class GoogleMapsAccess;
-
-  String           tiles_url;
-  DType            dtype;
-  Int64            tile_width = 0;
-  Int64            tile_height = 0;
-  int              nlevels = 22;
-  String           compression;
-
-  std::vector<LogicSamples> level_samples;
-  std::vector<LogicSamples> block_samples;
-
-  //setBoxQueryEndResolution
-  bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query,int value);
+  GoogleMapsDataset*     dataset;
+  StringTree             config;
+  String                 tiles_url;
+  SharedPtr<NetService>  netservice;
 
 };
 
 
 } //namespace Visus
 
-#endif //__VISUS_DB_GOOGLE_MAPS_DATASET_H
-
+#endif //__VISUS_DB_GOOGLE_MAPS_ACCESS_H
 

@@ -31,7 +31,9 @@ SET(AccessSources
 	./include/Visus/ModVisusAccess.h     ./src/ModVisusAccess.cpp
 	./include/Visus/MultiplexAccess.h    ./src/MultiplexAccess.cpp
 	./include/Visus/RamAccess.h          ./src/RamAccess.cpp
-	./include/Visus/OnDemandAccess.h     ./src/OnDemandAccess.cpp)
+	./include/Visus/OnDemandAccess.h     ./src/OnDemandAccess.cpp
+	./include/Visus/GoogleMapsAccess.h   ./src/GoogleMapsAccess.cpp
+	)
 source_group("Access" FILES ${AccessSources})
 
 FILE(GLOB IdxSources
