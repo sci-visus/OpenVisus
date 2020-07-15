@@ -78,9 +78,13 @@ public:
   //readBlock
   virtual void readBlock(SharedPtr<BlockQuery> query) override
   {
-    auto X = query->level_coord[0];
-    auto Y = query->level_coord[1];
-    auto Z= (query->H - bitsperblock) >> 1;
+    auto H = query->H;
+    auto X = query->logic_samples.logic_box.p1[0] / dataset->block_samples[H].logic_box.size()[0];
+    auto Y = query->logic_samples.logic_box.p1[1] / dataset->block_samples[H].logic_box.size()[1];
+    auto Z = H - bitsperblock; 
+
+    //I have only even levels
+    Z >>= 1;
 
     //mirror along Y
     Y=(int)((Int64(1)<<Z)-Y-1);
@@ -138,9 +142,6 @@ public:
 };
 
 
-
-
-
 ////////////////////////////////////////////////////////////////////
 SharedPtr<BlockQuery> GoogleMapsDataset::createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted)
 {
@@ -168,13 +169,13 @@ SharedPtr<BlockQuery> GoogleMapsDataset::createBlockQuery(BigInt blockid, Field 
     int bitsperblock = this->getDefaultBitsPerBlock();
     ret->H = bitsperblock + Utils::getLog2(1 + blockid);
     Int64 first_block_in_level = (((Int64)1) << (ret->H - bitsperblock)) - 1;
-    ret->level_coord = bitmask.deinterleave(blockid - first_block_in_level, ret->H - bitsperblock);
 
+    auto level_coord = bitmask.deinterleave(blockid - first_block_in_level, ret->H - bitsperblock);
 
     auto delta=level_samples[ret->H].delta;
 
-    auto X = ret->level_coord[0];
-    auto Y = ret->level_coord[1];
+    auto X = level_coord[0];
+    auto Y = level_coord[1];
     auto Z = (ret->H - bitsperblock) >> 1;
 
     int tile_width = (int)(this->getLogicBox().p2[0]) >> Z;
