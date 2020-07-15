@@ -78,13 +78,10 @@ public:
   //readBlock
   virtual void readBlock(SharedPtr<BlockQuery> query) override
   {
-    auto H = query->H;
-    auto X = query->logic_samples.logic_box.p1[0] / dataset->block_samples[H].logic_box.size()[0];
-    auto Y = query->logic_samples.logic_box.p1[1] / dataset->block_samples[H].logic_box.size()[1];
-    auto Z = H - bitsperblock; 
-
-    //I have only even levels
-    Z >>= 1;
+    auto block_coord = query->logic_samples.logic_box.p1.innerDiv(dataset->block_samples[query->H].logic_box.size());
+    auto X = block_coord[0];
+    auto Y = block_coord[1];
+    auto Z = (query->H - bitsperblock) >> 1; //I have only even levels
 
     //mirror along Y
     Y=(int)((Int64(1)<<Z)-Y-1);
