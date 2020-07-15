@@ -53,10 +53,10 @@ SharedPtr<BlockQuery> GoogleMapsDataset::createBlockQuery(BigInt blockid, Field 
   ret->aborted = aborted;
   ret->blockid = blockid;
 
+  auto bitsperblock = this->getDefaultBitsPerBlock();
+
   //logic samples
   {
-    auto bitsperblock = this->getDefaultBitsPerBlock();
-
     //Get H from blockid. Example:
     //  bitsperblock=16  
     //  bitmask V010101010101010101010101010101010101010101010101010101010101
@@ -166,9 +166,10 @@ void GoogleMapsDataset::nextBoxQuery(SharedPtr<BoxQuery> query)
   if (query->end_resolution == query->end_resolutions.back())
     return query->setOk();
 
-  int I = Utils::find(query->end_resolutions, query->end_resolution) + 1;
-  auto end_resolution = query->end_resolutions[I];
-  VisusReleaseAssert(setBoxQueryEndResolution(query, end_resolution));
+  int index = Utils::find(query->end_resolutions, query->end_resolution);
+
+  if (!setBoxQueryEndResolution(query, query->end_resolutions[index + 1]))
+    VisusReleaseAssert(false); //should not happen
 
   //merging is not supported, so I'm resetting the buffer
   query->buffer = Array();
