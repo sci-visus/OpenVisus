@@ -313,18 +313,10 @@ bool GoogleMapsDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQ
   WaitAsync< Future<Void> > wait_async;
 
   BoxNi box = this->getLogicBox();
-  auto samplesperblock = 1 << this->getDefaultBitsPerBlock();
 
-  typedef struct
-  {
-    BoxNi box;
-    BigInt id;
-    int H;
-  }
-  item_t;
 
-  std::stack<item_t> stack;
-  stack.push({ box ,1,this->getDefaultBitsPerBlock() });
+  std::stack< std::tuple<BoxNi, BigInt, int> > stack;
+  stack.push({ box ,0,this->getDefaultBitsPerBlock() });
 
   access->beginRead();
   while (!stack.empty() && !query->aborted())
@@ -332,9 +324,9 @@ bool GoogleMapsDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQ
     auto top=stack.top();
     stack.pop();
 
-    auto box=top.box;
-    auto id=top.id;
-    auto H=top.H;
+    auto box     = std::get<0>(top);
+    auto blockid = std::get<1>(top);
+    auto H       = std::get<2>(top);
 
     if (!box.getIntersection(query->logic_box).isFullDim())
       continue;
@@ -342,7 +334,7 @@ bool GoogleMapsDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQ
     //is the resolution I need?
     if (H == end_resolution)
     {
-      auto block_query = createBlockQuery(id - 1, query->field, query->time, 'r', query->aborted);
+      auto block_query = createBlockQuery(blockid, query->field, query->time, 'r', query->aborted);
 
       executeBlockQuery(access, block_query);
       wait_async.pushRunning(block_query->done).when_ready([this, query, block_query](Void) 
@@ -360,8 +352,8 @@ bool GoogleMapsDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQ
       auto middle = (box.p1[split_bit] + box.p2[split_bit]) >> 1;
       auto lbox = box; lbox.p2[split_bit] = middle;
       auto rbox = box; rbox.p1[split_bit] = middle;
-      stack.push({ rbox, id * 2 + 1, H + 1 });
-      stack.push({ lbox, id * 2 + 0, H + 1 });
+      stack.push(std::make_tuple(rbox, blockid * 2 + 2, H + 1));
+      stack.push(std::make_tuple(lbox, blockid * 2 + 1, H + 1));
     }
   }
   access->endRead();
@@ -393,7 +385,7 @@ SharedPtr<Access> GoogleMapsDataset::createAccess(StringTree config, bool bForBl
   String type = StringUtils::toLower(config.readString("type"));
 
   //I always need an access
-  if (type.empty() || type == "legacyaccess" || type=="GoogleMapsAccess")
+  if (type.empty() || type=="GoogleMapsAccess")
     return std::make_shared<GoogleMapsAccess>(this, config);
 
   return Dataset::createAccess(config, bForBlockQuery);
