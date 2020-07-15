@@ -689,8 +689,21 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& AR)
   //if (pdim==2)
   //  this->kdquery_mode = KdQueryMode::UseBoxQuery;
 
-  AR.writeObject("idxfile", IDXFILE);
+  //scrgiorgio: here I'm not sure if the best is to remove/add or just keep what I get
+  if (auto child = AR.getChild("idxfile"))
+  {
+    Utils::remove(AR.childs, child);
+    AR.writeObject("idxfile", IDXFILE);
+  }
+  else
+  {
+    AR.writeObject("idxfile", IDXFILE);
+  }
+
   setDatasetBody(AR);
+
+
+
 }
 
 
