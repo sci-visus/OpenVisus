@@ -259,15 +259,9 @@ SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, dou
   PointNi p0;
   if (bBlocksAreFullRes)
   {
-    //Example:
-    // H=bitsperblock+0   first_block_in_level=(1<<0)-1=0
-    // H=bitsperblock+1   first_block_in_level=(1<<1)-1=1
-    // H=bitsperblock+2   first_block_in_level=(1<<2)-1=3
     Int64 first_block_in_level = (((Int64)1) << (H - bitsperblock)) - 1;
-
     auto coord = bitmask.deinterleave(blockid - first_block_in_level, H - bitsperblock);
     p0 = coord.innerMultiply(block_samples[H].logic_box.size());
-
   }
   else
   {
