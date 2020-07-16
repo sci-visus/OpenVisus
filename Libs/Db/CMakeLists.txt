@@ -33,6 +33,7 @@ SET(AccessSources
 	./include/Visus/RamAccess.h          ./src/RamAccess.cpp
 	./include/Visus/OnDemandAccess.h     ./src/OnDemandAccess.cpp
 	./include/Visus/GoogleMapsAccess.h   ./src/GoogleMapsAccess.cpp
+	./include/Visus/MandelbrotAccess.h   ./src/MandelbrotAccess.cpp
 	)
 source_group("Access" FILES ${AccessSources})
 

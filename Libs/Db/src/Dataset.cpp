@@ -39,7 +39,6 @@ For support : support@visus.net
 #include <Visus/Dataset.h>
 #include <Visus/DiskAccess.h>
 #include <Visus/MultiplexAccess.h>
-#include <Visus/ModVisusAccess.h>
 #include <Visus/CloudStorageAccess.h>
 #include <Visus/RamAccess.h>
 #include <Visus/FilterAccess.h>
@@ -52,6 +51,11 @@ For support : support@visus.net
 #include <Visus/GoogleMapsAccess.h>
 #include <Visus/IdxHzOrder.h>
 #include <Visus/IdxMultipleDataset.h>
+#include <Visus/OnDemandAccess.h>
+#include <Visus/ModVisusAccess.h>
+#include <Visus/MandelbrotAccess.h>
+#include <Visus/IdxMultipleAccess.h>
+#include <Visus/IdxDiskAccess.h>
 
 namespace Visus {
 
@@ -78,6 +82,60 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
       }
       return std::make_shared<GoogleMapsAccess>(this, google->tiles_url, netservice);
     }
+  }
+
+  if (auto idx = dynamic_cast<IdxDataset*>(this))
+  {
+    //consider I can have thousands of childs (NOTE: this attribute should be "inherited" from child)
+    auto midx = dynamic_cast<IdxMultipleDataset*>(this);
+    if (midx)
+      config.write("disable_async", true);
+
+    String type = StringUtils::toLower(config.readString("type"));
+
+    //no type, create default
+    if (type.empty())
+    {
+      Url url = config.readString("url", getUrl());
+
+      //local disk access
+      if (url.isFile())
+      {
+        if (midx)
+          return std::make_shared<IdxMultipleAccess>(midx, config);
+        else
+          return std::make_shared<IdxDiskAccess>(idx, config);
+      }
+      else
+      {
+        VisusAssert(url.isRemote());
+
+        if (bForBlockQuery)
+          return std::make_shared<ModVisusAccess>(this, config);
+        else
+          //I can execute box/point queries on the remote server
+          return SharedPtr<Access>();
+      }
+    }
+
+    //IdxDiskAccess
+    if (type == "disk" || type == "idxdiskaccess")
+      return std::make_shared<IdxDiskAccess>(idx, config);
+
+    //IdxMultipleAccess
+    if (type == "idxmultipleaccess" || type == "midx" || type == "multipleaccess")
+    {
+      VisusReleaseAssert(midx);
+      return std::make_shared<IdxMultipleAccess>(midx, config);
+    }
+
+    //IdxMandelbrotAccess
+    if (type == "idxmandelbrotaccess" || type == "mandelbrotaccess")
+      return std::make_shared<MandelbrotAccess>(this, config);
+
+    //ondemandaccess
+    if (type == "ondemandaccess")
+      return std::make_shared<OnDemandAccess>(this, config);
   }
 
   if (!config.valid()) {
@@ -660,6 +718,7 @@ bool Dataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
 //////////////////////////////////////////////////////////////
 bool Dataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> blockquery)
 {
+  VisusAssert(blockquery->buffer.layout.empty());
   return insertSamples(query->logic_samples, query->buffer, blockquery->logic_samples, blockquery->buffer, query->aborted);
 }
 

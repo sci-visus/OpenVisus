@@ -75,9 +75,6 @@ public:
 
 public:
 
-  //createAccess
-  virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
-
   //convertBlockQueryToRowMajor
   virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) override;
 
@@ -97,9 +94,6 @@ public:
 
   //mergeBoxQueryWithBlockQuery
   virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) override;
-
-  //createEquivalentBoxQuery
-  SharedPtr<BoxQuery> createEquivalentBoxQuery(int mode, SharedPtr<BlockQuery> block_query);
 
   //adjustBoxQueryFilterBox
   BoxNi adjustBoxQueryFilterBox(BoxQuery* query, IdxFilter* filter, BoxNi box, int H);
@@ -124,6 +118,12 @@ public:
 
   //nextPointQuery
   virtual void nextPointQuery(SharedPtr<PointQuery> query) override;
+
+  //createPointQueryRequest
+  NetRequest createPointQueryRequest(SharedPtr<PointQuery> query);
+
+  //executePointQueryOnServer
+  bool executePointQueryOnServer(SharedPtr<PointQuery> query);
 
 public:
 

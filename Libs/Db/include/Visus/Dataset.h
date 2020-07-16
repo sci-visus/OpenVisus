@@ -340,7 +340,15 @@ public:
 
   //convertBlockQueryToRowMajor
   virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) {
-    return false;
+    return block_query->buffer.layout.empty();
+  }
+
+  //createEquivalentBoxQuery
+  virtual SharedPtr<BoxQuery> createEquivalentBoxQuery(int mode, SharedPtr<BlockQuery> block_query)
+  {
+    auto ret = createBoxQuery(block_query->logic_samples.logic_box, block_query->field, block_query->time, mode, block_query->aborted);
+    ret->setResolutionRange(block_query->blockid == 0 ? 0 : block_query->H, block_query->H);
+    return ret;
   }
 
 public:

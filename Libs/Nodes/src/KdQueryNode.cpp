@@ -473,11 +473,8 @@ public:
 
           VisusAssert(!node->fullres.valid() && !node->blockdata.valid());
 
-          //make sure is row major
-          if (!blockquery->buffer.layout.empty())
-            dataset->convertBlockQueryToRowMajor(blockquery);
-
-          if (!blockquery->buffer.valid())
+          dataset->convertBlockQueryToRowMajor(blockquery);
+          if (!blockquery->buffer.valid() || !blockquery->buffer.layout.empty())
             return;
 
           //need the write lock here

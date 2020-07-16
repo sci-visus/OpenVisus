@@ -542,7 +542,9 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
       if (!response.setArrayBody(compression, block_query->buffer))
       {
         //maybe i need to convert to row major to compress
-        if (!(dataset->convertBlockQueryToRowMajor(block_query) && response.setArrayBody(compression, block_query->buffer)))
+        dataset->convertBlockQueryToRowMajor(block_query);
+
+        if (!response.setArrayBody(compression, block_query->buffer))
         {
           responses.push_back(NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "Encoding converting to row major failed"));
           return;
