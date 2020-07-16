@@ -244,7 +244,7 @@ public:
   }
 
   //the right-most "1" set (the bit that will become the V in the right shift in a bitmask such as V010101...)
-  static int getAddressResolution(const DatasetBitmask& bitmask,BigInt hz)
+  static int getHzAddressResolution(const DatasetBitmask& bitmask,BigInt hz)
   {
     int ret=0;
     while (hz!=0) {ret++;hz>>=1;}

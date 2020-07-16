@@ -301,15 +301,15 @@ public:
     bool bInvertOrder=query->mode=='w';
 
     auto bitsperblock = vf->getDefaultBitsPerBlock();
-    int            samplesperblock = 1 << bitsperblock;
+    int  samplesperblock = 1 << bitsperblock;
 
     DatasetBitmask bitmask=vf->idxfile.bitmask;
     int            max_resolution=vf->getMaxResolution();
-    BigInt         HzFrom= (block_query->blockid + 0)<<bitsperblock;
-    BigInt         HzTo  = (block_query->blockid + 1)<< bitsperblock;
+    BigInt         HzFrom= block_query->blockid * samplesperblock;
+    BigInt         HzTo   = HzFrom + samplesperblock;
     HzOrder        hzorder(bitmask);
-    int            hstart=std::max(query->getCurrentResolution()+1 ,HzOrder::getAddressResolution(bitmask,HzFrom));
-    int            hend  =std::min(query->getEndResolution(),HzOrder::getAddressResolution(bitmask,HzTo-1));
+    int            hstart=std::max(query->getCurrentResolution()+1 , block_query->blockid==0?            0 : block_query->H);
+    int            hend  =std::min(query->getEndResolution    ()   ,                                         block_query->H);
 
     VisusAssert(HzFrom==0 || hstart==hend);
 
@@ -528,8 +528,7 @@ void IdxDataset::compressDataset(std::vector<String> compression, Array data)
             continue;
 
           //compression can depend on level
-          auto HzStart = Waccess->getStartAddress(read_block->blockid);
-          int H = HzOrder::getAddressResolution(idxfile.bitmask, HzStart);
+          int H = read_block->H;
           VisusReleaseAssert(H >= 0 && H < compression.size());
 
           auto Wfield = Rfield;
@@ -619,8 +618,7 @@ void IdxDataset::compressDataset(std::vector<String> compression, Array data)
           setFilename(filename);
 
           //compression can depend on level
-          auto HzStart = Waccess->getStartAddress(read_block->blockid);
-          int H = HzOrder::getAddressResolution(idxfile.bitmask, HzStart);
+          int H = read_block->H;
           VisusReleaseAssert(H >= 0 && H < compression.size());
 
           auto Wfield = Rfield;
@@ -639,8 +637,6 @@ void IdxDataset::compressDataset(std::vector<String> compression, Array data)
     FileUtils::removeFile(compressed_idx_filename);
   }
 }
-
-
 ///////////////////////////////////////////////////////////////////////////////////
 BoxNi IdxDataset::adjustBoxQueryFilterBox(BoxQuery* query,IdxFilter* filter,BoxNi user_box,int H) 
 {
@@ -679,26 +675,11 @@ BoxNi IdxDataset::adjustBoxQueryFilterBox(BoxQuery* query,IdxFilter* filter,BoxN
   return box;
 }
 
-
-
 ////////////////////////////////////////////////////////////////////////
 SharedPtr<BoxQuery> IdxDataset::createEquivalentBoxQuery(int mode,SharedPtr<BlockQuery> block_query)
 {
-  auto bitsperblock = getDefaultBitsPerBlock();
-
-  auto HzFrom = (block_query->blockid + 0) << bitsperblock;
-  auto HzTo   = (block_query->blockid + 1) << bitsperblock;
-
-  auto bitmask = idxfile.bitmask;
-  int fromh = HzOrder::getAddressResolution(bitmask, HzFrom);
-  int toh   = HzOrder::getAddressResolution(bitmask, HzTo -1);
-
-  auto logic_samples =block_query->logic_samples;
-  VisusAssert(logic_samples.nsamples.innerProduct()==(HzTo - HzFrom));
-  VisusAssert(fromh==toh || block_query->blockid==0);
-
-  auto ret=createBoxQuery(logic_samples.logic_box, block_query->field, block_query->time,mode, block_query->aborted);
-  ret->setResolutionRange(fromh,toh);
+  auto ret = createBoxQuery(block_query->logic_samples.logic_box, block_query->field, block_query->time, mode, block_query->aborted);
+  ret->setResolutionRange(block_query->blockid == 0? 0 : block_query->H, block_query->H);
   return ret;
 }
 
@@ -737,7 +718,6 @@ bool IdxDataset::convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query)
 
   return true;
 }
-
 
 
 ////////////////////////////////////////////////////////////////////
@@ -854,7 +834,6 @@ void IdxDataset::createPointQueryAddressConversion()
   }
 }
 
-
 //////////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> block_query)
 {
@@ -867,10 +846,8 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr
 
     auto bitsperblock = getDefaultBitsPerBlock();
     DatasetBitmask bitmask=this->idxfile.bitmask;
-    BigInt         HzFrom= (block_query->blockid+0)<<bitsperblock;
-    BigInt         HzTo  = (block_query->blockid+1)<<bitsperblock;
-    int            hstart=std::max(query->getCurrentResolution() +1  ,HzOrder::getAddressResolution(bitmask,HzFrom));
-    int            hend  =std::min(query->getEndResolution()         ,HzOrder::getAddressResolution(bitmask,HzTo-1));
+    int            hstart=std::max(query->getCurrentResolution() +1  , block_query->blockid==0? 0 : block_query->H);
+    int            hend  =std::min(query->getEndResolution()         ,                              block_query->H);
 
     auto Bsamples = block_query->logic_samples;
 
@@ -889,7 +866,7 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr
       std::swap(Wbuffer,Rbuffer);
     }
 
-    if (HzFrom==0)
+    if (block_query->blockid ==0)
     {
       /* Important note
       Merging directly the block:
@@ -1794,7 +1771,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
           query->setFailed("query aborted");
           return false;
         }
-        if (pdim >= 1) { p[0] = SRC[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; shift = (loc[0][p[0]].second); zaddress = loc[0][p[0]].first; }
+        if (pdim >= 1) { p[0] = SRC[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; shift =                (loc[0][p[0]].second); zaddress  = loc[0][p[0]].first; }
         if (pdim >= 2) { p[1] = SRC[1]; if (!(p[1] >= bounds.p1[1] && p[1] < bounds.p2[1])) continue; p[1] &= depth_mask[1]; shift = std::min(shift, loc[1][p[1]].second); zaddress |= loc[1][p[1]].first; }
         if (pdim >= 3) { p[2] = SRC[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; shift = std::min(shift, loc[2][p[2]].second); zaddress |= loc[2][p[2]].first; }
         if (pdim >= 4) { p[3] = SRC[3]; if (!(p[3] >= bounds.p1[3] && p[3] < bounds.p2[3])) continue; p[3] &= depth_mask[3]; shift = std::min(shift, loc[3][p[3]].second); zaddress |= loc[3][p[3]].first; }
