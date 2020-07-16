@@ -785,23 +785,61 @@ void Dataset::nextBoxQuery(SharedPtr<BoxQuery> query)
 //////////////////////////////////////////////////////////////
 bool Dataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value)
 {
-  VisusReleaseAssert(bBlocksAreFullRes);
-
   VisusAssert(query->end_resolution < value);
   query->end_resolution = value;
 
-  auto end_resolution = query->end_resolution;
-  auto user_box = query->logic_box.getIntersection(this->getLogicBox());
-  VisusAssert(user_box.isFullDim());
+  auto bitmask          = this->idxfile.bitmask;
+  auto start_resolution = query->start_resolution;
+  auto end_resolution   = query->end_resolution;
 
-  auto Lsamples = level_samples[end_resolution];
-  auto box = Lsamples.alignBox(user_box);
+  BoxNi logic_box = query->logic_box.withPointDim(this->getPointDim());
 
-  if (!box.isFullDim())
+  //special case for query with filters
+  //I need to go level by level [0,1,2,...] in order to reconstruct the original data
+  if (auto filter = query->filter.dataset_filter)
+  {
+    //important to return the "final" number of samples (see execute for loop)
+    logic_box = this->adjustBoxQueryFilterBox(query.get(), filter.get(), logic_box, end_resolution);
+    query->filter.adjusted_logic_box = logic_box;
+  }
+
+  auto delta = this->level_samples[end_resolution].delta;
+
+  //I get twice the samples of the samples because I'm allowing the blocking '1' bit to be anything coming from previous levels
+  if (!bBlocksAreFullRes && start_resolution == 0 && end_resolution > 0)
+    delta[bitmask[end_resolution]] >>= 1;
+
+  if (bBlocksAreFullRes)
+  {
+    logic_box = query->logic_box.getIntersection(this->getLogicBox());
+    logic_box = level_samples[end_resolution].alignBox(logic_box);
+  }
+  else
+  {
+    PointNi P1incl, P2incl;
+    for (int H = start_resolution; H <= end_resolution; H++)
+    {
+      BoxNi box = level_samples[H].alignBox(logic_box);
+      if (!box.isFullDim()) continue;
+      PointNi p1incl = box.p1;
+      PointNi p2incl = box.p2 - level_samples[H].delta;
+      P1incl = P1incl.getPointDim() ? PointNi::min(P1incl, p1incl) : p1incl;
+      P2incl = P2incl.getPointDim() ? PointNi::max(P2incl, p2incl) : p2incl;
+    }
+
+    if (!P1incl.getPointDim())
+      return false;
+
+    logic_box = BoxNi(P1incl, P2incl + delta);
+  }
+
+  if (!logic_box.isFullDim()) 
     return false;
 
-  query->logic_samples = LogicSamples(box, Lsamples.delta);
+  query->logic_samples = LogicSamples(logic_box, delta);
+  VisusAssert(query->logic_samples.valid());
   return true;
+
 
 }
 

@@ -219,10 +219,6 @@ public:
   template <class Sample>
   bool execute(IdxDataset* vf, BoxQuery* query, BlockQuery* block_query)
   {
-#define PUSH()  (*((stack)++))=(item)
-#define POP()   (item)=(*(--(stack)))
-#define EMPTY() ((stack)==(STACK))
-
     VisusAssert(query->field.dtype == block_query->buffer.dtype);
 
     VisusAssert(block_query->buffer.layout == "hzorder");
@@ -298,19 +294,17 @@ public:
       VisusAssert(cachable > 0 && cachable <= samplesperblock);
 
       //push root in the kdtree
-      {
-        item.box = zbox;
-        item.H = H ? std::max(1, H - bitsperblock) : (0);
-        stack = STACK;
-        PUSH();
-      }
+      item.box = zbox;
+      item.H = H ? std::max(1, H - bitsperblock) : (0);
+      stack = STACK;
+      *(stack++) = item;
 
-      while (!EMPTY())
+      while (stack != STACK)
       {
         if (aborted())
           return false;
 
-        POP();
+        item = *(--stack);
 
         // no intersection
         if (!item.box.strictIntersect(box))
@@ -370,8 +364,8 @@ public:
         bit = bitmask[item.H];
         delta = fldeltas[item.H];
         ++item.H;
-        item.box.p1[bit] += delta; VisusAssert(item.box.isFullDim()); PUSH();
-        item.box.p1[bit] -= delta; item.box.p2[bit] -= delta; VisusAssert(item.box.isFullDim()); PUSH();
+        item.box.p1[bit] += delta;                            VisusAssert(item.box.isFullDim()); *(stack++) = item;
+        item.box.p1[bit] -= delta; item.box.p2[bit] -= delta; VisusAssert(item.box.isFullDim()); *(stack++) = item;
       }
     }
 
@@ -379,8 +373,6 @@ public:
     return true;
 
 #undef PUSH
-#undef POP
-#undef EMPTY
   }
 
 };
@@ -1021,59 +1013,6 @@ void IdxDataset::nextBoxQuery(SharedPtr<BoxQuery> query)
   query->setCurrentResolution(Rcurrent_resolution);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value)
-{
-  auto bitmask = this->idxfile.bitmask;
-
-  VisusAssert(query->end_resolution < value);
-  query->end_resolution = value;
-
-  auto start_resolution = query->start_resolution;
-  auto end_resolution   = query->end_resolution;
-  auto logic_box = query->logic_box.withPointDim(this->getPointDim());
-
-  //special case for query with filters
-  //I need to go level by level [0,1,2,...] in order to reconstruct the original data
-  if (auto filter = query->filter.dataset_filter)
-  {
-    //important to return the "final" number of samples (see execute for loop)
-    logic_box = this->adjustBoxQueryFilterBox(query.get(), filter.get(), logic_box, end_resolution);
-    query->filter.adjusted_logic_box = logic_box;
-  }
-  
-  PointNi delta = this->level_samples[end_resolution].delta;
-
-  //I get twice the samples of the samples because I'm allowing the blocking '1' bit to be anything coming from previous levels
-  if (start_resolution == 0 && end_resolution > 0)
-    delta[bitmask[end_resolution]] >>= 1;
-
-  PointNi P1incl, P2incl;
-  for (int H = start_resolution; H <= end_resolution; H++)
-  {
-    int bit = bitmask[H];
-
-    LogicSamples Lsamples = this->level_samples[H];
-
-    BoxNi box = Lsamples.alignBox(logic_box);
-    if (!box.isFullDim())
-      continue;
-
-    PointNi p1incl = box.p1;
-    PointNi p2incl = box.p2 - Lsamples.delta;
-    P1incl = P1incl.getPointDim() ? PointNi::min(P1incl, p1incl) : p1incl;
-    P2incl = P2incl.getPointDim() ? PointNi::max(P2incl, p2incl) : p2incl;
-  }
-
-  if (!P1incl.getPointDim())
-    return false;
-
-  logic_box = BoxNi(P1incl, P2incl + delta);
-  query->logic_samples = LogicSamples(logic_box, delta);
-  VisusAssert(query->logic_samples.valid());
-  return true;
-
-}
 
 //////////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query)

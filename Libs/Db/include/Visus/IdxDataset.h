@@ -88,9 +88,6 @@ public:
   //mergeBoxQueryWithBlockQuery
   virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) override;
 
-  //setBoxQueryEndResolution
-  virtual  bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value) override;
-
 public:
 
   //executeBoxQuery
