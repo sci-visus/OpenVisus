@@ -371,8 +371,6 @@ public:
 
     VisusAssert(numused > 0);
     return true;
-
-#undef PUSH
   }
 
 };
@@ -560,13 +558,15 @@ void IdxDataset::compressDataset(std::vector<String> compression, Array data)
 }
 
 
-
 ////////////////////////////////////////////////////////
 bool IdxDataset::convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) 
 {
   //already in row major
   if (block_query->buffer.layout.empty())
     return true;
+
+  //idx full res is row major only
+  VisusReleaseAssert(!bBlocksAreFullRes);
 
   //note I cannot use buffer of block_query because I need them to execute other queries
   Array row_major= block_query->buffer.clone();
@@ -599,87 +599,6 @@ bool IdxDataset::convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query)
   block_query->buffer.layout=""; 
   return true;
 }
-
-
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-class InterpolateBufferOperation
-{
-public:
-
-  //execute
-  template <class CppType>
-  bool execute(LogicSamples Wsamples, Array Wbuffer, LogicSamples Rsamples, Array Rbuffer, Aborted aborted)
-  {
-    if (!Wsamples.valid() || !Rsamples.valid())
-      return false;
-
-    if (Wbuffer.dtype != Rbuffer.dtype || Wbuffer.dims != Wsamples.nsamples || Rbuffer.dims != Rsamples.nsamples)
-    {
-      VisusAssert(false);
-      return false;
-    }
-
-    auto pdim = Wbuffer.getPointDim(); VisusAssert(Rbuffer.getPointDim() == pdim);
-    auto zero = PointNi(pdim);
-    auto one = PointNi(pdim);
-
-    auto Wstride = Wbuffer.dims.stride();
-    auto Rstride = Rbuffer.dims.stride();
-
-    VisusReleaseAssert(Wbuffer.dtype == Rbuffer.dtype);
-    int N = Wbuffer.dtype.ncomponents();
-
-    //for each component...
-    for (int C = 0; C < N; C++)
-    {
-      if (aborted())
-        return false;
-
-      GetComponentSamples<CppType> W(Wbuffer, C); PointNi Wpixel(pdim); Int64   Wpos = 0;
-      GetComponentSamples<CppType> R(Rbuffer, C); PointNi Rpixel(pdim); PointNi Rpos(pdim);
-
-#define W2R(I) (Utils::clamp<Int64>(((Wsamples.logic_box.p1[I] + (Wpixel[I] << Wsamples.shift[I])) - Rsamples.logic_box.p1[I]) >> Rsamples.shift[I], 0, Rbuffer.dims[I] - 1))
-
-      if (pdim == 2)
-      {
-        for (Wpixel[1] = 0; Wpixel[1] < Wbuffer.dims[1]; Wpixel[1]++) {
-          Rpixel[1] = W2R(1); Rpos[1] = Rpixel[1] * Rstride[1];
-          for (Wpixel[0] = 0; Wpixel[0] < Wbuffer.dims[0]; Wpixel[0]++) {
-            Rpixel[0] = W2R(0); Rpos[0] = Rpixel[0] * Rstride[0] + Rpos[1];
-            W[Wpos++] = R[Rpos[0]];
-          }
-        }
-      }
-      else if (pdim == 3)
-      {
-        for (Wpixel[2] = 0; Wpixel[2] < Wbuffer.dims[2]; Wpixel[2]++) {
-          Rpixel[2] = W2R(2); Rpos[2] = Rpixel[2] * Rstride[2];
-          for (Wpixel[1] = 0; Wpixel[1] < Wbuffer.dims[1]; Wpixel[1]++) {
-            Rpixel[1] = W2R(1); Rpos[1] = Rpixel[1] * Rstride[1] + Rpos[2];
-            for (Wpixel[0] = 0; Wpixel[0] < Wbuffer.dims[0]; Wpixel[0]++) {
-              Rpixel[0] = W2R(0); Rpos[0] = Rpixel[0] * Rstride[0] + Rpos[1];
-              W[Wpos++] = R[Rpos[0]];
-            }
-          }
-        }
-      }
-      else
-      {
-        for (auto it = ForEachPoint(Wbuffer.dims); !it.end(); it.next())
-        {
-          Wpixel = it.pos;
-          Rpixel = PointNi::clamp(Rsamples.logicToPixel(Wsamples.pixelToLogic(Wpixel)), zero, Rbuffer.dims - one);
-          W[Wpos++] = R[Rpixel.dot(Rstride)];
-        }
-      }
-    }
-    return true;
-  }
-};
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
@@ -967,51 +886,7 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
   return true;
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
-void IdxDataset::nextBoxQuery(SharedPtr<BoxQuery> query)
-{
-  if (!query)
-    return;
 
-  if (!(query->isRunning() && query->getCurrentResolution() == query->getEndResolution()))
-    return;
-
-  //reached the end? 
-  if (query->end_resolution == query->end_resolutions.back())
-    return query->setOk();
-
-  auto Rcurrent_resolution = query->getCurrentResolution();
-  auto Rsamples = query->logic_samples;
-  auto Rbuffer = query->buffer;
-  auto Rfilter_query = query->filter.query;
-
-  int index = Utils::find(query->end_resolutions, query->end_resolution) + 1;
-  int end_resolution = query->end_resolutions[index];
-  VisusReleaseAssert(setBoxQueryEndResolution(query,end_resolution));
-
-  //asssume no merging
-  query->buffer = Array();
-
-  if (!query->allocateBufferIfNeeded())
-    return query->setFailed(query->aborted() ? "query aborted" : "out of memory");
-
-  //cannot merge, scrgiorgio: can it really happen??? (maybe when I produce numpy arrays by projecting script...)
-  if (!Rsamples.valid() || Rsamples.nsamples != Rbuffer.dims)
-    return;
-
-  //solve the problem of missing blocks here...
-  InterpolateBufferOperation op;
-  if (!ExecuteOnCppSamples(op, query->buffer.dtype, query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
-    return query->setFailed(query->aborted() ? "query aborted" : "merge of samples (interpolate) failed");
-
-  //I must be sure that 'inserted samples' from Rbuffer must be untouched in Wbuffer
-  //this is for wavelets where I need the coefficients to be right
-  if (!insertSamples(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
-    return query->setFailed(query->aborted() ? "query aborted" : "merge of samples (insert) failed");
-
-  query->filter.query = Rfilter_query;
-  query->setCurrentResolution(Rcurrent_resolution);
-}
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -1020,98 +895,15 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPt
   if (!query->allocateBufferIfNeeded())
     return false;
 
-  if (bool bRowMajor = block_query->buffer.layout.empty())
-  {
-    VisusAssert(query->field.dtype == block_query->field.dtype);
-
-    auto bitsperblock = getDefaultBitsPerBlock();
-    DatasetBitmask bitmask = this->idxfile.bitmask;
-    int            hstart = std::max(query->getCurrentResolution() + 1, block_query->blockid == 0 ? 0 : block_query->H);
-    int            hend = std::min(query->getEndResolution(), block_query->H);
-
-    auto Bsamples = block_query->logic_samples;
-
-    if (!Bsamples.valid())
-      return false;
-
-    auto Wsamples = query->logic_samples;
-    auto Wbuffer = query->buffer;
-
-    auto Rsamples = Bsamples;
-    auto Rbuffer = block_query->buffer;
-
-    if (query->mode == 'w')
-    {
-      std::swap(Wsamples, Rsamples);
-      std::swap(Wbuffer, Rbuffer);
-    }
-
-    if (block_query->blockid == 0)
-    {
-      /* Important note
-      Merging directly the block:
-
-        return query->mode=='w'?
-          merge(Bbox,query_samples):
-          merge(query_samples,Bbox);
-
-      is wrong. In fact there are queries with filters that need to go level by level (coarse to fine).
-      If I do the wrong way:
-
-      filter-query:=
-        Q(H=0)             <- I would directly merge block 0
-        Q(H=1)             <- I would directly merge block 0. WRONG!!! I cannot overwrite samples belonging to H=0 since they have the filter already applied
-        ...
-        Q(H=bitsperblock)
-
-      */
-
-      for (int H = hstart; !query->aborted() && H <= hend; ++H)
-      {
-        auto Lsamples = this->level_samples[H];
-        auto Lbuffer = Array(Lsamples.nsamples, block_query->field.dtype);
-
-        /*
-        NOTE the pipeline is:
-             Wsamples <- Lsamples <- Rsamples
-
-         but since it can be that Rsamples writes only a subset of Lsamples
-         i.e.  I allocate Lsamples buffer and one of its samples at position P is not written by Rsamples
-               that sample P will overwrite some Wsamples P'
-
-         For this reason I do at the beginning:
-
-          LbLsamplesox <- Wsamples
-
-        int this way I'm sure that all Wsamples P' are left unmodified
-
-        Note also that merge can fail simply because there are no samples to merge at a certain level
-        */
-
-        insertSamples(Lsamples, Lbuffer, Wsamples, Wbuffer, query->aborted);
-        insertSamples(Lsamples, Lbuffer, Rsamples, Rbuffer, query->aborted);
-        insertSamples(Wsamples, Wbuffer, Lsamples, Lbuffer, query->aborted);
-      }
-
-      return query->aborted() ? false : true;
-    }
-    else
-    {
-      VisusAssert(hstart == hend);
-      return insertSamples(Wsamples, Wbuffer, Rsamples, Rbuffer, query->aborted);
-    }
-  }
-  else
+  if (bool bHzOrder=!block_query->buffer.layout.empty())
   {
     //block query is hzorder, query is rowmajor
     ConvertHzOrderSamples op;
     return NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get());
   }
+
+  return Dataset::mergeBoxQueryWithBlockQuery(query, block_query);
 }
-
-
-
-
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////

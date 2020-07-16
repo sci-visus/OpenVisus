@@ -79,9 +79,6 @@ public:
 
 public:
 
-  //nextBoxQuery
-  virtual void nextBoxQuery(SharedPtr<BoxQuery> query) override;
-
   //executeBoxQuery
   virtual bool executeBoxQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
 
