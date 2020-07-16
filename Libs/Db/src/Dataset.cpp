@@ -266,15 +266,12 @@ SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, dou
 
     auto coord = bitmask.deinterleave(blockid - first_block_in_level, H - bitsperblock);
     auto p0 = coord.innerMultiply(block_samples[H].logic_box.size());
-    auto p1 = p0 + block_samples[H].logic_box.size();
 
     ret->H = H;
-    ret->logic_samples = LogicSamples(BoxNi(p0, p1), block_samples[H].delta);
+    ret->logic_samples = LogicSamples(block_samples[H].logic_box.translate(p0), block_samples[H].delta);
   }
   else
   {
-
-
     auto HzFrom = blockid * samplesperblock;
 
     auto H = std::max(bitsperblock, HzOrder::getAddressResolution(bitmask, HzFrom));
