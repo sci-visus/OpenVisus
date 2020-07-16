@@ -580,28 +580,30 @@ std::vector<int> Dataset::guessBoxQueryEndResolutions(Frustum logic_to_screen, P
 //////////////////////////////////////////////////////////////
 void Dataset::beginBoxQuery(SharedPtr<BoxQuery> query)
 {
-  VisusReleaseAssert(bBlocksAreFullRes);
-
   if (!query)
     return;
 
   if (query->getStatus() != Query::QueryCreated)
     return;
 
-  if (query->mode == 'w')
-    return query->setFailed("Writing mode not suppoted");
-
   if (query->aborted())
     return query->setFailed("query aborted");
 
+  if (!query->field.valid())
+    return query->setFailed("field not valid");
+
+  // override time from field
+  if (query->field.hasParam("time"))
+    query->time = cdouble(query->field.getParam("time"));
+
+  if (!getTimesteps().containsTimestep(query->time))
+    return query->setFailed("wrong time");
+
   if (!query->logic_box.valid())
-    return query->setFailed("query logic position not valid");
+    return query->setFailed("query logic_box not valid");
 
   if (!query->logic_box.getIntersection(this->getLogicBox()).isFullDim())
     return query->setFailed("user_box not valid");
-
-  if (query->start_resolution != 0)
-    return query->setFailed("query start position wrong");
 
   if (query->end_resolutions.empty())
     query->end_resolutions = { this->getMaxResolution() };
@@ -619,9 +621,35 @@ void Dataset::beginBoxQuery(SharedPtr<BoxQuery> query)
     query->end_resolutions = std::vector<int>(good.begin(), good.end());
   }
 
-  for (auto end_resolution : query->end_resolutions)
+  //end resolution
+  for (auto it : query->end_resolutions)
   {
-    if (setBoxQueryEndResolution(query, end_resolution))
+    if (it <0 || it> this->getMaxResolution())
+      return query->setFailed("wrong end resolution");
+  }
+
+  //start_resolution
+  if (query->start_resolution > 0)
+  {
+    if (query->end_resolutions.size() != 1 || query->start_resolution != query->end_resolutions[0])
+      return query->setFailed("wrong query start resolution");
+  }
+
+  //filters?
+  if (query->filter.enabled)
+  {
+    if (!query->filter.dataset_filter)
+    {
+      query->filter.dataset_filter = createFilter(query->field);
+
+      if (!query->filter.dataset_filter)
+        query->disableFilters();
+    }
+  }
+
+  for (auto it : query->end_resolutions)
+  {
+    if (setBoxQueryEndResolution(query, it))
       return query->setRunning();
   }
 

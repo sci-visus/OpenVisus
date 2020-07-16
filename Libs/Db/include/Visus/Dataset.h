@@ -379,6 +379,9 @@ public:
   //mergeBoxQueryWithBlockQuery
   virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query);
 
+  //setBoxQueryEndResolution
+  virtual bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value);
+
   //createBoxQueryRequest
   virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query);
 
@@ -468,10 +471,6 @@ protected:
 
   std::vector<LogicSamples> level_samples;
   std::vector<LogicSamples> block_samples;
-
-
-  //setBoxQueryEndResolution
-  bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value);
 
 };
 

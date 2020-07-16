@@ -688,68 +688,6 @@ public:
   }
 };
 
-//////////////////////////////////////////////////////////////////////////////////////////
-void IdxDataset::beginBoxQuery(SharedPtr<BoxQuery> query) 
-{
-  if (!query)
-    return;
-
-  if (query->getStatus() != Query::QueryCreated)
-    return;
-
-  if (query->aborted())
-    return query->setFailed("query aborted");
-
-  if (!query->field.valid())
-    return query->setFailed("field not valid");
-
-  if (!query->logic_box.valid())
-    return query->setFailed("position not valid");
-
-  // override time from field
-  if (query->field.hasParam("time"))
-    query->time = cdouble(query->field.getParam("time"));
-
-  if (!getTimesteps().containsTimestep(query->time))
-    return query->setFailed("wrong time");
-
-  if (query->end_resolutions.empty())
-    query->end_resolutions = { this->getMaxResolution() };
-
-  for (int I = 0; I < (int)query->end_resolutions.size(); I++)
-  {
-    if (query->end_resolutions[I] <0 || query->end_resolutions[I]> this->getMaxResolution())
-      return query->setFailed("wrong end resolution");
-  }
-
-  if (query->start_resolution > 0 && (query->end_resolutions.size() != 1 || query->start_resolution != query->end_resolutions[0]))
-    return query->setFailed("wrong query start resolution");
-
-  if (!query->logic_box.valid())
-    return query->setFailed("query logic_position is wrong");
-
-  if (query->filter.enabled)
-  {
-    if (!query->filter.dataset_filter)
-    {
-      query->filter.dataset_filter = createFilter(query->field);
-
-      if (!query->filter.dataset_filter)
-        query->disableFilters();
-    }
-  }
-
-  for (auto end_resolution : query->end_resolutions)
-  {
-    if (setBoxQueryEndResolution(query, end_resolution))
-    {
-      query->setRunning();
-      return;
-    }
-  }
-
-  query->setFailed();
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)

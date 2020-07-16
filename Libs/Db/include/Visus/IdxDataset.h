@@ -79,9 +79,6 @@ public:
 
 public:
 
-  //beginBoxQuery
-  virtual void beginBoxQuery(SharedPtr<BoxQuery> query) override;
-
   //nextBoxQuery
   virtual void nextBoxQuery(SharedPtr<BoxQuery> query) override;
 
@@ -90,6 +87,9 @@ public:
 
   //mergeBoxQueryWithBlockQuery
   virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) override;
+
+  //setBoxQueryEndResolution
+  virtual  bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value) override;
 
 public:
 
@@ -118,9 +118,6 @@ protected:
   // But keep in mind that this "preprocessing" is slow and can consume  a lot of memory. 
   // So use only when stricly necessary! 
   SharedPtr<PointQueryHzConversion> hzaddress_conversion_pointquery;
-
-  //setBoxQueryEndResolution
-  bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value);
 
 };
 
