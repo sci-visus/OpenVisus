@@ -47,10 +47,9 @@ For support : support@visus.net
 namespace Visus {
 
 #if !SWIG
-class IdxBoxQueryHzAddressConversion;
-class IdxPointQueryHzAddressConversion;
+class BoxQueryHzConversion;
+class PointQueryHzConversion;
 #endif
-
 
   //////////////////////////////////////////////////////////////////////
 class VISUS_DB_API IdxDataset : public Dataset
@@ -92,9 +91,6 @@ public:
   //mergeBoxQueryWithBlockQuery
   virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) override;
 
-  //adjustBoxQueryFilterBox
-  BoxNi adjustBoxQueryFilterBox(BoxQuery* query, IdxFilter* filter, BoxNi box, int H);
-
 public:
 
   //executeBoxQuery
@@ -105,16 +101,6 @@ public:
   //compressDataset
   void compressDataset(std::vector<String> compression, Array data=Array());
 
-public:
-
-  //createFilter
-  SharedPtr<IdxFilter> createFilter(const Field& field);
-
-  //computeFilter
-  bool computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow, bool bVerbose=false) ;
-
-  //computeFilter
-  void computeFilter(const Field& field, int window_size, bool bVerbose = false);
 
 public:
 
@@ -126,22 +112,15 @@ protected:
   friend class ConvertHzOrderSamples;
   friend class IdxMultipleDataset;
 
-  SharedPtr<IdxBoxQueryHzAddressConversion> hzaddress_conversion_boxquery;
+  SharedPtr<BoxQueryHzConversion> hzaddress_conversion_boxquery;
 
   // to speed up point queries
   // But keep in mind that this "preprocessing" is slow and can consume  a lot of memory. 
   // So use only when stricly necessary! 
-  SharedPtr<IdxPointQueryHzAddressConversion> hzaddress_conversion_pointquery;
+  SharedPtr<PointQueryHzConversion> hzaddress_conversion_pointquery;
 
   //setBoxQueryEndResolution
   bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value);
-
-
-  //createBoxQueryAddressConversion
-  void createBoxQueryAddressConversion();
-
-  //createPointQueryAddressConversion
-  void createPointQueryAddressConversion();
 
 };
 
