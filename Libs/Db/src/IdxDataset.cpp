@@ -1092,7 +1092,7 @@ bool IdxDataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value)
   query->end_resolution = value;
 
   auto start_resolution = query->start_resolution;
-  auto end_resolution = query->end_resolution;
+  auto end_resolution   = query->end_resolution;
   auto logic_box = query->logic_box.withPointDim(this->getPointDim());
 
   //special case for query with filters
@@ -1103,11 +1103,12 @@ bool IdxDataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value)
     logic_box = this->adjustBoxQueryFilterBox(query.get(), filter.get(), logic_box, end_resolution);
     query->filter.adjusted_logic_box = logic_box;
   }
+  
+  PointNi delta = this->level_samples[end_resolution].delta;
 
-  //I get twice the samples of the samples!
-  PointNi DELTA = this->level_samples[end_resolution].delta;
+  //I get twice the samples of the samples because I'm allowing the blocking '1' bit to be anything coming from previous levels
   if (start_resolution == 0 && end_resolution > 0)
-    DELTA[bitmask[end_resolution]] >>= 1;
+    delta[bitmask[end_resolution]] >>= 1;
 
   PointNi P1incl, P2incl;
   for (int H = start_resolution; H <= end_resolution; H++)
@@ -1129,7 +1130,8 @@ bool IdxDataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value)
   if (!P1incl.getPointDim())
     return false;
 
-  query->logic_samples = LogicSamples(BoxNi(P1incl, P2incl + DELTA), DELTA);
+  logic_box = BoxNi(P1incl, P2incl + delta);
+  query->logic_samples = LogicSamples(logic_box, delta);
   VisusAssert(query->logic_samples.valid());
   return true;
 
