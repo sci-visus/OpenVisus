@@ -241,23 +241,24 @@ SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, dou
   ret->blockid = blockid;
 
   auto bitmask = getBitmask();
-  int pdim = getPointDim();
   auto bitsperblock = getDefaultBitsPerBlock();
   auto samplesperblock = 1 << bitsperblock;
 
+  int H;
+  if (bBlocksAreFullRes)
+    H = blockid == 0 ? bitsperblock : bitsperblock + 0 + Utils::getLog2(1 + blockid);
+  else
+    H = blockid == 0 ? bitsperblock : bitsperblock + 1 + Utils::getLog2(0 + blockid);
+
+  auto delta = block_samples[H].delta;
+
+  //for first block I get twice the samples sice the blocking '1' can be '0' considering all previous levels from 'V'
+  if (blockid==0 && !bBlocksAreFullRes)
+    delta[bitmask[H]] >>= 1;
+
+  PointNi p0;
   if (bBlocksAreFullRes)
   {
-    //Get H from blockid. Example:
-            //  bitsperblock=16  
-            //  bitmask V010101010101010101010101010101010101010101010101010101010101
-            //
-            //  blockid=0 H=16+Utils::getLog2(1+0)=16+0=16
-            //  blockid=1 H=16+Utils::getLog2(1+1)=16+1=17
-            //  blockid=2 H=16+Utils::getLog2(1+2)=16+1=17
-            //  blockid=3 H=16+Utils::getLog2(1+3)=16+2=18
-            //  ....
-    auto H = bitsperblock + Utils::getLog2(1 + blockid);
-
     //Example:
     // H=bitsperblock+0   first_block_in_level=(1<<0)-1=0
     // H=bitsperblock+1   first_block_in_level=(1<<1)-1=1
@@ -265,28 +266,16 @@ SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, dou
     Int64 first_block_in_level = (((Int64)1) << (H - bitsperblock)) - 1;
 
     auto coord = bitmask.deinterleave(blockid - first_block_in_level, H - bitsperblock);
-    auto p0 = coord.innerMultiply(block_samples[H].logic_box.size());
+    p0 = coord.innerMultiply(block_samples[H].logic_box.size());
 
-    ret->H = H;
-    ret->logic_samples = LogicSamples(block_samples[H].logic_box.translate(p0), block_samples[H].delta);
   }
   else
   {
-    auto HzFrom = blockid * samplesperblock;
-
-    auto H = std::max(bitsperblock, HzOrder::getAddressResolution(bitmask, HzFrom));
-    auto delta = block_samples[H].delta;
-
-    //for first block I get twice the samples sice the blocking '1' can be '0' considering all previous levels from 'V'
-    delta[bitmask[H]] >>= (blockid == 0) ? 1 : 0;
-
-    auto p0 = HzOrder(bitmask).hzAddressToPoint(HzFrom);
-    auto box = block_samples[H].logic_box.translate(p0);
-
-    ret->H = H;
-    ret->logic_samples = LogicSamples(box, delta);
+    p0 = HzOrder(bitmask).hzAddressToPoint(blockid * samplesperblock);
   }
 
+  ret->H = H;
+  ret->logic_samples = LogicSamples(block_samples[H].logic_box.translate(p0), delta);
   VisusAssert(ret->logic_samples.valid());
   return ret;
 }
