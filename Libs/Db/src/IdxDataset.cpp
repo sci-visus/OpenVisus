@@ -1454,38 +1454,41 @@ void IdxDataset::readDatasetFromArchive(Archive& ar)
 
   //create hz address conversion for box query
   {
-    ScopedLock lock(hz_address_conversion.boxquery.lock);
-
-    auto it = hz_address_conversion.boxquery.map.find(key);
-    if (it != hz_address_conversion.boxquery.map.end())
-      this->hzaddress_conversion_boxquery = it->second;
-  }
-
-  if (!this->hzaddress_conversion_boxquery)
-  {
-    this->hzaddress_conversion_boxquery = std::make_shared<BoxQueryHzConversion>(bitmask);
+    auto& conv = hz_address_conversion.boxquery;
     {
-      ScopedLock lock(hz_address_conversion.boxquery.lock);
-      hz_address_conversion.boxquery.map[key] = this->hzaddress_conversion_boxquery;
+      ScopedLock lock(conv.lock);
+      if (conv.map.count(key))
+        this->hzaddress_conversion_boxquery = conv.map[key];
+    }
+
+    if (!this->hzaddress_conversion_boxquery)
+    {
+      this->hzaddress_conversion_boxquery = std::make_shared<BoxQueryHzConversion>(bitmask);
+      {
+        ScopedLock lock(conv.lock);
+        conv.map[key] = this->hzaddress_conversion_boxquery;
+      }
     }
   }
 
   //create the loc-cache only for 3d data, in 2d I know I'm not going to use it!
   //instead in 3d I will use it a lot (consider a slice in odd position)
-  if (bitmask.getPointDim() == 3 && !this->hzaddress_conversion_pointquery)
   {
-      ScopedLock lock(hz_address_conversion.pointquery.lock);
-      auto it = hz_address_conversion.pointquery.map.find(key);
-      if (it != hz_address_conversion.pointquery.map.end())
-        this->hzaddress_conversion_pointquery = it->second;
-    }
-
-    if (!this->hzaddress_conversion_pointquery)
+    auto& conv = hz_address_conversion.pointquery;
+    if (bitmask.getPointDim() == 3 && !this->hzaddress_conversion_pointquery)
     {
-      this->hzaddress_conversion_pointquery = std::make_shared<PointQueryHzConversion>(bitmask);
+        ScopedLock lock(conv.lock);
+        if (conv.map.count(key))
+          this->hzaddress_conversion_pointquery = conv.map[key];
+      }
+
+      if (!this->hzaddress_conversion_pointquery)
       {
-        ScopedLock lock(hz_address_conversion.pointquery.lock);
-        hz_address_conversion.pointquery.map[key] = this->hzaddress_conversion_pointquery;
+        this->hzaddress_conversion_pointquery = std::make_shared<PointQueryHzConversion>(bitmask);
+        {
+          ScopedLock lock(conv.lock);
+          conv.map[key] = this->hzaddress_conversion_pointquery;
+        }
       }
     }
   }
