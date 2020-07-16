@@ -89,9 +89,6 @@ public:
   //executeBoxQuery
   virtual bool executeBoxQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
 
-  //createBoxQueryRequest
-  virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query) override;
-
   //mergeBoxQueryWithBlockQuery
   virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) override;
 
@@ -100,30 +97,8 @@ public:
 
 public:
 
-  //constructor
-  virtual SharedPtr<PointQuery> createPointQuery(Position logic_position, Field field, double time, Aborted aborted = Aborted()) override;
-
-
-  //guessPointQueryEndResolutions
-  virtual std::vector<int> guessPointQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression) override;
-
-  //guessPointQueryNumberOfSamples
-  PointNi guessPointQueryNumberOfSamples(Frustum logic_to_screen, Position logic_position, int end_resolution) override;
-
-  //beginPointQuery
-  virtual void beginPointQuery(SharedPtr<PointQuery> query) override;
-
   //executeBoxQuery
   virtual bool executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) override;
-
-  //nextPointQuery
-  virtual void nextPointQuery(SharedPtr<PointQuery> query) override;
-
-  //createPointQueryRequest
-  NetRequest createPointQueryRequest(SharedPtr<PointQuery> query);
-
-  //executePointQueryOnServer
-  bool executePointQueryOnServer(SharedPtr<PointQuery> query);
 
 public:
 
@@ -148,7 +123,7 @@ public:
 
 protected:
 
-  friend class InsertBlockQueryHzOrderSamplesToBoxQuery;
+  friend class ConvertHzOrderSamples;
   friend class IdxMultipleDataset;
 
   SharedPtr<IdxBoxQueryHzAddressConversion> hzaddress_conversion_boxquery;
@@ -161,8 +136,6 @@ protected:
   //setBoxQueryEndResolution
   bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value);
 
-  //executeBoxQueryOnServer
-  bool executeBoxQueryOnServer(SharedPtr<BoxQuery> query);
 
   //createBoxQueryAddressConversion
   void createBoxQueryAddressConversion();
