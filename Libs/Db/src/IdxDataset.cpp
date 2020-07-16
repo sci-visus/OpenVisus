@@ -48,6 +48,60 @@ For support : support@visus.net
 
 namespace Visus {
 
+static CriticalSection                                                                HZADDRESS_CONVERSION_BOXQUERY_LOCK;
+static std::map<String, SharedPtr<IdxBoxQueryHzAddressConversion> >                   HZADDRESS_CONVERSION_BOXQUERY;
+
+static CriticalSection                                                                HZADDRESS_CONVERSION_POINTQUERY_LOCK;
+static std::map<std::pair<String, int>, SharedPtr<IdxPointQueryHzAddressConversion> > HZADDRESS_CONVERSION_POINTQUERY;
+
+////////////////////////////////////////////////////////////
+void IdxDataset::createBoxQueryAddressConversion()
+{
+  auto key = bitmask.toString();
+  {
+    ScopedLock lock(HZADDRESS_CONVERSION_BOXQUERY_LOCK);
+    auto it = HZADDRESS_CONVERSION_BOXQUERY.find(key);
+    if (it != HZADDRESS_CONVERSION_BOXQUERY.end())
+      this->hzaddress_conversion_boxquery = it->second;
+  }
+
+  if (!this->hzaddress_conversion_boxquery)
+  {
+    this->hzaddress_conversion_boxquery = std::make_shared<IdxBoxQueryHzAddressConversion>(bitmask);
+    {
+      ScopedLock lock(HZADDRESS_CONVERSION_BOXQUERY_LOCK);
+      HZADDRESS_CONVERSION_BOXQUERY[key] = this->hzaddress_conversion_boxquery;
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////
+void IdxDataset::createPointQueryAddressConversion()
+{
+  //create the loc-cache only for 3d data, in 2d I know I'm not going to use it!
+  //instead in 3d I will use it a lot (consider a slice in odd position)
+  if (bitmask.getPointDim() != 3 || this->hzaddress_conversion_pointquery)
+    return;
+
+  auto key = std::make_pair(bitmask.toString(), this->getMaxResolution());
+  {
+    ScopedLock lock(HZADDRESS_CONVERSION_POINTQUERY_LOCK);
+    auto it = HZADDRESS_CONVERSION_POINTQUERY.find(key);
+    if (it != HZADDRESS_CONVERSION_POINTQUERY.end())
+      this->hzaddress_conversion_pointquery = it->second;
+  }
+
+  if (!this->hzaddress_conversion_pointquery)
+  {
+    this->hzaddress_conversion_pointquery = std::make_shared<IdxPointQueryHzAddressConversion>(bitmask);
+    {
+      ScopedLock lock(HZADDRESS_CONVERSION_POINTQUERY_LOCK);
+      HZADDRESS_CONVERSION_POINTQUERY[key] = this->hzaddress_conversion_pointquery;
+    }
+  }
+}
+
+
 //////////////////////////////////////////////////////////////////////////////
 class IdxMandelbrotAccess : public Access
 {
@@ -467,7 +521,6 @@ IdxDataset::IdxDataset() {
 IdxDataset::~IdxDataset(){
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////////
 void IdxDataset::compressDataset(std::vector<String> compression, Array data)
 {
@@ -637,43 +690,7 @@ void IdxDataset::compressDataset(std::vector<String> compression, Array data)
     FileUtils::removeFile(compressed_idx_filename);
   }
 }
-///////////////////////////////////////////////////////////////////////////////////
-BoxNi IdxDataset::adjustBoxQueryFilterBox(BoxQuery* query,IdxFilter* filter,BoxNi user_box,int H) 
-{
-  //there are some case when I need alignment with pow2 box, for example when doing kdquery=box with filters
-  auto bitmask = idxfile.bitmask;
-  int pdim = bitmask.getPointDim();
 
-  PointNi delta=this->level_samples[H].delta;
-
-  BoxNi domain = query->filter.domain;
-
-  //important! for the filter alignment
-  BoxNi box= user_box.getIntersection(domain);
-
-  if (!box.isFullDim())
-    return box;
-
-  PointNi filterstep=filter->getFilterStep(H);
-
-  for (int D=0;D<pdim;D++) 
-  {
-    //what is the world step of the filter at the current resolution
-    Int64 FILTERSTEP=filterstep[D];
-
-    //means only one sample so no alignment
-    if (FILTERSTEP==1) 
-      continue;
-
-    box.p1[D]=Utils::alignLeft(box.p1[D]  ,(Int64)0,FILTERSTEP);
-    box.p2[D]=Utils::alignLeft(box.p2[D]-1,(Int64)0,FILTERSTEP)+FILTERSTEP; 
-  }
-
-  //since I've modified the box I need to do the intersection with the box again
-  //important: this intersection can cause a misalignment, but applyToQuery will handle it (see comments)
-  box= box.getIntersection(domain);
-  return box;
-}
 
 ////////////////////////////////////////////////////////////////////////
 SharedPtr<BoxQuery> IdxDataset::createEquivalentBoxQuery(int mode,SharedPtr<BlockQuery> block_query)
@@ -780,59 +797,6 @@ SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuer
   return Dataset::createAccess(config, bForBlockQuery);
 }
 
-
-static CriticalSection                                                                HZADDRESS_CONVERSION_BOXQUERY_LOCK;
-static std::map<String, SharedPtr<IdxBoxQueryHzAddressConversion> >                   HZADDRESS_CONVERSION_BOXQUERY;
-
-static CriticalSection                                                                HZADDRESS_CONVERSION_POINTQUERY_LOCK;
-static std::map<std::pair<String,int> , SharedPtr<IdxPointQueryHzAddressConversion> > HZADDRESS_CONVERSION_POINTQUERY;
-
-////////////////////////////////////////////////////////////
-void IdxDataset::createBoxQueryAddressConversion()
-{
-  auto key = bitmask.toString();
-  {
-    ScopedLock lock(HZADDRESS_CONVERSION_BOXQUERY_LOCK);
-    auto it = HZADDRESS_CONVERSION_BOXQUERY.find(key);
-    if (it != HZADDRESS_CONVERSION_BOXQUERY.end())
-      this->hzaddress_conversion_boxquery = it->second;
-  }
-
-  if (!this->hzaddress_conversion_boxquery)
-  {
-    this->hzaddress_conversion_boxquery = std::make_shared<IdxBoxQueryHzAddressConversion>(bitmask);
-    {
-      ScopedLock lock(HZADDRESS_CONVERSION_BOXQUERY_LOCK);
-      HZADDRESS_CONVERSION_BOXQUERY[key] = this->hzaddress_conversion_boxquery;
-    }
-  }
-}
-
-////////////////////////////////////////////////////////////
-void IdxDataset::createPointQueryAddressConversion()
-{
-  //create the loc-cache only for 3d data, in 2d I know I'm not going to use it!
-  //instead in 3d I will use it a lot (consider a slice in odd position)
-  if (bitmask.getPointDim() != 3 || this->hzaddress_conversion_pointquery)
-    return;
-
-  auto key = std::make_pair(bitmask.toString(), this->getMaxResolution());
-  {
-    ScopedLock lock(HZADDRESS_CONVERSION_POINTQUERY_LOCK);
-    auto it = HZADDRESS_CONVERSION_POINTQUERY.find(key);
-    if (it != HZADDRESS_CONVERSION_POINTQUERY.end())
-      this->hzaddress_conversion_pointquery = it->second;
-  }
-
-  if (!this->hzaddress_conversion_pointquery)
-  {
-    this->hzaddress_conversion_pointquery = std::make_shared<IdxPointQueryHzAddressConversion>(bitmask);
-    {
-      ScopedLock lock(HZADDRESS_CONVERSION_POINTQUERY_LOCK);
-      HZADDRESS_CONVERSION_POINTQUERY[key] = this->hzaddress_conversion_pointquery;
-    }
-  }
-}
 
 //////////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> block_query)
@@ -1050,7 +1014,6 @@ void IdxDataset::beginBoxQuery(SharedPtr<BoxQuery> query)
 bool IdxDataset::executeBoxQueryOnServer(SharedPtr<BoxQuery> query)
 {
   auto request = createBoxQueryRequest(query);
-
   if (!request.valid())
   {
     query->setFailed("cannot create box query request");
@@ -1058,7 +1021,6 @@ bool IdxDataset::executeBoxQueryOnServer(SharedPtr<BoxQuery> query)
   }
 
   auto response = NetService::getNetResponse(request);
-
   if (!response.isSuccessful())
   {
     query->setFailed(cstring("network request failed", cnamed("errormsg", response.getErrorMessage())));
@@ -1363,8 +1325,6 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
   return true;
 }
 
-
-
 ////////////////////////////////////////////////////////////////////////////////
 class InterpolateOp
 {
@@ -1432,7 +1392,6 @@ public:
     return true;
   }
 };
-
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -1823,11 +1782,11 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
   return true;
 }
 
-
-
 /////////////////////////////////////////////////////////
 SharedPtr<PointQuery> IdxDataset::createPointQuery(Position logic_position, Field field, double time, Aborted aborted)
 {
+  VisusAssert(!bBlocksAreFullRes);
+
   auto ret = std::make_shared<PointQuery>();
   ret->dataset = this;
   ret->field = field = field;
@@ -1841,6 +1800,8 @@ SharedPtr<PointQuery> IdxDataset::createPointQuery(Position logic_position, Fiel
 /// ///////////////////////////////////////////////////////////////////////////
 std::vector<int> IdxDataset::guessPointQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression)
 {
+  VisusAssert(!bBlocksAreFullRes);
+
   if (!logic_position.valid())
     return {};
 
@@ -1908,6 +1869,8 @@ std::vector<int> IdxDataset::guessPointQueryEndResolutions(Frustum logic_to_scre
 /// ///////////////////////////////////////////////////////////////////////////
 PointNi IdxDataset::guessPointQueryNumberOfSamples(Frustum logic_to_screen, Position logic_position, int end_resolution)
 {
+  VisusAssert(!bBlocksAreFullRes);
+
   //*********************************************************************
   // valerio's algorithm, find the final view dependent resolution (endh)
   // (the default endh is the maximum resolution available)
@@ -1994,6 +1957,8 @@ PointNi IdxDataset::guessPointQueryNumberOfSamples(Frustum logic_to_screen, Posi
 //////////////////////////////////////////////////////////////////////////////////////////
 void IdxDataset::nextPointQuery(SharedPtr<PointQuery> query)
 {
+  VisusAssert(!bBlocksAreFullRes);
+
   if (!query)
     return;
 
@@ -2008,10 +1973,51 @@ void IdxDataset::nextPointQuery(SharedPtr<PointQuery> query)
   query->end_resolution = query->end_resolutions[index + 1];
 }
 
+///////////////////////////////////////////////////////////////////////////////////
+BoxNi IdxDataset::adjustBoxQueryFilterBox(BoxQuery* query, IdxFilter* filter, BoxNi user_box, int H)
+{
+  VisusAssert(!bBlocksAreFullRes);
+
+  //there are some case when I need alignment with pow2 box, for example when doing kdquery=box with filters
+  auto bitmask = idxfile.bitmask;
+  int pdim = bitmask.getPointDim();
+
+  PointNi delta = this->level_samples[H].delta;
+
+  BoxNi domain = query->filter.domain;
+
+  //important! for the filter alignment
+  BoxNi box = user_box.getIntersection(domain);
+
+  if (!box.isFullDim())
+    return box;
+
+  PointNi filterstep = filter->getFilterStep(H);
+
+  for (int D = 0; D < pdim; D++)
+  {
+    //what is the world step of the filter at the current resolution
+    Int64 FILTERSTEP = filterstep[D];
+
+    //means only one sample so no alignment
+    if (FILTERSTEP == 1)
+      continue;
+
+    box.p1[D] = Utils::alignLeft(box.p1[D], (Int64)0, FILTERSTEP);
+    box.p2[D] = Utils::alignLeft(box.p2[D] - 1, (Int64)0, FILTERSTEP) + FILTERSTEP;
+  }
+
+  //since I've modified the box I need to do the intersection with the box again
+  //important: this intersection can cause a misalignment, but applyToQuery will handle it (see comments)
+  box = box.getIntersection(domain);
+  return box;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow, bool bVerbose )
 {
+  VisusAssert(!bBlocksAreFullRes);
+
   //this works only for filter_size==2, otherwise the building of the sliding_window is very difficult
   VisusAssert(filter->size == 2);
 
@@ -2136,6 +2142,8 @@ bool IdxDataset::computeFilter(SharedPtr<IdxFilter> filter, double time, Field f
 ///////////////////////////////////////////////////////////////////////////////
 void IdxDataset::computeFilter(const Field& field, int window_size,bool bVerbose)
 {
+  VisusAssert(!bBlocksAreFullRes);
+
   if (bVerbose)
     PrintInfo("starting filter computation...");
 
