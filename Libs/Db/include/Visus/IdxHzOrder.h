@@ -196,12 +196,12 @@ public:
   }
 
   //PointNd -> HzAddress
-  BigInt getAddress(const PointNi& p) const {
+  BigInt pointToHzAddress(const PointNi& p) const {
     return zAddressToHzAddress(interleave(p));
   }
 
   //HzAddress -> PointNd
-  PointNi getPoint(const BigInt& hz) const {
+  PointNi hzAddressToPoint(const BigInt& hz) const {
     return deinterleave(hzAddressToZAddress(hz));
   }
 
@@ -219,12 +219,12 @@ public:
   */
   PointNi getLevelDelta(int H) const
   {
-    VisusAssert(H>=0 && H<=maxh);
-    PointNi p=PointNi::one(pdim);
-    if (!H) H=1;
-    for (int K=maxh;K>=H;K--)
-      p[bitmask[K]]<<=1;
-    return p;
+		VisusAssert(H >= 0 && H <= maxh);
+		PointNi delta = PointNi::one(pdim);
+		if (!H) H = 1;
+		for (int K = maxh; K >= H; K--)
+      delta[bitmask[K]] <<= 1;
+		return delta;
   }
 
   //getLevelP1 (set the ...xx.. to 0)

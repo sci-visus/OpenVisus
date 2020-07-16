@@ -362,7 +362,7 @@ public:
       PointNi  lshift= Lsamples.shift;
 
       BoxNi   zbox = (HzFrom!=0)? block_logic_box : Lsamples.logic_box;
-      BigInt  hz   = hzorder.getAddress(zbox.p1);
+      BigInt  hz   = hzorder.pointToHzAddress(zbox.p1);
 
       BoxNi user_box= logic_box.getIntersection(zbox);
       BoxNi box= Lsamples.alignBox(user_box);
@@ -738,7 +738,7 @@ SharedPtr<BlockQuery> IdxDataset::createBlockQuery(BigInt blockid, Field field, 
       delta = hzorder.getLevelDelta(start_resolution);
     }
 
-    BoxNi box(hzorder.getPoint(HzFrom), hzorder.getPoint(HzTo - 1) + delta);
+    BoxNi box(hzorder.hzAddressToPoint(HzFrom), hzorder.hzAddressToPoint(HzTo - 1) + delta);
 
     ret->H = end_resolution;
     ret->logic_samples = LogicSamples(box, delta);
@@ -1337,7 +1337,7 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
       continue;
 
     //push first item
-    BigInt hz = hzorder.getAddress(Lsamples.logic_box.p1);
+    BigInt hz = hzorder.pointToHzAddress(Lsamples.logic_box.p1);
     {
       item.box = Lsamples.logic_box;
       item.H = H ? 1 : 0;
@@ -1883,7 +1883,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
         if (pdim >= 3) { p[2] = SRC[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; }
         if (pdim >= 4) { p[3] = SRC[3]; if (!(p[3] >= bounds.p1[3] && p[3] < bounds.p2[3])) continue; p[3] &= depth_mask[3]; }
         if (pdim >= 5) { p[4] = SRC[4]; if (!(p[4] >= bounds.p1[4] && p[4] < bounds.p2[4])) continue; p[4] &= depth_mask[4]; }
-        hzaddress = hzorder.getAddress(p);
+        hzaddress = hzorder.pointToHzAddress(p);
         blocks[hzaddress >> bitsperblock].push_back(std::make_pair(N, (int)(hzaddress % samplesperblock)));
       }
     }
