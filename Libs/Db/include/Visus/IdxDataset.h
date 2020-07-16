@@ -74,11 +74,6 @@ public:
 
 public:
 
-  //convertBlockQueryToRowMajor
-  virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) override;
-
-public:
-
   //executeBoxQuery
   virtual bool executeBoxQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
 
@@ -89,12 +84,6 @@ public:
 
   //executeBoxQuery
   virtual bool executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) override;
-
-public:
-
-  //compressDataset
-  void compressDataset(std::vector<String> compression, Array data=Array());
-
 
 public:
 

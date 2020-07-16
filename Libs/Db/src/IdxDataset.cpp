@@ -387,219 +387,6 @@ IdxDataset::IdxDataset() {
 IdxDataset::~IdxDataset(){
 }
 
-///////////////////////////////////////////////////////////////////////////////////
-void IdxDataset::compressDataset(std::vector<String> compression, Array data)
-{
-  // for future version: here I'm making the assumption that a file contains multiple fields
-  if (idxfile.version != 6)
-    ThrowException("unsupported");
-
-  //PrintInfo("Compressing dataset", StringUtils::join(compression));
-
-  int nlevels = getMaxResolution() + 1;
-  VisusReleaseAssert(compression.size() <= nlevels);
-
-  // example ["zip","jpeg","jpeg"] means last level "jpeg", last-level-minus-one "jpeg" all others zip
-  while (compression.size() < nlevels)
-    compression.insert(compression.begin(), compression.front());
-
-  //save the new idx file oonly if compression is equal for all levels
-  if (std::set<String>(compression.begin(), compression.end()).size() == 1)
-  {
-    for (auto& field : idxfile.fields)
-      field.default_compression = compression[0];
-
-    String filename = Url(getUrl()).getPath();
-    idxfile.save(filename);
-  }
-
-  if (data.valid())
-  {
-    //data will replace current data
-    //write BoxQuery(==data) to BlockQuery(==RAM)
-    auto query = createBoxQuery(getLogicBox(), 'w');
-    beginBoxQuery(query);
-    VisusReleaseAssert(query->isRunning());
-    VisusAssert(query->getNumberOfSamples() == data.dims);
-    query->buffer = data;
-
-    auto Waccess = std::make_shared<IdxDiskAccess>(this);
-    Waccess->disableWriteLock();
-    Waccess->disableAsync();
-
-    auto Raccess = std::make_shared<RamAccess>(getDefaultBitsPerBlock());
-    Raccess->setAvailableMemory(/* no memory limit*/0);
-
-    Raccess->disableWriteLock();
-    VisusReleaseAssert(executeBoxQuery(Raccess, query));
-
-    //read blocks are in RAM assuming there is no file yet stored on disk
-    Raccess->beginRead();
-    Waccess->beginWrite();
-    for (auto time : idxfile.timesteps.asVector())
-    {
-      for (BigInt blockid = 0, total_blocks = getTotalNumberOfBlocks(); blockid < total_blocks; blockid++)
-      {
-        for (auto Rfield : idxfile.fields)
-        {
-          auto read_block = createBlockQuery(blockid, Rfield, time, 'r');
-          if (!executeBlockQueryAndWait(Raccess, read_block))
-            continue;
-
-          //compression can depend on level
-          int H = read_block->H;
-          VisusReleaseAssert(H >= 0 && H < compression.size());
-
-          auto Wfield = Rfield;
-          Wfield.default_compression = compression[H];
-          auto write_block = createBlockQuery(read_block->blockid, Wfield, read_block->time, 'w');
-          write_block->buffer = read_block->buffer;
-          VisusReleaseAssert(executeBlockQueryAndWait(Waccess, write_block));
-        }
-      }
-    }
-    Raccess->endRead();
-    Waccess->endWrite();
-  }
-  else
-  {
-    String suffix = ".~compressed";
-
-    String idx_filename = getUrl();
-    VisusReleaseAssert(FileUtils::existsFile(idx_filename));
-    String compressed_idx_filename = idx_filename + suffix;
-
-    auto compressed_idx_file = this->idxfile;
-    compressed_idx_file.filename_template = idxfile.filename_template + suffix;
-    compressed_idx_file.save(compressed_idx_filename);
-
-    auto Waccess = std::make_shared<IdxDiskAccess>(this, compressed_idx_file);
-    auto Raccess = std::make_shared<IdxDiskAccess>(this, idxfile);
-
-    Raccess->disableAsync();
-    Raccess->disableWriteLock();
-
-    Waccess->disableWriteLock();
-    Waccess->disableAsync();
-
-    for (auto time : idxfile.timesteps.asVector())
-    {
-      String prev_filename;
-      auto setFilename = [&](String value)
-      {
-        //wait for a filename change
-        if (prev_filename == value)
-          return;
-
-        // close any read file handle only if it's the last read op
-        if (value.empty())
-          Raccess->endRead();
-
-        //close any write file handle
-        Waccess->endWrite();
-
-        //mv filename.~compressed -> filename
-        if (!prev_filename.empty())
-        {
-          VisusReleaseAssert(FileUtils::removeFile(prev_filename));
-          VisusReleaseAssert(FileUtils::moveFile(prev_filename + suffix, prev_filename));
-        }
-
-        prev_filename = value;
-
-        if (value.empty())
-        {
-          Raccess->beginRead();
-        }
-        else
-        {
-          //remove any file coming from an old compression process
-          FileUtils::removeFile(value + suffix);
-        }
-
-        Waccess->beginWrite();
-      };
-
-      Raccess->beginRead();
-      Waccess->beginWrite();
-      for (BigInt blockid = 0, total_blocks = getTotalNumberOfBlocks(); blockid < total_blocks; blockid++)
-      {
-        for (auto Rfield : idxfile.fields)
-        {
-          auto filename = Raccess->getFilename(Rfield, time, blockid);
-          auto read_block = createBlockQuery(blockid, Rfield, time, 'r');
-
-          //could fail because block does not exist
-          if (!executeBlockQueryAndWait(Raccess, read_block))
-            continue;
-
-          //prepare for writing... 
-          setFilename(filename);
-
-          //compression can depend on level
-          int H = read_block->H;
-          VisusReleaseAssert(H >= 0 && H < compression.size());
-
-          auto Wfield = Rfield;
-          Wfield.default_compression = compression[H];
-          auto write_block = createBlockQuery(read_block->blockid, Wfield, read_block->time, 'w');
-          write_block->buffer = read_block->buffer;
-          VisusReleaseAssert(executeBlockQueryAndWait(Waccess, write_block));
-        }
-      }
-      setFilename("");
-      Raccess->endRead();
-      Waccess->endWrite();
-    }
-    
-    VisusReleaseAssert(FileUtils::existsFile(compressed_idx_filename));
-    FileUtils::removeFile(compressed_idx_filename);
-  }
-}
-
-
-////////////////////////////////////////////////////////
-bool IdxDataset::convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) 
-{
-  //already in row major
-  if (block_query->buffer.layout.empty())
-    return true;
-
-  //idx full res is row major only
-  VisusReleaseAssert(!bBlocksAreFullRes);
-
-  //note I cannot use buffer of block_query because I need them to execute other queries
-  Array row_major= block_query->buffer.clone();
-
-  auto query= createEquivalentBoxQuery('r',block_query);
-  beginBoxQuery(query);
-
-  if (!query->isRunning())
-  {
-    VisusAssert(false);
-    return false;
-  }
-
-  //as the query has not already been executed!
-  query->setCurrentResolution(query->start_resolution-1);
-  query->buffer=row_major; 
-  
-  if (!query->allocateBufferIfNeeded())
-    return false;
-
-  ConvertHzOrderSamples op;
-  if (!NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get()))
-  {
-    VisusAssert(block_query->aborted());
-    return false;
-  }
-
-  //now block query it's row major
-  block_query->buffer=row_major;
-  block_query->buffer.layout=""; 
-  return true;
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
 {
@@ -886,25 +673,25 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
   return true;
 }
 
-
-
-
 //////////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query)
 {
   if (!query->allocateBufferIfNeeded())
     return false;
 
-  if (bool bHzOrder=!block_query->buffer.layout.empty())
+  if (bool is_row_major = block_query->buffer.layout.empty())
+  {
+    return Dataset::mergeBoxQueryWithBlockQuery(query, block_query);
+  }
+  else
   {
     //block query is hzorder, query is rowmajor
     ConvertHzOrderSamples op;
     return NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get());
   }
 
-  return Dataset::mergeBoxQueryWithBlockQuery(query, block_query);
+  
 }
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 class InsertIntoPointQuery
@@ -1110,9 +897,6 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
   query->cur_resolution = query->end_resolution;
   return true;
 }
-
-
-
 
 ////////////////////////////////////////////////////////////////////
 void IdxDataset::readDatasetFromArchive(Archive& ar)

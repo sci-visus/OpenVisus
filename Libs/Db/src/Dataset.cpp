@@ -62,6 +62,110 @@ namespace Visus {
 
 VISUS_IMPLEMENT_SINGLETON_CLASS(DatasetFactory)
 
+////////////////////////////////////////////////////////////////////////////////////
+StringTree FindDatasetConfig(StringTree ar, String url)
+{
+  auto all_datasets = ar.getAllChilds("dataset");
+  for (auto it : all_datasets)
+  {
+    if (it->readString("name") == url) {
+      VisusAssert(it->hasAttribute("url"));
+      return *it;
+    }
+  }
+
+  for (auto it : all_datasets)
+  {
+    if (it->readString("url") == url)
+      return *it;
+  }
+
+  auto ret = StringTree("dataset");
+  ret.write("url", url);
+  return ret;
+}
+
+/////////////////////////////////////////////////////////////////////////
+SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
+{
+  String url = ar.readString("url");
+  if (!Url(url).valid())
+    ThrowException("LoadDataset", url, "failed. Not a valid url");
+
+  auto content = Utils::loadTextDocument(url);
+
+  if (content.empty())
+    ThrowException("empty content");
+
+  //enrich ar by loaded document (ar has precedence)
+  auto doc = StringTree::fromString(content);
+  if (doc.valid())
+  {
+    //backward compatible
+    if (doc.name == "midx")
+    {
+      doc.name = "dataset";
+      doc.write("typename", "IdxMultipleDataset");
+    }
+
+    StringTree::merge(ar, doc); //example <dataset tyname="IdxMultipleDataset">...</dataset>
+    VisusReleaseAssert(ar.hasAttribute("typename"));
+  }
+  else
+  {
+    // backward compatible, old idx text format 
+    ar.write("typename", "IdxDataset");
+
+    IdxFile old_format;
+    old_format.readFromOldFormat(content);
+    ar.writeObject("idxfile", old_format);
+  }
+
+  auto TypeName = ar.getAttribute("typename");
+  VisusReleaseAssert(!TypeName.empty());
+  auto ret = DatasetFactory::getSingleton()->createInstance(TypeName);
+  if (!ret)
+    ThrowException("LoadDataset", url, "failed. Cannot DatasetFactory::getSingleton()->createInstance", TypeName);
+
+  ret->readDatasetFromArchive(ar);
+  return ret;
+}
+
+////////////////////////////////////////////////
+SharedPtr<Dataset> LoadDataset(String url) {
+  auto ar = FindDatasetConfig(*DbModule::getModuleConfig(), url);
+  return LoadDatasetEx(ar);
+}
+
+///////////////////////////////////////////////////////////
+Field Dataset::getFieldEx(String fieldname) const
+{
+  //remove any params (they will be used in queries)
+  ParseStringParams parse(fieldname);
+
+  auto it = find_field.find(parse.without_params);
+  if (it != find_field.end())
+  {
+    Field ret = it->second;
+    ret.name = fieldname; //important to keep the params! example "temperature?time=30"
+    ret.params = parse.params;
+    return ret;
+  }
+
+  //not found
+  return Field();
+}
+
+///////////////////////////////////////////////////////////
+Field Dataset::getField(String name) const {
+  try {
+    return getFieldEx(name);
+  }
+  catch (std::exception ex) {
+    return Field();
+  }
+}
+
 ////////////////////////////////////////////////////////////////////
 SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
 {
@@ -184,110 +288,178 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
   return SharedPtr<Access>();
 }
 
-///////////////////////////////////////////////////////////
-Field Dataset::getFieldEx(String fieldname) const
+///////////////////////////////////////////////////////////////////////////////////
+void Dataset::compressDataset(std::vector<String> compression, Array data)
 {
-  //remove any params (they will be used in queries)
-  ParseStringParams parse(fieldname);
+  auto idx = dynamic_cast<IdxDataset*>(this);
+  VisusReleaseAssert(idx);
 
-  auto it=find_field.find(parse.without_params);
-  if (it!=find_field.end())
+  // for future version: here I'm making the assumption that a file contains multiple fields
+  if (idxfile.version != 6)
+    ThrowException("unsupported");
+
+  //PrintInfo("Compressing dataset", StringUtils::join(compression));
+
+  int nlevels = getMaxResolution() + 1;
+  VisusReleaseAssert(compression.size() <= nlevels);
+
+  // example ["zip","jpeg","jpeg"] means last level "jpeg", last-level-minus-one "jpeg" all others zip
+  while (compression.size() < nlevels)
+    compression.insert(compression.begin(), compression.front());
+
+  //save the new idx file oonly if compression is equal for all levels
+  if (std::set<String>(compression.begin(), compression.end()).size() == 1)
   {
-    Field ret=it->second;
-    ret.name=fieldname; //important to keep the params! example "temperature?time=30"
-    ret.params=parse.params;
-    return ret;
+    for (auto& field : idxfile.fields)
+      field.default_compression = compression[0];
+
+    String filename = Url(getUrl()).getPath();
+    idxfile.save(filename);
   }
 
-  //not found
-  return Field();
-}
-
-///////////////////////////////////////////////////////////
-Field Dataset::getField(String name) const {
-  try {
-    return getFieldEx(name);
-  }
-  catch (std::exception ex) {
-    return Field();
-  }
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-StringTree FindDatasetConfig(StringTree ar, String url)
-{
-  auto all_datasets = ar.getAllChilds("dataset");
-  for (auto it : all_datasets)
+  if (data.valid())
   {
-    if (it->readString("name") == url) {
-      VisusAssert(it->hasAttribute("url"));
-      return *it;
-    }
-  }
+    //data will replace current data
+    //write BoxQuery(==data) to BlockQuery(==RAM)
+    auto query = createBoxQuery(getLogicBox(), 'w');
+    beginBoxQuery(query);
+    VisusReleaseAssert(query->isRunning());
+    VisusAssert(query->getNumberOfSamples() == data.dims);
+    query->buffer = data;
 
-  for (auto it : all_datasets)
-  {
-    if (it->readString("url") == url)
-      return *it;
-  }
+    auto Waccess = std::make_shared<IdxDiskAccess>(idx);
+    Waccess->disableWriteLock();
+    Waccess->disableAsync();
 
-  auto ret = StringTree("dataset");
-  ret.write("url", url);
-  return ret;
-}
+    auto Raccess = std::make_shared<RamAccess>(getDefaultBitsPerBlock());
+    Raccess->setAvailableMemory(/* no memory limit*/0);
 
-/////////////////////////////////////////////////////////////////////////
-SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
-{
-  String url = ar.readString("url");
-  if (!Url(url).valid())
-    ThrowException("LoadDataset", url, "failed. Not a valid url");
+    Raccess->disableWriteLock();
+    VisusReleaseAssert(executeBoxQuery(Raccess, query));
 
-  auto content = Utils::loadTextDocument(url);
-
-  if (content.empty())
-    ThrowException("empty content");
-
-  //enrich ar by loaded document (ar has precedence)
-  auto doc = StringTree::fromString(content);
-  if (doc.valid())
-  {
-    //backward compatible
-    if (doc.name == "midx")
+    //read blocks are in RAM assuming there is no file yet stored on disk
+    Raccess->beginRead();
+    Waccess->beginWrite();
+    for (auto time : idxfile.timesteps.asVector())
     {
-      doc.name = "dataset";
-      doc.write("typename","IdxMultipleDataset");
-    }
+      for (BigInt blockid = 0, total_blocks = getTotalNumberOfBlocks(); blockid < total_blocks; blockid++)
+      {
+        for (auto Rfield : idxfile.fields)
+        {
+          auto read_block = createBlockQuery(blockid, Rfield, time, 'r');
+          if (!executeBlockQueryAndWait(Raccess, read_block))
+            continue;
 
-    StringTree::merge(ar, doc); //example <dataset tyname="IdxMultipleDataset">...</dataset>
-    VisusReleaseAssert(ar.hasAttribute("typename"));
+          //compression can depend on level
+          int H = read_block->H;
+          VisusReleaseAssert(H >= 0 && H < compression.size());
+
+          auto Wfield = Rfield;
+          Wfield.default_compression = compression[H];
+          auto write_block = createBlockQuery(read_block->blockid, Wfield, read_block->time, 'w');
+          write_block->buffer = read_block->buffer;
+          VisusReleaseAssert(executeBlockQueryAndWait(Waccess, write_block));
+        }
+      }
+    }
+    Raccess->endRead();
+    Waccess->endWrite();
   }
   else
   {
-    // backward compatible, old idx text format 
-    ar.write("typename", "IdxDataset");
+    String suffix = ".~compressed";
 
-    IdxFile old_format;
-    old_format.readFromOldFormat(content);
-    ar.writeObject("idxfile", old_format);
+    String idx_filename = getUrl();
+    VisusReleaseAssert(FileUtils::existsFile(idx_filename));
+    String compressed_idx_filename = idx_filename + suffix;
+
+    auto compressed_idx_file = idx->idxfile;
+    compressed_idx_file.filename_template = idxfile.filename_template + suffix;
+    compressed_idx_file.save(compressed_idx_filename);
+
+    auto Waccess = std::make_shared<IdxDiskAccess>(idx, compressed_idx_file);
+    auto Raccess = std::make_shared<IdxDiskAccess>(idx, idxfile);
+
+    Raccess->disableAsync();
+    Raccess->disableWriteLock();
+
+    Waccess->disableWriteLock();
+    Waccess->disableAsync();
+
+    for (auto time : idxfile.timesteps.asVector())
+    {
+      String prev_filename;
+      auto setFilename = [&](String value)
+      {
+        //wait for a filename change
+        if (prev_filename == value)
+          return;
+
+        // close any read file handle only if it's the last read op
+        if (value.empty())
+          Raccess->endRead();
+
+        //close any write file handle
+        Waccess->endWrite();
+
+        //mv filename.~compressed -> filename
+        if (!prev_filename.empty())
+        {
+          VisusReleaseAssert(FileUtils::removeFile(prev_filename));
+          VisusReleaseAssert(FileUtils::moveFile(prev_filename + suffix, prev_filename));
+        }
+
+        prev_filename = value;
+
+        if (value.empty())
+        {
+          Raccess->beginRead();
+        }
+        else
+        {
+          //remove any file coming from an old compression process
+          FileUtils::removeFile(value + suffix);
+        }
+
+        Waccess->beginWrite();
+      };
+
+      Raccess->beginRead();
+      Waccess->beginWrite();
+      for (BigInt blockid = 0, total_blocks = getTotalNumberOfBlocks(); blockid < total_blocks; blockid++)
+      {
+        for (auto Rfield : idxfile.fields)
+        {
+          auto filename = Raccess->getFilename(Rfield, time, blockid);
+          auto read_block = createBlockQuery(blockid, Rfield, time, 'r');
+
+          //could fail because block does not exist
+          if (!executeBlockQueryAndWait(Raccess, read_block))
+            continue;
+
+          //prepare for writing... 
+          setFilename(filename);
+
+          //compression can depend on level
+          int H = read_block->H;
+          VisusReleaseAssert(H >= 0 && H < compression.size());
+
+          auto Wfield = Rfield;
+          Wfield.default_compression = compression[H];
+          auto write_block = createBlockQuery(read_block->blockid, Wfield, read_block->time, 'w');
+          write_block->buffer = read_block->buffer;
+          VisusReleaseAssert(executeBlockQueryAndWait(Waccess, write_block));
+        }
+      }
+      setFilename("");
+      Raccess->endRead();
+      Waccess->endWrite();
+    }
+
+    VisusReleaseAssert(FileUtils::existsFile(compressed_idx_filename));
+    FileUtils::removeFile(compressed_idx_filename);
   }
-
-  auto TypeName = ar.getAttribute("typename");
-  VisusReleaseAssert(!TypeName.empty());
-  auto ret= DatasetFactory::getSingleton()->createInstance(TypeName);
-  if (!ret)
-    ThrowException("LoadDataset",url,"failed. Cannot DatasetFactory::getSingleton()->createInstance",TypeName);
-
-  ret->readDatasetFromArchive(ar);
-  return ret; 
 }
-
-////////////////////////////////////////////////
-SharedPtr<Dataset> LoadDataset(String url) {
-  auto ar = FindDatasetConfig(*DbModule::getModuleConfig(), url);
-  return LoadDatasetEx(ar);
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////////
 bool Dataset::insertSamples(LogicSamples Wsamples, Array Wbuffer, LogicSamples Rsamples, Array Rbuffer, Aborted aborted)
@@ -817,6 +989,43 @@ bool Dataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<B
   }
 
   return insertSamples(Wsamples, Wbuffer, Rsamples, Rbuffer, query->aborted);
+}
+
+//////////////////////////////////////////////////////////////
+bool Dataset::convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) 
+{
+  //already in row major
+  if (block_query->buffer.layout.empty())
+    return true;
+
+  //idx full res is row major only
+  VisusReleaseAssert(!bBlocksAreFullRes);
+
+  //note I cannot use buffer of block_query because I need them to execute other queries
+  Array row_major = block_query->buffer.clone();
+
+  auto query = createEquivalentBoxQuery('r', block_query);
+  beginBoxQuery(query);
+  if (!query->isRunning())
+  {
+    VisusAssert(false);
+    return false;
+  }
+
+  //as the query has not already been executed!
+  query->setCurrentResolution(query->start_resolution - 1);
+  query->buffer = row_major;
+
+  if (!mergeBoxQueryWithBlockQuery(query, block_query))
+  {
+    VisusAssert(block_query->aborted());
+    return false;
+  }
+
+  //now block query it's row major
+  block_query->buffer = row_major;
+  block_query->buffer.layout = "";
+  return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

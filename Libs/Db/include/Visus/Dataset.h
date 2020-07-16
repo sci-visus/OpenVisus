@@ -339,9 +339,7 @@ public:
   }
 
   //convertBlockQueryToRowMajor
-  virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) {
-    return block_query->buffer.layout.empty();
-  }
+  virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query);
 
   //createEquivalentBoxQuery
   virtual SharedPtr<BoxQuery> createEquivalentBoxQuery(int mode, SharedPtr<BlockQuery> block_query)
@@ -446,6 +444,9 @@ public:
   static bool insertSamples(
     LogicSamples Wsamples, Array Wbuffer,
     LogicSamples Rsamples, Array Rbuffer, Aborted aborted);
+
+  //compressDataset
+  virtual void compressDataset(std::vector<String> compression, Array data = Array());;
 
 public:
 
