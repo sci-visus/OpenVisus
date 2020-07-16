@@ -155,7 +155,7 @@ void IdxFile::validate(String url)
     }
     else
     {
-      //for historical reason '0' means hzorder and '1' means rowmajor; empty means row major
+      //for historical reason '0' means hz and '1' means rowmajor; empty means row major
       if (field.default_layout.empty() || field.default_layout == "rowmajor" || field.default_layout == "row_major" || field.default_layout == "1")
         field.default_layout = "";
 
@@ -245,7 +245,6 @@ void IdxFile::validate(String url)
       VisusAssert(this->blocksperfile==totblocks);
     }
   }
-
 
   //filename_template
   if (filename_template.empty())
@@ -626,7 +625,14 @@ void IdxFile::read(Archive& ar)
   ar.getChild("filename_template")->read("value", filename_template);
   ar.getChild("time_template")->read("value", time_template);
 
-  if (auto child = ar.getChild("physic_box"))
+
+  if (ar.hasAttribute("physic_box"))
+  {
+    BoxNd value;
+    ar.read("physic_box", value);
+    this->bounds = Position(value);
+  }
+  else if (auto child = ar.getChild("physic_box"))
   {
     BoxNd physic_box;
     child->read("value", physic_box);

@@ -48,15 +48,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-
-//box query type
-typedef struct
-{
-  int    H;
-  BoxNi  box;
-}
-FastLoopStack;
-
 //////////////////////////////////////////////////////////////////////////////
 class IdxMandelbrotAccess : public Access
 {
@@ -340,6 +331,7 @@ public:
     BigInt           numpoints;
     Aborted          aborted=query->aborted;
 
+    typedef struct { int    H; BoxNi  box; } FastLoopStack;
     FastLoopStack item,*stack=NULL;
     FastLoopStack STACK[DatasetBitmaskMaxLen+1];
 
@@ -351,14 +343,14 @@ public:
     //deltas
     std::vector<Int64> fldeltas(max_resolution+1);
     for (int H = 0; H <= max_resolution; H++)
-      fldeltas[H] = H? (hzorder.getLevelDelta(H)[bitmask[H]] >> 1) : 0;
+      fldeltas[H] = H? (vf->level_samples[H].delta[bitmask[H]] >> 1) : 0;
 
     for (int H=hstart;H<=hend;H++)
     {
       if (aborted())
         return false;
 
-      LogicSamples Lsamples=vf->getLevelSamples(H);
+      LogicSamples Lsamples=vf->level_samples[H];
       PointNi  lshift= Lsamples.shift;
 
       BoxNi   zbox = (HzFrom!=0)? block_logic_box : Lsamples.logic_box;
@@ -475,16 +467,6 @@ IdxDataset::IdxDataset() {
 IdxDataset::~IdxDataset(){
 }
 
-///////////////////////////////////////////////////////////
-LogicSamples IdxDataset::getLevelSamples(int H)
-{
-  HzOrder hzorder(idxfile.bitmask);
-  PointNi delta = hzorder.getLevelDelta(H);
-  BoxNi box(hzorder.getLevelP1(H),hzorder.getLevelP2Included(H) + delta);
-  auto ret=LogicSamples(box, delta);
-  VisusAssert(ret.valid());
-  return ret;
-}
 
 ///////////////////////////////////////////////////////////////////////////////////
 void IdxDataset::compressDataset(std::vector<String> compression, Array data)
@@ -664,10 +646,9 @@ BoxNi IdxDataset::adjustBoxQueryFilterBox(BoxQuery* query,IdxFilter* filter,BoxN
 {
   //there are some case when I need alignment with pow2 box, for example when doing kdquery=box with filters
   auto bitmask = idxfile.bitmask;
-  HzOrder hzorder(bitmask);
   int pdim = bitmask.getPointDim();
 
-  PointNi delta=hzorder.getLevelDelta(H);
+  PointNi delta=this->level_samples[H].delta;
 
   BoxNi domain = query->filter.domain;
 
@@ -699,56 +680,6 @@ BoxNi IdxDataset::adjustBoxQueryFilterBox(BoxQuery* query,IdxFilter* filter,BoxN
 }
 
 
-////////////////////////////////////////////////////////////////////
-SharedPtr<BlockQuery> IdxDataset::createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted)
-{
-  auto ret = std::make_shared<BlockQuery>();
-
-  ret->dataset = this;
-  ret->field = field;
-  ret->time = time;
-  ret->mode = mode; VisusAssert(mode == 'r' || mode == 'w');
-  ret->aborted = aborted;
-  ret->blockid = blockid;
-
-  //logic samples
-  {
-    const DatasetBitmask& bitmask = this->idxfile.bitmask;
-    int pdim = bitmask.getPointDim();
-
-    HzOrder hzorder(bitmask);
-
-    auto bitsperblock = getDefaultBitsPerBlock();
-    auto HzFrom = (blockid + 0) << bitsperblock;
-    auto HzTo   = (blockid + 1) << bitsperblock;
-
-    int start_resolution = HzOrder::getAddressResolution(bitmask, HzFrom);
-    int end_resolution = HzOrder::getAddressResolution(bitmask, HzTo - 1);
-    VisusAssert((HzFrom > 0 && start_resolution == end_resolution) || (HzFrom == 0 && start_resolution == 0));
-
-    PointNi delta(pdim);
-    if (HzFrom == 0)
-    {
-      int H = Utils::getLog2(HzTo - HzFrom);
-      delta = hzorder.getLevelDelta(H);
-      delta[bitmask[H]] >>= 1; //I get twice the samples...
-    }
-    else
-    {
-      delta = hzorder.getLevelDelta(start_resolution);
-    }
-
-    BoxNi box(hzorder.hzAddressToPoint(HzFrom), hzorder.hzAddressToPoint(HzTo - 1) + delta);
-
-    ret->H = end_resolution;
-    ret->logic_samples = LogicSamples(box, delta);
-    VisusAssert(ret->logic_samples.nsamples == HzOrder::getAddressRangeNumberOfSamples(bitmask, HzFrom, HzTo));
-    VisusAssert(ret->logic_samples.valid());
-  }
-
-  return ret;
-}
-
 
 ////////////////////////////////////////////////////////////////////////
 SharedPtr<BoxQuery> IdxDataset::createEquivalentBoxQuery(int mode,SharedPtr<BlockQuery> block_query)
@@ -762,11 +693,11 @@ SharedPtr<BoxQuery> IdxDataset::createEquivalentBoxQuery(int mode,SharedPtr<Bloc
   int fromh = HzOrder::getAddressResolution(bitmask, HzFrom);
   int toh   = HzOrder::getAddressResolution(bitmask, HzTo -1);
 
-  auto block_samples=block_query->logic_samples;
-  VisusAssert(block_samples.nsamples.innerProduct()==(HzTo - HzFrom));
+  auto logic_samples =block_query->logic_samples;
+  VisusAssert(logic_samples.nsamples.innerProduct()==(HzTo - HzFrom));
   VisusAssert(fromh==toh || block_query->blockid==0);
 
-  auto ret=createBoxQuery(block_samples.logic_box, block_query->field, block_query->time,mode, block_query->aborted);
+  auto ret=createBoxQuery(logic_samples.logic_box, block_query->field, block_query->time,mode, block_query->aborted);
   ret->setResolutionRange(fromh,toh);
   return ret;
 }
@@ -774,12 +705,9 @@ SharedPtr<BoxQuery> IdxDataset::createEquivalentBoxQuery(int mode,SharedPtr<Bloc
 ////////////////////////////////////////////////////////
 bool IdxDataset::convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) 
 {
-  //already in row major... why are you calling me?
+  //already in row major
   if (block_query->buffer.layout.empty())
-  {
-    VisusAssert(false);
     return false;
-  }
 
   //note I cannot use buffer of block_query because I need them to execute other queries
   Array row_major= block_query->buffer.clone();
@@ -872,34 +800,6 @@ SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuer
   return Dataset::createAccess(config, bForBlockQuery);
 }
 
-////////////////////////////////////////////////////////////////////
-void IdxDataset::readDatasetFromArchive(Archive& ar)
-{
-  String url = ar.readString("url");
-
-  IdxFile idxfile;
-  ar.readObject("idxfile", idxfile);
-  idxfile.validate(url);
-
-  setDatasetBody(ar);
-  setKdQueryMode(KdQueryMode::fromString(ar.readString("kdquery", Url(url).getParam("kdquery"))));
-
-  //setIdxFile
-  {
-    this->idxfile = idxfile;
-    this->bitmask = idxfile.bitmask;
-    setDefaultBitsPerBlock(idxfile.bitsperblock);
-    setLogicBox(idxfile.logic_box);
-    setDatasetBounds(idxfile.bounds);
-    setTimesteps(idxfile.timesteps);
-
-    for (auto field : idxfile.fields)
-      addField(field);
-
-    createBoxQueryAddressConversion();
-    createPointQueryAddressConversion();
-  }
-}
 
 static CriticalSection                                                                HZADDRESS_CONVERSION_BOXQUERY_LOCK;
 static std::map<String, SharedPtr<IdxBoxQueryHzAddressConversion> >                   HZADDRESS_CONVERSION_BOXQUERY;
@@ -1011,7 +911,7 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr
 
       for (int H=hstart; !query->aborted() && H<=hend ; ++H)
       {
-        auto Lsamples    = getLevelSamples(H);
+        auto Lsamples    = this->level_samples[H];
         auto Lbuffer = Array(Lsamples.nsamples,block_query->field.dtype);
 
         /*
@@ -1057,7 +957,6 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr
 bool IdxDataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value)
 {
   auto bitmask = this->idxfile.bitmask;
-  HzOrder hzorder(bitmask);
 
   VisusAssert(query->end_resolution < value);
   query->end_resolution = value;
@@ -1076,7 +975,7 @@ bool IdxDataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value)
   }
 
   //I get twice the samples of the samples!
-  PointNi DELTA = hzorder.getLevelDelta(end_resolution);
+  PointNi DELTA = this->level_samples[end_resolution].delta;
   if (start_resolution == 0 && end_resolution > 0)
     DELTA[bitmask[end_resolution]] >>= 1;
 
@@ -1085,7 +984,7 @@ bool IdxDataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value)
   {
     int bit = bitmask[H];
 
-    LogicSamples Lsamples = this->getLevelSamples(H);
+    LogicSamples Lsamples = this->level_samples[H];
 
     BoxNi box = Lsamples.alignBox(logic_box);
     if (!box.isFullDim())
@@ -1307,23 +1206,20 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
   int bitsperblock = access->bitsperblock;
   VisusAssert(bitsperblock);
 
+  typedef struct { int    H; BoxNi  box; } FastLoopStack;
   FastLoopStack  item, * stack = NULL;
   FastLoopStack  STACK[DatasetBitmaskMaxLen + 1];
 
   DatasetBitmask bitmask = this->idxfile.bitmask;
-  HzOrder hzorder(bitmask);
-
+  
   int max_resolution = getMaxResolution();
   std::vector<Int64> fldeltas(max_resolution + 1);
   for (auto H = 0; H <= max_resolution; H++)
-    fldeltas[H] = H ? (hzorder.getLevelDelta(H)[bitmask[H]] >> 1) : 0;
+    fldeltas[H] = H ? (this->level_samples[H].delta[bitmask[H]] >> 1) : 0;
 
   auto aborted = query->aborted;
 
-#define PUSH()  (*((stack)++))=(item)
-#define POP()   (item)=(*(--(stack)))
-#define EMPTY() ((stack)==(STACK))
-
+  HzOrder hzorder(bitmask);
   //collect blocks
   std::vector<BigInt> blocks;
   for (int H = cur_resolution + 1; H <= end_resolution; H++)
@@ -1331,23 +1227,22 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
     if (aborted())
       return false;
 
-    LogicSamples Lsamples = this->getLevelSamples(H);
+    LogicSamples Lsamples = this->level_samples[H];
     BoxNi box = Lsamples.alignBox(query->logic_samples.logic_box);
     if (!box.isFullDim())
       continue;
 
     //push first item
     BigInt hz = hzorder.pointToHzAddress(Lsamples.logic_box.p1);
-    {
-      item.box = Lsamples.logic_box;
-      item.H = H ? 1 : 0;
-      stack = STACK;
-      PUSH();
-    }
 
-    while (!EMPTY())
+    item.box = Lsamples.logic_box;
+    item.H = H ? 1 : 0;
+    stack = STACK;
+    *(stack++) = item;
+
+    while (stack != STACK)
     {
-      POP();
+      item = *(--stack);
 
       // no intersection
       if (!item.box.strictIntersect(box))
@@ -1377,16 +1272,13 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
       int bit = bitmask[item.H];
       Int64 delta = fldeltas[item.H];
       ++item.H;
-      item.box.p1[bit] += delta;                            PUSH();
-      item.box.p1[bit] -= delta; item.box.p2[bit] -= delta; PUSH();
+      item.box.p1[bit] += delta;                            *(stack++) = item;
+      item.box.p1[bit] -= delta; item.box.p2[bit] -= delta; *(stack++) = item;
 
-    } //while (stack!=STACK)
+    } //while 
 
   } //for levels
 
-#undef PUSH 
-#undef POP  
-#undef EMPTY 
 
   if (aborted())
     return false;
@@ -2282,5 +2174,13 @@ void IdxDataset::computeFilter(const Field& field, int window_size,bool bVerbose
     computeFilter(filter, time, field, acess, sliding_box, bVerbose);
 }
 
+////////////////////////////////////////////////////////////////////
+void IdxDataset::readDatasetFromArchive(Archive& ar)
+{
+  Dataset::readDatasetFromArchive(ar);
+
+  createBoxQueryAddressConversion();
+  createPointQueryAddressConversion();
+}
 
 } //namespace Visus

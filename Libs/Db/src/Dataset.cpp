@@ -50,6 +50,8 @@ For support : support@visus.net
 #include <Visus/File.h>
 #include <Visus/GoogleMapsDataset.h>
 #include <Visus/GoogleMapsAccess.h>
+#include <Visus/IdxHzOrder.h>
+#include <Visus/IdxMultipleDataset.h>
 
 namespace Visus {
 
@@ -230,8 +232,6 @@ SharedPtr<Dataset> LoadDataset(String url) {
 ////////////////////////////////////////////////////////////////////
 SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted)
 {
-  VisusReleaseAssert(bBlocksAreFullRes);
-
   auto ret = std::make_shared<BlockQuery>();
   ret->dataset = this;
   ret->field = field;
@@ -240,19 +240,22 @@ SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, dou
   ret->aborted = aborted;
   ret->blockid = blockid;
 
-  auto bitsperblock = this->getDefaultBitsPerBlock();
+  auto bitmask = getBitmask();
+  int pdim = getPointDim();
+  auto bitsperblock = getDefaultBitsPerBlock();
+  auto samplesperblock = 1 << bitsperblock;
 
-  //logic samples
+  if (bBlocksAreFullRes)
   {
     //Get H from blockid. Example:
-    //  bitsperblock=16  
-    //  bitmask V010101010101010101010101010101010101010101010101010101010101
-    //
-    //  blockid=0 H=16+Utils::getLog2(1+0)=16+0=16
-    //  blockid=1 H=16+Utils::getLog2(1+1)=16+1=17
-    //  blockid=2 H=16+Utils::getLog2(1+2)=16+1=17
-    //  blockid=3 H=16+Utils::getLog2(1+3)=16+2=18
-    //  ....
+            //  bitsperblock=16  
+            //  bitmask V010101010101010101010101010101010101010101010101010101010101
+            //
+            //  blockid=0 H=16+Utils::getLog2(1+0)=16+0=16
+            //  blockid=1 H=16+Utils::getLog2(1+1)=16+1=17
+            //  blockid=2 H=16+Utils::getLog2(1+2)=16+1=17
+            //  blockid=3 H=16+Utils::getLog2(1+3)=16+2=18
+            //  ....
     auto H = bitsperblock + Utils::getLog2(1 + blockid);
 
     //Example:
@@ -268,7 +271,26 @@ SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, dou
     ret->H = H;
     ret->logic_samples = LogicSamples(BoxNi(p0, p1), block_samples[H].delta);
   }
+  else
+  {
 
+
+    auto HzFrom = blockid * samplesperblock;
+
+    auto H = std::max(bitsperblock, HzOrder::getAddressResolution(bitmask, HzFrom));
+    auto delta = block_samples[H].delta;
+
+    //for first block I get twice the samples sice the blocking '1' can be '0' considering all previous levels from 'V'
+    delta[bitmask[H]] >>= (blockid == 0) ? 1 : 0;
+
+    auto p0 = HzOrder(bitmask).hzAddressToPoint(HzFrom);
+    auto box = block_samples[H].logic_box.translate(p0);
+
+    ret->H = H;
+    ret->logic_samples = LogicSamples(box, delta);
+  }
+
+  VisusAssert(ret->logic_samples.valid());
   return ret;
 }
 
@@ -711,104 +733,101 @@ bool Dataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value)
 /// ////////////////////////////////////////////////////////////////
 void Dataset::readDatasetFromArchive(Archive& ar)
 {
-  VisusAssert(bBlocksAreFullRes);
+  IdxFile idxfile;
+  ar.readObject("idxfile", idxfile);
 
-  this->setDatasetBody(ar);
+  String url = ar.readString("url");
+  idxfile.validate(url);
 
-  ar.getChild("bitmask")->read("value", bitmask);
-  VisusReleaseAssert(bitmask.valid());
+  this->dataset_body = ar;
+  this->kdquery_mode = KdQueryMode::fromString(ar.readString("kdquery", Url(url).getParam("kdquery")));
+  this->idxfile = idxfile;
+  this->bitmask = idxfile.bitmask;
+  this->default_bitsperblock = idxfile.bitsperblock;
+  this->logic_box = idxfile.logic_box;
+  this->timesteps = idxfile.timesteps;
+  setDatasetBounds(idxfile.bounds);
 
-  int bitsperblock;
-  ar.getChild("bitsperblock")->read("value", bitsperblock);
-  VisusReleaseAssert(bitsperblock > 0);
-  this->setDefaultBitsPerBlock(bitsperblock);
-
-  BoxNi logic_box;
-  ar.getChild("box")->read("value", logic_box);
-  VisusReleaseAssert(logic_box.valid());
-  this->setLogicBox(logic_box);
-
-  //fields
-  for (auto child : ar.getChilds("field"))
+  //idxfile.fields -> Dataset::fields 
+  if (this->fields.empty())
   {
-    Field field;
-    field.read(*child);
-    VisusReleaseAssert(field.valid());
-    addField(field);
+    for (auto field : idxfile.fields)
+    {
+      if (field.name != "__fake__")
+        addField(field);
+    }
   }
-  VisusReleaseAssert(!fields.empty());
-
-  //timesteps
-  DatasetTimesteps timesteps;
-  timesteps.read(ar);
-  setTimesteps(timesteps);
-
-  this->setKdQueryMode(KdQueryMode::fromString(ar.readString("kdquery")));
-  
-  //bounds
-  Position bounds;
-  if (ar.hasAttribute("physic_box"))
-  {
-    BoxNd value;
-    ar.read("physic_box", value);
-    bounds = Position(value);
-
-  }
-  else if (auto child = ar.getChild("physic_box"))
-  {
-    BoxNd value;
-    child->read("value", value);
-    bounds = Position(value);
-  }
-  else if (auto child = ar.getChild("logic_to_physic"))
-  {
-    Matrix logic_to_physic;
-    child->read("value", logic_to_physic);
-    bounds = Position(logic_to_physic, logic_box);
-  }
-  else
-  {
-    bounds = Position(logic_box);
-  }
-
-  setDatasetBounds(bounds);
-  VisusReleaseAssert(bounds.valid());
 
   //create samples for levels and blocks
-  int pdim = bitmask.getPointDim();
-  bitsperblock = getDefaultBitsPerBlock();
-  auto MaxH = bitmask.getMaxResolution();
-
-  level_samples.push_back(LogicSamples(bitmask.getPow2Box(), bitmask.getPow2Dims()));
-  block_samples.push_back(LogicSamples(bitmask.getPow2Box(), bitmask.getPow2Dims()));
-
-  auto level_nsamples = PointNi::one(pdim);
-  auto block_nsamples = PointNi::one(pdim);
-  for (int H = 1; H <= MaxH; H++)
   {
-    auto bit = bitmask[H];
-    level_nsamples[bit] *= 2;
-    block_nsamples[bit] *= 2;
+    //bitmask = DatasetBitmask::fromString("V0011");
+    //bitsperblock = 2;
 
-    //bit exit from bitsperblock window
-    if (H - bitsperblock > 0)
-      block_nsamples[bitmask[H - bitsperblock]] /= 2;
+    int bitsperblock = getDefaultBitsPerBlock();
+    int pdim = bitmask.getPointDim();
+    auto MaxH = bitmask.getMaxResolution();
 
-    auto delta = bitmask.getPow2Dims().innerDiv(level_nsamples);
+    level_samples.clear(); level_samples.push_back(LogicSamples(bitmask.getPow2Box(), bitmask.getPow2Dims()));
+    block_samples.clear(); block_samples.push_back(LogicSamples(bitmask.getPow2Box(), bitmask.getPow2Dims()));
 
-    level_samples.push_back(LogicSamples(bitmask.getPow2Box(), delta));
-    block_samples.push_back(LogicSamples(BoxNi(PointNi::zero(pdim), block_nsamples.innerMultiply(delta)), delta));
+    for (int H = 1; H <= MaxH; H++)
+    {
+      BoxNi logic_box;
+      auto delta = PointNi::one(pdim);
+      auto block_nsamples = PointNi::one(pdim);
+      auto level_nsamples = PointNi::one(pdim);
+
+      if (this->bBlocksAreFullRes)
+      {
+        //goint right to left (0,H] counting the bits
+        for (int K = H; K > 0; K--)
+          level_nsamples[bitmask[K]] *= 2;
+
+        //delta.go from right to left up to the free '0' excluded
+        for (int K = MaxH; K > H; K--)
+          delta[bitmask[K]] *= 2;
+
+        //block_nsamples. go from free '0' included to left up to bitsperblock
+				for (int K = H, I = 0; I < bitsperblock && K>0; I++, K--)
+					block_nsamples[bitmask[K]] *= 2;
+
+        //logic_box
+        logic_box = bitmask.getPow2Box();
+      }
+      else
+      {
+        HzOrder hzorder(bitmask);
+
+        //goint right to left (0,H-1] counting the bits
+        for (int K = H-1; K > 0; K--)
+          level_nsamples[bitmask[K]] *= 2;
+
+        //compute delta. go from right to left up to the blocking '1' included
+        for (int K = MaxH; K >= H; K--)
+          delta[bitmask[K]] *= 2;
+
+        //block_nsamples. go from blocking '1' excluded to left up to bitsperblock
+        for (int K = H-1, I = 0; I < bitsperblock && K>0; I++, K--)
+          block_nsamples[bitmask[K]] *= 2;
+
+				logic_box = BoxNi(hzorder.getLevelP1(H), hzorder.getLevelP2Included(H) + delta);
+      }
+
+      level_samples.push_back(LogicSamples(logic_box, delta)); 
+      block_samples.push_back(LogicSamples(BoxNi(PointNi::zero(pdim), block_nsamples.innerMultiply(delta)), delta));
+
+      VisusReleaseAssert(level_samples.back().nsamples==level_nsamples);
+
 
 #if 0
-    if (H >= bitsperblock)
-    {
-      PrintInfo("H", H,
-        "level_samples[H].logic_box", level_samples[H].logic_box,
-        "level_samples[H].delta", level_samples[H].delta,
-        "block_samples[H].logic_box", block_samples[H].logic_box,
-        "block_samples[H].delta", block_samples[H].delta);
-    }
+      if (H >= bitsperblock)
+      {
+        PrintInfo("H", H,
+          "level_samples[H].delta", level_samples[H].delta,
+          "block_samples[H].nsamples", block_samples[H].nsamples);
+      }
 #endif
+    }
   }
 }
 

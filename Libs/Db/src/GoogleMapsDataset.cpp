@@ -38,6 +38,7 @@ For support : support@visus.net
 
 #include <Visus/GoogleMapsDataset.h>
 #include <Visus/GoogleMapsAccess.h>
+#include <Visus/IdxFile.h>
 
 namespace Visus {
 
@@ -45,59 +46,36 @@ namespace Visus {
 //////////////////////////////////////////////////////////////
 void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
 {
-  String url = ar.readString("url");
-
   //example: 22 levels, each tile has resolution 256*256 (==8bit*8bit)
-  //bitsperblock=16
+  // bitsperblock=16
   // bitmask will be (22+8==30 '0' and 22+8==30 '1') 
-  //V010101010101010101010101010101010101010101010101010101010101
+  // V010101010101010101010101010101010101010101010101010101010101
 
-  const int nlevels = 22;
-  const int tile_width = 256;
-  const int tile_height = 256;
-  ar.read("tiles", this->tiles_url, "http://mt1.google.com/vt/lyrs=s");
+  ar.read("nlevels", this->nlevels, this->nlevels);
+  ar.read("tile_width", this->tile_width, this->tile_width);
+  ar.read("tile_height", this->tile_height, this->tile_height);
+  ar.read("tiles", this->tiles_url, this->tiles_url);
 
-  auto W = tile_width  * (((Int64)1) << nlevels);
-  auto H = tile_height * (((Int64)1) << nlevels);
-
-  //ar.write("kdquery", "UseBlockQuery");
-  
-  if (!ar.getChild("bitmask"))
+  if (!ar.getChild("idxfile"))
   {
-    auto value = DatasetBitmask::guess(PointNi(W, H));
-    ar.addChild("bitmask")->write("value", value);
-  }
+    IdxFile idxfile;
+    auto W = tile_width  * (((Int64)1) << nlevels);
+    auto H = tile_height * (((Int64)1) << nlevels);
+    idxfile.logic_box = BoxNi(PointNi(0, 0), PointNi(W, H));
+    idxfile.bitmask = DatasetBitmask::guess(PointNi(W, H));
+    idxfile.bitsperblock = Utils::getLog2(Int64(tile_width) * tile_height);
+    idxfile.blocksperfile = 1;
 
-  if (!ar.getChild("box"))
-  {
-    auto value = BoxNi(PointNi(0, 0), PointNi(W, H));
-    ar.addChild("box")->write("value", value);
-  }
+    Field field("DATA", "uint8[3]");
+    field.default_layout = "rowmajor";
+    field.default_compression = "jpg";
+    idxfile.fields.push_back(field);
 
-  if (!ar.getChild("bitsperblock"))
-  {
-    auto value = Utils::getLog2(tile_width * tile_height);
-    ar.addChild("bitsperblock")->write("value", value);
-  }
-
-  if (!ar.getChild("field"))
-  {
-    auto child = ar.addChild("field");
-    child->setAttribute("name","DATA");
-    child->setAttribute("dtype", "uint8[3]");
-    child->setAttribute("default_compression", "jpg");
-    child->setAttribute("default_layout", "rowmajor");
-  }
-
-  if (!ar.getChild("timestep"))
-  {
-    auto child = ar.addChild("timestep");
-    child->setAttribute("when", "0");
+    ar.writeObject("idxfile", idxfile);
   }
 
   Dataset::readDatasetFromArchive(ar);
 }
-
 
 } //namespace Visus
 

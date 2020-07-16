@@ -462,75 +462,37 @@ void IdxMultipleDataset::parseDatasets(StringTree& ar, Matrix modelview)
     parseDatasets(*child, modelview);
 }
 
-
 ///////////////////////////////////////////////////////////
-void IdxMultipleDataset::readDatasetFromArchive(Archive& AR)
+IdxFile IdxMultipleDataset::generateIdxFile(Archive& ar)
 {
-  String URL = AR.readString("url");
+  IdxFile ret;
 
-  setDatasetBody(AR);
-  setKdQueryMode(KdQueryMode::fromString(AR.readString("kdquery")));
-
-  for (auto& it : AR.childs)
-    parseDatasets(*it,Matrix());
-
-  if (down_datasets.empty())
-    ThrowException("empty childs");
-
-  auto first = getFirstChild();
-  int pdim = first->getPointDim();
-  int sdim = pdim + 1;
-
-  IdxFile& IDXFILE = this->idxfile;
-
-  //set PHYSIC_BOX (union of physic boxes)
   auto PHYSIC_BOX = BoxNd::invalid();
-  if (AR.hasAttribute("physic_box"))
+  if (ar.hasAttribute("physic_box"))
   {
-    AR.read("physic_box", PHYSIC_BOX);
+    ar.read("physic_box", PHYSIC_BOX);
   }
   else
   {
     for (auto it : down_datasets)
-    {
-      auto dataset = it.second;
-      PHYSIC_BOX = PHYSIC_BOX.getUnion(dataset->getDatasetBounds().toAxisAlignedBox());
-    }
+      PHYSIC_BOX = PHYSIC_BOX.getUnion(it.second->getDatasetBounds().toAxisAlignedBox());
   }
-  //PrintInfo("MIDX physic_box", PHYSIC_BOX);
-  IDXFILE.bounds = Position(PHYSIC_BOX);
+  ret.bounds = Position(PHYSIC_BOX);
 
-  //LOGIC_BOX
-  BoxNi LOGIC_BOX;
-  if (AR.hasAttribute("logic_box"))
+  if (ar.hasAttribute("logic_box"))
   {
-    AR.read("logic_box", LOGIC_BOX);
+    ar.read("logic_box", ret.logic_box);
   }
   else if (down_datasets.size() == 1)
   {
-    LOGIC_BOX = down_datasets.begin()->second->getLogicBox();
-  }
-  else if (bool bAssumeUniformScaling = false)
-  {
-    // logic_tot_pixels = physic_volume * pow(scale,pdim)
-    // density = pow(scale,pdim)
-    double VS = NumericLimits<double>::lowest();
-    for (auto it : down_datasets)
-    {
-      auto dataset = it.second;
-      auto logic_tot_pixels = Position(dataset->getLogicBox()).computeVolume();
-      auto physic_volume = dataset->getDatasetBounds().computeVolume();
-      auto density = logic_tot_pixels / physic_volume;
-      auto vs = pow(density, 1.0 / pdim);
-      VS = std::max(VS, vs);
-    }
-    LOGIC_BOX = Position(Matrix::scale(pdim, VS), Matrix::translate(-PHYSIC_BOX.p1), PHYSIC_BOX).toAxisAlignedBox().castTo<BoxNi>();
+    ret.logic_box = down_datasets.begin()->second->getLogicBox();
   }
   else
   {
     // logic_npixels' / logic_npixels = physic_module' / physic_module
     // physic_module' * vs = logic_npixels'
     // vs = logic_npixels / physic_module
+    auto pdim = getFirstChild()->getPointDim();
     auto VS = PointNd::zero(pdim);
     for (auto it : down_datasets)
     {
@@ -547,50 +509,40 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& AR)
         VS[physic_axis] = std::max(VS[physic_axis], vs);
       }
     }
-    LOGIC_BOX = Position(Matrix::scale(VS), Matrix::translate(-PHYSIC_BOX.p1), PHYSIC_BOX).toAxisAlignedBox().castTo<BoxNi>();
+    ret.logic_box = Position(Matrix::scale(VS), Matrix::translate(-PHYSIC_BOX.p1), PHYSIC_BOX).toAxisAlignedBox().castTo<BoxNi>();
   }
 
-  IDXFILE.logic_box = LOGIC_BOX;
-  //PrintInfo("MIDX logic_box", IDXFILE.logic_box);
-
-  //set logic_to_LOGIC
-  for (auto it : down_datasets)
-  {
-    auto dataset = it.second;
-    auto physic_to_PHYSIC = Matrix::identity(sdim);
-    auto PHYSIC_to_LOGIC = Position::computeTransformation(IDXFILE.logic_box, PHYSIC_BOX);
-    dataset->logic_to_LOGIC = PHYSIC_to_LOGIC * physic_to_PHYSIC * dataset->logicToPhysic();
-
-    //here you should see more or less the same number of pixels
-    auto logic_box = dataset->getLogicBox();
-    auto LOGIC_PIXELS = Position(dataset->logic_to_LOGIC, logic_box).computeVolume();
-    auto logic_pixels = Position(logic_box).computeVolume();
-    auto ratio = logic_pixels / LOGIC_PIXELS; //ratio>1 means you are loosing pixels, ratio=1 is perfect, ratio<1 that you have more pixels than needed and you will interpolate
-    //PrintInfo("  ", it.first, "volume(logic_pixels)", logic_pixels, "volume(LOGIC_PIXELS)", LOGIC_PIXELS, "ratio==logic_pixels/LOGIC_PIXELS", ratio);
-  }
+  //time_template
+  if (down_datasets.size() == 1)
+    ret.time_template = getFirstChild()->idxfile.time_template;
 
   //timesteps
-  {
-    if (down_datasets.size() == 1)
-    {
-      if (auto dataset = std::dynamic_pointer_cast<IdxDataset>(first))
-        IDXFILE.time_template = dataset->idxfile.time_template;
-    }
+  for (auto it : down_datasets)
+    ret.timesteps.addTimesteps(it.second->getTimesteps());
 
-    //union of all timesteps
-    for (auto it : down_datasets)
-      IDXFILE.timesteps.addTimesteps(it.second->getTimesteps());
-  }
+  return ret;
+}
 
-  clearFields();
+///////////////////////////////////////////////////////////
+void IdxMultipleDataset::readDatasetFromArchive(Archive& ar)
+{
+  for (auto& it : ar.childs)
+    parseDatasets(*it, Matrix());
 
-  //parse user default fields
-  if (AR.getChild("field"))
+  VisusReleaseAssert(!down_datasets.empty());
+
+  //automatically generate idxfile
+  ar.removeChild("idxfile");
+  auto idxfile = generateIdxFile(ar);
+ 
+  //used specified fields (happends with midx)
+  if (ar.getChild("field"))
   {
     int generate_name = 0;
-    for (auto child : AR.getChilds("field"))
+    for (auto child : ar.getChilds("field"))
     {
       String name = child->readString("name");
+
       if (name.empty())
         name = concatenate("field_", generate_name++);
 
@@ -600,113 +552,39 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& AR)
       VisusAssert(!code.empty());
 
       Field FIELD = getField(code);
-      if (!FIELD.valid())
-        ThrowException("Invalid code for field", code);
-        
-      addField(name, FIELD); //FIELD.name willl contain the code
-
-      auto idx_field = Field(name, FIELD.dtype);
-      idx_field.default_layout = "rowmajor";
-      IDXFILE.fields.push_back(idx_field);
+      VisusReleaseAssert(FIELD.valid());
+      addField(name, FIELD); //FIELD.name now contain the real code
+      idxfile.fields.push_back(Field(name, FIELD.dtype, "rowmajor"));
     }
   }
-  else
+
+  //this is to pass the validation, an midx has infinite run-time fields 
+  if (idxfile.fields.empty())
   {
-    auto createField=[this](String operation_name)
-    {
-      std::ostringstream out;
-
-      std::vector<String> args;
-      for (auto it : down_datasets)
-      {
-        String arg = "f" + cstring((int)args.size());
-        args.push_back(arg);
-        out << arg << "=" << getInputName(it.first, it.second->getField().name) << std::endl;
-      }
-      out << "output=" << operation_name << "([" << StringUtils::join(args, ",") << "])" << std::endl;
-
-      String fieldname = out.str();
-      Field ret = getField(fieldname);
-      ret.setDescription(operation_name);
-      VisusAssert(ret.valid());
-      return ret;
-    };
-
-    //this will appear in the combo box
-    addField(createField("ArrayUtils.average"));
-    addField(createField("ArrayUtils.add"));
-    addField(createField("ArrayUtils.sub"));
-    addField(createField("ArrayUtils.mul"));
-    addField(createField("ArrayUtils.div"));
-    addField(createField("ArrayUtils.min"));
-    addField(createField("ArrayUtils.max"));
-    addField(createField("ArrayUtils.standardDeviation"));
-    addField(createField("ArrayUtils.median"));
-
-    //note: this wont' work on old servers
-    addField(Field("output=voronoi()"));
-    addField(Field("output=noBlend()"));
-    addField(Field("output=averageBlend()"));
-
-    for (auto it : down_datasets)
-    {
-      for (auto field : it.second->getFields())
-      {
-        auto arg = getInputName(it.first, field.name);
-        Field FIELD = getField("output=" + arg + ";");
-        VisusAssert(FIELD.valid());
-        FIELD.setDescription(it.first + "/" + field.getDescription());
-        addField(FIELD);
-      }
-    }
-
-    //this is to pass the validation, an midx has infinite run-time fields 
-    IDXFILE.fields.push_back(Field("DATA", DTypes::UINT8));
+    Field field("__fake__", DTypes::UINT8);
+    idxfile.fields.push_back(field);
   }
 
-  IDXFILE.validate(URL);
-  //PrintInfo("MIDX idxfile is the following", "\n", IDXFILE);
+  ar.writeObject("idxfile", idxfile);
+  IdxDataset::readDatasetFromArchive(ar);
 
-  //setIdxFile
+  //set logic_to_LOGIC for child datasets
+  for (auto it : down_datasets)
   {
-    this->idxfile = IDXFILE;
-    this->bitmask = IDXFILE.bitmask;
+    auto dataset = it.second;
+    auto PHYSIC_BOX = getDatasetBounds().toAxisAlignedBox(); //TODO: what if getDatasetBounds has a transformation T?
+    auto physic_to_PHYSIC = Matrix::identity(getPointDim() + 1);
+    auto PHYSIC_to_LOGIC = Position::computeTransformation(getLogicBox(), PHYSIC_BOX);
+    dataset->logic_to_LOGIC = PHYSIC_to_LOGIC * physic_to_PHYSIC * dataset->logicToPhysic();
 
-    setDefaultBitsPerBlock(IDXFILE.bitsperblock);
-    setLogicBox(IDXFILE.logic_box);
-    setDatasetBounds(IDXFILE.bounds);
-    setTimesteps(IDXFILE.timesteps);
-
-    //already added fields
-    //for (auto field : IDXFILE.fields)
-    //  addField(field);
-
-    createBoxQueryAddressConversion();
-    createPointQueryAddressConversion();
+    //here you should see more or less the same number of pixels
+    auto logic_box = dataset->getLogicBox();
+    auto LOGIC_PIXELS = Position(dataset->logic_to_LOGIC, logic_box).computeVolume();
+    auto logic_pixels = Position(logic_box).computeVolume();
+    auto ratio = logic_pixels / LOGIC_PIXELS; //ratio>1 means you are loosing pixels, ratio=1 is perfect, ratio<1 that you have more pixels than needed and you will interpolate
+    //PrintInfo("  ", it.first, "volume(logic_pixels)", logic_pixels, "volume(LOGIC_PIXELS)", LOGIC_PIXELS, "ratio==logic_pixels/LOGIC_PIXELS", ratio);
   }
-
-  //for non-mosaic I cannot use block query
-  //if (pdim==2)
-  //  this->kdquery_mode = KdQueryMode::UseBoxQuery;
-
-  //scrgiorgio: here I'm not sure if the best is to remove/add or just keep what I get
-  if (auto child = AR.getChild("idxfile"))
-  {
-    Utils::remove(AR.childs, child);
-    AR.writeObject("idxfile", IDXFILE);
-  }
-  else
-  {
-    AR.writeObject("idxfile", IDXFILE);
-  }
-
-  setDatasetBody(AR);
-
-
-
 }
-
-
 
 ////////////////////////////////////////////////////////////////////////
 bool IdxMultipleDataset::executeBoxQuery(SharedPtr<Access> ACCESS,SharedPtr<BoxQuery> QUERY)

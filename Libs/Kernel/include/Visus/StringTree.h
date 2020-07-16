@@ -217,6 +217,15 @@ public:
   //getAllChilds
   std::vector<StringTree*> getAllChilds(String name) const;
 
+  //removeChild
+  void removeChild(String name) {
+    auto child = getChild(name);
+    if (!child) return;
+    auto it = std::find(this->childs.begin(), this->childs.end(), child);
+    if (it == this->childs.end()) return;
+    this->childs.erase(it);
+  }
+
 public:
 
   //isHash

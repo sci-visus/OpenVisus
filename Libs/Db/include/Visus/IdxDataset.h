@@ -57,9 +57,6 @@ class VISUS_DB_API IdxDataset : public Dataset
 {
 public:
 
-  //idxfile
-  IdxFile idxfile;
-
   //default constructor
   IdxDataset();
 
@@ -80,9 +77,6 @@ public:
 
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
-
-  //createBlockQuery
-  virtual SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, Field field, double time, int mode = 'r', Aborted aborted = Aborted()) override;
 
   //convertBlockQueryToRowMajor
   virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) override;
@@ -163,9 +157,6 @@ protected:
   // But keep in mind that this "preprocessing" is slow and can consume  a lot of memory. 
   // So use only when stricly necessary! 
   SharedPtr<IdxPointQueryHzAddressConversion> hzaddress_conversion_pointquery;
-
-  //getLevelSamples
-  LogicSamples getLevelSamples(int H);
 
   //setBoxQueryEndResolution
   bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value);

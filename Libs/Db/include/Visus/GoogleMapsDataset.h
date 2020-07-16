@@ -51,7 +51,10 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(GoogleMapsDataset)
 
-  String tiles_url;
+  int nlevels = 22;
+  int tile_width = 256;
+  int tile_height = 256;
+  String tiles_url = "http://mt1.google.com/vt/lyrs=s";
 
   //constructor
   GoogleMapsDataset() {

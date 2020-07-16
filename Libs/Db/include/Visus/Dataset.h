@@ -51,6 +51,7 @@ For support : support@visus.net
 #include <Visus/Path.h>
 #include <Visus/NetMessage.h>
 #include <Visus/Annotation.h>
+#include <Visus/IdxFile.h>
 
 namespace Visus {
 
@@ -110,6 +111,9 @@ class VISUS_DB_API Dataset
 {
 public:
 
+  //idxfile
+  IdxFile idxfile;
+
   //this is needed for midx
   Color color;
 
@@ -160,11 +164,6 @@ public:
     return timesteps;
   }
 
-  //setTimesteps
-  void setTimesteps(const DatasetTimesteps& value) {
-    this->timesteps = value;
-  }
-
   //getTime
   double getTime() const {
     return getTimesteps().getDefault();
@@ -186,11 +185,6 @@ public:
     return kdquery_mode;
   }
 
-  //setKdQueryMode
-  void setKdQueryMode(int value) {
-    kdquery_mode = value;
-  }
-
   //getDatasetBody
   StringTree& getDatasetBody() {
     return dataset_body;
@@ -201,10 +195,6 @@ public:
     return dataset_body;
   }
 
-  //setDatasetBody
-  void setDatasetBody(const StringTree& value) {
-    this->dataset_body = value;
-  }
 
   //getUrl
   String getUrl() const {
@@ -215,12 +205,6 @@ public:
   int getDefaultBitsPerBlock() const {
     return default_bitsperblock;
   }
-
-  //setDefaultBitsPerBlock
-  void setDefaultBitsPerBlock(int value) {
-    this->default_bitsperblock = value;
-  }
-
 
   //getMaxResolution
   int getMaxResolution() const {
@@ -240,12 +224,6 @@ public:
   //getBox
   const BoxNi& getLogicBox() const {
     return logic_box;
-  }
-
-  //setBox
-  void setLogicBox(const BoxNi& value) {
-    this->logic_box = value;
-    VisusAssert(!dataset_bounds.valid());
   }
 
   //getDatasetBounds
