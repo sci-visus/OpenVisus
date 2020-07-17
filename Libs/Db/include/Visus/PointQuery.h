@@ -66,6 +66,9 @@ public:
   int                   end_resolution = -1;
   std::vector<int>      end_resolutions;
 
+  typedef std::vector< std::pair<BigInt, BigInt> > Offsets;
+  std::map< BigInt, SharedPtr< Offsets > > offsets;
+
   //constructor
   PointQuery() {
   }

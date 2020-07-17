@@ -94,8 +94,14 @@ public:
 
 public:
 
+  //createBlockQueriesForPointQuery
+  std::vector< SharedPtr<BlockQuery> > createBlockQueriesForPointQuery(SharedPtr<PointQuery> query);
+
   //executeBoxQuery
   virtual bool executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) override;
+
+  //mergePointQueryWithBlockQuery
+  bool mergePointQueryWithBlockQuery(SharedPtr<PointQuery> query, SharedPtr<BlockQuery> block_query);
 
 public:
 
