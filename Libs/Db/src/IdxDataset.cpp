@@ -384,9 +384,9 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////
-std::vector<BigInt> IdxDataset::collectBlocksForBoxQuery(SharedPtr<BoxQuery> query)
+std::vector< SharedPtr<BlockQuery> > IdxDataset::createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query)
 {
-  std::vector<BigInt> blocks;
+  std::vector< SharedPtr<BlockQuery> > ret;
 
   int bitsperblock = getDefaultBitsPerBlock();
   VisusAssert(bitsperblock);
@@ -445,7 +445,7 @@ std::vector<BigInt> IdxDataset::collectBlocksForBoxQuery(SharedPtr<BoxQuery> que
       if ((H - item.H) <= bitsperblock)
       {
         auto blockid = hz >> bitsperblock;
-        blocks.push_back(blockid);
+        ret.push_back(createBlockQuery(blockid, query->field, query->time, 'r', query->aborted));
 
         // I know that block 0 convers several hz-levels from [0 to bitsperblock]
         if (blockid == 0)
@@ -469,7 +469,7 @@ std::vector<BigInt> IdxDataset::collectBlocksForBoxQuery(SharedPtr<BoxQuery> que
 
   } //for levels
 
-  return blocks;
+  return ret;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -556,7 +556,7 @@ std::vector< SharedPtr<BlockQuery> > IdxDataset::createBlockQueriesForPointQuery
       ret.push_back(createBlockQuery(blockid, query->field, query->time, 'r', query->aborted));
     }
 
-    block_samples = getBlockLogicSamples(blockid, H);
+    block_samples = getBlockQuerySamples(blockid, H);
     stride = block_samples.nsamples.stride();
 
     //todo: is there a better way to get this?

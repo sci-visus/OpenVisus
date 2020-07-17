@@ -62,6 +62,114 @@ namespace Visus {
 
 VISUS_IMPLEMENT_SINGLETON_CLASS(DatasetFactory)
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+class InsertIntoPointQuery
+{
+public:
+
+  //operator()
+  template <class Sample>
+  bool execute(Dataset* db, PointQuery* query, BlockQuery* block_query)
+  {
+    //only row major supported
+    VisusReleaseAssert(block_query->buffer.layout.empty());
+
+    if (block_query->mode == 'r')
+    {
+      auto query_samples = GetSamples<Sample>(query->buffer);
+      auto block_samples = GetSamples<Sample>(block_query->buffer);
+      for (auto it : *query->offsets[block_query->blockid])
+        query_samples[it.first] = block_samples[it.second];
+    }
+    else
+    {
+      auto block_samples = GetSamples<Sample>(block_query->buffer);
+      auto query_samples = GetSamples<Sample>(query->buffer);
+      for (auto it : *query->offsets[block_query->blockid])
+        block_samples[it.second] = query_samples[it.first];
+    }
+
+    return true;
+  }
+};
+
+////////////////////////////////////////////////////////////////////////////////
+class InterpolateBufferOperation
+{
+public:
+
+  //execute
+  template <class CppType>
+  bool execute(LogicSamples Wsamples, Array Wbuffer, LogicSamples Rsamples, Array Rbuffer, Aborted aborted)
+  {
+    if (!Wsamples.valid() || !Rsamples.valid())
+      return false;
+
+    if (Wbuffer.dtype != Rbuffer.dtype || Wbuffer.dims != Wsamples.nsamples || Rbuffer.dims != Rsamples.nsamples)
+    {
+      VisusAssert(false);
+      return false;
+    }
+
+    auto pdim = Wbuffer.getPointDim(); VisusAssert(Rbuffer.getPointDim() == pdim);
+    auto zero = PointNi(pdim);
+    auto one = PointNi(pdim);
+
+    auto Wstride = Wbuffer.dims.stride();
+    auto Rstride = Rbuffer.dims.stride();
+
+    VisusReleaseAssert(Wbuffer.dtype == Rbuffer.dtype);
+    int N = Wbuffer.dtype.ncomponents();
+
+    //for each component...
+    for (int C = 0; C < N; C++)
+    {
+      if (aborted())
+        return false;
+
+      GetComponentSamples<CppType> W(Wbuffer, C); PointNi Wpixel(pdim); Int64   Wpos = 0;
+      GetComponentSamples<CppType> R(Rbuffer, C); PointNi Rpixel(pdim); PointNi Rpos(pdim);
+
+#define W2R(I) (Utils::clamp<Int64>(((Wsamples.logic_box.p1[I] + (Wpixel[I] << Wsamples.shift[I])) - Rsamples.logic_box.p1[I]) >> Rsamples.shift[I], 0, Rbuffer.dims[I] - 1))
+
+      if (pdim == 2)
+      {
+        for (Wpixel[1] = 0; Wpixel[1] < Wbuffer.dims[1]; Wpixel[1]++) {
+          Rpixel[1] = W2R(1); Rpos[1] = Rpixel[1] * Rstride[1];
+          for (Wpixel[0] = 0; Wpixel[0] < Wbuffer.dims[0]; Wpixel[0]++) {
+            Rpixel[0] = W2R(0); Rpos[0] = Rpixel[0] * Rstride[0] + Rpos[1];
+            W[Wpos++] = R[Rpos[0]];
+          }
+        }
+      }
+      else if (pdim == 3)
+      {
+        for (Wpixel[2] = 0; Wpixel[2] < Wbuffer.dims[2]; Wpixel[2]++) {
+          Rpixel[2] = W2R(2); Rpos[2] = Rpixel[2] * Rstride[2];
+          for (Wpixel[1] = 0; Wpixel[1] < Wbuffer.dims[1]; Wpixel[1]++) {
+            Rpixel[1] = W2R(1); Rpos[1] = Rpixel[1] * Rstride[1] + Rpos[2];
+            for (Wpixel[0] = 0; Wpixel[0] < Wbuffer.dims[0]; Wpixel[0]++) {
+              Rpixel[0] = W2R(0); Rpos[0] = Rpixel[0] * Rstride[0] + Rpos[1];
+              W[Wpos++] = R[Rpos[0]];
+            }
+          }
+        }
+      }
+      else
+      {
+        for (auto it = ForEachPoint(Wbuffer.dims); !it.end(); it.next())
+        {
+          Wpixel = it.pos;
+          Rpixel = PointNi::clamp(Rsamples.logicToPixel(Wsamples.pixelToLogic(Wpixel)), zero, Rbuffer.dims - one);
+          W[Wpos++] = R[Rpixel.dot(Rstride)];
+        }
+      }
+    }
+    return true;
+  }
+};
+
+
 ////////////////////////////////////////////////////////////////////////////////////
 StringTree FindDatasetConfig(StringTree ar, String url)
 {
@@ -165,6 +273,7 @@ Field Dataset::getField(String name) const {
     return Field();
   }
 }
+
 
 ////////////////////////////////////////////////////////////////////
 SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
@@ -546,40 +655,7 @@ bool Dataset::insertSamples(LogicSamples Wsamples, Array Wbuffer, LogicSamples R
   return true;
 }
 
-////////////////////////////////////////////////////////////////////
-LogicSamples Dataset::getBlockLogicSamples(BigInt blockid, int& H)
-{
-  auto bitmask = getBitmask();
-  auto bitsperblock = getDefaultBitsPerBlock();
-  auto samplesperblock = 1 << bitsperblock;
 
-  if (bBlocksAreFullRes)
-    H = blockid == 0 ? bitsperblock : bitsperblock + 0 + Utils::getLog2(1 + blockid);
-  else
-    H = blockid == 0 ? bitsperblock : bitsperblock + 1 + Utils::getLog2(0 + blockid);
-
-  auto delta = block_samples[H].delta;
-
-  //for first block I get twice the samples sice the blocking '1' can be '0' considering all previous levels from 'V'
-  if (blockid == 0 && !bBlocksAreFullRes)
-    delta[bitmask[H]] >>= 1;
-
-  PointNi p0;
-  if (bBlocksAreFullRes)
-  {
-    Int64 first_block_in_level = (((Int64)1) << (H - bitsperblock)) - 1;
-    auto coord = bitmask.deinterleave(blockid - first_block_in_level, H - bitsperblock);
-    p0 = coord.innerMultiply(block_samples[H].logic_box.size());
-  }
-  else
-  {
-    p0 = HzOrder(bitmask).hzAddressToPoint(blockid * samplesperblock);
-  }
-
-  auto ret = LogicSamples(block_samples[H].logic_box.translate(p0), delta);
-  VisusAssert(ret.valid());
-  return ret;
-}
 
 ////////////////////////////////////////////////////////////////////
 SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted)
@@ -591,7 +667,7 @@ SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, dou
   ret->mode = mode; VisusAssert(mode == 'r' || mode == 'w');
   ret->aborted = aborted;
 	ret->blockid = blockid;
-	ret->logic_samples = getBlockLogicSamples(blockid, ret->H);
+	ret->logic_samples = getBlockQuerySamples(blockid, ret->H);
   return ret;
 }
 
@@ -650,7 +726,40 @@ void Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<BlockQuery> q
   return;
 }
 
+////////////////////////////////////////////////////////////////////
+LogicSamples Dataset::getBlockQuerySamples(BigInt blockid, int& H)
+{
+  auto bitmask = getBitmask();
+  auto bitsperblock = getDefaultBitsPerBlock();
+  auto samplesperblock = 1 << bitsperblock;
 
+  if (bBlocksAreFullRes)
+    H = blockid == 0 ? bitsperblock : bitsperblock + 0 + Utils::getLog2(1 + blockid);
+  else
+    H = blockid == 0 ? bitsperblock : bitsperblock + 1 + Utils::getLog2(0 + blockid);
+
+  auto delta = block_samples[H].delta;
+
+  //for first block I get twice the samples sice the blocking '1' can be '0' considering all previous levels from 'V'
+  if (blockid == 0 && !bBlocksAreFullRes)
+    delta[bitmask[H]] >>= 1;
+
+  PointNi p0;
+  if (bBlocksAreFullRes)
+  {
+    Int64 first_block_in_level = (((Int64)1) << (H - bitsperblock)) - 1;
+    auto coord = bitmask.deinterleave(blockid - first_block_in_level, H - bitsperblock);
+    p0 = coord.innerMultiply(block_samples[H].logic_box.size());
+  }
+  else
+  {
+    p0 = HzOrder(bitmask).hzAddressToPoint(blockid * samplesperblock);
+  }
+
+  auto ret = LogicSamples(block_samples[H].logic_box.translate(p0), delta);
+  VisusAssert(ret.valid());
+  return ret;
+}
 
 
 
@@ -666,6 +775,276 @@ SharedPtr<BoxQuery> Dataset::createBoxQuery(BoxNi logic_box, Field field, double
   ret->logic_box = logic_box;
   ret->filter.domain = this->getLogicBox();
   return ret;
+}
+
+//////////////////////////////////////////////////////////////
+void Dataset::beginBoxQuery(SharedPtr<BoxQuery> query)
+{
+  if (!query)
+    return;
+
+  if (query->getStatus() != Query::QueryCreated)
+    return;
+
+  if (query->aborted())
+    return query->setFailed("query aborted");
+
+  if (!query->field.valid())
+    return query->setFailed("field not valid");
+
+  // override time from field
+  if (query->field.hasParam("time"))
+    query->time = cdouble(query->field.getParam("time"));
+
+  if (!getTimesteps().containsTimestep(query->time))
+    return query->setFailed("wrong time");
+
+  if (!query->logic_box.valid())
+    return query->setFailed("query logic_box not valid");
+
+  if (!query->logic_box.getIntersection(this->getLogicBox()).isFullDim())
+    return query->setFailed("user_box not valid");
+
+  if (query->end_resolutions.empty())
+    query->end_resolutions = { this->getMaxResolution() };
+
+  //google has only even resolution
+  if (auto google = dynamic_cast<GoogleMapsDataset*>(this))
+  {
+    std::set<int> good;
+    for (auto it : query->end_resolutions)
+    {
+      auto value = (it >> 1) << 1;
+      good.insert(Utils::clamp(value, getDefaultBitsPerBlock(), getMaxResolution()));
+    }
+
+    query->end_resolutions = std::vector<int>(good.begin(), good.end());
+  }
+
+  //end resolution
+  for (auto it : query->end_resolutions)
+  {
+    if (it <0 || it> this->getMaxResolution())
+      return query->setFailed("wrong end resolution");
+  }
+
+  //start_resolution
+  if (query->start_resolution > 0)
+  {
+    if (query->end_resolutions.size() != 1 || query->start_resolution != query->end_resolutions[0])
+      return query->setFailed("wrong query start resolution");
+  }
+
+  //filters?
+  if (query->filter.enabled)
+  {
+    if (!query->filter.dataset_filter)
+    {
+      query->filter.dataset_filter = createFilter(query->field);
+
+      if (!query->filter.dataset_filter)
+        query->disableFilters();
+    }
+  }
+
+  for (auto it : query->end_resolutions)
+  {
+    if (setBoxQueryEndResolution(query, it))
+      return query->setRunning();
+  }
+
+  query->setFailed();
+}
+
+//////////////////////////////////////////////////////////////
+bool Dataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
+{
+  if (!query)
+    return false;
+
+  if (!(query->isRunning() && query->getCurrentResolution() < query->getEndResolution()))
+    return false;
+
+  if (query->aborted())
+  {
+    query->setFailed("query aborted");
+    return false;
+  }
+
+  //for 'r' queries I can postpone the allocation
+  if (query->mode == 'w' && !query->buffer.valid())
+  {
+    query->setFailed("write buffer not set");
+    return false;
+  }
+
+  if (!query->allocateBufferIfNeeded())
+  {
+    query->setFailed("cannot allocate buffer");
+    return false;
+  }
+
+  if (!access)
+  {
+    if (auto google=dynamic_cast<GoogleMapsDataset*>(this))
+      access = createAccessForBlockQuery(); //the google server cannot handle pure remote queries (i.e. compose the tiles on server side)
+    else
+      return executeBoxQueryOnServer(query); //pure remote query
+  }
+
+  //filter enabled... need to go level by level
+  if (auto filter = query->filter.dataset_filter)
+    return executeBlockQuerWithFilters(access, query, filter);
+
+  int nread = 0, nwrite = 0;
+  WaitAsync< Future<Void> > wait_async;
+
+  auto block_queries = createBlockQueriesForBoxQuery(query);
+
+  if (query->aborted())
+    return false;
+
+  //rehentrant call...(just to not close the file too soon)
+  bool bWriting = query->mode == 'w', bWasWriting = access->isWriting();
+  bool bReading = query->mode == 'r', bWasReading = access->isReading();
+
+	if (bWriting)
+	{
+		if (!bWasWriting)
+			access->beginWrite();
+	}
+	else
+	{
+		if (!bWasReading)
+			access->beginRead();
+	}
+
+  for (auto read_block : block_queries)
+  {
+    if (query->aborted())
+      break;
+
+    //do not collect too much stuff...
+    if (wait_async.getNumRunning() > 512)
+    {
+      wait_async.waitAllDone();
+      //PrintInfo("aysnc read",concatenate(nread, "/", blocks.size()),"...");
+    }
+
+    nread++;
+
+    if (bReading)
+    {
+      executeBlockQuery(access, read_block);
+      wait_async.pushRunning(read_block->done).when_ready([this, query, read_block](Void)
+      {
+        //I don't care if the read fails...
+        if (!query->aborted() && read_block->ok())
+          mergeBoxQueryWithBlockQuery(query, read_block);
+      });
+    }
+    else
+    {
+      //need a lease... so that I can read/merge/write like in a transaction mode
+      access->acquireWriteLock(read_block);
+
+      //need to read and wait the block
+      executeBlockQueryAndWait(access, read_block);
+
+      auto write_block = createBlockQuery(read_block->blockid, query->field, query->time, 'w', query->aborted);
+
+      //read ok
+      if (read_block->ok())
+        write_block->buffer = read_block->buffer;
+      //I don't care if it fails... maybe does not exist
+      else
+        write_block->allocateBufferIfNeeded();
+
+      mergeBoxQueryWithBlockQuery(query, write_block);
+
+      //need to write and wait for the block
+      executeBlockQueryAndWait(access, write_block);
+      nwrite++;
+
+      //important! all writings are with a lease!
+      access->releaseWriteLock(read_block);
+
+      if (query->aborted() || write_block->failed()) {
+        if (!bWasWriting)
+          access->endWrite();
+        return false;
+      }
+    }
+  }
+
+  if (bWriting && !bWasWriting) access->endWrite();
+  if (bReading && !bWasReading) access->endRead();
+  wait_async.waitAllDone();
+
+  //PrintInfo("aysnc read",concatenate(nread, "/", block_queries.size()),"...");
+  //PrintInfo("Query finished", "nread", nread, "nwrite", nwrite);
+
+  //set the query status
+  if (query->aborted())
+    return false;
+
+  VisusAssert(query->buffer.dims == query->getNumberOfSamples());
+  query->setCurrentResolution(query->end_resolution);
+  return true;
+
+}
+
+//////////////////////////////////////////////////////////////
+void Dataset::nextBoxQuery(SharedPtr<BoxQuery> query)
+{
+  if (!query)
+    return;
+
+  if (!(query->isRunning() && query->getCurrentResolution() == query->getEndResolution()))
+    return;
+
+  //reached the end?
+  if (query->end_resolution == query->end_resolutions.back())
+    return query->setOk();
+
+  auto Rcurrent_resolution = query->getCurrentResolution();
+  auto Rsamples = query->logic_samples;
+  auto Rbuffer = query->buffer;
+  auto Rfilter_query = query->filter.query;
+
+  VisusReleaseAssert(setBoxQueryEndResolution(query, query->end_resolutions[Utils::find(query->end_resolutions, query->end_resolution) + 1]));
+
+  //asssume no merging
+  query->buffer = Array();
+
+  //merge with previous results
+  if (!bBlocksAreFullRes)
+  {
+    auto failed = [&](String reason) {
+      return query->setFailed(query->aborted() ? "query aborted" : reason);
+    };
+
+    if (!query->allocateBufferIfNeeded())
+      return failed("out of memory");
+
+    //cannot merge, scrgiorgio: can it really happen??? (maybe when I produce numpy arrays by projecting script...)
+    if (!Rsamples.valid() || Rsamples.nsamples != Rbuffer.dims)
+      return failed("cannot merge");
+
+    //solve the problem of missing blocks here...
+    InterpolateBufferOperation op;
+    if (!ExecuteOnCppSamples(op, query->buffer.dtype, query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
+      return failed("interpolate samples failed");
+
+    //I must be sure that 'inserted samples' from Rbuffer must be untouched in Wbuffer
+    //this is for wavelets where I need the coefficients to be right
+    if (!insertSamples(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
+      return failed("insert samples failed");
+
+    query->filter.query = Rfilter_query;
+  }
+
+  query->setCurrentResolution(Rcurrent_resolution);
 }
 
 ////////////////////////////////////////////////
@@ -752,89 +1131,10 @@ std::vector<int> Dataset::guessBoxQueryEndResolutions(Frustum logic_to_screen, P
 }
 
 //////////////////////////////////////////////////////////////
-void Dataset::beginBoxQuery(SharedPtr<BoxQuery> query)
-{
-  if (!query)
-    return;
-
-  if (query->getStatus() != Query::QueryCreated)
-    return;
-
-  if (query->aborted())
-    return query->setFailed("query aborted");
-
-  if (!query->field.valid())
-    return query->setFailed("field not valid");
-
-  // override time from field
-  if (query->field.hasParam("time"))
-    query->time = cdouble(query->field.getParam("time"));
-
-  if (!getTimesteps().containsTimestep(query->time))
-    return query->setFailed("wrong time");
-
-  if (!query->logic_box.valid())
-    return query->setFailed("query logic_box not valid");
-
-  if (!query->logic_box.getIntersection(this->getLogicBox()).isFullDim())
-    return query->setFailed("user_box not valid");
-
-  if (query->end_resolutions.empty())
-    query->end_resolutions = { this->getMaxResolution() };
-
-  //google has only even resolution
-  if (auto google = dynamic_cast<GoogleMapsDataset*>(this))
-  {
-    std::set<int> good;
-    for (auto it : query->end_resolutions)
-    {
-      auto value = (it >> 1) << 1;
-      good.insert(Utils::clamp(value, getDefaultBitsPerBlock(), getMaxResolution()));
-    }
-
-    query->end_resolutions = std::vector<int>(good.begin(), good.end());
-  }
-
-  //end resolution
-  for (auto it : query->end_resolutions)
-  {
-    if (it <0 || it> this->getMaxResolution())
-      return query->setFailed("wrong end resolution");
-  }
-
-  //start_resolution
-  if (query->start_resolution > 0)
-  {
-    if (query->end_resolutions.size() != 1 || query->start_resolution != query->end_resolutions[0])
-      return query->setFailed("wrong query start resolution");
-  }
-
-  //filters?
-  if (query->filter.enabled)
-  {
-    if (!query->filter.dataset_filter)
-    {
-      query->filter.dataset_filter = createFilter(query->field);
-
-      if (!query->filter.dataset_filter)
-        query->disableFilters();
-    }
-  }
-
-  for (auto it : query->end_resolutions)
-  {
-    if (setBoxQueryEndResolution(query, it))
-      return query->setRunning();
-  }
-
-  query->setFailed();
-}
-
-//////////////////////////////////////////////////////////////
-std::vector<BigInt> Dataset::collectBlocksForBoxQuery(SharedPtr<BoxQuery> query)
+std::vector< SharedPtr<BlockQuery> > Dataset::createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query)
 {
   VisusReleaseAssert(bBlocksAreFullRes);
-  std::vector<BigInt> blocks;
+  std::vector< SharedPtr<BlockQuery> > ret;
 
   BoxNi box = this->getLogicBox();
   std::stack< std::tuple<BoxNi, BigInt, int> > stack;
@@ -847,9 +1147,9 @@ std::vector<BigInt> Dataset::collectBlocksForBoxQuery(SharedPtr<BoxQuery> query)
     if (query->aborted())
       return {};
 
-    auto box     = std::get<0>(top);
+    auto box = std::get<0>(top);
     auto blockid = std::get<1>(top);
-    auto H       = std::get<2>(top);
+    auto H = std::get<2>(top);
 
     if (!box.getIntersection(query->logic_box).isFullDim())
       continue;
@@ -857,7 +1157,7 @@ std::vector<BigInt> Dataset::collectBlocksForBoxQuery(SharedPtr<BoxQuery> query)
     //is the resolution I need?
     if (H == query->end_resolution)
     {
-      blocks.push_back(blockid);
+      ret.push_back(createBlockQuery(blockid, query->field, query->time, 'r', query->aborted));
       continue;
     }
 
@@ -870,152 +1170,16 @@ std::vector<BigInt> Dataset::collectBlocksForBoxQuery(SharedPtr<BoxQuery> query)
     stack.push(std::make_tuple(lbox, blockid * 2 + 1, H + 1));
   }
 
-  return blocks;
-}
-
-//////////////////////////////////////////////////////////////
-bool Dataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
-{
-  if (!query)
-    return false;
-
-  if (!(query->isRunning() && query->getCurrentResolution() < query->getEndResolution()))
-    return false;
-
-  if (query->aborted())
-  {
-    query->setFailed("query aborted");
-    return false;
-  }
-
-  //for 'r' queries I can postpone the allocation
-  if (query->mode == 'w' && !query->buffer.valid())
-  {
-    query->setFailed("write buffer not set");
-    return false;
-  }
-
-  if (!query->allocateBufferIfNeeded())
-  {
-    query->setFailed("cannot allocate buffer");
-    return false;
-  }
-
-  if (!access)
-  {
-    if (auto google=dynamic_cast<GoogleMapsDataset*>(this))
-      access = createAccessForBlockQuery(); //the google server cannot handle pure remote queries (i.e. compose the tiles on server side)
-    else
-      return executeBoxQueryOnServer(query); //pure remote query
-  }
-
-  //filter enabled... need to go level by level
-  if (auto filter = query->filter.dataset_filter)
-    return executeBlockQuerWithFilters(access, query, filter);
-
-  int nread = 0, nwrite = 0;
-  WaitAsync< Future<Void> > wait_async;
-
-  auto blocks = collectBlocksForBoxQuery(query);
-
-  if (query->aborted())
-    return false;
-
-  //rehentrant call...(just to not close the file too soon)
-  bool bWriting = query->mode == 'w', bWasWriting = access->isWriting();
-  bool bReading = query->mode == 'r', bWasReading = access->isReading();
-
-	if (bWriting)
-	{
-		if (!bWasWriting)
-			access->beginWrite();
-	}
-	else
-	{
-		if (!bWasReading)
-			access->beginRead();
-	}
-
-  for (auto blockid : blocks)
-  {
-    if (query->aborted())
-      break;
-
-    //do not collect too much stuff...
-    if (wait_async.getNumRunning() > 512)
-    {
-      wait_async.waitAllDone();
-      //PrintInfo("aysnc read",concatenate(nread, "/", blocks.size()),"...");
-    }
-
-    auto read_block = createBlockQuery(blockid, query->field, query->time, 'r', query->aborted);
-    nread++;
-
-    if (bReading)
-    {
-      executeBlockQuery(access, read_block);
-      wait_async.pushRunning(read_block->done).when_ready([this, query, read_block](Void)
-      {
-        //I don't care if the read fails...
-        if (!query->aborted() && read_block->ok())
-          mergeBoxQueryWithBlockQuery(query, read_block);
-      });
-    }
-    else
-    {
-      //need a lease... so that I can read/merge/write like in a transaction mode
-      access->acquireWriteLock(read_block);
-
-      //need to read and wait the block
-      executeBlockQueryAndWait(access, read_block);
-
-      auto write_block = createBlockQuery(blockid, query->field, query->time, 'w', query->aborted);
-
-      //read ok
-      if (read_block->ok())
-        write_block->buffer = read_block->buffer;
-      //I don't care if it fails... maybe does not exist
-      else
-        write_block->allocateBufferIfNeeded();
-
-      mergeBoxQueryWithBlockQuery(query, write_block);
-
-      //need to write and wait for the block
-      executeBlockQueryAndWait(access, write_block);
-      nwrite++;
-
-      //important! all writings are with a lease!
-      access->releaseWriteLock(read_block);
-
-      if (query->aborted() || write_block->failed()) {
-        if (!bWasWriting)
-          access->endWrite();
-        return false;
-      }
-    }
-  }
-
-  if (bWriting && !bWasWriting) access->endWrite();
-  if (bReading && !bWasReading) access->endRead();
-  wait_async.waitAllDone();
-  //PrintInfo("aysnc read",concatenate(nread, "/", blocks.size()),"...");
-  //PrintInfo("Query finished", "nread", nread, "nwrite", nwrite);
-
-  //set the query status
-  if (query->aborted())
-    return false;
-
-  VisusAssert(query->buffer.dims == query->getNumberOfSamples());
-  query->setCurrentResolution(query->end_resolution);
-  return true;
-
+  return ret;
 }
 
 //////////////////////////////////////////////////////////////
 bool Dataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query)
 {
+  //only rowmajor is supported here
+  VisusAssert(block_query->buffer.layout.empty());
+
   VisusAssert(query->field.dtype == block_query->field.dtype);
-  VisusAssert(block_query->buffer.layout.empty()); //only rowmajor is supported here
 
   if (!block_query->logic_samples.valid())
     return false;
@@ -1114,135 +1278,6 @@ bool Dataset::convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query)
   block_query->buffer = row_major;
   block_query->buffer.layout = "";
   return true;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-class InterpolateBufferOperation
-{
-public:
-
-  //execute
-  template <class CppType>
-  bool execute(LogicSamples Wsamples, Array Wbuffer, LogicSamples Rsamples, Array Rbuffer, Aborted aborted)
-  {
-    if (!Wsamples.valid() || !Rsamples.valid())
-      return false;
-
-    if (Wbuffer.dtype != Rbuffer.dtype || Wbuffer.dims != Wsamples.nsamples || Rbuffer.dims != Rsamples.nsamples)
-    {
-      VisusAssert(false);
-      return false;
-    }
-
-    auto pdim = Wbuffer.getPointDim(); VisusAssert(Rbuffer.getPointDim() == pdim);
-    auto zero = PointNi(pdim);
-    auto one = PointNi(pdim);
-
-    auto Wstride = Wbuffer.dims.stride();
-    auto Rstride = Rbuffer.dims.stride();
-
-    VisusReleaseAssert(Wbuffer.dtype == Rbuffer.dtype);
-    int N = Wbuffer.dtype.ncomponents();
-
-    //for each component...
-    for (int C = 0; C < N; C++)
-    {
-      if (aborted())
-        return false;
-
-      GetComponentSamples<CppType> W(Wbuffer, C); PointNi Wpixel(pdim); Int64   Wpos = 0;
-      GetComponentSamples<CppType> R(Rbuffer, C); PointNi Rpixel(pdim); PointNi Rpos(pdim);
-
-#define W2R(I) (Utils::clamp<Int64>(((Wsamples.logic_box.p1[I] + (Wpixel[I] << Wsamples.shift[I])) - Rsamples.logic_box.p1[I]) >> Rsamples.shift[I], 0, Rbuffer.dims[I] - 1))
-
-      if (pdim == 2)
-      {
-        for (Wpixel[1] = 0; Wpixel[1] < Wbuffer.dims[1]; Wpixel[1]++) {
-          Rpixel[1] = W2R(1); Rpos[1] = Rpixel[1] * Rstride[1];
-          for (Wpixel[0] = 0; Wpixel[0] < Wbuffer.dims[0]; Wpixel[0]++) {
-            Rpixel[0] = W2R(0); Rpos[0] = Rpixel[0] * Rstride[0] + Rpos[1];
-            W[Wpos++] = R[Rpos[0]];
-          }
-        }
-      }
-      else if (pdim == 3)
-      {
-        for (Wpixel[2] = 0; Wpixel[2] < Wbuffer.dims[2]; Wpixel[2]++) {
-          Rpixel[2] = W2R(2); Rpos[2] = Rpixel[2] * Rstride[2];
-          for (Wpixel[1] = 0; Wpixel[1] < Wbuffer.dims[1]; Wpixel[1]++) {
-            Rpixel[1] = W2R(1); Rpos[1] = Rpixel[1] * Rstride[1] + Rpos[2];
-            for (Wpixel[0] = 0; Wpixel[0] < Wbuffer.dims[0]; Wpixel[0]++) {
-              Rpixel[0] = W2R(0); Rpos[0] = Rpixel[0] * Rstride[0] + Rpos[1];
-              W[Wpos++] = R[Rpos[0]];
-            }
-          }
-        }
-      }
-      else
-      {
-        for (auto it = ForEachPoint(Wbuffer.dims); !it.end(); it.next())
-        {
-          Wpixel = it.pos;
-          Rpixel = PointNi::clamp(Rsamples.logicToPixel(Wsamples.pixelToLogic(Wpixel)), zero, Rbuffer.dims - one);
-          W[Wpos++] = R[Rpixel.dot(Rstride)];
-        }
-      }
-    }
-    return true;
-  }
-};
-
-//////////////////////////////////////////////////////////////
-void Dataset::nextBoxQuery(SharedPtr<BoxQuery> query)
-{
-  if (!query)
-    return;
-
-  if (!(query->isRunning() && query->getCurrentResolution() == query->getEndResolution()))
-    return;
-
-  //reached the end?
-  if (query->end_resolution == query->end_resolutions.back())
-    return query->setOk();
-
-  auto Rcurrent_resolution = query->getCurrentResolution();
-  auto Rsamples            = query->logic_samples;
-  auto Rbuffer             = query->buffer;
-  auto Rfilter_query       = query->filter.query;
-
-  VisusReleaseAssert(setBoxQueryEndResolution(query, query->end_resolutions[Utils::find(query->end_resolutions, query->end_resolution) + 1]));
-
-  //asssume no merging
-  query->buffer = Array();
-
-  //merge with previous results
-  if (!bBlocksAreFullRes)
-  {
-    auto failed = [&](String reason) {
-      return query->setFailed(query->aborted() ? "query aborted" : reason);
-    };
-
-    if (!query->allocateBufferIfNeeded())
-      return failed("out of memory");
-
-    //cannot merge, scrgiorgio: can it really happen??? (maybe when I produce numpy arrays by projecting script...)
-    if (!Rsamples.valid() || Rsamples.nsamples != Rbuffer.dims)
-      return failed("cannot merge");
-
-    //solve the problem of missing blocks here...
-    InterpolateBufferOperation op;
-    if (!ExecuteOnCppSamples(op, query->buffer.dtype, query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
-      return failed("interpolate samples failed");
-
-    //I must be sure that 'inserted samples' from Rbuffer must be untouched in Wbuffer
-    //this is for wavelets where I need the coefficients to be right
-    if (!insertSamples(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
-      return failed("insert samples failed");
-
-    query->filter.query = Rfilter_query;
-  }
-
-  query->setCurrentResolution(Rcurrent_resolution);
 }
 
 //////////////////////////////////////////////////////////////
@@ -1443,7 +1478,6 @@ void Dataset::beginPointQuery(SharedPtr<PointQuery> query)
   query->setRunning();
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////////////
 bool Dataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query)
 {
@@ -1550,7 +1584,6 @@ bool Dataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> 
   return true;
 }
 
-
 //////////////////////////////////////////////////////////////////////////////////////////
 void Dataset::nextPointQuery(SharedPtr<PointQuery> query)
 {
@@ -1570,38 +1603,7 @@ void Dataset::nextPointQuery(SharedPtr<PointQuery> query)
   query->end_resolution = query->end_resolutions[index + 1];
 }
 
-
-/////////////////////////////////////////////////////////////////////////////////////////////
-class InsertIntoPointQuery
-{
-public:
-
-  //operator()
-  template <class Sample>
-  bool execute(Dataset* db, PointQuery* query, BlockQuery* block_query)
-  {
-    //only row major supported
-    VisusReleaseAssert(block_query->buffer.layout.empty());
-
-    if (block_query->mode == 'r')
-    {
-      auto query_samples = GetSamples<Sample>(query->buffer);
-      auto block_samples = GetSamples<Sample>(block_query->buffer);
-      for (auto it : *query->offsets[block_query->blockid])
-        query_samples[it.first] = block_samples[it.second];
-    }
-    else
-    {
-      auto block_samples = GetSamples<Sample>(block_query->buffer);
-      auto query_samples = GetSamples<Sample>(query->buffer);
-      for (auto it : *query->offsets[block_query->blockid])
-        block_samples[it.second] = query_samples[it.first];
-    }
-
-    return true;
-  }
-};
-
+//////////////////////////////////////////////////////////////////////////////////////////
 bool Dataset::mergePointQueryWithBlockQuery(SharedPtr<PointQuery> query, SharedPtr<BlockQuery> block_query)
 {
   if (query->aborted() || block_query->failed())
@@ -1828,6 +1830,8 @@ bool Dataset::executePointQueryOnServer(SharedPtr<PointQuery> query)
   query->cur_resolution = query->end_resolution;
   return true;
 }
+
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -2083,6 +2087,8 @@ bool Dataset::executeBlockQuerWithFilters(SharedPtr<Access> access, SharedPtr<Bo
   query->setCurrentResolution(query->end_resolution);
   return true;
 }
+
+
 
 
 /// ////////////////////////////////////////////////////////////////

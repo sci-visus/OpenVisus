@@ -315,19 +315,19 @@ public:
 
 public:
 
-  //________________________________________________
-  //block query stuff
-
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config = StringTree(), bool bForBlockQuery = false);
-  
+
   //createAccessForBlockQuery
   SharedPtr<Access> createAccessForBlockQuery(StringTree config = StringTree()) {
     return createAccess(config, true);
   }
 
-  //getBlockLogicSamples
-  LogicSamples getBlockLogicSamples(BigInt blockid, int& H);
+
+public:
+
+  //________________________________________________
+  //block query stuff
 
   //createBlockQuery
   virtual SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, Field field, double time, int mode = 'r', Aborted aborted = Aborted());
@@ -336,6 +336,10 @@ public:
   SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, int mode = 'r', Aborted aborted = Aborted()) {
     return createBlockQuery(blockid, getField(), getTime(), mode, aborted);
   }
+
+  //getBlockQuerySamples
+  LogicSamples getBlockQuerySamples(BigInt blockid, int& H);
+
 
   //readBlock  
   virtual void executeBlockQuery(SharedPtr<Access> access, SharedPtr<BlockQuery> query);
@@ -371,6 +375,9 @@ public:
     return createBoxQuery(logic_box, getField(), getTime(), mode, aborted);
   }
 
+  //createBlockQueriesForBoxQuery
+  virtual std::vector< SharedPtr<BlockQuery> > createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query);
+
   //guessBoxQueryEndResolutions
   virtual std::vector<int> guessBoxQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression);
 
@@ -388,9 +395,6 @@ public:
 
   //setBoxQueryEndResolution
   virtual bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value);
-
-  //collectBlocksForBoxQuery
-  virtual std::vector<BigInt> collectBlocksForBoxQuery(SharedPtr<BoxQuery> query);
 
   //createBoxQueryRequest
   virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query);

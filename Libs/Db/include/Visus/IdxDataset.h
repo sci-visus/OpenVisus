@@ -84,8 +84,8 @@ public:
     return "IdxDataset";
   }
 
-  //collectBlocksForBoxQuery
-  virtual std::vector<BigInt> collectBlocksForBoxQuery(SharedPtr<BoxQuery> query);
+  //createBlockQueriesForBoxQuery
+  virtual std::vector< SharedPtr<BlockQuery> > createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query);
 
   //mergeBoxQueryWithBlockQuery
   virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) override;
