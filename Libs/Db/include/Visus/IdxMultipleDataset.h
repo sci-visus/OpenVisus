@@ -141,13 +141,13 @@ public:
 private:
 
   //removeAliases
-  String removeAliases(String url);
+  String removeAliases(String url, String URL);
 
   //parseDataset
-  void parseDataset(StringTree& cur, Matrix T);
+  void parseDataset(StringTree& cur, Matrix T, String URL);
 
   //parseDatasets
-  void parseDatasets(StringTree& cur, Matrix T);
+  void parseDatasets(StringTree& cur, Matrix T, String URL);
 
   //generateIdxFile
   IdxFile generateIdxFile(Archive& ar);

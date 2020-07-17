@@ -300,292 +300,6 @@ Array IdxMultipleDataset::executeDownQuery(BoxQuery* QUERY, SharedPtr<BoxQuery> 
   return query->down_info.BUFFER;
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-String IdxMultipleDataset::removeAliases(String url)
-{
-  //replace some alias
-  Url URL = this->getUrl();
-
-  if (URL.isFile())
-  {
-    String dir = Path(URL.getPath()).getParent().toString();
-    if (dir.empty())
-      return url;
-
-    if (Url(url).isFile() && StringUtils::startsWith(Url(url).getPath(), "./"))
-      url = dir + Url(url).getPath().substr(1);
-
-    if (StringUtils::contains(url, "$(CurrentFileDirectory)"))
-      url = StringUtils::replaceAll(url, "$(CurrentFileDirectory)", dir);
-
-  }
-  else if (URL.isRemote())
-  {
-    if (StringUtils::contains(url, "$(protocol)"))
-      url = StringUtils::replaceAll(url, "$(protocol)", URL.getProtocol());
-
-    if (StringUtils::contains(url, "$(hostname)"))
-      url = StringUtils::replaceAll(url, "$(hostname)", URL.getHostname());
-
-    if (StringUtils::contains(url, "$(port)"))
-      url = StringUtils::replaceAll(url, "$(port)", cstring(URL.getPort()));
-  }
-
-  return url;
-};
-
-///////////////////////////////////////////////////////////
-void IdxMultipleDataset::parseDataset(StringTree& cur,Matrix modelview)
-{
-  String url = cur.getAttribute("url");
-  VisusAssert(!url.empty());
-
-  String name = StringUtils::trim(cur.getAttribute("name", cur.getAttribute("id")));
-  
-  //override name if exist
-  if (name.empty() || this->down_datasets.count(name))
-    name = concatenate("child_", StringUtils::formatNumber("%04d", (int)this->down_datasets.size()));
-
-  url= removeAliases(url);
-
-  cur.write("name", name); //in case I changed it
-  cur.write("url",url);
-  auto child = LoadDatasetEx(cur);
-
-  child->color = Color::fromString(cur.getAttribute("color", Color::random().toString()));;
-  auto sdim = child->getPointDim() + 1;
-
-  //override physic_box 
-  if (cur.hasAttribute("physic_box"))
-  {
-    auto physic_box = BoxNd::fromString(cur.getAttribute("physic_box"));
-    child->setDatasetBounds(physic_box);
-  }
-  else if (cur.hasAttribute("quad"))
-  {
-    //in midx physic coordinates
-    VisusReleaseAssert(child->getPointDim() == 2);
-    auto W = (int)child->getLogicBox().size()[0];
-    auto H = (int)child->getLogicBox().size()[1];
-    auto dst = Quad::fromString(cur.getAttribute("quad"));
-    auto src = Quad(W,H);
-    auto T   = Quad::findQuadHomography(dst, src);
-    child->setDatasetBounds(Position(T,BoxNd(PointNd(0,0),PointNd(W,H))));
-  }
-  
-  // transform physic box
-  modelview.setSpaceDim(sdim);
-
-  //refresh dataset bounds
-  auto bounds = child->getDatasetBounds();
-  child->setDatasetBounds(Position(modelview, bounds));
-
-  //update annotation positions by modelview
-  if (child->annotations && child->annotations->enabled)
-  {
-    for (auto annotation : *child->annotations)
-    {
-      auto ANNOTATION = annotation->cloneAnnotation();
-      ANNOTATION->prependModelview(modelview);
-
-      if (!this->annotations)
-        this->annotations = std::make_shared<Annotations>();
-
-      this->annotations->push_back(ANNOTATION);
-    }
-  }
-
-  addChild(name, child);
-}
-
-///////////////////////////////////////////////////////////
-void IdxMultipleDataset::parseDatasets(StringTree& ar, Matrix modelview)
-{
-  if (!cbool(ar.getAttribute("enabled", "1")))
-    return;
-
-  //final
-  if (ar.name == "svg")
-  {
-    this->annotations = std::make_shared<Annotations>();
-    this->annotations->read(ar);
-
-    for (auto& annotation : *this->annotations)
-      annotation->prependModelview(modelview);
-
-    return;
-  }
-
-  //final
-  if (ar.name == "dataset")
-  {
-    //this is for mosaic
-    if (ar.hasAttribute("offset"))
-    {
-      auto vt = PointNd::fromString(ar.getAttribute("offset"));
-      modelview *= Matrix::translate(vt);
-    }
-
-    parseDataset(ar, modelview);
-    return;
-  }
-
-  if (ar.name == "translate")
-  {
-    double tx = cdouble(ar.getAttribute("x"));
-    double ty = cdouble(ar.getAttribute("y"));
-    double tz = cdouble(ar.getAttribute("z"));
-    modelview *= Matrix::translate(PointNd(tx, ty, tz));
-  }
-  else if (ar.name == "scale")
-  {
-    double sx = cdouble(ar.getAttribute("x"));
-    double sy = cdouble(ar.getAttribute("y"));
-    double sz = cdouble(ar.getAttribute("z"));
-    modelview *= Matrix::nonZeroScale(PointNd(sx, sy, sz));
-  }
-
-  else if (ar.name == "rotate")
-  {
-    double rx = Utils::degreeToRadiant(cdouble(ar.getAttribute("x")));
-    double ry = Utils::degreeToRadiant(cdouble(ar.getAttribute("y")));
-    double rz = Utils::degreeToRadiant(cdouble(ar.getAttribute("z")));
-    modelview *= Matrix::rotate(Quaternion::fromEulerAngles(rx, ry, rz));
-  }
-  else if (ar.name == "transform" || ar.name == "M")
-  {
-    modelview *= Matrix::fromString(ar.getAttribute("value"));
-  }
-
-  //recursive
-  for (auto child : ar.getChilds())
-    parseDatasets(*child, modelview);
-}
-
-///////////////////////////////////////////////////////////
-IdxFile IdxMultipleDataset::generateIdxFile(Archive& ar)
-{
-  IdxFile ret;
-
-  auto PHYSIC_BOX = BoxNd::invalid();
-  if (ar.hasAttribute("physic_box"))
-  {
-    ar.read("physic_box", PHYSIC_BOX);
-  }
-  else
-  {
-    for (auto it : down_datasets)
-      PHYSIC_BOX = PHYSIC_BOX.getUnion(it.second->getDatasetBounds().toAxisAlignedBox());
-  }
-  ret.bounds = Position(PHYSIC_BOX);
-
-  if (ar.hasAttribute("logic_box"))
-  {
-    ar.read("logic_box", ret.logic_box);
-  }
-  else if (down_datasets.size() == 1)
-  {
-    ret.logic_box = down_datasets.begin()->second->getLogicBox();
-  }
-  else
-  {
-    // logic_npixels' / logic_npixels = physic_module' / physic_module
-    // physic_module' * vs = logic_npixels'
-    // vs = logic_npixels / physic_module
-    auto pdim = getFirstChild()->getPointDim();
-    auto VS = PointNd::zero(pdim);
-    for (auto it : down_datasets)
-    {
-      auto dataset = it.second;
-      for (auto edge : BoxNd::getEdges(pdim))
-      {
-        auto logic_num_pixels = dataset->getLogicBox().size()[edge.axis];
-        auto physic_points = dataset->getDatasetBounds().getPoints();
-        auto physic_edge = physic_points[edge.index1] - physic_points[edge.index0];
-        auto physic_axis = physic_edge.abs().max_element_index();
-        auto physic_module = physic_edge.module();
-        auto density = logic_num_pixels / physic_module;
-        auto vs = density;
-        VS[physic_axis] = std::max(VS[physic_axis], vs);
-      }
-    }
-    ret.logic_box = Position(Matrix::scale(VS), Matrix::translate(-PHYSIC_BOX.p1), PHYSIC_BOX).toAxisAlignedBox().castTo<BoxNi>();
-  }
-
-  //time_template
-  if (down_datasets.size() == 1)
-    ret.time_template = getFirstChild()->idxfile.time_template;
-
-  //timesteps
-  for (auto it : down_datasets)
-    ret.timesteps.addTimesteps(it.second->getTimesteps());
-
-  return ret;
-}
-
-///////////////////////////////////////////////////////////
-void IdxMultipleDataset::readDatasetFromArchive(Archive& ar)
-{
-  for (auto& it : ar.childs)
-    parseDatasets(*it, Matrix());
-
-  VisusReleaseAssert(!down_datasets.empty());
-
-  //automatically generate idxfile
-  ar.removeChild("idxfile");
-  auto idxfile = generateIdxFile(ar);
- 
-  //used specified fields (happends with midx)
-  if (ar.getChild("field"))
-  {
-    int generate_name = 0;
-    for (auto child : ar.getChilds("field"))
-    {
-      String name = child->readString("name");
-
-      if (name.empty())
-        name = concatenate("field_", generate_name++);
-
-      //I expect to find here CData node or Text node...
-      String code;
-      child->readText("code", code);
-      VisusAssert(!code.empty());
-
-      Field FIELD = getField(code);
-      VisusReleaseAssert(FIELD.valid());
-      addField(name, FIELD); //FIELD.name now contain the real code
-      idxfile.fields.push_back(Field(name, FIELD.dtype, "rowmajor"));
-    }
-  }
-
-  //this is to pass the validation, an midx has infinite run-time fields 
-  if (idxfile.fields.empty())
-  {
-    Field field("__fake__", DTypes::UINT8);
-    idxfile.fields.push_back(field);
-  }
-
-  ar.writeObject("idxfile", idxfile);
-  IdxDataset::readDatasetFromArchive(ar);
-
-  //set logic_to_LOGIC for child datasets
-  for (auto it : down_datasets)
-  {
-    auto dataset = it.second;
-    auto PHYSIC_BOX = getDatasetBounds().toAxisAlignedBox(); //TODO: what if getDatasetBounds has a transformation T?
-    auto physic_to_PHYSIC = Matrix::identity(getPointDim() + 1);
-    auto PHYSIC_to_LOGIC = Position::computeTransformation(getLogicBox(), PHYSIC_BOX);
-    dataset->logic_to_LOGIC = PHYSIC_to_LOGIC * physic_to_PHYSIC * dataset->logicToPhysic();
-
-    //here you should see more or less the same number of pixels
-    auto logic_box = dataset->getLogicBox();
-    auto LOGIC_PIXELS = Position(dataset->logic_to_LOGIC, logic_box).computeVolume();
-    auto logic_pixels = Position(logic_box).computeVolume();
-    auto ratio = logic_pixels / LOGIC_PIXELS; //ratio>1 means you are loosing pixels, ratio=1 is perfect, ratio<1 that you have more pixels than needed and you will interpolate
-    //PrintInfo("  ", it.first, "volume(logic_pixels)", logic_pixels, "volume(LOGIC_PIXELS)", LOGIC_PIXELS, "ratio==logic_pixels/LOGIC_PIXELS", ratio);
-  }
-}
-
 ////////////////////////////////////////////////////////////////////////
 bool IdxMultipleDataset::executeBoxQuery(SharedPtr<Access> ACCESS,SharedPtr<BoxQuery> QUERY)
 {
@@ -662,5 +376,294 @@ void IdxMultipleDataset::nextBoxQuery(SharedPtr<BoxQuery> QUERY)
       dataset->nextBoxQuery(query);
   }
 }
+
+
+
+////////////////////////////////////////////////////////////////////////////////////
+String IdxMultipleDataset::removeAliases(String url, String URL_)
+{
+  Url URL(URL_);
+  if (URL.isFile())
+  {
+    String dir = Path(URL.getPath()).getParent().toString();
+    if (dir.empty())
+      return url;
+
+    if (Url(url).isFile() && StringUtils::startsWith(Url(url).getPath(), "./"))
+      url = dir + Url(url).getPath().substr(1);
+
+    if (StringUtils::contains(url, "$(CurrentFileDirectory)"))
+      url = StringUtils::replaceAll(url, "$(CurrentFileDirectory)", dir);
+
+  }
+  else if (URL.isRemote())
+  {
+    if (StringUtils::contains(url, "$(protocol)"))
+      url = StringUtils::replaceAll(url, "$(protocol)", URL.getProtocol());
+
+    if (StringUtils::contains(url, "$(hostname)"))
+      url = StringUtils::replaceAll(url, "$(hostname)", URL.getHostname());
+
+    if (StringUtils::contains(url, "$(port)"))
+      url = StringUtils::replaceAll(url, "$(port)", cstring(URL.getPort()));
+  }
+
+  return url;
+};
+
+///////////////////////////////////////////////////////////
+void IdxMultipleDataset::parseDataset(StringTree& cur, Matrix modelview,String URL)
+{
+  String url = cur.getAttribute("url");
+  VisusAssert(!url.empty());
+
+  String name = StringUtils::trim(cur.getAttribute("name", cur.getAttribute("id")));
+
+  //override name if exist
+  if (name.empty() || this->down_datasets.count(name))
+    name = concatenate("child_", StringUtils::formatNumber("%04d", (int)this->down_datasets.size()));
+
+  url = removeAliases(url, URL);
+
+  cur.write("name", name); //in case I changed it
+  cur.write("url", url);
+  auto child = LoadDatasetEx(cur);
+
+  child->color = Color::fromString(cur.getAttribute("color", Color::random().toString()));;
+  auto sdim = child->getPointDim() + 1;
+
+  //override physic_box 
+  if (cur.hasAttribute("physic_box"))
+  {
+    auto physic_box = BoxNd::fromString(cur.getAttribute("physic_box"));
+    child->setDatasetBounds(physic_box);
+  }
+  else if (cur.hasAttribute("quad"))
+  {
+    //in midx physic coordinates
+    VisusReleaseAssert(child->getPointDim() == 2);
+    auto W = (int)child->getLogicBox().size()[0];
+    auto H = (int)child->getLogicBox().size()[1];
+    auto dst = Quad::fromString(cur.getAttribute("quad"));
+    auto src = Quad(W, H);
+    auto T = Quad::findQuadHomography(dst, src);
+    child->setDatasetBounds(Position(T, BoxNd(PointNd(0, 0), PointNd(W, H))));
+  }
+
+  // transform physic box
+  modelview.setSpaceDim(sdim);
+
+  //refresh dataset bounds
+  auto bounds = child->getDatasetBounds();
+  child->setDatasetBounds(Position(modelview, bounds));
+
+  //update annotation positions by modelview
+  if (child->annotations && child->annotations->enabled)
+  {
+    for (auto annotation : *child->annotations)
+    {
+      auto ANNOTATION = annotation->cloneAnnotation();
+      ANNOTATION->prependModelview(modelview);
+
+      if (!this->annotations)
+        this->annotations = std::make_shared<Annotations>();
+
+      this->annotations->push_back(ANNOTATION);
+    }
+  }
+
+  addChild(name, child);
+}
+
+///////////////////////////////////////////////////////////
+void IdxMultipleDataset::parseDatasets(StringTree& ar, Matrix modelview,String URL)
+{
+  if (!cbool(ar.getAttribute("enabled", "1")))
+    return;
+
+  //final
+  if (ar.name == "svg")
+  {
+    this->annotations = std::make_shared<Annotations>();
+    this->annotations->read(ar);
+
+    for (auto& annotation : *this->annotations)
+      annotation->prependModelview(modelview);
+
+    return;
+  }
+
+  //final
+  if (ar.name == "dataset")
+  {
+    //this is for mosaic
+    if (ar.hasAttribute("offset"))
+    {
+      auto vt = PointNd::fromString(ar.getAttribute("offset"));
+      modelview *= Matrix::translate(vt);
+    }
+
+    parseDataset(ar, modelview, URL);
+    return;
+  }
+
+  if (ar.name == "translate")
+  {
+    double tx = cdouble(ar.getAttribute("x"));
+    double ty = cdouble(ar.getAttribute("y"));
+    double tz = cdouble(ar.getAttribute("z"));
+    modelview *= Matrix::translate(PointNd(tx, ty, tz));
+  }
+  else if (ar.name == "scale")
+  {
+    double sx = cdouble(ar.getAttribute("x"));
+    double sy = cdouble(ar.getAttribute("y"));
+    double sz = cdouble(ar.getAttribute("z"));
+    modelview *= Matrix::nonZeroScale(PointNd(sx, sy, sz));
+  }
+
+  else if (ar.name == "rotate")
+  {
+    double rx = Utils::degreeToRadiant(cdouble(ar.getAttribute("x")));
+    double ry = Utils::degreeToRadiant(cdouble(ar.getAttribute("y")));
+    double rz = Utils::degreeToRadiant(cdouble(ar.getAttribute("z")));
+    modelview *= Matrix::rotate(Quaternion::fromEulerAngles(rx, ry, rz));
+  }
+  else if (ar.name == "transform" || ar.name == "M")
+  {
+    modelview *= Matrix::fromString(ar.getAttribute("value"));
+  }
+
+  //recursive
+  for (auto child : ar.getChilds())
+    parseDatasets(*child, modelview, URL);
+}
+
+///////////////////////////////////////////////////////////
+IdxFile IdxMultipleDataset::generateIdxFile(Archive& ar)
+{
+  IdxFile ret;
+
+  auto PHYSIC_BOX = BoxNd::invalid();
+  if (ar.hasAttribute("physic_box"))
+  {
+    ar.read("physic_box", PHYSIC_BOX);
+  }
+  else
+  {
+    for (auto it : down_datasets)
+      PHYSIC_BOX = PHYSIC_BOX.getUnion(it.second->getDatasetBounds().toAxisAlignedBox());
+  }
+  ret.bounds = Position(PHYSIC_BOX);
+
+  if (ar.hasAttribute("logic_box"))
+  {
+    ar.read("logic_box", ret.logic_box);
+  }
+  else if (down_datasets.size() == 1)
+  {
+    ret.logic_box = down_datasets.begin()->second->getLogicBox();
+  }
+  else
+  {
+    // logic_npixels' / logic_npixels = physic_module' / physic_module
+    // physic_module' * vs = logic_npixels'
+    // vs = logic_npixels / physic_module
+    auto pdim = getFirstChild()->getPointDim();
+    auto VS = PointNd::zero(pdim);
+    for (auto it : down_datasets)
+    {
+      auto dataset = it.second;
+      for (auto edge : BoxNd::getEdges(pdim))
+      {
+        auto logic_num_pixels = dataset->getLogicBox().size()[edge.axis];
+        auto physic_points = dataset->getDatasetBounds().getPoints();
+        auto physic_edge = physic_points[edge.index1] - physic_points[edge.index0];
+        auto physic_axis = physic_edge.abs().max_element_index();
+        auto physic_module = physic_edge.module();
+        auto density = logic_num_pixels / physic_module;
+        auto vs = density;
+        VS[physic_axis] = std::max(VS[physic_axis], vs);
+      }
+    }
+    ret.logic_box = Position(Matrix::scale(VS), Matrix::translate(-PHYSIC_BOX.p1), PHYSIC_BOX).toAxisAlignedBox().castTo<BoxNi>();
+  }
+
+  //time_template
+  if (down_datasets.size() == 1)
+    ret.time_template = getFirstChild()->idxfile.time_template;
+
+  //timesteps
+  for (auto it : down_datasets)
+    ret.timesteps.addTimesteps(it.second->getTimesteps());
+
+  return ret;
+}
+
+///////////////////////////////////////////////////////////
+void IdxMultipleDataset::readDatasetFromArchive(Archive& ar)
+{
+  auto URL = ar.getAttribute("url");
+
+  for (auto& it : ar.childs)
+    parseDatasets(*it, Matrix(), URL);
+
+  VisusReleaseAssert(!down_datasets.empty());
+
+  //automatically generate idxfile
+  ar.removeChild("idxfile");
+  auto idxfile = generateIdxFile(ar);
+
+  //used specified fields (happends with midx)
+  if (ar.getChild("field"))
+  {
+    int generate_name = 0;
+    for (auto child : ar.getChilds("field"))
+    {
+      String name = child->readString("name");
+
+      if (name.empty())
+        name = concatenate("field_", generate_name++);
+
+      //I expect to find here CData node or Text node...
+      String code;
+      child->readText("code", code);
+      VisusAssert(!code.empty());
+
+      Field FIELD = getField(code);
+      VisusReleaseAssert(FIELD.valid());
+      addField(name, FIELD); //FIELD.name now contain the real code
+      idxfile.fields.push_back(Field(name, FIELD.dtype, "rowmajor"));
+    }
+  }
+
+  //this is to pass the validation, an midx has infinite run-time fields 
+  if (idxfile.fields.empty())
+  {
+    Field field("__fake__", DTypes::UINT8);
+    idxfile.fields.push_back(field);
+  }
+
+  ar.writeObject("idxfile", idxfile);
+  IdxDataset::readDatasetFromArchive(ar);
+
+  //set logic_to_LOGIC for child datasets
+  for (auto it : down_datasets)
+  {
+    auto dataset = it.second;
+    auto PHYSIC_BOX = getDatasetBounds().toAxisAlignedBox(); //TODO: what if getDatasetBounds has a transformation T?
+    auto physic_to_PHYSIC = Matrix::identity(getPointDim() + 1);
+    auto PHYSIC_to_LOGIC = Position::computeTransformation(getLogicBox(), PHYSIC_BOX);
+    dataset->logic_to_LOGIC = PHYSIC_to_LOGIC * physic_to_PHYSIC * dataset->logicToPhysic();
+
+    //here you should see more or less the same number of pixels
+    auto logic_box = dataset->getLogicBox();
+    auto LOGIC_PIXELS = Position(dataset->logic_to_LOGIC, logic_box).computeVolume();
+    auto logic_pixels = Position(logic_box).computeVolume();
+    auto ratio = logic_pixels / LOGIC_PIXELS; //ratio>1 means you are loosing pixels, ratio=1 is perfect, ratio<1 that you have more pixels than needed and you will interpolate
+    //PrintInfo("  ", it.first, "volume(logic_pixels)", logic_pixels, "volume(LOGIC_PIXELS)", LOGIC_PIXELS, "ratio==logic_pixels/LOGIC_PIXELS", ratio);
+  }
+}
+
 
 } //namespace Visus

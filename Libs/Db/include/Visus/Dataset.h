@@ -201,7 +201,6 @@ public:
     return dataset_body;
   }
 
-
   //getUrl
   String getUrl() const {
     return getDatasetBody().getAttribute("url");
