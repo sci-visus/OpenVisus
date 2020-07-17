@@ -507,32 +507,24 @@ public:
   template <class Sample>
   bool execute(IdxDataset* vf, PointQuery* query, BlockQuery* block_query, PointNi depth_mask, const std::vector< info_t >& infos, Aborted aborted)
   {
-    auto& Wbuffer = query->buffer;       auto write = GetSamples<Sample>(Wbuffer);
-    auto& Rbuffer = block_query->buffer; auto read = GetSamples<Sample>(Rbuffer);
+    auto write = GetSamples<Sample>(query->buffer);
+    auto read  = GetSamples<Sample>(block_query->buffer);
 
-    auto p0    = block_query->logic_samples.logic_box.p1;
-    auto delta = block_query->logic_samples.delta;
-
-    auto pdim = vf->getPointDim();
-
-    if (Rbuffer.layout.empty())
+    if (block_query->buffer.layout.empty())
     {
-      PointNi rstride = Rbuffer.dims.stride();
-      auto points = query->points->c_ptr<Int64*>();
-
+      auto block_samples = block_query->logic_samples;
+      PointNi stride = block_query->buffer.dims.stride();
       for (const auto& it : infos)
       {
-				Int64 roffset = 0;
-				if (pdim >= 1) roffset += rstride[0] * ((it.masked_p[0] - p0[0]) / delta[0]);
-				if (pdim >= 2) roffset += rstride[1] * ((it.masked_p[1] - p0[1]) / delta[1]);
-				if (pdim >= 3) roffset += rstride[2] * ((it.masked_p[2] - p0[2]) / delta[2]);
-				if (pdim >= 4) roffset += rstride[3] * ((it.masked_p[3] - p0[3]) / delta[3]);
-				if (pdim >= 5) roffset += rstride[4] * ((it.masked_p[4] - p0[4]) / delta[4]);
+        Int64 roffset =
+          stride[0] * ((it.masked_p[0] - block_samples.logic_box.p1[0]) / block_samples.delta[0]) +
+          stride[1] * ((it.masked_p[1] - block_samples.logic_box.p1[1]) / block_samples.delta[1]) +
+          stride[2] * ((it.masked_p[2] - block_samples.logic_box.p1[2]) / block_samples.delta[2]);
+
         write[it.point_offset] = read[roffset];
       }
 
-      VisusAssert(false);
-      return false;
+      return true;
     }
     else
     {
@@ -551,6 +543,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
     return false;
 
   VisusReleaseAssert(query->mode == 'r');
+  VisusReleaseAssert(!bBlocksAreFullRes);//todo
 
   if (!(query->isRunning() && query->getCurrentResolution() < query->getEndResolution()))
     return false;
@@ -588,15 +581,16 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
     }
   }
 
+  auto pdim = this->getPointDim(); VisusReleaseAssert(pdim == 3);
+
   VisusAssert(query->buffer.dtype == query->field.dtype);
   VisusAssert(query->buffer.c_size() == query->getByteSize());
   VisusAssert(query->buffer.dims == query->getNumberOfPoints());
-  VisusAssert((Int64)query->points->c_size() == query->getNumberOfPoints().innerProduct() * sizeof(Int64) * 3);
+  VisusAssert((Int64)query->points->c_size() == query->getNumberOfPoints().innerProduct() * sizeof(Int64) * pdim);
 
   //blockid-> (offset of query buffer, block offset)
   std::map<BigInt, std::vector<InsertIntoPointQuery::info_t> > blocks;
 
-  auto pdim = this->getPointDim();
   auto bounds = this->getLogicBox();
   auto last_bitmask = ((BigInt)1) << (getMaxResolution());
   auto hzorder = HzOrder(idxfile.bitmask);
@@ -609,8 +603,14 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
   PointNi p(pdim);
   auto SRC = (Int64*)query->points->c_ptr();
   BigInt hzaddress;
-    
+
   auto hzconv = this->hzconv.point ? &this->hzconv.point->loc : nullptr;
+  if (!hzconv)
+  {
+    PrintWarning("The hzaddress_conversion_pointquery has not been created, so loc-by-loc queries will be a lot slower!!!!");
+    VisusAssert(false); //so you investigate why it's happening! 
+  }
+  
   for (int N = 0, Tot = (int)query->getNumberOfPoints().innerProduct(); N < Tot; N++, SRC += pdim)
   {
     if (query->aborted()) {
@@ -618,42 +618,41 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
       return false;
     }
 
+    p[0] = SRC[0];
+    p[1] = SRC[1];
+    p[2] = SRC[2];
+
+    if (!(
+      p[0] >= bounds.p1[0] && p[0] < bounds.p2[0] &&
+      p[1] >= bounds.p1[1] && p[1] < bounds.p2[1] &&
+      p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) 
+      continue;
+
+    p[0] &= depth_mask[0];
+    p[1] &= depth_mask[1];
+    p[2] &= depth_mask[2];
+
     if (!hzconv)
     {
-      if (N==0)
-      {
-        PrintWarning("The hzaddress_conversion_pointquery has not been created, so loc-by-loc queries will be a lot slower!!!!");
-        VisusAssert(false); //so you investigate why it's happening! 
-      }
-
-      if (pdim >= 1) { p[0] = SRC[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; }
-      if (pdim >= 2) { p[1] = SRC[1]; if (!(p[1] >= bounds.p1[1] && p[1] < bounds.p2[1])) continue; p[1] &= depth_mask[1]; }
-      if (pdim >= 3) { p[2] = SRC[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; }
-      if (pdim >= 4) { p[3] = SRC[3]; if (!(p[3] >= bounds.p1[3] && p[3] < bounds.p2[3])) continue; p[3] &= depth_mask[3]; }
-      if (pdim >= 5) { p[4] = SRC[4]; if (!(p[4] >= bounds.p1[4] && p[4] < bounds.p2[4])) continue; p[4] &= depth_mask[4]; }
       hzaddress = hzorder.pointToHzAddress(p);
     }
     else
     {
-      if (pdim >= 1) { p[0] = SRC[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; shift =                ((*hzconv)[0][p[0]].second); zaddress  = (*hzconv)[0][p[0]].first; }
-      if (pdim >= 2) { p[1] = SRC[1]; if (!(p[1] >= bounds.p1[1] && p[1] < bounds.p2[1])) continue; p[1] &= depth_mask[1]; shift = std::min(shift, (*hzconv)[1][p[1]].second); zaddress |= (*hzconv)[1][p[1]].first; }
-      if (pdim >= 3) { p[2] = SRC[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; shift = std::min(shift, (*hzconv)[2][p[2]].second); zaddress |= (*hzconv)[2][p[2]].first; }
-      if (pdim >= 4) { p[3] = SRC[3]; if (!(p[3] >= bounds.p1[3] && p[3] < bounds.p2[3])) continue; p[3] &= depth_mask[3]; shift = std::min(shift, (*hzconv)[3][p[3]].second); zaddress |= (*hzconv)[3][p[3]].first; }
-      if (pdim >= 5) { p[4] = SRC[4]; if (!(p[4] >= bounds.p1[4] && p[4] < bounds.p2[4])) continue; p[4] &= depth_mask[4]; shift = std::min(shift, (*hzconv)[4][p[4]].second); zaddress |= (*hzconv)[4][p[4]].first; }
+      shift = Utils::min((*hzconv)[0][p[0]].second, (*hzconv)[1][p[1]].second, (*hzconv)[2][p[2]].second);
+      zaddress = (*hzconv)[0][p[0]].first | (*hzconv)[1][p[1]].first | (*hzconv)[2][p[2]].first;
       hzaddress = ((zaddress | last_bitmask) >> shift);
     }
-      
+
     blocks[hzaddress >> bitsperblock].push_back(InsertIntoPointQuery::info_t({ N, (int)(hzaddress % samplesperblock), p }));
   }
 
   //do the for loop block aligned
-  WaitAsync< Future<Void> > wait_async;
-
   bool bWasReading = access->isReading();
 
   if (!bWasReading)
     access->beginRead();
 
+  WaitAsync< Future<Void> > wait_async;
   for (auto it : blocks)
   {
     auto blockid = it.first;
