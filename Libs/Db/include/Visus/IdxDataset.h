@@ -56,11 +56,23 @@ class VISUS_DB_API IdxDataset : public Dataset
 {
 public:
 
+#if !SWIG
+  struct
+  {
+    SharedPtr<BoxQueryHzConversion> box;
+    SharedPtr<PointQueryHzConversion> point;
+  }
+  hzconv;
+#endif
+
   //default constructor
-  IdxDataset();
+  IdxDataset() {
+    this->bBlocksAreFullRes = false;
+  }
 
   //destructor
-  virtual ~IdxDataset();
+  virtual ~IdxDataset() {
+  }
 
   //castFrom
   static SharedPtr<IdxDataset> castFrom(SharedPtr<Dataset> db) {
@@ -74,8 +86,8 @@ public:
 
 public:
 
-  //executeBoxQuery
-  virtual bool executeBoxQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
+  //collectBlocksForBoxQuery
+  virtual std::vector<BigInt> collectBlocksForBoxQuery(SharedPtr<BoxQuery> query);
 
   //mergeBoxQueryWithBlockQuery
   virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) override;
@@ -90,18 +102,6 @@ public:
   //readDatasetFromArchive
   virtual void readDatasetFromArchive(Archive& ar) override;
 
-protected:
-
-  friend class ConvertHzOrderSamples;
-  friend class IdxMultipleDataset;
-
-  SharedPtr<BoxQueryHzConversion> hzaddress_conversion_boxquery;
-
-  // to speed up point queries
-  // But keep in mind that this "preprocessing" is slow and can consume  a lot of memory. 
-  // So use only when stricly necessary! 
-  SharedPtr<PointQueryHzConversion> hzaddress_conversion_pointquery;
-
 };
 
 //swig will use internal casting (see Db.i)
@@ -111,7 +111,7 @@ inline VISUS_DB_API SharedPtr<IdxDataset> LoadIdxDataset(String url) {
 }
 #endif
 
-VISUS_DB_API void SelfTestIdx(int max_seconds);
+VISUS_DB_API void SelfTestIdx(int max_seconds=300);
 
 } //namespace Visus
 

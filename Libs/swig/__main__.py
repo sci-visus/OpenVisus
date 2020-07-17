@@ -494,7 +494,7 @@ def Main(args):
 
 	if action=="test-idx":
 		os.chdir(this_dir)
-		SelfTestIdx(300)
+		SelfTestIdx()
 		sys.exit(0)
 
 	# this is just to test run-time linking of shared libraries

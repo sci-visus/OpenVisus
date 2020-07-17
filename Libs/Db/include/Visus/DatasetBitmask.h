@@ -44,10 +44,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-#ifndef DatasetBitmaskMaxLen 
-#define DatasetBitmaskMaxLen 512
-#endif
-
 ////////////////////////////////////////////////////////
 class VISUS_DB_API DatasetBitmask
 {

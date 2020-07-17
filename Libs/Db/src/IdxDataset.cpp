@@ -37,11 +37,7 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/IdxDataset.h>
-#include <Visus/IdxDiskAccess.h>
 #include <Visus/IdxHzOrder.h>
-#include <Visus/IdxFilter.h>
-#include <Visus/RamAccess.h>
-#include <Visus/NetService.h>
 
 namespace Visus {
 
@@ -123,17 +119,14 @@ public:
     }
   };
 
-  DatasetBitmask bitmask;
   std::vector< SharedPtr<Level> > levels;
 
   //constructor
-  BoxQueryHzConversion(const DatasetBitmask& bitmask_) : bitmask(bitmask_)
+  BoxQueryHzConversion(DatasetBitmask& bitmask)
   {
-    int maxh = bitmask.getMaxResolution();
-    while (maxh >= this->levels.size())
-      this->levels.push_back(std::make_shared<Level>(bitmask, (int)this->levels.size()));
+		for (int I = 0; I <= bitmask.getMaxResolution(); I++)
+			this->levels.push_back(std::make_shared<Level>(bitmask, I));
   }
-
 
 };
 
@@ -160,9 +153,7 @@ public:
     for (int D = 0; D < pdim; D++)
     {
       Int64 dim = bitmask.getPow2Dims()[D];
-
       this->loc[D] = new std::pair<BigInt, Int32>[dim];
-
       BigInt one = 1;
       for (int i = 0; i < dim; i++)
       {
@@ -191,24 +182,36 @@ public:
 class HzAddressConversion
 {
 public:
+  CriticalSection lock;
+  std::map<String, SharedPtr<BoxQueryHzConversion> >   box;
+  std::map<String, SharedPtr<PointQueryHzConversion> > point;
 
-  struct
+  //create
+  void create(IdxDataset* idx)
   {
-    CriticalSection                                       lock;
-    std::map<String, SharedPtr<BoxQueryHzConversion> >    map;
-  }
-  boxquery;
+    ScopedLock lock(this->lock);
 
-  struct
-  {
-    CriticalSection                                      lock;
-    std::map<String, SharedPtr<PointQueryHzConversion> > map;
-  }
-  pointquery;
+    auto bitmask = idx->getBitmask();
+    auto key = bitmask.toString();
 
+    if (!this->box.count(key))
+      this->box[key] = std::make_shared<BoxQueryHzConversion>(bitmask);
+
+    idx->hzconv.box = this->box[key];
+
+    //create the loc-cache only for 3d data, in 2d I know I'm not going to use it!
+    //instead in 3d I will use it a lot (consider a slice in odd position)
+    if (bitmask.getPointDim() == 3)
+    {
+      if (!this->point.count(key))
+        this->point[key] = std::make_shared<PointQueryHzConversion>(bitmask);
+
+      idx->hzconv.point = this->point[key];
+    }
+  }
 };
 
-static HzAddressConversion hz_address_conversion;
+static HzAddressConversion HZCONV;
 
 ///////////////////////////////////////////////////////////////////////////
 class ConvertHzOrderSamples
@@ -244,8 +247,8 @@ public:
     if (bInvertOrder)
       std::swap(Wbox, Rbox);
 
-    auto address_conversion = vf->hzaddress_conversion_boxquery;
-    VisusReleaseAssert(address_conversion);
+    auto hzconv = vf->hzconv.box;
+    VisusReleaseAssert(hzconv);
 
     int              numused = 0;
     int              bit;
@@ -256,9 +259,14 @@ public:
     BigInt           numpoints;
     Aborted          aborted = query->aborted;
 
-    typedef struct { int    H; BoxNi  box; } FastLoopStack;
-    FastLoopStack item, * stack = NULL;
-    FastLoopStack STACK[DatasetBitmaskMaxLen + 1];
+    typedef struct { 
+      int    H; 
+      BoxNi  box; 
+    } 
+    FastLoopStack;
+    FastLoopStack item;
+    std::vector<FastLoopStack> __stack__(max_resolution +1);
+    const auto STACK = &__stack__[0];
 
     //layout of the block
     auto block_logic_box = block_query->getLogicBox();
@@ -266,9 +274,9 @@ public:
       return false;
 
     //deltas
-    std::vector<Int64> fldeltas(max_resolution + 1);
+    std::vector<Int64> deltas(max_resolution + 1);
     for (int H = 0; H <= max_resolution; H++)
-      fldeltas[H] = H ? (vf->level_samples[H].delta[bitmask[H]] >> 1) : 0;
+      deltas[H] = H ? (vf->level_samples[H].delta[bitmask[H]] >> 1) : 0;
 
     for (int H = hstart; H <= hend; H++)
     {
@@ -286,8 +294,8 @@ public:
       if (!box.isFullDim())
         continue;
 
-      VisusAssert(address_conversion->levels[H]);
-      const auto& fllevel = *(address_conversion->levels[H]);
+      VisusReleaseAssert(hzconv->levels[H]);
+      const auto& fllevel = *(hzconv->levels[H]);
       int cachable = std::min(fllevel.num, samplesperblock);
 
       //i need this to "split" the fast loop in two chunks
@@ -296,7 +304,7 @@ public:
       //push root in the kdtree
       item.box = zbox;
       item.H = H ? std::max(1, H - bitsperblock) : (0);
-      stack = STACK;
+      auto stack = &STACK[0];
       *(stack++) = item;
 
       while (stack != STACK)
@@ -362,7 +370,7 @@ public:
 
         //kd-traversal code
         bit = bitmask[item.H];
-        delta = fldeltas[item.H];
+        delta = deltas[item.H];
         ++item.H;
         item.box.p1[bit] += delta;                            VisusAssert(item.box.isFullDim()); *(stack++) = item;
         item.box.p1[bit] -= delta; item.box.p2[bit] -= delta; VisusAssert(item.box.isFullDim()); *(stack++) = item;
@@ -375,144 +383,39 @@ public:
 
 };
 
-
 //////////////////////////////////////////////////////////////////////////////////////////
-IdxDataset::IdxDataset() {
-
-  //historycally are not full res
-  bBlocksAreFullRes = false;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////
-IdxDataset::~IdxDataset(){
-}
-
-///////////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
+std::vector<BigInt> IdxDataset::collectBlocksForBoxQuery(SharedPtr<BoxQuery> query)
 {
-  if (!query)
-    return false;
+  std::vector<BigInt> blocks;
 
-  if (!(query->isRunning() && query->getCurrentResolution() < query->getEndResolution()))
-    return false;
+  int bitsperblock = getDefaultBitsPerBlock();
+  VisusAssert(bitsperblock);
 
-  if (query->aborted())
-  {
-    query->setFailed("query aborted");
-    return false;
-  }
+  DatasetBitmask bitmask = this->idxfile.bitmask;
+  int max_resolution = getMaxResolution();
 
-  //for 'r' queries I can postpone the allocation
-  if (query->mode == 'w' && !query->buffer.valid())
-  {
-    query->setFailed("write buffer not set");
-    return false;
-  }
+  typedef struct { 
+    int H; 
+    BoxNi box; 
+  } 
+  FastLoopStack;
 
-  if (!access)
-    return executeBoxQueryOnServer(query);
+  FastLoopStack  item;
+  std::vector<FastLoopStack> __stack__(max_resolution + 1);
+  const auto STACK = &__stack__[0];
 
-  VisusAssert(access);
+  std::vector<Int64> deltas(max_resolution + 1);
+  for (auto H = 0; H <= max_resolution; H++)
+    deltas[H] = H ? (this->level_samples[H].delta[bitmask[H]] >> 1) : 0;
 
-  bool bWriting = query->mode == 'w';
-  bool bReading = query->mode == 'r';
-
-  const Field& field = query->field;
-  double        time = query->time;
-
+  HzOrder hzorder(bitmask);
   int cur_resolution = query->getCurrentResolution();
   int end_resolution = query->end_resolution;
 
-  if (!query->allocateBufferIfNeeded())
-    return false;
-
-  //filter enabled... need to go level by level
-  if (auto filter = query->filter.dataset_filter)
-  {
-    VisusAssert(bReading);
-
-    //need to go level by level to rebuild the original data (top-down)
-    for (int H = cur_resolution + 1; H <= end_resolution; H++)
-    {
-      BoxNi adjusted_logic_box = adjustBoxQueryFilterBox(query.get(), filter.get(), query->filter.adjusted_logic_box, H);
-
-      auto Wquery = createBoxQuery(adjusted_logic_box, query->field, query->time, 'r', query->aborted);
-      Wquery->setResolutionRange(0, H);
-      Wquery->disableFilters();
-
-      beginBoxQuery(Wquery);
-
-      //cannot get samples yet
-      if (!Wquery->isRunning())
-      {
-        VisusAssert(cur_resolution == -1);
-        VisusAssert(!query->filter.query);
-        continue;
-      }
-
-      //try to merge previous results
-      if (auto Rquery = query->filter.query)
-      {
-        if (!Wquery->allocateBufferIfNeeded())
-          return false;
-
-        //interpolate samples seems to be wrong here, produces a lot of artifacts (see david_wavelets)! 
-        //could be that I'm inserting wrong coefficients?
-        //for now insertSamples seems to work just fine, "interpolating" missing blocks/samples
-        if (!insertSamples(Wquery->logic_samples, Wquery->buffer, Rquery->logic_samples, Rquery->buffer, Wquery->aborted))
-          return false;
-
-        //note: start_resolution/end_resolution do not change
-        Wquery->setCurrentResolution(Rquery->getCurrentResolution());
-      }
-
-      if (!this->executeBoxQuery(access, Wquery))
-        return false;
-
-      filter->internalComputeFilter(Wquery.get(), /*bInverse*/true);
-
-      query->filter.query = Wquery;
-    }
-
-    //cannot get samples yet... returning failed as a query without filters...
-    if (!query->filter.query)
-    {
-      VisusAssert(false);//technically this should not happen since the outside query has got some samples
-      return false;
-    }
-
-    query->logic_samples = query->filter.query->logic_samples;
-    query->buffer = query->filter.query->buffer;
-
-    VisusAssert(query->buffer.dims == query->getNumberOfSamples());
-    query->setCurrentResolution(query->end_resolution);
-    return true;
-  }
-
-  //execute with access
-  int bitsperblock = access->bitsperblock;
-  VisusAssert(bitsperblock);
-
-  typedef struct { int    H; BoxNi  box; } FastLoopStack;
-  FastLoopStack  item, * stack = NULL;
-  FastLoopStack  STACK[DatasetBitmaskMaxLen + 1];
-
-  DatasetBitmask bitmask = this->idxfile.bitmask;
-  
-  int max_resolution = getMaxResolution();
-  std::vector<Int64> fldeltas(max_resolution + 1);
-  for (auto H = 0; H <= max_resolution; H++)
-    fldeltas[H] = H ? (this->level_samples[H].delta[bitmask[H]] >> 1) : 0;
-
-  auto aborted = query->aborted;
-
-  HzOrder hzorder(bitmask);
-  //collect blocks
-  std::vector<BigInt> blocks;
   for (int H = cur_resolution + 1; H <= end_resolution; H++)
   {
-    if (aborted())
-      return false;
+    if (query->aborted())
+      return {};
 
     LogicSamples Lsamples = this->level_samples[H];
     BoxNi box = Lsamples.alignBox(query->logic_samples.logic_box);
@@ -524,7 +427,7 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
 
     item.box = Lsamples.logic_box;
     item.H = H ? 1 : 0;
-    stack = STACK;
+    auto stack = STACK;
     *(stack++) = item;
 
     while (stack != STACK)
@@ -557,7 +460,7 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
 
       //kd-traversal code
       int bit = bitmask[item.H];
-      Int64 delta = fldeltas[item.H];
+      Int64 delta = deltas[item.H];
       ++item.H;
       item.box.p1[bit] += delta;                            *(stack++) = item;
       item.box.p1[bit] -= delta; item.box.p2[bit] -= delta; *(stack++) = item;
@@ -566,111 +469,7 @@ bool IdxDataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> q
 
   } //for levels
 
-
-  if (aborted())
-    return false;
-
-  int NREAD = 0;
-  int NWRITE = 0;
-  WaitAsync< Future<Void> > async_read;
-
-  //waitAllDone
-  auto  waitAsyncRead = [&]()
-  {
-    async_read.waitAllDone();
-    //PrintInfo("aysnc read",concatenate(NREAD, "/", blocks.size()),"...");
-  };
-
-  //PrintInfo("Executing query...");
-
-  //rehentrant call...(just to not close the file too soon)
-  bool bWasWriting = access->isWriting();
-  bool bWasReading = access->isReading();
-
-  if (bWriting)
-  {
-    if (!bWasWriting)
-      access->beginWrite();
-  }
-  else
-  {
-    if (!bWasReading)
-      access->beginRead();
-  }
-
-  for (auto blockid : blocks)
-  {
-    if (aborted())
-      break;
-
-    //flush previous
-    if (async_read.getNumRunning() > 1024)
-      waitAsyncRead();
-
-    auto read_block = createBlockQuery(blockid, field, time, 'r', aborted);
-    NREAD++;
-
-    if (bReading)
-    {
-      executeBlockQuery(access, read_block);
-      async_read.pushRunning(read_block->done).when_ready([this, query, read_block, aborted](Void)
-      {
-        //I don't care if the read fails...
-        if (!aborted() && read_block->ok())
-          mergeBoxQueryWithBlockQuery(query, read_block);
-      });
-    }
-    else
-    {
-      //need a lease... so that I can read/merge/write like in a transaction mode
-      access->acquireWriteLock(read_block);
-
-      //need to read and wait the block
-      executeBlockQueryAndWait(access, read_block);
-
-      //WRITE block
-      auto write_block = createBlockQuery(blockid, field, time, 'w', aborted);
-
-      //read ok
-      if (read_block->ok())
-        write_block->buffer = read_block->buffer;
-      //I don't care if it fails... maybe does not exist
-      else
-        write_block->allocateBufferIfNeeded();
-
-      mergeBoxQueryWithBlockQuery(query, write_block);
-
-      //need to write and wait for the block
-      executeBlockQueryAndWait(access, write_block);
-      NWRITE++;
-
-      //important! all writings are with a lease!
-      access->releaseWriteLock(read_block);
-
-      if (aborted() || write_block->failed()) {
-        if (!bWasWriting)
-          access->endWrite();
-        return false;
-      }
-    }
-  }
-
-  if (bWriting && !bWasWriting)
-    access->endWrite();
-
-  if (bReading && !bWasReading)
-    access->endRead();
-
-  waitAsyncRead();
-  //PrintInfo("Query finished", "NREAD", NREAD, "NWRITE", NWRITE);
-
-  //set the query status
-  if (aborted())
-    return false;
-
-  VisusAssert(query->buffer.dims == query->getNumberOfSamples());
-  query->setCurrentResolution(query->end_resolution);
-  return true;
+  return blocks;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -689,8 +488,6 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPt
     ConvertHzOrderSamples op;
     return NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get());
   }
-
-  
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -747,27 +544,21 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
   if (!(query->isRunning() && query->getCurrentResolution() < query->getEndResolution()))
     return false;
 
-
-  auto aborted = query->aborted;
-  if (aborted())
+  if (query->aborted())
   {
     query->setFailed("query aborted");
     return false;
   }
 
-  //pure remote?
   if (!access)
     return executePointQueryOnServer(query);
 
-  auto npoints = query->getNumberOfPoints();
-  auto tot = npoints.innerProduct();
-
-  if (query->buffer.dims != npoints)
+  if (query->buffer.dims != query->getNumberOfPoints())
   {
     //solve the problem of missing blocks
     if (query->buffer.valid())
     {
-      query->buffer = ArrayUtils::resample(npoints, query->buffer);
+      query->buffer = ArrayUtils::resample(query->getNumberOfPoints(), query->buffer);
       if (!query->buffer.valid())
       {
         query->setFailed("out of memory");
@@ -776,7 +567,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
     }
     else
     {
-      if (!query->buffer.resize(npoints, query->field.dtype, __FILE__, __LINE__))
+      if (!query->buffer.resize(query->getNumberOfPoints(), query->field.dtype, __FILE__, __LINE__))
       {
         query->setFailed("out of memory");
         return false;
@@ -788,16 +579,13 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
 
   VisusAssert(query->buffer.dtype == query->field.dtype);
   VisusAssert(query->buffer.c_size() == query->getByteSize());
-  VisusAssert(query->buffer.dims == query->npoints);
-  VisusAssert((Int64)query->points->c_size() == npoints.innerProduct() * sizeof(Int64) * 3);
-
+  VisusAssert(query->buffer.dims == query->getNumberOfPoints());
+  VisusAssert((Int64)query->points->c_size() == query->getNumberOfPoints().innerProduct() * sizeof(Int64) * 3);
 
   //blockid-> (offset of query buffer, block offset)
   std::map<BigInt, std::vector< std::pair<int, int> > > blocks;
 
-  int pdim = this->getPointDim();
-  PointNi p(pdim);
-
+  auto pdim = this->getPointDim();
   auto bounds = this->getLogicBox();
   auto last_bitmask = ((BigInt)1) << (getMaxResolution());
   auto hzorder = HzOrder(idxfile.bitmask);
@@ -806,20 +594,17 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
   auto samplesperblock = 1 << bitsperblock;
 
   //if this is not available I use the slower conversion p->zaddress->Hz
-  if (!this->hzaddress_conversion_pointquery)
+  if (!this->hzconv.point)
   {
     PrintWarning("The hzaddress_conversion_pointquery has not been created, so loc-by-loc queries will be a lot slower!!!!");
+    VisusAssert(false); //so you investigate why it's happening! 
 
-    //so you investigate why it's happening! .... I think only for the iphone could make sense....
-#if defined(_DEBUG)
-    VisusAssert(false);
-#endif
-
+    PointNi p(pdim);
     auto SRC = (Int64*)query->points->c_ptr();
     BigInt hzaddress;
-    for (int N = 0; N < tot; N++, SRC += pdim)
+    for (int N = 0, Tot = (int)query->getNumberOfPoints().innerProduct(); N < Tot; N++, SRC += pdim)
     {
-      if (aborted()) {
+      if (query->aborted()) {
         query->setFailed("query aborted");
         return false;
       }
@@ -838,12 +623,13 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
     BigInt zaddress;
     int    shift;
     auto   SRC = (Int64*)query->points->c_ptr();
-    auto   loc = this->hzaddress_conversion_pointquery->loc;
+    auto   loc = this->hzconv.point->loc;
     BigInt hzaddress;
 
-    for (int N = 0; N < tot; N++, SRC += pdim)
+    PointNi p(pdim);
+    for (int N = 0, Tot = (int)query->getNumberOfPoints().innerProduct(); N < Tot; N++, SRC += pdim)
     {
-      if (aborted()) {
+      if (query->aborted()) {
         query->setFailed("query aborted");
         return false;
       }
@@ -868,19 +654,17 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
   for (auto it : blocks)
   {
     auto blockid = it.first;
-    auto v = it.second;
-    auto block_query = createBlockQuery(blockid, query->field, query->time, 'r', aborted);
-    this->executeBlockQuery(access, block_query);
-    wait_async.pushRunning(block_query->done).when_ready([this, query, block_query, v, aborted, depth_mask](Void) {
+    auto offsets = it.second;
+    auto block_query = createBlockQuery(blockid, query->field, query->time, 'r', query->aborted);
+    executeBlockQuery(access, block_query);
 
-      if (aborted() || block_query->failed())
-        return;
-
-      InsertIntoPointQuery op;
-      NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get(), depth_mask, v, aborted);
-
-      if (aborted())
-        return;
+    wait_async.pushRunning(block_query->done).when_ready([this, query, block_query, offsets, depth_mask](Void) 
+    {
+      if (!query->aborted() && block_query->ok())
+      {
+        InsertIntoPointQuery op;
+        NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get(), depth_mask, offsets, query->aborted);
+      }
     });
   }
 
@@ -889,7 +673,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
 
   wait_async.waitAllDone();
 
-  if (aborted()) {
+  if (query->aborted()) {
     query->setFailed("query aborted");
     return false;
   }
@@ -902,48 +686,7 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
 void IdxDataset::readDatasetFromArchive(Archive& ar)
 {
   Dataset::readDatasetFromArchive(ar);
-
-  auto key = bitmask.toString();
-
-  //create hz address conversion for box query
-  {
-    auto& conv = hz_address_conversion.boxquery;
-    {
-      ScopedLock lock(conv.lock);
-      if (conv.map.count(key))
-        this->hzaddress_conversion_boxquery = conv.map[key];
-    }
-
-    if (!this->hzaddress_conversion_boxquery)
-    {
-      this->hzaddress_conversion_boxquery = std::make_shared<BoxQueryHzConversion>(bitmask);
-      {
-        ScopedLock lock(conv.lock);
-        conv.map[key] = this->hzaddress_conversion_boxquery;
-      }
-    }
-  }
-
-  //create the loc-cache only for 3d data, in 2d I know I'm not going to use it!
-  //instead in 3d I will use it a lot (consider a slice in odd position)
-  {
-    auto& conv = hz_address_conversion.pointquery;
-    if (bitmask.getPointDim() == 3 && !this->hzaddress_conversion_pointquery)
-    {
-        ScopedLock lock(conv.lock);
-        if (conv.map.count(key))
-          this->hzaddress_conversion_pointquery = conv.map[key];
-      }
-
-      if (!this->hzaddress_conversion_pointquery)
-      {
-        this->hzaddress_conversion_pointquery = std::make_shared<PointQueryHzConversion>(bitmask);
-        {
-          ScopedLock lock(conv.lock);
-          conv.map[key] = this->hzaddress_conversion_pointquery;
-        }
-      }
-    }
-  }
+  HZCONV.create(this);
+}
 
 } //namespace Visus

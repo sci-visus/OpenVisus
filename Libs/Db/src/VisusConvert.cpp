@@ -646,6 +646,9 @@ void VisusConvert::runFromArgs(std::vector<String> args)
       return;
     }
 
+    if (name == "test-idx")
+      return SelfTestIdx();
+
     //begin of a new command
     if (actions.find(name) != actions.end())
       steps.push_back({ name });

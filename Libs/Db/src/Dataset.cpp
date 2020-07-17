@@ -829,10 +829,51 @@ void Dataset::beginBoxQuery(SharedPtr<BoxQuery> query)
 }
 
 //////////////////////////////////////////////////////////////
-bool Dataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
+std::vector<BigInt> Dataset::collectBlocksForBoxQuery(SharedPtr<BoxQuery> query)
 {
   VisusReleaseAssert(bBlocksAreFullRes);
+  std::vector<BigInt> blocks;
 
+  BoxNi box = this->getLogicBox();
+  std::stack< std::tuple<BoxNi, BigInt, int> > stack;
+  stack.push({ box ,0,this->getDefaultBitsPerBlock() });
+  while (!stack.empty() && !query->aborted())
+  {
+    auto top = stack.top();
+    stack.pop();
+
+    if (query->aborted())
+      return {};
+
+    auto box     = std::get<0>(top);
+    auto blockid = std::get<1>(top);
+    auto H       = std::get<2>(top);
+
+    if (!box.getIntersection(query->logic_box).isFullDim())
+      continue;
+
+    //is the resolution I need?
+    if (H == query->end_resolution)
+    {
+      blocks.push_back(blockid);
+      continue;
+    }
+
+    auto bitsperblock = this->getDefaultBitsPerBlock();
+    auto split_bit = bitmask[1 + H - bitsperblock];
+    auto middle = (box.p1[split_bit] + box.p2[split_bit]) >> 1;
+    auto lbox = box; lbox.p2[split_bit] = middle;
+    auto rbox = box; rbox.p1[split_bit] = middle;
+    stack.push(std::make_tuple(rbox, blockid * 2 + 2, H + 1));
+    stack.push(std::make_tuple(lbox, blockid * 2 + 1, H + 1));
+  }
+
+  return blocks;
+}
+
+//////////////////////////////////////////////////////////////
+bool Dataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
+{
   if (!query)
     return false;
 
@@ -846,9 +887,9 @@ bool Dataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
   }
 
   //for 'r' queries I can postpone the allocation
-  if (query->mode == 'w')
+  if (query->mode == 'w' && !query->buffer.valid())
   {
-    query->setFailed("write not supported");
+    query->setFailed("write buffer not set");
     return false;
   }
 
@@ -858,90 +899,135 @@ bool Dataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
     return false;
   }
 
-  //always need an access.. the google server cannot handle pure remote queries (i.e. compose the tiles on server side)
   if (!access)
-    access = createAccessForBlockQuery();
+  {
+    if (auto google=dynamic_cast<GoogleMapsDataset*>(this))
+      access = createAccessForBlockQuery(); //the google server cannot handle pure remote queries (i.e. compose the tiles on server side)
+    else
+      return executeBoxQueryOnServer(query); //pure remote query
+  }
 
-  int end_resolution = query->end_resolution;
+  //filter enabled... need to go level by level
+  if (auto filter = query->filter.dataset_filter)
+    return executeBlockQuerWithFilters(access, query, filter);
 
+  int nread = 0, nwrite = 0;
   WaitAsync< Future<Void> > wait_async;
 
-  BoxNi box = this->getLogicBox();
+  auto blocks = collectBlocksForBoxQuery(query);
 
-  std::stack< std::tuple<BoxNi, BigInt, int> > stack;
-  stack.push({ box ,0,this->getDefaultBitsPerBlock() });
+  if (query->aborted())
+    return false;
 
-  access->beginRead();
-  while (!stack.empty() && !query->aborted())
+  //rehentrant call...(just to not close the file too soon)
+  bool bWriting = query->mode == 'w', bWasWriting = access->isWriting();
+  bool bReading = query->mode == 'r', bWasReading = access->isReading();
+
+	if (bWriting)
+	{
+		if (!bWasWriting)
+			access->beginWrite();
+	}
+	else
+	{
+		if (!bWasReading)
+			access->beginRead();
+	}
+
+  for (auto blockid : blocks)
   {
-    auto top = stack.top();
-    stack.pop();
+    if (query->aborted())
+      break;
 
-    auto box = std::get<0>(top);
-    auto blockid = std::get<1>(top);
-    auto H = std::get<2>(top);
-
-    if (!box.getIntersection(query->logic_box).isFullDim())
-      continue;
-
-    //is the resolution I need?
-    if (H == end_resolution)
+    //do not collect too much stuff...
+    if (wait_async.getNumRunning() > 512)
     {
-      auto block_query = createBlockQuery(blockid, query->field, query->time, 'r', query->aborted);
+      wait_async.waitAllDone();
+      //PrintInfo("aysnc read",concatenate(nread, "/", blocks.size()),"...");
+    }
 
-      executeBlockQuery(access, block_query);
-      wait_async.pushRunning(block_query->done).when_ready([this, query, block_query](Void)
+    auto read_block = createBlockQuery(blockid, query->field, query->time, 'r', query->aborted);
+    nread++;
+
+    if (bReading)
+    {
+      executeBlockQuery(access, read_block);
+      wait_async.pushRunning(read_block->done).when_ready([this, query, read_block](Void)
       {
-        if (query->aborted() || !block_query->ok())
-          return;
-
-        mergeBoxQueryWithBlockQuery(query, block_query);
+        //I don't care if the read fails...
+        if (!query->aborted() && read_block->ok())
+          mergeBoxQueryWithBlockQuery(query, read_block);
       });
     }
     else
     {
-      int bitsperblock = this->getDefaultBitsPerBlock();
-      auto split_bit = bitmask[1 + H - bitsperblock];
-      auto middle = (box.p1[split_bit] + box.p2[split_bit]) >> 1;
-      auto lbox = box; lbox.p2[split_bit] = middle;
-      auto rbox = box; rbox.p1[split_bit] = middle;
-      stack.push(std::make_tuple(rbox, blockid * 2 + 2, H + 1));
-      stack.push(std::make_tuple(lbox, blockid * 2 + 1, H + 1));
+      //need a lease... so that I can read/merge/write like in a transaction mode
+      access->acquireWriteLock(read_block);
+
+      //need to read and wait the block
+      executeBlockQueryAndWait(access, read_block);
+
+      auto write_block = createBlockQuery(blockid, query->field, query->time, 'w', query->aborted);
+
+      //read ok
+      if (read_block->ok())
+        write_block->buffer = read_block->buffer;
+      //I don't care if it fails... maybe does not exist
+      else
+        write_block->allocateBufferIfNeeded();
+
+      mergeBoxQueryWithBlockQuery(query, write_block);
+
+      //need to write and wait for the block
+      executeBlockQueryAndWait(access, write_block);
+      nwrite++;
+
+      //important! all writings are with a lease!
+      access->releaseWriteLock(read_block);
+
+      if (query->aborted() || write_block->failed()) {
+        if (!bWasWriting)
+          access->endWrite();
+        return false;
+      }
     }
   }
-  access->endRead();
 
+  if (bWriting && !bWasWriting) access->endWrite();
+  if (bReading && !bWasReading) access->endRead();
   wait_async.waitAllDone();
+  //PrintInfo("aysnc read",concatenate(nread, "/", blocks.size()),"...");
+  //PrintInfo("Query finished", "nread", nread, "nwrite", nwrite);
 
+  //set the query status
   if (query->aborted())
-  {
-    query->setFailed("query aborted");
     return false;
-  }
 
+  VisusAssert(query->buffer.dims == query->getNumberOfSamples());
   query->setCurrentResolution(query->end_resolution);
   return true;
+
 }
 
 //////////////////////////////////////////////////////////////
 bool Dataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query)
 {
   VisusAssert(query->field.dtype == block_query->field.dtype);
-  VisusAssert(blockquery->buffer.layout.empty()); //only rowmajor is supported here
+  VisusAssert(block_query->buffer.layout.empty()); //only rowmajor is supported here
 
   if (!block_query->logic_samples.valid())
     return false;
 
   auto Wsamples = query->logic_samples;
-  auto Wbuffer = query->buffer;
+  auto Wbuffer  = query->buffer;
 
   auto Rsamples = block_query->logic_samples;
-  auto Rbuffer = block_query->buffer;
+  auto Rbuffer  = block_query->buffer;
 
   if (query->mode == 'w')
   {
     std::swap(Wsamples, Rsamples);
-    std::swap(Wbuffer, Rbuffer);
+    std::swap(Wbuffer,  Rbuffer);
   }
 
   /* Important note
@@ -1130,22 +1216,26 @@ void Dataset::nextBoxQuery(SharedPtr<BoxQuery> query)
   //merge with previous results
   if (!bBlocksAreFullRes)
   {
+    auto failed = [&](String reason) {
+      return query->setFailed(query->aborted() ? "query aborted" : reason);
+    };
+
     if (!query->allocateBufferIfNeeded())
-      return query->setFailed(query->aborted() ? "query aborted" : "out of memory");
+      return failed("out of memory");
 
     //cannot merge, scrgiorgio: can it really happen??? (maybe when I produce numpy arrays by projecting script...)
     if (!Rsamples.valid() || Rsamples.nsamples != Rbuffer.dims)
-      return query->setFailed(query->aborted() ? "query aborted" : "cannot merge");
+      return failed("cannot merge");
 
     //solve the problem of missing blocks here...
     InterpolateBufferOperation op;
     if (!ExecuteOnCppSamples(op, query->buffer.dtype, query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
-      return query->setFailed(query->aborted() ? "query aborted" : "interpolate samples failed");
+      return failed("interpolate samples failed");
 
     //I must be sure that 'inserted samples' from Rbuffer must be untouched in Wbuffer
     //this is for wavelets where I need the coefficients to be right
     if (!insertSamples(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
-      return query->setFailed(query->aborted() ? "query aborted" : "insert samples failed");
+      return failed("insert samples failed");
 
     query->filter.query = Rfilter_query;
   }
@@ -1774,7 +1864,73 @@ void Dataset::computeFilter(const Field& field, int window_size, bool bVerbose)
     computeFilter(filter, time, field, acess, sliding_box, bVerbose);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////
+bool Dataset::executeBlockQuerWithFilters(SharedPtr<Access> access, SharedPtr<BoxQuery> query, SharedPtr<IdxFilter> filter)
+{
+  VisusAssert(filter);
+  VisusAssert(query->mode == 'r');
+  VisusAssert(!bBlocksAreFullRes);
 
+  int cur_resolution = query->getCurrentResolution();
+  int end_resolution = query->end_resolution;
+
+  //need to go level by level to rebuild the original data (top-down)
+  for (int H = cur_resolution + 1; H <= end_resolution; H++)
+  {
+    BoxNi adjusted_logic_box = adjustBoxQueryFilterBox(query.get(), filter.get(), query->filter.adjusted_logic_box, H);
+
+    auto Wquery = createBoxQuery(adjusted_logic_box, query->field, query->time, 'r', query->aborted);
+    Wquery->setResolutionRange(0, H);
+    Wquery->disableFilters();
+
+    beginBoxQuery(Wquery);
+
+    //cannot get samples yet
+    if (!Wquery->isRunning())
+    {
+      VisusAssert(cur_resolution == -1);
+      VisusAssert(!query->filter.query);
+      continue;
+    }
+
+    //try to merge previous results
+    if (auto Rquery = query->filter.query)
+    {
+      if (!Wquery->allocateBufferIfNeeded())
+        return false;
+
+      //interpolate samples seems to be wrong here, produces a lot of artifacts (see david_wavelets)! 
+      //could be that I'm inserting wrong coefficients?
+      //for now insertSamples seems to work just fine, "interpolating" missing blocks/samples
+      if (!insertSamples(Wquery->logic_samples, Wquery->buffer, Rquery->logic_samples, Rquery->buffer, Wquery->aborted))
+        return false;
+
+      //note: start_resolution/end_resolution do not change
+      Wquery->setCurrentResolution(Rquery->getCurrentResolution());
+    }
+
+    if (!this->executeBoxQuery(access, Wquery))
+      return false;
+
+    filter->internalComputeFilter(Wquery.get(), /*bInverse*/true);
+
+    query->filter.query = Wquery;
+  }
+
+  //cannot get samples yet... returning failed as a query without filters...
+  if (!query->filter.query)
+  {
+    VisusAssert(false);//technically this should not happen since the outside query has got some samples
+    return false;
+  }
+
+  query->logic_samples = query->filter.query->logic_samples;
+  query->buffer = query->filter.query->buffer;
+
+  VisusAssert(query->buffer.dims == query->getNumberOfSamples());
+  query->setCurrentResolution(query->end_resolution);
+  return true;
+}
 
 
 /// ////////////////////////////////////////////////////////////////

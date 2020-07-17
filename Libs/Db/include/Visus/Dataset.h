@@ -123,6 +123,12 @@ public:
   //annotations
   SharedPtr<Annotations> annotations;
 
+  //internal use only
+  std::vector<LogicSamples> level_samples;
+
+  //internal use only
+  std::vector<LogicSamples> block_samples;
+
   //constructor
   Dataset() {
   }
@@ -380,6 +386,9 @@ public:
   //setBoxQueryEndResolution
   virtual bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value);
 
+  //collectBlocksForBoxQuery
+  virtual std::vector<BigInt> collectBlocksForBoxQuery(SharedPtr<BoxQuery> query);
+
   //createBoxQueryRequest
   virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query);
 
@@ -437,6 +446,8 @@ public:
   //computeFilter
   virtual void computeFilter(const Field& field, int window_size, bool bVerbose = false);
 
+  //executeBlockQuerWithFilters
+  virtual bool executeBlockQuerWithFilters(SharedPtr<Access> access, SharedPtr<BoxQuery> query, SharedPtr<IdxFilter> filter);
 
 public:
 
@@ -467,11 +478,6 @@ protected:
   bool                    bServerMode = false;
   int                     default_bitsperblock = 0;
   bool                    bBlocksAreFullRes = true;
-
-  friend class GoogleMapsAccess;
-
-  std::vector<LogicSamples> level_samples;
-  std::vector<LogicSamples> block_samples;
 
 };
 
