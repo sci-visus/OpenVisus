@@ -604,10 +604,8 @@ IdxFile IdxMultipleDataset::generateIdxFile(Archive& ar)
 void IdxMultipleDataset::readDatasetFromArchive(Archive& ar)
 {
   auto URL = ar.getAttribute("url");
-
   for (auto& it : ar.childs)
     parseDatasets(*it, Matrix(), URL);
-
   VisusReleaseAssert(!down_datasets.empty());
 
   //automatically generate idxfile
@@ -636,12 +634,58 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& ar)
       idxfile.fields.push_back(Field(name, FIELD.dtype, "rowmajor"));
     }
   }
-
-  //this is to pass the validation, an midx has infinite run-time fields 
-  if (idxfile.fields.empty())
+  else
   {
-    Field field("__fake__", DTypes::UINT8);
-    idxfile.fields.push_back(field);
+    auto createField = [this](String operation_name)
+    {
+      std::ostringstream out;
+
+      std::vector<String> args;
+      for (auto it : down_datasets)
+      {
+        String arg = "f" + cstring((int)args.size());
+        args.push_back(arg);
+        out << arg << "=" << getInputName(it.first, it.second->getField().name) << std::endl;
+      }
+      out << "output=" << operation_name << "([" << StringUtils::join(args, ",") << "])" << std::endl;
+
+      String fieldname = out.str();
+      Field ret = getField(fieldname);
+      ret.setDescription(operation_name);
+      VisusAssert(ret.valid());
+      return ret;
+    };
+
+    //this will appear in the combo box
+    addField(createField("ArrayUtils.average"));
+    addField(createField("ArrayUtils.add"));
+    addField(createField("ArrayUtils.sub"));
+    addField(createField("ArrayUtils.mul"));
+    addField(createField("ArrayUtils.div"));
+    addField(createField("ArrayUtils.min"));
+    addField(createField("ArrayUtils.max"));
+    addField(createField("ArrayUtils.standardDeviation"));
+    addField(createField("ArrayUtils.median"));
+
+    //note: this wont' work on old servers
+    addField(Field("output=voronoi()"));
+    addField(Field("output=noBlend()"));
+    addField(Field("output=averageBlend()"));
+
+    for (auto it : down_datasets)
+    {
+      for (auto field : it.second->getFields())
+      {
+        auto arg = getInputName(it.first, field.name);
+        Field FIELD = getField("output=" + arg + ";");
+        VisusAssert(FIELD.valid());
+        FIELD.setDescription(it.first + "/" + field.getDescription());
+        addField(FIELD);
+      }
+    }
+
+    //this is to pass the validation, an midx has infinite run-time fields 
+    idxfile.fields.push_back(Field("__fake__", DTypes::UINT8));
   }
 
   ar.writeObject("idxfile", idxfile);
