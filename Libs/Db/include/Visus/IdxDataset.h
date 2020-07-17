@@ -84,26 +84,15 @@ public:
     return "IdxDataset";
   }
 
-public:
-
   //collectBlocksForBoxQuery
   virtual std::vector<BigInt> collectBlocksForBoxQuery(SharedPtr<BoxQuery> query);
 
   //mergeBoxQueryWithBlockQuery
   virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) override;
 
-public:
 
   //createBlockQueriesForPointQuery
-  std::vector< SharedPtr<BlockQuery> > createBlockQueriesForPointQuery(SharedPtr<PointQuery> query);
-
-  //executeBoxQuery
-  virtual bool executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) override;
-
-  //mergePointQueryWithBlockQuery
-  bool mergePointQueryWithBlockQuery(SharedPtr<PointQuery> query, SharedPtr<BlockQuery> block_query);
-
-public:
+  virtual std::vector< SharedPtr<BlockQuery> > createBlockQueriesForPointQuery(SharedPtr<PointQuery> query) override;
 
   //readDatasetFromArchive
   virtual void readDatasetFromArchive(Archive& ar) override;

@@ -411,6 +411,11 @@ public:
     return createPointQuery(logic_position, getField(), getTime(), aborted);
   }
 
+  //createBlockQueriesForPointQuery
+  virtual std::vector< SharedPtr<BlockQuery> > createBlockQueriesForPointQuery(SharedPtr<PointQuery> query) {
+    return {};
+  }
+
   //guessPointQueryEndResolutions
   virtual std::vector<int> guessPointQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression) ;
 
@@ -421,10 +426,10 @@ public:
   virtual void beginPointQuery(SharedPtr<PointQuery> query) ;
 
   //executeBoxQuery
-  virtual bool executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) {
-    ThrowException("not implemented");
-    return false;
-  }
+  virtual bool executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query);
+
+  //mergePointQueryWithBlockQuery
+  virtual bool mergePointQueryWithBlockQuery(SharedPtr<PointQuery> query, SharedPtr<BlockQuery> block_query);
 
   //nextPointQuery
   virtual void nextPointQuery(SharedPtr<PointQuery> query) ;
