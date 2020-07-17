@@ -495,44 +495,20 @@ class InsertIntoPointQuery
 {
 public:
 
-  typedef struct
-  {
-    int     point_offset;
-    int     block_offset;
-    PointNi masked_p;
-  }
-  info_t;
-
   //operator()
   template <class Sample>
-  bool execute(IdxDataset* vf, PointQuery* query, BlockQuery* block_query, PointNi depth_mask, const std::vector< info_t >& infos, Aborted aborted)
+  bool execute(IdxDataset* vf, PointQuery* query, BlockQuery* block_query, PointNi depth_mask, const std::vector< std::pair<BigInt,BigInt> >& infos, Aborted aborted)
   {
+    VisusReleaseAssert(block_query->buffer.layout.empty());
+    VisusReleaseAssert(block_query->mode=='r');
+
     auto write = GetSamples<Sample>(query->buffer);
     auto read  = GetSamples<Sample>(block_query->buffer);
 
-    if (block_query->buffer.layout.empty())
-    {
-      auto block_samples = block_query->logic_samples;
-      PointNi stride = block_query->buffer.dims.stride();
-      for (const auto& it : infos)
-      {
-        Int64 roffset =
-          stride[0] * ((it.masked_p[0] - block_samples.logic_box.p1[0]) / block_samples.delta[0]) +
-          stride[1] * ((it.masked_p[1] - block_samples.logic_box.p1[1]) / block_samples.delta[1]) +
-          stride[2] * ((it.masked_p[2] - block_samples.logic_box.p1[2]) / block_samples.delta[2]);
+    for (const auto& it : infos)
+      write[it.first] = read[it.second];
 
-        write[it.point_offset] = read[roffset];
-      }
-
-      return true;
-    }
-    else
-    {
-      for (const auto& it : infos)
-        write[it.point_offset] = read[it.block_offset];
-
-      return true;
-    }
+    return true;
   }
 };
 
@@ -589,7 +565,8 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
   VisusAssert((Int64)query->points->c_size() == query->getNumberOfPoints().innerProduct() * sizeof(Int64) * pdim);
 
   //blockid-> (offset of query buffer, block offset)
-  std::map<BigInt, std::vector<InsertIntoPointQuery::info_t> > blocks;
+  typedef std::vector< std::pair<BigInt, BigInt> > Offsets;
+  std::map<BigInt, SharedPtr<Offsets> > blocks;
 
   auto bounds = this->getLogicBox();
   auto last_bitmask = ((BigInt)1) << (getMaxResolution());
@@ -598,11 +575,12 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
   auto bitsperblock = access->bitsperblock;
   auto samplesperblock = 1 << bitsperblock;
 
-  BigInt zaddress;
-  int    shift;
-  PointNi p(pdim);
+  BigInt zaddress,blockid, block_offset;
+  int    shift,H;
+  PointNi p(pdim),stride;
   auto SRC = (Int64*)query->points->c_ptr();
   BigInt hzaddress;
+  LogicSamples block_samples;
 
   auto hzconv = this->hzconv.point ? &this->hzconv.point->loc : nullptr;
   if (!hzconv)
@@ -618,19 +596,17 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
       return false;
     }
 
-    p[0] = SRC[0];
-    p[1] = SRC[1];
-    p[2] = SRC[2];
+    p[0] = SRC[0] & depth_mask[0];
+    p[1] = SRC[1] & depth_mask[1];
+    p[2] = SRC[2] & depth_mask[2];
 
     if (!(
       p[0] >= bounds.p1[0] && p[0] < bounds.p2[0] &&
       p[1] >= bounds.p1[1] && p[1] < bounds.p2[1] &&
-      p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) 
+      p[2] >= bounds.p1[2] && p[2] < bounds.p2[2]))
+    {
       continue;
-
-    p[0] &= depth_mask[0];
-    p[1] &= depth_mask[1];
-    p[2] &= depth_mask[2];
+    }
 
     if (!hzconv)
     {
@@ -643,7 +619,20 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
       hzaddress = ((zaddress | last_bitmask) >> shift);
     }
 
-    blocks[hzaddress >> bitsperblock].push_back(InsertIntoPointQuery::info_t({ N, (int)(hzaddress % samplesperblock), p }));
+    blockid = hzaddress >> bitsperblock;
+    if (!blocks.count(blockid))
+      blocks[blockid] = std::make_shared<Offsets>();
+
+    block_samples = getBlockLogicSamples(blockid,H);
+    stride = block_samples.nsamples.stride();
+
+    //todo: is there a better way to get this?
+    block_offset =
+      stride[0] * ((p[0] - block_samples.logic_box.p1[0]) / block_samples.delta[0]) +
+      stride[1] * ((p[1] - block_samples.logic_box.p1[1]) / block_samples.delta[1]) +
+      stride[2] * ((p[2] - block_samples.logic_box.p1[2]) / block_samples.delta[2]);
+
+    blocks[blockid]->push_back(std::make_pair(N,block_offset));
   }
 
   //do the for loop block aligned
@@ -656,17 +645,17 @@ bool IdxDataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuer
   for (auto it : blocks)
   {
     auto blockid = it.first;
-    auto info    = it.second;
+    auto offsets = it.second;
     auto block_query = createBlockQuery(blockid, query->field, query->time, 'r', query->aborted);
     executeBlockQuery(access, block_query);
 
-    wait_async.pushRunning(block_query->done).when_ready([this, query, block_query, info, depth_mask](Void) 
+    wait_async.pushRunning(block_query->done).when_ready([this, query, block_query, offsets, depth_mask](Void)
     {
-      if (!query->aborted() && block_query->ok())
-      {
-        InsertIntoPointQuery op;
-        NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get(), depth_mask, info, query->aborted);
-      }
+      if (query->aborted() || block_query->failed() || !convertBlockQueryToRowMajor(block_query))
+        return;
+
+      InsertIntoPointQuery op;
+      NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get(), depth_mask, *offsets, query->aborted);
     });
   }
 

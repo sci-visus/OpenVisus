@@ -546,24 +546,13 @@ bool Dataset::insertSamples(LogicSamples Wsamples, Array Wbuffer, LogicSamples R
   return true;
 }
 
-
-
 ////////////////////////////////////////////////////////////////////
-SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted)
+LogicSamples Dataset::getBlockLogicSamples(BigInt blockid, int& H)
 {
-  auto ret = std::make_shared<BlockQuery>();
-  ret->dataset = this;
-  ret->field = field;
-  ret->time = time;
-  ret->mode = mode; VisusAssert(mode == 'r' || mode == 'w');
-  ret->aborted = aborted;
-  ret->blockid = blockid;
-
   auto bitmask = getBitmask();
   auto bitsperblock = getDefaultBitsPerBlock();
   auto samplesperblock = 1 << bitsperblock;
 
-  int H;
   if (bBlocksAreFullRes)
     H = blockid == 0 ? bitsperblock : bitsperblock + 0 + Utils::getLog2(1 + blockid);
   else
@@ -572,7 +561,7 @@ SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, dou
   auto delta = block_samples[H].delta;
 
   //for first block I get twice the samples sice the blocking '1' can be '0' considering all previous levels from 'V'
-  if (blockid==0 && !bBlocksAreFullRes)
+  if (blockid == 0 && !bBlocksAreFullRes)
     delta[bitmask[H]] >>= 1;
 
   PointNi p0;
@@ -587,9 +576,22 @@ SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, dou
     p0 = HzOrder(bitmask).hzAddressToPoint(blockid * samplesperblock);
   }
 
-  ret->H = H;
-  ret->logic_samples = LogicSamples(block_samples[H].logic_box.translate(p0), delta);
-  VisusAssert(ret->logic_samples.valid());
+  auto ret = LogicSamples(block_samples[H].logic_box.translate(p0), delta);
+  VisusAssert(ret.valid());
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////
+SharedPtr<BlockQuery> Dataset::createBlockQuery(BigInt blockid, Field field, double time, int mode, Aborted aborted)
+{
+  auto ret = std::make_shared<BlockQuery>();
+  ret->dataset = this;
+  ret->field = field;
+  ret->time = time;
+  ret->mode = mode; VisusAssert(mode == 'r' || mode == 'w');
+  ret->aborted = aborted;
+	ret->blockid = blockid;
+	ret->logic_samples = getBlockLogicSamples(blockid, ret->H);
   return ret;
 }
 

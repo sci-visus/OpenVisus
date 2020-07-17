@@ -326,6 +326,9 @@ public:
     return createAccess(config, true);
   }
 
+  //getBlockLogicSamples
+  LogicSamples getBlockLogicSamples(BigInt blockid, int& H);
+
   //createBlockQuery
   virtual SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, Field field, double time, int mode = 'r', Aborted aborted = Aborted());
 
