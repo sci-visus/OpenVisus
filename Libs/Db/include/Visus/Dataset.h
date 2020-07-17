@@ -435,19 +435,19 @@ public:
 public:
 
   //adjustBoxQueryFilterBox
-  virtual BoxNi adjustBoxQueryFilterBox(BoxQuery* query, IdxFilter* filter, BoxNi box, int H);
+  virtual BoxNi adjustBoxQueryFilterBox(BoxQuery* query, DatasetFilter* filter, BoxNi box, int H);
 
   //createFilter
-  virtual SharedPtr<IdxFilter> createFilter(const Field& field);
+  virtual SharedPtr<DatasetFilter> createFilter(const Field& field);
 
   //computeFilter
-  virtual bool computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow, bool bVerbose = false);
+  virtual bool computeFilter(SharedPtr<DatasetFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow, bool bVerbose = false);
 
   //computeFilter
   virtual void computeFilter(const Field& field, int window_size, bool bVerbose = false);
 
   //executeBlockQuerWithFilters
-  virtual bool executeBlockQuerWithFilters(SharedPtr<Access> access, SharedPtr<BoxQuery> query, SharedPtr<IdxFilter> filter);
+  virtual bool executeBlockQuerWithFilters(SharedPtr<Access> access, SharedPtr<BoxQuery> query, SharedPtr<DatasetFilter> filter);
 
 public:
 

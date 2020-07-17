@@ -40,7 +40,7 @@ For support : support@visus.net
 #include <Visus/Dataflow.h>
 #include <Visus/StringTree.h>
 #include <Visus/GoogleMapsDataset.h>
-#include <Visus/IdxFilter.h>
+#include <Visus/DatasetFilter.h>
 
 namespace Visus {
 

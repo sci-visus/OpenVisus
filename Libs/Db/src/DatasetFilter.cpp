@@ -38,7 +38,7 @@ For support : support@visus.net
 
 #include <Visus/Db.h>
 #include <Visus/Dataset.h>
-#include <Visus/IdxFilter.h>
+#include <Visus/DatasetFilter.h>
 
 namespace Visus   {
 
@@ -165,12 +165,12 @@ static void ComputeFilter(Dataset* dataset,BoxQuery* query,const FilterClass* fi
 
 /////////////////////////////////////////////////////////////////////////////
 template <typename CppType>
-class IdentityFilter: public IdxFilter
+class IdentityFilter: public DatasetFilter
 {
 public:
 
   //constructor
-  IdentityFilter(Dataset* dataset,const Field& field) : IdxFilter(dataset,field, /*filter_size*/2,"IdentityFilter")
+  IdentityFilter(Dataset* dataset,const Field& field) : DatasetFilter(dataset,field, /*filter_size*/2,"IdentityFilter")
   {}
   
   //destructor
@@ -193,14 +193,14 @@ public:
 
 /////////////////////////////////////////////////////////////////////////////
 template <typename CppType>
-class MinFilter : public IdxFilter
+class MinFilter : public DatasetFilter
 {
 public:
 
   int ncomponents;
 
   //constructor
-  MinFilter(Dataset* dataset,const Field& field) : IdxFilter(dataset,field, /*filter_size*/2,"MinFilter")
+  MinFilter(Dataset* dataset,const Field& field) : DatasetFilter(dataset,field, /*filter_size*/2,"MinFilter")
   {
     bNeedExtraComponent=true; //always need an extra sample to store the SWAP info
     ncomponents=field.dtype.ncomponents();
@@ -258,7 +258,7 @@ public:
 
 /////////////////////////////////////////////////////////////////////////////
 template <typename CppType>
-class MaxFilter : public IdxFilter
+class MaxFilter : public DatasetFilter
 {
 public:
 
@@ -266,7 +266,7 @@ public:
   int ncomponents;
 
   //constructor
-  MaxFilter(Dataset* dataset,const Field& field) : IdxFilter(dataset,field, /*filter_size*/2,"MaxFilter")
+  MaxFilter(Dataset* dataset,const Field& field) : DatasetFilter(dataset,field, /*filter_size*/2,"MaxFilter")
   {
     bNeedExtraComponent = true; //always need an extra sample to store the SWAP info
     ncomponents=field.dtype.ncomponents();
@@ -324,7 +324,7 @@ public:
 
 /////////////////////////////////////////////////////////////////////////////
 template <typename CppType,typename R>
-class DeHaarDiscreteFilter  : public IdxFilter
+class DeHaarDiscreteFilter  : public DatasetFilter
 {
 public:
 
@@ -332,7 +332,7 @@ public:
   int ncomponents;
 
   //constructor
-  DeHaarDiscreteFilter(Dataset* dataset,const Field& field) : IdxFilter(dataset,field,/*filter_size*/2,"DeHaarDiscreteFilter")
+  DeHaarDiscreteFilter(Dataset* dataset,const Field& field) : DatasetFilter(dataset,field,/*filter_size*/2,"DeHaarDiscreteFilter")
   {
     bNeedExtraComponent = true; //always need an extra sample to store the sign
     ncomponents=field.dtype.ncomponents();
@@ -394,7 +394,7 @@ public:
 
 /////////////////////////////////////////////////////////////////////////////
 template <typename CppType,typename R>
-class DeHaarContinuousFilter : public IdxFilter
+class DeHaarContinuousFilter : public DatasetFilter
 {
 public:
 
@@ -403,7 +403,7 @@ public:
 
   //constructor
   DeHaarContinuousFilter(Dataset* dataset,const Field& field) 
-    : IdxFilter(dataset,field,/*filter_size*/2,"DeHaarContinuousFilter")
+    : DatasetFilter(dataset,field,/*filter_size*/2,"DeHaarContinuousFilter")
   {
     VisusAssert(sizeof(R)>=sizeof(CppType));
     ncomponents=field.dtype.ncomponents();
@@ -452,7 +452,7 @@ public:
 
 
 ///////////////////////////////////////////////////////////////////////////////////
-PointNi IdxFilter::getFilterStep(int H) const
+PointNi DatasetFilter::getFilterStep(int H) const
 {
   /* Example ('-' means the same group for the filter):
 
@@ -506,12 +506,12 @@ PointNi IdxFilter::getFilterStep(int H) const
 
 
 /////////////////////////////////////////////////////////////////////////////////////
-SharedPtr<IdxFilter> Dataset::createFilter(const Field& field) 
+SharedPtr<DatasetFilter> Dataset::createFilter(const Field& field) 
 {
   String filter_name=field.filter;
 
   if (filter_name.empty())
-    return SharedPtr<IdxFilter>();
+    return SharedPtr<DatasetFilter>();
 
   if (filter_name=="identity" || filter_name=="IdentityFilter")
   {
@@ -550,7 +550,7 @@ SharedPtr<IdxFilter> Dataset::createFilter(const Field& field)
   }
 
   PrintWarning("Cannot create filter, wrong name ", filter_name);
-  return SharedPtr<IdxFilter>();
+  return SharedPtr<DatasetFilter>();
 }
 
 } //namespace Visus

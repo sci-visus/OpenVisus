@@ -43,7 +43,7 @@ For support : support@visus.net
 #include <Visus/FieldNode.h>
 #include <Visus/StringTree.h>
 #include <Visus/IdxDataset.h>
-#include <Visus/IdxFilter.h>
+#include <Visus/DatasetFilter.h>
 
 namespace Visus {
 

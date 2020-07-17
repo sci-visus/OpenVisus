@@ -56,7 +56,7 @@ For support : support@visus.net
 #include <Visus/MandelbrotAccess.h>
 #include <Visus/IdxMultipleAccess.h>
 #include <Visus/IdxDiskAccess.h>
-#include <Visus/IdxFilter.h>
+#include <Visus/DatasetFilter.h>
 
 namespace Visus {
 
@@ -1676,10 +1676,8 @@ bool Dataset::executePointQueryOnServer(SharedPtr<PointQuery> query)
 }
 
 
-
-
 ///////////////////////////////////////////////////////////////////////////////////
-BoxNi Dataset::adjustBoxQueryFilterBox(BoxQuery* query, IdxFilter* filter, BoxNi user_box, int H)
+BoxNi Dataset::adjustBoxQueryFilterBox(BoxQuery* query, DatasetFilter* filter, BoxNi user_box, int H)
 {
   VisusAssert(!bBlocksAreFullRes);
 
@@ -1719,7 +1717,7 @@ BoxNi Dataset::adjustBoxQueryFilterBox(BoxQuery* query, IdxFilter* filter, BoxNi
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool Dataset::computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow, bool bVerbose)
+bool Dataset::computeFilter(SharedPtr<DatasetFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow, bool bVerbose)
 {
   VisusAssert(!bBlocksAreFullRes);
 
@@ -1865,7 +1863,7 @@ void Dataset::computeFilter(const Field& field, int window_size, bool bVerbose)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
-bool Dataset::executeBlockQuerWithFilters(SharedPtr<Access> access, SharedPtr<BoxQuery> query, SharedPtr<IdxFilter> filter)
+bool Dataset::executeBlockQuerWithFilters(SharedPtr<Access> access, SharedPtr<BoxQuery> query, SharedPtr<DatasetFilter> filter)
 {
   VisusAssert(filter);
   VisusAssert(query->mode == 'r');
