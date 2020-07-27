@@ -39,7 +39,11 @@ jobs:
       # uses: crazy-max/ghaction-chocolatey@v1
       # with:
       #    args: install -y --allow-empty-checksums --no-progress swig
-      run: curl https://kumisystems.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O && unzip swigwin-4.0.2.zip
+      run: |
+           cd "C:/Program Files"
+           curl https://kumisystems.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O  
+           unzip swigwin-4.0.2.zip
+           mv swigwin-4.0.2 swig
         
     # ____________________________________________  
     - name: Install Swig for macos
@@ -139,11 +143,10 @@ jobs:
            if [[  "${{ matrix.python-type }}" == "cpython" ]] ; then Python_EXECUTABLE=${pythonLocation}/python.exe ; fi
            if [[  "${{ matrix.python-type }}" == "conda"   ]] ; then Python_EXECUTABLE=$(which python)              ; fi
            if [[  "${{ matrix.python-type }}" == "conda"   ]] ; then Qt5_Dir=${CONDA_PREFIX}/Library ; fi
-           SWIG_EXECUTABLE=$(pwd)/swigwin-4.0.2/swig.exe
-           $SWIG_EXECUTABLE -swiglib
+           C:/Program Files/swig/swig.exe -swiglib
            mkdir -p build
            cd build
-           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} -DSWIG_EXECUTABLE=$SWIG_EXECUTABLE ../
+           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} -DSWIG_EXECUTABLE=C:/Program Files/swig/swig.exe ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4
            cmake --build . --target install   --config Release
 
