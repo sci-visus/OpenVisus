@@ -32,11 +32,14 @@ jobs:
       uses: lukka/get-cmake@latest
       
     # ____________________________________________
+    # 
     - name: Install Swig for windows
       if: matrix.os == 'windows-latest'
-      uses: crazy-max/ghaction-chocolatey@v1
-      with:
-        args: install -y --allow-empty-checksums --no-progress swig
+      # problems with choco and SWIG_DIR
+      # uses: crazy-max/ghaction-chocolatey@v1
+      # with:
+      #    args: install -y --allow-empty-checksums --no-progress swig
+      run: curl https://kumisystems.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O && unzip swigwin-4.0.2.zip
         
     # ____________________________________________  
     - name: Install Swig for macos
@@ -138,7 +141,7 @@ jobs:
            if [[  "${{ matrix.python-type }}" == "conda"   ]] ; then Qt5_Dir=${CONDA_PREFIX}/Library ; fi
            mkdir -p build
            cd build
-           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} -DSWIG_EXECUTABLE=C:/ProgramData/chocolatey/bin/swig.exe ../
+           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} -DSWIG_EXECUTABLE=../swigwin-4.0.2 ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4
            cmake --build . --target install   --config Release
 
