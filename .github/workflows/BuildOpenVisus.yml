@@ -97,7 +97,7 @@ jobs:
         version: '5.12.8'
         target: 'desktop'
         install-deps: 'true'  
-        dir: /opt
+        dir: /tmp
 
     # ____________________________________________
     - name: Install glu on ubuntu
