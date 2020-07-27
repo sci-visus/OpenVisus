@@ -32,13 +32,13 @@ jobs:
       uses: lukka/get-cmake@latest
       
     # ____________________________________________
-      # problems with choco and SWIG_DIR
-    - # name: Install Swig for windows
-      # if: matrix.os == 'windows-latest'
-      # uses: crazy-max/ghaction-chocolatey@v1
-      # with:
-      #    args: install -y --allow-empty-checksums --no-progress swig
-        
+    # problems with choco and SWIG_DIR
+    # - name: Install Swig for windows
+    # if: matrix.os == 'windows-latest'
+    # uses: crazy-max/ghaction-chocolatey@v1
+    # with:
+    #    args: install -y --allow-empty-checksums --no-progress swig
+
     # ____________________________________________  
     - name: Install Swig for macos
       if: matrix.os == 'macos-latest'
