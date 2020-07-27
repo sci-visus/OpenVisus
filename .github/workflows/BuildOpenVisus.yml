@@ -139,9 +139,10 @@ jobs:
            if [[  "${{ matrix.python-type }}" == "cpython" ]] ; then Python_EXECUTABLE=${pythonLocation}/python.exe ; fi
            if [[  "${{ matrix.python-type }}" == "conda"   ]] ; then Python_EXECUTABLE=$(which python)              ; fi
            if [[  "${{ matrix.python-type }}" == "conda"   ]] ; then Qt5_Dir=${CONDA_PREFIX}/Library ; fi
+           SWIG_EXECUTABLE=$(pwd)/swigwin-4.0.2/swig.exe
            mkdir -p build
            cd build
-           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} -DSWIG_EXECUTABLE=${{env.working-directory}}/swigwin-4.0.2/swig.exe ../
+           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} -DSWIG_EXECUTABLE=$SWIG_EXECUTABLE ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4
            cmake --build . --target install   --config Release
 
