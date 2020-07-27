@@ -55,7 +55,7 @@ public:
   //read
   void read(Archive& ar)
   {
-    for (auto child : ar.childs)
+    for (auto child : ar.getChilds())
       readGeneric(*child, StringMap());
   }
 
@@ -115,7 +115,7 @@ private:
   //readGroup
   void readGroup(Archive& ar, const StringMap& attributes)
   {
-    for (auto child : ar.childs)
+    for (auto child : ar.getChilds())
       readGeneric(*child, attributes);
   }
 
