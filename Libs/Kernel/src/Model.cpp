@@ -126,7 +126,7 @@ void Model::execute(Archive& ar)
   {
     beginUpdate(Transaction(), Transaction());
     {
-      for (auto sub_action : ar.childs)
+      for (auto sub_action : ar.getChilds())
       {
         if (!sub_action->isHash())
           execute(*sub_action);
@@ -209,11 +209,11 @@ StringTree Model::simplify(StringTree action)
   if (action.name != "Transaction")
     return action;
 
-  if (action.childs.size() == 1)
-    return simplify(*action.childs[0]);
+  if (action.getChilds().size() == 1)
+    return simplify(*action.getChilds()[0]);
 
   StringTree ret("Transaction");
-  for (auto it1 : action.childs)
+  for (auto it1 : action.getChilds())
   {
     auto child=simplify(*it1);
 
@@ -224,7 +224,7 @@ StringTree Model::simplify(StringTree action)
     //simplify transaction of transaction
     if (child.name == "Transaction")
     {
-      for (auto it2 : child.childs)
+      for (auto it2 : child.getChilds())
         ret.addChild(*it2);
     }
     else
@@ -284,11 +284,11 @@ void Model::endUpdate()
     auto& UNDO = stack.top().undo;
 
     if (REDO.name == "Transaction" && !redo.name.empty())
-      REDO.childs.push_back(std::make_shared<StringTree>(redo));
+      REDO.addChild(std::make_shared<StringTree>(redo));
 
     //for undo they are executed in reverse order
     if (UNDO.name == "Transaction" && !undo.name.empty())
-      UNDO.childs.insert(UNDO.childs.begin(), std::make_shared<StringTree>(undo));
+      UNDO.addChildAtBegin(std::make_shared<StringTree>(undo));
   }
 }
 

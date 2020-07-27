@@ -163,7 +163,7 @@ void Field::read(Archive& ar)
   this->params.clear();
   if (auto params= ar.getChild("params"))
   {
-    for (auto param : params->childs)
+    for (auto param : params->getChilds())
     {
       if (param->isHash()) continue;
       String key = param->name;
