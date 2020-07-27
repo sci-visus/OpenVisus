@@ -79,7 +79,15 @@ os.environ["QT_PLUGIN_PATH"]= os.path.join(QT5_DIR,"plugins")
 %feature("director") Visus::KdRenderArrayNode;
 %feature("director") Visus::JTreeRenderNode;
 #endif
+
 %feature("director") Visus::ScriptingNode;
+	//on some Linux/Windows the swig generated code has problems with these methods. It tries to call the python counterparts even
+	//if they don't exist.  Need to investigate
+	//for now I'm just disabling them. It could cause some problems in the future in case you want to specialize the methods in python
+	//NOTE: my guess it's failing to map correctly the Archive class (which is a typedef) with SharedPtr<StringTree>
+    %feature("nodirector") Visus::ScriptingNode::execute;
+    %feature("nodirector") Visus::ScriptingNode::read;
+    %feature("nodirector") Visus::ScriptingNode::write;
 
 %shared_ptr(Visus::IsoContour)
 %shared_ptr(Visus::GLMesh)
