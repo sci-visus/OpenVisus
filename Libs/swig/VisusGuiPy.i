@@ -71,6 +71,12 @@ os.environ["QT_PLUGIN_PATH"]= os.path.join(QT5_DIR,"plugins")
 %apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::Node* disown };
 
 %feature("director") Visus::Viewer;
+	//see comment below about ScriptingNode
+    %feature("nodirector") Visus::Viewer::execute;
+    %feature("nodirector") Visus::Viewer::read;
+    %feature("nodirector") Visus::Viewer::write;
+
+//do I need these?
 #if 0
 %feature("director") Visus::GLCameraNode;
 %feature("director") Visus::IsoContourNode;
