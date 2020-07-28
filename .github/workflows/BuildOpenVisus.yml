@@ -32,12 +32,13 @@ jobs:
       uses: lukka/get-cmake@latest
       
     # ____________________________________________
-    - name: Install Swig for windows
-      if: matrix.os == 'windows-latest'
-      uses: crazy-max/ghaction-chocolatey@v1
-      with:
-        args: install -y --allow-empty-checksums --no-progress swig
-        
+    # problems with choco and SWIG_DIR
+    # - name: Install Swig for windows
+    # if: matrix.os == 'windows-latest'
+    # uses: crazy-max/ghaction-chocolatey@v1
+    # with:
+    #    args: install -y --allow-empty-checksums --no-progress swig
+
     # ____________________________________________  
     - name: Install Swig for macos
       if: matrix.os == 'macos-latest'
@@ -51,7 +52,7 @@ jobs:
         max_attempts: 3
         timeout_minutes: 5
         retry_wait_seconds: 5
-        command: 'cd /opt && rm -Rf MacOSX-SDKs && git clone https://github.com/phracker/MacOSX-SDKs.git '
+        command: 'cd /tmp && rm -Rf MacOSX-SDKs && git clone https://github.com/phracker/MacOSX-SDKs.git '
            
     # ____________________________________________
     - name: Install CPython 
@@ -97,7 +98,7 @@ jobs:
         version: '5.12.8'
         target: 'desktop'
         install-deps: 'true'  
-        dir: /opt
+        dir: /tmp
 
     # ____________________________________________
     - name: Install glu on ubuntu
@@ -138,7 +139,8 @@ jobs:
            if [[  "${{ matrix.python-type }}" == "conda"   ]] ; then Qt5_Dir=${CONDA_PREFIX}/Library ; fi
            mkdir -p build
            cd build
-           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} ../
+           curl https://kumisystems.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O  && unzip swigwin-4.0.2.zip
+           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${Python_EXECUTABLE} -DSWIG_EXECUTABLE=./swigwin-4.0.2/swig.exe -swiglib ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4
            cmake --build . --target install   --config Release
 
@@ -152,7 +154,7 @@ jobs:
            if [[  "${{ matrix.python-type }}" == "conda"   ]] ; then Qt5_Dir=${CONDA_PREFIX} ; fi
            mkdir -p build
            cd build
-           cmake -GXcode -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/opt/MacOSX-SDKs/MacOSX10.9.sdk" -DPython_EXECUTABLE=${Python_EXECUTABLE}  ../
+           cmake -GXcode -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX10.9.sdk" -DPython_EXECUTABLE=${Python_EXECUTABLE}  ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release 
 

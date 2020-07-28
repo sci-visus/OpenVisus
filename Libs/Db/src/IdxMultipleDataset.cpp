@@ -472,7 +472,7 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& AR)
   setDatasetBody(AR);
   setKdQueryMode(KdQueryMode::fromString(AR.readString("kdquery")));
 
-  for (auto it : AR.childs)
+  for (auto it : AR.getChilds())
     parseDatasets(*it,Matrix());
 
   if (down_datasets.empty())
