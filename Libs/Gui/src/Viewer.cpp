@@ -1337,7 +1337,7 @@ bool Viewer::open(String url,Node* parent)
     if (bool bAddRenderNode=true)
     {
       String rendertype = StringUtils::toLower(dataset->getDatasetBody().readString("rendertype", ""));
-
+      rendertype = "OSPRay";
       if ((dataset->getKdQueryMode() != KdQueryMode::NotSpecified) || rendertype == "kdrender")
         addKdQuery("", dataset_node);
 

@@ -477,82 +477,90 @@ public:
 
     sceneChanged = true;
 
-    const size_t npaletteSamples = 128;
-    std::vector<math::vec3f> tfnColors(npaletteSamples, math::vec3f(0.f));
-    std::vector<float> tfnOpacities(npaletteSamples, 0.f);
+    std::vector<cpp::Instance> instances;
 
-    for (size_t i = 0; i < npaletteSamples; ++i)
-    {
-      const float x = static_cast<float>(i) / npaletteSamples;
+    for (int ch=0; ch<data.dtype.ncomponents(); ch++){
 
-      // Assumes functions = {R, G, B, A}
-      for (size_t j = 0; j < 3; ++j)
-        tfnColors[i][j] = palette->functions[j]->getValue(x);
+      const size_t npaletteSamples = 128;
+      std::vector<math::vec3f> tfnColors(npaletteSamples, math::vec3f(0.f));
+      std::vector<float> tfnOpacities(npaletteSamples, 0.f);
 
-      tfnOpacities[i] = palette->functions[3]->getValue(x);
+      for (size_t i = 0; i < npaletteSamples; ++i)
+	{
+	  const float x = static_cast<float>(i) / npaletteSamples;
+
+	  // Assumes functions = {R, G, B, A}
+	  //for (size_t j = 0; j < 3; ++j)
+	  tfnColors[i][ch] = palette->functions[ch]->getValue(x);
+
+	  tfnOpacities[i] = palette->functions[3]->getValue(x);
+	}
+
+      cpp::TransferFunction transferFcn("piecewiseLinear");
+      transferFcn.setParam("color", cpp::Data(tfnColors));
+      transferFcn.setParam("opacity", cpp::Data(tfnOpacities));
+      const Range range = palette->computeRange(data, 0);
+      transferFcn.setParam("valueRange", math::vec2f(range.from, range.to));
+      transferFcn.commit();
+
+      const math::vec3ul volumeDims(data.getWidth(), data.getHeight(), data.getDepth());
+
+      // OSPRay shares the data pointer with us, does not copy internally
+      const OSPDataType ospDType = DTypeToOSPDtype(data.dtype);
+      cpp::Data volumeData;
+      if (ospDType == OSP_UCHAR) {
+	volumeData = cpp::Data(volumeDims, reinterpret_cast<uint8_t*>(data.c_ptr()), true);
+      }
+      else if (ospDType == OSP_USHORT) {
+	volumeData = cpp::Data(volumeDims, reinterpret_cast<uint16_t*>(data.c_ptr()), true);
+      }
+      else if (ospDType == OSP_FLOAT) {
+	volumeData = cpp::Data(volumeDims, reinterpret_cast<float*>(data.c_ptr()), true);
+      }
+      else if (ospDType == OSP_DOUBLE) {
+	volumeData = cpp::Data(volumeDims, reinterpret_cast<double*>(data.c_ptr()), true);
+      }
+      else {
+	PrintInfo("OSPRay only supports scalar voxel types");
+	volumeValid = false;
+	return;
+      }
+      volumeValid = true;
+
+      cpp::Volume volume = cpp::Volume("structuredRegular");
+      volume.setParam("dimensions", volumeDims);
+      volume.setParam("data", volumeData);
+      volume.setParam("voxelType", int(ospDType));
+
+      auto grid = data.bounds.toAxisAlignedBox();
+      grid.setPointDim(3);
+
+      // Scale the smaller volumes we get while loading progressively to fill the true bounds
+      // of the full dataset
+      const math::vec3f gridSpacing(
+				    (grid.p2[0] - grid.p1[0]) / data.getWidth(),
+				    (grid.p2[1] - grid.p1[1]) / data.getHeight(),
+				    (grid.p2[2] - grid.p1[2]) / data.getDepth());
+      volume.setParam("gridSpacing", gridSpacing);
+      volume.commit();
+
+      // TODO setup group/instance/world
+      cpp::VolumetricModel volumeModel(volume);
+      volumeModel.setParam("transferFunction", transferFcn);
+      volumeModel.commit();
+
+      cpp::Group group;
+      group.setParam("volume", cpp::Data(volumeModel));
+      group.commit();
+
+      cpp::Instance instance(group);
+      instance.commit();
+
+      instances.push_back(instance);
+
     }
-
-    cpp::TransferFunction transferFcn("piecewiseLinear");
-    transferFcn.setParam("color", cpp::Data(tfnColors));
-    transferFcn.setParam("opacity", cpp::Data(tfnOpacities));
-    const Range range = palette->computeRange(data, 0);
-    transferFcn.setParam("valueRange", math::vec2f(range.from, range.to));
-    transferFcn.commit();
-
-    const math::vec3ul volumeDims(data.getWidth(), data.getHeight(), data.getDepth());
-
-    // OSPRay shares the data pointer with us, does not copy internally
-    const OSPDataType ospDType = DTypeToOSPDtype(data.dtype);
-    cpp::Data volumeData;
-    if (ospDType == OSP_UCHAR) {
-      volumeData = cpp::Data(volumeDims, reinterpret_cast<uint8_t*>(data.c_ptr()), true);
-    }
-    else if (ospDType == OSP_USHORT) {
-      volumeData = cpp::Data(volumeDims, reinterpret_cast<uint16_t*>(data.c_ptr()), true);
-    }
-    else if (ospDType == OSP_FLOAT) {
-      volumeData = cpp::Data(volumeDims, reinterpret_cast<float*>(data.c_ptr()), true);
-    }
-    else if (ospDType == OSP_DOUBLE) {
-      volumeData = cpp::Data(volumeDims, reinterpret_cast<double*>(data.c_ptr()), true);
-    }
-    else {
-      PrintInfo("OSPRay only supports scalar voxel types");
-      volumeValid = false;
-      return;
-    }
-    volumeValid = true;
-
-    cpp::Volume volume = cpp::Volume("structuredRegular");
-    volume.setParam("dimensions", volumeDims);
-    volume.setParam("data", volumeData);
-    volume.setParam("voxelType", int(ospDType));
-
-    auto grid = data.bounds.toAxisAlignedBox();
-    grid.setPointDim(3);
-
-    // Scale the smaller volumes we get while loading progressively to fill the true bounds
-    // of the full dataset
-    const math::vec3f gridSpacing(
-      (grid.p2[0] - grid.p1[0]) / data.getWidth(),
-      (grid.p2[1] - grid.p1[1]) / data.getHeight(),
-      (grid.p2[2] - grid.p1[2]) / data.getDepth());
-    volume.setParam("gridSpacing", gridSpacing);
-    volume.commit();
-
-    // TODO setup group/instance/world
-    cpp::VolumetricModel volumeModel(volume);
-    volumeModel.setParam("transferFunction", transferFcn);
-    volumeModel.commit();
-
-    cpp::Group group;
-    group.setParam("volume", cpp::Data(volumeModel));
-    group.commit();
-
-    cpp::Instance instance(group);
-    instance.commit();
-
-    world.setParam("instance", cpp::Data(instance));
+    
+    world.setParam("instance", cpp::Data(instances));
     // TODO some lights?
     world.commit();
 
@@ -659,8 +667,8 @@ public:
     if (dtype == DTypes::UINT8_RGB) return OSP_VEC3UC;
     if (dtype == DTypes::UINT8_RGBA) return OSP_VEC4UC;
 
-    if (dtype == DTypes::UINT16) return OSP_SHORT;
-    if (dtype == DTypes::INT16) return OSP_USHORT;
+    if (dtype == DTypes::UINT16) return OSP_USHORT;
+    if (dtype == DTypes::INT16) return OSP_SHORT;
 
     if (dtype == DTypes::INT32) return OSP_INT;
     if (dtype == DTypes::UINT32) return OSP_UINT;
@@ -716,6 +724,9 @@ RenderArrayNode::RenderArrayNode()
   lighting_material.back.diffuse=Colors::White;
   lighting_material.back.specular=Colors::White;
   lighting_material.back.shininess=100;
+
+  // XUAN: force ospray!!!!!!!!!!!!!!!!
+  setRenderType("OSPRay");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -825,6 +836,9 @@ bool RenderArrayNode::processInput()
 
   //so far I can apply the transfer function on the GPU only if the data is atomic
   //TODO: i can support even 3 and 4 component arrays
+
+  //std::cout<<"ncomponents: "<< data->dtype.ncomponents() <<"____________________\n";
+
   bool bPaletteEnabled = paletteEnabled() || (palette && data->dtype.ncomponents() == 1);
   if (!bPaletteEnabled)
     palette.reset();
