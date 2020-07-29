@@ -527,6 +527,8 @@ public:
       }
       else if (ospDType == OSP_USHORT) {
 	volumeData = cpp::Data(volumeDims, reinterpret_cast<uint16_t*>(channel.c_ptr()), true);
+	//std::vector<uint16_t> arr(channel.getWidth()*channel.getHeight()*channel.getDepth(),0);
+	//volumeData = cpp::Data(volumeDims, arr.data(), true);
 	std::cout <<"dtype ushort\n";
       }
       else if (ospDType == OSP_FLOAT) {
