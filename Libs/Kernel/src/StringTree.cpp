@@ -67,7 +67,7 @@ private:
     aliases.setValue(key,value);
 
     //an alias can have childs too!
-    for (auto src_child : src.childs)  
+    for (auto src_child : src.getChilds())
     {
       auto dst_child = std::make_shared<StringTree>();
       dst.addChild(dst_child);
@@ -124,7 +124,7 @@ private:
     {
       auto child = std::make_shared<StringTree>();
       dst.addChild(child);
-      accept(*child,*templates[template_name]->childs[I],templates,aliases);
+      accept(*child,*templates[template_name]->getChild(I),templates,aliases);
     }
   }
 
@@ -151,7 +151,7 @@ private:
     {
       VisusAssert(inplace.attributes.empty());
 
-      for (auto child : inplace.childs)
+      for (auto child : inplace.getChilds())
       {
         auto dst_child = std::make_shared<StringTree>();
         dst.addChild(dst_child);
@@ -196,13 +196,13 @@ private:
     else if (condition_expr == "!linux") bCondition = platform_name != "linux";
     else bCondition = cbool(condition_expr);
 
-    for (auto child : src.childs)
+    for (auto child : src.getChilds())
     {
       if (child->name == "then")
       {
         if (bCondition)
         {
-          for (auto then_child : child->childs)
+          for (auto then_child : child->getChilds())
           {
             StringTree tmp;
             accept(tmp, *then_child, templates, aliases);
@@ -214,7 +214,7 @@ private:
       {
         if (!bCondition)
         {
-          for (auto else_child : child->childs)
+          for (auto else_child : child->getChilds())
           {
             StringTree tmp;
             accept(tmp, *else_child, templates, aliases);
@@ -279,7 +279,7 @@ private:
       }
 
       //childs
-      for (auto child : src.childs) 
+      for (auto child : src.getChilds())
       {
         if (child->name=="alias")
         {
@@ -312,7 +312,7 @@ private:
         }
 
         dst.addChild(StringTree());
-        accept(*dst.childs.back(), *child,templates,aliases);
+        accept(*dst.getLastChild(), *child,templates,aliases);
       }
     }
 
@@ -355,7 +355,7 @@ const StringTree* StringTree::NormalizeR(const StringTree* cursor, String& key)
   for (int I = 0; cursor && I < (int)v.size() - 1; I++)
   {
     bool bFound = false;
-    for (auto child : cursor->childs)
+    for (auto child : cursor->getChilds())
     {
       if (child->name == v[I]) {
         cursor = child.get();
@@ -387,7 +387,7 @@ StringTree* StringTree::NormalizeW(StringTree* cursor, String& key)
   for (int I = 0; cursor && I < (int)v.size() - 1; I++)
   {
     bool bFound = false;
-    for (auto child : cursor->childs)
+    for (auto child : cursor->getChilds())
     {
       if (child->name == v[I]) {
         cursor = child.get();
@@ -440,7 +440,7 @@ StringTree& StringTree::write(String key,String value)
 SharedPtr<StringTree> StringTree::getChild(String name) const
 {
   auto cursor = NormalizeR(this, name);
-  for (auto child : cursor->childs)
+  for (auto child : cursor->getChilds())
   {
     if (child->name == name)
       return child;
@@ -453,7 +453,7 @@ std::vector< SharedPtr<StringTree> > StringTree::getChilds(String name) const {
   std::vector< SharedPtr<StringTree> > ret;
   auto cursor = NormalizeR(this, name);
   if (!cursor) return ret;
-  for (auto child : cursor->childs)
+  for (auto child : cursor->getChilds())
     if (child->name == name)
       ret.push_back(child);
   return ret;
@@ -489,7 +489,7 @@ static TiXmlElement* ToXmlElement(const StringTree& src)
     dst->SetAttribute(key.c_str(), value.c_str());
   }
 
-  for (auto child : src.childs)
+  for (auto child : src.getChilds())
   {
     if (child->name== "#cdata-section")
     {
@@ -597,8 +597,8 @@ String StringTree::toJSONString(const StringTree& src, int nrec)
     out << "}," << std::endl;
     out << FormatJSON("childs") << " : [ " << std::endl;
     {
-      int I = 0, N = (int)src.childs.size(); 
-      for (const auto& child : src.childs)
+      int I = 0, N = (int)src.getChilds().size(); 
+      for (auto child : src.getChilds())
       {
         out << toJSONString(*child, nrec + 1) << ((I != N - 1) ? "," : "") << std::endl;
         I++;
@@ -665,7 +665,7 @@ StringTree StringTree::fromString(String content, bool bEnablePostProcessing)
   for (auto child = xmldoc.FirstChildElement(); child; child=child->NextSiblingElement())
     ret.addChild(FromXmlElement(child));
 
-  if (ret.childs.size() == 1)
+  if (ret.getNumberOfChilds() == 1)
     ret = *ret.getFirstChild();
 
   if (bEnablePostProcessing)

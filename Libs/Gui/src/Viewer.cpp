@@ -1411,7 +1411,7 @@ bool Viewer::playFile(String url)
     execute(first);
   });
 
-  for (auto action : ar.childs)
+  for (auto action : ar.getChilds())
   {
     if (action->isHash()) continue;
     scheduled.actions.push_back(*action);
@@ -2677,7 +2677,7 @@ void Viewer::read(Archive& ar)
   String git_revision;
   ar.read("git_revision", git_revision);
 
-  for (auto child : ar.childs)
+  for (auto child : ar.getChilds())
   {
     if (!child->isHash())
       this->execute(*child);

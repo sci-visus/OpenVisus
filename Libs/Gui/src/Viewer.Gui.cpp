@@ -407,7 +407,7 @@ QMenu* Viewer::createBookmarks() {
 ////////////////////////////////////////////////////////////
 void Viewer::createBookmarks(QMenu* dst,const StringTree& src)
 {
-  for (auto child : src.childs)
+  for (auto child : src.getChilds())
   {
     if (child->name=="dataset")
     {

@@ -65,9 +65,6 @@ public:
   //attributes
   std::vector< std::pair<String, String> > attributes;
 
-  //childs
-  std::vector< SharedPtr<StringTree> > childs;
-
   // constructor
   StringTree() {
   }
@@ -113,8 +110,8 @@ public:
     this->name = other.name;
     this->attributes = other.attributes;
     this->childs.clear();
-    for (int I = 0; I < other.childs.size(); I++)
-      this->childs.push_back(std::make_shared<StringTree>(*other.childs[I]));
+    for (auto it : other.getChilds())
+      this->childs.push_back(std::make_shared<StringTree>(*it));
     return *this;
   }
 
@@ -176,6 +173,12 @@ public:
   //addChild
   StringTree& addChild(SharedPtr<StringTree> child) {
     childs.push_back(child);
+    return *this;
+  }
+
+  //addChildAtBegin
+  StringTree& addChildAtBegin(SharedPtr<StringTree> child) {
+    childs.insert(childs.begin(), child);
     return *this;
   }
 
@@ -456,7 +459,7 @@ public:
       if (!dst.hasAttribute(it.first))
         dst.setAttribute(it.first, it.second);
 
-    for (auto it : src.childs)
+    for (auto it : src.getChilds())
       dst.addChild(*it);
   }
 
@@ -496,7 +499,10 @@ public:
     return toXmlString();
   }
 
-protected:
+private:
+
+  //childs
+  std::vector< SharedPtr<StringTree> > childs;
 
   //toJSONString
   static String toJSONString(const StringTree& stree, int nrec);

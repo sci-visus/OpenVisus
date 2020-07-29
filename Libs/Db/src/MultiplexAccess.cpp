@@ -51,7 +51,7 @@ MultiplexAccess::MultiplexAccess(Dataset* dataset, StringTree config)
   this->can_write = false;
   this->bitsperblock = 0;
 
-  for (auto child_config : config.childs)
+  for (auto child_config : config.getChilds())
   {
     if (child_config->name != "access")
       continue;

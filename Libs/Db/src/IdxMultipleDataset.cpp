@@ -380,9 +380,10 @@ void IdxMultipleDataset::nextBoxQuery(SharedPtr<BoxQuery> QUERY)
 
 
 ////////////////////////////////////////////////////////////////////////////////////
-String IdxMultipleDataset::removeAliases(String url, String URL_)
+String IdxMultipleDataset::removeAliases(String url)
 {
-  Url URL(URL_);
+  Url URL = this->getUrl();
+
   if (URL.isFile())
   {
     String dir = Path(URL.getPath()).getParent().toString();
@@ -412,7 +413,7 @@ String IdxMultipleDataset::removeAliases(String url, String URL_)
 };
 
 ///////////////////////////////////////////////////////////
-void IdxMultipleDataset::parseDataset(StringTree& cur, Matrix modelview,String URL)
+void IdxMultipleDataset::parseDataset(StringTree& cur, Matrix modelview)
 {
   String url = cur.getAttribute("url");
   VisusAssert(!url.empty());
@@ -423,7 +424,7 @@ void IdxMultipleDataset::parseDataset(StringTree& cur, Matrix modelview,String U
   if (name.empty() || this->down_datasets.count(name))
     name = concatenate("child_", StringUtils::formatNumber("%04d", (int)this->down_datasets.size()));
 
-  url = removeAliases(url, URL);
+  url = removeAliases(url);
 
   cur.write("name", name); //in case I changed it
   cur.write("url", url);
@@ -476,7 +477,7 @@ void IdxMultipleDataset::parseDataset(StringTree& cur, Matrix modelview,String U
 }
 
 ///////////////////////////////////////////////////////////
-void IdxMultipleDataset::parseDatasets(StringTree& ar, Matrix modelview,String URL)
+void IdxMultipleDataset::parseDatasets(StringTree& ar, Matrix modelview)
 {
   if (!cbool(ar.getAttribute("enabled", "1")))
     return;
@@ -503,7 +504,7 @@ void IdxMultipleDataset::parseDatasets(StringTree& ar, Matrix modelview,String U
       modelview *= Matrix::translate(vt);
     }
 
-    parseDataset(ar, modelview, URL);
+    parseDataset(ar, modelview);
     return;
   }
 
@@ -536,7 +537,7 @@ void IdxMultipleDataset::parseDatasets(StringTree& ar, Matrix modelview,String U
 
   //recursive
   for (auto child : ar.getChilds())
-    parseDatasets(*child, modelview, URL);
+    parseDatasets(*child, modelview);
 }
 
 ///////////////////////////////////////////////////////////
@@ -544,6 +545,13 @@ IdxFile IdxMultipleDataset::generateIdxFile(Archive& ar)
 {
   IdxFile ret;
 
+  auto first = getFirstChild();
+  int pdim = first->getPointDim();
+  int sdim = pdim + 1;
+
+  IdxFile& IDXFILE = this->idxfile;
+
+  //set PHYSIC_BOX (union of physic boxes)
   auto PHYSIC_BOX = BoxNd::invalid();
   if (ar.hasAttribute("physic_box"))
   {
@@ -603,9 +611,13 @@ IdxFile IdxMultipleDataset::generateIdxFile(Archive& ar)
 ///////////////////////////////////////////////////////////
 void IdxMultipleDataset::readDatasetFromArchive(Archive& ar)
 {
-  auto URL = ar.getAttribute("url");
-  for (auto& it : ar.childs)
-    parseDatasets(*it, Matrix(), URL);
+  //i need this because parseDatasets will call getUrl to remove aliases
+  this->dataset_body = ar;
+  this->kdquery_mode = KdQueryMode::fromString(ar.readString("kdquery"));
+  
+  for (auto& it : ar.getChilds())
+    parseDatasets(*it, Matrix());
+    
   VisusReleaseAssert(!down_datasets.empty());
 
   //automatically generate idxfile
