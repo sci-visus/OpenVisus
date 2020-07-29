@@ -461,6 +461,7 @@ public:
   virtual ~OSPRayRenderArrayNode() {
   }
 
+
   //setData
   virtual void setData(Array data, SharedPtr<Palette> palette) override
   {
@@ -480,7 +481,16 @@ public:
     std::vector<cpp::Instance> instances;
 
     for (int ch=0; ch<data.dtype.ncomponents(); ch++){
-
+      
+      // should == data if ncomponent==1 and ch==0
+      Array channel = data.getComponent(ch);
+      
+      std::cout <<"channel whd: "
+		<<channel.getWidth() <<" "
+		<<channel.getHeight() <<" "
+		<<channel.getDepth()<<" "
+		<<channel.dtype.toString() <<"\n";
+      
       const size_t npaletteSamples = 128;
       std::vector<math::vec3f> tfnColors(npaletteSamples, math::vec3f(0.f));
       std::vector<float> tfnOpacities(npaletteSamples, 0.f);
@@ -490,6 +500,7 @@ public:
 	  const float x = static_cast<float>(i) / npaletteSamples;
 
 	  // Assumes functions = {R, G, B, A}
+	  // assigin one color to each channel
 	  //for (size_t j = 0; j < 3; ++j)
 	  tfnColors[i][ch] = palette->functions[ch]->getValue(x);
 
@@ -499,26 +510,30 @@ public:
       cpp::TransferFunction transferFcn("piecewiseLinear");
       transferFcn.setParam("color", cpp::Data(tfnColors));
       transferFcn.setParam("opacity", cpp::Data(tfnOpacities));
-      const Range range = palette->computeRange(data, 0);
+      const Range range = palette->computeRange(channel, 0);
       transferFcn.setParam("valueRange", math::vec2f(range.from, range.to));
       transferFcn.commit();
 
-      const math::vec3ul volumeDims(data.getWidth(), data.getHeight(), data.getDepth());
-
+      const math::vec3ul volumeDims(channel.getWidth(), channel.getHeight(), channel.getDepth());
+      
       // OSPRay shares the data pointer with us, does not copy internally
-      const OSPDataType ospDType = DTypeToOSPDtype(data.dtype);
+      const OSPDataType ospDType = DTypeToOSPDtype(channel.dtype);
       cpp::Data volumeData;
+
+     
+      
       if (ospDType == OSP_UCHAR) {
-	volumeData = cpp::Data(volumeDims, reinterpret_cast<uint8_t*>(data.c_ptr()), true);
+	volumeData = cpp::Data(volumeDims, reinterpret_cast<uint8_t*>(channel.c_ptr()), true);
       }
       else if (ospDType == OSP_USHORT) {
-	volumeData = cpp::Data(volumeDims, reinterpret_cast<uint16_t*>(data.c_ptr()), true);
+	volumeData = cpp::Data(volumeDims, reinterpret_cast<uint16_t*>(channel.c_ptr()), true);
+	std::cout <<"dtype ushort\n";
       }
       else if (ospDType == OSP_FLOAT) {
-	volumeData = cpp::Data(volumeDims, reinterpret_cast<float*>(data.c_ptr()), true);
+	volumeData = cpp::Data(volumeDims, reinterpret_cast<float*>(channel.c_ptr()), true);
       }
       else if (ospDType == OSP_DOUBLE) {
-	volumeData = cpp::Data(volumeDims, reinterpret_cast<double*>(data.c_ptr()), true);
+	volumeData = cpp::Data(volumeDims, reinterpret_cast<double*>(channel.c_ptr()), true);
       }
       else {
 	PrintInfo("OSPRay only supports scalar voxel types");
@@ -532,15 +547,15 @@ public:
       volume.setParam("data", volumeData);
       volume.setParam("voxelType", int(ospDType));
 
-      auto grid = data.bounds.toAxisAlignedBox();
+      auto grid = channel.bounds.toAxisAlignedBox();
       grid.setPointDim(3);
 
       // Scale the smaller volumes we get while loading progressively to fill the true bounds
       // of the full dataset
       const math::vec3f gridSpacing(
-				    (grid.p2[0] - grid.p1[0]) / data.getWidth(),
-				    (grid.p2[1] - grid.p1[1]) / data.getHeight(),
-				    (grid.p2[2] - grid.p1[2]) / data.getDepth());
+				    (grid.p2[0] - grid.p1[0]) / channel.getWidth(),
+				    (grid.p2[1] - grid.p1[1]) / channel.getHeight(),
+				    (grid.p2[2] - grid.p1[2]) / channel.getDepth());
       volume.setParam("gridSpacing", gridSpacing);
       volume.commit();
 
@@ -567,7 +582,7 @@ public:
     if (data.clipping.valid())
       PrintInfo("CLIPPING TODO");
   }
-
+  
   //glRender
   virtual void glRender(GLCanvas& gl) override
   {
@@ -704,6 +719,7 @@ public:
 
 };
 
+
 #endif // #if VISUS_OSPRAY
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -725,7 +741,7 @@ RenderArrayNode::RenderArrayNode()
   lighting_material.back.specular=Colors::White;
   lighting_material.back.shininess=100;
 
-  // XUAN: force ospray!!!!!!!!!!!!!!!!
+  // XUAN: force ospray for now!!!!!!!!!!!!!!!!
   setRenderType("OSPRay");
 }
 
@@ -837,13 +853,12 @@ bool RenderArrayNode::processInput()
   //so far I can apply the transfer function on the GPU only if the data is atomic
   //TODO: i can support even 3 and 4 component arrays
 
-  //std::cout<<"ncomponents: "<< data->dtype.ncomponents() <<"____________________\n";
-
   bool bPaletteEnabled = paletteEnabled() || (palette && data->dtype.ncomponents() == 1);
-  if (!bPaletteEnabled)
-    palette.reset();
+  //if (!bPaletteEnabled)
+  //  palette.reset();
 
   this->return_receipt = return_receipt; //wait until the
+
   setData(*data, palette);
 
   return true;
