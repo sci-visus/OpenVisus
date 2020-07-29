@@ -8,6 +8,7 @@ if (POLICY CMP0071)
   cmake_policy(SET CMP0071 OLD) # qt-related
 endif()
 
+
 if (POLICY CMP0086)
   cmake_policy(SET CMP0086 OLD) # swig related 
 endif()
@@ -162,6 +163,7 @@ else()
 	if(EXISTS "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/README.txt")
 		set(VISUS_DEFAULT_OSPRAY ON)
 	endif()
+	
 
 	if (NOT APPLE AND NOT WIN32)
 		set(VISUS_DEFAULT_MODVISUS ON)
