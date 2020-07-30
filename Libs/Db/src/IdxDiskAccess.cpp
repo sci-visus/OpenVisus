@@ -217,16 +217,9 @@ public:
       return GetFilenameV56(idxfile, time_template, filename_template, field, time, blockid);
   }
 
-  //beginIO
-  virtual void beginIO(int mode) override {
-    Access::beginIO(mode);
-    this->mode = mode;
-  }
-
   //endIO
   virtual void endIO() override {
     closeFile("endIO");
-    this->mode = 0;
     Access::endIO();
   }
 
@@ -346,7 +339,6 @@ private:
   HeapMemory     headers;
   BlockHeader*   block_headers=nullptr;
   File           file;
-  int            mode=0;
 
   //openFile
   bool openFile(String filename, String file_mode)
@@ -430,16 +422,9 @@ public:
     return GetFilenameV56(idxfile, time_template, filename_template, field, time, blockid);
   }
 
-  //beginIO
-  virtual void beginIO(int mode) override  {
-    Access::beginIO(mode);
-    this->mode = mode;
-  }
-
   //endIO
   virtual void endIO() override {
     closeFile("endIO");
-    this->mode = 0;
     Access::endIO();
   }
 
@@ -463,7 +448,7 @@ public:
 
     //try to open the existing file
     String filename = getFilename(query->field, query->time, blockid);
-    if (!openFile(filename, this->mode == 'w' ? "rw" : "r"))
+    if (!openFile(filename, isWriting() ? "rw" : "r"))
       return failed("cannot open file");
 
     if (aborted())
@@ -770,7 +755,6 @@ private:
   FileHeader*     file_header=nullptr;
   BlockHeader*    block_headers = nullptr;
   SharedPtr<File> file;
-  int             mode=0;
 
   //re-entrant file lock
   std::map<String, int> file_locks;
@@ -1013,6 +997,7 @@ void IdxDiskAccess::beginIO(int mode)
     async_tpool->waitAll();
 
   Access::beginIO(mode);
+
   if (!isWriting() && async_tpool)
   {
     ThreadPool::push(async_tpool, [this, mode]() {

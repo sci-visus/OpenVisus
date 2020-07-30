@@ -56,7 +56,7 @@ For support : support@visus.net
 #include <Visus/MandelbrotAccess.h>
 #include <Visus/IdxMultipleAccess.h>
 #include <Visus/IdxDiskAccess.h>
-#include <Visus/DatasetFilter.h>
+#include <Visus/IdxFilter.h>
 
 namespace Visus {
 
@@ -905,18 +905,22 @@ bool Dataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
     return false;
 
   //rehentrant call...(just to not close the file too soon)
-  bool bWriting = query->mode == 'w', bWasWriting = access->isWriting();
-  bool bReading = query->mode == 'r', bWasReading = access->isReading();
-
-	if (bWriting)
+  bool bEndIO = false;
+	if (query->mode == 'w')
 	{
-		if (!bWasWriting)
-			access->beginWrite();
+    if (!access->isWriting())
+    {
+      bEndIO = true;
+      access->beginWrite();
+    }
 	}
 	else
 	{
-		if (!bWasReading)
-			access->beginRead();
+    if (!access->isReading())
+    {
+      bEndIO = true;
+      access->beginRead();
+    }
 	}
 
   for (auto read_block : block_queries)
@@ -933,7 +937,7 @@ bool Dataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
 
     nread++;
 
-    if (bReading)
+		if (query->mode == 'r')
     {
       executeBlockQuery(access, read_block);
       wait_async.pushRunning(read_block->done).when_ready([this, query, read_block](Void)
@@ -970,15 +974,16 @@ bool Dataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
       access->releaseWriteLock(read_block);
 
       if (query->aborted() || write_block->failed()) {
-        if (!bWasWriting)
-          access->endWrite();
+        if (bEndIO) 
+          access->endIO();
         return false;
       }
     }
   }
 
-  if (bWriting && !bWasWriting) access->endWrite();
-  if (bReading && !bWasReading) access->endRead();
+  if (bEndIO) 
+    access->endIO();
+
   wait_async.waitAllDone();
 
   //PrintInfo("aysnc read",concatenate(nread, "/", block_queries.size()),"...");
@@ -1534,25 +1539,29 @@ bool Dataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> 
     return false;
 
   //rehentrant call...(just to not close the file too soon)
-  bool bWriting = query->mode == 'w', bWasWriting = access->isWriting();
-  bool bReading = query->mode == 'r', bWasReading = access->isReading();
-
-  if (bWriting)
+  bool bEndIO = false;
+  if (query->mode == 'w')
   {
-    if (!bWasWriting)
+    if (!access->isWriting())
+    {
+      bEndIO = true;
       access->beginWrite();
+    }
   }
   else
   {
-    if (!bWasReading)
+    if (!access->isReading())
+    {
+      bEndIO = true;
       access->beginRead();
+    }
   }
 
   int nread = 0, nwrite = 0;
   WaitAsync< Future<Void> > wait_async;
   for (auto block_query : block_queries)
   {
-    if (bReading)
+    if (query->mode=='r')
     {
       ++nread;
       executeBlockQuery(access, block_query);
@@ -1567,8 +1576,9 @@ bool Dataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> 
     }
   }
 
-  if (bWriting && !bWasWriting) access->endWrite();
-  if (bReading && !bWasReading) access->endRead();
+  if (bEndIO) 
+    access->endIO();
+  
   wait_async.waitAllDone();
 
   //PrintInfo("aysnc read",concatenate(nread, "/", block_queries.size()),"...");
@@ -1835,7 +1845,7 @@ bool Dataset::executePointQueryOnServer(SharedPtr<PointQuery> query)
 
 
 ///////////////////////////////////////////////////////////////////////////////////
-BoxNi Dataset::adjustBoxQueryFilterBox(BoxQuery* query, DatasetFilter* filter, BoxNi user_box, int H)
+BoxNi Dataset::adjustBoxQueryFilterBox(BoxQuery* query, IdxFilter* filter, BoxNi user_box, int H)
 {
   VisusAssert(!bBlocksAreFullRes);
 
@@ -1875,7 +1885,7 @@ BoxNi Dataset::adjustBoxQueryFilterBox(BoxQuery* query, DatasetFilter* filter, B
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool Dataset::computeFilter(SharedPtr<DatasetFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow, bool bVerbose)
+bool Dataset::computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow, bool bVerbose)
 {
   VisusAssert(!bBlocksAreFullRes);
 
@@ -2021,7 +2031,7 @@ void Dataset::computeFilter(const Field& field, int window_size, bool bVerbose)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
-bool Dataset::executeBlockQuerWithFilters(SharedPtr<Access> access, SharedPtr<BoxQuery> query, SharedPtr<DatasetFilter> filter)
+bool Dataset::executeBlockQuerWithFilters(SharedPtr<Access> access, SharedPtr<BoxQuery> query, SharedPtr<IdxFilter> filter)
 {
   VisusAssert(filter);
   VisusAssert(query->mode == 'r');

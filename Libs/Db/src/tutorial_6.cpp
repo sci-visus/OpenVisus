@@ -38,7 +38,7 @@ For support : support@visus.net
 
 #include <Visus/IdxDataset.h>
 #include <Visus/File.h>
-#include <Visus/DatasetFilter.h>
+#include <Visus/IdxFilter.h>
 
 namespace Visus {
 

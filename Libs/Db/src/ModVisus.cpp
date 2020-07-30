@@ -44,7 +44,7 @@ For support : support@visus.net
 #include <Visus/StringTree.h>
 #include <Visus/IdxDataset.h>
 #include <Visus/IdxMultipleDataset.h>
-#include <Visus/DatasetFilter.h>
+#include <Visus/IdxFilter.h>
 
 namespace Visus {
 

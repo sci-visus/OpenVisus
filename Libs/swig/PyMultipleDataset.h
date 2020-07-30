@@ -132,7 +132,7 @@ public:
         auto output = getModuleAttr("output");
 
         if (!output)
-          ThrowException("");
+          ThrowException("C++ ThrowException, ouput not set");
 
         auto array = pythonObjectToArray(output);
 
@@ -170,7 +170,7 @@ public:
     auto output = getModuleAttr("output");
 
     if (!output)
-      ThrowException("output not set");
+      ThrowException("C++ ThrowException, output not set");
 
     auto ret = pythonObjectToArray(output);
 
@@ -179,7 +179,7 @@ public:
       if (aborted())
         return ret;
       else
-        ThrowException("output not valid");
+        ThrowException("C++ ThrowException, output not valid");
     }
 
     if (DATASET->debug_mode & IdxMultipleDataset::DebugSaveImages)
@@ -234,7 +234,7 @@ private:
     {
       if (PyErr_Occurred())
       {
-        String error_msg = cstring("Python error code:\n", s, "\nError:\n", getPythonErrorMessage());
+        String error_msg = cstring("C++ catched Python error. Source code :\n", s, "\nPython Error Message:\n", getPythonErrorMessage());
         PyErr_Clear();
         PrintInfo(error_msg);
         ThrowException(error_msg);
@@ -254,7 +254,7 @@ private:
     {
       if (PyErr_Occurred())
       {
-        String error_msg = cstring("Python error code:\n", s, "\nError:\n", getPythonErrorMessage());
+        String error_msg = cstring("C++ catched Python error. Source code :\n", s, "\nPython Error Message:\n", getPythonErrorMessage());
         PyErr_Clear();
         PrintInfo(error_msg);
         ThrowException(error_msg);
@@ -407,7 +407,7 @@ private:
     int res = SWIG_ConvertPtr(py_object, (void**)&ptr, SWIG_TypeQuery("Visus::Array *"), 0);
 
     if (!SWIG_IsOK(res) || !ptr)
-      ThrowException("cannot convert to array");
+      ThrowException("C++ cannot convert to array");
 
     Array ret = *ptr;
 
@@ -446,7 +446,7 @@ private:
 
     auto dataset = DATASET->getChild(expr1);
     if (!dataset)
-      ThrowException("input['", expr1, "'] not found");
+      ThrowException("C++ error. input['", expr1, "'] not found");
 
     auto ret = newDynamicObject([this, expr1](String expr2) {
       return getAttr2(expr1, expr2);
@@ -485,7 +485,7 @@ private:
     Field field = dataset->getField(expr2);
 
     if (!field.valid())
-      ThrowException("input['", expr1, "']['", expr2, "'] not found");
+      ThrowException("C++ error. input['", expr1, "']['", expr2, "'] not found");
 
     int pdim = DATASET->getPointDim();
 

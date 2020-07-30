@@ -46,7 +46,7 @@ For support : support@visus.net
 namespace Visus {
 
 //predeclaration
-class DatasetFilter;
+class IdxFilter;
 class Dataset;
 class Access;
 
@@ -88,7 +88,7 @@ public:
   struct
   {
     bool                     enabled = false;
-    SharedPtr<DatasetFilter> dataset_filter;
+    SharedPtr<IdxFilter>     dataset_filter;
     BoxNi                    domain;
     BoxNi                    adjusted_logic_box;
     SharedPtr<BoxQuery>      query;

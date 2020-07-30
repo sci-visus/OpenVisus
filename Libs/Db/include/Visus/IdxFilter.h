@@ -36,8 +36,8 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef __VISUS_DATASET_FILTER_H
-#define __VISUS_DATASET_FILTER_H
+#ifndef __VISUS_IDX_FILTER_H
+#define __VISUS_IDX_FILTER_H
 
 #include <Visus/Db.h>
 #include <Visus/Array.h>
@@ -50,11 +50,11 @@ class Access;
 class BoxQuery;
 
 ////////////////////////////////////////////////////////
-class VISUS_DB_API DatasetFilter
+class VISUS_DB_API IdxFilter
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(DatasetFilter)
+  VISUS_NON_COPYABLE_CLASS(IdxFilter)
 
   //dataset
   Dataset* dataset;
@@ -72,12 +72,12 @@ public:
   bool bNeedExtraComponent;
 
   //constructor
-  DatasetFilter(Dataset* dataset_, const Field& field, int filtersize_, String name_)
+  IdxFilter(Dataset* dataset_, const Field& field, int filtersize_, String name_)
     : dataset(dataset_), dtype(field.dtype), size(filtersize_), name(name_), bNeedExtraComponent(false) {
   }
 
   //destructor
-  virtual ~DatasetFilter() {
+  virtual ~IdxFilter() {
   }
 
   //getFilterStep
@@ -95,5 +95,5 @@ public:
 
 } //namespace Visus
 
-#endif //__VISUS_DATASET_FILTER_H
+#endif //__VISUS_IDX_FILTER_H
 

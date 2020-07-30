@@ -42,7 +42,7 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////
-class BoxQueryHzConversion
+class IdxBoxQueryHzAddressConversion
 {
 public:
 
@@ -122,7 +122,7 @@ public:
   std::vector< SharedPtr<Level> > levels;
 
   //constructor
-  BoxQueryHzConversion(DatasetBitmask& bitmask)
+  IdxBoxQueryHzAddressConversion(DatasetBitmask& bitmask)
   {
 		for (int I = 0; I <= bitmask.getMaxResolution(); I++)
 			this->levels.push_back(std::make_shared<Level>(bitmask, I));
@@ -131,7 +131,7 @@ public:
 };
 
 ////////////////////////////////////////////////////////
-class PointQueryHzConversion
+class IdxPointQueryHzAddressConversion
 {
 public:
 
@@ -140,7 +140,7 @@ public:
   std::vector< std::pair<BigInt, Int32>* > loc;
 
   //create
-  PointQueryHzConversion(DatasetBitmask bitmask)
+  IdxPointQueryHzAddressConversion(DatasetBitmask bitmask)
   {
     //todo cases for which I'm using regexp
     auto MaxH = bitmask.getMaxResolution();
@@ -171,7 +171,7 @@ public:
   }
 
   //destructor
-  ~PointQueryHzConversion() {
+  ~IdxPointQueryHzAddressConversion() {
     for (auto it : loc)
       delete[] it;
   }
@@ -183,8 +183,8 @@ class HzAddressConversion
 {
 public:
   CriticalSection lock;
-  std::map<String, SharedPtr<BoxQueryHzConversion> >   box;
-  std::map<String, SharedPtr<PointQueryHzConversion> > point;
+  std::map<String, SharedPtr<IdxBoxQueryHzAddressConversion> >   box;
+  std::map<String, SharedPtr<IdxPointQueryHzAddressConversion> > point;
 
   //create
   void create(IdxDataset* idx)
@@ -195,7 +195,7 @@ public:
     auto key = bitmask.toString();
 
     if (!this->box.count(key))
-      this->box[key] = std::make_shared<BoxQueryHzConversion>(bitmask);
+      this->box[key] = std::make_shared<IdxBoxQueryHzAddressConversion>(bitmask);
 
     idx->hzconv.box = this->box[key];
 
@@ -204,7 +204,7 @@ public:
     if (bitmask.getPointDim() == 3)
     {
       if (!this->point.count(key))
-        this->point[key] = std::make_shared<PointQueryHzConversion>(bitmask);
+        this->point[key] = std::make_shared<IdxPointQueryHzAddressConversion>(bitmask);
 
       idx->hzconv.point = this->point[key];
     }

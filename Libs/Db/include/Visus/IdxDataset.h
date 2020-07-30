@@ -47,8 +47,8 @@ For support : support@visus.net
 namespace Visus {
 
 #if !SWIG
-class BoxQueryHzConversion;
-class PointQueryHzConversion;
+class IdxBoxQueryHzAddressConversion;
+class IdxPointQueryHzAddressConversion;
 #endif
 
   //////////////////////////////////////////////////////////////////////
@@ -59,8 +59,8 @@ public:
 #if !SWIG
   struct
   {
-    SharedPtr<BoxQueryHzConversion> box;
-    SharedPtr<PointQueryHzConversion> point;
+    SharedPtr<IdxBoxQueryHzAddressConversion> box;
+    SharedPtr<IdxPointQueryHzAddressConversion> point;
   }
   hzconv;
 #endif
