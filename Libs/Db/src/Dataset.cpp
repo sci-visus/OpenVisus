@@ -1123,6 +1123,19 @@ std::vector<int> Dataset::guessBoxQueryEndResolutions(Frustum logic_to_screen, P
   while (ret.back() < endh)
     ret.push_back(Utils::clamp(ret.back() + pdim, 0, endh));
 
+
+  //block 0 is the minimum you can ask
+  {
+    auto bitsperblock = getDefaultBitsPerBlock();
+    int N = 0;
+    for (auto it : ret)
+    {
+      if (it >= bitsperblock)
+        ret[N++] = it;
+    }
+    ret.resize(N);
+  }
+
   if (auto google = dynamic_cast<GoogleMapsDataset*>(this))
   {
     for (auto& it : ret)
