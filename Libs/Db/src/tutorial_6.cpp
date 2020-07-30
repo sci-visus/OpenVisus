@@ -58,12 +58,7 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
 
   IdxFile idxfile;
   idxfile.logic_box=userbox;
-  {
-    Field field("myfield",in_dtype);
-    field.default_layout=default_layout;
-    field.filter=filter;
-    idxfile.fields.push_back(field);
-  }
+  idxfile.fields.push_back(Field::fromString("myfield " + in_dtype.toString() + " layout(" + default_layout + ") filter(" + filter + ")"));
   idxfile.bitsperblock=bitsperblock;
   idxfile.save(filename);
 

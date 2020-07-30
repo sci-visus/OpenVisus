@@ -118,11 +118,7 @@ void Tutorial_Tiling(String default_layout)
   //create a sample IdxDataset
   IdxFile idxfile;
   idxfile.logic_box = BoxNi(PointNi(0,0), PointNi(32,8));
-  {
-    Field field("DATA",DTypes::UINT8);
-    field.default_layout=default_layout;
-    idxfile.fields.push_back(field);
-  }
+  idxfile.fields.push_back(Field::fromString("DATA uint8 layout(" + default_layout + ")"));
   idxfile.bitmask=DatasetBitmask::fromString("V00101010");
   idxfile.bitsperblock=2;
   idxfile.blocksperfile=1;

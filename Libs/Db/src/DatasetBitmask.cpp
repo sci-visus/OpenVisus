@@ -72,7 +72,7 @@ DatasetBitmask DatasetBitmask::guess(int first_letter, PointNi dims,bool makeReg
   for (int D=0;D<pdim;D++) 
     dims[D]=(Int64)Utils::getPowerOf2(dims[D]);
 
-  String ret;
+  String pattern;
 
   //example V 00000 01010101
   if (makeRegularAsSoonAsPossible)
@@ -83,13 +83,13 @@ DatasetBitmask DatasetBitmask::guess(int first_letter, PointNi dims,bool makeReg
       {
         if (dims[D]>1) 
         {
-          ret+=('0'+D);
+          pattern +=('0'+D);
           dims[D]>>=1;
         }
       }
     }
 
-    ret = StringUtils::reverse(ret);
+    pattern = StringUtils::reverse(pattern);
   }
   //example V 01010101 00000
   else
@@ -100,14 +100,18 @@ DatasetBitmask DatasetBitmask::guess(int first_letter, PointNi dims,bool makeReg
       {
         if (dims[D]>1) 
         {
-          ret+=('0'+D);
+          pattern +=('0'+D);
           dims[D]>>=1;
         }
       }
     }
   }
 
-	return DatasetBitmask::fromString(String(1, first_letter) + ret);
+  pattern = String(1, first_letter) + pattern;
+
+	auto ret=DatasetBitmask::fromString(pattern);
+  VisusReleaseAssert(ret.valid());
+  return ret;
 }
 
 

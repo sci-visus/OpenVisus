@@ -491,7 +491,7 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPt
 ///////////////////////////////////////////////////////////////////////////////////////
 std::vector< SharedPtr<BlockQuery> > IdxDataset::createBlockQueriesForPointQuery(SharedPtr<PointQuery> query)
 {
-  if (areBlocksFullRes())
+  if (blocksFullRes())
     return Dataset::createBlockQueriesForPointQuery(query);
 
   std::vector< SharedPtr<BlockQuery> > ret;

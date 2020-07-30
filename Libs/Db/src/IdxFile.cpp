@@ -108,13 +108,27 @@ void IdxFile::validate(String url)
 
   //bitmask, default guess is blocks not full res
   if (bitmask.empty())
-    bitmask = DatasetBitmask::guess('V', logic_box.p2);
-
-  if (!bitmask.valid())
   {
-    PrintWarning("invalid bitmask");
-    this->version = -1;
-    return;
+    bitmask = DatasetBitmask::guess('V', logic_box.p2);
+  }
+  else
+  {
+    //used specified only the first letter (V | F)
+    auto pattern = bitmask.toString();
+    if (pattern.size() == 1 && std::isalpha(pattern[0]))
+    {
+      auto first_letter = pattern[0];
+      bitmask = DatasetBitmask::guess(first_letter, logic_box.p2);
+    }
+    else
+    {
+      if (!bitmask.valid())
+      {
+        PrintWarning("invalid bitmask");
+        this->version = -1;
+        return;
+      }
+    }
   }
 
   auto pdim = bitmask.getPointDim();
@@ -149,26 +163,40 @@ void IdxFile::validate(String url)
       return;
     }
 
+    //full-res-block always row major (scrgiorgio: does it make sense to have IDX full-res in hzorder?)
+    if (bitmask[0] == 'F')
+    {
+      field.default_layout = "";
+      continue;
+    }
+
+    //guess
     if (field.default_layout.empty())
     {
-      field.default_layout = version < 6 ? "hzorder" : "";
-    }
-    else
-    {
-      //for historical reason '0' means hz and '1' means rowmajor; empty means row major
-      if (field.default_layout.empty() || field.default_layout == "rowmajor" || field.default_layout == "row_major" || field.default_layout == "1")
+      if (version < 6)
+        field.default_layout = "hzorder";
+      else
         field.default_layout = "";
 
-      else if (field.default_layout == "hzorder" || field.default_layout == "hz_order" || field.default_layout == "0")
-        field.default_layout = "hzorder";
-
-      else
-      {
-        VisusAssert(false);
-        PrintWarning("unknown field.default_layout", field.default_layout);
-        field.default_layout = ""; //rowmajor
-      }
+      continue;
     }
+    
+    //for historical reason '0' means hz and '1' means rowmajor; empty means row major
+    if (field.default_layout == "1" || StringUtils::contains(field.default_layout, "row"))
+    {
+      field.default_layout = "";
+      continue;
+    }
+
+    if (field.default_layout == "0" || StringUtils::contains(field.default_layout, "hz"))
+    {
+      field.default_layout = "hzorder";
+      continue;
+    }
+
+    VisusAssert(false);
+    PrintWarning("unknown field.default_layout", field.default_layout);
+    field.default_layout = ""; //rowmajor
   }
 
   //bitsperblock

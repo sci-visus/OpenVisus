@@ -65,11 +65,7 @@ void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
     idxfile.bitmask = DatasetBitmask::guess('F', PointNi(W, H));
     idxfile.bitsperblock = Utils::getLog2(Int64(tile_width) * tile_height);
     idxfile.blocksperfile = 1;
-
-    Field field("DATA", "uint8[3]");
-    field.default_layout = "rowmajor";
-    field.default_compression = "jpg";
-    idxfile.fields.push_back(field);
+    idxfile.fields.push_back(Field::fromString("DATA uint8[3] layout(rowmajor) compression(jpg)"));
 
     ar.writeObject("idxfile", idxfile);
   }

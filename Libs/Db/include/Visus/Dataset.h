@@ -150,8 +150,8 @@ public:
     return bitmask;
   }
 
-  //areBlocksFullRes
-  bool areBlocksFullRes() const {
+  //blocksFullRes()
+  bool blocksFullRes() const {
     return bitmask.toString()[0] == 'F';
   }
 

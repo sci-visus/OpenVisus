@@ -61,12 +61,7 @@ void Tutorial_1(String default_layout)
   {
     IdxFile idxfile;
     idxfile.logic_box=BoxNi(PointNi(0,0,0),PointNi(16,16,16));
-    {
-      Field field("myfield",DTypes::UINT32);
-      field.default_compression= "lz4";
-      field.default_layout=default_layout;
-      idxfile.fields.push_back(field);
-    }
+    idxfile.fields.push_back(Field::fromString("myfield uint32 compression(lz4) layout(" + default_layout + ")"));
     idxfile.save(filename);
   }
 
