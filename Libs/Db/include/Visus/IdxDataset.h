@@ -67,7 +67,6 @@ public:
 
   //default constructor
   IdxDataset() {
-    this->bBlocksAreFullRes = false;
   }
 
   //destructor

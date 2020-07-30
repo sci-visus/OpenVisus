@@ -106,9 +106,9 @@ void IdxFile::validate(String url)
     return;
   }
 
-  //bitmask
+  //bitmask, default guess is blocks not full res
   if (bitmask.empty())
-    bitmask = DatasetBitmask::guess(logic_box.p2);
+    bitmask = DatasetBitmask::guess('V', logic_box.p2);
 
   if (!bitmask.valid())
   {
@@ -250,7 +250,6 @@ void IdxFile::validate(String url)
   if (filename_template.empty())
     filename_template = guessFilenameTemplate(url);
 }
-
 
 
 //////////////////////////////////////////////////////////////////////////////

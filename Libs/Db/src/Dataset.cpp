@@ -733,26 +733,24 @@ LogicSamples Dataset::getBlockQuerySamples(BigInt blockid, int& H)
   auto bitsperblock = getDefaultBitsPerBlock();
   auto samplesperblock = 1 << bitsperblock;
 
-  if (bBlocksAreFullRes)
-    H = blockid == 0 ? bitsperblock : bitsperblock + 0 + Utils::getLog2(1 + blockid);
-  else
-    H = blockid == 0 ? bitsperblock : bitsperblock + 1 + Utils::getLog2(0 + blockid);
-
-  auto delta = block_samples[H].delta;
-
-  //for first block I get twice the samples sice the blocking '1' can be '0' considering all previous levels from 'V'
-  if (blockid == 0 && !bBlocksAreFullRes)
-    delta[bitmask[H]] >>= 1;
-
-  PointNi p0;
-  if (bBlocksAreFullRes)
+  PointNi p0, delta;
+  if (areBlocksFullRes())
   {
+    H = blockid == 0 ? bitsperblock : bitsperblock + 0 + Utils::getLog2(1 + blockid);
+    delta = block_samples[H].delta;
     Int64 first_block_in_level = (((Int64)1) << (H - bitsperblock)) - 1;
     auto coord = bitmask.deinterleave(blockid - first_block_in_level, H - bitsperblock);
     p0 = coord.innerMultiply(block_samples[H].logic_box.size());
   }
   else
   {
+    H = blockid == 0 ? bitsperblock : bitsperblock + 1 + Utils::getLog2(0 + blockid);
+    delta = block_samples[H].delta;
+
+    //for first block I get twice the samples sice the blocking '1' can be '0' considering all previous levels 
+    if (blockid == 0)
+      delta[bitmask[H]] >>= 1;
+
     p0 = HzOrder(bitmask).hzAddressToPoint(blockid * samplesperblock);
   }
 
@@ -760,7 +758,6 @@ LogicSamples Dataset::getBlockQuerySamples(BigInt blockid, int& H)
   VisusAssert(ret.valid());
   return ret;
 }
-
 
 
 ////////////////////////////////////////////////
@@ -1023,7 +1020,7 @@ void Dataset::nextBoxQuery(SharedPtr<BoxQuery> query)
   query->buffer = Array();
 
   //merge with previous results
-  if (!bBlocksAreFullRes)
+  if (!areBlocksFullRes())
   {
     auto failed = [&](String reason) {
       return query->setFailed(query->aborted() ? "query aborted" : reason);
@@ -1138,7 +1135,7 @@ std::vector<int> Dataset::guessBoxQueryEndResolutions(Frustum logic_to_screen, P
 //////////////////////////////////////////////////////////////
 std::vector< SharedPtr<BlockQuery> > Dataset::createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query)
 {
-  VisusReleaseAssert(bBlocksAreFullRes);
+  VisusReleaseAssert(areBlocksFullRes());
   std::vector< SharedPtr<BlockQuery> > ret;
 
   BoxNi box = this->getLogicBox();
@@ -1211,7 +1208,7 @@ bool Dataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<B
     ...
     Q(H=bitsperblock)
   */
-  if (!bBlocksAreFullRes && block_query->blockid == 0)
+  if (!areBlocksFullRes() && block_query->blockid == 0)
   {
     auto hstart = std::max(query->getCurrentResolution() + 1, block_query->blockid == 0 ? 0 : block_query->H);
     auto hend   = std::min(query->getEndResolution()        ,                                 block_query->H);
@@ -1256,7 +1253,7 @@ bool Dataset::convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query)
     return true;
 
   //idx full res is row major only
-  VisusReleaseAssert(!bBlocksAreFullRes);
+  VisusReleaseAssert(!areBlocksFullRes());
 
   //note I cannot use buffer of block_query because I need them to execute other queries
   Array row_major = block_query->buffer.clone();
@@ -1308,17 +1305,17 @@ bool Dataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value)
 
   auto delta = this->level_samples[end_resolution].delta;
 
-  //I get twice the samples of the samples because I'm allowing the blocking '1' bit to be anything coming from previous levels
-  if (!bBlocksAreFullRes && start_resolution == 0 && end_resolution > 0)
-    delta[bitmask[end_resolution]] >>= 1;
-
-  if (bBlocksAreFullRes)
+  if (areBlocksFullRes())
   {
     logic_box = query->logic_box.getIntersection(this->getLogicBox());
     logic_box = level_samples[end_resolution].alignBox(logic_box);
   }
   else
   {
+    //I get twice the samples of the samples because I'm allowing the blocking '1' bit to be anything coming from previous levels
+    if (start_resolution == 0 && end_resolution > 0)
+      delta[bitmask[end_resolution]] >>= 1;
+
     PointNi P1incl, P2incl;
     for (int H = start_resolution; H <= end_resolution; H++)
     {
@@ -1438,7 +1435,7 @@ bool Dataset::executeBoxQueryOnServer(SharedPtr<BoxQuery> query)
 /////////////////////////////////////////////////////////
 SharedPtr<PointQuery> Dataset::createPointQuery(Position logic_position, Field field, double time, Aborted aborted)
 {
-  VisusAssert(!bBlocksAreFullRes);
+  VisusAssert(!areBlocksFullRes());
   auto ret = std::make_shared<PointQuery>();
   ret->dataset = this;
   ret->field = field = field;
@@ -1452,7 +1449,7 @@ SharedPtr<PointQuery> Dataset::createPointQuery(Position logic_position, Field f
 ///////////////////////////////////////////////////////////////////////////////////////
 void Dataset::beginPointQuery(SharedPtr<PointQuery> query)
 {
-  VisusAssert(!bBlocksAreFullRes);
+  VisusAssert(!areBlocksFullRes());
 
   if (!query)
     return;
@@ -1491,7 +1488,7 @@ bool Dataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> 
 
   auto pdim = this->getPointDim();
 
-  VisusReleaseAssert(!bBlocksAreFullRes);//todo
+  VisusReleaseAssert(!areBlocksFullRes());//todo
 
   if (!(query->isRunning() && query->getCurrentResolution() < query->getEndResolution()))
     return false;
@@ -1597,7 +1594,7 @@ bool Dataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> 
 //////////////////////////////////////////////////////////////////////////////////////////
 void Dataset::nextPointQuery(SharedPtr<PointQuery> query)
 {
-  VisusAssert(!bBlocksAreFullRes);
+  VisusAssert(!areBlocksFullRes());
 
   if (!query)
     return;
@@ -1629,7 +1626,7 @@ bool Dataset::mergePointQueryWithBlockQuery(SharedPtr<PointQuery> query, SharedP
 /// ///////////////////////////////////////////////////////////////////////////
 std::vector<int> Dataset::guessPointQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression)
 {
-  VisusAssert(!bBlocksAreFullRes);
+  VisusAssert(!areBlocksFullRes());
 
   if (!logic_position.valid())
     return {};
@@ -1698,7 +1695,7 @@ std::vector<int> Dataset::guessPointQueryEndResolutions(Frustum logic_to_screen,
 /// ///////////////////////////////////////////////////////////////////////////
 PointNi Dataset::guessPointQueryNumberOfSamples(Frustum logic_to_screen, Position logic_position, int end_resolution)
 {
-  VisusAssert(!bBlocksAreFullRes);
+  VisusAssert(!areBlocksFullRes());
 
   //*********************************************************************
   // valerio's algorithm, find the final view dependent resolution (endh)
@@ -1847,7 +1844,7 @@ bool Dataset::executePointQueryOnServer(SharedPtr<PointQuery> query)
 ///////////////////////////////////////////////////////////////////////////////////
 BoxNi Dataset::adjustBoxQueryFilterBox(BoxQuery* query, IdxFilter* filter, BoxNi user_box, int H)
 {
-  VisusAssert(!bBlocksAreFullRes);
+  VisusAssert(!areBlocksFullRes());
 
   //there are some case when I need alignment with pow2 box, for example when doing kdquery=box with filters
   auto bitmask = idxfile.bitmask;
@@ -1887,7 +1884,7 @@ BoxNi Dataset::adjustBoxQueryFilterBox(BoxQuery* query, IdxFilter* filter, BoxNi
 ///////////////////////////////////////////////////////////////////////////////
 bool Dataset::computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow, bool bVerbose)
 {
-  VisusAssert(!bBlocksAreFullRes);
+  VisusAssert(!areBlocksFullRes());
 
   //this works only for filter_size==2, otherwise the building of the sliding_window is very difficult
   VisusAssert(filter->size == 2);
@@ -2013,7 +2010,7 @@ bool Dataset::computeFilter(SharedPtr<IdxFilter> filter, double time, Field fiel
 ///////////////////////////////////////////////////////////////////////////////
 void Dataset::computeFilter(const Field& field, int window_size, bool bVerbose)
 {
-  VisusAssert(!bBlocksAreFullRes);
+  VisusAssert(!areBlocksFullRes());
 
   if (bVerbose)
     PrintInfo("starting filter computation...");
@@ -2033,9 +2030,9 @@ void Dataset::computeFilter(const Field& field, int window_size, bool bVerbose)
 ///////////////////////////////////////////////////////////////////////////////////////
 bool Dataset::executeBlockQuerWithFilters(SharedPtr<Access> access, SharedPtr<BoxQuery> query, SharedPtr<IdxFilter> filter)
 {
+  VisusAssert(!areBlocksFullRes());
   VisusAssert(filter);
   VisusAssert(query->mode == 'r');
-  VisusAssert(!bBlocksAreFullRes);
 
   int cur_resolution = query->getCurrentResolution();
   int end_resolution = query->end_resolution;
@@ -2148,7 +2145,7 @@ void Dataset::readDatasetFromArchive(Archive& ar)
       auto block_nsamples = PointNi::one(pdim);
       auto level_nsamples = PointNi::one(pdim);
 
-      if (this->bBlocksAreFullRes)
+      if (areBlocksFullRes())
       {
         //goint right to left (0,H] counting the bits
         for (int K = H; K > 0; K--)

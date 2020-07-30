@@ -60,7 +60,8 @@ public:
   static DatasetBitmask fromString(String pattern);
 
   //guess bitmask for a certain number of samples (will store the result in bitmask)
-  static DatasetBitmask guess(PointNi dims, bool makeRegularAsSoonAsPossible = true);
+  //first letter == 'V' | 'F'
+  static DatasetBitmask guess(int first_letter, PointNi dims, bool makeRegularAsSoonAsPossible = true);
 
   //invalid
   static DatasetBitmask invalid() {
@@ -74,7 +75,7 @@ public:
 
   //valid
   bool valid() const {
-    return !pattern.empty() && pattern[0] == 'V';
+    return !pattern.empty() && (pattern[0] == 'V' || pattern[0] == 'F');
   }
 
   //getMaxResolution 
@@ -127,7 +128,7 @@ public:
   }
 
   //toString
-  String toString() const {
+  const String& toString() const {
     return pattern;
   }
 

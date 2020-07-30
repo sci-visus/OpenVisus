@@ -491,7 +491,8 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPt
 ///////////////////////////////////////////////////////////////////////////////////////
 std::vector< SharedPtr<BlockQuery> > IdxDataset::createBlockQueriesForPointQuery(SharedPtr<PointQuery> query)
 {
-  VisusReleaseAssert(!bBlocksAreFullRes); //todo
+  if (areBlocksFullRes())
+    return Dataset::createBlockQueriesForPointQuery(query);
 
   std::vector< SharedPtr<BlockQuery> > ret;
 

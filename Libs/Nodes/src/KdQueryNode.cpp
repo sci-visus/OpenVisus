@@ -72,8 +72,6 @@ public:
   Time                          last_publish = Time::now();
   int                           bitsperblock=0;
 
-  bool                          bBlocksAreFullRes=false;
-
   //constructor
   KdQueryJob() {
   }
@@ -110,7 +108,7 @@ public:
     VisusAssert(bitsperblock<=max_resolution);
 
     int end_resolution;
-    if (KdQueryMode::UseBlockQuery && !bBlocksAreFullRes)
+    if (KdQueryMode::UseBlockQuery && !dataset->areBlocksFullRes())
     {
       //I'm reading block 0+1 for block mode when the blocks are not fullres
       end_resolution = std::min(bitsperblock + 1, max_resolution);
@@ -176,7 +174,7 @@ public:
 
     if (!node->fullres.valid())
     {
-      if (bBlocksAreFullRes)
+      if (dataset->areBlocksFullRes())
       {
         if (node->blockdata.valid())
         {
@@ -275,7 +273,7 @@ public:
   //getBlockId
   BigInt getBlockId(KdArrayNode* node) 
   {
-    return BigInt(bBlocksAreFullRes ? node->id - 1 : node->id); //IF !bBlocksAreFullRes node->id is the block number (considering that root has blocks 0 and 1)
+    return BigInt(dataset->areBlocksFullRes() ? node->id - 1 : node->id); //IF !block-are-full-res node->id is the block number (considering that root has blocks 0 and 1)
   }
 
   //isFinalNode
@@ -389,8 +387,8 @@ public:
         if (node->isLeaf())
         {
           ScopedWriteLock wlock(rlock);
-          auto splitbit = bitmask[1 + node->resolution - kdarray->root->resolution];
-          kdarray->split(node, splitbit); //jump the 'V'
+          auto splitbit = bitmask[1 + node->resolution - kdarray->root->resolution];  //jump the first letter
+          kdarray->split(node, splitbit);
         }
 
         bfs.push_back(node->left.get());
@@ -459,8 +457,8 @@ public:
         if (node->blockdata.valid())
           continue;
 
-        //for bBlocksAreFullRes I execute only final levels (since I don't need any merging)
-        if (bBlocksAreFullRes && !isFinalNode(node))
+        //for block-full-res I execute only final levels (since I don't need any merging)
+        if (dataset->areBlocksFullRes() && !isFinalNode(node))
           continue;
 
         //retrieve the block data
@@ -598,8 +596,6 @@ bool KdQueryNode::processInput()
     //physic coordinates
     kdarray->clipping = dataset->logicToPhysic(logic_position);
     kdarray->bounds   = dataset->logicToPhysic(logic_box);
-
-    job->bBlocksAreFullRes = dataset->areBlockFullRes();
 
     //TODO enable also for UseBlockQuery?
     if (kdquery_mode == KdQueryMode::UseBoxQuery)

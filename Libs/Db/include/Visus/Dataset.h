@@ -150,9 +150,9 @@ public:
     return bitmask;
   }
 
-  //areBlockFullRes
-  bool areBlockFullRes() const {
-    return bBlocksAreFullRes;
+  //areBlocksFullRes
+  bool areBlocksFullRes() const {
+    return bitmask.toString()[0] == 'F';
   }
 
   //isServerMode
@@ -488,7 +488,6 @@ protected:
   int                     kdquery_mode = KdQueryMode::NotSpecified;
   bool                    bServerMode = false;
   int                     default_bitsperblock = 0;
-  bool                    bBlocksAreFullRes = true;
 
 };
 

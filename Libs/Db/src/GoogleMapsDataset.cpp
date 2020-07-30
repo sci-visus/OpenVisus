@@ -62,7 +62,7 @@ void GoogleMapsDataset::readDatasetFromArchive(Archive& ar)
     auto W = tile_width  * (((Int64)1) << nlevels);
     auto H = tile_height * (((Int64)1) << nlevels);
     idxfile.logic_box = BoxNi(PointNi(0, 0), PointNi(W, H));
-    idxfile.bitmask = DatasetBitmask::guess(PointNi(W, H));
+    idxfile.bitmask = DatasetBitmask::guess('F', PointNi(W, H));
     idxfile.bitsperblock = Utils::getLog2(Int64(tile_width) * tile_height);
     idxfile.blocksperfile = 1;
 
