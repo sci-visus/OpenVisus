@@ -470,39 +470,31 @@ public:
       this->volumeValid = false;
       return;
     }
-   
-    // Read transfer function data from the palette and pass to OSPRay,
-    // assuming an RGBA palette
-    if (palette->functions.size() != 4)
-      PrintInfo("WARNING: OSPRay palettes must be RGBA!");
-
-    sceneChanged = true;
-
+    
+    
     std::vector<cpp::Instance> instances;
 
     for (int ch=0; ch<data.dtype.ncomponents(); ch++){
       
       // should == data if ncomponent==1 and ch==0
       Array channel = data.getComponent(ch);
-      
-      std::cout <<"channel whd: "
-		<<channel.getWidth() <<" "
-		<<channel.getHeight() <<" "
-		<<channel.getDepth()<<" "
-		<<channel.dtype.toString() <<"\n";
-      
+     
       const size_t npaletteSamples = 128;
       std::vector<math::vec3f> tfnColors(npaletteSamples, math::vec3f(0.f));
       std::vector<float> tfnOpacities(npaletteSamples, 0.f);
 
+      
+      const Range range = palette->computeRange(channel, 0);
       for (size_t i = 0; i < npaletteSamples; ++i)
 	{
 	  const float x = static_cast<float>(i) / npaletteSamples;
 
 	  // Assumes functions = {R, G, B, A}
 	  // assigin one color to each channel
-	  //for (size_t j = 0; j < 3; ++j)
-	  tfnColors[i][ch] = palette->functions[ch]->getValue(x);
+	  size_t ch_index = ch;
+	  // swap R G just for this dataset
+	  if (ch < 2) ch_index = 1 - ch_index;
+	  tfnColors[i][ch_index] = palette->functions[ch_index]->getValue(x);
 
 	  tfnOpacities[i] = palette->functions[3]->getValue(x);
 	}
@@ -510,7 +502,6 @@ public:
       cpp::TransferFunction transferFcn("piecewiseLinear");
       transferFcn.setParam("color", cpp::Data(tfnColors));
       transferFcn.setParam("opacity", cpp::Data(tfnOpacities));
-      const Range range = palette->computeRange(channel, 0);
       transferFcn.setParam("valueRange", math::vec2f(range.from, range.to));
       transferFcn.commit();
 
@@ -526,10 +517,8 @@ public:
 	volumeData = cpp::Data(volumeDims, reinterpret_cast<uint8_t*>(channel.c_ptr()), true);
       }
       else if (ospDType == OSP_USHORT) {
-	volumeData = cpp::Data(volumeDims, reinterpret_cast<uint16_t*>(channel.c_ptr()), true);
-	//std::vector<uint16_t> arr(channel.getWidth()*channel.getHeight()*channel.getDepth(),0);
-	//volumeData = cpp::Data(volumeDims, arr.data(), true);
-	std::cout <<"dtype ushort\n";
+	/// !!!!!!!! can't set to "true" here, why?
+	volumeData = cpp::Data(volumeDims, reinterpret_cast<uint16_t*>(channel.c_ptr()));
       }
       else if (ospDType == OSP_FLOAT) {
 	volumeData = cpp::Data(volumeDims, reinterpret_cast<float*>(channel.c_ptr()), true);
@@ -547,15 +536,14 @@ public:
       cpp::Volume volume = cpp::Volume("structuredRegular");
       volume.setParam("dimensions", volumeDims);
       volume.setParam("data", volumeData);
-      volume.setParam("voxelType", int(ospDType));
+      volume.setParam("voxelType", ospDType);
 
       auto grid = channel.bounds.toAxisAlignedBox();
       grid.setPointDim(3);
 
       // Scale the smaller volumes we get while loading progressively to fill the true bounds
       // of the full dataset
-      const math::vec3f gridSpacing(
-				    (grid.p2[0] - grid.p1[0]) / channel.getWidth(),
+      const math::vec3f gridSpacing((grid.p2[0] - grid.p1[0]) / channel.getWidth(),
 				    (grid.p2[1] - grid.p1[1]) / channel.getHeight(),
 				    (grid.p2[2] - grid.p1[2]) / channel.getDepth());
       volume.setParam("gridSpacing", gridSpacing);
@@ -575,6 +563,10 @@ public:
 
       instances.push_back(instance);
 
+      
+      //world.setParam("instance", cpp::Data(instance));
+      //TODO some lights?
+      //world.commit();
     }
     
     world.setParam("instance", cpp::Data(instances));
