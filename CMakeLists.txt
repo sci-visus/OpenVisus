@@ -5,7 +5,7 @@ if(POLICY CMP0020)
 endif()
 
 if (POLICY CMP0071)
-  cmake_policy(SET CMP0071 OLD) # qt-related
+  cmake_policy(SET CMP0071 NEW) # qt-related
 endif()
 
 
@@ -231,7 +231,6 @@ if (1)
 	INSTALL(FILES     Samples/simple_viewer2d/CMakeLists.txt  DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/simple_viewer2d/)
 	INSTALL(FILES     Samples/simple_viewer2d/main.cpp        DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/simple_viewer2d/)
 
-
 	if (VISUS_PYTHON)
 		FILE(GLOB PyFiles Libs/swig/*.py)
 		INSTALL(FILES     ${PyFiles}                          DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
@@ -239,28 +238,46 @@ if (1)
 		INSTALL(DIRECTORY Samples/python                      DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/)
 	endif()
 
-	if (WIN32)
-
-		# copy  windows *.dll
-		include(InstallRequiredSystemLibraries)
-		INSTALL(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/bin/)
-
-		# install windows ospray depedencies
-		if (VISUS_OSPRAY)
-			get_filename_component(OSPRAY_BINDIR "${ospray_DIR}/../../../bin"  REALPATH)
-			FILE(GLOB OSPRAY_DLLS ${OSPRAY_BINDIR}/*.dll)
-			INSTALL(FILES ${OSPRAY_DLLS} DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/bin)
-		endif()
-
-	endif()
-
 	INSTALL(DIRECTORY Copyrights                              DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
+
 	INSTALL(DIRECTORY Libs/Kernel/include/Visus               DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Kernel/)
 	INSTALL(DIRECTORY Libs/XIdx/include/Visus                 DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/XIdx/)
 	INSTALL(DIRECTORY Libs/Db/include/Visus                   DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Db/)
 	INSTALL(DIRECTORY Libs/Dataflow/include/Visus             DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Dataflow/)
 	INSTALL(DIRECTORY Libs/Nodes/include/Visus                DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Nodes/)
 	INSTALL(DIRECTORY Libs/Gui/include/Visus                  DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Gui/)
+
+	if (WIN32)
+
+		macro(CopyDlls pattern)
+			file(GLOB __dlls__ ${pattern})
+			foreach(__it__ ${__dlls__})
+				get_filename_component(__path__ "${__it__}"  REALPATH)
+				list(REMOVE_ITEM EXTRA_DLLS ${__path__})
+				list(APPEND      EXTRA_DLLS ${__path__})
+			endforeach()
+		endmacro()
+
+		include(InstallRequiredSystemLibraries)
+		set (EXTRA_DLLS ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS})
+
+		# there are some extra DLL that cmake misses to add
+		list(GET CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS 0 __first_dll__)
+		CopyDlls(${__first_dll__}/../*.dll) 
+
+		# Opsray dlls
+		if (VISUS_OSPRAY)
+			CopyDlls("${ospray_DIR}/../../../bin/*.dll")
+		endif()
+
+		#foreach(__it__ ${EXTRA_DLLS})
+		#	MESSAGE(STATUS "EXTRA_DLLS ${__it__}")
+		#endforeach()
+
+		INSTALL(FILES ${EXTRA_DLLS} DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/bin/)
+
+	endif()
+
 endif()
 
 
