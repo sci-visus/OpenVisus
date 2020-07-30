@@ -386,6 +386,9 @@ public:
 //////////////////////////////////////////////////////////////////////////////////////////
 std::vector< SharedPtr<BlockQuery> > IdxDataset::createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query)
 {
+  if (blocksFullRes())
+    return Dataset::createBlockQueriesForBoxQuery(query);
+
   std::vector< SharedPtr<BlockQuery> > ret;
 
   int bitsperblock = getDefaultBitsPerBlock();

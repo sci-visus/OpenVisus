@@ -1140,7 +1140,7 @@ std::vector< SharedPtr<BlockQuery> > Dataset::createBlockQueriesForBoxQuery(Shar
 
   auto bitsperblock = this->getDefaultBitsPerBlock();
 
-  BoxNi box = this->getLogicBox();
+  BoxNi box = this->getBitmask().getPow2Box();
   std::stack< std::tuple<BoxNi, BigInt, int> > stack; // box / blockid / H
   stack.push(std::make_tuple( box ,0, bitsperblock ));
   while (!stack.empty() && !query->aborted())

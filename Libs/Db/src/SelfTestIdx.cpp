@@ -42,11 +42,11 @@ For support : support@visus.net
 
 namespace Visus {
 
-
-VISUS_DB_API void Tutorial_1(String default_layout);
-VISUS_DB_API void Tutorial_2(String default_layout);
-VISUS_DB_API void Tutorial_3(String default_layout);
-VISUS_DB_API void Tutorial_6(String default_layout);
+void Tutorial_1(String default_layout);
+void Tutorial_2(String default_layout);
+void Tutorial_3(String default_layout);
+void Tutorial_6(String default_layout);
+void TutorialFullRes();
 
 ////////////////////////////////////////////////////////////////////////////////////
 static BoxNi GetRandomUserBox(int pdim, bool bFullBox)
@@ -312,6 +312,10 @@ void SelfTestIdx(int max_seconds)
 
     PrintInfo("Running Tutorial_6...");
     Tutorial_6(default_layout);
+    PrintInfo("...done");
+
+    PrintInfo("Running TutorialFullRes...");
+    TutorialFullRes();
     PrintInfo("...done");
   }
 #endif

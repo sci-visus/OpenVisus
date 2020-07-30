@@ -1034,7 +1034,7 @@ void IdxDiskAccess::endIO()
 ////////////////////////////////////////////////////////////////////
 void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
 {
-  VisusAssert(isReading());
+  VisusAssert(isReading() || isWriting());
 
   BigInt blockid = query->blockid;
 
