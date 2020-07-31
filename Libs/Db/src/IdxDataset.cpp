@@ -287,7 +287,7 @@ public:
       PointNi  lshift = Lsamples.shift;
 
       BoxNi   zbox = (HzFrom != 0) ? block_logic_box : Lsamples.logic_box;
-      BigInt  hz = hzorder.pointToHzAddress(zbox.p1);
+      BigInt  hz = hzorder.getAddress(zbox.p1);
 
       BoxNi user_box = logic_box.getIntersection(zbox);
       BoxNi box = Lsamples.alignBox(user_box);
@@ -426,7 +426,7 @@ std::vector< SharedPtr<BlockQuery> > IdxDataset::createBlockQueriesForBoxQuery(S
       continue;
 
     //push first item
-    BigInt hz = hzorder.pointToHzAddress(Lsamples.logic_box.p1);
+    BigInt hz = hzorder.getAddress(Lsamples.logic_box.p1);
 
     item.box = Lsamples.logic_box;
     item.H = H ? 1 : 0;
@@ -544,7 +544,7 @@ std::vector< SharedPtr<BlockQuery> > IdxDataset::createBlockQueriesForPointQuery
 
     if (!hzconv)
     {
-      hzaddress = hzorder.pointToHzAddress(p);
+      hzaddress = hzorder.getAddress(p);
     }
     else
     {

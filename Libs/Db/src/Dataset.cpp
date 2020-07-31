@@ -751,7 +751,7 @@ LogicSamples Dataset::getBlockQuerySamples(BigInt blockid, int& H)
     if (blockid == 0)
       delta[bitmask[H]] >>= 1;
 
-    p0 = HzOrder(bitmask).hzAddressToPoint(blockid * samplesperblock);
+    p0 = HzOrder(bitmask).getPoint(blockid * samplesperblock);
   }
 
   auto ret = LogicSamples(block_samples[H].logic_box.translate(p0), delta);

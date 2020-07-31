@@ -36,8 +36,8 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef __VISUS_IDX_FILTER_H
-#define __VISUS_IDX_FILTER_H
+#ifndef __VISUS_IDX_DATASET_FILTER_H
+#define __VISUS_IDX_DATASET_FILTER_H
 
 #include <Visus/Db.h>
 #include <Visus/Array.h>
@@ -95,5 +95,5 @@ public:
 
 } //namespace Visus
 
-#endif //__VISUS_IDX_FILTER_H
+#endif //__VISUS_IDX_DATASET_FILTER_H
 

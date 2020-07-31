@@ -67,6 +67,11 @@ public:
   Datasets() : datasets("datasets"){
   }
 
+  //constructor
+  Datasets(const StringTree& config) : Datasets() {
+    addPublicDatasets(config);
+  }
+
   //destructor
   ~Datasets() {
   }
@@ -75,20 +80,20 @@ public:
   void addPublicDatasets(const StringTree& config)
   {
     this->addPublicDatasets(this->datasets, config);
-    this->xml_body  = this->datasets.toXmlString();
-    this->json_body = this->datasets.toJSONString();
+    this->datasets_xml_body = this->datasets.toXmlString();
+    this->datasets_json_body = this->datasets.toJSONString();
   }
 
   //getNumberOfDatasets
   int getNumberOfDatasets() const {
-    return (int)map.size();
+    return (int)dataset_map.size();
   }
 
   //findDataset
   SharedPtr<Dataset> findDataset(String name) const
   {
-    auto it = map.find(name);
-    return (it != map.end()) ? it->second : SharedPtr<Dataset>();
+    auto it = dataset_map.find(name);
+    return (it != dataset_map.end()) ? it->second : SharedPtr<Dataset>();
   }
 
   //createPublicUrl
@@ -100,22 +105,22 @@ public:
   String getDatasetsBody(String format = "xml") const
   {
     if (format == "json")
-      return json_body;
+      return datasets_json_body;
     else
-      return xml_body;
+      return datasets_xml_body;
   }
 
 private:
 
   StringTree                              datasets;
-  std::map<String, SharedPtr<Dataset > >  map;
-  String                                  xml_body;
-  String                                  json_body;
+  std::map<String, SharedPtr<Dataset > >  dataset_map;
+  String                                  datasets_xml_body;
+  String                                  datasets_json_body;
 
   //addPublicDataset
   int addPublicDataset(StringTree& dst, String name, SharedPtr<Dataset> dataset)
   {
-    this->map[name] = dataset;
+    this->dataset_map[name] = dataset;
     dataset->setServerMode(true);
 
     auto child= dst.addChild("dataset");
@@ -186,7 +191,7 @@ private:
       return 0;
     }
 
-    if (map.count(name)) {
+    if (dataset_map.count(name)) {
       PrintWarning("dataset name", name, "already exists, skipping it");
       return 0;
     }
@@ -235,8 +240,7 @@ bool ModVisus::configureDatasets(const ConfigFile& config)
     this->dynamic = false;
   }
 
-  SharedPtr<Datasets> datasets = std::make_shared<Datasets>();
-  datasets->addPublicDatasets(config);
+  SharedPtr<Datasets> datasets = std::make_shared<Datasets>(config);
   this->m_datasets = datasets;
   
   if (dynamic)
@@ -281,8 +285,7 @@ bool ModVisus::reload()
     return false;
   }
 
-  auto datasets = std::make_shared<Datasets>();
-  datasets->addPublicDatasets(config);
+  auto datasets = std::make_shared<Datasets>(config);
   {
     ScopedWriteLock lock(this->rw_lock);
     this->m_datasets = datasets;

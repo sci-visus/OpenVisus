@@ -196,12 +196,12 @@ public:
   }
 
   //PointNd -> HzAddress
-  BigInt pointToHzAddress(const PointNi& p) const {
+  BigInt getAddress(const PointNi& p) const {
     return zAddressToHzAddress(interleave(p));
   }
 
   //HzAddress -> PointNd
-  PointNi hzAddressToPoint(const BigInt& hz) const {
+  PointNi getPoint(const BigInt& hz) const {
     return deinterleave(hzAddressToZAddress(hz));
   }
 
@@ -244,7 +244,7 @@ public:
   }
 
   //the right-most "1" set (the bit that will become the V in the right shift in a bitmask such as V010101...)
-  static int getHzAddressResolution(const DatasetBitmask& bitmask,BigInt hz)
+  static int getAddressResolution(const DatasetBitmask& bitmask,BigInt hz)
   {
     int ret=0;
     while (hz!=0) {ret++;hz>>=1;}

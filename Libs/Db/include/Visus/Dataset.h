@@ -170,6 +170,12 @@ public:
     return timesteps;
   }
 
+  //setTimesteps
+  void setTimesteps(const DatasetTimesteps& value) {
+    this->timesteps = value;
+  }
+
+
   //getTime
   double getTime() const {
     return getTimesteps().getDefault();
@@ -191,14 +197,19 @@ public:
     return kdquery_mode;
   }
 
-  //getDatasetBody
-  StringTree& getDatasetBody() {
-    return dataset_body;
-  } 
+  //setKdQueryMode
+  void setKdQueryMode(int value) {
+    kdquery_mode = value;
+  }
 
   //getDatasetBody
   const StringTree& getDatasetBody() const {
     return dataset_body;
+  }
+
+  //setDatasetBody
+  void setDatasetBody(const StringTree& value) {
+    this->dataset_body = value;
   }
 
   //getUrl
@@ -209,6 +220,11 @@ public:
   //getDefaultBitsPerBlock
   int getDefaultBitsPerBlock() const {
     return default_bitsperblock;
+  }
+
+  //setDefaultBitsPerBlock
+  void setDefaultBitsPerBlock(int value) {
+    this->default_bitsperblock = value;
   }
 
   //getMaxResolution
@@ -229,6 +245,11 @@ public:
   //getBox
   const BoxNi& getLogicBox() const {
     return logic_box;
+  }
+
+  //setBox
+  void setLogicBox(const BoxNi& value) {
+    this->logic_box = value;
   }
 
   //getDatasetBounds

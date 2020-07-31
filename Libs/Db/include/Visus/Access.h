@@ -137,7 +137,7 @@ public:
 
   //beginIO
   virtual void beginIO(int mode) {
-		VisusReleaseAssert(this->mode == 0);
+    VisusReleaseAssert(this->mode == 0);
     this->mode = mode;
   }
 
