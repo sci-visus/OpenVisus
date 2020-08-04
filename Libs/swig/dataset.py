@@ -346,7 +346,7 @@ class PyDataset(object):
 			raise Exception("query error {0}".format(query.errormsg))
 			
 	# writeSlabs
-	def writeSlabs(self,slices, x=0, y=0, z=0, time=None, field=None, max_memsize=1024*1024*1024, access=None):
+	def writeSlabs(self,slices, x=0, y=0, z=0, time=None, field=None, max_memsize=4*1024*1024*1024, access=None):
 		
 		os.environ["VISUS_DISABLE_WRITE_LOCK"]="1"
 		

@@ -16,7 +16,8 @@ def InterleaveChannels(v):
 	N=len(v)	
 	if N<=1: return v
 	ret=numpy.zeros(v[0].shape + (N,), dtype=v[0].dtype)
-	for C in range(N): ret[...,C]=v[C]
+	for C in range(N): 
+		ret[...,C]=v[C]
 	return ret 
 	
 # ///////////////////////////////////////////////////
