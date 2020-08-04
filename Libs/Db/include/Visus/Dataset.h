@@ -152,7 +152,8 @@ public:
 
   //blocksFullRes()
   bool blocksFullRes() const {
-    return bitmask.toString()[0] == 'F';
+    auto s = bitmask.toString();
+    return !s.empty() && s[0] == 'F';
   }
 
   //isServerMode

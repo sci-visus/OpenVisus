@@ -38,20 +38,20 @@ class MyJob(NodeJob):
 		
 		self.printMessage("Got in input",input.shape,input.dtype)
 		
-		g=globals()
-		l={'input':input,'aborted':self.aborted}
-			
 		try:
-			exec(self.code,g,l)
-			
-			output=l['output']
+			g=globals()
+			g['input']=input
+			g['aborted']=self.aborted
+			exec(self.code,g)
+			output=g['output']
 			
 			if not type(output) is numpy.ndarray:
 				raise Exception('output is not a numpy array')
 			
 		except Exception as e:
 			if not self.aborted(): 
-				self.printMessage('Failed to exec code',self.code,e)
+				import traceback
+				self.printMessage('Python error\n',traceback.format_exc())
 			return	
 		
 		if self.aborted():

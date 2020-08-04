@@ -87,6 +87,9 @@ def CreateIdx(**args):
 	if "filename_template" in args:
 		idx.filename_template=args["filename_template"]
 
+	if "bounds" in args:
+		idx.bounds=args["bounds"]
+
 	idx.save(url)
 	db=LoadDataset(url)
 
@@ -358,7 +361,7 @@ class PyDataset(object):
 			if memsize>=max_memsize: 
 				data=numpy.stack(slab,axis=0)
 				self.write(data , x=x, y=y, z=z,field=field,time=time)
-				z+=len(slabs)
+				z+=len(slab)
 				slab=[]
 				memsize=0
 

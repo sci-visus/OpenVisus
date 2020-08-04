@@ -1,314 +1,207 @@
 import os,sys
+import cv2
 
-from OpenVisus     import *
-from OpenVisus.gui import *
+from OpenVisus             import *
+from OpenVisus.gui         import *
+from OpenVisus.image_utils import *
 
-# //////////////////////////////////////////////
-def SwapRedBlue(img):
-	Assert(len(img.shape)==3) #YXC
-	ret=img.copy()
-	ret[:,:,0],ret[:,:,2]=img[:,:,2],img[:,:,0]
-	return ret
+# ///////////////////////////////////////////////////////////////////////////////////
+class VisibleMale:
 	
-# //////////////////////////////////////////////
-def SplitChannels(data):
-	N=len(data.shape)
-	
-	# width*height
-	if N==2: 
-		channels = [data]
+	#  constructor
+	def __init__(self):
 		
-	# width*height*channel
-	elif N==3: 
-		channels = [data[  :,:,C] for C in range(data.shape[-1])]
-			
-	# width*height*depth*channel
-	elif N==4: 
-		channels = [data[:,:,:,C] for C in range(data.shape[-1])]
-			
-	else:
-		raise Exception("internal error")	
+		self.w, self.h,self.d =2048, 1216, 1878
+		self.idx_filename=idx_filename="D:/GoogleSci/visus_dataset/male/non_aligned/visus.idx"
+		self.filename_template="D:/GoogleSci/visus_dataset/male/RAW/Fullcolor/fullbody/a_vm%04d.raw"
+		self.bInteractive=False
+		self.filenames=[self.filename_template % (z,) for z in range(self.d)]
 		
-	return channels
-	
-# //////////////////////////////////////////////
-def InterleaveChannels(channels):
-	
-	first=channels[0]
+		# https://www.nlm.nih.gov/research/visible/visible_human.html#targetText=These%20images%2C%20each%20approximately%2032,all%201%2C871%20male%20color%20cryosections.&targetText=The%20Visible%20Human%20Female%20data,obtained%20at%200.33%20mm%20intervals.
+		self.density=[0.33, 0.33, 1.0]
 		
-	N=len(channels)		
-	
-	if N==1: 
-		return first	
-	
-	ret=numpy.zeros(first.shape + (N,),dtype=first.dtype)
-	
-	# 2D arrays
-	if len(first.shape)==2:
-		for C in range(N):
-			ret[:,:,C]=channels[C]
+		# problem of 12 black slices
+		self.filenames[1423:1435]=[self.filenames[1422]]*12
+
+
+	# loadImage
+	def loadImage(self,filename):
+			print("Loading",filename)
+			RGB=numpy.fromfile(filename, dtype=numpy.uint8)
+			Assert(len(RGB)==self.w*self.h*3) 
+			RGB=RGB.reshape((3, self.h, self.w)) #RRR...GGG...BBB
+			R,G,B=RGB[0,:,:],RGB[1,:,:],RGB[2,:,:]
+			A=numpy.zeros((self.h,self.w),dtype=numpy.uint8)
+			return InterleaveChannels([R,G,B,A])
+		
+	# generateImage
+	def generateImage(self, z=0):
+		
+		while z<self.d:
+			RGBA=self.loadImage(self.filenames[z])
+			R,G,B,A=[RGBA[:,:,I] for I in range(4)]
+
+			#remove bands
+			def keepArea(x1,x2,y1,y2):
+				A[int(y1*self.h):int(y2*self.h),int(x1*self.w):int(x2*self.w)]=255
+					
+			if   z< 536: keepArea(0.05, 0.95, 0.03, 0.800)
+			elif z< 612: keepArea(0.05, 0.95, 0.03, 0.835)
+			elif z< 684: keepArea(0.05, 0.95, 0.03, 0.860)
+			elif z< 775: keepArea(0.05, 0.95, 0.03, 0.840)
+			elif z< 791: keepArea(0.05, 0.95, 0.03, 0.870)
+			elif z< 811: keepArea(0.05, 0.95, 0.03, 0.885)
+			elif z< 857: keepArea(0.05, 0.95, 0.03, 0.895)
+			elif z< 884: keepArea(0.05, 0.95, 0.03, 0.860)
+			elif z<1016: keepArea(0.05, 0.95, 0.03, 0.830)
+			elif z<1435: keepArea(0.05, 0.95, 0.03, 0.720)
+			elif z<1827: keepArea(0.05, 0.82, 0.03, 0.730)
+			else:        keepArea(0.05, 0.84, 0.03, 0.800)
 				
-	# 3d arrays
-	elif len(first.shape)==3:
-		for C in range(N):
-			ret[:,:,:,C]=channels[C]
-		
-	else:
-		raise Exception("internal error")
-	
+			R[A==0],G[A==0],B[A==0]=0,0,0
 
-	return ret 
+			if self.bInteractive:
+				ShowImage(RGBA)
+				key = cv2.waitKeyEx()	
+				if key==27: sys.exit(0)
+				elif key==2555904: z+=1
+				elif key==2424832: z+=-1
+			else:
+				ShowImage(RGBA)
+				cv2.waitKey(1) # wait 1 msec just to allow the image to appear
+				z+=1
+					
+			yield RGBA
+		
+	# convertToIdx
+	def convertToIdx(self):
+		
+		physic_box=BoxNd(PointNd(0,0,0),PointNd(self.w*self.density[0],self.h*self.density[1],self.d*self.density[2]))
+
+		db=CreateIdx(
+			url=self.idx_filename, 
+			rmtree=True,
+			dim=3,
+			dims=(self.w,self.h,self.d),
+			blockperfile=-1,
+			filename_template="./visus.bin",
+			fields=[Field("data","uint8[4]","row_major")],
+			bounds=Position(physic_box))
+
+		db.writeSlabs(self.generateImage(), max_memsize=4*(1024*1024*1024))
+
+	# runViewer
+	def runViewer(self):
 	
-# //////////////////////////////////////////////
-def ShowImage(img,max_preview_size=1024, win_name="img", wait_msec=1):
-	
-	if max_preview_size:	
-	
-		w,h=img.shape[1],img.shape[0]
-		r=h/float(w)
-		if w>h:
-			w=min([w,max_preview_size])
-			h=int(w*r)
+		viewer=PyViewer()
+		
+		if False:
+			viewer.open(self.idx_filename)
+			viewer.setScriptingCode("""
+from OpenVisus.image_utils import *
+import numpy
+R,G,B,A=SplitChannels(input)
+Brighness=0.2126*R + 0.7152*G + 0.0722*B
+A[Brighness<70]=0
+A[R>76  ]=255
+A[G-20>R]=0
+A[B-20>R]=0	
+output=InterleaveChannels([R,G,B,A])
+""")
+			
 		else:
-			h=min([h,max_preview_size])
-			w=int(h/r)
 			
-		img=cv2.resize(img,(w,h))
+			viewer.addGLCamera("glcamera", viewer.getRoot(),"lookat")
+			
+			flag_tatoo=(0.04, 0.95, 0.05,0.73, 0.15,0.15+0.1)	
+			head=(0.35,0.65, 0.18,0.82, 0.0,0.2)	
+			left_arm=(0.0, 0.4, 0.1,0.8, 0.0,0.3)
+			full=(0.00,1.00, 0.00,1.00, 0.00,1.00)
+			region=head
+			
+			db=LoadDataset(self.idx_filename)
+			logic_box=db.getLogicBox(x=region[0:2],y=region[2:4],z=region[4:6])
+			RGBA=db.read(logic_box,quality=0)	
+			bounds=db.getBounds(logic_box)
+
+			# remove the blueish
+			R,G,B,A=SplitChannels(RGBA)
+			A[R<76]  =0
+			A[R>76  ]=255
+			A[G>R]=0
+			A[B>R]=0			
+			
+			viewer.addVolumeRender(RGBA, bounds)
+			#viewer.addIsoSurface(field=R, second_field=RGBA, isovalue=100.0, bounds=bounds)
 		
-		# imshow does not support RGBA images
-	if len(img.shape)>=3 and img.shape[2]==4:
-		A=img[:,:,3].astype("float32")*(1.0/255.0)
-		img=InterleaveChannels([
-			numpy.multiply(img[:,:,0],A).astype(R.dtype),
-			numpy.multiply(img[:,:,1],A).astype(G.dtype),
-			numpy.multiply(img[:,:,2],A).astype(B.dtype)])
-	
-	cv2.imshow(win_name,img)
-	cv2.waitKey(wait_msec) # wait 1 msec just to allow the image to appear
+		viewer.run()
+
 	
 
-# //////////////////////////////////////////////
-class PyMovie:
-
+# /////////////////////////////////////////////////////////////////
+class VisibleFemale:
+	
 	# constructor
-	def __init__(self,filename):
-		self.filename=filename
-		self.out=None
-		self.input=None
-
-	# release
-	def release(self):
-		if self.out:
-			self.out.release()
-
-	# writeFrame
-	def writeFrame(self,img):
-		if self.out is None:
-			self.width,self.height=img.shape[1],img.shape[0]
-			self.out = cv2.VideoWriter(self.filename,cv2.VideoWriter_fourcc(*'DIVX'), 15, (self.width,self.height))
-		ShowImage(img)
-		self.out.write(img)
-
-	# readFrame
-	def readFrame(self):
-		if self.input is None:
-			self.input=cv2.VideoCapture(self.filename)
-		success,img=self.input.read()
-		if not success: return None
-		self.width,self.height=img.shape[1],img.shape[0]
-		return img
+	def __init__(self):
+		pass
+	
+	# runViewer
+	def runViewer(self):
 		
-	# compose
-	def compose(self, args, axis=1):
+		db=LoadDataset(r"D:\GoogleSci\visus_dataset\female\visus.idx")
+		Assert(db)
 
-		while True:
+		full=(0,1, 0,1, 0,1.0)	
+		head=(0,1, 0,1, 0,0.1)
+		region=head
 
-			images=[]
+		logic_box=db.getLogicBox(x=region[0:2],y=region[2:4],z=region[4:6])
+
+		RGBA =db.read(logic_box=logic_box,quality=G-6)	
+		bounds=db.getBounds(logic_box)
+		
+		# remove the blueish
+		R,G,B,A=[RGBA[:,:,I] for I in range(4)]
+		A[R>76  ]=255
+		A[G-20>R]=0
+		A[B-20>R]=0		
+		
+		# remove invalid region
+		if region==full:
+			d,h,w=A.shape
 			
-			for in_movie,x1,x2,y1,y2 in args:
-				img=in_movie.readFrame()
-				
-				if img is None: 
-					continue 
-				
-				# select a portion of the video	
-				w,h=img.shape[1],img.shape[0]
-				images.append(img[
-					int(float(y1)*h):int(float(y2)*h),
-					int(float(x1)*w):int(float(x2)*w),
-					:] )
-				
-			if not images:
-				out_movie.release()
-				return
-
-			out_movie.writeFrame(numpy.concatenate(images, axis=axis))
-
-	
-# //////////////////////////////////////////////
-def ExportSlicesToMovie(out_movie, db, axis,preserve_ratio=True):
+			def removeRegion(x1,x2,y1,y2,z1,z2):
+				A[int(z1*d):int(z2*d),int(y1*h):int(y2*h),int(x1*w):int(x2*w)]=0
+					
+			removeRegion(0.00,0.04,  0.00,1.00,  0.00,1.00)
+			removeRegion(0.97,1.00,  0.00,1.00,  0.00,1.00)
+			removeRegion(0.00,1.00,  0.00,0.05,  0.00,1.00)
+			removeRegion(0.00,1.00,  0.75,1.00,  0.00,1.00)
+			removeRegion(0.00,1.00,  0.68,1.00,  0.50,1.00)
 		
-	offsets=range(db.getLogicBox().p1[axis],db.getLogicBox().p2[axis],1)
-
-	for offset in offsets:
-
-		img,logic_box,physic_box=db.readSlice(axis, offset)
+		R[A==0]=0
+		G[A==0]=0
+		B[A==0]=0
 			
-		# resize to preserve the right ratio
-		if preserve_ratio:
-			density=[float(logic_box.size()[I])/float(physic_box.size()[I]) for I in range(3)]
-			max_density=max(density)
-			num_pixels=[int(physic_box.size()[I] * max_density) for I in range(3)]
-			perm=((1,2,0),(0,2,1),(0,1,2))
-			X,Y=perm[axis][0],perm[axis][1]				
-			new_size=(num_pixels[X],num_pixels[Y])
-			img=cv2.resize(img,new_size)
 
-		out_movie.writeFrame(SwapRedBlue(img))
-			
-	out_movie.release()
-
-# //////////////////////////////////////////////
-def ExportSideBySideMovies(old_dataset,new_db):
-	
-	ExportSlicesToMovie(PyMovie("All_z0.avi"), old_dataset, axis=2)
-	ExportSlicesToMovie(PyMovie("All_z1.avi"), new_db, axis=2)
-
-	ExportSlicesToMovie(PyMovie("All_x0.avi"), old_dataset, axis=0)
-	ExportSlicesToMovie(PyMovie("All_x1.avi"), new_db, axis=0)
-
-	ExportSlicesToMovie(PyMovie("All_y0.avi"), old_dataset, axis=1)
-	ExportSlicesToMovie(PyMovie("All_y1.avi"), new_db, axis=1)
-
-	PyMovie("Up_x0.avi").compose([(PyMovie("All_x0.avi"),0.0,1.0, 0.0,0.4), (PyMovie("All_x1.avi"),0.0,1.0, 0.0,0.4) ])	
-	PyMovie("Dw_x0.avi").compose([(PyMovie("All_x0.avi"),0.0,1.0, 0.6,1.0), (PyMovie("All_x1.avi"),0.0,1.0, 0.6,1.0) ])	
-
-	PyMovie("Up_y0.avi").compose([(PyMovie("All_y0.avi"),0.0,1.0, 0.0,0.4), (PyMovie("All_y1.avi"),0.0,1.0, 0.0,0.4) ])
-	PyMovie("Dw_y0.avi").compose([(PyMovie("All_y0.avi"),0.0,1.0, 0.6,1.0), (PyMovie("All_y1.avi"),0.0,1.0, 0.6,1.0) ])	
-	
-# /////////////////////////////////////////////////////////////////
-def VisibleMale():
-	
-	old_dataset=LoadDataset(r"D:\GoogleSci\visus_dataset\male\visus.idx")
-	new_db=LoadDataset(r"D:\GoogleSci\visus_dataset\male\RAW\Fullcolor\fullbody\VisusSlamFiles\visus.idx")
-	Assert(old_dataset)
-	Assert(new_db)
-	
-	# ExportSideBySideMovies(old_dataset)
-	
-	flag_tatoo=(0.04, 0.95, 0.05,0.73, 0.15,0.15+0.1)	
-	head=(0.35,0.65, 0.18,0.82, 0.0,0.2)	
-	left_arm=(0.0, 0.4, 0.1,0.8, 0.0,0.3)
-	full=(0.00,1.00, 0.00,1.00, 0.00,1.00)
-	region=full
-	
-	db=new_db	
-
-	logic_box=db.getLogicBox(x=region[0:2],y==region[2:4],z==region[4:6])
-	RGB=db.read(logic_box,quality=-6)	
-	bounds=db.getBounds(logic_box)
-
-	R,G,B=SplitChannels(RGB)
-	A=numpy.zeros(R.shape,dtype=R.dtype)
-	
-	# remove the blueish
-	A[R>76]=255
-	A[G-20>R]=0
-	A[B-20>R]=0		
-	
-	# remove invalid region
-	if region==full:
-		d,h,w=A.shape
-		A[int(0.0*d):int(1.00*d),int(0.00*h):int(0.03*h),int(0.0*w):int(1.0*w)]=0
-		A[int(0.0*d):int(0.5*d),int(0.85*h):int(1.0*h),int(0.0*w):int(1.0*w)]=0
-		A[int(0.5*d):int(1.0*d),int(0.7*h):int(1.0*h),int(0.0*w):int(1.0*w)]=0			
-	
-	R[A==0]=0
-	G[A==0]=0
-	B[A==0]=0
+		viewer=PyViewer()
+		viewer.addGLCamera("camera",viewer.getRoot(),"lookat")
+		viewer.addIsoSurface(field=R, second_field=None, isovalue=100.0, bounds=bounds)
+		#viewer.addVolumeRender(RGBA, bounds)	
 		
-	RGBA=InterleaveChannels([R,G,B,A])		
-		
-	#for Z in range(RGBA.shape[0]):
-	#	ShowImage(RGBA[Z,:,:,:]) 
-	#	cv2.waitKey()		
-	
-	viewer=PyViewer()
-	viewer.addGLCamera(viewer.getRoot(),"lookat")	
-	
-	#viewer.addIsoSurface(field=R, second_field=RGBA, isovalue=100.0, bounds=bounds)
-	viewer.addVolumeRender(RGBA, bounds)	
-	
-	viewer.run()
-	
-
-# /////////////////////////////////////////////////////////////////
-def VisibleFemale():
-	
-	db=LoadDataset(r"D:\GoogleSci\visus_dataset\female\visus.idx")
-	Assert(db)
-
-	# ExportSideBySideMovies(old_dataset)
-	
-	full=(0,1, 0,1, 0,1.0)	
-	head=(0,1, 0,1, 0,0.1)
-	region=head
-
-	logic_box=db.getLogicBox(x=region[0:2],y=region[2:4],z=region[4:6])
-
-	RGB =db.read(logic_box=logic_box,quality=G-6)	
-	bounds=db.getBounds(logic_box)
-	R,G,B=SplitChannels(RGB)
-	A=numpy.zeros(R.shape,dtype=R.dtype)
-	
-	# remove the blueish
-	A[R>76  ]=255
-	A[G-20>R]=0
-	A[B-20>R]=0		
-	
-	# remove invalid region
-	if region==full:
-		d,h,w=A.shape
-		
-		def removeRegion(x1,x2,y1,y2,z1,z2):
-			A[int(z1*d):int(z2*d),int(y1*h):int(y2*h),int(x1*w):int(x2*w)]=0
-				
-		removeRegion(0.00,0.04,  0.00,1.00,  0.00,1.00)
-		removeRegion(0.97,1.00,  0.00,1.00,  0.00,1.00)
-		removeRegion(0.00,1.00,  0.00,0.05,  0.00,1.00)
-		removeRegion(0.00,1.00,  0.75,1.00,  0.00,1.00)
-		removeRegion(0.00,1.00,  0.68,1.00,  0.50,1.00)
-	
-	R[A==0]=0
-	G[A==0]=0
-	B[A==0]=0
-		
-	RGBA=InterleaveChannels([R,G,B,A])		
-		
-	#for Z in range(RGBA.shape[0]):
-	#	ShowImage(RGBA[Z,:,:,:]) 
-	#	cv2.waitKey()		
-	
-	viewer=PyViewer()
-	viewer.addGLCamera("camera",viewer.getRoot(),"lookat")
-	viewer.addIsoSurface(field=R, second_field=None, isovalue=100.0, bounds=bounds)
-	#viewer.addVolumeRender(RGBA, bounds)	
-	
-	viewer.run()
+		viewer.run()
 	
 
 # //////////////////////////////////////////////
 def Main(argv):
 
-	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
-	# c:\Python37\python.exe Samples\python\ExtractSlices.py
+	if True:
+		male=VisibleMale()
+		# male.convertToIdx()
+		male.runViewer()
 	
-	#VisibleMale()
-	
-	# ConvertVisibleFemale
-	VisibleFemale()
-	
-	print("ALL DONE")
+
+	print("ALL DONE, press a key")
 	sys.stdin.read(1)
 	sys.exit(0)	
 
