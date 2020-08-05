@@ -77,13 +77,17 @@ public:
   Compression                   compression = NoCompression;
 
   //constructor
-  GLTexture(Array src);
-
-  //constructor
-  GLTexture(QImage src);
+  GLTexture() {
+  }
 
   //destructor
   virtual ~GLTexture();
+
+  //create
+  static SharedPtr<GLTexture> createFromArray(Array src);
+
+  //create
+  static SharedPtr<GLTexture> createFromQImage(QImage src);
   
   //width
   int width() const {return dims[0];}

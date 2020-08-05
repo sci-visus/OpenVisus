@@ -210,7 +210,9 @@ bool KdRenderArrayNode::processInput()
     if (palette && dtype.ncomponents()==1)
     {
       this->palette=palette;
-      this->palette_texture=std::make_shared<GLTexture>(palette->toArray());
+      this->palette_texture= GLTexture::createFromArray(palette->toArray());
+      if (!this->palette_texture)
+        return false;
 
       if (!dtype.isVectorOf(DTypes::UINT8))
       {
@@ -241,12 +243,15 @@ bool KdRenderArrayNode::processInput()
         //need to write lock here
         if (!node->texture)
         {
-          auto texture=std::make_shared<GLTexture>(node->displaydata);
-          texture->vs=vs;
-          texture->vt=vt;
+          auto texture= GLTexture::createFromArray(node->displaydata);
+          if (texture)
           {
-            //ScopedWriteLock wlock(rlock); Don't NEED wlock since I'm the only one to use the texture variable
-            node->texture = texture;
+            texture->vs = vs;
+            texture->vt = vt;
+            {
+              //ScopedWriteLock wlock(rlock); Don't NEED wlock since I'm the only one to use the texture variable
+              node->texture = texture;
+            }
           }
         }
       }

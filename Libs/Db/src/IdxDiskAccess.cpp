@@ -938,6 +938,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
   // important!number of threads must be <=1 
 #if 1
   bool disable_async = config.readBool("disable_async", dataset->isServerMode());
+
   if (int nthreads = disable_async ? 0 : 1)
   {
     async_tpool = std::make_shared<ThreadPool>("IdxDiskAccess Thread", nthreads);
@@ -1049,6 +1050,8 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
 
     return readFailed(query);
   }
+
+  //return query->setOk();
 
   if (bool bAsync = !isWriting() && async_tpool)
   {

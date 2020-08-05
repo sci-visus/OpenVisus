@@ -196,27 +196,44 @@ public:
   {
     VisusAssert(VisusHasMessageLock());
 
-    Time t1 = Time::now();
-
-    if (!data.valid() || !data.dims.innerProduct() || !data.dtype.valid())
-    {
+    auto failed = [&]() {
       this->data = Array();
       this->data_texture.reset();
       this->palette_texture.reset();
-      return;
+    };
+
+    Time t1 = Time::now();
+
+    if (!data.valid() || !data.dims.innerProduct() || !data.dtype.valid())
+      return failed();
+
+    //not supported
+    if (data.dtype.ncomponents() >= 5)
+      return failed();
+  
+    bool got_new_data = (data.heap != this->data.heap);
+
+    //if I fail to create the texture, keep the current data
+    SharedPtr<GLTexture> data_texture=this->data_texture;
+    if (got_new_data || !data_texture)
+    {
+      data_texture = GLTexture::createFromArray(data);
+      if (!data_texture)
+        return;
     }
 
-    bool got_new_data = (data.heap != this->data.heap);
+    //if I fail to create the texture, keep the current data
+    SharedPtr<GLTexture> palette_texture;
+    if (palette)
+    {
+      palette_texture = GLTexture::createFromArray(palette->toArray());
+      if (!palette_texture)
+        return;
+    }
+
     this->data = data;
-
-    //automatically convert to RGB
-    int ncomponents = this->data.dtype.ncomponents();
-    if (ncomponents >= 5)
-      this->data = ArrayUtils::withNumberOfComponents(this->data, 3);
-
-    //create texture
-    if (!this->data_texture || got_new_data)
-      this->data_texture = std::make_shared<GLTexture>(this->data);
+    this->data_texture = data_texture;
+    this->palette_texture = palette_texture;
 
     //overrule filter
     this->data_texture->minfilter = owner->minifyFilter();
@@ -248,12 +265,7 @@ public:
         vs = Point4d(vs[0], vs[0], vs[0], 1.0);
         vt = Point4d(vt[0], vt[0], vt[0], 0.0);
       }
-
     }
-
-    //palette
-    if (palette)
-      this->palette_texture = std::make_shared<GLTexture>(palette->toArray());
 
     //if you want to see what's going on...
 #if 0
@@ -616,7 +628,10 @@ public:
     // Blit the rendered framebuffer from OSPRay
     {
       auto fbArray = Array(imgDims[0], imgDims[1], DTypes::UINT8_RGBA, HeapMemory::createUnmanaged(fb, imgDims[0] * imgDims[1] * 4));
-      auto fbTexture = SharedPtr<GLTexture>(new GLTexture(fbArray));
+      auto fbTexture = GLTexture::createFromArray(fbArray);
+      if (!fbTexture)
+        return;
+
       fbTexture->minfilter = GL_NEAREST;
       fbTexture->magfilter = GL_NEAREST;
 

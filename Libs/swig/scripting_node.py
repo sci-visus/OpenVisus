@@ -1,4 +1,4 @@
-import numpy
+import numpy, datetime
 
 from OpenVisus      import *
 from OpenVisus.gui  import *
@@ -36,13 +36,18 @@ class MyJob(NodeJob):
 		
 		input=Array.toNumPy(self.input,bShareMem=True)
 		
-		self.printMessage("Got in input",input.shape,input.dtype)
-		
+		self.printMessage(datetime.datetime.now(),"Got in input",input.shape,input.dtype)
+
+		g=globals()
+		g['input']=input
+		g['aborted']=self.aborted
+
 		try:
-			g=globals()
-			g['input']=input
-			g['aborted']=self.aborted
 			exec(self.code,g)
+
+			if not 'output' in g:
+				raise Exception('output empty. Did you forget to set it?')
+
 			output=g['output']
 			
 			if not type(output) is numpy.ndarray:
@@ -51,13 +56,13 @@ class MyJob(NodeJob):
 		except Exception as e:
 			if not self.aborted(): 
 				import traceback
-				self.printMessage('Python error\n',traceback.format_exc())
+				self.printMessage(datetime.datetime.now(),'Python error\n',traceback.format_exc())
 			return	
 		
 		if self.aborted():
 			return				
 			
-		self.printMessage("Output is ",output.shape, output.dtype)
+		self.printMessage(datetime.datetime.now(),"Output is ",output.shape, output.dtype)
 		output=Array.fromNumPy(output,TargetDim=pdim,bShareMem=False)
 		output.shareProperties(self.input)
 		
