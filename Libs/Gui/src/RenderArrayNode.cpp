@@ -410,6 +410,8 @@ public:
   ospray::cpp::Renderer renderer;
   ospray::cpp::FrameBuffer framebuffer;
 
+
+  // pointer to channels and data
   std::vector<SharedPtr<Array> >channels;
   SharedPtr<Array> data;
 
@@ -479,24 +481,29 @@ public:
     
     std::vector<cpp::Instance> instances;
 
+
+    // tried to identify if data is changed
+    // failed to do that, so just recopy channels
+    // with getComponent() everytime
+    // to get the range for each channel
+    
     //if ((!this->data) || ((*(this->data).get() != data))){
     // reset if data changed
     channels.clear();
     for (int ch=0; ch<data.dtype.ncomponents(); ch++){
-      SharedPtr<Array> channel = std::make_shared<Array>();
-      *channel = data.getComponent(ch);
+      SharedPtr<Array> channel = std::make_shared<Array>(data.getComponent(ch));
       channels.push_back(channel);
     }
+    // try to keep track of which data
+    // just copy a new Array 
+    // might be problemetic here...
     this->data = std::make_shared<Array>(data);
-      
-    std::cout << "data reset "<< (*(this->data).get() == data) <<"\n";
     //}
       
 
     for (int ch=0; ch<data.dtype.ncomponents(); ch++){
       
       // should == data if ncomponent==1 and ch==0
-      //Array channel = data.getComponent(ch);
       SharedPtr<Array> channel = channels[ch];
      
       const size_t npaletteSamples = 128;
@@ -526,7 +533,6 @@ public:
       transferFcn.commit();
 
       const math::vec3ul volumeDims(data.getWidth(), data.getHeight(), data.getDepth());
-
       // OSPRay shares the data pointer with us, does not copy internally
       const OSPDataType ospDType = DTypeToOSPDtype(channel->dtype);
       cpp::Data volumeData;
@@ -537,14 +543,17 @@ public:
 	volumeData = cpp::Data(volumeDims, reinterpret_cast<uint8_t*>(channel->c_ptr()), true);
       }
       else if (ospDType == OSP_USHORT) {
-	//std::cout <<"channel "<< ch
-	//	  <<" stride: "<< sizeof(uint16_t)<<"*"<<data.dtype.ncomponents() <<" bytes"
-	//	  <<" offset: " << ch <<"\n";
-	//volumeData = cpp::Data(volumeDims,
-	//		       math::vec3ul(sizeof(uint16_t)*data.dtype.ncomponents(), 0, 0), // stride sizeof(dtype)
-	//		       reinterpret_cast<uint16_t*>(data.c_ptr() + ch), //offset by current channel index
-	//		       true);
-	volumeData = cpp::Data(volumeDims, reinterpret_cast<uint16_t*>(channel->c_ptr()), true); 
+	// this would work by using class owned channel pointers
+	//volumeData = cpp::Data(volumeDims, reinterpret_cast<uint16_t*>(channel->c_ptr()), true);
+
+	// here should interleave the data properly
+	// doesn't work for multi channel data with last bool(shared) on
+	volumeData = cpp::Data(volumeDims,
+			       math::vec3ul(data.dtype.getByteSize(), 0, 0), // stride sizeof(dtype)
+			       (reinterpret_cast<uint16_t*>(data.c_ptr())+ch) //offset by current channel index
+			       ,true // share with ospray
+			       );
+
       }
       else if (ospDType == OSP_FLOAT) {
 	volumeData = cpp::Data(volumeDims, reinterpret_cast<float*>(channel->c_ptr()), true);
@@ -599,6 +608,7 @@ public:
     world.setParam("instance", cpp::Data(instances));
     // TODO some lights?
     world.commit();
+
 
     if (data.clipping.valid())
       PrintInfo("CLIPPING TODO");
