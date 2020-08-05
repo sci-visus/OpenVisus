@@ -400,7 +400,7 @@ class OSPRayRenderArrayNode : public RenderArrayNode::Pimpl{
 public:
 
   RenderArrayNode* owner;
-
+  
   // Note: The C++ wrappers automatically manage life time tracking and reference
   // counting for the OSPRay objects, and OSPRay internally tracks references to
   // parameters
@@ -409,6 +409,9 @@ public:
   ospray::cpp::Camera camera;
   ospray::cpp::Renderer renderer;
   ospray::cpp::FrameBuffer framebuffer;
+
+  std::vector<SharedPtr<Array> >channels;
+  SharedPtr<Array> data;
 
   Point4d prevEyePos = Point4d(0.f, 0.f, 0.f, 0.f);
   Point4d prevEyeDir = Point4d(0.f, 0.f, 0.f, 0.f);
@@ -455,6 +458,8 @@ public:
     renderer.setParam("maxPathLength", int(8));
     renderer.setParam("volumeSamplingRate", 0.25f);
     renderer.commit();
+
+    this->data = NULL;
   }
 
   //destructor
@@ -474,17 +479,32 @@ public:
     
     std::vector<cpp::Instance> instances;
 
+    //if ((!this->data) || ((*(this->data).get() != data))){
+    // reset if data changed
+    channels.clear();
+    for (int ch=0; ch<data.dtype.ncomponents(); ch++){
+      SharedPtr<Array> channel = std::make_shared<Array>();
+      *channel = data.getComponent(ch);
+      channels.push_back(channel);
+    }
+    this->data = std::make_shared<Array>(data);
+      
+    std::cout << "data reset "<< (*(this->data).get() == data) <<"\n";
+    //}
+      
+
     for (int ch=0; ch<data.dtype.ncomponents(); ch++){
       
       // should == data if ncomponent==1 and ch==0
-      Array channel = data.getComponent(ch);
+      //Array channel = data.getComponent(ch);
+      SharedPtr<Array> channel = channels[ch];
      
       const size_t npaletteSamples = 128;
       std::vector<math::vec3f> tfnColors(npaletteSamples, math::vec3f(0.f));
       std::vector<float> tfnOpacities(npaletteSamples, 0.f);
 
       
-      const Range range = palette->computeRange(channel, 0);
+      const Range range = palette->computeRange(*channel, 0);
       for (size_t i = 0; i < npaletteSamples; ++i)
 	{
 	  const float x = static_cast<float>(i) / npaletteSamples;
@@ -505,26 +525,32 @@ public:
       transferFcn.setParam("valueRange", math::vec2f(range.from, range.to));
       transferFcn.commit();
 
-      const math::vec3ul volumeDims(channel.getWidth(), channel.getHeight(), channel.getDepth());
-      
+      const math::vec3ul volumeDims(data.getWidth(), data.getHeight(), data.getDepth());
+
       // OSPRay shares the data pointer with us, does not copy internally
-      const OSPDataType ospDType = DTypeToOSPDtype(channel.dtype);
+      const OSPDataType ospDType = DTypeToOSPDtype(channel->dtype);
       cpp::Data volumeData;
 
      
       
       if (ospDType == OSP_UCHAR) {
-	volumeData = cpp::Data(volumeDims, reinterpret_cast<uint8_t*>(channel.c_ptr()), true);
+	volumeData = cpp::Data(volumeDims, reinterpret_cast<uint8_t*>(channel->c_ptr()), true);
       }
       else if (ospDType == OSP_USHORT) {
-	/// !!!!!!!! can't set to "true" here, why?
-	volumeData = cpp::Data(volumeDims, reinterpret_cast<uint16_t*>(channel.c_ptr()));
+	//std::cout <<"channel "<< ch
+	//	  <<" stride: "<< sizeof(uint16_t)<<"*"<<data.dtype.ncomponents() <<" bytes"
+	//	  <<" offset: " << ch <<"\n";
+	//volumeData = cpp::Data(volumeDims,
+	//		       math::vec3ul(sizeof(uint16_t)*data.dtype.ncomponents(), 0, 0), // stride sizeof(dtype)
+	//		       reinterpret_cast<uint16_t*>(data.c_ptr() + ch), //offset by current channel index
+	//		       true);
+	volumeData = cpp::Data(volumeDims, reinterpret_cast<uint16_t*>(channel->c_ptr()), true); 
       }
       else if (ospDType == OSP_FLOAT) {
-	volumeData = cpp::Data(volumeDims, reinterpret_cast<float*>(channel.c_ptr()), true);
+	volumeData = cpp::Data(volumeDims, reinterpret_cast<float*>(channel->c_ptr()), true);
       }
       else if (ospDType == OSP_DOUBLE) {
-	volumeData = cpp::Data(volumeDims, reinterpret_cast<double*>(channel.c_ptr()), true);
+	volumeData = cpp::Data(volumeDims, reinterpret_cast<double*>(channel->c_ptr()), true);
       }
       else {
 	PrintInfo("OSPRay only supports scalar voxel types");
@@ -538,14 +564,15 @@ public:
       volume.setParam("data", volumeData);
       volume.setParam("voxelType", ospDType);
 
-      auto grid = channel.bounds.toAxisAlignedBox();
+      auto grid = channel->bounds.toAxisAlignedBox();
       grid.setPointDim(3);
 
       // Scale the smaller volumes we get while loading progressively to fill the true bounds
       // of the full dataset
-      const math::vec3f gridSpacing((grid.p2[0] - grid.p1[0]) / channel.getWidth(),
-				    (grid.p2[1] - grid.p1[1]) / channel.getHeight(),
-				    (grid.p2[2] - grid.p1[2]) / channel.getDepth());
+      const math::vec3f gridSpacing((grid.p2[0] - grid.p1[0]) / channel->getWidth(),
+      				    (grid.p2[1] - grid.p1[1]) / channel->getHeight(),
+      				    (grid.p2[2] - grid.p1[2]) / channel->getDepth());
+      //const math::vec3f gridSpacing(10, 10, 10);
       volume.setParam("gridSpacing", gridSpacing);
       volume.commit();
 
