@@ -396,11 +396,58 @@ public:
 
 /////////////////////////////////////////////////////////////////////////////////////
 #if VISUS_OSPRAY
-class OSPRayRenderArrayNode : public RenderArrayNode::Pimpl{
+
+
+  //DTypeToOSPDtype
+static OSPDataType DTypeToOSPDtype(const DType& dtype) {
+
+  if (dtype == DTypes::INT8) return OSP_CHAR;
+
+  if (dtype == DTypes::UINT8) return OSP_UCHAR;
+  if (dtype == DTypes::UINT8_GA) return OSP_VEC2UC;
+  if (dtype == DTypes::UINT8_RGB) return OSP_VEC3UC;
+  if (dtype == DTypes::UINT8_RGBA) return OSP_VEC4UC;
+
+  if (dtype == DTypes::UINT16) return OSP_USHORT;
+  if (dtype == DTypes::INT16) return OSP_SHORT;
+
+  if (dtype == DTypes::INT32) return OSP_INT;
+  if (dtype == DTypes::UINT32) return OSP_UINT;
+
+  if (dtype == DTypes::INT64) return OSP_LONG;
+  if (dtype == DTypes::UINT64) return OSP_ULONG;
+
+  if (dtype == DTypes::FLOAT32) return OSP_FLOAT;
+  if (dtype == DTypes::FLOAT32_GA) return OSP_VEC2F;
+  if (dtype == DTypes::FLOAT32_RGB) return OSP_VEC3F;
+  if (dtype == DTypes::FLOAT32_RGBA) return OSP_VEC4F;
+
+  if (dtype == DTypes::FLOAT64) return OSP_DOUBLE;
+
+  return OSP_UNKNOWN;
+}
+
+//OspDTypeStr
+static String OspDTypeStr(const OSPDataType t)
+{
+  switch (t)
+  {
+  case OSP_UCHAR:  return "uchar";
+  case OSP_SHORT:  return "short";
+  case OSP_USHORT: return "ushort";
+  case OSP_FLOAT: return  "float";
+  case OSP_DOUBLE: return "double";
+  default: break;
+  }
+  ThrowException("Unsupported data type for OSPVolume");
+  return nullptr;
+}
+
+class OSPRayRenderArrayNode : public RenderArrayNode::Pimpl {
 public:
 
   RenderArrayNode* owner;
-  
+
   // Note: The C++ wrappers automatically manage life time tracking and reference
   // counting for the OSPRay objects, and OSPRay internally tracks references to
   // parameters
@@ -410,10 +457,7 @@ public:
   ospray::cpp::Renderer renderer;
   ospray::cpp::FrameBuffer framebuffer;
 
-
-  // pointer to channels and data
-  std::vector<SharedPtr<Array> >channels;
-  SharedPtr<Array> data;
+  SharedPtr<HeapMemory> heap;
 
   Point4d prevEyePos = Point4d(0.f, 0.f, 0.f, 0.f);
   Point4d prevEyeDir = Point4d(0.f, 0.f, 0.f, 0.f);
@@ -460,8 +504,6 @@ public:
     renderer.setParam("maxPathLength", int(8));
     renderer.setParam("volumeSamplingRate", 0.25f);
     renderer.commit();
-
-    this->data = NULL;
   }
 
   //destructor
@@ -477,54 +519,36 @@ public:
       this->volumeValid = false;
       return;
     }
-    
-    
+
+    if (data.heap == this->heap)
+      return;
+
+    this->heap = data.heap;
+    this->volumeValid = true;
+
     std::vector<cpp::Instance> instances;
-
-
-    // tried to identify if data is changed
-    // failed to do that, so just recopy channels
-    // with getComponent() everytime
-    // to get the range for each channel
-    
-    //if ((!this->data) || ((*(this->data).get() != data))){
-    // reset if data changed
-    channels.clear();
-    for (int ch=0; ch<data.dtype.ncomponents(); ch++){
-      SharedPtr<Array> channel = std::make_shared<Array>(data.getComponent(ch));
-      channels.push_back(channel);
-    }
-    // try to keep track of which data
-    // just copy a new Array 
-    // might be problemetic here...
-    this->data = std::make_shared<Array>(data);
-    //}
-      
-
-    for (int ch=0; ch<data.dtype.ncomponents(); ch++){
-      
-      // should == data if ncomponent==1 and ch==0
-      SharedPtr<Array> channel = channels[ch];
-     
+    auto N = data.dtype.ncomponents();
+    for (int ch = 0; ch < std::min(3,N); ch++) //scrgiorgio: RGBA does not work right now
+    {
       const size_t npaletteSamples = 128;
       std::vector<math::vec3f> tfnColors(npaletteSamples, math::vec3f(0.f));
       std::vector<float> tfnOpacities(npaletteSamples, 0.f);
 
-      
-      const Range range = palette->computeRange(*channel, 0);
+
+      const Range range = palette->computeRange(data,ch);
       for (size_t i = 0; i < npaletteSamples; ++i)
-	{
-	  const float x = static_cast<float>(i) / npaletteSamples;
+      {
+        const float x = static_cast<float>(i) / npaletteSamples;
 
-	  // Assumes functions = {R, G, B, A}
-	  // assigin one color to each channel
-	  size_t ch_index = ch;
-	  // swap R G just for this dataset
-	  if (ch < 2) ch_index = 1 - ch_index;
-	  tfnColors[i][ch_index] = palette->functions[ch_index]->getValue(x);
+        // Assumes functions = {R, G, B, A}
+        // assigin one color to each channel
+        size_t ch_index = ch;
+        // swap R G just for this dataset
+        if (ch < 2) ch_index = 1 - ch_index;
+        tfnColors[i][ch_index] = palette->functions[ch_index]->getValue(x);
 
-	  tfnOpacities[i] = palette->functions[3]->getValue(x);
-	}
+        tfnOpacities[i] = palette->functions[3]->getValue(x);
+      }
 
       cpp::TransferFunction transferFcn("piecewiseLinear");
       transferFcn.setParam("color", cpp::Data(tfnColors));
@@ -532,55 +556,57 @@ public:
       transferFcn.setParam("valueRange", math::vec2f(range.from, range.to));
       transferFcn.commit();
 
+      const DType dtype = data.dtype.get(0); 
+      const int samplesize = dtype.getByteSize();
+
       const math::vec3ul volumeDims(data.getWidth(), data.getHeight(), data.getDepth());
       // OSPRay shares the data pointer with us, does not copy internally
-      const OSPDataType ospDType = DTypeToOSPDtype(channel->dtype);
-      cpp::Data volumeData;
-
-     
+      const OSPDataType ospDType = DTypeToOSPDtype(dtype);
       
-      if (ospDType == OSP_UCHAR) {
-	volumeData = cpp::Data(volumeDims, reinterpret_cast<uint8_t*>(channel->c_ptr()), true);
-      }
-      else if (ospDType == OSP_USHORT) {
-	// this would work by using class owned channel pointers
-	//volumeData = cpp::Data(volumeDims, reinterpret_cast<uint16_t*>(channel->c_ptr()), true);
 
-	// here should interleave the data properly
-	// doesn't work for multi channel data with last bool(shared) on
-	volumeData = cpp::Data(volumeDims,
-			       math::vec3ul(data.dtype.getByteSize(), 0, 0), // stride sizeof(dtype)
-			       (reinterpret_cast<uint16_t*>(data.c_ptr())+ch) //offset by current channel index
-			       ,true // share with ospray
-			       );
+      void* init = this->heap->c_ptr() + ch * samplesize;
 
-      }
-      else if (ospDType == OSP_FLOAT) {
-	volumeData = cpp::Data(volumeDims, reinterpret_cast<float*>(channel->c_ptr()), true);
-      }
-      else if (ospDType == OSP_DOUBLE) {
-	volumeData = cpp::Data(volumeDims, reinterpret_cast<double*>(channel->c_ptr()), true);
-      }
+      math::vec3ul byteStride;
+      byteStride[0] = N * samplesize;
+      byteStride[1] = byteStride[0] * data.dims[0];
+      byteStride[2] = byteStride[1] * data.dims[1];
+
+      const bool isShared = false;
+
+      cpp::Data volumeData;
+      if (ospDType == OSP_UCHAR) 
+        volumeData = cpp::Data(volumeDims, byteStride, reinterpret_cast<uint8_t*>(init), isShared);
+
+      else if (ospDType == OSP_USHORT) 
+        volumeData = cpp::Data(volumeDims, byteStride, reinterpret_cast<uint16_t*>(init), isShared);
+
+      else if (ospDType == OSP_FLOAT) 
+        volumeData = cpp::Data(volumeDims, byteStride, reinterpret_cast<float*>(init), isShared);
+
+      else if (ospDType == OSP_DOUBLE) 
+        volumeData = cpp::Data(volumeDims, byteStride, reinterpret_cast<double*>(init), isShared);
+
       else {
-	PrintInfo("OSPRay only supports scalar voxel types");
-	volumeValid = false;
-	return;
+        PrintInfo("OSPRay only supports scalar voxel types");
+        volumeValid = false;
+        this->heap.reset();
+        return;
       }
-      volumeValid = true;
 
       cpp::Volume volume = cpp::Volume("structuredRegular");
       volume.setParam("dimensions", volumeDims);
       volume.setParam("data", volumeData);
       volume.setParam("voxelType", ospDType);
 
-      auto grid = channel->bounds.toAxisAlignedBox();
+      auto grid = data.bounds.toAxisAlignedBox();
       grid.setPointDim(3);
 
       // Scale the smaller volumes we get while loading progressively to fill the true bounds
       // of the full dataset
-      const math::vec3f gridSpacing((grid.p2[0] - grid.p1[0]) / channel->getWidth(),
-      				    (grid.p2[1] - grid.p1[1]) / channel->getHeight(),
-      				    (grid.p2[2] - grid.p1[2]) / channel->getDepth());
+      const math::vec3f gridSpacing(
+        (grid.p2[0] - grid.p1[0]) / data.getWidth(),
+        (grid.p2[1] - grid.p1[1]) / data.getHeight(),
+        (grid.p2[2] - grid.p1[2]) / data.getDepth());
       //const math::vec3f gridSpacing(10, 10, 10);
       volume.setParam("gridSpacing", gridSpacing);
       volume.commit();
@@ -599,12 +625,12 @@ public:
 
       instances.push_back(instance);
 
-      
+
       //world.setParam("instance", cpp::Data(instance));
       //TODO some lights?
       //world.commit();
     }
-    
+
     world.setParam("instance", cpp::Data(instances));
     // TODO some lights?
     world.commit();
@@ -613,7 +639,7 @@ public:
     if (data.clipping.valid())
       PrintInfo("CLIPPING TODO");
   }
-  
+
   //glRender
   virtual void glRender(GLCanvas& gl) override
   {
@@ -688,7 +714,7 @@ public:
       gl.setProjection(Matrix::identity(4));
 
       gl.glRenderMesh(GLMesh::Quad(
-        Point3d(-1, -1, 0.5), 
+        Point3d(-1, -1, 0.5),
         Point3d(+1, -1, 0.5),
         Point3d(+1, +1, 0.5),
         Point3d(-1, +1, 0.5), false, true));
@@ -703,50 +729,6 @@ public:
     }
   }
 
-  //DTypeToOSPDtype
-  static OSPDataType DTypeToOSPDtype(const DType& dtype) {
-
-    if (dtype == DTypes::INT8) return OSP_CHAR;
-
-    if (dtype == DTypes::UINT8) return OSP_UCHAR;
-    if (dtype == DTypes::UINT8_GA) return OSP_VEC2UC;
-    if (dtype == DTypes::UINT8_RGB) return OSP_VEC3UC;
-    if (dtype == DTypes::UINT8_RGBA) return OSP_VEC4UC;
-
-    if (dtype == DTypes::UINT16) return OSP_USHORT;
-    if (dtype == DTypes::INT16) return OSP_SHORT;
-
-    if (dtype == DTypes::INT32) return OSP_INT;
-    if (dtype == DTypes::UINT32) return OSP_UINT;
-
-    if (dtype == DTypes::INT64) return OSP_LONG;
-    if (dtype == DTypes::UINT64) return OSP_ULONG;
-
-    if (dtype == DTypes::FLOAT32) return OSP_FLOAT;
-    if (dtype == DTypes::FLOAT32_GA) return OSP_VEC2F;
-    if (dtype == DTypes::FLOAT32_RGB) return OSP_VEC3F;
-    if (dtype == DTypes::FLOAT32_RGBA) return OSP_VEC4F;
-
-    if (dtype == DTypes::FLOAT64) return OSP_DOUBLE;
-
-    return OSP_UNKNOWN;
-  }
-
-  //OspDTypeStr
-  static String OspDTypeStr(const OSPDataType t)
-  {
-    switch (t)
-    {
-    case OSP_UCHAR:  return "uchar";
-    case OSP_SHORT:  return "short";
-    case OSP_USHORT: return "ushort";
-    case OSP_FLOAT: return  "float";
-    case OSP_DOUBLE: return "double";
-    default: break;
-    }
-    ThrowException("Unsupported data type for OSPVolume");
-    return nullptr;
-  }
 
 };
 
