@@ -1034,9 +1034,11 @@ void Dataset::nextBoxQuery(SharedPtr<BoxQuery> query)
       return failed("cannot merge");
 
     //solve the problem of missing blocks here...
+#if 1
     InterpolateBufferOperation op;
     if (!ExecuteOnCppSamples(op, query->buffer.dtype, query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
       return failed("interpolate samples failed");
+#endif
 
     //I must be sure that 'inserted samples' from Rbuffer must be untouched in Wbuffer
     //this is for wavelets where I need the coefficients to be right
@@ -1050,11 +1052,12 @@ void Dataset::nextBoxQuery(SharedPtr<BoxQuery> query)
 }
 
 ////////////////////////////////////////////////
-std::vector<int> Dataset::guessBoxQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression)
+int Dataset::guessBoxQueryEndResolution(Frustum logic_to_screen, Position logic_position)
 {
   if (!logic_position.valid())
     return {};
-
+  
+  auto minh = getDefaultBitsPerBlock();
   auto maxh = getMaxResolution();
   auto endh = maxh;
   auto pdim = getPointDim();
@@ -1116,33 +1119,7 @@ std::vector<int> Dataset::guessBoxQueryEndResolutions(Frustum logic_to_screen, P
     }
   }
 
-  //consider quality and progression
-  endh = Utils::clamp(endh + quality, 0, maxh);
-
-  std::vector<int> ret = { Utils::clamp(endh - progression, 0, maxh) };
-  while (ret.back() < endh)
-    ret.push_back(Utils::clamp(ret.back() + pdim, 0, endh));
-
-
-  //block 0 is the minimum you can ask
-  {
-    auto bitsperblock = getDefaultBitsPerBlock();
-    int N = 0;
-    for (auto it : ret)
-    {
-      if (it >= bitsperblock)
-        ret[N++] = it;
-    }
-    ret.resize(N);
-  }
-
-  if (auto google = dynamic_cast<GoogleMapsDataset*>(this))
-  {
-    for (auto& it : ret)
-      it = (it >> 1) << 1; //TODO: google maps does not have odd resolutions
-  }
-
-  return ret;
+  return Utils::clamp(endh, minh, maxh);
 }
 
 //////////////////////////////////////////////////////////////
@@ -1638,13 +1615,14 @@ bool Dataset::mergePointQueryWithBlockQuery(SharedPtr<PointQuery> query, SharedP
 }
 
 /// ///////////////////////////////////////////////////////////////////////////
-std::vector<int> Dataset::guessPointQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression)
+int Dataset::guessPointQueryEndResolution(Frustum logic_to_screen, Position logic_position)
 {
   VisusAssert(!blocksFullRes());
 
   if (!logic_position.valid())
     return {};
 
+  auto minh = getDefaultBitsPerBlock();
   auto maxh = getMaxResolution();
   auto endh = maxh;
   auto pdim = getPointDim();
@@ -1696,14 +1674,7 @@ std::vector<int> Dataset::guessPointQueryEndResolutions(Frustum logic_to_screen,
     }
   }
 
-  //consider quality and progression
-  endh = Utils::clamp(endh + quality, 0, maxh);
-
-  std::vector<int> ret = { Utils::clamp(endh - progression, 0, maxh) };
-  while (ret.back() < endh)
-    ret.push_back(Utils::clamp(ret.back() + pdim, 0, endh));
-
-  return ret;
+  return Utils::clamp(endh, minh, maxh);
 }
 
 /// ///////////////////////////////////////////////////////////////////////////

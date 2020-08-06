@@ -102,9 +102,22 @@ static void RedirectLogToViewer(String msg, void* user_data)
   viewer->printInfo(msg);
 }
 
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 Viewer::Viewer(String title) : QMainWindow()
 {
+  if (GLInfo::getSingleton()->getGpuTotalMemory())
+  {
+    QueryNode::willFitOnGpu = [](Int64 size) {
+
+      auto freemem = GLInfo::getSingleton()->getGpuFreeMemory();
+      if ((1.2 * size) < freemem)
+        return true;
+      PrintInfo("Discarning data since it wont' fit on GPU", StringUtils::getStringFromByteSize(size), "freemem", StringUtils::getStringFromByteSize(freemem));
+      return false;
+    };
+  };
+
   this->config = *GuiModule::getModuleConfig();
 
   RedirectLogTo(RedirectLogToViewer, this);

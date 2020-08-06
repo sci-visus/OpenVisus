@@ -399,8 +399,8 @@ public:
   //createBlockQueriesForBoxQuery
   virtual std::vector< SharedPtr<BlockQuery> > createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query);
 
-  //guessBoxQueryEndResolutions
-  virtual std::vector<int> guessBoxQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression);
+  //guessBoxQueryEndResolution
+  virtual int guessBoxQueryEndResolution(Frustum logic_to_screen, Position logic_position);
 
   //beginBoxQuery
   virtual void beginBoxQuery(SharedPtr<BoxQuery> query);
@@ -441,8 +441,8 @@ public:
     return {};
   }
 
-  //guessPointQueryEndResolutions
-  virtual std::vector<int> guessPointQueryEndResolutions(Frustum logic_to_screen, Position logic_position, int quality, int progression) ;
+  //guessPointQueryEndResolution
+  virtual int guessPointQueryEndResolution(Frustum logic_to_screen, Position logic_position) ;
 
   //guessPointQueryNumberOfSamples
   virtual PointNi guessPointQueryNumberOfSamples(Frustum logic_to_screen, Position logic_position, int end_resolution) ;
