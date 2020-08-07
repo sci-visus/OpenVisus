@@ -152,6 +152,7 @@ public:
   //runJob
   virtual void runJob() override
   {
+    auto T1 = Time::now();
     if (auto query = point_query)
     {
       dataset->beginPointQuery(query);
@@ -196,7 +197,7 @@ public:
         if (aborted() || !query->isRunning())
           return;
 
-        PrintInfo("BoxQuery msec", t1.elapsedMsec(), "level", I, "/", N, "/", EndH, "/", dataset->getMaxResolution());
+        PrintInfo("BoxQuery executeBoxQuery", I, "/", N, "/", EndH, "/", dataset->getMaxResolution(),"...");
 
         if (!dataset->executeBoxQuery(access, query))
           return;
@@ -205,8 +206,8 @@ public:
           return;
 
         auto output = query->buffer;
-        PrintInfo("BoxQuery finished msec", t1.elapsedMsec(),
-          "level", I, "/", N, "/", EndH, "/", dataset->getMaxResolution(),
+        PrintInfo("BoxQuery executeBoxQuery ", I, "/", N, "/", EndH, "/", dataset->getMaxResolution(),
+          "done in", t1.elapsedMsec(),"msec",
           "dims", output.dims,
           "dtype", output.dtype,
           "mem", StringUtils::getStringFromByteSize(output.c_size()),
@@ -218,6 +219,8 @@ public:
         I++;
       }
     }
+
+    PrintInfo("Query finished in",T1.elapsedMsec(),"msec");
   }
 
   //doPublish

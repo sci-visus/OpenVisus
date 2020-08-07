@@ -1035,9 +1035,11 @@ void Dataset::nextBoxQuery(SharedPtr<BoxQuery> query)
 
     //solve the problem of missing blocks here...
 #if 1
+    auto t1 = Time::now();
     InterpolateBufferOperation op;
     if (!ExecuteOnCppSamples(op, query->buffer.dtype, query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
       return failed("interpolate samples failed");
+    PrintInfo("Interpolation of buffer", query->buffer.dims, "done in", t1.elapsedMsec(), "msec");
 #endif
 
     //I must be sure that 'inserted samples' from Rbuffer must be untouched in Wbuffer

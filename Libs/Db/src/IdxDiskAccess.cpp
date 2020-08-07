@@ -283,10 +283,12 @@ public:
       if (bVerbose)
         PrintInfo("Swapping endian notation for Float32 type");
 
-      Float32* ptr = query->buffer.c_ptr<Float32*>();
-
-      for (int I = 0, N = (int)(query->buffer.c_size() / sizeof(Float32)); I<N; I++)
-        ptr[I] = ByteOrder::fromNetworkByteOrder(ptr[I]);
+      if (!ByteOrder::isNetworkByteOrder())
+      {
+        Float32* ptr = query->buffer.c_ptr<Float32*>();
+        for (int I = 0, N = (int)(query->buffer.c_size() / sizeof(Float32)); I < N; I++)
+          ptr[I] = ByteOrder::swapByteOrder(ptr[I]);
+      }
     }
 
     if (bVerbose)
@@ -344,7 +346,7 @@ private:
   bool openFile(String filename, String file_mode)
   {
     VisusReleaseAssert(!file_mode.empty());
-    VisusReleaseAssert(file_mode=="r");
+    VisusReleaseAssert(file_mode == "r");
 
     //useless code, already opened in the desired file_mode
     if (filename == this->file.getFilename() && "r" == this->file.getFileMode())
@@ -354,11 +356,11 @@ private:
       closeFile("need to openFile");
 
     if (bVerbose)
-      PrintInfo("Opening file",filename,"file_mode", "r");
+      PrintInfo("Opening file", filename, "file_mode", "r");
 
     if (!this->file.open(filename, "r"))
     {
-      closeFile(cstring("Cannot open file",filename));
+      closeFile(cstring("Cannot open file", filename));
       return false;
     }
 
@@ -369,9 +371,12 @@ private:
       return false;
     }
 
-    Int32* ptr = (Int32*)(this->headers.c_ptr());
-    for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
-      ptr[I] = ByteOrder::fromNetworkByteOrder(ptr[I]);
+    if (!ByteOrder::isNetworkByteOrder())
+    {
+      Int32* ptr = (Int32*)(this->headers.c_ptr());
+      for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
+        ptr[I] = ByteOrder::swapByteOrder(ptr[I]);
+    }
 
     return true;
   }
@@ -791,9 +796,12 @@ private:
       }
 
       // network to host order
-      Uint32* ptr = (Uint32*)(this->headers.c_ptr());
-      for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Uint32); I < Tot; I++)
-        ptr[I] = ByteOrder::fromNetworkByteOrder(ptr[I]);
+      if (!ByteOrder::isNetworkByteOrder())
+      {
+        Uint32* ptr = (Uint32*)(this->headers.c_ptr());
+        for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Uint32); I < Tot; I++)
+          ptr[I] = ByteOrder::swapByteOrder(ptr[I]);
+      }
 
       return true;
     }
@@ -841,9 +849,12 @@ private:
     //need to write the headers
     if (this->file->canWrite())
     {
-      auto ptr = (Uint32*)(this->headers.c_ptr());
-      for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Uint32); I < Tot; I++)
-        ptr[I] = ByteOrder::toNetworkByteOrder(ptr[I]);
+      if (!ByteOrder::isNetworkByteOrder())
+      {
+        auto ptr = (Uint32*)(this->headers.c_ptr());
+        for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Uint32); I < Tot; I++)
+          ptr[I] = ByteOrder::swapByteOrder(ptr[I]);
+      }
 
       if (!this->file->write(0, this->headers.c_size(), this->headers.c_ptr()))
       {
