@@ -99,7 +99,7 @@ class MyView(QMainWindow):
 		self.output.setStyleSheet("background-color: rgb(150, 150, 150);")
 
 		self.run_button = QPushButton('Run')	
-		self.run_button.clicked.connect(self.runCode)				
+		self.run_button.clicked.connect(self.onRunButtonClick)				
 
 		self.layout = QVBoxLayout()
 		self.layout.addWidget(self.presets)
@@ -111,8 +111,11 @@ class MyView(QMainWindow):
 		container.setLayout(self.layout)
 		self.setCentralWidget(container)
 			
-		self.setText(node.getCode())
 		self.guessPresets()
+
+		code=node.getCode()
+		if code: 
+			self.setText(code)
 			
 	# getText
 	def getText(self):
@@ -122,9 +125,10 @@ class MyView(QMainWindow):
 	def setText(self,value):
 		self.editor.setPlainText(value)		
 					
-	# runCode
-	def runCode(self):
-		self.node.setCode(self.getText())
+	# onRunButtonClick
+	def onRunButtonClick(self):
+		bForce=True
+		self.node.setCode(self.getText(), bForce)
 		
 	# onPresetIndexChanged
 	def onPresetIndexChanged(self,index):
@@ -193,8 +197,8 @@ class PyScriptingNode(ScriptingNode):
 		return "ScriptingNode" # i'm returning the same string anyway
 		
 	# setCode
-	def setCode(self,value):
-		super().setCode(value)
+	def setCode(self,value,bForce=False):
+		super().setCode(value,bForce)
 		if not self.editor: return
 		self.editor.setText(value)
 
