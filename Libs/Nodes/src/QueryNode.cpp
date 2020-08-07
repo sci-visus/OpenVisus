@@ -206,10 +206,8 @@ public:
           return;
 
         auto output = query->buffer;
-        PrintInfo("BoxQuery executeBoxQuery ", I, "/", N, "/", EndH, "/", dataset->getMaxResolution(),
-          "done in", t1.elapsedMsec(),"msec",
-          "dims", output.dims,
-          "dtype", output.dtype,
+        PrintInfo("BoxQuery executeBoxQuery", I, "/", N, "/", EndH, "/", dataset->getMaxResolution(),"done in", t1.elapsedMsec(),"msec",
+          "dims", output.dims,"dtype", output.dtype,
           "mem", StringUtils::getStringFromByteSize(output.c_size()),
           "access", access ? "yes" : "nullptr",
           "url", dataset->getUrl());

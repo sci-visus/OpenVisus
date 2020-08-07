@@ -277,6 +277,9 @@ void IdxFile::validate(String url)
   //filename_template
   if (filename_template.empty())
     filename_template = guessFilenameTemplate(url);
+
+
+
 }
 
 
@@ -477,7 +480,9 @@ String IdxFile::writeToOldFormat() const
     }
   }
 
-  out<<"(filename_template)\n"<<filename_template<<"\n";
+  out << "(filename_template)\n" << filename_template << "\n";
+  out << "(missing_blocks)\n" << missing_blocks << "\n";
+
   return out.str();
 }
 
@@ -556,6 +561,7 @@ void IdxFile::readFromOldFormat(const String& content)
   this->bitsperblock = cint(map.getValue("(bitsperblock)"));
   this->blocksperfile = cint(map.getValue("(blocksperfile)"));
   this->filename_template = map.getValue("(filename_template)");
+  this->missing_blocks = cint(map.getValue("(missing_blocks)"));
 
   if (map.hasValue("(interleave)"))
     this->block_interleaving = cint(map.getValue("(interleave)"));
@@ -624,6 +630,7 @@ void IdxFile::write(Archive& ar) const
   ar.addChild("blocksperfile")->write("value", blocksperfile);
   ar.addChild("block_interleaving")->write("value", block_interleaving);
   ar.addChild("filename_template")->write("value", filename_template);
+  ar.addChild("missing_blocks")->write("value", missing_blocks);
   ar.addChild("time_template")->write("value", time_template);
 
   auto logic_to_physic = Position::computeTransformation(this->bounds, this->logic_box);
@@ -650,6 +657,7 @@ void IdxFile::read(Archive& ar)
   ar.getChild("blocksperfile")->read("value", blocksperfile);
   ar.getChild("block_interleaving")->read("value", block_interleaving);
   ar.getChild("filename_template")->read("value", filename_template);
+  ar.getChild("missing_blocks")->read("value", missing_blocks);
   ar.getChild("time_template")->read("value", time_template);
 
 

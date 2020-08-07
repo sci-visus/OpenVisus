@@ -510,6 +510,7 @@ protected:
   int                     kdquery_mode = KdQueryMode::NotSpecified;
   bool                    bServerMode = false;
   int                     default_bitsperblock = 0;
+  bool                    missing_blocks = false;
 
 };
 

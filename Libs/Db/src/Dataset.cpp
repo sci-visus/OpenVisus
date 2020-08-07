@@ -130,30 +130,22 @@ public:
       GetComponentSamples<CppType> W(Wbuffer, C); PointNi Wpixel(pdim); Int64   Wpos = 0;
       GetComponentSamples<CppType> R(Rbuffer, C); PointNi Rpixel(pdim); PointNi Rpos(pdim);
 
-#define W2R(I) (Utils::clamp<Int64>(((Wsamples.logic_box.p1[I] + (Wpixel[I] << Wsamples.shift[I])) - Rsamples.logic_box.p1[I]) >> Rsamples.shift[I], 0, Rbuffer.dims[I] - 1))
+      #define W2R(I) (Utils::clamp<Int64>(((Wsamples.logic_box.p1[I] + (Wpixel[I] << Wsamples.shift[I])) - Rsamples.logic_box.p1[I]) >> Rsamples.shift[I], 0, Rbuffer.dims[I] - 1))
 
       if (pdim == 2)
       {
-        for (Wpixel[1] = 0; Wpixel[1] < Wbuffer.dims[1]; Wpixel[1]++) {
-          Rpixel[1] = W2R(1); Rpos[1] = Rpixel[1] * Rstride[1];
-          for (Wpixel[0] = 0; Wpixel[0] < Wbuffer.dims[0]; Wpixel[0]++) {
-            Rpixel[0] = W2R(0); Rpos[0] = Rpixel[0] * Rstride[0] + Rpos[1];
-            W[Wpos++] = R[Rpos[0]];
-          }
-        }
+        for (Wpixel[1] = 0; Wpixel[1] < Wbuffer.dims[1]; Wpixel[1]++) { Rpixel[1] = W2R(1); Rpos[1] = Rpixel[1] * Rstride[1];
+        for (Wpixel[0] = 0; Wpixel[0] < Wbuffer.dims[0]; Wpixel[0]++) { Rpixel[0] = W2R(0); Rpos[0] = Rpixel[0] * Rstride[0] + Rpos[1];
+          W[Wpos++] = R[Rpos[0]];
+        }}
       }
       else if (pdim == 3)
       {
-        for (Wpixel[2] = 0; Wpixel[2] < Wbuffer.dims[2]; Wpixel[2]++) {
-          Rpixel[2] = W2R(2); Rpos[2] = Rpixel[2] * Rstride[2];
-          for (Wpixel[1] = 0; Wpixel[1] < Wbuffer.dims[1]; Wpixel[1]++) {
-            Rpixel[1] = W2R(1); Rpos[1] = Rpixel[1] * Rstride[1] + Rpos[2];
-            for (Wpixel[0] = 0; Wpixel[0] < Wbuffer.dims[0]; Wpixel[0]++) {
-              Rpixel[0] = W2R(0); Rpos[0] = Rpixel[0] * Rstride[0] + Rpos[1];
-              W[Wpos++] = R[Rpos[0]];
-            }
-          }
-        }
+        for (Wpixel[2] = 0; Wpixel[2] < Wbuffer.dims[2]; Wpixel[2]++) { Rpixel[2] = W2R(2); Rpos[2] = Rpixel[2] * Rstride[2];
+        for (Wpixel[1] = 0; Wpixel[1] < Wbuffer.dims[1]; Wpixel[1]++) { Rpixel[1] = W2R(1); Rpos[1] = Rpixel[1] * Rstride[1] + Rpos[2];
+        for (Wpixel[0] = 0; Wpixel[0] < Wbuffer.dims[0]; Wpixel[0]++) { Rpixel[0] = W2R(0); Rpos[0] = Rpixel[0] * Rstride[0] + Rpos[1];
+          W[Wpos++] = R[Rpos[0]];
+        }}}
       }
       else
       {
@@ -1009,6 +1001,10 @@ void Dataset::nextBoxQuery(SharedPtr<BoxQuery> query)
   if (query->end_resolution == query->end_resolutions.back())
     return query->setOk();
 
+  auto failed = [&](String reason) {
+    return query->setFailed(query->aborted() ? "query aborted" : reason);
+  };
+
   auto Rcurrent_resolution = query->getCurrentResolution();
   auto Rsamples = query->logic_samples;
   auto Rbuffer = query->buffer;
@@ -1020,40 +1016,47 @@ void Dataset::nextBoxQuery(SharedPtr<BoxQuery> query)
   query->buffer = Array();
 
   //merge with previous results
-  if (!blocksFullRes())
+  if (this->missing_blocks)
   {
-    auto failed = [&](String reason) {
-      return query->setFailed(query->aborted() ? "query aborted" : reason);
-    };
-
     if (!query->allocateBufferIfNeeded())
       return failed("out of memory");
 
     //cannot merge, scrgiorgio: can it really happen??? (maybe when I produce numpy arrays by projecting script...)
-    if (!Rsamples.valid() || Rsamples.nsamples != Rbuffer.dims)
-      return failed("cannot merge");
+    VisusReleaseAssert(Rsamples.valid() && Rsamples.nsamples == Rbuffer.dims);
 
-    //solve the problem of missing blocks here...
-#if 1
-    {
-      auto t1 = Time::now();
-      InterpolateBufferOperation op;
-      if (!ExecuteOnCppSamples(op, query->buffer.dtype, query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
-        return failed("interpolate samples failed");
-      auto msec = t1.elapsedMsec();
-      if (msec > 100)
-        PrintInfo("Interpolation of buffer", query->buffer.dims, "done in", msec, "msec");
-    }
-#endif
+    //NOTE: this op is slow (like 2sec for 1GB data)
+    auto t1 = Time::now();
+    InterpolateBufferOperation op;
+    if (!ExecuteOnCppSamples(op, query->buffer.dtype, query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
+      return failed("interpolate samples failed");
+    auto msec = t1.elapsedMsec();
+    if (msec > 100)
+      PrintInfo("Interpolation of buffer", StringUtils::getStringFromByteSize(query->buffer.dtype.getByteSize(query->buffer.dims)), "done in", msec, "msec");
+  }
+  else if (!blocksFullRes())
+  {
+    if (!query->allocateBufferIfNeeded())
+      return failed("out of memory");
+
+    //cannot merge, scrgiorgio: can it really happen??? (maybe when I produce numpy arrays by projecting script...)
+    VisusReleaseAssert(Rsamples.valid() && Rsamples.nsamples == Rbuffer.dims);
 
     //I must be sure that 'inserted samples' from Rbuffer must be untouched in Wbuffer
     //this is for wavelets where I need the coefficients to be right
+    auto t1 = Time::now();
     if (!insertSamples(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->aborted))
       return failed("insert samples failed");
-
-    query->filter.query = Rfilter_query;
+    auto msec = t1.elapsedMsec();
+    if (msec > 100)
+      PrintInfo("Insert samples", StringUtils::getStringFromByteSize(query->buffer.dtype.getByteSize(query->buffer.dims)), "done in", msec, "msec");
+  }
+  else
+  {
+    //new blocks will replace all samples
+    VisusReleaseAssert(blocksFullRes() && !this->missing_blocks);
   }
 
+  query->filter.query = Rfilter_query;
   query->setCurrentResolution(Rcurrent_resolution);
 }
 
@@ -2105,6 +2108,8 @@ void Dataset::readDatasetFromArchive(Archive& ar)
   this->default_bitsperblock = idxfile.bitsperblock;
   this->logic_box = idxfile.logic_box;
   this->timesteps = idxfile.timesteps;
+  this->missing_blocks = idxfile.missing_blocks;
+
   setDatasetBounds(idxfile.bounds);
 
   //idxfile.fields -> Dataset::fields 

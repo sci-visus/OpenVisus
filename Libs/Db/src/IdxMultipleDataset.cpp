@@ -605,6 +605,7 @@ IdxFile IdxMultipleDataset::generateIdxFile(Archive& ar)
   for (auto it : down_datasets)
     ret.timesteps.addTimesteps(it.second->getTimesteps());
 
+  ret.missing_blocks = false;
   return ret;
 }
 
