@@ -722,6 +722,9 @@ RenderArrayNode::RenderArrayNode()
   this->render_type = "OpenGL";
   this->pimpl = new OpenGLRenderArrayNode(this);
 
+  //this->render_type = "OSPRay";
+  //this->pimpl = new OSPRayRenderArrayNode(this);
+
   lighting_material.front.ambient=Colors::Black;
   lighting_material.front.diffuse=Colors::White;
   lighting_material.front.specular=Colors::White;

@@ -263,15 +263,13 @@ class VisibleMale:
 		if False:
 			viewer.open(idx_filename)
 			viewer.setScriptingCode("""
-from OpenVisus.image_utils import *
 import numpy
-R,G,B,A=SplitChannels(input)
-Brighness=0.2126*R + 0.7152*G + 0.0722*B
-A[Brighness<70]=0
-A[R>76  ]=255
-A[G-20>R]=0
-A[B-20>R]=0	
-output=InterleaveChannels([R,G,B,A])
+from OpenVisus.image_utils import *
+R,G,B,A=[input[...,I] for I in range(4)]
+A.fill(255)
+A[(R<76) | (G>R) | (B>R)]=0
+output=input
+output[...,3]=A
 """)
 			
 		else:
