@@ -71,59 +71,34 @@ public:
     setProperty("SplitFrustum", this->split_frustum, value);
   }
 
-  //getPosition
-  Point3d getPosition() const {
-    return pos;
+  //setPos
+  void setPos(Point3d value) {
+    setProperty("SetPos", this->pos, value);
   }
 
-  //setPosition
-  void setPosition(Point3d value) {
-    setProperty("SetPosition", this->pos, value);
-  }
-
-  //getCenter
-  Point3d getCenter() const {
-    return center;
-  }
-
-  //setDirection
+  //setCenter
   void setCenter(Point3d value) {
     setProperty("SetCenter", this->center, value);
   }
 
-  //getVup
-  Point3d getVup() const {
-    return vup;
+  //setVup
+  void setVup(Point3d value) {
+    setProperty("SetVup", this->vup, value);
   }
 
-  //setViewUp
-  void setViewUp(Point3d value) {
-    setProperty("SetViewUp", this->vup, value);
+  //setCenterOfRotation
+  void setCenterOfRotation(Point3d value) {
+    setProperty("SetCenterOfRotation", this->center_of_rotation, value);
   }
 
-  //getLookAt
-  virtual void getLookAt(Point3d& pos, Point3d& center, Point3d& vup) const override {
-    pos = getPosition();
-    center = getCenter();
-    vup = getVup();
-  }
-
-  //setLookAt
-  void setLookAt(Point3d pos, Point3d center, Point3d vup);
-
-  //getFov
-  double getFov() const {
-    return fov;
+  //setRotation
+  void setRotation(Quaternion value) {
+    setProperty("SetRotation",this->rotation, value);
   }
 
   //setFov
   void setFov(double value) {
-    setProperty("SetFov", this->fov, fov);
-  }
-
-  //getZNear
-  double getZNear() const {
-    return zNear;
+    setProperty("SetFov", this->fov, value);
   }
 
   //setZNear
@@ -131,29 +106,51 @@ public:
     setProperty("SetZNear", this->zNear, value);
   }
 
-  //getZFar
-  double getZFar() const {
-    return zFar;
-  }
-
-  //setZFar
+  //setZNear
   void setZFar(double value) {
     setProperty("SetZFar", this->zFar, value);
   }
 
-  //rotate
-  void rotate(double angle_degree, Point3d p0, Point3d p1);
+  //getLookAt
+  virtual void getLookAt(Point3d& pos, Point3d& center, Point3d& vup) const override {
+    pos = this->pos;
+    center = this->center;
+    vup = this->vup;
+  }
+
+  //setLookAt
+  void setLookAt(Point3d pos, Point3d center, Point3d vup) {
+    beginTransaction();
+    setPos(pos);
+    setCenter(center);
+    setVup(vup);
+    endTransaction();
+  }
 
 public:
 
-  //getCurrentFrustum
-  virtual Frustum getFinalFrustum(const Viewport& viewport) const override;
+  //getProjection
+  Matrix getProjection(const Viewport& viewport) const;
+
+  //getModelview
+  Matrix getModelview() const;
 
   //getCurrentFrustum
-  virtual Frustum getCurrentFrustum(const Viewport& viewport) const override;
+  virtual Frustum getFinalFrustum(const Viewport& viewport) const override
+  {
+      Frustum ret;
+      ret.setViewport(viewport);
+      ret.loadProjection(getProjection(viewport));
+      ret.loadModelview(getModelview());
+      return ret;
+  }
 
-  //setCameraSelection
-  void setCameraSelection(Position value);
+  //getCurrentFrustum
+  virtual Frustum getCurrentFrustum(const Viewport& viewport) const override {
+    return getFinalFrustum(viewport);
+  }
+
+public:
 
   //glMousePressEvent
   virtual void glMousePressEvent(QMouseEvent* evt, const Viewport& viewport) override;
@@ -184,24 +181,20 @@ public:
 
 private:
 
-// see https://github.com/Twinklebear/arcball-cpp
-  class ArcballCamera;
+  //projection matrix
+  double fov = 60;;
+  double zNear = 0;
+  double zFar = 0;
 
+  //modelview matrix
+  Point3d pos, center, vup;
+  Point3d center_of_rotation;
+  Quaternion rotation;
 
-
-  double                 fov = 60.0;
-  double                 zNear = 0.0001, zFar = 10.0;
-  Point3d                pos, center, vup;
-  Rectangle2d            split_frustum = Rectangle2d(0, 0, 1, 1);
+  Rectangle2d split_frustum = Rectangle2d(0, 0, 1, 1);
 
   //run-time
-  Position selection;
-  UniquePtr<ArcballCamera> arcball;
   GLMouse mouse;
-
-  //getProjection
-  Matrix getProjection(const Viewport& viewport) const;
-
 
 };//end class
 

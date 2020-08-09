@@ -208,7 +208,7 @@ void Viewer::glCanvasMousePressEvent(QMouseEvent* evt)
   if (auto lookat = dynamic_cast<GLLookAtCamera*>(glcamera.get()))
   {
     auto bounds = getBounds(getSelection());
-    lookat->setCameraSelection(bounds);
+    lookat->setCenterOfRotation(bounds.getCentroid().toPoint3());
   }
 
   glcamera->glMousePressEvent(evt, viewport);
