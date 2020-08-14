@@ -76,7 +76,7 @@ ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_)
   bool disable_async = dataset->isServerMode() || config.readBool("disable_async", false);
   if (!disable_async)
   {
-    int nconnections = config.readInt("nconnections", (num_queries_per_request == 1)? (8) : (2));
+    int nconnections = config.readInt("nconnections", 6);
     this->netservice = std::make_shared<NetService>(nconnections);
   }
 
@@ -175,7 +175,7 @@ void ModVisusAccess::flushBatch()
       }
 
       auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
-      if (!decoded)
+      if (!decoded.valid())
       {
         readFailed(query);
         continue;

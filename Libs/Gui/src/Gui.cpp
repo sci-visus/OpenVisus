@@ -154,7 +154,7 @@ void GuiModule::attach()
 
   //simulate that the graphic card has a certain memory 
   if (Int64 total = StringUtils::getByteSizeFromString(config->readString("Configuration/GLMemory/total", "0")))
-    GLInfo::getSingleton()->setOsTotalMemory(total);
+    GLInfo::getSingleton()->setGpuTotalMemory(total);
 
   ViewerPreferences::default_panels= config->readString("Configuration/VisusViewer/panels", "left center");
   ViewerPreferences::default_show_logos = cbool(config->readString("Configuration/VisusViewer/show_logos", "true"));

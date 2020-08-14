@@ -48,6 +48,14 @@ For support : support@visus.net
   #include <ApplicationServices/ApplicationServices.h>
 #endif
 
+#ifndef GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX
+#define GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX 0x9048
+#endif
+
+#ifndef GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX
+#define GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX 0x9049
+#endif 
+
 namespace Visus {
 
 VISUS_IMPLEMENT_SINGLETON_CLASS(GLInfo)
@@ -120,7 +128,7 @@ static Int64 ReadPerfInt64Value(CFStringRef name)
 
 
 ///////////////////////////////////////////////
-GLInfo::GLInfo() : visus_used_memory(0),os_total_memory(0),extension_GL_NVX_gpu_memory_info(false)
+GLInfo::GLInfo() 
 {
   GLNeedContext gl;
 
@@ -149,21 +157,19 @@ GLInfo::GLInfo() : visus_used_memory(0),os_total_memory(0),extension_GL_NVX_gpu_
   glGetIntegerv(GL_MAX_CLIP_PLANES, &this->max_clip_planes);
   #endif
 
+  //gpu_total_memory
   #if __clang__
   {
-    this->os_total_memory=getTotalVideoMemoryBytes();
+    this->gpu_total_memory =getTotalVideoMemoryBytes();
   }
   #else
   {
-    this->extension_GL_NVX_gpu_memory_info=StringUtils::contains(this->extensions,"GL_NVX_gpu_memory_info");
+    this->extension_GL_NVX_gpu_memory_info = StringUtils::contains(this->extensions, "GL_NVX_gpu_memory_info");
     if (extension_GL_NVX_gpu_memory_info)
     {
-      #ifndef GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX
-      #define GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX 0x9048
-      #endif
-      GLint kb=0;
-      glGetIntegerv(GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX,&kb); VisusAssert(kb>0);
-      this->os_total_memory=1024*(Int64)kb;
+      GLint kb = 0;
+      glGetIntegerv(GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX, &kb); VisusAssert(kb > 0);
+      this->gpu_total_memory = 1024 * (Int64)kb;
     }
   }
   #endif
@@ -178,101 +184,21 @@ Int64 GLInfo::getGpuUsedMemory()
   }
   #else
   {
-    Int64 ret=0;
     GLNeedContext gl;
-    if (extension_GL_NVX_gpu_memory_info)
-    {
-      #ifndef GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX
-      #define GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX 0x9049
-      #endif 
-      GLint kb=0;
-      glGetIntegerv(GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX,&kb); VisusAssert(kb>0);
-      ret=os_total_memory-(kb*(Int64)1024);
-    }
+    if (!extension_GL_NVX_gpu_memory_info)
+      return 0;
+
+    GLint kb = 0;
+    glGetIntegerv(GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX, &kb); VisusAssert(kb > 0);
+    Int64 ret = gpu_total_memory - (kb * (Int64)1024);
     return ret;
   }
   #endif
 
 }
 
-///////////////////////////////////////////////
-Int64 GLInfo::getVisusUsedMemory()
-{
-  ScopedLock lock(this->lock);
-  return visus_used_memory;
-}
-
-///////////////////////////////////////////////
-Int64 GLInfo::getOsTotalMemory()
-{
-  return os_total_memory;
-}
-
-///////////////////////////////////////////////
-void GLInfo::setOsTotalMemory(Int64 value)
-{
-  os_total_memory=value;
-}
-
-///////////////////////////////////////////////
-#if 0
-bool GLInfo::allocateOpenGLMemory(Int64 reqsize)
-{
-  VisusAssert(reqsize>=0);
-
-  if (!reqsize) 
-  {
-    return true;
-  }
-  else
-  {
-    ScopedLock lock(this->lock);
-
-    if (os_total_memory>0)
-    {
-      Int64 os_free_memory=((Int64)(getOsTotalMemory()*0.80))-visus_used_memory;
-      if (reqsize>os_free_memory)
-      {
-        PrintWarning("OpenGL out of memory",
-                      "reqsize",StringUtils::getStringFromByteSize(reqsize),
-                      "os_free_memory",StringUtils::getStringFromByteSize(os_free_memory));
-
-        return false;
-      }
-    }
-
-    this->visus_used_memory+=reqsize;
-    return true;
-  }
-}
-#endif
-
-///////////////////////////////////////////////
-#if 0
-bool GLInfo::freeOpenGLMemory(Int64 reqsize)
-{
-  VisusAssert(reqsize>=0);
-
-  if (!reqsize)
-  {
-    return true;
-  }
-  else
-  {
-    ScopedLock lock(this->lock);
-    this->visus_used_memory-=reqsize;
-    return true;
-  }
-}
-#endif
 
 
-///////////////////////////////////////////////
-void GLInfo::addVisusUsedMemory(Int64 reqsize)
-{
-  ScopedLock lock(this->lock);
-  this->visus_used_memory += reqsize;
-}
 
 } //namespace
 

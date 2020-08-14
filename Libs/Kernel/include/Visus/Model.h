@@ -154,9 +154,11 @@ public:
 
   //setProperty
   template <typename Value>
-  void setProperty(String action_name, Value& old_value, const Value& new_value)
+  void setProperty(String action_name, Value& old_value, const Value& new_value, bool bForce=false)
   {
-    if (old_value == new_value) return;
+    if (!bForce && old_value == new_value) 
+      return;
+    
     beginUpdate(
       StringTree(action_name).write("value", new_value),
       StringTree(action_name).write("value", old_value));
@@ -168,9 +170,11 @@ public:
 
   //setEncodedProperty
   template <typename Value>
-  void setEncodedProperty(String action_name, Value& old_value, const Value& new_value)
+  void setEncodedProperty(String action_name, Value& old_value, const Value& new_value, bool bForce = false)
   {
-    if (old_value == new_value) return;
+    if (!bForce && old_value == new_value)
+      return;
+
     beginUpdate(
       EncodeObject(action_name, new_value),
       EncodeObject(action_name, old_value));

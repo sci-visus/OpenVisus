@@ -205,28 +205,6 @@ public:
     return deinterleave(hzAddressToZAddress(hz));
   }
 
-  //getLevelDelta (count the right 0 and the blocking 1)
-  /*
-    01234 
-    -----
-    v0101 maxh=4
-    -----
-    V0000  getLevelDelta(0)=(4 4) V
-    V1000  getLevelDelta(1)=(4 4) 0
-    Vx100  getLevelDelta(2)=(2 4) 1
-    Vxx10  getLevelDelta(3)=(2 2) 0
-    Vxxx1  getLevelDelta(4)=(1 2) 1
-  */
-  PointNi getLevelDelta(int H) const
-  {
-    VisusAssert(H>=0 && H<=maxh);
-    PointNi p=PointNi::one(pdim);
-    if (!H) H=1;
-    for (int K=maxh;K>=H;K--)
-      p[bitmask[K]]<<=1;
-    return p;
-  }
-
   //getLevelP1 (set the ...xx.. to 0)
   /*
     01234 maxh=4
@@ -271,26 +249,6 @@ public:
     int ret=0;
     while (hz!=0) {ret++;hz>>=1;}
     return ret;
-  }
-
-  //getAddressRangeNumberOfSamples (i.e. samples for each axis)
-  static PointNi getAddressRangeNumberOfSamples(const DatasetBitmask& bitmask,BigInt hzfrom,BigInt hzto)
-  {
-    int bitsperblock=Utils::getLog2(cint64(hzto-hzfrom));
-    PointNi nsamples=PointNi::one(bitmask.getPointDim());
-
-    //remember! block 1 has the same number of samples of block 0 and block 1 has hzResolution()=bitsperblock+1
-    int H=(hzfrom!=0)? getAddressResolution(bitmask,hzfrom) : (bitsperblock+1); 
-  
-    //all the bits on the left of the H (example bitsperblock=3 H=7  V010.101.0 nsamples=2*4)
-    for (int N=H-bitsperblock;N<H;N++)
-    {
-      VisusAssert(N>=1);
-      nsamples[bitmask[N]]<<=1;
-    }
-
-    VisusAssert(nsamples.innerProduct()==cint64(hzto-hzfrom));
-    return nsamples;
   }
 
 };

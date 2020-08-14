@@ -102,8 +102,12 @@ public:
 
   //inline
   static inline String removeSpaces(String str) {
-    str.erase(std::remove_if(str.begin(), str.end(), isspace), str.end());
-    return str;
+    String ret;
+    for (auto it : str) {
+      if (!std::isspace(it))
+        ret.push_back(it);
+    }
+    return ret;
   }
 
   //onlyAlNum

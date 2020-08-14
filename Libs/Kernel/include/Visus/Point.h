@@ -1307,7 +1307,7 @@ private:
   struct AddOp { static T compute(T a, T b) { return a + b; } };
   struct SubOp { static T compute(T a, T b) { return a - b; } };
   struct MulOp { static T compute(T a, T b) { return a * b; } };
-  struct DivOp { static T compute(T a, T b) { return a / b; } };
+  struct DivOp { static T compute(T a, T b) { return a / (b?b:1); } };
   struct ModOp { static T compute(T a, T b) { return a % b; } };
 
   struct MinOp   { static T compute(T a, T b) { return std::min(a, b); } };

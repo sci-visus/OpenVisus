@@ -50,7 +50,8 @@ Array ArrayUtils::loadImage(String url,std::vector<String> args)
 {
   for (auto plugin : ArrayPlugins::getSingleton()->values)
   {
-    if (auto ret=plugin->handleLoadImage(url,args))
+    auto ret = plugin->handleLoadImage(url, args);
+    if (ret.valid())
     {
       ret.url=url;
 
@@ -72,7 +73,8 @@ Array ArrayUtils::loadImageFromMemory(String url,SharedPtr<HeapMemory> heap,std:
 {
   for (auto plugin : ArrayPlugins::getSingleton()->values)
   {
-    if (auto ret=plugin->handleLoadImageFromMemory(heap,args))
+    auto ret = plugin->handleLoadImageFromMemory(heap, args);
+    if (ret.valid())
     {
       ret.url=url;
       return ret;
@@ -100,7 +102,7 @@ StringTree ArrayUtils::statImage(String url)
 ///////////////////////////////////////////////////////////////////////////////////////////////
 bool ArrayUtils::saveImage(String url,Array src,std::vector<String> args)
 {
-  if (!src)
+  if (!src.valid())
     return false;
 
   FileUtils::createDirectory(Path(url).getParent());
@@ -121,7 +123,7 @@ bool ArrayUtils::saveImage(String url,Array src,std::vector<String> args)
 //////////////////////////////////////////////////////////////
 SharedPtr<HeapMemory> ArrayUtils::encodeArray(String compression,Array array)
 {
-  if (!array) {
+  if (!array.valid()) {
     VisusAssert(false);
     return SharedPtr<HeapMemory>();
   }
@@ -216,7 +218,7 @@ Array ArrayUtils::decodeArray(StringMap metadata, SharedPtr<HeapMemory> encoded)
   }
 
   auto decoded = decodeArray(compression, nsamples, dtype, encoded);
-  if (!decoded)
+  if (!decoded.valid())
     return Array();
 
   decoded.layout = layout;
@@ -857,7 +859,7 @@ Array SqrtArray(Array src, Aborted& aborted)
 
 Array ArrayUtils::sqrt(Array src, Aborted aborted)
 {
-  if (!src)
+  if (!src.valid())
     return Array();
 
   if (src.dtype.isVectorOf(DTypes::FLOAT32))
@@ -894,7 +896,7 @@ Array AddArray(Array src, CppType value, Aborted& aborted)
 
 Array ArrayUtils::add(Array src, double coeff, Aborted aborted)
 {
-  if (!src)
+  if (!src.valid())
     return Array();
 
   if (src.dtype.isVectorOf(DTypes::FLOAT32))
@@ -930,7 +932,7 @@ Array SubArrayAndValue(Array a, CppType b, Aborted& aborted)
 
 Array ArrayUtils::sub(Array src, double coeff, Aborted aborted)
 {
-  if (!src)
+  if (!src.valid())
     return Array();
 
   if (src.dtype.isVectorOf(DTypes::FLOAT32))
@@ -969,7 +971,7 @@ Array SubNumberAndArray(CppType num, Array src, Aborted& aborted)
 
 Array ArrayUtils::sub(double a, Array b, Aborted aborted)
 {
-  if (!b)
+  if (!b.valid())
     return Array();
 
   if (b.dtype.isVectorOf(DTypes::FLOAT32))
@@ -1007,7 +1009,7 @@ Array MulArray(Array src, CppType coeff, Aborted& aborted)
 
 Array ArrayUtils::mul(Array src, double coeff, Aborted aborted)
 {
-  if (!src)
+  if (!src.valid())
     return Array();
 
   if (src.dtype.isVectorOf(DTypes::FLOAT32))
@@ -1589,7 +1591,7 @@ public:
   template <class CppType>
   bool execute(Type type, Array& dst, Array src, Matrix up_pixel_to_logic, PointNd logic_centroid, Aborted aborted)
   {
-    if (!src) {
+    if (!src.valid()) {
       VisusAssert(false);
       return false;
     }
@@ -1603,7 +1605,7 @@ public:
     VisusReleaseAssert(src.alpha->dtype == DTypes::UINT8);
 
     //first argument
-    if (!dst)
+    if (!dst.valid())
     {
       auto dims = src.dims;
 
@@ -1707,7 +1709,7 @@ public:
 
     if (type == AverageBlend)
     {
-      if (!num)
+      if (!num.valid())
       {
         if (!num.resize(dims, DType(ncomponents , DTypes::FLOAT64), __FILE__, __LINE__))
           return false;
@@ -1760,7 +1762,7 @@ public:
 
     if (type == VororoiBlend)
     {
-      if (!best_distance)
+      if (!best_distance.valid())
       {
         if (!best_distance.resize(src.dims, DType(ncomponents, DTypes::FLOAT64), __FILE__, __LINE__))
           return false;
@@ -2262,7 +2264,7 @@ public:
     int N=0;
     for (int I=0;I<(int)args.size();I++)
     {
-      if (args[I]) 
+      if (args[I].valid())
         args[N++]=args[I];
     }
     args.resize(N);
@@ -2391,7 +2393,7 @@ public:
       if (args[I].dims!=biggest.dims)
       {
         args[I]=ArrayUtils::resample(biggest.dims,args[I],aborted);
-        if (!args[I])
+        if (!args[I].valid())
         {
           VisusAssert(aborted());
           return false;
@@ -2415,10 +2417,10 @@ public:
       if (aborted())
         return false;
 
-      if (args[I] && args[I].dtype!=dtype)
+      if (args[I].valid() && args[I].dtype!=dtype)
       {
         args[I]=ArrayUtils::cast(args[I],dtype,aborted);
-        if (!args[I]) {
+        if (!args[I].valid()) {
           VisusAssert(aborted());
           return false;
         }
@@ -2973,7 +2975,7 @@ struct ApplyTransferFunctionOp
 
 Array ArrayUtils::applyTransferFunction(SharedPtr<TransferFunction> tf, Array src, Aborted aborted)
 {
-  if (!src) return src;
+  if (!src.valid()) return src;
   Array dst;
   ApplyTransferFunctionOp op;
   return ExecuteOnCppSamples(op, src.dtype, dst, *tf, src, aborted) ? dst : Array();

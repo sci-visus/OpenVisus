@@ -102,9 +102,22 @@ static void RedirectLogToViewer(String msg, void* user_data)
   viewer->printInfo(msg);
 }
 
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 Viewer::Viewer(String title) : QMainWindow()
 {
+  if (GLInfo::getSingleton()->getGpuTotalMemory())
+  {
+    QueryNode::willFitOnGpu = [](Int64 size) {
+
+      auto freemem = GLInfo::getSingleton()->getGpuFreeMemory();
+      if ((1.2 * size) < freemem)
+        return true;
+      PrintInfo("Discarning data since it wont' fit on GPU", StringUtils::getStringFromByteSize(size), "freemem", StringUtils::getStringFromByteSize(freemem));
+      return false;
+    };
+  };
+
   this->config = *GuiModule::getModuleConfig();
 
   RedirectLogTo(RedirectLogToViewer, this);
@@ -462,9 +475,15 @@ SharedPtr<ViewerLogo> Viewer::openScreenLogo(String key, String default_logo)
     return SharedPtr<ViewerLogo>();
   }
 
+  auto tex = GLTexture::createFromQImage(img);
+  if (!tex) {
+    PrintInfo("Failed to create texture", filename);
+    return SharedPtr<ViewerLogo>();
+  }
+
   auto ret = std::make_shared<ViewerLogo>();
   ret->filename = filename;
-  ret->tex = std::make_shared<GLTexture>(img);
+  ret->tex = tex;
   ret->tex->envmode = GL_MODULATE;
   ret->pos[0] = StringUtils::contains(key, "Left") ? 0 : 1;
   ret->pos[1] = StringUtils::contains(key, "Bottom") ? 0 : 1;
@@ -744,68 +763,89 @@ void Viewer::enableSaveSession()
 //////////////////////////////////////////////////////////////////////
 void Viewer::idle()
 {
+  auto BSize = [](Int64 value) {
+    return StringUtils::getStringFromByteSize(value);
+  };
+
   this->dataflow->dispatchPublishedMessages();
 
   auto io_stats  = File::global_stats();
   auto net_stats = NetService::global_stats();
 
-  Int64   nthreads     = Thread::global_stats()->running_threads;
-  Int64   thread_njobs = ThreadPool::global_stats()->running_jobs;
-  Int64   net_njobs    = net_stats->tot_requests;
+  auto nthreads     = (Int64)Thread::global_stats()->running_threads;
+  auto thread_njobs = (Int64)ThreadPool::global_stats()->running_jobs;
+  auto net_njobs    = (Int64)net_stats->tot_requests;
 
-  bool bWasRunning = running.value?true:false;
-  bool& bIsRunning = running.value ;
-  bIsRunning = thread_njobs || net_njobs;
+  bool bWasRunning = running.value;
+  running.value = thread_njobs > 0 || net_njobs > 0;
+  bool bIsRunning = running.value;
 
-
-  if (bWasRunning!=bIsRunning)
+  //changle in the status
+  if (bIsRunning != bWasRunning)
   {
-    if (!bIsRunning)
+    if (bIsRunning)
     {
-      running.enlapsed=running.t1.elapsedSec();
-      //QApplication::restoreOverrideCursor();
+      running.t1 = Time::now();
+      io_stats->resetStats();
+      net_stats->resetStats();
+
+      running.t2 = Time::now();
     }
     else
     {
-      running.t1=Time::now();
-      io_stats->resetStats();
-      net_stats->resetStats();
-      //QApplication::setOverrideCursor(Qt::BusyCursor);
+      running.elapsed = running.t1.elapsedSec();
     }
+
+    running.io_rbytes = 0;
+    running.io_wbytes = 0;
+
+    running.io_rbytes_persec = 0;
+    running.io_wbytes_persec = 0;
   }
+
+  auto io_rbytes = (Int64)io_stats->rbytes;
+  auto io_wbytes = (Int64)io_stats->wbytes;
 
   std::ostringstream out;
 
   if (running.value)
-    out << "Working. "<<"TJOB(" << thread_njobs << ") "<<"NJOB(" << net_njobs << ") ";
+    out << "Running(" << (int)running.t1.elapsedSec() << ") ";
   else
-    out << "Ready runtime(" <<running.enlapsed<<"sec ";
+    out << "Done(" << running.elapsed << ") ";
 
-  out <<"nthreads(" << nthreads << ") ";
 
-  
-  out << "IO("
-    << StringUtils::getStringFromByteSize((Int64)io_stats->nopen ) << "/"
-    << StringUtils::getStringFromByteSize((Int64)io_stats->rbytes ) << "/"
-    << StringUtils::getStringFromByteSize((Int64)io_stats->wbytes) << ") ";
+  if (bIsRunning)
+  {
+    auto t2_elapsed = running.t2.elapsedSec();
+    if (t2_elapsed >= 1.0)
+    {
+      running.io_rbytes_persec = (Int64)((io_rbytes - running.io_rbytes) / t2_elapsed);
+      running.io_wbytes_persec = (Int64)((io_wbytes - running.io_wbytes) / t2_elapsed);
+      running.t2 = Time::now();
+      running.io_rbytes = io_rbytes;
+      running.io_wbytes = io_wbytes;
+    }
+  }
 
-  out << "NET("
-    << StringUtils::getStringFromByteSize((Int64)net_stats->tot_requests) << "/"
-    << StringUtils::getStringFromByteSize((Int64)net_stats->rbytes ) << "/"
-    << StringUtils::getStringFromByteSize((Int64)net_stats->wbytes) << ") ";
+  out << "io_nopen(" << (Int64)io_stats->nopen << ") ";
+  out << "io_rb(" << BSize(io_rbytes) << "/" << BSize(running.io_rbytes_persec) << ") ";
+  out << "io_wb(" << BSize(io_wbytes) << "/" << BSize(running.io_wbytes_persec) << ") ";
 
-  out << "RAM("
-    << StringUtils::getStringFromByteSize(RamResource::getSingleton()->getVisusUsedMemory()) + "/"
-    << StringUtils::getStringFromByteSize(RamResource::getSingleton()->getOsUsedMemory()) + "/"
-    << StringUtils::getStringFromByteSize(RamResource::getSingleton()->getOsTotalMemory()) << ") ";
+  out << "net_totreq(" << BSize((Int64)net_stats->tot_requests) << ") ";
+  out << "net_rb(" << BSize((Int64)net_stats->rbytes) << ") ";
+  out << "net_wb(" << BSize((Int64)net_stats->wbytes) << ") "; 
 
-  //this seems to slow down OpenGL a lot!
-#if 0
-  out << "GPU("
-    << StringUtils::getStringFromByteSize(GLInfo::getSingleton()->getVisusUsedMemory()) + "/"
-    << StringUtils::getStringFromByteSize(GLInfo::getSingleton()->getGpuUsedMemory()) + "/"
-    << StringUtils::getStringFromByteSize(GLInfo::getSingleton()->getOsTotalMemory()) << ") ";
-#endif
+  out << "mem_visus(" << BSize(RamResource::getSingleton()->getVisusUsedMemory()) << ") ";
+  out << "mem_used("  << BSize(RamResource::getSingleton()->getOsUsedMemory()) << ") ";
+  out << "mem_tot("   << BSize(RamResource::getSingleton()->getOsTotalMemory()) << ") ";
+
+  out << "gpu_tot("  << BSize(GLInfo::getSingleton()->getGpuTotalMemory()) << ") ";
+  out << "gpu_used(" << BSize(GLInfo::getSingleton()->getGpuUsedMemory()) << ") ";
+  out << "gpu_free(" << BSize(GLInfo::getSingleton()->getGpuFreeMemory()) << ") ";
+
+  out << "nthreads(" << nthreads << ") ";
+  out << "thread_njobs(" << thread_njobs << ") ";
+  out << "net_njobs(" << net_njobs << ") ";
 
   statusBar()->showMessage(out.str().c_str());
 }
@@ -2106,6 +2146,7 @@ QueryNode* Viewer::addVolume(String uuid, Node* parent, String fieldname, int ac
     query_node->setProgression(QueryGuessProgression);
     query_node->setQuality(QueryDefaultQuality);
     query_node->setBounds(dataset_node->getBounds());
+
     addNode(parent, query_node);
     connectNodes(dataset_node, query_node);
 

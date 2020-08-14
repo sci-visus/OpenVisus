@@ -364,7 +364,7 @@ public:
     auto& isocontour = *this->isocontour;
 
     //no data set
-    if (!data || !data.dims.innerProduct() || !data.dtype.valid())
+    if (!data.valid() || !data.dims.innerProduct() || !data.dtype.valid())
       return false;
 
     if (!data.bounds.valid())

@@ -715,9 +715,15 @@ private:
   class Running
   {
   public:
-    bool   value = false;
     Time   t1;
-    double enlapsed = 0;
+    bool   value = false;
+    double elapsed = 0;
+
+
+    Time   t2;
+    Int64  io_rbytes = 0, io_rbytes_persec = 0;
+    Int64  io_wbytes = 0, io_wbytes_persec = 0;
+
   };
 
   //________________________________________________

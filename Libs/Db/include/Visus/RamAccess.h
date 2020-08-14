@@ -54,7 +54,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(RamAccess)
 
   //constructor
-  RamAccess();
+  RamAccess(int bitsperblock);
 
   //destructor
   virtual ~RamAccess();

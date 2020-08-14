@@ -58,12 +58,7 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
 
   IdxFile idxfile;
   idxfile.logic_box=userbox;
-  {
-    Field field("myfield",in_dtype);
-    field.default_layout=default_layout;
-    field.filter=filter;
-    idxfile.fields.push_back(field);
-  }
+  idxfile.fields.push_back(Field::fromString("myfield " + in_dtype.toString() + " layout(" + default_layout + ") filter(" + filter + ")"));
   idxfile.bitsperblock=bitsperblock;
   idxfile.save(filename);
 
@@ -229,7 +224,7 @@ void Tutorial_6(String default_layout)
     String img_filename=GrayScale? "datasets/cat/gray.png" :"datasets/cat/rgb.png";
 
     Array src_image=ArrayUtils::loadImage(img_filename);
-    VisusReleaseAssert(src_image);
+    VisusReleaseAssert(src_image.valid());
     auto dataset=createDatasetFromImage("tmp/tutorial_6/visus.idx",src_image,dtype,dataset_offset,bitsperblock,default_layout,filters[NFilter]);
     VisusReleaseAssert(dataset);
     Field field=dataset->getField();
@@ -282,7 +277,7 @@ void Tutorial_6(String default_layout)
       auto buffer=query->buffer;
       buffer=query->filter.dataset_filter->dropExtraComponentIfExists(buffer);
       auto reconstructed=createImageFromBuffer(buffer);
-      VisusReleaseAssert(reconstructed);
+      VisusReleaseAssert(reconstructed.valid());
       
       //save the image
       {

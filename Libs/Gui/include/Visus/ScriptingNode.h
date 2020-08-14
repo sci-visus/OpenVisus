@@ -85,8 +85,8 @@ public:
   }
 
   //setCode
-  void setCode(String code) {
-    setProperty("SetCode", this->code, code);
+  void setCode(String code, bool bForce=false) {
+    setProperty("SetCode", this->code, code, bForce);
   }
 
   //processInput

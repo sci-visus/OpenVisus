@@ -231,7 +231,7 @@ public:
       connection->response.body = std::make_shared<HeapMemory>();
 
     size_t tot = size * nmemb;
-    NetService::global_stats()->wbytes+=tot;
+    NetService::global_stats()->rbytes+=tot;
 
     Int64 oldsize = connection->response.body->c_size();
     if (!connection->response.body->resize(oldsize + tot, __FILE__, __LINE__))
@@ -249,7 +249,7 @@ public:
 
     size_t& offset = connection->buffer_offset;
     size_t tot = std::min((size_t)connection->request.body->c_size() - offset, size * nmemb);
-    NetService::global_stats()->rbytes+=tot;
+    NetService::global_stats()->wbytes+=tot;
 
     memcpy(chunk, connection->request.body->c_ptr() + offset, tot);
     offset += tot;

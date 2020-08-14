@@ -489,12 +489,12 @@ def Main(args):
 		ExecuteCommand([sys.executable, "Samples/python/XIdx.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "Samples/python/TestConvert.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "Samples/python/MinMax.py"],check_result=True) 
-		ExecuteCommand([sys.executable, "-m","OpenVisus","server","--dataset","./datasets/cat/rgb.exit","--port","10000","--exit"],check_result=True) 
+		ExecuteCommand([sys.executable, "-m","OpenVisus","server","--dataset","./datasets/cat/rgb.idx","--port","10000","--exit"],check_result=True) 
 		sys.exit(0)
 
 	if action=="test-idx":
 		os.chdir(this_dir)
-		SelfTestIdx(300)
+		SelfTestIdx()
 		sys.exit(0)
 
 	# this is just to test run-time linking of shared libraries

@@ -105,7 +105,7 @@ public:
     String filename = args[1];
 
     IdxFile idxfile;
-    if (data && data.getTotalNumberOfSamples())
+    if (data.valid() && data.getTotalNumberOfSamples())
     {
       idxfile.logic_box = BoxNi(PointNi(data.getPointDim()), data.dims);
       idxfile.fields.push_back(Field("myfield", data.dtype));
@@ -157,7 +157,7 @@ public:
 
     idxfile.save(filename);
 
-    if (data)
+    if (data.valid())
     {
       auto db = LoadIdxDataset(filename);
       db->compressDataset({ "zip" }, data);
@@ -241,7 +241,7 @@ public:
     String filename = args[1];
 
     auto ret = ArrayUtils::loadImage(filename, args);
-    if (!ret)
+    if (!ret.valid())
       ThrowException(args[0], "cannot load image", filename);
 
     return ret;
@@ -303,7 +303,7 @@ public:
     String filename = args[1];
 
     Array to_paste = ArrayUtils::loadImage(filename, args);
-    if (!to_paste)
+    if (!to_paste.valid())
       ThrowException(args[0], "Cannot load", filename);
 
     int pdim = data.getPointDim();
@@ -645,6 +645,9 @@ void VisusConvert::runFromArgs(std::vector<String> args)
       PrintInfo(getHelp());
       return;
     }
+
+    if (name == "test-idx")
+      return SelfTestIdx();
 
     //begin of a new command
     if (actions.find(name) != actions.end())

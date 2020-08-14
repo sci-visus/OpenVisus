@@ -142,6 +142,15 @@ public:
     return true;
   }
 
+  //equals
+  static bool equals(SharedPtr<HeapMemory> a, SharedPtr<HeapMemory> b)
+  {
+    if (a && !a->c_size()) a.reset();
+    if (b && !b->c_size()) b.reset();
+    if (!a || !b) return !a && !b;
+    return a->c_size() == b->c_size() && memcmp(a->c_ptr(), b->c_ptr(), a->c_size())==0;
+  }
+
 private:
 
   //if managed or not (i.e. if isUnmanaged I'm not the owner of the memory)

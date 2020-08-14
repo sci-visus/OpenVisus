@@ -128,9 +128,17 @@ public:
       setModuleAttr("query_time", QUERY ? QUERY->time : DATASET->getTimesteps().getDefault());
 
       addModuleFunction("doPublish", [this](PyObject* self, PyObject* args) {
-        auto output = getModuleArrayAttr("output");
-        if (output && QUERY && QUERY->incrementalPublish)
-          QUERY->incrementalPublish(output);
+
+        auto output = getModuleAttr("output");
+
+        if (!output)
+          ThrowException("C++ ThrowException, ouput not set");
+
+        auto array = pythonObjectToArray(output);
+
+        if (array.valid() && QUERY && QUERY->incrementalPublish)
+          QUERY->incrementalPublish(array);
+
         return nullptr;
       });
 
@@ -159,9 +167,20 @@ public:
     ScopedAcquireGil acquire_gil;
     execCode(code);
 
-    auto ret = getModuleArrayAttr("output");
-    if (!ret && !aborted())
-      ThrowException("empty 'output' value");
+    auto output = getModuleAttr("output");
+
+    if (!output)
+      ThrowException("C++ ThrowException, output not set");
+
+    auto ret = pythonObjectToArray(output);
+
+    if (!ret.valid())
+    {
+      if (aborted())
+        return ret;
+      else
+        ThrowException("C++ ThrowException, output not valid");
+    }
 
     if (DATASET->debug_mode & IdxMultipleDataset::DebugSaveImages)
     {
@@ -215,7 +234,7 @@ private:
     {
       if (PyErr_Occurred())
       {
-        String error_msg = cstring("Python error code:\n", s, "\nError:\n", getPythonErrorMessage());
+        String error_msg = cstring("C++ catched Python error. Source code :\n", s, "\nPython Error Message:\n", getPythonErrorMessage());
         PyErr_Clear();
         PrintInfo(error_msg);
         ThrowException(error_msg);
@@ -235,7 +254,7 @@ private:
     {
       if (PyErr_Occurred())
       {
-        String error_msg = cstring("Python error code:\n", s, "\nError:\n", getPythonErrorMessage());
+        String error_msg = cstring("C++ catched Python error. Source code :\n", s, "\nPython Error Message:\n", getPythonErrorMessage());
         PyErr_Clear();
         PrintInfo(error_msg);
         ThrowException(error_msg);
@@ -388,7 +407,7 @@ private:
     int res = SWIG_ConvertPtr(py_object, (void**)&ptr, SWIG_TypeQuery("Visus::Array *"), 0);
 
     if (!SWIG_IsOK(res) || !ptr)
-      ThrowException("cannot convert to array");
+      ThrowException("C++ cannot convert to array");
 
     Array ret = *ptr;
 
@@ -396,15 +415,6 @@ private:
       delete ptr;
 
     return ret;
-  }
-
-  //getModuleArrayAttr
-  Array getModuleArrayAttr(String name)
-  {
-    auto py_object = getModuleAttr(name);
-    if (!py_object)
-      ThrowException("cannot find", name, "in module");
-    return pythonObjectToArray(py_object);
   }
 
   //newDynamicObject
@@ -436,7 +446,7 @@ private:
 
     auto dataset = DATASET->getChild(expr1);
     if (!dataset)
-      ThrowException("input['", expr1, "'] not found");
+      ThrowException("C++ error. input['", expr1, "'] not found");
 
     auto ret = newDynamicObject([this, expr1](String expr2) {
       return getAttr2(expr1, expr2);
@@ -475,7 +485,7 @@ private:
     Field field = dataset->getField(expr2);
 
     if (!field.valid())
-      ThrowException("input['", expr1, "']['", expr2, "'] not found");
+      ThrowException("C++ error. input['", expr1, "']['", expr2, "'] not found");
 
     int pdim = DATASET->getPointDim();
 
@@ -544,7 +554,7 @@ private:
 
           DATASET->executeDownQuery(QUERY, query);
 
-          if (!query->down_info.BUFFER || query->aborted())
+          if (!query->down_info.BUFFER.valid() || query->aborted())
             continue;
 
           blend.addBlendArg(query->down_info.BUFFER, query->down_info.PIXEL_TO_LOGIC, query->down_info.LOGIC_CENTROID);
@@ -555,7 +565,7 @@ private:
         for (auto it : QUERY->down_queries)
         {
           auto query = it.second;
-          if (!query || !query->down_info.BUFFER || query->aborted())
+          if (!query || !query->down_info.BUFFER.valid() || query->aborted())
             continue;
 
           blend.addBlendArg(query->down_info.BUFFER, query->down_info.PIXEL_TO_LOGIC, query->down_info.LOGIC_CENTROID);

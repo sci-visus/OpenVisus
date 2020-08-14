@@ -27,19 +27,20 @@ def CreateIdx(**args):
 	idx=IdxFile()
 		
 	buffer=None
+
 	if "data" in args:
 		data=args["data"]
-		dim=int(args["dim"])
-		Assert(dim>=2) # you must specify the point dim since it could be that data has multiple components
+		dim=int(args["dim"]);Assert(dim>=2) # you must specify the point dim since it could be that data has multiple components
 		buffer=Array.fromNumPy(data,TargetDim=dim, bShareMem=True)
-		idx.logic_box=BoxNi(PointNi.zero(dim),PointNi(buffer.dims))
-		N=1 if dim==len(data.shape) else data.shape[-1]
+		dims=PointNi(buffer.dims)
 
 	elif "dims" in args:
 		dims=PointNi(args["dims"])
-		idx.logic_box=BoxNi(PointNi.zero(dims.getPointDim()),dims)
+		
 	else:
 		raise Exception("please specify dimensions or source data")
+
+	idx.logic_box=BoxNi(PointNi.zero(dims.getPointDim()),dims)
 
 	# add fields
 	if "fields" in args:
@@ -53,7 +54,10 @@ def CreateIdx(**args):
 	# bitsperblock
 	if "bitsperblock" in args:
 		idx.bitsperblock=int(args["bitsperblock"])
-		
+
+	if "bitmask" in args:
+		idx.bitmask=DatasetBitmask.fromString(args["bitmask"])
+
 	# compute db overall size
 	TOT=0
 	for field in idx.fields:
@@ -82,6 +86,9 @@ def CreateIdx(**args):
 
 	if "filename_template" in args:
 		idx.filename_template=args["filename_template"]
+
+	if "bounds" in args:
+		idx.bounds=args["bounds"]
 
 	idx.save(url)
 	db=LoadDataset(url)
@@ -339,7 +346,7 @@ class PyDataset(object):
 			raise Exception("query error {0}".format(query.errormsg))
 			
 	# writeSlabs
-	def writeSlabs(self,slices, x=0, y=0, z=0, time=None, field=None, max_memsize=1024*1024*1024, access=None):
+	def writeSlabs(self,slices, x=0, y=0, z=0, time=None, field=None, max_memsize=4*1024*1024*1024, access=None):
 		
 		os.environ["VISUS_DISABLE_WRITE_LOCK"]="1"
 		
@@ -354,7 +361,7 @@ class PyDataset(object):
 			if memsize>=max_memsize: 
 				data=numpy.stack(slab,axis=0)
 				self.write(data , x=x, y=y, z=z,field=field,time=time)
-				z+=len(slabs)
+				z+=len(slab)
 				slab=[]
 				memsize=0
 

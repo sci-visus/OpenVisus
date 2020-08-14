@@ -72,8 +72,6 @@ public:
   Time                          last_publish = Time::now();
   int                           bitsperblock=0;
 
-  bool                          bBlocksAreFullRes=false;
-
   //constructor
   KdQueryJob() {
   }
@@ -110,7 +108,7 @@ public:
     VisusAssert(bitsperblock<=max_resolution);
 
     int end_resolution;
-    if (KdQueryMode::UseBlockQuery && !bBlocksAreFullRes)
+    if (KdQueryMode::UseBlockQuery && !dataset->blocksFullRes())
     {
       //I'm reading block 0+1 for block mode when the blocks are not fullres
       end_resolution = std::min(bitsperblock + 1, max_resolution);
@@ -174,108 +172,114 @@ public:
     if (aborted() || !node)
       return;
 
-    if (!node->fullres)
+    if (node->fullres.valid())
     {
-      if (bBlocksAreFullRes)
+      computeFullRes(node->left.get(), rlock);
+      computeFullRes(node->right.get(), rlock);
+      return;
+    }
+
+    //fullres:=blockdata
+    if (dataset->blocksFullRes())
+    {
+      if (node->blockdata.valid())
       {
-        if (node->blockdata)
-        {
-          {
-            ScopedWriteLock wlock(rlock);
-            node->fullres     = node->blockdata;
-            node->displaydata = node->blockdata;
-          }
-          publish();
-        }
-      }
-      else
-      {
-        //node->fullres = node->up->fullres+node->blockdata
-        if (!node->up->fullres || !node->blockdata)
-          return;
-
-        auto query = dataset->createBoxQuery(node->logic_box, field, time, 'r', this->aborted);
-        query->setResolutionRange(0, node->resolution);
-
-        if (aborted())
-          return;
-
-        dataset->beginBoxQuery(query);
-
-        if (!query->isRunning())
-          return;
-
-        auto splitbit    = bitmask[node->resolution - 1 - bitsperblock];
-        auto upsamplebit = bitmask[node->resolution];
-
-        bool bLeftChild = node->up->left.get() == node ? true : false;
-
-        auto fullres = bLeftChild ?
-          ArrayUtils::splitAndGetFirst(node->up->fullres, splitbit, aborted) :
-          ArrayUtils::splitAndGetSecond(node->up->fullres, splitbit, aborted);
-
-        if (aborted() || !fullres)
-          return;
-
-        fullres = ArrayUtils::upSample(fullres, upsamplebit, aborted);
-        if (aborted() || !fullres)
-          return;
-
-        VisusAssert(query->getNumberOfSamples() == fullres.dims);
-
-        //prepare to merge samples from current resolution
-        query->setCurrentResolution(node->resolution - 1);
-
-        VisusAssert(fullres.dims == query->getNumberOfSamples());
-        query->buffer = fullres;
-
-        auto blockquery = dataset->createBlockQuery(getBlockId(node), field, time, 'r', Aborted());
-        VisusAssert(blockquery->getNumberOfSamples() == node->blockdata.dims);
-        blockquery->buffer = node->blockdata;
-
-        if (aborted() || !dataset->mergeBoxQueryWithBlockQuery(query, blockquery))
-          return;
-
-        fullres = query->buffer;
-
-        //this is the latest resolution! needed also for filter->applyToQuery!
-        query->setCurrentResolution(node->resolution);
-
-        if (aborted())
-          return;
-
-        Array displaydata= fullres;
-
-        //need to apply the filter, from now on I can display the data
-        if (auto idx = std::dynamic_pointer_cast<IdxDataset>(dataset))
-        {
-          if (auto filter = idx->createFilter(field))
-          {
-            filter->internalComputeFilter(query.get(), /*bInverse*/true);
-            displaydata = filter->dropExtraComponentIfExists(fullres);
-          }
-        }
-
-        //store the results
         {
           ScopedWriteLock wlock(rlock);
-          node->blockdata = Array(); //don't need this anymore 
-          node->fullres = fullres;
-          node->displaydata = displaydata;
+          node->fullres     = node->blockdata;
+          node->displaydata = node->blockdata;
         }
-
         publish();
+      }
+
+      computeFullRes(node->left.get(), rlock);
+      computeFullRes(node->right.get(), rlock);
+      return;
+    }
+
+    //fullres := up->fullres + blockdata
+    if (!node->up->fullres.valid() || !node->blockdata.valid())
+      return;
+
+    auto query = dataset->createBoxQuery(node->logic_box, field, time, 'r', this->aborted);
+    query->setResolutionRange(0, node->resolution);
+
+    if (aborted())
+      return;
+
+    dataset->beginBoxQuery(query);
+
+    if (!query->isRunning())
+      return;
+
+    auto splitbit    = bitmask[node->resolution - 1 - bitsperblock];
+    auto upsamplebit = bitmask[node->resolution];
+
+    bool bLeftChild = node->up->left.get() == node ? true : false;
+
+    auto fullres = bLeftChild ?
+      ArrayUtils::splitAndGetFirst(node->up->fullres, splitbit, aborted) :
+      ArrayUtils::splitAndGetSecond(node->up->fullres, splitbit, aborted);
+
+    if (aborted() || !fullres.valid())
+      return;
+
+    fullres = ArrayUtils::upSample(fullres, upsamplebit, aborted);
+    if (aborted() || !fullres.valid())
+      return;
+
+    VisusAssert(query->getNumberOfSamples() == fullres.dims);
+
+    //prepare to merge samples from current resolution
+    query->setCurrentResolution(node->resolution - 1);
+
+    VisusAssert(fullres.dims == query->getNumberOfSamples());
+    query->buffer = fullres;
+
+    auto blockquery = dataset->createBlockQuery(getBlockId(node), field, time, 'r', Aborted());
+    VisusAssert(blockquery->getNumberOfSamples() == node->blockdata.dims);
+    blockquery->buffer = node->blockdata;
+
+    if (aborted() || !dataset->mergeBoxQueryWithBlockQuery(query, blockquery))
+      return;
+
+    fullres = query->buffer;
+
+    //this is the latest resolution! needed also for filter->applyToQuery!
+    query->setCurrentResolution(node->resolution);
+
+    if (aborted())
+      return;
+
+    Array displaydata= fullres;
+
+    //need to apply the filter, from now on I can display the data
+    if (auto idx = std::dynamic_pointer_cast<IdxDataset>(dataset))
+    {
+      if (auto filter = idx->createFilter(field))
+      {
+        filter->internalComputeFilter(query.get(), /*bInverse*/true);
+        displaydata = filter->dropExtraComponentIfExists(fullres);
       }
     }
 
-    computeFullRes(node->left .get(), rlock);
+    //store the results
+    {
+      ScopedWriteLock wlock(rlock);
+      node->blockdata = Array(); //don't need this anymore 
+      node->fullres = fullres;
+      node->displaydata = displaydata;
+    }
+
+    publish();
+    computeFullRes(node->left.get(), rlock);
     computeFullRes(node->right.get(), rlock);
   }
 
   //getBlockId
   BigInt getBlockId(KdArrayNode* node) 
   {
-    return BigInt(bBlocksAreFullRes ? node->id - 1 : node->id); //IF !bBlocksAreFullRes node->id is the block number (considering that root has blocks 0 and 1)
+    return BigInt(dataset->blocksFullRes() ? node->id - 1 : node->id); //IF !block-are-full-res node->id is the block number (considering that root has blocks 0 and 1)
   }
 
   //isFinalNode
@@ -389,8 +393,8 @@ public:
         if (node->isLeaf())
         {
           ScopedWriteLock wlock(rlock);
-          auto splitbit = bitmask[1 + node->resolution - kdarray->root->resolution];
-          kdarray->split(node, splitbit); //jump the 'V'
+          auto splitbit = bitmask[1 + node->resolution - kdarray->root->resolution];  //jump the first letter
+          kdarray->split(node, splitbit);
         }
 
         bfs.push_back(node->left.get());
@@ -401,7 +405,7 @@ public:
       computeFullRes(node, rlock);
 
       //all done for the current node
-      if (node->fullres)
+      if (node->fullres.valid())
         continue;
 
       if (bUseBoxQuery)
@@ -427,12 +431,13 @@ public:
               return;
 
             auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
-            if (!decoded) return;
+            if (!decoded.valid()) 
+              return;
 
             //need the write lock here
             {
               ScopedWriteLock wlock(rlock);
-              VisusAssert(!node->fullres);
+              VisusAssert(!node->fullres.valid());
               node->fullres = decoded;
               node->displaydata = decoded;
             }
@@ -455,11 +460,11 @@ public:
       else
       {
         //already got the blockdata
-        if (node->blockdata)
+        if (node->blockdata.valid())
           continue;
 
-        //for bBlocksAreFullRes I execute only final levels (since I don't need any merging)
-        if (bBlocksAreFullRes && !isFinalNode(node))
+        //for block-full-res I execute only final levels (since I don't need any merging)
+        if (dataset->blocksFullRes() && !isFinalNode(node))
           continue;
 
         //retrieve the block data
@@ -470,13 +475,10 @@ public:
           if (aborted() || blockquery->failed())
             return;
 
-          VisusAssert(!node->fullres && !node->blockdata);
+          VisusAssert(!node->fullres.valid() && !node->blockdata.valid());
 
-          //make sure is row major
-          if (!blockquery->buffer.layout.empty())
-            dataset->convertBlockQueryToRowMajor(blockquery);
-
-          if (!blockquery->buffer)
+          dataset->convertBlockQueryToRowMajor(blockquery);
+          if (!blockquery->buffer.valid() || !blockquery->buffer.layout.empty())
             return;
 
           //need the write lock here
@@ -600,8 +602,6 @@ bool KdQueryNode::processInput()
     //physic coordinates
     kdarray->clipping = dataset->logicToPhysic(logic_position);
     kdarray->bounds   = dataset->logicToPhysic(logic_box);
-
-    job->bBlocksAreFullRes = std::dynamic_pointer_cast<GoogleMapsDataset>(dataset) ? true : false;
 
     //TODO enable also for UseBlockQuery?
     if (kdquery_mode == KdQueryMode::UseBoxQuery)

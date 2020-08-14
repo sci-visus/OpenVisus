@@ -45,7 +45,6 @@ For support : support@visus.net
 #include <Visus/IdxDataset.h>
 #include <Visus/IdxMultipleDataset.h>
 #include <Visus/IdxFilter.h>
-#include <Visus/IdxMultipleDataset.h>
 
 namespace Visus {
 
@@ -62,22 +61,39 @@ class ModVisus::Datasets
 {
 public:
 
+  VISUS_NON_COPYABLE_CLASS(Datasets)
+
   //constructor
-  Datasets(const StringTree& config) 
-  {
-    StringTree datasets("datasets");
-    addPublicDatasets(datasets, config);
-    datasets_xml_body  = datasets.toXmlString();
-    datasets_json_body = datasets.toJSONString();
+  Datasets() : datasets("datasets"){
+  }
+
+  //constructor
+  Datasets(const StringTree& config) : Datasets() {
+    addPublicDatasets(config);
   }
 
   //destructor
   ~Datasets() {
   }
 
+  //addPublicDatasets
+  void addPublicDatasets(const StringTree& config)
+  {
+    this->addPublicDatasets(this->datasets, config);
+    this->datasets_xml_body = this->datasets.toXmlString();
+    this->datasets_json_body = this->datasets.toJSONString();
+  }
+
   //getNumberOfDatasets
   int getNumberOfDatasets() const {
-    return (int)datasets_map.size();
+    return (int)dataset_map.size();
+  }
+
+  //findDataset
+  SharedPtr<Dataset> findDataset(String name) const
+  {
+    auto it = dataset_map.find(name);
+    return (it != dataset_map.end()) ? it->second : SharedPtr<Dataset>();
   }
 
   //createPublicUrl
@@ -94,40 +110,33 @@ public:
       return datasets_xml_body;
   }
 
-  //findDataset
-  SharedPtr<Dataset> findDataset(String name) const
-  {
-    auto it = datasets_map.find(name);
-    return (it != datasets_map.end()) ? it->second : SharedPtr<Dataset>();
-  }
-
 private:
 
-  VISUS_NON_COPYABLE_CLASS(Datasets)
-
-  typedef std::map<String, SharedPtr<Dataset > > DatasetMap;
-
-  DatasetMap        datasets_map;
-  String            datasets_xml_body;
-  String            datasets_json_body;
+  StringTree                              datasets;
+  std::map<String, SharedPtr<Dataset > >  dataset_map;
+  String                                  datasets_xml_body;
+  String                                  datasets_json_body;
 
   //addPublicDataset
-  int addPublicDataset(StringTree& dst, String name, SharedPtr<Dataset> dataset) 
+  int addPublicDataset(StringTree& dst, String name, SharedPtr<Dataset> dataset)
   {
-    int ret = 1;
-    datasets_map[name] = dataset;
+    this->dataset_map[name] = dataset;
     dataset->setServerMode(true);
-    
-    StringTree public_dataset("dataset");
-    public_dataset.write("name", name);
-    public_dataset.write("url", createPublicUrl(name));
-    dst.addChild(public_dataset);
+
+    auto child= dst.addChild("dataset");
+    child->write("name", name);
+    child->write("url", createPublicUrl(name));
 
     //automatically add the childs of a multiple datasets
-    if (auto midx=std::dynamic_pointer_cast<IdxMultipleDataset>(dataset))
+    int ret = 1;
+    if (auto midx = std::dynamic_pointer_cast<IdxMultipleDataset>(dataset))
     {
       for (auto it : midx->down_datasets)
-        ret += addPublicDataset(public_dataset, name + "/" + it.first, it.second);
+      {
+        auto child_name    = it.first;
+        auto child_dataset = it.second;
+        ret += addPublicDataset(*child, name + "/" + child_name, child_dataset);
+      }
     }
 
     return ret;
@@ -136,52 +145,60 @@ private:
   //addPublicDatasets
   int addPublicDatasets(StringTree& dst, const StringTree& cursor)
   {
-    int ret = 0;
-
     //I want to maintain the group hierarchy!
     if (cursor.name == "group")
     {
+      int ret = 0;
       StringTree group(cursor.name);
       group.attributes = cursor.attributes;
       for (auto child : cursor.getChilds())
         ret += addPublicDatasets(group, *child);
+
       if (ret)
         dst.addChild(group);
+
       return ret;
     }
 
     //flattening the hierarchy!
-    if (cursor.name != "dataset") 
+    if (cursor.name != "dataset")
     {
+      int ret = 0;
       for (auto child : cursor.getChilds())
         ret += addPublicDatasets(dst, *child);
       return ret;
     }
 
-    //just ignore those with empty names or not public
-    String name = cursor.readString("name");
-    String url  = cursor.readString("url");
-    bool is_public = StringUtils::contains(cursor.readString("permissions"), "public");
-    if (name.empty() || !is_public || !Url(url).valid())
+    String url = cursor.readString("url");
+    if (!Url(url).valid())
       return 0;
 
+    bool is_public = StringUtils::contains(cursor.readString("permissions"), "public");
+    if (!is_public)
+      return 0;
+
+    String name = cursor.readString("name");
+    if (name.empty())
+      return 0;
+    
     SharedPtr<Dataset> dataset;
     try
     {
       dataset = LoadDatasetEx(cursor);
     }
-    catch(...) {
+    catch (...) {
       PrintWarning("dataset name", name, "load failed, skipping it");
       return 0;
     }
 
-    if (datasets_map.find(name) != datasets_map.end()) {
+    if (dataset_map.count(name)) {
       PrintWarning("dataset name", name, "already exists, skipping it");
       return 0;
     }
 
     return addPublicDataset(dst, name, dataset);
   }
+
 
 };
 
@@ -401,6 +418,7 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
         prefix += cur->readString("name");
         cur->write("url", datasets->createPublicUrl(prefix));
       }
+
       for (auto child : cur->getChilds())
         stack.push(std::make_pair(prefix, child.get()));
     }
@@ -526,7 +544,9 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
       if (!response.setArrayBody(compression, block_query->buffer))
       {
         //maybe i need to convert to row major to compress
-        if (!(dataset->convertBlockQueryToRowMajor(block_query) && response.setArrayBody(compression, block_query->buffer)))
+        dataset->convertBlockQueryToRowMajor(block_query);
+
+        if (!response.setArrayBody(compression, block_query->buffer))
         {
           responses.push_back(NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "Encoding converting to row major failed"));
           return;
@@ -634,7 +654,7 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
       }
 
       buffer = ArrayUtils::applyTransferFunction(tf, buffer);
-      if (!buffer)
+      if (!buffer.valid())
         return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "palette failed");
     }
   }
@@ -726,7 +746,7 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
       }
 
       buffer = ArrayUtils::applyTransferFunction(tf, buffer);
-      if (!buffer)
+      if (!buffer.valid())
         return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "palette failed");
     }
   }
@@ -746,10 +766,7 @@ NetResponse ModVisus::handleRequest(NetRequest request)
   //default action
   if (request.url.getParam("action").empty())
   {
-    String user_agent = StringUtils::toLower(request.getHeader("User-Agent"));
-
     bool bSpecifyDataset = request.url.hasParam("dataset");
-    //bool bCommercialBrower = !user_agent.empty() && !StringUtils::contains(user_agent, "visus");
 
     if (bSpecifyDataset)
     {

@@ -94,7 +94,7 @@ public:
   bool setData(Array data)
   {
     // for uint8 scalar fields only
-    if (!(data && data.dtype==(DTypes::UINT8)))
+    if (!(data.valid() && data.dtype==(DTypes::UINT8)))
       return false;
 
     this->data=data;

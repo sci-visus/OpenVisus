@@ -52,7 +52,7 @@ jobs:
         max_attempts: 3
         timeout_minutes: 5
         retry_wait_seconds: 5
-        command: 'cd /tmp && rm -Rf MacOSX-SDKs && git clone https://github.com/phracker/MacOSX-SDKs.git '
+        command: 'cd /tmp && rm -Rf MacOSX-SDKs && git clone https://github.com/phracker/MacOSX-SDKs.git'
            
     # ____________________________________________
     - name: Install CPython 
@@ -87,7 +87,7 @@ jobs:
       with:
         version: '5.12.8'
         arch: 'win64_msvc2017_64'
-        install-deps: 'true'  
+        install-deps: 'true'
         dir: C:\
         
      # ____________________________________________
@@ -104,7 +104,9 @@ jobs:
     - name: Install glu on ubuntu
       if: matrix.os == 'ubuntu-latest'
       shell: bash
-      run: sudo apt-get install libglu1-mesa-dev 1>/dev/null
+      run: |
+           sudo apt-get update
+           sudo apt-get install libglu1-mesa-dev 1>/dev/null
 
     # ____________________________________________
     - name: git clone OpenVisus

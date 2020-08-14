@@ -72,34 +72,29 @@ public:
   bool hasTexture3D() const
   {return gles_version==0 || gles_version>=3;}
 
-  //getVisusUsedMemory
-  Int64 getVisusUsedMemory();
+  //getGpuTotalMemory
+  Int64 getGpuTotalMemory() const {
+    return gpu_total_memory;
+  }
 
-  //getOsTotalMemory
-  Int64 getOsTotalMemory();
-
-  //setOsTotalMemory
-  void setOsTotalMemory(Int64 value);
-
-  //allocateOpenGLMemory
-  //bool allocateOpenGLMemory(Int64 reqsize);
-
-  //freeOpenGLMemory
-  //bool freeOpenGLMemory(Int64 reqsize);
-
-  //addVisusUsedMemory
-  void addVisusUsedMemory(Int64 size);
+  //setGpuTotalMemory
+  void setGpuTotalMemory(Int64 value) {
+    gpu_total_memory = value;
+  }
 
   //getGpuUsedMemory
   Int64 getGpuUsedMemory();
 
+  //setOsTotalMemory
+  Int64 getGpuFreeMemory() {
+    return getGpuTotalMemory() - getGpuUsedMemory();
+  }
+
 private:
 
-  CriticalSection lock;
-  Int64           visus_used_memory;
-  Int64           os_total_memory;
+  Int64 gpu_total_memory;
 
-  bool extension_GL_NVX_gpu_memory_info;
+  bool extension_GL_NVX_gpu_memory_info=false;
 
   //constructor
   GLInfo();

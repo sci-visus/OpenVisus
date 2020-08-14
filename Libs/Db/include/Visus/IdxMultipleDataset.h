@@ -149,6 +149,9 @@ private:
   //parseDatasets
   void parseDatasets(StringTree& cur, Matrix T);
 
+  //generateIdxFile
+  IdxFile generateIdxFile(Archive& ar);
+
 };
 
 } //namespace Visus

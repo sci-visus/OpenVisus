@@ -88,6 +88,9 @@ public:
 
   //in case there is time
   String time_template;
+
+  //missing_blocks
+  bool missing_blocks = false;
   
   //constructor
   IdxFile(int version_=0);

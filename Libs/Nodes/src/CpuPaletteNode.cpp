@@ -61,18 +61,18 @@ public:
 
   //valid
   inline bool valid() {
-    return node && input && bDataOutputPortConnected;
+    return node && input.valid() && bDataOutputPortConnected;
   }
 
   //runJob
   virtual void runJob() override
   {
-    if (!valid() || aborted() || !input)
+    if (!valid() || aborted() || !input.valid())
       return;
 
     Array output=ArrayUtils::applyTransferFunction(tf, input,this->aborted);
 
-    if (!output)
+    if (!output.valid())
       return;
 
     DataflowMessage msg;

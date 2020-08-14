@@ -106,15 +106,29 @@ void IdxFile::validate(String url)
     return;
   }
 
-  //bitmask
+  //bitmask, default guess is blocks not full res
   if (bitmask.empty())
-    bitmask = DatasetBitmask::guess(logic_box.p2);
-
-  if (!bitmask.valid())
   {
-    PrintWarning("invalid bitmask");
-    this->version = -1;
-    return;
+    bitmask = DatasetBitmask::guess('V', logic_box.p2);
+  }
+  else
+  {
+    //used specified only the first letter (V | F)
+    auto pattern = bitmask.toString();
+    if (pattern.size() == 1 && std::isalpha(pattern[0]))
+    {
+      auto first_letter = pattern[0];
+      bitmask = DatasetBitmask::guess(first_letter, logic_box.p2);
+    }
+    else
+    {
+      if (!bitmask.valid())
+      {
+        PrintWarning("invalid bitmask");
+        this->version = -1;
+        return;
+      }
+    }
   }
 
   auto pdim = bitmask.getPointDim();
@@ -149,26 +163,40 @@ void IdxFile::validate(String url)
       return;
     }
 
+    //full-res-block always row major (scrgiorgio: does it make sense to have IDX full-res in hzorder?)
+    if (bitmask[0] == 'F')
+    {
+      field.default_layout = "";
+      continue;
+    }
+
+    //guess
     if (field.default_layout.empty())
     {
-      field.default_layout = version < 6 ? "hzorder" : "";
-    }
-    else
-    {
-      //for historical reason '0' means hzorder and '1' means rowmajor; empty means row major
-      if (field.default_layout.empty() || field.default_layout == "rowmajor" || field.default_layout == "row_major" || field.default_layout == "1")
+      if (version < 6)
+        field.default_layout = "hzorder";
+      else
         field.default_layout = "";
 
-      else if (field.default_layout == "hzorder" || field.default_layout == "hz_order" || field.default_layout == "0")
-        field.default_layout = "hzorder";
-
-      else
-      {
-        VisusAssert(false);
-        PrintWarning("unknown field.default_layout", field.default_layout);
-        field.default_layout = ""; //rowmajor
-      }
+      continue;
     }
+    
+    //for historical reason '0' means hz and '1' means rowmajor; empty means row major
+    if (field.default_layout == "1" || StringUtils::contains(field.default_layout, "row"))
+    {
+      field.default_layout = "";
+      continue;
+    }
+
+    if (field.default_layout == "0" || StringUtils::contains(field.default_layout, "hz"))
+    {
+      field.default_layout = "hzorder";
+      continue;
+    }
+
+    VisusAssert(false);
+    PrintWarning("unknown field.default_layout", field.default_layout);
+    field.default_layout = ""; //rowmajor
   }
 
   //bitsperblock
@@ -246,12 +274,13 @@ void IdxFile::validate(String url)
     }
   }
 
-
   //filename_template
   if (filename_template.empty())
     filename_template = guessFilenameTemplate(url);
-}
 
+
+
+}
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -451,7 +480,9 @@ String IdxFile::writeToOldFormat() const
     }
   }
 
-  out<<"(filename_template)\n"<<filename_template<<"\n";
+  out << "(filename_template)\n" << filename_template << "\n";
+  out << "(missing_blocks)\n" << missing_blocks << "\n";
+
   return out.str();
 }
 
@@ -530,6 +561,7 @@ void IdxFile::readFromOldFormat(const String& content)
   this->bitsperblock = cint(map.getValue("(bitsperblock)"));
   this->blocksperfile = cint(map.getValue("(blocksperfile)"));
   this->filename_template = map.getValue("(filename_template)");
+  this->missing_blocks = cint(map.getValue("(missing_blocks)"));
 
   if (map.hasValue("(interleave)"))
     this->block_interleaving = cint(map.getValue("(interleave)"));
@@ -598,6 +630,7 @@ void IdxFile::write(Archive& ar) const
   ar.addChild("blocksperfile")->write("value", blocksperfile);
   ar.addChild("block_interleaving")->write("value", block_interleaving);
   ar.addChild("filename_template")->write("value", filename_template);
+  ar.addChild("missing_blocks")->write("value", missing_blocks);
   ar.addChild("time_template")->write("value", time_template);
 
   auto logic_to_physic = Position::computeTransformation(this->bounds, this->logic_box);
@@ -624,9 +657,17 @@ void IdxFile::read(Archive& ar)
   ar.getChild("blocksperfile")->read("value", blocksperfile);
   ar.getChild("block_interleaving")->read("value", block_interleaving);
   ar.getChild("filename_template")->read("value", filename_template);
+  ar.getChild("missing_blocks")->read("value", missing_blocks);
   ar.getChild("time_template")->read("value", time_template);
 
-  if (auto child = ar.getChild("physic_box"))
+
+  if (ar.hasAttribute("physic_box"))
+  {
+    BoxNd value;
+    ar.read("physic_box", value);
+    this->bounds = Position(value);
+  }
+  else if (auto child = ar.getChild("physic_box"))
   {
     BoxNd physic_box;
     child->read("value", physic_box);

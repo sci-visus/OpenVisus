@@ -36,63 +36,55 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef _VISUS_BYTE_ORDER_H__
-#define _VISUS_BYTE_ORDER_H__
+#ifndef __VISUS_DB_GOOGLE_MAPS_ACCESS_H
+#define __VISUS_DB_GOOGLE_MAPS_ACCESS_H
 
-#include <Visus/Kernel.h>
+#include <Visus/Db.h>
+#include <Visus/Access.h>
+#include <Visus/NetService.h>
 
 namespace Visus {
 
-//////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API ByteOrder
+//////////////////////////////////////////////////////////////
+class VISUS_DB_API GoogleMapsAccess : public Access
 {
 public:
 
-  //swap
-  template <typename T>
-  static inline T swap(T value) {
-    Uint8* bytes = (Uint8*)&value;
-    int N = sizeof(T);
-    for (int A = 0, B = N - 1; A < B; A++, B--)
-      std::swap(bytes[A], bytes[B]);
-    return value;
+  VISUS_NON_COPYABLE_CLASS(GoogleMapsAccess)
+
+  //constructor
+  GoogleMapsAccess(Dataset* dataset, String tiles_url, SharedPtr<NetService> netservice);
+
+  //destructor
+  virtual ~GoogleMapsAccess() {
   }
 
-  //isLittleEndian
-  static inline bool isLittleEndian() {
-    Uint32 value = 1;
-    return(((Uint8*)&value)[0] ? true : false);
+  //readBlock
+  virtual void readBlock(SharedPtr<BlockQuery> query) override;
+
+  //writeBlock
+  virtual void writeBlock(SharedPtr<BlockQuery> query) override
+  {
+    VisusAssert(false);//not supported
+    writeFailed(query);
   }
 
-  //isIntelX86ByteOrder
-  static inline bool isIntelX86ByteOrder() {
-    return isLittleEndian();
-  }
-
-  //isBigEndian
-  static inline bool isBigEndian() {
-    return !isLittleEndian();
-  }
-
-  //isNetworkByteOrder
-  static inline bool isNetworkByteOrder() {
-    return isBigEndian();
-  }
-
-  //swapByteOrder
-  template <typename T>
-  static inline T swapByteOrder(T value) {
-    return swap<T>(value);
+  //printStatistics
+  virtual void printStatistics() override {
+    PrintInfo(name, "url");
+    Access::printStatistics();
   }
 
 private:
 
-  ByteOrder()=delete;
+  Dataset*               dataset;
+  String                 tiles_url;
+  SharedPtr<NetService>  netservice;
 
-  VISUS_NON_COPYABLE_CLASS(ByteOrder)
 };
 
 
 } //namespace Visus
 
-#endif   // _VISUS_BYTE_ORDER_H__
+#endif //__VISUS_DB_GOOGLE_MAPS_ACCESS_H
+

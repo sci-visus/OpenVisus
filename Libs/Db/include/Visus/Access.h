@@ -122,33 +122,29 @@ public:
 
   //getMode
   int getMode() const {
-    if (isWriting()) return 'w';
-    if (isReading()) return 'r';
-    return 0;
-  }
-
-  //isReading
-  bool isReading() const {
-    return bReading;
+    return this->mode;
   }
 
   //isWriting
   bool isWriting() const {
-    return bWriting;
+    return this->mode == 'w';
+  }
+
+  //isReading
+  bool isReading() const {
+    return this->mode == 'r';
   }
 
   //beginIO
   virtual void beginIO(int mode) {
-    VisusReleaseAssert(!bReading && !bWriting);
-    this->bReading = mode == 'r';
-    this->bWriting = mode == 'w';
+    VisusReleaseAssert(this->mode == 0);
+    this->mode = mode;
   }
 
   //endIO
   virtual void endIO() {
-    VisusReleaseAssert(bReading || bWriting);
-    this->bReading = false;
-    this->bWriting = false;
+    VisusReleaseAssert(this->mode != 0);
+    this->mode = 0;
   }
 
   //readBlock
@@ -242,8 +238,7 @@ public:
 
 private:
 
-  bool bReading = false;
-  bool bWriting = false;
+  int mode=0;
 
 }; //end class
 
