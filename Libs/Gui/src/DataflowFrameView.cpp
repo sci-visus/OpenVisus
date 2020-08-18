@@ -41,6 +41,7 @@ For support : support@visus.net
 
 #include <QLabel>
 #include <QMouseEvent>
+#include <QPainterPath>
 
 namespace Visus {
 
