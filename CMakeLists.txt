@@ -150,7 +150,8 @@ if (VISUS_MINIMAL)
 		target_link_libraries(VisusMinimal  PRIVATE dl rt util pthread)
 	endif()
 	
-	add_subdirectory(Executable/use_minimal)
+	# use_minimal is just an example...
+	# add_subdirectory(Executable/use_minimal)
 
 	INSTALL(DIRECTORY Libs/Kernel/include/Visus   DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Kernel/)
 	INSTALL(DIRECTORY Libs/Db/include/Visus       DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Db/)
