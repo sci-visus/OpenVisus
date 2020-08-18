@@ -377,7 +377,7 @@ make install
 ```
 
 
-To use the VisusIO you can create a Makefile (change as needed):
+To use the VisusMinimal you can create a Makefile (change as needed):
 
 ```
 CXX=g++-9 -std=c++11
@@ -391,7 +391,7 @@ CXX_FLAGS=\
 	-DVISUS_STATIC_DB_LIB=1
 
 main: main.o
-	$(CXX) -o $@ $< -L${OpenVisus_DIR}/lib -lVisusIO
+	$(CXX) -o $@ $< -L${OpenVisus_DIR}/lib -lVisusMinimal
  
 main.o: main.cpp 
 	$(CXX) $(CXX_FLAGS) -c -o $@ $< 
@@ -402,7 +402,8 @@ clean:
 .PHONY: clean
 ```
 
-
+If you don't want to use C++11 because you have an old compiler (like C++98) see Executable/use_minimal directory
+which use a `Visus/Minimal.h` header.
 
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## Commit CI

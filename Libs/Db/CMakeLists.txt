@@ -1,8 +1,9 @@
 
 FILE(GLOB RootSources
-	./include/Visus/Db.h         ./src/Db.cpp
-	./include/Visus/ModVisus.h   ./src/ModVisus.cpp
-	include/Visus/VisusConvert.h ./src/VisusConvert.cpp)
+	./include/Visus/Db.h           ./src/Db.cpp
+	./include/Visus/ModVisus.h     ./src/ModVisus.cpp
+	./include/Visus/VisusConvert.h ./src/VisusConvert.cpp
+	./include/Visus/Minimal.h      ./src/Minimal.cpp)
 source_group("" FILES ${RootSources})
 
 FILE(GLOB QuerySources ./include/Visus/*Query.h ./src/*Query.cpp ./include/Visus/LogicSamples.h ./src/LogicSamples.cpp)

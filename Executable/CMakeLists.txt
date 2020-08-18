@@ -1,5 +1,4 @@
 
-
 add_subdirectory(visus)
 
 if (VISUS_GUI)
@@ -9,8 +8,7 @@ endif()
 if (VISUS_MODVISUS)
 	add_subdirectory(mod_visus)
 endif()
-
-
+	
 
 
 

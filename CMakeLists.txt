@@ -94,7 +94,16 @@ if (VISUS_MINIMAL)
 	file(GLOB zfp_Sources       Libs/Kernel/src/zfp/*.cpp)
 	file(GLOB zlib_Sources      Libs/Kernel/src/zlib/*.c)
 	file(GLOB KernelSources     Libs/Kernel/src/*.cpp)
-	file(GLOB Db_Sources        Libs/Db/src/*.cpp)
+	file(GLOB DbSources        Libs/Db/src/*.cpp)
+
+	source_group("cryptlite"    FILES ${cryptlite_Sources})
+	source_group("dtl"          FILES ${dtl_Sources})
+	source_group("lz4"          FILES ${lz4_Sources})
+	source_group("tinyxml"      FILES ${tinyxml_Sources})
+	source_group("zfp"          FILES ${zfp_Sources})
+	source_group("zlib"         FILES ${zlib_Sources})
+	source_group("VisusKernel"  FILES ${KernelSources})
+	source_group("VisusDb"      FILES ${DbSources})
 
 	DisableWarning(${cryptlite_Sources})
 	DisableWarning(${dtl_Sources})
@@ -107,7 +116,7 @@ if (VISUS_MINIMAL)
 		file(GLOB KernelSources_MM Libs/Kernel/src/*.mm)
 	endif()	
 		
-	add_library(VisusIO STATIC 		
+	add_library(VisusMinimal STATIC 		
 		${cryptlite_Sources} 
 		${dtl_Sources} 
 		${lz4_Sources} 
@@ -116,11 +125,11 @@ if (VISUS_MINIMAL)
 		${zlib_Sources}
 		${KernelSources} 
 		${KernelSources_MM} 
-		${Db_Sources}
+		${DbSources}
 	)
 		
-	target_compile_definitions(VisusIO  PUBLIC  VISUS_STATIC_KERNEL_LIB=1 VISUS_STATIC_DB_LIB=1)
-	target_include_directories(VisusIO  
+	target_compile_definitions(VisusMinimal  PUBLIC  VISUS_STATIC_KERNEL_LIB=1 VISUS_STATIC_DB_LIB=1)
+	target_include_directories(VisusMinimal  
 		PUBLIC  ${CMAKE_SOURCE_DIR}/Libs/Kernel/include
 		PUBLIC  ${CMAKE_SOURCE_DIR}/Libs/Db/include
 		PRIVATE ${CMAKE_SOURCE_DIR}/Libs/Kernel/src
@@ -128,19 +137,20 @@ if (VISUS_MINIMAL)
 
 	if (WIN32)
 		if (MSVC)
-			target_compile_options(VisusIO PRIVATE /bigobj)
+			target_compile_options(VisusMinimal PRIVATE /bigobj)
 		endif()
-		target_compile_options(VisusIO PRIVATE -DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS)
-		target_link_libraries(VisusIO  PRIVATE Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib advapi32.lib)
+		target_compile_options(VisusMinimal PRIVATE -DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS)
+		target_link_libraries(VisusMinimal  PRIVATE Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib advapi32.lib)
 	elseif (CLANG)
-		target_compile_options(VisusIO PRIVATE  -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
-		target_link_libraries(VisusIO  PRIVATE "-framework CoreFoundation" "-framework Foundation")
-		set_target_properties(VisusIO  PROPERTIES XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME "NO")  # fixes problem of "_objc_readClassPair" missing
+		target_compile_options(VisusMinimal PRIVATE  -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
+		target_link_libraries(VisusMinimal  PRIVATE "-framework CoreFoundation" "-framework Foundation")
+		set_target_properties(VisusMinimal  PROPERTIES XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME "NO")  # fixes problem of "_objc_readClassPair" missing
 	else()
-		target_compile_options(VisusIO PRIVATE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE=1 -Wno-attributes -Wno-deprecated-declarations)
-		target_link_libraries(VisusIO  PRIVATE dl rt util pthread)
+		target_compile_options(VisusMinimal PRIVATE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE=1 -Wno-attributes -Wno-deprecated-declarations)
+		target_link_libraries(VisusMinimal  PRIVATE dl rt util pthread)
 	endif()
-
+	
+	add_subdirectory(Executable/use_minimal)
 
 	INSTALL(DIRECTORY Libs/Kernel/include/Visus   DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Kernel/)
 	INSTALL(DIRECTORY Libs/Db/include/Visus       DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Db/)
