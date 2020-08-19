@@ -484,7 +484,10 @@ def Main(args):
 		os.chdir(this_dir)
 		ExecuteCommand([sys.executable, "Samples/python/Array.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "Samples/python/Dataflow.py"],check_result=True) 
-		ExecuteCommand([sys.executable, "Samples/python/Dataflow2.py"],check_result=True) 
+
+		# temporarly disabled: atlantis down
+		# ExecuteCommand([sys.executable, "Samples/python/Dataflow2.py"],check_result=True) 
+
 		ExecuteCommand([sys.executable, "Samples/python/Idx.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "Samples/python/XIdx.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "Samples/python/TestConvert.py"],check_result=True) 

@@ -153,6 +153,10 @@ String cstring10(double value) {
 ///////////////////////////////////////////////////////////////////////////////
 void SetCommandLine(int argn, const char** argv)
 {
+  //already called
+  if (!CommandLine::args.empty())
+    return;
+
   CommandLine::argn = argn;
   CommandLine::argv = argv;
 
