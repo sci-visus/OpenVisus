@@ -48,7 +48,7 @@ For support : support@visus.net
 #include <ospray/ospray.h>
 #include <ospray/ospray_cpp.h>
 using namespace ospray;
-using namespace ospcommon;
+using namespace rkcommon;
 #endif
 
 namespace Visus {
@@ -493,7 +493,7 @@ public:
     directional_light.setParam("intensity", 10.f);
     directional_light.commit();
     std::vector<cpp::Light> lights = { ambient_light, directional_light };
-    world.setParam("light", cpp::Data(lights));
+    world.setParam("light", cpp::CopiedData(lights));
 
     // This is the Colors::DarkBlue color but pre-transformed srgb -> linear
     // so that when it's converted to srgb for display it will match the
@@ -520,8 +520,11 @@ public:
       return;
     }
 
-    if (data.heap == this->heap)
-      return;
+    bool dataChanged = (data.heap == this->heap);
+
+    // recommit tf still, just not the data itself
+    //if (data.heap == this->heap)
+    //  return;
 
     this->heap = data.heap;
     this->volumeValid = true;
@@ -547,12 +550,26 @@ public:
         if (ch < 2) ch_index = 1 - ch_index;
         tfnColors[i][ch_index] = palette->functions[ch_index]->getValue(x);
 
-        tfnOpacities[i] = palette->functions[3]->getValue(x);
+	// set G manually for now
+	if ((ch == 0) && (i >10)){
+	  tfnColors[i][ch_index] = 1;
+	}
+
+	// set R manually for now
+	if ((ch == 1) && (i >15)){
+	  tfnColors[i][ch_index] = 1;
+	}
+
+	// set opacity for channels manually for now
+	if ((ch != 2) || (i >70)){
+	  tfnOpacities[i] = palette->functions[3]->getValue(x);
+	}
+	
       }
 
       cpp::TransferFunction transferFcn("piecewiseLinear");
-      transferFcn.setParam("color", cpp::Data(tfnColors));
-      transferFcn.setParam("opacity", cpp::Data(tfnOpacities));
+      transferFcn.setParam("color", cpp::CopiedData(tfnColors));
+      transferFcn.setParam("opacity", cpp::CopiedData(tfnOpacities));
       transferFcn.setParam("valueRange", math::vec2f(range.from, range.to));
       transferFcn.commit();
 
@@ -571,20 +588,23 @@ public:
       byteStride[1] = byteStride[0] * data.dims[0];
       byteStride[2] = byteStride[1] * data.dims[1];
 
-      const bool isShared = false;
+      //const bool isShared = false;
 
-      cpp::Data volumeData;
+      //cpp:CopiedData volumeData;
+      cpp::SharedData volumeData;
+      
       if (ospDType == OSP_UCHAR) 
-        volumeData = cpp::Data(volumeDims, byteStride, reinterpret_cast<uint8_t*>(init), isShared);
+        volumeData = cpp::SharedData(reinterpret_cast<uint8_t*>(init), volumeDims, byteStride);
 
       else if (ospDType == OSP_USHORT) 
-        volumeData = cpp::Data(volumeDims, byteStride, reinterpret_cast<uint16_t*>(init), isShared);
-
+        //volumeData = cpp::CopiedData(reinterpret_cast<uint16_t*>(init), volumeDims, byteStride);
+	volumeData = cpp::SharedData(reinterpret_cast<uint16_t*>(init), volumeDims, byteStride);
+      
       else if (ospDType == OSP_FLOAT) 
-        volumeData = cpp::Data(volumeDims, byteStride, reinterpret_cast<float*>(init), isShared);
+        volumeData = cpp::SharedData(reinterpret_cast<float*>(init), volumeDims, byteStride);
 
       else if (ospDType == OSP_DOUBLE) 
-        volumeData = cpp::Data(volumeDims, byteStride, reinterpret_cast<double*>(init), isShared);
+        volumeData = cpp::SharedData(reinterpret_cast<double*>(init), volumeDims, byteStride);
 
       else {
         PrintInfo("OSPRay only supports scalar voxel types");
@@ -617,7 +637,7 @@ public:
       volumeModel.commit();
 
       cpp::Group group;
-      group.setParam("volume", cpp::Data(volumeModel));
+      group.setParam("volume", cpp::CopiedData(volumeModel));
       group.commit();
 
       cpp::Instance instance(group);
@@ -631,7 +651,7 @@ public:
       //world.commit();
     }
 
-    world.setParam("instance", cpp::Data(instances));
+    world.setParam("instance", cpp::CopiedData(instances));
     // TODO some lights?
     world.commit();
 
@@ -681,7 +701,7 @@ public:
       camera.setParam("aspect", imgDims[0] / static_cast<float>(imgDims[1]));
       camera.commit();
 
-      framebuffer = cpp::FrameBuffer(math::vec2i(imgDims[0], imgDims[1]), OSP_FB_SRGBA,
+      framebuffer = cpp::FrameBuffer(imgDims[0], imgDims[1], OSP_FB_SRGBA,
         OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_VARIANCE);
     }
 

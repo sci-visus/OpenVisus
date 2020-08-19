@@ -87,8 +87,8 @@ target_compile_definitions(VisusGui  PRIVATE VISUS_OPENGL_ES=0)
 target_include_directories(VisusGui  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 if (VISUS_OSPRAY)
-	target_compile_definitions(VisusGui PUBLIC -DVISUS_OSPRAY=1)
-	target_link_libraries(VisusGui PUBLIC ospray::ospray ospcommon::ospcommon)
+	target_compile_definitions(VisusGui PUBLIC -DVISUS_OSPRAY=1 -DOSPRAY_CPP_RKCOMMON_TYPES)
+	target_link_libraries(VisusGui PUBLIC ospray::ospray rkcommon::rkcommon)
 endif()
 
 target_link_libraries(VisusGui PUBLIC VisusNodes VisusDb VisusDataflow VisusXIdx VisusKernel)
