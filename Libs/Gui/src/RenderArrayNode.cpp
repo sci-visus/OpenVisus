@@ -397,6 +397,7 @@ public:
 /////////////////////////////////////////////////////////////////////////////////////
 #if VISUS_OSPRAY
 
+#define USE_LLSMDATA 1 // use R2_view2_offset1_3color.idx
 
   //DTypeToOSPDtype
 static OSPDataType DTypeToOSPDtype(const DType& dtype) {
@@ -442,6 +443,133 @@ static String OspDTypeStr(const OSPDataType t)
   ThrowException("Unsupported data type for OSPVolume");
   return nullptr;
 }
+
+// set tesing volume
+void setTestVol(SharedPtr<Palette> palette, std::vector<cpp::Instance> &instances){
+  uint32_t N = 3;
+  math::vec2f range = math::vec2f(0, 100);
+  math::vec3ul dims = math::vec3ul(100, 100, 100);
+  math::vec3ul boxes = math::vec3ul(100, 100, 100);
+    
+  const DType dtype = DTypes::FLOAT32;
+    
+  for (int ch = 0; ch < N; ch++) //scrgiorgio: RGBA does not work right now
+    {
+      const size_t npaletteSamples = 128;
+      std::vector<math::vec3f> tfnColors(npaletteSamples, math::vec3f(0.f));
+      std::vector<float> tfnOpacities(npaletteSamples, 0.f);
+
+      for (size_t i = 0; i < npaletteSamples; ++i)
+	{
+	  const float x = static_cast<float>(i) / npaletteSamples;
+	  // Assumes functions = {R, G, B, A}
+	  // assigin one color to each channel
+	  size_t ch_index = ch;
+	  // set to full color always
+	  tfnColors[i][ch_index] = 1;//palette->functions[ch_index]->getValue(x);
+	  tfnOpacities[i] = palette->functions[3]->getValue(x);
+	}
+
+      cpp::TransferFunction transferFcn("piecewiseLinear");
+      transferFcn.setParam("color", cpp::CopiedData(tfnColors));
+      transferFcn.setParam("opacity", cpp::CopiedData(tfnOpacities));
+      transferFcn.setParam("valueRange", range);
+      transferFcn.commit();
+
+
+      // OSPRay shares the data pointer with us, does not copy internally
+      const OSPDataType ospDType = DTypeToOSPDtype(dtype);
+      
+      
+      std::vector<float> init;
+      std::string const testTypes[3] = {"gradientBox", "concenShperes", "interstSpheres"};
+      std::string testType = testTypes[2]; // change here for different test vol
+      
+      if (testType == testTypes[0]){
+	// a RGB box from left to right
+	for (size_t j = 0; j < dims[0]*dims[1]*dims[2]; j++){
+	  if (ch == 0){
+	    if (j%100 < 50) init.push_back(10*((50.f-j%100)/50.f));
+	    else init.push_back(0);
+	  }
+	  else if (ch == 1){
+	    init.push_back(10*((50-abs(int(j%100-50)))/50.f));
+	  }
+	  else {
+	    if (j%100 > 50) init.push_back(10*((j%100-50.f)/50.f));
+	    else init.push_back(0);
+	  }
+	}
+      }else if (testType == testTypes[1]){
+	// concentric RGB shperes
+	float radius[3] = {20, 35, 50};
+	math::vec3f center = dims/2.f;
+	
+	for (size_t j = 0; j < dims[0]*dims[1]*dims[2]; j++){
+	  math::vec3f pos;
+	  pos.x = j%dims[0];
+	  pos.y = (j%(dims[0]*dims[1]))/dims[0];
+	  pos.z = j/(dims[0]*dims[1]);
+
+	  float dist = math::length(pos - center);
+	  if(dist < radius[ch])init.push_back(10.f*(1-dist/radius[ch]));
+	  else init.push_back(0);
+	}
+      }else if (testType == testTypes[2]){
+	// RGB spheres intersecting each other
+	float radius[3] = {40, 40, 40};
+	math::vec3f centers[3] = {math::vec3f(50, 40, 40),
+				  math::vec3f(50, 40, 60),
+				  math::vec3f(50, 55, 55)};
+	
+	for (size_t j = 0; j < dims[0]*dims[1]*dims[2]; j++){
+	  math::vec3f pos;
+	  pos.x = j%dims[0];
+	  pos.y = (j%(dims[0]*dims[1]))/dims[0];
+	  pos.z = j/(dims[0]*dims[1]);
+
+	  float dist = math::length(pos - centers[ch]);
+	  if(dist < radius[ch])init.push_back(20.f*(1-dist/radius[ch]));
+	  else init.push_back(0);
+	}
+      }else{
+	PrintInfo("test volume not specified or supported!");
+      }
+    
+
+      cpp::CopiedData volumeData = cpp::CopiedData(reinterpret_cast<float*>(&init[0]), dims);
+      init.clear();
+
+      cpp::Volume volume = cpp::Volume("structuredRegular");
+      volume.setParam("dimensions", dims);
+      volume.setParam("data", volumeData);
+      volume.setParam("voxelType", ospDType);
+
+      // Scale the smaller volumes we get while loading progressively to fill the true bounds
+      // of the full dataset
+      const math::vec3f gridSpacing(10, 10, 10);
+      volume.setParam("gridSpacing", gridSpacing);
+      volume.commit();
+
+      // TODO setup group/instance/world
+      cpp::VolumetricModel volumeModel(volume);
+      volumeModel.setParam("transferFunction", transferFcn);
+      volumeModel.commit();
+
+      cpp::Group group;
+      group.setParam("volume", cpp::CopiedData(volumeModel));
+      group.commit();
+
+      cpp::Instance instance(group);
+      instance.commit();
+      
+      instances.push_back(instance);
+
+    }
+  
+  PrintInfo("TEST VOL");
+}
+
 
 class OSPRayRenderArrayNode : public RenderArrayNode::Pimpl {
 public:
@@ -510,7 +638,6 @@ public:
   virtual ~OSPRayRenderArrayNode() {
   }
 
-
   //setData
   virtual void setData(Array data, SharedPtr<Palette> palette) override
   {
@@ -522,12 +649,23 @@ public:
 
     bool dataChanged = (data.heap == this->heap);
 
-    // recommit tf still, just not the data itself
+    // has to be set to tf AND/OR data changes 
+    // to recommit individually
     //if (data.heap == this->heap)
     //  return;
 
     this->heap = data.heap;
     this->volumeValid = true;
+
+    // generate test vol
+    bool testVol = true;
+    if (testVol){
+      std::vector<cpp::Instance> instances;
+      setTestVol(palette, instances);
+      world.setParam("instance", cpp::CopiedData(instances));
+      world.commit();
+      return;
+    }
 
     std::vector<cpp::Instance> instances;
     auto N = data.dtype.ncomponents();
@@ -546,9 +684,10 @@ public:
         // Assumes functions = {R, G, B, A}
         // assigin one color to each channel
         size_t ch_index = ch;
+
+	#if USE_LLSMDATA
         // swap R G just for this dataset
         if (ch < 2) ch_index = 1 - ch_index;
-        tfnColors[i][ch_index] = palette->functions[ch_index]->getValue(x);
 
 	// set G manually for now
 	if ((ch == 0) && (i >10)){
@@ -564,6 +703,14 @@ public:
 	if ((ch != 2) || (i >70)){
 	  tfnOpacities[i] = palette->functions[3]->getValue(x);
 	}
+	#else
+	
+	// set opacity from palette
+	tfnOpacities[i] = palette->functions[3]->getValue(x);
+	#endif
+
+	// set color from palette
+        tfnColors[i][ch_index] = palette->functions[ch_index]->getValue(x);
 	
       }
 
