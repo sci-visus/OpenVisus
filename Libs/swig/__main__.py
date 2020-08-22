@@ -128,8 +128,14 @@ def InstallAndUsePyQt5(bUserInstall=False):
 	# NOTE: I'm installing packages here because I have problems specifying them in setup.py. Worth to give another try?
 	print("sys.executable",sys.executable, "is_conda",is_conda)
 	if is_conda:
-		import conda.cli
-		conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'numpy', "pillow", 'opencv', "pyqt={}.{}".format(major,minor))
+		import conda.cli 
+
+		conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'numpy', "pillow", 'opencv')
+		if WIN32:
+			# cannot use conda-forge version because they rename DLLS (like Qt5Core.dll->Qt5Core_conda.dll)
+			conda.cli.main('conda', 'install', '-y',                      "pyqt={}.{}".format(major,minor)) 
+		else:
+			conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', "pyqt={}.{}".format(major,minor))
 
 		# for some unknown reason I get: RuntimeError: module compiled against API version 0xc but this version of numpy is 0xa
 		# scrgiorgio: I don't care if it fails
