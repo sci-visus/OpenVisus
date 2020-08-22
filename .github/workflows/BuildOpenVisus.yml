@@ -68,7 +68,7 @@ jobs:
       shell: bash -l {0}
       run: |
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
--          conda install conda                                                             1>/dev/null
+           conda install conda                                                             1>/dev/null
 
     # ____________________________________________
     - name: Install Qt for windows
