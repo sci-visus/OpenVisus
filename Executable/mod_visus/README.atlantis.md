@@ -6,7 +6,7 @@ Compiled and install OpenVisus:
 cd Desktop/OpenVisus
 mkdir build_atlantis
 cd build_atlantis
-cmake  -DVISUS_GUI=0  ../
+cmake  -DVISUS_GUI=0  -DVISUS_HOME=/scratch/home/OpenVisus ../
 make -j
 make install
 
