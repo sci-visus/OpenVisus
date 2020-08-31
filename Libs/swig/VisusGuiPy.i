@@ -53,11 +53,15 @@ this_dir=os.path.dirname(os.path.realpath(__file__))
 
 import PyQt5
 
+qt5_candidates=[os.path.join(os.path.dirname(PyQt5.__file__),"Qt")]
+
 # see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
 is_conda = os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history'))
+if is_conda:
+	qt5_candidates.append(os.path.join(os.environ['CONDA_PREFIX'],"Library"))
 
 QT5_DIR=None
-for it in [os.path.join(os.path.dirname(PyQt5.__file__),"Qt")] + (os.path.join(os.environ['CONDA_PREFIX'],"Library") if is_conda else []):
+for it in qt5_candidates:
 
 	if not os.path.isdir(it):  
 		continue
