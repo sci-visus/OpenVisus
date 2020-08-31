@@ -56,6 +56,7 @@ For support : support@visus.net
 #include <string>
 #include <sstream>
 #include <vector>
+#include <iostream>
 
 inline PyThreadState*& __python_thread_state__() {
   static PyThreadState* ret = nullptr;
@@ -79,7 +80,14 @@ inline void InitEmbeddedPython(int argn, const char* argv[], std::string sys_pat
 
   //sometimes with apache/mod_visus I don't have the GIL and/oir current thread (python fatal error: PyEval_SaveThread: NULL tstate)
   if (PyGILState_Check())
+  {
+    std::cout<<"Embedded python has the GIL"<<std::endl;
     main_thread = PyEval_SaveThread(); //this release the GIL
+  }
+  else
+  {
+    std::cout << "Embedded python has failed to get the GIL" << std::endl;
+  }
 
   {
     auto acquire_gil = PyGILState_Ensure();
