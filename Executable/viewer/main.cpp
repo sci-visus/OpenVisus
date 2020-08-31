@@ -52,7 +52,8 @@ int main(int argn,const char* argv[])
   GuiModule::attach();
 
 #if VISUS_PYTHON
-  InitEmbeddedPython(argn, argv, KnownPaths::BinaryDirectory + "/../..", {"from OpenVisus import *", "from OpenVisus.gui import *"});
+  EmbeddedPythonMain(argn, argv);
+  EmbeddedPythonSetup(KnownPaths::BinaryDirectory + "/../..", {"from OpenVisus import *", "from OpenVisus.gui import *"});
 #endif
 
   {
@@ -65,7 +66,7 @@ int main(int argn,const char* argv[])
   GuiModule::detach();
   	
 #if VISUS_PYTHON  	
-  ShutdownEmbeddedPython();
+  EmbeddedPythonShutdown();
 #endif
   
   return 0;

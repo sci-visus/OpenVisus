@@ -53,7 +53,8 @@ int main(int argn, const char* argv[])
   DbModule::attach();
 
 #if VISUS_PYTHON
-  InitEmbeddedPython(argn, argv, KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
+  EmbeddedPythonMain(argn, argv);
+  EmbeddedPythonSetup(KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
 #endif
 
   auto args = std::vector<String>(CommandLine::args.begin() + 1, CommandLine::args.end());
@@ -62,7 +63,7 @@ int main(int argn, const char* argv[])
   DbModule::detach();
 
 #if VISUS_PYTHON
-  ShutdownEmbeddedPython();
+  EmbeddedPythonShutdown();
 #endif
 
   return 0;

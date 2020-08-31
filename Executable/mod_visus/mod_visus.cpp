@@ -169,7 +169,8 @@ public:
     DbModule::attach();
     	
 #if VISUS_PYTHON    	
-    InitEmbeddedPython(argn, argv, KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
+    EmbeddedPythonMain(argn, argv);
+    EmbeddedPythonSetup(KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
 #endif
 
     RedirectLogTo(MyWriteLog, this);
@@ -187,7 +188,7 @@ public:
     DbModule::detach();
     	
 #if VISUS_PYTHON
-    ShutdownEmbeddedPython();
+    EmbeddedPythonShutdown();
 #endif
   }
 
@@ -606,13 +607,14 @@ public:
   {
     PrintInfo("initialiseInCurrentProcess");
     RedirectLogTo(MyWriteLog, this);
-    static int narg=1;
+    static int argn =1;
     static const char *argv[]={"mod_visus"};
-    SetCommandLine(narg,argv);
+    SetCommandLine(argn,argv);
     DbModule::attach();
     	
 #if VISUS_PYTHON    	
-    InitEmbeddedPython(narg, argv, KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
+    EmbeddedPythonMain(argn, argv);
+    EmbeddedPythonSetup(KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
 #endif
 
     this->configureDatasets();
@@ -625,7 +627,7 @@ public:
     DbModule::detach();
     
 #if VISUS_PYTHON    	
-    ShutdownEmbeddedPython();
+    EmbeddedPythonShutdown();
 #endif
 
     RedirectLogTo(nullptr);

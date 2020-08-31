@@ -60,64 +60,59 @@ For support : support@visus.net
 
 #include <Visus/Kernel.h>
 
-inline PyThreadState*& __python_thread_state__() {
+////////////////////////////////////////////////////////////////////////////
+inline PyThreadState*& EmbeddedPythonThreadState() {
   static PyThreadState* ret = nullptr;
   return ret;
 }
 
-inline void InitEmbeddedPython(int argn, const char* argv[], std::string sys_path , std::vector<std::string> commands)
+////////////////////////////////////////////////////////////////////////////
+inline void EmbeddedPythonMain(int argn, const char* argv[])
 {
-  using namespace Visus;
-
-  auto& main_thread = __python_thread_state__();
-
-  #if PY_VERSION_HEX >= 0x03050000
+#if PY_VERSION_HEX >= 0x03050000
   Py_SetProgramName(Py_DecodeLocale((char*)argv[0], NULL));
-  #else
+#else
   Py_SetProgramName(_Py_char2wchar((char*)argv[0], NULL));
-  #endif
-  
+#endif
+
   Py_InitializeEx(0);
 
   //Initialize and acquire the global interpreter lock
   PyEval_InitThreads();
 
   //sometimes with apache/mod_visus I don't have the GIL and/oir current thread (python fatal error: PyEval_SaveThread: NULL tstate)
-  if (PyGILState_Check())
-  {
-    PrintInfo("Embedded python has the GIL");
-    main_thread = PyEval_SaveThread(); //this release the GIL
-  }
-  else
-  {
-    PrintInfo("Embedded python has failed to get the GIL");
-  }
-
-  {
-    auto acquire_gil = PyGILState_Ensure();
-
-    std::ostringstream out;
-    out << "import os, sys;\n";
-
-    if (!sys_path.empty())
-      out << "sys.path.append(os.path.realpath('" + sys_path + "'))\n";
-
-    for (auto cmd : commands)
-      out << cmd << "\n";
-
-    PyRun_SimpleString(out.str().c_str());
-    PyGILState_Release(acquire_gil);
-  }
+#if 1
+  auto& thread_state = EmbeddedPythonThreadState();
+  thread_state = PyEval_SaveThread(); //this release the GIL
+#endif
 }
 
-inline void ShutdownEmbeddedPython()
+////////////////////////////////////////////////////////////////////////////
+inline void EmbeddedPythonSetup(std::string sys_path , std::vector<std::string> commands)
 {
-  auto& main_thread = __python_thread_state__();
-  if (main_thread)
+  auto acquire_gil = PyGILState_Ensure();
+
+  std::ostringstream out;
+  out << "import os, sys;\n";
+
+  if (!sys_path.empty())
+    out << "sys.path.append(os.path.realpath('" + sys_path + "'))\n";
+
+  for (auto cmd : commands)
+    out << cmd << "\n";
+
+  PyRun_SimpleString(out.str().c_str());
+  PyGILState_Release(acquire_gil);
+}
+
+////////////////////////////////////////////////////////////////////////////
+inline void EmbeddedPythonShutdown()
+{
+  if (auto& thread_state = EmbeddedPythonThreadState())
   {
-    PyEval_RestoreThread(main_thread);
+    PyEval_RestoreThread(thread_state);
     Py_Finalize();
-    main_thread = nullptr;
+    thread_state = nullptr;
   }
 }
 
