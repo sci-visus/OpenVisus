@@ -235,7 +235,10 @@ static void InitKnownPaths()
 
   // Allow override of VisusHome
   if (auto VISUS_HOME = getenv("VISUS_HOME"))
+  {
+    PrintInfo("override from environment of VISUS_HOME", VISUS_HOME);
     KnownPaths::VisusHome = Path(VISUS_HOME);
+  }
 
   FileUtils::createDirectory(KnownPaths::VisusHome);
   KnownPaths::BinaryDirectory = Path(osdep::getCurrentApplicationFile()).getParent();
