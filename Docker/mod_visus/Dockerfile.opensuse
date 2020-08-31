@@ -1,10 +1,15 @@
-# sudo docker build --tag modvisus_opensus:1.0 -f Dockerfile.opensuse  .
-# sudo docker rm --force tmp 
-# sudo docker run   --publish 8080:80  --name tmp modvisus_opensus:1.0
-# wget -q -O -  "http://localhost:8080/mod_visus?action=list"
+# to build it:
+#    sudo docker build --tag modvisus_opensuse -f Dockerfile.opensuse .
+
+# to run it:
+#    sudo docker run   --publish 8080:80 modvisus_opensuse
+#    wget -q -O -  "http://localhost:8080/mod_visus?action=list"
 
 # if you need to debug:
-# sudo docker run -it --entrypoint /bin/bash modvisus_opensuse:1.0
+#    sudo docker run -it -w=/home/OpenVisus --entrypoint  /bin/bash modvisus_opensuse
+#    ./httpd-foreground.sh
+#    tail -n 100 /var/log/apache2/error_log
+#    tail -n 100 /var/log/apache2/access_log
 
 FROM opensuse/leap
 
