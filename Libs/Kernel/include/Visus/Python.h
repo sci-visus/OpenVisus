@@ -67,7 +67,7 @@ inline PyThreadState*& EmbeddedPythonThreadState() {
 }
 
 ////////////////////////////////////////////////////////////////////////////
-inline void EmbeddedPythonMain(int argn, const char* argv[])
+inline void EmbeddedPythonInit(int argn, const char* argv[], std::string sys_path, std::vector<std::string> commands)
 {
 #if PY_VERSION_HEX >= 0x03050000
   Py_SetProgramName(Py_DecodeLocale((char*)argv[0], NULL));
@@ -80,30 +80,29 @@ inline void EmbeddedPythonMain(int argn, const char* argv[])
   //Initialize and acquire the global interpreter lock
   PyEval_InitThreads();
 
-  //sometimes with apache/mod_visus I don't have the GIL and/oir current thread (python fatal error: PyEval_SaveThread: NULL tstate)
+  //sometimes PyEval_InitThreads in apache/mod_visus don't get the GIL (python fatal error: PyEval_SaveThread: NULL tstate)
   if (auto old_state = PyThreadState_Swap(nullptr))
   {
     PyThreadState_Swap(old_state);
     EmbeddedPythonThreadState() = PyEval_SaveThread(); //this release the GIL
   }
-}
 
-////////////////////////////////////////////////////////////////////////////
-inline void EmbeddedPythonSetup(std::string sys_path , std::vector<std::string> commands)
-{
-  auto acquire_gil = PyGILState_Ensure();
+  //evaluate some python commands
+  {
+    auto acquire_gil = PyGILState_Ensure();
 
-  std::ostringstream out;
-  out << "import os, sys;\n";
+    std::ostringstream out;
+    out << "import os, sys;\n";
 
-  if (!sys_path.empty())
-    out << "sys.path.append(os.path.realpath('" + sys_path + "'))\n";
+    if (!sys_path.empty())
+      out << "sys.path.append(os.path.realpath('" + sys_path + "'))\n";
 
-  for (auto cmd : commands)
-    out << cmd << "\n";
+    for (auto cmd : commands)
+      out << cmd << "\n";
 
-  PyRun_SimpleString(out.str().c_str());
-  PyGILState_Release(acquire_gil);
+    PyRun_SimpleString(out.str().c_str());
+    PyGILState_Release(acquire_gil);
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////

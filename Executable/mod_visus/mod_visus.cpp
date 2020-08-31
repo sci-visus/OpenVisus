@@ -169,8 +169,7 @@ public:
     DbModule::attach();
     	
 #if VISUS_PYTHON    	
-    EmbeddedPythonMain(argn, argv);
-    EmbeddedPythonSetup(KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
+    EmbeddedPythonInit(argn, argv, KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
 #endif
 
     RedirectLogTo(MyWriteLog, this);
@@ -613,8 +612,7 @@ public:
     DbModule::attach();
     	
 #if VISUS_PYTHON    	
-    EmbeddedPythonMain(argn, argv);
-    EmbeddedPythonSetup(KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
+    EmbeddedPythonInit(argn, argv, KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
 #endif
 
     this->configureDatasets();
