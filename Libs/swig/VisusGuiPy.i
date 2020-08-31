@@ -56,22 +56,26 @@ import PyQt5
 # see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
 is_conda = os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history'))
 
-candidates=[os.path.join(os.path.dirname(PyQt5.__file__),"Qt")]
-if is_conda:
-	candidates.append(os.path.join(os.environ['CONDA_PREFIX'],"Library"))
-
 QT5_DIR=None
-for it in candidates:
-	if not os.path.isdir(it): continue
+for it in [os.path.join(os.path.dirname(PyQt5.__file__),"Qt")] + (os.path.join(os.environ['CONDA_PREFIX'],"Library") if is_conda else []):
+
+	if not os.path.isdir(it):  
+		continue
+	
 	QT5_DIR=it
+	print("QT5_DIR", QT5_DIR)
+
+	# for windows I need to tell how to find Qt
+	if WIN32:
+		AddSysPath(os.path.join(QT5_DIR,"bin"))
+
+	# I need to tell where to found Qt plugins
+	os.environ["QT_PLUGIN_PATH"]= os.path.join(QT5_DIR, "plugins")
+
 	break
 
-# for windows I need to tell how to find Qt
-if WIN32:
-	AddSysPath(os.path.join(QT5_DIR,"bin"))
-
-# I need to tell where to found Qt plugins
-os.environ["QT_PLUGIN_PATH"]= os.path.join(QT5_DIR,"plugins")
+if QT5_DIR is None:
+	print("Cannot find QT5_DIR, OpenVisus GUI is probably going to crash")
 %}
 
 
