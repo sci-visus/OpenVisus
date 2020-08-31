@@ -87,9 +87,16 @@ namespace Visus {
 #define __str__(s) #s
 #define __xstr__(s) __str__(s)
 
+String OpenVisus_VERSION = "";
+
+#ifdef GIT_REVISION
+String OpenVisus_GIT_REVISION = __xstr__(GIT_REVISION);
+#else
+String OpenVisus_GIT_REVISION = "";
+#endif
 
 std::vector<String> CommandLine::args;
-  
+
 ConfigFile* VisusModule::getModuleConfig() {
   return Private::VisusConfig::getSingleton();
 }
@@ -324,14 +331,9 @@ void KernelModule::attach()
     if (bOk) break;
   }
 
-#ifdef GIT_REVISION
-  String __git_revision__ = __xstr__(GIT_REVISION);
-#else
-  String __git_revision__ = "";
-#endif
-
   PrintInfo(
-    "GIT_REVISION", __git_revision__,
+    "VERSION", OpenVisus_VERSION,
+    "GIT_REVISION", OpenVisus_GIT_REVISION,
     "VisusHome", KnownPaths::VisusHome, 
     "BinaryDirectory", KnownPaths::BinaryDirectory,
     "CurrentWorkingDirectory ", KnownPaths::CurrentWorkingDirectory());

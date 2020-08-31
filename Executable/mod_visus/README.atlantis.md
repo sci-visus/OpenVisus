@@ -10,7 +10,7 @@ cmake  -DVISUS_GUI=0  -DVISUS_HOME=/scratch/home/OpenVisus ../
 make -j
 make install
 
-SRC=/home/sci/scrgiorgio/Desktop/OpenVisus/build_atlantis/Release/OpenVisus
+SRC=$(pwd)/Release/OpenVisus
 DST=/usr/lib/python3.6/site-packages/OpenVisus
 rsync -r -v $SRC/ $DST # IMPORTANT the '/' suffix for $SRC
 diff -r $SRC $DST
