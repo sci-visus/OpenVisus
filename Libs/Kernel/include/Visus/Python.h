@@ -81,10 +81,11 @@ inline void EmbeddedPythonMain(int argn, const char* argv[])
   PyEval_InitThreads();
 
   //sometimes with apache/mod_visus I don't have the GIL and/oir current thread (python fatal error: PyEval_SaveThread: NULL tstate)
-#if 1
-  auto& thread_state = EmbeddedPythonThreadState();
-  thread_state = PyEval_SaveThread(); //this release the GIL
-#endif
+  if (auto old_state = PyThreadState_Swap(nullptr))
+  {
+    PyThreadState_Swap(old_state);
+    EmbeddedPythonThreadState() = PyEval_SaveThread(); //this release the GIL
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////
