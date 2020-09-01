@@ -58,7 +58,7 @@ ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_)
 
   this->num_queries_per_request = cint(this->config.readString("num_queries_per_request", "8"));
 
-  if (num_queries_per_request>1)
+  if (this->num_queries_per_request>1)
   {
     Url url(this->url.getProtocol() + "://" + this->url.getHostname() + ":" + cstring(this->url.getPort()) + "/mod_visus");
     url.setParam("action", "ping");
@@ -69,7 +69,11 @@ ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_)
     if (!bSupportAggregation)
     {
       PrintInfo("Server does not support block-query-support-aggregation, so I'm overriding num_queries_per_request to be 1");
-      num_queries_per_request = 1;
+      this->num_queries_per_request = 1;
+    }
+    else
+    {
+      PrintInfo("Server supports block query aggregration","num_queries_per_request", this->num_queries_per_request);
     }
   }
 
