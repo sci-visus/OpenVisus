@@ -51,20 +51,27 @@ class IdxBoxQueryHzAddressConversion;
 class IdxPointQueryHzAddressConversion;
 #endif
 
-
   //////////////////////////////////////////////////////////////////////
 class VISUS_DB_API IdxDataset : public Dataset
 {
 public:
 
-  //idxfile
-  IdxFile idxfile;
+#if !SWIG
+  struct
+  {
+    SharedPtr<IdxBoxQueryHzAddressConversion> box;
+    SharedPtr<IdxPointQueryHzAddressConversion> point;
+  }
+  hzconv;
+#endif
 
   //default constructor
-  IdxDataset();
+  IdxDataset() {
+  }
 
   //destructor
-  virtual ~IdxDataset();
+  virtual ~IdxDataset() {
+  }
 
   //castFrom
   static SharedPtr<IdxDataset> castFrom(SharedPtr<Dataset> db) {
@@ -76,98 +83,18 @@ public:
     return "IdxDataset";
   }
 
-public:
-
-  //createAccess
-  virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
-
-  //getBlockSamples
-  virtual LogicSamples getBlockSamples(BigInt blockid) override;
-
-  //convertBlockQueryToRowMajor
-  virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) override;
-
-public:
-
-  //beginBoxQuery
-  virtual void beginBoxQuery(SharedPtr<BoxQuery> query) override;
-
-  //nextBoxQuery
-  virtual void nextBoxQuery(SharedPtr<BoxQuery> query) override;
-
-  //executeBoxQuery
-  virtual bool executeBoxQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
+  //createBlockQueriesForBoxQuery
+  virtual std::vector< SharedPtr<BlockQuery> > createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query);
 
   //mergeBoxQueryWithBlockQuery
-  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> block_query) override;
+  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) override;
 
-  //createBoxQueryRequest
-  virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query) override;
 
-  //createEquivalentBoxQuery
-  SharedPtr<BoxQuery> createEquivalentBoxQuery(int mode, SharedPtr<BlockQuery> block_query);
-
-  //adjustBoxQueryFilterBox
-  BoxNi adjustBoxQueryFilterBox(BoxQuery* query, IdxFilter* filter, BoxNi box, int H);
-
-public:
-
-  //beginPointQuery
-  virtual void beginPointQuery(SharedPtr<PointQuery> query) override;
-
-  //executeBoxQuery
-  virtual bool executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) override;
-
-  //nextPointQuery
-  virtual void nextPointQuery(SharedPtr<PointQuery> query) override;
-
-public:
-
-  // removeFiles all files bolonging to this visus file 
-  void removeFiles();
-
-  //compressDataset
-  void compressDataset(std::vector<String> compression, Array data=Array());
-
-public:
-
-  //createFilter
-  SharedPtr<IdxFilter> createFilter(const Field& field);
-
-  //computeFilter
-  bool computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow, bool bVerbose=false) ;
-
-  //computeFilter
-  void computeFilter(const Field& field, int window_size, bool bVerbose = false);
-
-public:
+  //createBlockQueriesForPointQuery
+  virtual std::vector< SharedPtr<BlockQuery> > createBlockQueriesForPointQuery(SharedPtr<PointQuery> query) override;
 
   //readDatasetFromArchive
   virtual void readDatasetFromArchive(Archive& ar) override;
-
-protected:
-
-  friend class InsertBlockQueryHzOrderSamplesToBoxQuery;
-  friend class IdxMultipleDataset;
-
-  SharedPtr<IdxBoxQueryHzAddressConversion> hzaddress_conversion_boxquery;
-
-  // to speed up point queries
-  // But keep in mind that this "preprocessing" is slow and can consume  a lot of memory. 
-  // So use only when stricly necessary! 
-  SharedPtr<IdxPointQueryHzAddressConversion> hzaddress_conversion_pointquery;
-
-  //getLevelSamples
-  LogicSamples getLevelSamples(int H);
-
-  //setIdxFile
-  void setIdxFile(IdxFile value);
-
-  //setBoxQueryEndResolution
-  bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value);
-
-  //executeBoxQueryOnServer
-  bool executeBoxQueryOnServer(SharedPtr<BoxQuery> query);
 
 };
 
@@ -178,7 +105,7 @@ inline VISUS_DB_API SharedPtr<IdxDataset> LoadIdxDataset(String url) {
 }
 #endif
 
-VISUS_DB_API void SelfTestIdx(int max_seconds);
+VISUS_DB_API void SelfTestIdx(int max_seconds=300);
 
 } //namespace Visus
 

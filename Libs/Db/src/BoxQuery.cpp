@@ -46,7 +46,7 @@ bool BoxQuery::allocateBufferIfNeeded()
 {
   auto nsamples = getNumberOfSamples();
 
-  if (!buffer)
+  if (!buffer.valid())
   {
     if (!buffer.resize(nsamples, field.dtype, __FILE__, __LINE__))
       return false;

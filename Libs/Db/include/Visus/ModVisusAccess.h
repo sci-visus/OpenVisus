@@ -60,11 +60,6 @@ public:
   //destructor
   virtual ~ModVisusAccess();
 
-  //beginIO
-  virtual void beginIO(int mode) override{
-    Access::beginIO(mode);
-  }
-
   //readBlock 
   virtual void readBlock(SharedPtr<BlockQuery> query) override;
 

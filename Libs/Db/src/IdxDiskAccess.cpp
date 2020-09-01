@@ -217,16 +217,9 @@ public:
       return GetFilenameV56(idxfile, time_template, filename_template, field, time, blockid);
   }
 
-  //beginIO
-  virtual void beginIO(int mode) override {
-    Access::beginIO(mode);
-    this->mode = mode;
-  }
-
   //endIO
   virtual void endIO() override {
     closeFile("endIO");
-    this->mode = 0;
     Access::endIO();
   }
 
@@ -275,7 +268,7 @@ public:
       PrintInfo("Decoding buffer");
 
     auto decoded = ArrayUtils::decodeArray(compression, query->getNumberOfSamples(), query->field.dtype, encoded);
-    if (!decoded)
+    if (!decoded.valid())
       return failed("cannot decode the data");
 
     decoded.layout = layout;
@@ -290,10 +283,12 @@ public:
       if (bVerbose)
         PrintInfo("Swapping endian notation for Float32 type");
 
-      Float32* ptr = query->buffer.c_ptr<Float32*>();
-
-      for (int I = 0, N = (int)(query->buffer.c_size() / sizeof(Float32)); I<N; I++)
-        ptr[I] = ByteOrder::fromNetworkByteOrder(ptr[I]);
+      if (!ByteOrder::isNetworkByteOrder())
+      {
+        Float32* ptr = query->buffer.c_ptr<Float32*>();
+        for (int I = 0, N = (int)(query->buffer.c_size() / sizeof(Float32)); I < N; I++)
+          ptr[I] = ByteOrder::swapByteOrder(ptr[I]);
+      }
     }
 
     if (bVerbose)
@@ -346,13 +341,12 @@ private:
   HeapMemory     headers;
   BlockHeader*   block_headers=nullptr;
   File           file;
-  int            mode=0;
 
   //openFile
   bool openFile(String filename, String file_mode)
   {
     VisusReleaseAssert(!file_mode.empty());
-    VisusReleaseAssert(file_mode=="r");
+    VisusReleaseAssert(file_mode == "r");
 
     //useless code, already opened in the desired file_mode
     if (filename == this->file.getFilename() && "r" == this->file.getFileMode())
@@ -362,11 +356,11 @@ private:
       closeFile("need to openFile");
 
     if (bVerbose)
-      PrintInfo("Opening file",filename,"file_mode", "r");
+      PrintInfo("Opening file", filename, "file_mode", "r");
 
     if (!this->file.open(filename, "r"))
     {
-      closeFile(cstring("Cannot open file",filename));
+      closeFile(cstring("Cannot open file", filename));
       return false;
     }
 
@@ -377,9 +371,12 @@ private:
       return false;
     }
 
-    Int32* ptr = (Int32*)(this->headers.c_ptr());
-    for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
-      ptr[I] = ByteOrder::fromNetworkByteOrder(ptr[I]);
+    if (!ByteOrder::isNetworkByteOrder())
+    {
+      Int32* ptr = (Int32*)(this->headers.c_ptr());
+      for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
+        ptr[I] = ByteOrder::swapByteOrder(ptr[I]);
+    }
 
     return true;
   }
@@ -430,16 +427,9 @@ public:
     return GetFilenameV56(idxfile, time_template, filename_template, field, time, blockid);
   }
 
-  //beginIO
-  virtual void beginIO(int mode) override  {
-    Access::beginIO(mode);
-    this->mode = mode;
-  }
-
   //endIO
   virtual void endIO() override {
     closeFile("endIO");
-    this->mode = 0;
     Access::endIO();
   }
 
@@ -463,7 +453,7 @@ public:
 
     //try to open the existing file
     String filename = getFilename(query->field, query->time, blockid);
-    if (!openFile(filename, this->mode == 'w' ? "rw" : "r"))
+    if (!openFile(filename, isWriting() ? "rw" : "r"))
       return failed("cannot open file");
 
     if (aborted())
@@ -502,7 +492,7 @@ public:
 
     //TODO: noninterruptile
     auto decoded = ArrayUtils::decodeArray(compression, query->getNumberOfSamples(), query->field.dtype, encoded);
-    if (!decoded)
+    if (!decoded.valid())
       return failed("cannot decode the data");
 
     decoded.layout = layout;
@@ -770,7 +760,6 @@ private:
   FileHeader*     file_header=nullptr;
   BlockHeader*    block_headers = nullptr;
   SharedPtr<File> file;
-  int             mode=0;
 
   //re-entrant file lock
   std::map<String, int> file_locks;
@@ -807,9 +796,12 @@ private:
       }
 
       // network to host order
-      Uint32* ptr = (Uint32*)(this->headers.c_ptr());
-      for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Uint32); I < Tot; I++)
-        ptr[I] = ByteOrder::fromNetworkByteOrder(ptr[I]);
+      if (!ByteOrder::isNetworkByteOrder())
+      {
+        Uint32* ptr = (Uint32*)(this->headers.c_ptr());
+        for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Uint32); I < Tot; I++)
+          ptr[I] = ByteOrder::swapByteOrder(ptr[I]);
+      }
 
       return true;
     }
@@ -857,9 +849,12 @@ private:
     //need to write the headers
     if (this->file->canWrite())
     {
-      auto ptr = (Uint32*)(this->headers.c_ptr());
-      for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Uint32); I < Tot; I++)
-        ptr[I] = ByteOrder::toNetworkByteOrder(ptr[I]);
+      if (!ByteOrder::isNetworkByteOrder())
+      {
+        auto ptr = (Uint32*)(this->headers.c_ptr());
+        for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Uint32); I < Tot; I++)
+          ptr[I] = ByteOrder::swapByteOrder(ptr[I]);
+      }
 
       if (!this->file->write(0, this->headers.c_size(), this->headers.c_ptr()))
       {
@@ -954,6 +949,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
   // important!number of threads must be <=1 
 #if 1
   bool disable_async = config.readBool("disable_async", dataset->isServerMode());
+
   if (int nthreads = disable_async ? 0 : 1)
   {
     async_tpool = std::make_shared<ThreadPool>("IdxDiskAccess Thread", nthreads);
@@ -1013,6 +1009,7 @@ void IdxDiskAccess::beginIO(int mode)
     async_tpool->waitAll();
 
   Access::beginIO(mode);
+
   if (!isWriting() && async_tpool)
   {
     ThreadPool::push(async_tpool, [this, mode]() {
@@ -1049,7 +1046,7 @@ void IdxDiskAccess::endIO()
 ////////////////////////////////////////////////////////////////////
 void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
 {
-  VisusAssert(isReading());
+  VisusAssert(isReading() || isWriting());
 
   BigInt blockid = query->blockid;
 
@@ -1064,6 +1061,8 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
 
     return readFailed(query);
   }
+
+  //return query->setOk();
 
   if (bool bAsync = !isWriting() && async_tpool)
   {

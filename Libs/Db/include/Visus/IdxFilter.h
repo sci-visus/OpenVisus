@@ -45,7 +45,7 @@ For support : support@visus.net
 namespace Visus {
 
 //predeclaration
-class IdxDataset;
+class Dataset;
 class Access;
 class BoxQuery;
 
@@ -57,7 +57,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(IdxFilter)
 
   //dataset
-  IdxDataset* dataset;
+  Dataset* dataset;
 
   //name
   String name;
@@ -72,7 +72,7 @@ public:
   bool bNeedExtraComponent;
 
   //constructor
-  IdxFilter(IdxDataset* dataset_, const Field& field, int filtersize_, String name_)
+  IdxFilter(Dataset* dataset_, const Field& field, int filtersize_, String name_)
     : dataset(dataset_), dtype(field.dtype), size(filtersize_), name(name_), bNeedExtraComponent(false) {
   }
 

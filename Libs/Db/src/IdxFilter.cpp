@@ -37,7 +37,7 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/Db.h>
-#include <Visus/IdxDataset.h>
+#include <Visus/Dataset.h>
 #include <Visus/IdxFilter.h>
 
 namespace Visus   {
@@ -46,7 +46,7 @@ namespace Private {
 
 ///////////////////////////////////////////////////////////////////////////////
 template <typename CppType,class FilterClass>
-static void ComputeFilter(IdxDataset* dataset,BoxQuery* query,const FilterClass* filter,bool bInverse)
+static void ComputeFilter(Dataset* dataset,BoxQuery* query,const FilterClass* filter,bool bInverse)
 {
   const Field& field=query->field;
 
@@ -59,7 +59,7 @@ static void ComputeFilter(IdxDataset* dataset,BoxQuery* query,const FilterClass*
   LogicSamples     logic_samples  = query->logic_samples;
   DType            dtype      = field.dtype;
   int              ncomponents= dtype.ncomponents();
-  DatasetBitmask   bitmask    = dataset->getBitmask();
+  DatasetBitmask   bitmask    = dataset->idxfile.bitmask;
   int              bit        = bitmask[H];
   PointNi          dims       = query->getNumberOfSamples();
   PointNi          stride     = dims.stride();
@@ -170,7 +170,7 @@ class IdentityFilter: public IdxFilter
 public:
 
   //constructor
-  IdentityFilter(IdxDataset* dataset,const Field& field) : IdxFilter(dataset,field, /*filter_size*/2,"IdentityFilter")
+  IdentityFilter(Dataset* dataset,const Field& field) : IdxFilter(dataset,field, /*filter_size*/2,"IdentityFilter")
   {}
   
   //destructor
@@ -200,7 +200,7 @@ public:
   int ncomponents;
 
   //constructor
-  MinFilter(IdxDataset* dataset,const Field& field) : IdxFilter(dataset,field, /*filter_size*/2,"MinFilter")
+  MinFilter(Dataset* dataset,const Field& field) : IdxFilter(dataset,field, /*filter_size*/2,"MinFilter")
   {
     bNeedExtraComponent=true; //always need an extra sample to store the SWAP info
     ncomponents=field.dtype.ncomponents();
@@ -266,7 +266,7 @@ public:
   int ncomponents;
 
   //constructor
-  MaxFilter(IdxDataset* dataset,const Field& field) : IdxFilter(dataset,field, /*filter_size*/2,"MaxFilter")
+  MaxFilter(Dataset* dataset,const Field& field) : IdxFilter(dataset,field, /*filter_size*/2,"MaxFilter")
   {
     bNeedExtraComponent = true; //always need an extra sample to store the SWAP info
     ncomponents=field.dtype.ncomponents();
@@ -332,7 +332,7 @@ public:
   int ncomponents;
 
   //constructor
-  DeHaarDiscreteFilter(IdxDataset* dataset,const Field& field) : IdxFilter(dataset,field,/*filter_size*/2,"DeHaarDiscreteFilter")
+  DeHaarDiscreteFilter(Dataset* dataset,const Field& field) : IdxFilter(dataset,field,/*filter_size*/2,"DeHaarDiscreteFilter")
   {
     bNeedExtraComponent = true; //always need an extra sample to store the sign
     ncomponents=field.dtype.ncomponents();
@@ -402,7 +402,7 @@ public:
   int ncomponents;
 
   //constructor
-  DeHaarContinuousFilter(IdxDataset* dataset,const Field& field) 
+  DeHaarContinuousFilter(Dataset* dataset,const Field& field) 
     : IdxFilter(dataset,field,/*filter_size*/2,"DeHaarContinuousFilter")
   {
     VisusAssert(sizeof(R)>=sizeof(CppType));
@@ -484,7 +484,7 @@ PointNi IdxFilter::getFilterStep(int H) const
     | (1)  step(0,1) filterstep(1,2)
   */
 
-  DatasetBitmask bitmask = dataset->getBitmask();
+  DatasetBitmask bitmask = dataset->idxfile.bitmask;
   int pdim = bitmask.getPointDim();
   PointNi step = bitmask.getPow2Box().size();
   for (int K = 0; K < H; K++)
@@ -506,7 +506,7 @@ PointNi IdxFilter::getFilterStep(int H) const
 
 
 /////////////////////////////////////////////////////////////////////////////////////
-SharedPtr<IdxFilter> IdxDataset::createFilter(const Field& field) 
+SharedPtr<IdxFilter> Dataset::createFilter(const Field& field) 
 {
   String filter_name=field.filter;
 

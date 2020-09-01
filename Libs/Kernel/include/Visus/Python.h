@@ -56,42 +56,64 @@ For support : support@visus.net
 #include <string>
 #include <sstream>
 #include <vector>
+#include <iostream>
 
-inline PyThreadState*& __python_thread_state__() {
+#include <Visus/Kernel.h>
+
+////////////////////////////////////////////////////////////////////////////
+inline PyThreadState*& EmbeddedPythonThreadState() {
   static PyThreadState* ret = nullptr;
   return ret;
 }
 
-inline void InitEmbeddedPython(int argn, const char* argv[], std::string sys_path = "", std::vector<std::string> commands = {})
+////////////////////////////////////////////////////////////////////////////
+inline void EmbeddedPythonInit(int argn, const char* argv[], std::string sys_path, std::vector<std::string> commands)
 {
-  #if PY_VERSION_HEX >= 0x03050000
+#if PY_VERSION_HEX >= 0x03050000
   Py_SetProgramName(Py_DecodeLocale((char*)argv[0], NULL));
-  #else
+#else
   Py_SetProgramName(_Py_char2wchar((char*)argv[0], NULL));
-  #endif
-  
+#endif
+
   Py_InitializeEx(0);
+
+  //Initialize and acquire the global interpreter lock
   PyEval_InitThreads();
-  __python_thread_state__() = PyEval_SaveThread();
-  auto acquire_gil = PyGILState_Ensure();
 
-  std::ostringstream out;
-  out << "import os, sys;\n";
+  //sometimes PyEval_InitThreads in apache/mod_visus don't get the GIL (python fatal error: PyEval_SaveThread: NULL tstate)
+  if (auto old_state = PyThreadState_Swap(nullptr))
+  {
+    PyThreadState_Swap(old_state);
+    EmbeddedPythonThreadState() = PyEval_SaveThread(); //this release the GIL
+  }
 
-  if (!sys_path.empty())
-    out << "sys.path.append(os.path.realpath('" + sys_path + "'))\n";
+  //evaluate some python commands
+  {
+    auto acquire_gil = PyGILState_Ensure();
 
-  for (auto cmd : commands)
-    out << cmd << "\n";
+    std::ostringstream out;
+    out << "import os, sys;\n";
 
-  PyRun_SimpleString(out.str().c_str());
-  PyGILState_Release(acquire_gil);
+    if (!sys_path.empty())
+      out << "sys.path.append(os.path.realpath('" + sys_path + "'))\n";
+
+    for (auto cmd : commands)
+      out << cmd << "\n";
+
+    PyRun_SimpleString(out.str().c_str());
+    PyGILState_Release(acquire_gil);
+  }
 }
 
-inline void ShutdownEmbeddedPython()
+////////////////////////////////////////////////////////////////////////////
+inline void EmbeddedPythonShutdown()
 {
-  PyEval_RestoreThread(__python_thread_state__());
-  Py_Finalize();
+  if (auto& thread_state = EmbeddedPythonThreadState())
+  {
+    PyEval_RestoreThread(thread_state);
+    Py_Finalize();
+    thread_state = nullptr;
+  }
 }
 
 

@@ -90,7 +90,7 @@ Array Array::getComponent(int C, Aborted aborted) const
 ///////////////////////////////////////////////////////////////////////////////
 bool Array::setComponent(int C, Array src, Aborted aborted)
 {
-  if (!src)
+  if (!src.valid())
     return false;
 
   Int64  Doffset = this->dtype.getBitsOffset(C);

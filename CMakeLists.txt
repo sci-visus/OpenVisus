@@ -5,8 +5,9 @@ if(POLICY CMP0020)
 endif()
 
 if (POLICY CMP0071)
-  cmake_policy(SET CMP0071 OLD) # qt-related
+  cmake_policy(SET CMP0071 NEW) # qt-related
 endif()
+
 
 if (POLICY CMP0086)
   cmake_policy(SET CMP0086 OLD) # swig related 
@@ -93,7 +94,16 @@ if (VISUS_MINIMAL)
 	file(GLOB zfp_Sources       Libs/Kernel/src/zfp/*.cpp)
 	file(GLOB zlib_Sources      Libs/Kernel/src/zlib/*.c)
 	file(GLOB KernelSources     Libs/Kernel/src/*.cpp)
-	file(GLOB Db_Sources        Libs/Db/src/*.cpp)
+	file(GLOB DbSources        Libs/Db/src/*.cpp)
+
+	source_group("cryptlite"    FILES ${cryptlite_Sources})
+	source_group("dtl"          FILES ${dtl_Sources})
+	source_group("lz4"          FILES ${lz4_Sources})
+	source_group("tinyxml"      FILES ${tinyxml_Sources})
+	source_group("zfp"          FILES ${zfp_Sources})
+	source_group("zlib"         FILES ${zlib_Sources})
+	source_group("VisusKernel"  FILES ${KernelSources})
+	source_group("VisusDb"      FILES ${DbSources})
 
 	DisableWarning(${cryptlite_Sources})
 	DisableWarning(${dtl_Sources})
@@ -106,7 +116,7 @@ if (VISUS_MINIMAL)
 		file(GLOB KernelSources_MM Libs/Kernel/src/*.mm)
 	endif()	
 		
-	add_library(VisusIO STATIC 		
+	add_library(VisusMinimal STATIC 		
 		${cryptlite_Sources} 
 		${dtl_Sources} 
 		${lz4_Sources} 
@@ -115,11 +125,11 @@ if (VISUS_MINIMAL)
 		${zlib_Sources}
 		${KernelSources} 
 		${KernelSources_MM} 
-		${Db_Sources}
+		${DbSources}
 	)
 		
-	target_compile_definitions(VisusIO  PUBLIC  VISUS_STATIC_KERNEL_LIB=1 VISUS_STATIC_DB_LIB=1)
-	target_include_directories(VisusIO  
+	target_compile_definitions(VisusMinimal  PUBLIC  VISUS_STATIC_KERNEL_LIB=1 VISUS_STATIC_DB_LIB=1)
+	target_include_directories(VisusMinimal  
 		PUBLIC  ${CMAKE_SOURCE_DIR}/Libs/Kernel/include
 		PUBLIC  ${CMAKE_SOURCE_DIR}/Libs/Db/include
 		PRIVATE ${CMAKE_SOURCE_DIR}/Libs/Kernel/src
@@ -127,19 +137,21 @@ if (VISUS_MINIMAL)
 
 	if (WIN32)
 		if (MSVC)
-			target_compile_options(VisusIO PRIVATE /bigobj)
+			target_compile_options(VisusMinimal PRIVATE /bigobj)
 		endif()
-		target_compile_options(VisusIO PRIVATE -DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS)
-		target_link_libraries(VisusIO  PRIVATE Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib advapi32.lib)
+		target_compile_options(VisusMinimal PRIVATE -DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS)
+		target_link_libraries(VisusMinimal  PRIVATE Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib advapi32.lib)
 	elseif (CLANG)
-		target_compile_options(VisusIO PRIVATE  -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
-		target_link_libraries(VisusIO  PRIVATE "-framework CoreFoundation" "-framework Foundation")
-		set_target_properties(VisusIO  PROPERTIES XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME "NO")  # fixes problem of "_objc_readClassPair" missing
+		target_compile_options(VisusMinimal PRIVATE  -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
+		target_link_libraries(VisusMinimal  PRIVATE "-framework CoreFoundation" "-framework Foundation")
+		set_target_properties(VisusMinimal  PROPERTIES XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME "NO")  # fixes problem of "_objc_readClassPair" missing
 	else()
-		target_compile_options(VisusIO PRIVATE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE=1 -Wno-attributes -Wno-deprecated-declarations)
-		target_link_libraries(VisusIO  PRIVATE dl rt util pthread)
+		target_compile_options(VisusMinimal PRIVATE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE=1 -Wno-attributes -Wno-deprecated-declarations)
+		target_link_libraries(VisusMinimal  PRIVATE dl rt util pthread)
 	endif()
-
+	
+	# use_minimal is just an example...
+	# add_subdirectory(Executable/use_minimal)
 
 	INSTALL(DIRECTORY Libs/Kernel/include/Visus   DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Kernel/)
 	INSTALL(DIRECTORY Libs/Db/include/Visus       DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Db/)
@@ -159,9 +171,10 @@ else()
 		set(VISUS_DEFAULT_SLAM 1)
 	endif()
 
-	if(EXISTS "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/README.txt")
+	if(WIN2 AND EXISTS "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/README.txt")
 		set(VISUS_DEFAULT_OSPRAY ON)
 	endif()
+	
 
 	if (NOT APPLE AND NOT WIN32)
 		set(VISUS_DEFAULT_MODVISUS ON)
@@ -229,7 +242,6 @@ if (1)
 	INSTALL(FILES     Samples/simple_viewer2d/CMakeLists.txt  DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/simple_viewer2d/)
 	INSTALL(FILES     Samples/simple_viewer2d/main.cpp        DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/simple_viewer2d/)
 
-
 	if (VISUS_PYTHON)
 		FILE(GLOB PyFiles Libs/swig/*.py)
 		INSTALL(FILES     ${PyFiles}                          DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
@@ -237,28 +249,46 @@ if (1)
 		INSTALL(DIRECTORY Samples/python                      DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/)
 	endif()
 
-	if (WIN32)
-
-		# copy  windows *.dll
-		include(InstallRequiredSystemLibraries)
-		INSTALL(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/bin/)
-
-		# install windows ospray depedencies
-		if (VISUS_OSPRAY)
-			get_filename_component(OSPRAY_BINDIR "${ospray_DIR}/../../../bin"  REALPATH)
-			FILE(GLOB OSPRAY_DLLS ${OSPRAY_BINDIR}/*.dll)
-			INSTALL(FILES ${OSPRAY_DLLS} DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/bin)
-		endif()
-
-	endif()
-
 	INSTALL(DIRECTORY Copyrights                              DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
+
 	INSTALL(DIRECTORY Libs/Kernel/include/Visus               DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Kernel/)
 	INSTALL(DIRECTORY Libs/XIdx/include/Visus                 DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/XIdx/)
 	INSTALL(DIRECTORY Libs/Db/include/Visus                   DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Db/)
 	INSTALL(DIRECTORY Libs/Dataflow/include/Visus             DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Dataflow/)
 	INSTALL(DIRECTORY Libs/Nodes/include/Visus                DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Nodes/)
 	INSTALL(DIRECTORY Libs/Gui/include/Visus                  DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Gui/)
+
+	if (WIN32)
+
+		macro(CopyDlls pattern)
+			file(GLOB __dlls__ ${pattern})
+			foreach(__it__ ${__dlls__})
+				get_filename_component(__path__ "${__it__}"  REALPATH)
+				list(REMOVE_ITEM EXTRA_DLLS ${__path__})
+				list(APPEND      EXTRA_DLLS ${__path__})
+			endforeach()
+		endmacro()
+
+		include(InstallRequiredSystemLibraries)
+		set (EXTRA_DLLS ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS})
+
+		# there are some extra DLL that cmake misses to add
+		list(GET CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS 0 __first_dll__)
+		CopyDlls(${__first_dll__}/../*.dll) 
+
+		# Opsray dlls
+		if (VISUS_OSPRAY)
+			CopyDlls("${ospray_DIR}/../../../bin/*.dll")
+		endif()
+
+		#foreach(__it__ ${EXTRA_DLLS})
+		#	MESSAGE(STATUS "EXTRA_DLLS ${__it__}")
+		#endforeach()
+
+		INSTALL(FILES ${EXTRA_DLLS} DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/bin/)
+
+	endif()
+
 endif()
 
 

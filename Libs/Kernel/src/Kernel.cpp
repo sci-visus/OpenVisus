@@ -84,19 +84,19 @@ For support : support@visus.net
 
 
 namespace Visus {
+#define __str__(s) #s
+#define __xstr__(s) __str__(s)
 
-String OpenVisus_VERSION="";
+String OpenVisus_VERSION = "";
 
 #ifdef GIT_REVISION
-  #define __str__(s) #s
-  #define __xstr__(s) __str__(s)
-  String OpenVisus_GIT_REVISION = __xstr__(GIT_REVISION);
+String OpenVisus_GIT_REVISION = __xstr__(GIT_REVISION);
 #else
-  String OpenVisus_GIT_REVISION = "";
+String OpenVisus_GIT_REVISION = "";
 #endif
 
 std::vector<String> CommandLine::args;
-  
+
 ConfigFile* VisusModule::getModuleConfig() {
   return Private::VisusConfig::getSingleton();
 }
@@ -153,6 +153,10 @@ String cstring10(double value) {
 ///////////////////////////////////////////////////////////////////////////////
 void SetCommandLine(int argn, const char** argv)
 {
+  //already called
+  if (!CommandLine::args.empty())
+    return;
+
   CommandLine::argn = argn;
   CommandLine::argv = argv;
 
@@ -227,11 +231,24 @@ void ThrowExceptionEx(String file,int line, String what)
 ///////////////////////////////////////////////////////////
 static void InitKnownPaths()
 {
-  KnownPaths::VisusHome = osdep::getHomeDirectory() + "/visus";
+#ifdef VISUS_HOME
+  {
+    KnownPaths::VisusHome = Path(__xstr__(VISUS_HOME));
+    PrintInfo("setting VISUS_HOME", KnownPaths::VisusHome, "from C++ define");
+  }
+#else
 
-  // Allow override of VisusHome
   if (auto VISUS_HOME = getenv("VISUS_HOME"))
+  {
     KnownPaths::VisusHome = Path(VISUS_HOME);
+    PrintInfo("setting VISUS_HOME", KnownPaths::VisusHome, "from getenv");
+  }
+  else
+  {
+    KnownPaths::VisusHome = osdep::getHomeDirectory() + "/visus";
+    PrintInfo("setting VISUS_HOME", KnownPaths::VisusHome, "from home directory");
+  }
+#endif
 
   FileUtils::createDirectory(KnownPaths::VisusHome);
   KnownPaths::BinaryDirectory = Path(osdep::getCurrentApplicationFile()).getParent();
@@ -314,14 +331,12 @@ void KernelModule::attach()
     if (bOk) break;
   }
 
-#if _DEBUG
   PrintInfo(
     "VERSION", OpenVisus_VERSION,
     "GIT_REVISION", OpenVisus_GIT_REVISION,
     "VisusHome", KnownPaths::VisusHome, 
     "BinaryDirectory", KnownPaths::BinaryDirectory,
     "CurrentWorkingDirectory ", KnownPaths::CurrentWorkingDirectory());
-#endif
 
   ArrayPlugins::allocSingleton();
   Encoders::allocSingleton();

@@ -1,9 +1,9 @@
 # OpenViSUS Visualization project  
- 
+  
 ![GitHub Actions](https://github.com/sci-visus/OpenVisus/workflows/BuildOpenVisus/badge.svg)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/sci-visus/OpenVisus/master?filepath=Samples%2Fjupyter)
 
-
+ 
 The mission of ViSUS.org is to provide support for the scientific community with Big Data, management, analysis and visualization tools.
 In this website we provide access to open source software tools and libraries such as the ViSUS framework and the PIDX library.
 These softwares are distributed under the permissive BSD license.
@@ -34,22 +34,58 @@ If you are using `pip`
 # For Linux sometimes you have to install some python libraries 
 # sudo apt-get install python3.6 libpython3/6
 
-python -m pip install --user --upgrade OpenVisus
-python -m OpenVisus configure --user
+
+python -m pip install --user --upgrade pip
+python -m pip install --user virtualenv
+
+cd /path/to/your/project
+
+# create the environment
+# replace 'myenv' here and below with your name
+python -m venv myenv
+
+# on Windows: .\env\Scripts\activate
+source myenv/bin/activate
+
+python -m pip install --upgrade OpenVisus
+python -m OpenVisus configure 
 python -m OpenVisus viewer
+
+# (OPTIONAL) deactivate the environment
+deactivate
+
+# (OPTIONAL) remove the environment
+rm -r /path/to/your/project/myenv
 ```
 
 If you are using `conda`:
 
 ```
-conda install -y --channel visus openvisus
+
+# replace 'myenv' with whatever you want for the new environment 
+# replace '3.6' with the wanted python version
+conda create -n myenv python=3.6 
+
+# activate it
+conda activate myenv
+
+# install openvisus inside conda
+conda install --name myenv  -y --channel visus openvisus
 
 # IMPORTANT trick to avoid problems with other pip packages installed in ~/.local (see https://github.com/conda/conda/issues/7173)
 export PYTHONNOUSERSITE=True 
 
-conda install -y conda
+conda install --name myenv  -y conda
+
 python -m OpenVisus configure
 python -m OpenVisus viewer
+
+# (OPTIONAL) deactivate the environment
+conda deactivate
+
+# (OPTIONAL) remove the environment
+conda remove --name myenv --all
+
 ```
 
 Give a look to directory `Samples/python` and Jupyter examples:
@@ -377,7 +413,7 @@ make install
 ```
 
 
-To use the VisusIO you can create a Makefile (change as needed):
+To use the VisusMinimal you can create a Makefile (change as needed):
 
 ```
 CXX=g++-9 -std=c++11
@@ -391,7 +427,7 @@ CXX_FLAGS=\
 	-DVISUS_STATIC_DB_LIB=1
 
 main: main.o
-	$(CXX) -o $@ $< -L${OpenVisus_DIR}/lib -lVisusIO
+	$(CXX) -o $@ $< -L${OpenVisus_DIR}/lib -lVisusMinimal
  
 main.o: main.cpp 
 	$(CXX) $(CXX_FLAGS) -c -o $@ $< 
@@ -402,7 +438,8 @@ clean:
 .PHONY: clean
 ```
 
-
+If you don't want to use C++11 because you have an old compiler (like C++98) see Executable/use_minimal directory
+which use a `Visus/Minimal.h` header.
 
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## Commit CI

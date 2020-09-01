@@ -38,14 +38,15 @@ For support : support@visus.net
 
 #include <Visus/Encoder.h>
 #include <Visus/IdxDataset.h>
+#include <Visus/File.h>
 
 namespace Visus {
 
-
-VISUS_DB_API void Tutorial_1(String default_layout);
-VISUS_DB_API void Tutorial_2(String default_layout);
-VISUS_DB_API void Tutorial_3(String default_layout);
-VISUS_DB_API void Tutorial_6(String default_layout);
+void Tutorial_1(String default_layout);
+void Tutorial_2(String default_layout);
+void Tutorial_3(String default_layout);
+void Tutorial_6(String default_layout);
+void TutorialFullRes();
 
 ////////////////////////////////////////////////////////////////////////////////////
 static BoxNi GetRandomUserBox(int pdim, bool bFullBox)
@@ -229,7 +230,7 @@ public:
       dataset->nextBoxQuery(query);
     }
 
-    VisusReleaseAssert(buffer);
+    VisusReleaseAssert(buffer.valid());
     {
       //verify written data
       int nsample = 0;
@@ -307,16 +308,14 @@ void SelfTestIdx(int max_seconds)
     Tutorial_3(default_layout);
     PrintInfo("...done");
 
-    //remove data from tutorial_1
-    try
-    {
-      auto dataset = LoadIdxDataset("tmp/tutorial_1/visus.idx");
-      dataset->removeFiles();
-    }
-    catch (...) {}
+    FileUtils::removeDirectory(Path("tmp/tutorial_1"));
 
     PrintInfo("Running Tutorial_6...");
     Tutorial_6(default_layout);
+    PrintInfo("...done");
+
+    PrintInfo("Running TutorialFullRes...");
+    TutorialFullRes();
     PrintInfo("...done");
   }
 #endif
@@ -331,7 +330,7 @@ void SelfTestIdx(int max_seconds)
     {
       for (int pdim = 2; pdim <= 5; pdim++)
       {
-        for (int nbits = 8; nbits <= 64; nbits += 8)
+        for (auto nbits : {8, 16, 32, 64} )
         {
           BoxNi user_box = GetRandomUserBox(pdim, Utils::getRandInteger(0, 1) ? true : false);
 
@@ -354,7 +353,7 @@ void SelfTestIdx(int max_seconds)
               selftest.executeRandomQuery();
           }
 
-          dataset->removeFiles();
+          FileUtils::removeDirectory(Path("tmp/self_test_idx"));
         }
       }
     }
@@ -388,7 +387,8 @@ void SelfTestIdx(int max_seconds)
         for (int n = 0; n < 10; n++)
           selftest.executeRandomQuery();
       }
-      dataset->removeFiles();
+
+      FileUtils::removeDirectory(Path("tmp/self_test_idx"));
     }
   }
 

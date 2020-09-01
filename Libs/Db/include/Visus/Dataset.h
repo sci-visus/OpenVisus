@@ -51,6 +51,7 @@ For support : support@visus.net
 #include <Visus/Path.h>
 #include <Visus/NetMessage.h>
 #include <Visus/Annotation.h>
+#include <Visus/IdxFile.h>
 
 namespace Visus {
 
@@ -75,14 +76,14 @@ public:
   {
     value = StringUtils::trim(StringUtils::toLower(value));
 
-    if (value == "block")
+    if (value.empty())
+      return KdQueryMode::NotSpecified;
+
+    if (StringUtils::contains(value,"block") || value == "1" || value == "true")
       return KdQueryMode::UseBlockQuery;
 
-    if (value == "box")
+    if (StringUtils::contains(value, "box"))
       return KdQueryMode::UseBoxQuery;
-
-    if (cbool(value))
-      return KdQueryMode::UseBlockQuery;
 
     return KdQueryMode::NotSpecified;
   }
@@ -110,6 +111,9 @@ class VISUS_DB_API Dataset
 {
 public:
 
+  //idxfile
+  IdxFile idxfile;
+
   //this is needed for midx
   Color color;
 
@@ -118,6 +122,12 @@ public:
 
   //annotations
   SharedPtr<Annotations> annotations;
+
+  //internal use only
+  std::vector<LogicSamples> level_samples;
+
+  //internal use only
+  std::vector<LogicSamples> block_samples;
 
   //constructor
   Dataset() {
@@ -140,9 +150,10 @@ public:
     return bitmask;
   }
 
-  //setLogicBitmask
-  void setBitmask(const DatasetBitmask& value) {
-    this->bitmask = value;
+  //blocksFullRes()
+  bool blocksFullRes() const {
+    auto s = bitmask.toString();
+    return !s.empty() && s[0] == 'F';
   }
 
   //isServerMode
@@ -164,6 +175,7 @@ public:
   void setTimesteps(const DatasetTimesteps& value) {
     this->timesteps = value;
   }
+
 
   //getTime
   double getTime() const {
@@ -192,11 +204,6 @@ public:
   }
 
   //getDatasetBody
-  StringTree& getDatasetBody() {
-    return dataset_body;
-  } 
-
-  //getDatasetBody
   const StringTree& getDatasetBody() const {
     return dataset_body;
   }
@@ -221,7 +228,6 @@ public:
     this->default_bitsperblock = value;
   }
 
-
   //getMaxResolution
   int getMaxResolution() const {
     return bitmask.getMaxResolution();
@@ -245,7 +251,6 @@ public:
   //setBox
   void setLogicBox(const BoxNi& value) {
     this->logic_box = value;
-    VisusAssert(!dataset_bounds.valid());
   }
 
   //getDatasetBounds
@@ -331,30 +336,31 @@ public:
 
 public:
 
-  //________________________________________________
-  //block query stuff
-
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config = StringTree(), bool bForBlockQuery = false);
-  
+
   //createAccessForBlockQuery
   SharedPtr<Access> createAccessForBlockQuery(StringTree config = StringTree()) {
     return createAccess(config, true);
   }
 
-  //createRamAccess
-  SharedPtr<Access> createRamAccess(Int64 available, bool can_read = true, bool can_write = true);
 
-  //getBlockSamples
-  virtual LogicSamples getBlockSamples(BigInt blockid) = 0;
+public:
+
+  //________________________________________________
+  //block query stuff
 
   //createBlockQuery
-  SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, Field field, double time, int mode = 'r', Aborted aborted = Aborted());
+  virtual SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, Field field, double time, int mode = 'r', Aborted aborted = Aborted());
 
   //createBlockQuery
   SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, int mode = 'r', Aborted aborted = Aborted()) {
     return createBlockQuery(blockid, getField(), getTime(), mode, aborted);
   }
+
+  //getBlockQuerySamples
+  LogicSamples getBlockQuerySamples(BigInt blockid, int& H);
+
 
   //readBlock  
   virtual void executeBlockQuery(SharedPtr<Access> access, SharedPtr<BlockQuery> query);
@@ -367,8 +373,14 @@ public:
   }
 
   //convertBlockQueryToRowMajor
-  virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) {
-    return false;
+  virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query);
+
+  //createEquivalentBoxQuery
+  virtual SharedPtr<BoxQuery> createEquivalentBoxQuery(int mode, SharedPtr<BlockQuery> block_query)
+  {
+    auto ret = createBoxQuery(block_query->logic_samples.logic_box, block_query->field, block_query->time, mode, block_query->aborted);
+    ret->setResolutionRange(block_query->blockid == 0 ? 0 : block_query->H, block_query->H);
+    return ret;
   }
 
 public:
@@ -377,63 +389,98 @@ public:
   //box query stuff
 
   //createBoxQuery
-  SharedPtr<BoxQuery> createBoxQuery(BoxNi logic_box, Field field, double time, int mode = 'r', Aborted aborted = Aborted());
+  virtual SharedPtr<BoxQuery> createBoxQuery(BoxNi logic_box, Field field, double time, int mode = 'r', Aborted aborted = Aborted());
 
   //createBoxQuery
-  SharedPtr<BoxQuery> createBoxQuery(BoxNi logic_box, int mode = 'r', Aborted aborted = Aborted()) {
+  inline SharedPtr<BoxQuery> createBoxQuery(BoxNi logic_box, int mode = 'r', Aborted aborted = Aborted()) {
     return createBoxQuery(logic_box, getField(), getTime(), mode, aborted);
   }
 
-  virtual void beginBoxQuery(SharedPtr<BoxQuery> query) {
-  }
+  //createBlockQueriesForBoxQuery
+  virtual std::vector< SharedPtr<BlockQuery> > createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query);
+
+  //guessBoxQueryEndResolution
+  virtual int guessBoxQueryEndResolution(Frustum logic_to_screen, Position logic_position);
+
+  //beginBoxQuery
+  virtual void beginBoxQuery(SharedPtr<BoxQuery> query);
 
   //nextBoxQuery
-  virtual void nextBoxQuery(SharedPtr<BoxQuery> query) {
-  }
+  virtual void nextBoxQuery(SharedPtr<BoxQuery> query);
 
   //executeBoxQuery
-  virtual bool executeBoxQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) {
-    return false;
-  }
+  virtual bool executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query);
 
   //mergeBoxQueryWithBlockQuery
-  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query){
-    return false;
-  }
+  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query);
+
+  //setBoxQueryEndResolution
+  virtual bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value);
 
   //createBoxQueryRequest
-  virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query) {
-    return NetRequest();
-  }
+  virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query);
+
+  //executeBoxQueryOnServer
+  virtual bool executeBoxQueryOnServer(SharedPtr<BoxQuery> query);
 
 public:
 
   //________________________________________________
   //point query stuff
 
-  //guessPointQueryNumberOfSamples
-  PointNi guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, Position logic_position, int end_resolution);
-
   //constructor
-  virtual SharedPtr<PointQuery> createPointQuery(Position logic_position, Field field, double time, std::vector<int> end_resolutions, Aborted aborted = Aborted());
+  virtual SharedPtr<PointQuery> createPointQuery(Position logic_position, Field field, double time, Aborted aborted = Aborted()) ;
 
   //createPointQuery
-  SharedPtr<PointQuery> createPointQuery(Position logic_position, std::vector<int> end_resolutions, Aborted aborted=Aborted()) {
-    return createPointQuery(logic_position, getField(), getTime(), end_resolutions, aborted);
+  inline SharedPtr<PointQuery> createPointQuery(Position logic_position, Aborted aborted = Aborted()) {
+    return createPointQuery(logic_position, getField(), getTime(), aborted);
   }
+
+  //createBlockQueriesForPointQuery
+  virtual std::vector< SharedPtr<BlockQuery> > createBlockQueriesForPointQuery(SharedPtr<PointQuery> query) {
+    return {};
+  }
+
+  //guessPointQueryEndResolution
+  virtual int guessPointQueryEndResolution(Frustum logic_to_screen, Position logic_position) ;
+
+  //guessPointQueryNumberOfSamples
+  virtual PointNi guessPointQueryNumberOfSamples(Frustum logic_to_screen, Position logic_position, int end_resolution) ;
 
   //beginPointQuery
-  virtual void beginPointQuery(SharedPtr<PointQuery> query) {
-  }
+  virtual void beginPointQuery(SharedPtr<PointQuery> query) ;
 
-  //executePointQuery
-  virtual bool executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) {
-    return false;
-  }
+  //executeBoxQuery
+  virtual bool executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query);
+
+  //mergePointQueryWithBlockQuery
+  virtual bool mergePointQueryWithBlockQuery(SharedPtr<PointQuery> query, SharedPtr<BlockQuery> block_query);
 
   //nextPointQuery
-  virtual void nextPointQuery(SharedPtr<PointQuery> query) {
-  }
+  virtual void nextPointQuery(SharedPtr<PointQuery> query) ;
+
+  //createPointQueryRequest
+  virtual NetRequest createPointQueryRequest(SharedPtr<PointQuery> query);
+
+  //executePointQueryOnServer
+  virtual bool executePointQueryOnServer(SharedPtr<PointQuery> query);
+
+public:
+
+  //adjustBoxQueryFilterBox
+  virtual BoxNi adjustBoxQueryFilterBox(BoxQuery* query, IdxFilter* filter, BoxNi box, int H);
+
+  //createFilter
+  virtual SharedPtr<IdxFilter> createFilter(const Field& field);
+
+  //computeFilter
+  virtual bool computeFilter(SharedPtr<IdxFilter> filter, double time, Field field, SharedPtr<Access> access, PointNi SlidingWindow, bool bVerbose = false);
+
+  //computeFilter
+  virtual void computeFilter(const Field& field, int window_size, bool bVerbose = false);
+
+  //executeBlockQuerWithFilters
+  virtual bool executeBlockQuerWithFilters(SharedPtr<Access> access, SharedPtr<BoxQuery> query, SharedPtr<IdxFilter> filter);
 
 public:
 
@@ -442,10 +489,13 @@ public:
     LogicSamples Wsamples, Array Wbuffer,
     LogicSamples Rsamples, Array Rbuffer, Aborted aborted);
 
+  //compressDataset
+  virtual void compressDataset(std::vector<String> compression, Array data = Array());;
+
 public:
 
   //readDatasetFromArchive 
-  virtual void readDatasetFromArchive(Archive& ar) = 0;
+  virtual void readDatasetFromArchive(Archive& ar);
 
 protected:
 
@@ -460,6 +510,8 @@ protected:
   int                     kdquery_mode = KdQueryMode::NotSpecified;
   bool                    bServerMode = false;
   int                     default_bitsperblock = 0;
+  bool                    missing_blocks = false;
+
 };
 
 ////////////////////////////////////////////////////////////////

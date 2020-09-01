@@ -199,7 +199,9 @@ private:
 
 
 ////////////////////////////////////////////////////////////////////////////////
-RamAccess::RamAccess() {  
+RamAccess::RamAccess(int bitsperblock) {
+  this->name = "RamAccess";
+  this->bitsperblock = bitsperblock;
 }
 
 

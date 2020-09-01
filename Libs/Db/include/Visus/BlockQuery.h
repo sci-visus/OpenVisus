@@ -81,6 +81,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(BlockQuery)
 
   BigInt       blockid = 0;
+  int          H = 0;
   LogicSamples logic_samples;
 
   //constructor

@@ -578,7 +578,7 @@ private:
       RGBAColorMap rgba_colormap;
       if (auto controlpoints= in.getChild("Object/Object"))
       {
-        for (auto controlpoint : controlpoints->childs)
+        for (auto controlpoint : controlpoints->getChilds())
         {
           auto fields= controlpoint->getChilds("Field");
 
@@ -604,7 +604,7 @@ private:
       bool useColorVarMax=false; double colorVarMax=0;
       bool isFloatRange=false;
     
-      for (auto child : in.childs)
+      for (auto child : in.getChilds())
       {
         String name,text; 
         child->read("name", name);

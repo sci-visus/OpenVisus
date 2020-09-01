@@ -895,7 +895,7 @@ bool FileUtils::removeDirectory(Path path)
     return false;
 
   String fullpath=path.toString();
-  return osdep::createDirectory(fullpath);
+  return osdep::removeDirectory(fullpath);
 }
 
 /////////////////////////////////////////////////////////////////////////

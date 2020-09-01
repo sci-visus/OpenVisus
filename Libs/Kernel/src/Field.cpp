@@ -71,56 +71,61 @@ Field Field::fromString(String sfield)
   }
 
   //description
-  ret.description = parseRoundBracketArgument(sfield, "description");
+  if (StringUtils::contains(sfield, "description("))
+    ret.description = parseRoundBracketArgument(sfield, "description");
 
-  //default_compression(algorithm)
+  //compression
   {
-    auto& compression = ret.default_compression;
+    if (StringUtils::contains(sfield, "default_compression("))
+      ret.default_compression = parseRoundBracketArgument(sfield, "default_compression");
 
-    if (compression.empty())
-      compression = parseRoundBracketArgument(sfield, "default_compression");
+    else if (StringUtils::contains(sfield, "compression("))
+      ret.default_compression = parseRoundBracketArgument(sfield, "compression");
 
-    //compressed(algorithm)
-    if (compression.empty())
-      compression = parseRoundBracketArgument(sfield, "compressed");
+    else if (StringUtils::contains(sfield, "compressed("))
+      ret.default_compression = parseRoundBracketArgument(sfield, "compressed");
 
-    //backward compatibility: compressed means zip
-    if (compression.empty() && StringUtils::contains(sfield, "compressed"))
-      compression = "zip";
+    else if (StringUtils::contains(sfield, "compressed"))
+      ret.default_compression = "zip";
   }
 
-  //default_layout
+  //layout
   {
-    if (StringUtils::contains(sfield, "default_layout"))
+    if (StringUtils::contains(sfield, "default_layout("))
       ret.default_layout = parseRoundBracketArgument(sfield, "default_layout");
+
+    else if  (StringUtils::contains(sfield, "layout("))
+      ret.default_layout = parseRoundBracketArgument(sfield, "layout");
 
     else if (StringUtils::contains(sfield, "format"))
       ret.default_layout = parseRoundBracketArgument(sfield, "format");
 
     else
-      ret.default_layout = ""; //empty (what it means will depend on IdxFile::version, see IdxFile::validate
+      ret.default_layout = ""; //empty (what it means will depend on the IdxFile version, see IdxFile::validate (i.e. rowmajor for version>=6 and hzorder for version<6
   }
 
   //default_value
   {
-    ret.default_value = cint(parseRoundBracketArgument(sfield, "default_value"));
+    if (StringUtils::contains(sfield, "default_value("))
+      ret.default_value = cint(parseRoundBracketArgument(sfield, "default_value"));
   }
 
   //filter(...)
-  ret.filter = parseRoundBracketArgument(sfield, "filter");
+  if (StringUtils::contains(sfield, "filter("))
+    ret.filter = parseRoundBracketArgument(sfield, "filter");
 
   //min(...) max(...)
+  if (StringUtils::contains(sfield, "min(") || StringUtils::contains(sfield, "max(")) 
   {
-    auto vmin = StringUtils::split(parseRoundBracketArgument(sfield, "min"));
-    auto vmax = StringUtils::split(parseRoundBracketArgument(sfield, "max"));
+		auto vmin = StringUtils::split(parseRoundBracketArgument(sfield, "min"));
+		auto vmax = StringUtils::split(parseRoundBracketArgument(sfield, "max"));
     if (!vmin.empty() && !vmax.empty())
-    {
+		{
+			vmin.resize(ret.dtype.ncomponents(), vmin.back());
+      vmax.resize(ret.dtype.ncomponents(), vmax.back());
+
       for (int C = 0; C < ret.dtype.ncomponents(); C++)
-      {
-        auto From = cdouble(vmin[C < vmin.size() ? C : vmin.size() - 1]);
-        auto To = cdouble(vmax[C < vmax.size() ? C : vmax.size() - 1]);
-        ret.setDTypeRange(Range(From, To, 0), C);
-      }
+        ret.setDTypeRange(Range(cdouble(vmin[C]), cdouble(vmax[C]), 0), C);
     }
   }
 
@@ -163,7 +168,7 @@ void Field::read(Archive& ar)
   this->params.clear();
   if (auto params= ar.getChild("params"))
   {
-    for (auto param : params->childs)
+    for (auto param : params->getChilds())
     {
       if (param->isHash()) continue;
       String key = param->name;

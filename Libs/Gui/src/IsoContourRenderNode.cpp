@@ -200,6 +200,25 @@ void IsoContourRenderNode::glRender(GLCanvas& gl)
   auto data = mesh->field;
   auto T = Position::computeTransformation(data.bounds, data.dims);
 
+  //main field (for gpu normal computation)
+  {
+    mesh->field.texture = mesh->field.texture? mesh->field.texture : GLTexture::createFromArray(mesh->field);
+    if (!mesh->field.texture)
+      return;
+  }
+
+  //upload second field
+  if (mesh->second_field.valid())
+  {
+    mesh->second_field.texture = mesh->second_field.texture? mesh->second_field.texture : GLTexture::createFromArray(mesh->second_field);
+    if (!mesh->second_field.texture)
+      return;
+
+    palette->texture = palette->texture? palette->texture : GLTexture::createFromArray(palette->toArray());
+    if (!palette->texture)
+      return;
+  }
+
   gl.pushModelview();
   gl.multModelview(T);
   Point3d pos,center,vup;
@@ -213,30 +232,12 @@ void IsoContourRenderNode::glRender(GLCanvas& gl)
   gl.setUniformMaterial(*shader, config.second_field_nchannels? GLMaterial() : this->material);
   gl.setUniformLight(*shader,Point4d(pos,1.0));
 
-  //upload main field (for gpu normal computation)
-  {
-    VisusAssert(shader->u_field.valid());
-    auto& tex = mesh->field.texture;
-    if (!tex) tex = std::make_shared<GLTexture>(mesh->field);
-    gl.setTexture(shader->u_field, std::dynamic_pointer_cast<GLTexture>(tex));
-  }
+  gl.setTexture(shader->u_field, std::dynamic_pointer_cast<GLTexture>(mesh->field.texture));
 
-  //upload second field
-  if (mesh->second_field)
+  if (mesh->second_field.valid())
   {
-    VisusAssert(shader->u_second_field.valid());
-    auto& tex = mesh->second_field.texture;
-    if (!tex) tex = std::make_shared<GLTexture>(mesh->second_field);
-    gl.setTextureInSlot(1, shader->u_second_field, std::dynamic_pointer_cast<GLTexture>(tex));
-  }
-
-  //upload palette
-  if (mesh->second_field)
-  {
-    VisusAssert(shader->u_palette.valid());
-    auto& tex = palette->texture;
-    if (!tex) tex = std::make_shared<GLTexture>(palette->toArray());
-    gl.setTextureInSlot(2, shader->u_palette, std::dynamic_pointer_cast<GLTexture>(tex));
+    gl.setTextureInSlot(1, shader->u_second_field, std::dynamic_pointer_cast<GLTexture>(mesh->second_field.texture));
+    gl.setTextureInSlot(2, shader->u_palette, std::dynamic_pointer_cast<GLTexture>(palette->texture));
   }
 
   gl.glRenderMesh(*mesh);

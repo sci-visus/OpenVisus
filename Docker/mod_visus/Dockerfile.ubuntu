@@ -14,10 +14,11 @@ ADD https://api.github.com/repos/sci-visus/OpenVisusJS/git/refs/heads/master ver
 RUN git clone -bmaster https://github.com/sci-visus/OpenVisusJS.git ${VISUS_HOME}/webviewer
 
 # configure mod_visus and webviewer
-COPY resources/shared/000-default.conf /etc/apache2/sites-enabled
-COPY resources/shared/.htpasswd    ${VISUS_HOME}
-COPY resources/shared/visus.config ${VISUS_HOME}
-COPY resources/shared/httpd-foreground.sh /usr/local/bin
+COPY 000-default.conf /etc/apache2/sites-enabled
+COPY .htpasswd    ${VISUS_HOME}
+COPY visus.config ${VISUS_HOME}
+COPY httpd-foreground.sh /usr/local/bin
+
 RUN echo "LoadModule visus_module ${VISUS_HOME}/bin/libmod_visus.so" > /etc/apache2/mods-available/visus.load \
   && a2enmod headers \
   && a2enmod visus \

@@ -101,7 +101,8 @@ void ThreadPool::push(SharedPtr<ThreadPool> pool, std::function<void()> fn) {
 
 
 ////////////////////////////////////////////////////////////
-void ThreadPool::waitAll() {
+void ThreadPool::waitAll() 
+{
   while (true)
   {
     {
@@ -110,6 +111,7 @@ void ThreadPool::waitAll() {
         return;
     }
 
+    //note: possible deadlocks if I have the python GIL here
     wait_all.num_done.down();
 
     {

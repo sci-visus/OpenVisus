@@ -52,6 +52,10 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(QueryNode)
 
+#if !SWIG
+  static std::function<bool(Int64)> willFitOnGpu;
+#endif
+
   //constructor
   QueryNode();
 

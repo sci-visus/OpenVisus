@@ -54,8 +54,6 @@ public:
   SharedPtr<Dataset>       dataset;
   SharedPtr<Access>        access;
   int                      pdim;
-  int                      maxh;
-  DatasetBitmask           bitmask;
 
   Field                    field;
   double                   time;
@@ -66,10 +64,15 @@ public:
 
   bool                     verbose;
 
+  SharedPtr<PointQuery>    point_query;
+  SharedPtr<BoxQuery>      box_query;
+
   //constructor
   MyJob(QueryNode* node_,SharedPtr<Dataset> dataset_,SharedPtr<Access> access_)
     : node(node_),dataset(dataset_),access(access_)
   {
+    this->verbose = true;
+
     this->field = node->getField();
     this->time  = node->getTime();
     this->logic_position = node->getQueryLogicPosition();
@@ -78,11 +81,67 @@ public:
     this->progression = node->getProgression();
     this->verbose = node->isVerbose();
     this->pdim = dataset->getPointDim();
-    this->maxh = dataset->getMaxResolution();
-    this->bitmask = dataset->getBitmask();
 
     if (this->progression == QueryGuessProgression)
       this->progression = (pdim == 2) ? (pdim * 3) : (pdim * 4);
+
+    auto minh = dataset->getDefaultBitsPerBlock();
+    auto maxh = dataset->getMaxResolution();
+
+    if (bool bPointQuery = (pdim == 3) && (logic_position.getBoxNd().toBox3().minsize() == 0))
+    {
+      auto endh = dataset->guessPointQueryEndResolution(logic_to_screen, logic_position);
+      endh = Utils::clamp(endh + quality, minh, maxh);
+
+      auto query = dataset->createPointQuery(logic_position, field, time, this->aborted);
+
+      query->end_resolutions.push_back(Utils::clamp(endh - progression, minh, maxh));
+      while (query->end_resolutions.back() < endh)
+      {
+        auto H = Utils::clamp(query->end_resolutions.back() + pdim, minh, endh);
+        query->end_resolutions.push_back(H);
+      }
+
+      this->point_query = query;
+    }
+    else
+    {
+      auto endh = dataset->guessBoxQueryEndResolution(logic_to_screen, logic_position);
+      endh = Utils::clamp(endh + quality, minh, maxh);
+
+      //remove transformation! (in doPublish I will add the physic clipping)
+      BoxNi logic_box = this->logic_position.toDiscreteAxisAlignedBox();
+
+      //don't want to produce something with too muchResolutionx
+      if (QueryNode::willFitOnGpu)
+      {
+        while (endh > minh)
+        {
+          auto query = dataset->createBoxQuery(logic_box, field, time, 'r', this->aborted);
+          query->end_resolutions = { endh };
+          dataset->beginBoxQuery(query);
+          auto size = query->field.dtype.getByteSize(query->getNumberOfSamples());
+          if (QueryNode::willFitOnGpu(size))
+            break;
+          --endh;
+        }
+      }
+
+      auto query = dataset->createBoxQuery(logic_box, field, time, 'r', this->aborted);
+      query->enableFilters();
+      query->incrementalPublish = [&](Array output) {
+        doPublish(output, query);
+      };
+
+      query->end_resolutions.push_back(Utils::clamp(endh - progression, minh, maxh));
+      while (query->end_resolutions.back() < endh)
+      {
+        auto H = Utils::clamp(query->end_resolutions.back() + pdim, minh, endh);
+        query->end_resolutions.push_back(H);
+      }
+
+      this->box_query = query;
+    }
   }
 
   //destructor
@@ -90,238 +149,76 @@ public:
   {
   }
 
-  //getEndResolutions
-  std::vector<int> getEndResolutions(int endh)
-  {
-    //consider quality and progression
-    endh = Utils::clamp(endh + quality, 0, maxh);
-
-    std::vector<int> ret = { Utils::clamp(endh - progression, 0, maxh) };
-    while (ret.back() < endh)
-      ret.push_back(Utils::clamp(ret.back() + pdim, 0, endh));
-
-    if (auto google = dynamic_cast<GoogleMapsDataset*>(dataset.get()))
-    {
-      for (auto& it : ret)
-        it = (it >> 1) << 1; //TODO: google maps does not have odd resolutions
-    }
-
-    return ret;
-  }
-
-  //guessPointQueryEndResolutions
-  std::vector<int> guessPointQueryEndResolutions()
-  {
-    if (!logic_position.valid())
-      return {};
-
-    auto endh = maxh;
-
-    if (!logic_to_screen.valid())
-      return getEndResolutions(endh);
-
-    std::vector<Point3d> logic_points;
-    std::vector<Point2d> screen_points;
-    FrustumMap map(logic_to_screen);
-    for (auto p : logic_position.getPoints())
-    {
-      auto logic_point = p.toPoint3();
-      logic_points.push_back(logic_point);
-      screen_points.push_back(map.projectPoint(logic_point));
-    }
-
-    // valerio's algorithm, find the final view dependent resolution (endh)
-    // (the default endh is the maximum resolution available)
-    BoxNi::Edge longest_edge;
-    double longest_screen_distance = NumericLimits<double>::lowest();
-    for (auto edge : BoxNi::getEdges(pdim))
-    {
-      double screen_distance = (screen_points[edge.index1] - screen_points[edge.index0]).module();
-
-      if (screen_distance > longest_screen_distance)
-      {
-        longest_edge = edge; 
-        longest_screen_distance = screen_distance;
-      }
-    }
-
-    //I match the highest resolution on dataset axis (it's just an euristic!)
-    for (int A = 0; A < pdim; A++)
-    {
-      double logic_distance = fabs(logic_points[longest_edge.index0][A] - logic_points[longest_edge.index1][A]);
-      double samples_per_pixel = logic_distance / longest_screen_distance;
-      Int64  num = Utils::getPowerOf2((Int64)samples_per_pixel);
-      while (num > samples_per_pixel)
-        num >>= 1;
-
-      int H = maxh;
-      for (; num > 1 && H >= 0; H--)
-      {
-        if (bitmask[H] == A)
-          num >>= 1;
-      }
-
-      endh = std::min(endh, H);
-    }
-
-    return getEndResolutions(endh);
-  }
-
-  //runPointQueryJob
-  void runPointQueryJob()
-  {
-    auto query = dataset->createPointQuery(logic_position, field, time, guessPointQueryEndResolutions(), this->aborted);
-
-    dataset->beginPointQuery(query);
-
-    int I = 0; while (query->isRunning())
-    {
-      Time t1 = Time::now();
-      query->setPoints(dataset->guessPointQueryNumberOfSamples(logic_to_screen, logic_position, query->end_resolution));
-
-      PrintInfo("PointQuery msec", t1.elapsedMsec(), "level", I, "/", query->end_resolutions.size(), "/", query->end_resolution, "/", dataset->getMaxResolution(), "npoints", query->getNumberOfPoints(), "...");
-
-      if (!dataset->executePointQuery(access, query))
-        return;
-
-      auto output = query->buffer.clone();
-      PrintInfo("PointQuery finished msec", t1.elapsedMsec(), "level", I, "/", query->end_resolutions.size(), "/", query->end_resolution, "/", dataset->getMaxResolution(),
-        "dims", output.dims, "dtype", output.dtype, "access", access ? "yes" : "nullptr", "url", dataset->getUrl());
-
-      DataflowMessage msg;
-      output.bounds = dataset->logicToPhysic(query->logic_position);
-      msg.writeValue("array", output);
-      node->publish(msg);
-      I++;
-
-      dataset->nextPointQuery(query);
-    }
-  }
-
-  //guessBoxQueryViewDependentResolutions
-  std::vector<int> guessBoxQueryViewDependentResolutions()
-  {
-    if (!logic_position.valid())
-      return {};
-
-    auto endh = maxh;
-
-    if (!logic_to_screen.valid())
-      return getEndResolutions(endh);
-
-    //important to work with orthogonal box
-    auto logic_box = logic_position.toAxisAlignedBox();
-
-    FrustumMap map(logic_to_screen);
-
-    std::vector<Point2d> screen_points;
-    for (auto p : logic_box.getPoints())
-      screen_points.push_back(map.projectPoint(p.toPoint3()));
-
-    //project on the screen
-    std::vector<double> screen_distance = { 0,0,0 };
-
-    for (auto edge : BoxNi::getEdges(pdim))
-    {
-      auto axis = edge.axis;
-      auto s0 = screen_points[edge.index0];
-      auto s1 = screen_points[edge.index1];
-      auto Sd = s0.distance(s1);
-      screen_distance[axis] = std::max(screen_distance[axis], Sd);
-    }
-
-    const int max_3d_texture_size = 2048;
-
-    auto nsamples = logic_box.size().toPoint3();
-    while (endh > 0)
-    {
-      std::vector<double> samples_per_pixel = {
-        nsamples[0] / screen_distance[0],
-        nsamples[1] / screen_distance[1],
-        nsamples[2] / screen_distance[2]
-      };
-
-      std::sort(samples_per_pixel.begin(), samples_per_pixel.end());
-
-      auto quality = sqrt(samples_per_pixel[0] * samples_per_pixel[1]);
-
-      //note: in 2D samples_per_pixel[2] is INF; in 3D with an ortho view XY samples_per_pixel[2] is INF (see std::sort)
-      bool bGood = quality < 1.0;
-
-      if (pdim == 3 && bGood)
-        bGood =
-        nsamples[0] <= max_3d_texture_size &&
-        nsamples[1] <= max_3d_texture_size &&
-        nsamples[2] <= max_3d_texture_size;
-
-      if (bGood)
-        break;
-
-      //by decreasing resolution I will get half of the samples on that axis
-      auto bit = bitmask[endh];
-      nsamples[bit] *= 0.5;
-      --endh;
-    }
-
-    return getEndResolutions(endh);
-  }
-
-  //runBoxQueryJob
-  void runBoxQueryJob()
-  {
-    //remove transformation! (in doPublish I will add the physic clipping)
-    auto query = dataset->createBoxQuery(this->logic_position.toDiscreteAxisAlignedBox(), field, time, 'r', this->aborted);
-    query->enableFilters();
-    query->end_resolutions = guessBoxQueryViewDependentResolutions();
-
-    if (query->end_resolutions.empty())
-      return;
-
-    query->incrementalPublish = [&](Array output) {
-      doPublish(output, query);
-    };
-
-    dataset->beginBoxQuery(query);
-
-    //could be that end_resolutions gets corrected (see google maps for example)
-    int I = 0, N = (int)query->end_resolutions.size();
-    for (auto EndH: query->end_resolutions)
-    {
-      Time t1 = Time::now();
-
-      if (aborted() || !query->isRunning())
-        return;
-
-      PrintInfo("BoxQuery msec", t1.elapsedMsec(), "level", I, "/", N, "/", EndH, "/", dataset->getMaxResolution());
-
-      if (!dataset->executeBoxQuery(access, query))
-        return;
-
-      if (aborted())
-        return;
-
-      auto output = query->buffer;
-      PrintInfo("BoxQuery finished msec", t1.elapsedMsec(),
-        "level", I, "/", N, "/", EndH, "/", dataset->getMaxResolution(),
-        "dims", output.dims,
-        "dtype", output.dtype,
-        "mem", StringUtils::getStringFromByteSize(output.c_size()),
-        "access", access ? "yes" : "nullptr",
-        "url", dataset->getUrl());
-
-      doPublish(output, query);
-      dataset->nextBoxQuery(query);
-      I++;
-    }
-  }
-
   //runJob
   virtual void runJob() override
   {
-    if (bool bPointQuery = (pdim == 3) && (logic_position.getBoxNd().toBox3().minsize() == 0))
-      runPointQueryJob();
-    else
-      runBoxQueryJob();
+    auto T1 = Time::now();
+    if (auto query = point_query)
+    {
+      dataset->beginPointQuery(query);
+
+      int I = 0; 
+      while (query->isRunning())
+      {
+        Time t1 = Time::now();
+        query->setPoints(dataset->guessPointQueryNumberOfSamples(logic_to_screen, logic_position, query->end_resolution));
+
+        PrintInfo("PointQuery msec", t1.elapsedMsec(), "level", I, "/", query->end_resolutions.size(), "/", query->end_resolution, "/", dataset->getMaxResolution(), "npoints", query->getNumberOfPoints(), "...");
+
+        if (!dataset->executePointQuery(access, query))
+          return;
+
+        auto output = query->buffer.clone();
+        PrintInfo("PointQuery finished msec", t1.elapsedMsec(), 
+          "level", I, "/", query->end_resolutions.size(), "/", query->end_resolution, "/", dataset->getMaxResolution(),
+          "dims", output.dims, 
+          "dtype", output.dtype, 
+          "access", access ? "yes" : "nullptr", 
+          "url", dataset->getUrl());
+
+        DataflowMessage msg;
+        output.bounds = dataset->logicToPhysic(query->logic_position);
+        msg.writeValue("array", output);
+        node->publish(msg);
+        dataset->nextPointQuery(query);
+        I++;
+      }
+    }
+    else if (auto query = box_query)
+    {
+      dataset->beginBoxQuery(query);
+
+      //could be that end_resolutions gets corrected (see google maps for example)
+      int I = 0,N = (int)query->end_resolutions.size();
+      for (auto EndH : query->end_resolutions)
+      {
+        Time t1 = Time::now();
+
+        if (aborted() || !query->isRunning())
+          return;
+
+        PrintInfo("BoxQuery executeBoxQuery", I, "/", N, "/", EndH, "/", dataset->getMaxResolution(),"...");
+
+        if (!dataset->executeBoxQuery(access, query))
+          return;
+
+        if (aborted())
+          return;
+
+        auto output = query->buffer;
+        PrintInfo("BoxQuery executeBoxQuery", I, "/", N, "/", EndH, "/", dataset->getMaxResolution(),"done in", t1.elapsedMsec(),"msec",
+          "dims", output.dims,"dtype", output.dtype,
+          "mem", StringUtils::getStringFromByteSize(output.c_size()),
+          "access", access ? "yes" : "nullptr",
+          "url", dataset->getUrl());
+
+        doPublish(output, query);
+        dataset->nextBoxQuery(query);
+        I++;
+      }
+    }
+
+    PrintInfo("Query finished in",T1.elapsedMsec(),"msec");
   }
 
   //doPublish
@@ -361,17 +258,9 @@ public:
     node->publish(msg);
   }
 
-  //abort
-  virtual void abort() override
-  {
-    if (!aborted())
-      PrintInfo("QueryNode job aborted");
-
-    NodeJob::abort();
-  }
-
 };
 
+std::function<bool(Int64)> QueryNode::willFitOnGpu;
 
 ///////////////////////////////////////////////////////////////////////////
 QueryNode::QueryNode() 

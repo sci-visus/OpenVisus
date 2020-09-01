@@ -7,7 +7,7 @@ from OpenVisus.VisusDataflowPy import *
 from OpenVisus.VisusNodesPy    import *
 
 import sys
-SetCommandLine(sys.argv)
+SetCommandLine(list(it for it in [sys.executable] + sys.argv if it))
 
 KernelModule.attach()
 XIdxModule.attach()

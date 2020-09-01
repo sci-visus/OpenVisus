@@ -52,7 +52,7 @@ class MyTestCase(unittest.TestCase):
 			for I in range(depth): 
 				yield rgb
 
-		db.writeSlabs(generateSlices(),z=0,max_memsize=4*1024*1024*1024)
+		db.writeSlabs(generateSlices(),z=0)
 			
 		# read a slice in the middle
 		middle=int(depth/2)

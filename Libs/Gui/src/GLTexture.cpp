@@ -46,7 +46,7 @@ namespace Visus {
 
 
 ///////////////////////////////////////////////
-GLTexture::GLTexture(Array src)
+SharedPtr<GLTexture> GLTexture::createFromArray(Array src)
 {
   int ncomponents = src.dtype.ncomponents();
 
@@ -54,26 +54,41 @@ GLTexture::GLTexture(Array src)
   {
     //PrintInfo("Failed to upload texture internal error");
     //VisusAssert(false);
-    return;
+    return SharedPtr<GLTexture>();
   }
 
-  this->upload.array = src;
-  this->dims = Point3i((int)src.getWidth(), (int)src.getHeight(), (int)src.getDepth());
+  auto glinfo = GLInfo::getSingleton();
+  if (glinfo->getGpuTotalMemory() && src.c_size() > glinfo->getGpuFreeMemory())
+  {
+    PrintInfo("failed to create Texture, not enough memory", "requested", StringUtils::getStringFromByteSize(src.c_size()));
+    return SharedPtr<GLTexture>();
+  }
+
+  //NOTE: I cannot upload here since I don't have the OpenGL context, so I keep a copy of the memory
+  //to upload later
+  auto ret = std::make_shared<GLTexture>();
+  ret->upload.array = src;
+  ret->dims = Point3i((int)src.getWidth(), (int)src.getHeight(), (int)src.getDepth());
 
   if (src.dtype.isVectorOf(DTypes::UINT8))
-    this->dtype = DType(ncomponents, DTypes::UINT8);
+    ret->dtype = DType(ncomponents, DTypes::UINT8);
   else
-    this->dtype = DType(ncomponents, DTypes::FLOAT32);
+    ret->dtype = DType(ncomponents, DTypes::FLOAT32);
+
+  return ret;
 }
 
 ///////////////////////////////////////////////
-GLTexture::GLTexture(QImage src)
+SharedPtr<GLTexture>GLTexture::createFromQImage(QImage src)
 {
   src = src.mirrored();
   src = src.convertToFormat(QImage::Format_RGBA8888);
-  this->upload.image = src;
-  this->dims = Point3i((int)src.width(), (int)src.height(), 1);
-  this->dtype = DTypes::UINT8_RGBA;
+
+  auto ret = std::make_shared<GLTexture>();
+  ret->upload.image = src;
+  ret->dims = Point3i((int)src.width(), (int)src.height(), 1);
+  ret->dtype = DTypes::UINT8_RGBA;
+  return ret;
 }
 
 ///////////////////////////////////////////////
@@ -145,7 +160,7 @@ GLuint GLTexture::textureId(GLCanvas& gl)
     return texture_id;
 
   //already failed
-  if (!upload.array && upload.image.width() == 0)
+  if (!upload.array.valid() && upload.image.width() == 0)
     return 0;
 
   String failure_texture;
@@ -155,12 +170,12 @@ GLuint GLTexture::textureId(GLCanvas& gl)
   auto image = upload.image; upload.image = QImage();
 
   const uchar* pixels = nullptr;
-  if (array)
+  if (array.valid())
   {
     if (this->dtype != array.dtype)
     {
       auto casted = ArrayUtils::cast(array, this->dtype);
-      if (!casted)
+      if (!casted.valid())
       {
         PrintInfo( "Texture generation failed (failed to creatre casted array)");
         return 0;
@@ -178,7 +193,6 @@ GLuint GLTexture::textureId(GLCanvas& gl)
   auto target = this->target();
   auto ncomponents = this->dtype.ncomponents();
   auto fullsize = this->dtype.getByteSize((Int64)this->dims[0] * (Int64)this->dims[1] * (Int64)this->dims[2]);
-
 
   const int uint8_textureFormats[][5] = {
     {0, GL_LUMINANCE ,GL_LUMINANCE_ALPHA,GL_RGB ,GL_RGBA},                    //NoCompression
@@ -208,14 +222,13 @@ GLuint GLTexture::textureId(GLCanvas& gl)
     textureFormat = (QOpenGLTexture::TextureFormat)textureFormats[this->compression][ncomponents];
   }
 
-  //i cannot know in advance with texture compression how much memory i'm going to use
-#if 0
-  if (!GLInfo::getSingleton()->allocateOpenGLMemory(fullsize))
+  auto glinfo = GLInfo::getSingleton();
+
+  if (glinfo->getGpuTotalMemory() && fullsize > glinfo->getGpuFreeMemory())
   {
-    PrintInfo("Failed to upload texture Failed to allocate gpu memory",StringUtils::getStringFromByteSize(fullsize),"GLCreateTexture::setArray failed");
+    PrintInfo("Failed to upload texture Not enough VRAM");
     return 0;
   }
-#endif
 
   auto sourceFormat = std::vector<int>({ 0,GL_LUMINANCE,GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA })[ncomponents];
   auto sourceType = dtype.isVectorOf(DTypes::UINT8) ? GL_UNSIGNED_BYTE : GL_FLOAT;
@@ -281,8 +294,6 @@ GLuint GLTexture::textureId(GLCanvas& gl)
       if (compressed == GL_TRUE)
         glGetTexLevelParameteriv(target, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE_ARB, &gpusize);
     }
-
-    GLInfo::getSingleton()->addVisusUsedMemory(gpusize);
 
     if (false)
     {

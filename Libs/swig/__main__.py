@@ -128,12 +128,27 @@ def InstallAndUsePyQt5(bUserInstall=False):
 	# NOTE: I'm installing packages here because I have problems specifying them in setup.py. Worth to give another try?
 	print("sys.executable",sys.executable, "is_conda",is_conda)
 	if is_conda:
-		import conda.cli
-		conda.cli.main('conda', 'install', '-y',"numpy", "pillow", "opencv", "pyqt={}.{}".format(major,minor))
-		conda.cli.main('conda', 'install', '-y','-c', 'conda-forge', 'libglu')
-		
+		import conda.cli 
+
+		conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'numpy', "pillow", 'opencv')
+		if WIN32:
+			# cannot use conda-forge version because they rename DLLS (like Qt5Core.dll->Qt5Core_conda.dll)
+			conda.cli.main('conda', 'install', '-y',                      "pyqt={}.{}".format(major,minor)) 
+		else:
+			conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', "pyqt={}.{}".format(major,minor))
+
 		# for some unknown reason I get: RuntimeError: module compiled against API version 0xc but this version of numpy is 0xa
-		conda.cli.main('conda', 'update', '-y', 'numpy') 
+		# scrgiorgio: I don't care if it fails
+		try:
+			conda.cli.main('conda', 'update', '-y', 'numpy') 
+		except:
+			pass
+
+		# scrgiorgio: TImos says this can fail but then the viewer works anyway
+		try:
+			conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'libglu')
+		except:
+			pass
 		
 		# do I need PyQtWebEngine for conda? considers Qt is 5.9 (very old)
 		# it has webengine and sip included
@@ -484,17 +499,20 @@ def Main(args):
 		os.chdir(this_dir)
 		ExecuteCommand([sys.executable, "Samples/python/Array.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "Samples/python/Dataflow.py"],check_result=True) 
-		ExecuteCommand([sys.executable, "Samples/python/Dataflow2.py"],check_result=True) 
+
+		# temporarly disabled: atlantis down
+		# ExecuteCommand([sys.executable, "Samples/python/Dataflow2.py"],check_result=True) 
+
 		ExecuteCommand([sys.executable, "Samples/python/Idx.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "Samples/python/XIdx.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "Samples/python/TestConvert.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "Samples/python/MinMax.py"],check_result=True) 
-		ExecuteCommand([sys.executable, "-m","OpenVisus","server","--dataset","./datasets/cat/rgb.exit","--port","10000","--exit"],check_result=True) 
+		ExecuteCommand([sys.executable, "-m","OpenVisus","server","--dataset","./datasets/cat/rgb.idx","--port","10000","--exit"],check_result=True) 
 		sys.exit(0)
 
 	if action=="test-idx":
 		os.chdir(this_dir)
-		SelfTestIdx(300)
+		SelfTestIdx()
 		sys.exit(0)
 
 	# this is just to test run-time linking of shared libraries

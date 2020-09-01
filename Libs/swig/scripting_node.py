@@ -1,4 +1,4 @@
-import numpy
+import numpy, datetime
 
 from OpenVisus      import *
 from OpenVisus.gui  import *
@@ -11,15 +11,8 @@ from PyQt5.QtCore    import *
 class MyJob(NodeJob):
 	
 	# constructor
-	def __init__(self, node, input, return_receipt):
+	def __init__(self):
 		super().__init__()
-		self.node=node
-		self.code=node.getCode()
-		self.input=input
-		self.msg=	DataflowMessage()
-		
-		if return_receipt:
-			self.msg.setReturnReceipt(return_receipt)		
 
 	# printMessage
 	def printMessage(self,*args):
@@ -43,28 +36,33 @@ class MyJob(NodeJob):
 		
 		input=Array.toNumPy(self.input,bShareMem=True)
 		
-		self.printMessage("Got in input",input.shape,input.dtype)
-		
+		self.printMessage(datetime.datetime.now(),"Got in input",input.shape,input.dtype)
+
 		g=globals()
-		l={'input':input,'aborted':self.aborted}
-			
+		g['input']=input
+		g['aborted']=self.aborted
+
 		try:
-			exec(self.code,g,l)
-			
-			output=l['output']
+			exec(self.code,g)
+
+			if not 'output' in g:
+				raise Exception('output empty. Did you forget to set it?')
+
+			output=g['output']
 			
 			if not type(output) is numpy.ndarray:
 				raise Exception('output is not a numpy array')
 			
 		except Exception as e:
 			if not self.aborted(): 
-				self.printMessage('Failed to exec code',self.code,e)
+				import traceback
+				self.printMessage(datetime.datetime.now(),'Python error\n',traceback.format_exc())
 			return	
 		
 		if self.aborted():
 			return				
 			
-		self.printMessage("Output is ",output.shape, output.dtype)
+		self.printMessage(datetime.datetime.now(),"Output is ",output.shape, output.dtype)
 		output=Array.fromNumPy(output,TargetDim=pdim,bShareMem=False)
 		output.shareProperties(self.input)
 		
@@ -101,7 +99,7 @@ class MyView(QMainWindow):
 		self.output.setStyleSheet("background-color: rgb(150, 150, 150);")
 
 		self.run_button = QPushButton('Run')	
-		self.run_button.clicked.connect(self.runCode)				
+		self.run_button.clicked.connect(self.onRunButtonClick)				
 
 		self.layout = QVBoxLayout()
 		self.layout.addWidget(self.presets)
@@ -113,8 +111,11 @@ class MyView(QMainWindow):
 		container.setLayout(self.layout)
 		self.setCentralWidget(container)
 			
-		self.setText(node.getCode())
 		self.guessPresets()
+
+		code=node.getCode()
+		if code: 
+			self.setText(code)
 			
 	# getText
 	def getText(self):
@@ -124,9 +125,10 @@ class MyView(QMainWindow):
 	def setText(self,value):
 		self.editor.setPlainText(value)		
 					
-	# runCode
-	def runCode(self):
-		self.node.setCode(self.getText())
+	# onRunButtonClick
+	def onRunButtonClick(self):
+		bForce=True
+		self.node.setCode(self.getText(), bForce)
 		
 	# onPresetIndexChanged
 	def onPresetIndexChanged(self,index):
@@ -195,8 +197,8 @@ class PyScriptingNode(ScriptingNode):
 		return "ScriptingNode" # i'm returning the same string anyway
 		
 	# setCode
-	def setCode(self,value):
-		super().setCode(value)
+	def setCode(self,value,bForce=False):
+		super().setCode(value,bForce)
 		if not self.editor: return
 		self.editor.setText(value)
 
@@ -206,11 +208,7 @@ class PyScriptingNode(ScriptingNode):
 		self.abortProcessing()
 		self.joinProcessing()
 
-		# NOTE: I'm dropping any return_receipt because It's too dangerous to keep objects around with a gc
-		if True:
-			return_receipt=None
-		else:
-			return_receipt = self.createPassThroughtReceipt()
+		return_receipt = self.createPassThroughtReceipt()
 
 		input = self.readArray("array")
 		
@@ -218,8 +216,19 @@ class PyScriptingNode(ScriptingNode):
 			return False
 
 		self.setBounds(input.bounds)
-		job=MyJob(self, input, return_receipt)
+
+		job=MyJob()
+		job.node=self
+		job.code=self.getCode()
+		job.input=input
+		job.msg=DataflowMessage()
+		job.msg.setReturnReceipt(return_receipt)
+
+		# python won't use it anymore (this is to force deallocation)
+		del return_receipt 
+
 		self.addNodeJob(job)
+		
 		return True 
 		
 	# createEditor

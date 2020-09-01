@@ -30,6 +30,7 @@ using namespace Visus;
 
 %include <Visus/Nodes.h>
 
+#if 0
 %feature("director") Visus::CpuPaletteNode;
 %feature("director") Visus::FieldNode;
 %feature("director") Visus::ModelViewNode;
@@ -39,6 +40,7 @@ using namespace Visus;
 %feature("director") Visus::DatasetNode;
 %feature("director") Visus::QueryNode;
 %feature("director") Visus::KdQueryNode;
+#endif
 
 %include <Visus/CpuPaletteNode.h>
 %include <Visus/FieldNode.h>

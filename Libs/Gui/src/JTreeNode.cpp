@@ -687,7 +687,7 @@ bool JTreeNode::recompute(bool bFull)
 {
   abortProcessing();
 
-  if (bool bWrongInput=!this->data || this->data.dtype.ncomponents()!=1)
+  if (bool bWrongInput=!this->data.valid() || this->data.dtype.ncomponents()!=1)
   {
     this->last_full_graph.reset();
     this->data=Array();
@@ -751,7 +751,7 @@ void JTreeNode::messageHasBeenPublished(DataflowMessage msg)
 ////////////////////////////////////////////////////////////
 void JTreeNode::updateAutoThreshold()
 {
-  if (!this->auto_threshold || !this->data) 
+  if (!this->auto_threshold || !this->data.valid())
     return;
 
   //if the data does not come with a valid range, calculate it

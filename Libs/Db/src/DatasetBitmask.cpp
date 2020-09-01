@@ -47,11 +47,6 @@ DatasetBitmask DatasetBitmask::fromString(String pattern)
 {
   if (pattern.empty())
     return DatasetBitmask();
-
-  if (pattern[0]!='V') {
-    VisusAssert(false);
-    return DatasetBitmask();
-  }
     
   DatasetBitmask ret;
   ret.pattern = pattern;
@@ -70,47 +65,53 @@ DatasetBitmask DatasetBitmask::fromString(String pattern)
 }
 
 //////////////////////////////////////////////////////////////////
-DatasetBitmask DatasetBitmask::guess(PointNi dims,bool makeRegularAsSoonAsPossible)
+DatasetBitmask DatasetBitmask::guess(int first_letter, PointNi dims,bool makeRegularAsSoonAsPossible)
 {
   int pdim = dims.getPointDim();
 
   for (int D=0;D<pdim;D++) 
     dims[D]=(Int64)Utils::getPowerOf2(dims[D]);
 
+  String pattern;
+
   //example V 00000 01010101
   if (makeRegularAsSoonAsPossible)
   {
-    String ret;
     while (dims!=PointNi::one(pdim))
     {
       for (int D=pdim-1;D>=0;D--) 
       {
         if (dims[D]>1) 
         {
-          ret+=('0'+D);
+          pattern +=('0'+D);
           dims[D]>>=1;
         }
       }
     }
-    return DatasetBitmask::fromString("V" + StringUtils::reverse(ret));
+
+    pattern = StringUtils::reverse(pattern);
   }
   //example V 01010101 00000
   else
   {
-    String ret="V";
     while (dims!=PointNi::one(pdim))
     {
       for (int D=0;D<pdim;D++)
       {
         if (dims[D]>1) 
         {
-          ret+=('0'+D);
+          pattern +=('0'+D);
           dims[D]>>=1;
         }
       }
     }
-    return DatasetBitmask::fromString(ret);
   }
+
+  pattern = String(1, first_letter) + pattern;
+
+	auto ret=DatasetBitmask::fromString(pattern);
+  VisusReleaseAssert(ret.valid());
+  return ret;
 }
 
 

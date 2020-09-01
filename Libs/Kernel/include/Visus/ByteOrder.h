@@ -79,16 +79,10 @@ public:
     return isBigEndian();
   }
 
-  //toNetworkByteOrder
+  //swapByteOrder
   template <typename T>
-  static inline T toNetworkByteOrder(T value) {
-    return isNetworkByteOrder() ? value : swap<T>(value);
-  }
-
-  //fromNetworkByteOrder
-  template <typename T>
-  static inline T fromNetworkByteOrder(T value) {
-    return isNetworkByteOrder() ? value : swap<T>(value);
+  static inline T swapByteOrder(T value) {
+    return swap<T>(value);
   }
 
 private:
