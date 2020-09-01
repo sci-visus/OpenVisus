@@ -215,7 +215,7 @@ rm -Rf /var/log/apache2/*
 sudo /usr/sbin/apache2ctl -e debug -X
 
 # run in background
-sudo /usr/sbin/apache2ctl start
+sudo /usr/sbin/apache2ctl restart
 sudo /usr/sbin/apache2ctl -M  # Dump a list of loaded Static and Shared Modules.
 sudo /usr/sbin/apache2ctl -S  # Show the settings as parsed from the config file 
 
