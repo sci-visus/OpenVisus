@@ -23,6 +23,6 @@ if (VISUS_PYTHON)
 endif()
 
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/VisusWeaving/CMakeLists.txt")
+if(WIN32 AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/VisusWeaving/CMakeLists.txt")
 	add_subdirectory(VisusWeaving)
 endif()	

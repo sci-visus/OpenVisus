@@ -211,6 +211,10 @@ if (VISUS_IMAGE)
 	target_link_libraries(VisusKernel  PRIVATE FreeImage)
 endif()
 
+if (VISUS_HOME)
+	target_compile_options(VisusKernel PRIVATE -DVISUS_HOME=${VISUS_HOME})
+endif()
+
 target_compile_definitions(VisusKernel  PRIVATE VISUS_BUILDING_VISUSKERNEL=1)
 target_include_directories(VisusKernel  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 

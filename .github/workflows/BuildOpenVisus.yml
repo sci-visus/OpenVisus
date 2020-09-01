@@ -68,7 +68,7 @@ jobs:
       shell: bash -l {0}
       run: |
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
-           conda install conda pyqt                                                        1>/dev/null
+           conda install conda                                                             1>/dev/null
 
     # ____________________________________________
     - name: Install Qt for windows
@@ -126,9 +126,14 @@ jobs:
       if: matrix.os == 'windows-latest'    
       shell: bash -l {0}
       run: |
-           if [[  "${{ matrix.python-type }}" == "cpython" ]] ; then Python_EXECUTABLE=${pythonLocation}/python.exe ; fi
-           if [[  "${{ matrix.python-type }}" == "conda"   ]] ; then Python_EXECUTABLE=$(which python)              ; fi
-           if [[  "${{ matrix.python-type }}" == "conda"   ]] ; then Qt5_Dir=${CONDA_PREFIX}/Library ; fi
+           if [[  "${{ matrix.python-type }}" == "cpython" ]] ; then 
+              Python_EXECUTABLE=${pythonLocation}/python.exe 
+              Qt5_Dir=${Qt5_Dir} # from Install Qt
+           else
+              Python_EXECUTABLE=$(which python)              
+              conda install -y pyqt=5.9 1>/dev/null # contains all I need IMPORTANT don't add "-c conda-forge" because they rename DLLS (like Qt5Core.dll->Qt5Core_conda.dll)
+              Qt5_Dir=${CONDA_PREFIX}/Library 
+           fi
            mkdir -p build
            cd build
            curl -L --insecure https://cfhcable.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O  && unzip swigwin-4.0.2.zip
@@ -141,9 +146,14 @@ jobs:
       if: matrix.os == 'macos-latest'
       shell: bash -l {0}
       run: |
-           if [[  "${{ matrix.python-type }}" == "cpython" ]] ; then Python_EXECUTABLE=${pythonLocation}/python ; fi
-           if [[  "${{ matrix.python-type }}" == "conda"   ]] ; then Python_EXECUTABLE=$(which python)          ; fi
-           if [[  "${{ matrix.python-type }}" == "conda"   ]] ; then Qt5_Dir=${CONDA_PREFIX} ; fi
+           if [[  "${{ matrix.python-type }}" == "cpython" ]] ; then 
+              Python_EXECUTABLE=${pythonLocation}/python
+              Qt5_Dir=${Qt5_Dir} # from Install Qt
+           else
+              Python_EXECUTABLE=$(which python)
+              conda install -c conda-forge -y pyqt=5.12  # contains all I need
+              Qt5_Dir=${CONDA_PREFIX}
+           fi
            mkdir -p build
            cd build
            cmake -GXcode -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX10.9.sdk" -DPython_EXECUTABLE=${Python_EXECUTABLE}  ../
@@ -155,9 +165,8 @@ jobs:
       if: matrix.os == 'ubuntu-latest' 
       shell: bash -l {0}
       run: |
-           if [[ "${{ matrix.python-type }}" == "cpython" ]] ; then Qt5_DIR=/opt/qt512  ; fi
-           if [[ "${{ matrix.python-type }}" == "conda"   ]] ; then Qt5_DIR=/opt/qt59   ; fi
-           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=$Qt5_DIR -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
+           # i can use the pyqt one, but I would need to share the directory to docker, for simplicity I'm not doing it
+           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=/opt/qt512 -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
 

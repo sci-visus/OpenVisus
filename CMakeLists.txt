@@ -171,7 +171,7 @@ else()
 		set(VISUS_DEFAULT_SLAM 1)
 	endif()
 
-	if(EXISTS "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/README.txt")
+	if(WIN2 AND EXISTS "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/README.txt")
 		set(VISUS_DEFAULT_OSPRAY ON)
 	endif()
 	
