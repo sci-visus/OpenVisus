@@ -3,46 +3,35 @@
 Compiled and install OpenVisus: 
 
 ```
-cd Desktop/OpenVisus
+
 mkdir build_atlantis
 cd build_atlantis
 cmake  -DVISUS_GUI=0  -DVISUS_HOME=/scratch/home/OpenVisus ../
 make -j
 make install
-
-SRC=$(pwd)/Release/OpenVisus
-DST=/usr/lib/python3.6/site-packages/OpenVisus
-rsync -r -v $SRC/ $DST # IMPORTANT the '/' suffix for $SRC
-diff -r $SRC $DST
-
-# not needed since I disabled the GUI
-# python3 -m OpenVisus configure 
+# NOTE: no need to configure since I disabled the GUI
+rsync -r -v $(pwd)/Release/OpenVisus/ /usr/lib/python3.6/site-packages/OpenVisus
 ```
 
-Take now of where OpenVisus is installed:
-
-
-Set VISUS_HOME enviroment variable.
-You can add it to '/etc/profile':
+(OPTIONAL) Edit file '/etc/profile' and set where VISUS_HOME is:
 
 ```
-cat <<EOF >>/etc/profile
 VISUS_HOME=/scratch/home/OpenVisus
 export VISUS_HOME
-EOF
 ```
 
 Create a symbolic link .
 
 ```
+python3 -c "import OpenVisus,os;print(os.path.dirname(OpenVisus.__file__))"
 ln -s /usr/lib/python3.6/site-packages/OpenVisus /scratch/home/OpenVisus
 ls /scratch/home/OpenVisus
 ```
 
-A clone of web viewer has been created:
+Add webviewer:
 
 ```
-git clone -bmaster https://github.com/sci-visus/OpenVisusJS.git /scratch/home/OpenVisus/webviewer
+git clone git@github.com:sci-visus/OpenVisusJS.git /scratch/home/OpenVisus/webviewer
 ```
 
 Create `/scratch/home/OpenVisus/.htpasswd` file with the following content (change as needed):
@@ -57,14 +46,11 @@ Create `/scratch/home/OpenVisus/visus.config` with the following content (change
 
 ```
 cat <<EOF >/scratch/home/OpenVisus/visus.config
-<?xml version="1.0" ?>
-<visus>
-   <datasets>
-      <dataset name="cat"        url="/scratch/home/OpenVisus/datasets/cat/rgb.idx"    permissions="public" />
-      <dataset name="cat_gray"   url="/scratch/home/OpenVisus/datasets/cat/gray.idx"   permissions="public" />
-   </datasets>
-</visus>
+<include url="/scratch/home/OpenVisus/visus.atlantis.config" />
 EOF
+
+# customize as needed
+cp ~/backup/atlantis/visus.atlantis.config /scratch/home/OpenVisus/visus.atlantis.config
 ```
 
 Enable the modules you need:
@@ -81,10 +67,9 @@ grep visus /etc/sysconfig/apache2
 
 
 Replace `/etc/apache2/default-server.conf` file:
-:
+(NOTE: I'm having problems with IncludeOptional virtual hosts, so I'm replacing the main default-server file)
 
 ```
-
 mv /etc/apache2/default-server.conf /etc/apache2/default-server.conf.backup
 
 mkdir -p /www/htdocs
@@ -96,13 +81,17 @@ EOF
 chmod -R a+r /www/htdocs
 
 cat <<EOF >/etc/apache2/default-server.conf
+
 SetEnv VISUS_HOME /scratch/home/OpenVisus
+
 LoadModule headers_module   /usr/lib64/apache2-prefork/mod_headers.so
 LoadModule visus_module     /scratch/home/OpenVisus/bin/libmod_visus.so
+
 DocumentRoot "/www/htdocs"
 <Directory "/www/htdocs">
    Options None
    AllowOverride None
+   
    <IfModule !mod_access_compat.c>
       Require all granted
    </IfModule>
@@ -110,16 +99,20 @@ DocumentRoot "/www/htdocs"
       Order allow,deny
       Allow from all
    </IfModule>
+   
 </Directory>
+
 # without this I get 403 error since OpenVisus is a symbolic link (OpenVisus -> /usr/lib/python3.6/site-packages/OpenVisus/)
 <Directory /scratch>
    Options FollowSymLinks
    AllowOverride None
 </Directory>
+
 Alias /viewer /scratch/home/OpenVisus/webviewer
 <Directory /scratch/home/OpenVisus/webviewer>
    Options Indexes MultiViews FollowSymLinks 
    AllowOverride None
+   
    <IfModule headers_module>
       Header set "Access-Control-Allow-Origin" "*"
    </IfModule>
@@ -130,14 +123,18 @@ Alias /viewer /scratch/home/OpenVisus/webviewer
       Order allow,deny
       Allow from all
    </IfModule>
+   
 </Directory> 
+
 <LocationMatch "/mod_visus">
    SetHandler visus
    <IfModule headers_module>
       Header set "Access-Control-Allow-Origin" "*"
    </IfModule>
+   
    #this was required at some point but doesn't seem necessary now; leaving it here just in case
    #DirectorySlash Off
+   
    <If "%{QUERY_STRING} =~ /.*action=AddDataset.*/ || %{QUERY_STRING} =~ /.*action=configure_datasets.*/ || %{QUERY_STRING} =~ /.*action=add_dataset.*/" >
       AuthType Basic
       AuthName "Authentication Required"
@@ -145,6 +142,7 @@ Alias /viewer /scratch/home/OpenVisus/webviewer
       Require valid-user
    </If>
    <Else>
+   
       <IfModule !mod_access_compat.c>
          Require all granted
       </IfModule>
@@ -152,7 +150,9 @@ Alias /viewer /scratch/home/OpenVisus/webviewer
          Order allow,deny
          Allow from all
       </IfModule>
+      
    </Else>
+   
 </LocationMatch>
 EOF
 ```
@@ -161,13 +161,13 @@ Change the listen port from file `/etc/apache2/listen.conf`
 (NOTE: do it only if needed; for example when you are debugging and cannot make_sock on port 80 since you are not root)
 
 ```
-Listen 8080
+Listen 80
 <IfDefine SSL>
-        <IfDefine !NOSSL>
-        <IfModule mod_ssl.c>
-                Listen 443
-        </IfModule>
-        </IfDefine>
+   <IfDefine !NOSSL>
+      <IfModule mod_ssl.c>
+         Listen 443
+      </IfModule>
+   </IfDefine>
 </IfDefine>
 ```
 
@@ -208,7 +208,7 @@ Run it:
 
 ```
 sudo /usr/sbin/apache2ctl stop
-rm -f /var/log/apache2/*.log
+rm -Rf /var/log/apache2/*
 
 
 # run in foreground for debugging purpouses
@@ -217,7 +217,7 @@ sudo /usr/sbin/apache2ctl -e debug -X
 # run in background
 sudo /usr/sbin/apache2ctl start
 sudo /usr/sbin/apache2ctl -M  # Dump a list of loaded Static and Shared Modules.
-sudo /usr/sbin/apache2ctl -S
+sudo /usr/sbin/apache2ctl -S  # Show the settings as parsed from the config file 
 
 ``` 
 
