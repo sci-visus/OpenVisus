@@ -7,38 +7,33 @@
 
 # if you need to debug:
 #    sudo docker run -it -w=/home/OpenVisus --entrypoint  /bin/bash modvisus_opensuse
-#    ./httpd-foreground.sh
-#    tail -n 100 /var/log/apache2/error_log
-#    tail -n 100 /var/log/apache2/access_log
+#    /usr/local/bin/httpd-foreground.sh
+#    more /var/log/apache2/error_log
 
 FROM opensuse/leap
 
-RUN zypper --non-interactive update 
-RUN zypper --non-interactive install python3 python3-pip python3-devel apache2 git which 
-RUN python3 -m pip install --upgrade pip
-RUN python3 -m pip install --upgrade numpy
-
-# install openvisus
+ENV PYTHONUNBUFFERED=1
 ENV VISUS_HOME=/home/OpenVisus
-RUN python3 -m pip install OpenVisus==2.1.87
+
+RUN zypper --non-interactive update 
+RUN zypper --non-interactive install python3 python3-pip python3-devel apache2 git  
+RUN python3 -m pip install --upgrade pip OpenVisus
 RUN python3 -c "import os,OpenVisus;os.system('rm -Rf /home/OpenVisus');os.system('ln -s {} /home/OpenVisus'.format(os.path.dirname(OpenVisus.__file__)))"
 
-# install webviewer
 ADD https://api.github.com/repos/sci-visus/OpenVisusJS/git/refs/heads/master version.json
 RUN git clone -bmaster https://github.com/sci-visus/OpenVisusJS.git /home/OpenVisus/webviewer
 
-# configure mod_visus and webviewer
-COPY 000-default.conf              /etc/apache2/conf.d
-COPY httpd-foreground.opensuse.sh  /home/OpenVisus/httpd-foreground.sh
-COPY .htpasswd                     /home/OpenVisus/
-COPY visus.config                  /home/OpenVisus/
+COPY 000-default.conf     /etc/apache2/conf.d/
+COPY .htpasswd            /home/OpenVisus/
+COPY visus.config         /home/OpenVisus/
+COPY httpd-foreground.sh  /usr/local/bin/
+RUN chmod a+x /usr/local/bin/httpd-foreground.sh
 
 RUN echo "LoadModule headers_module   /usr/lib64/apache2-prefork/mod_headers.so"   >>   /etc/apache2/loadmodule.conf 
 RUN echo "LoadModule visus_module     /home/OpenVisus/bin/libmod_visus.so"         >>   /etc/apache2/loadmodule.conf 
 
-RUN chmod a+x /home/OpenVisus/httpd-foreground.sh
 EXPOSE 80
-CMD ["/home/OpenVisus/httpd-foreground.sh"]
+CMD ["/usr/local/bin/httpd-foreground.sh"]
 
 
 
