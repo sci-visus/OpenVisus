@@ -1,12 +1,12 @@
 # to build it:
-#    sudo docker build --tag modvisus_ubuntu  .
+#    sudo docker build --tag mod_visus_ubuntu  .
 #
 # to run it:
-#    sudo docker run   --publish 8080:80 modvisus_ubuntu
+#    sudo docker run   --publish 8080:80 mod_visus_ubuntu
 #    wget -q -O -  "http://localhost:8080/mod_visus?action=list"
 #
 # if you need to debug:
-#    sudo docker run -it --entrypoint /bin/bash -w=/home/OpenVisus modvisus_ubuntu
+#    sudo docker run -it --entrypoint /bin/bash -w=/home/OpenVisus mod_visus_ubuntu
 #    httpd-foreground.sh
 #    more /var/log/apache2/error.log
 
