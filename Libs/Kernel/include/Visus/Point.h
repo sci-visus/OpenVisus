@@ -777,6 +777,7 @@ public:
 
   typedef __T__ T;
 
+#if !SWIG
   //_____________________________________________________
   class ForEachPoint
   {
@@ -828,7 +829,7 @@ public:
       }
     }
   };
-
+#endif
 
   typedef typename std::array<T, 5>::iterator       iterator;
   typedef typename std::array<T, 5>::const_iterator const_iterator;

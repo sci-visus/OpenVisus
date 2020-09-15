@@ -627,7 +627,7 @@ public:
     uint32_t* fb = (uint32_t*)framebuffer.map(OSP_FB_COLOR);
     // Blit the rendered framebuffer from OSPRay
     {
-      auto fbArray = Array(imgDims[0], imgDims[1], DTypes::UINT8_RGBA, HeapMemory::createUnmanaged(fb, imgDims[0] * imgDims[1] * 4));
+      auto fbArray = Array(imgDims[0], imgDims[1], DTypes::UINT8_RGBA, HeapMemory::createUnmanaged((Uint8*)fb, imgDims[0] * imgDims[1] * 4));
       auto fbTexture = GLTexture::createFromArray(fbArray);
       if (!fbTexture)
         return;

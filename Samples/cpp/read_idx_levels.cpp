@@ -44,7 +44,7 @@ namespace Visus {
 ////////////////////////////////////////////////////////////////////////////////////
 //read specific region of Dataset from tutorial_1 "merging" partial results
 ////////////////////////////////////////////////////////////////////////////////////
-void Tutorial_3(String default_layout)
+void CppSamples_ReadIdxLevels(String default_layout)
 {
   auto dataset = LoadDataset("tmp/tutorial_1/visus.idx");
 

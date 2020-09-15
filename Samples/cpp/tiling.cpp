@@ -42,7 +42,7 @@ For support : support@visus.net
 namespace Visus {
 
 /////////////////////////////////////////////////////////////////////////////////////
-void TilingExample(IdxDataset* dataset)
+void CppSamples_Tiling(IdxDataset* dataset)
 {
   int maxh=dataset->getMaxResolution();
 
@@ -126,7 +126,7 @@ void Tutorial_Tiling(String default_layout)
 
   auto dataset= LoadIdxDataset(filename);
 
-  TilingExample(dataset.get());
+  CppSamples_Tiling(dataset.get());
 }
 
 } //namespace Visus

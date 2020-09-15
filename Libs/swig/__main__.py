@@ -497,16 +497,17 @@ def Main(args):
 	# ___________________________________________________________________ test
 	if action=="test":
 		os.chdir(this_dir)
-		ExecuteCommand([sys.executable, "Samples/python/Array.py"],check_result=True) 
-		ExecuteCommand([sys.executable, "Samples/python/Dataflow.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/array.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/xidx.py"],check_result=True) 
 
-		# temporarly disabled: atlantis down
-		# ExecuteCommand([sys.executable, "Samples/python/Dataflow2.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow1.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow2.py"],check_result=True) 
 
-		ExecuteCommand([sys.executable, "Samples/python/Idx.py"],check_result=True) 
-		ExecuteCommand([sys.executable, "Samples/python/XIdx.py"],check_result=True) 
-		ExecuteCommand([sys.executable, "Samples/python/TestConvert.py"],check_result=True) 
-		ExecuteCommand([sys.executable, "Samples/python/MinMax.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/idx/read.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/idx/convert.py"],check_result=True) 
+		# ExecuteCommand([sys.executable, "Samples/python/idx/speed.py"],check_result=True) 
+		
+		ExecuteCommand([sys.executable, "Samples/python/wavelets/filters.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "-m","OpenVisus","server","--dataset","./datasets/cat/rgb.idx","--port","10000","--exit"],check_result=True) 
 		sys.exit(0)
 
@@ -542,12 +543,17 @@ def Main(args):
 
 	if action=="viewer1":
 		os.chdir(this_dir)
-		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "TestViewer1.py")]) 
+		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "viewer","viewer1.py")]) 
 		sys.exit(0)
 
 	if action=="viewer2":
 		os.chdir(this_dir)
-		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "TestViewer2.py")]) 
+		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "viewer","viewer2.py")]) 
+		sys.exit(0)
+
+	if action=="visible-human":
+		os.chdir(this_dir)
+		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "viewer","visible_human.py")]) 
 		sys.exit(0)
 
 	if action=="jupyter":
@@ -557,10 +563,7 @@ def Main(args):
 		# webbrowser.open("file://"+filename.replace(".ipynb",".html"))
 		sys.exit(0)
 
-	if action=="visible-human":
-		os.chdir(this_dir)
-		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "VisibleHuman.py")]) 
-		sys.exit(0)
+
 
 	raise Exception("unknown action",action)
 

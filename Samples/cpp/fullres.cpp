@@ -42,7 +42,7 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////////////
-void TutorialFullRes()
+void CppSamples_FullRes()
 {
   std::vector<Array> images;
   for (auto filename : { "datasets/cat/rgb.png", "datasets/lion.jpg", "datasets/tiger.jpg" })

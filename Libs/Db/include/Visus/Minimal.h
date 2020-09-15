@@ -75,10 +75,10 @@ public:
   MinimalAccess* createAccess();
 
   //writeData
-  void writeData(MinimalAccess* access, int x1, int y1, int z1, int x2, int y2, int z2, void* buffer, int buffer_size);
+  void writeData(MinimalAccess* access, int x1, int y1, int z1, int x2, int y2, int z2, Uint8* buffer, int buffer_size);
 
   //readData
-  void readData(MinimalAccess* access, int x1, int y1, int z1, int x2, int y2, int z2, void* buffer, int buffer_size);
+  void readData(MinimalAccess* access, int x1, int y1, int z1, int x2, int y2, int z2, Uint8* buffer, int buffer_size);
 
 };
 
