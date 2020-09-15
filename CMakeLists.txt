@@ -208,6 +208,8 @@ else()
 
 	if (VISUS_PYTHON)
 		find_package(Python COMPONENTS Interpreter Development REQUIRED)
+		MESSAGE(STATUS "Python_EXECUTABLE ${Python_EXECUTABLE}")
+		MESSAGE(STATUS "Python_VERSION    ${Python_VERSION}")
 	endif()
 
 	if (VISUS_OSPRAY)
