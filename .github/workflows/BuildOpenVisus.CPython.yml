@@ -101,7 +101,8 @@ jobs:
     - name: Compile OpenVisus on windows
       if: matrix.os == 'windows-latest'
       run: |
-           mkdir -p build && cd build
+           mkdir -p build 
+           cd build
            cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${pythonLocation}/python.exe  -DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4
            cmake --build . --target install   --config Release
@@ -109,7 +110,8 @@ jobs:
     - name: Compile OpenVisus on macos
       if: matrix.os == 'macos-latest'
       run: |
-           mkdir -p build && cd build
+           mkdir -p build 
+           cd build
            cmake -GXcode -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX10.9.sdk" -DPython_EXECUTABLE=${pythonLocation}/python  ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release 

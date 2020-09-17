@@ -69,14 +69,27 @@ jobs:
       run: conda install -c conda-forge swig
       
     # ____________________________________________ INSTALL CMAKE
-
-    - name: Install CMake
+    
+    - name: Install CMake for windows
+      if: matrix.os == 'windows-latest'
+      shell: bash -l {0}    
       run: conda install -c conda-forge cmake
+      
+     - name: Install CMake for macos
+      if: matrix.os == 'macos-latest'
+      shell: bash -l {0}    
+      run: brew install cmake # problems with conda
+      
+     - name: Install CMake for Linux
+      if: matrix.os == 'ubuntu-latest' 
+      shell: bash -l {0}    
+      run: conda install -c conda-forge cmake     
+
       
     # ____________________________________________ INSTALL PyQt
 
     - name: Install PyQt for windows
-      if: matrix.os == 'windows-latest'    
+      if: matrix.os == 'windows-latest'
       shell: bash -l {0}
       run: conda install -y pyqt=5.9  # -c conda-forge -y pyqt=5.12 (they rename DLLS, like Qt5Core.dll->Qt5Core_conda.dll))
            
@@ -103,7 +116,7 @@ jobs:
       run: |
            mkdir -p build
            cd build
-           cmake -GXcode -DQt5_DIR="${CONDA_PREFIX}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX10.9.sdk"  -DPython_EXECUTABLE=$(which python) -DSWIG_EXECUTABLE==$(which swig)  ../
+           cmake -GXcode -DQt5_DIR="${CONDA_PREFIX}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX10.9.sdk"  -DPython_EXECUTABLE=$(which python) ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release 
 
