@@ -42,11 +42,11 @@ For support : support@visus.net
 
 namespace Visus {
 
-void Tutorial_1(String default_layout);
-void Tutorial_2(String default_layout);
-void Tutorial_3(String default_layout);
-void Tutorial_6(String default_layout);
-void TutorialFullRes();
+void CppSamples_WriteIdx(String default_layout);
+void CppSamples_ReadIdx(String default_layout);
+void CppSamples_ReadIdxLevels(String default_layout);
+void CppSamples_Filters(String default_layout);
+void CppSamples_FullRes();
 
 ////////////////////////////////////////////////////////////////////////////////////
 static BoxNi GetRandomUserBox(int pdim, bool bFullBox)
@@ -296,26 +296,26 @@ void SelfTestIdx(int max_seconds)
   {
     String default_layout = rowmajor ? "rowmajor" : "hzorder";
 
-    PrintInfo("Running Tutorial_1...");
-    Tutorial_1(default_layout);
+    PrintInfo("Running CppSamples_WriteIdx...");
+    CppSamples_WriteIdx(default_layout);
     PrintInfo("...done");
 
-    PrintInfo("Running Tutorial_2...");
-    Tutorial_2(default_layout);
+    PrintInfo("Running CppSamples_ReadIdx...");
+    CppSamples_ReadIdx(default_layout);
     PrintInfo("...done");
 
-    PrintInfo("Running Tutorial_3...");
-    Tutorial_3(default_layout);
+    PrintInfo("Running CppSamples_ReadIdxLevels...");
+    CppSamples_ReadIdxLevels(default_layout);
     PrintInfo("...done");
 
     FileUtils::removeDirectory(Path("tmp/tutorial_1"));
 
-    PrintInfo("Running Tutorial_6...");
-    Tutorial_6(default_layout);
+    PrintInfo("Running CppSamples_Filters...");
+    CppSamples_Filters(default_layout);
     PrintInfo("...done");
 
-    PrintInfo("Running TutorialFullRes...");
-    TutorialFullRes();
+    PrintInfo("Running CppSamples_FullRes...");
+    CppSamples_FullRes();
     PrintInfo("...done");
   }
 #endif

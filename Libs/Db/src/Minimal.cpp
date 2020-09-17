@@ -91,7 +91,7 @@ MinimalAccess* MinimalDataset::createAccess()
 }
 
 ///////////////////////////////////////////////////
-void MinimalDataset::writeData(MinimalAccess* access_, int x1, int y1, int z1, int x2, int y2, int z2, void* buffer, int buffer_size)
+void MinimalDataset::writeData(MinimalAccess* access_, int x1, int y1, int z1, int x2, int y2, int z2, Uint8* buffer, int buffer_size)
 {
   auto dataset = *static_cast<SharedPtr<IdxDataset>*>(this->pimpl);
   auto access= *static_cast<SharedPtr<Access>*>(access_->pimpl);
@@ -106,7 +106,7 @@ void MinimalDataset::writeData(MinimalAccess* access_, int x1, int y1, int z1, i
 }
 
 ///////////////////////////////////////////////////
-void MinimalDataset::readData(MinimalAccess* access_, int x1, int y1, int z1, int x2, int y2, int z2, void* buffer, int buffer_size)
+void MinimalDataset::readData(MinimalAccess* access_, int x1, int y1, int z1, int x2, int y2, int z2, Uint8* buffer, int buffer_size)
 {
   auto dataset = *static_cast<SharedPtr<IdxDataset>*>(this->pimpl);
   auto access = *static_cast<SharedPtr<Access>*>(access_->pimpl);

@@ -18,11 +18,12 @@ source_group("Access" FILES ${AccessSources})
 FILE(GLOB IdxSources include/Visus/Idx*.h src/Idx*.cpp )
 source_group("Idx" FILES ${IdxSources})
 
-FILE(GLOB TutorialSources include/Visus/tutorial*.h src/tutorial*.cpp src/SelfTest*.cpp)
-source_group("Tutorials" FILES ${TutorialSources})
+FILE(GLOB TutorialSources ${CMAKE_SOURCE_DIR}/Samples/cpp/*.cpp src/SelfTest*.cpp)
+source_group("Samples\\cpp" FILES ${TutorialSources})
 
-file(GLOB Sources include/Visus/*.h src/*.cpp)
+file(GLOB Sources include/Visus/*.h src/*.cpp ${TutorialSources})
 add_library(VisusDb SHARED ${Sources})
+
 set_target_properties(VisusDb PROPERTIES FOLDER "")
 target_link_libraries(VisusDb PUBLIC VisusKernel)
 target_compile_definitions(VisusDb  PRIVATE VISUS_BUILDING_VISUSDB=1)

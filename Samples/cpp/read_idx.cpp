@@ -45,7 +45,7 @@ namespace Visus {
 ////////////////////////////////////////////////////////////////////////
 //read data from tutorial 1
 ////////////////////////////////////////////////////////////////////////
-void Tutorial_2(String default_layout)
+void CppSamples_ReadIdx(String default_layout)
 {
   //read Dataset from tutorial 1
   auto dataset = LoadDataset("tmp/tutorial_1/visus.idx");

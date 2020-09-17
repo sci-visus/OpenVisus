@@ -2,6 +2,7 @@ from OpenVisus import *
 from PIL import Image
 import unittest
 
+# /////////////////////////////////////////////////////////////////
 # example: ((rrr...),(ggg...),(bbb...)) -> (rgb rgb rgb ...)
 def InterleaveChannels(channels):
 	nchannels=len(channels)
@@ -11,16 +12,19 @@ def InterleaveChannels(channels):
 		ret[:,:,I]=channel
 	return ret
 	
+# /////////////////////////////////////////////////////////////////
 # example (ffff) -> (f0 f0 f0...)
 def AddChannel(value,num=1):
 	extra=numpy.zeros(value.shape,value.dtype)
 	return InterleaveChannels([value] + [extra]*num)
 	
-# OpenImage
+# /////////////////////////////////////////////////////////////////
+# OpenImage util
 def OpenImage(url):
 	return numpy.asarray(Image.open(url))	
 	
-# save image
+# /////////////////////////////////////////////////////////////////
+# SaveImage
 def SaveImage(url,data, bSeparateChannels=False):
 	
 	if bSeparateChannels:
@@ -33,6 +37,7 @@ def SaveImage(url,data, bSeparateChannels=False):
 		# print("saving image",url)
 		Image.fromarray(data).save(url)
 
+# /////////////////////////////////////////////////////////////////
 # NormalizeData
 def NormalizeData(data):
 	data.astype(numpy.float32)
@@ -58,10 +63,10 @@ def TestFilters(img_filename, filter):
 		SaveImage(temp_dir + "/src.{0}.{1}.tif".format(filter,I),src)
 
 	# create filter_level dataset
-	# in order to compute filters I need to have 2 channels (i.e. A B C D -> A0 B0 C0 D0 )
+	# in order to compute filters I need an extra channel to store coefficients (i.e. A B C D -> A0 B0 C0 D0 )
 	filter_db=CreateIdx(url=temp_dir + '/filter_db/visus.idx', rmtree=True, dim=src_db.getPointDim(), data=AddChannel(noise), filters=[filter])
 	
-	# compute the filter fine to coarse
+	# compute the filter fine to coarse (4096 is the window size to apply the filter, bigger values consumes more memory)
 	filter_db.computeFilter(filter_db.getField(),4096)
 	
 	SaveImage(temp_dir + "/{0}.full.tif".format(filter), filter_db.read()[:,:,0])
@@ -84,15 +89,15 @@ def TestFilters(img_filename, filter):
 		
 		if I>0:
 			
-			# min should decrease, max should increase
+			# for identity filter min should decrease, max should increase
 			if filter=="identity":
 				Assert(m<=m0 and M>=M0)		
 				
-			# min should decrease from coarse to fine, max should be constant from coarse to fine
+			# for max filter, min should decrease from coarse to fine, max should be constant from coarse to fine
 			if filter=="max":
 				Assert(m<=m0 and M==M0)	
 				
-			# min should be constant from coarse to fine, max should increase from coarse to fine
+			# for min filter, min should be constant from coarse to fine, max should increase from coarse to fine
 			if filter=="min":
 				Assert(m==m0 and M>=M0)
 			
@@ -102,7 +107,6 @@ def TestFilters(img_filename, filter):
 	filter_channels=filter_db.read(disable_filters=True)
 	SaveImage(temp_dir + "/disk.{0}.tif".format(filter),filter_channels, bSeparateChannels=True)	
 	
-
 
 # ////////////////////////////////////////////////////////////////////
 class MyTestCase(unittest.TestCase):

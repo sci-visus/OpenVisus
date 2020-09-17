@@ -93,11 +93,11 @@ void GLMesh::flush()
 
   VisusAssert(building.texcoords2f.empty() || building.texcoords3f.empty());
 
-  if (!building.vertices   .empty()) {batch.vertices   =std::make_shared<GLArrayBuffer>(DTypes::FLOAT32_RGB , nvertices, HeapMemory::createManaged(&building.vertices   [0][0],nvertices * sizeof(Point3f))); building.vertices   .clear();}
-  if (!building.normals    .empty()) {batch.normals    =std::make_shared<GLArrayBuffer>(DTypes::FLOAT32_RGB , nvertices, HeapMemory::createManaged(&building.normals    [0][0],nvertices * sizeof(Point3f))); building.normals    .clear();}
-  if (!building.colors     .empty()) {batch.colors     =std::make_shared<GLArrayBuffer>(DTypes::FLOAT32_RGBA, nvertices, HeapMemory::createManaged(&building.colors     [0][0],nvertices * sizeof(Point4f))); building.colors     .clear();}
-  if (!building.texcoords2f.empty()) {batch.texcoords  =std::make_shared<GLArrayBuffer>(DTypes::FLOAT32_GA  , nvertices, HeapMemory::createManaged(&building.texcoords2f[0][0],nvertices * sizeof(Point3f))); building.texcoords2f.clear();}
-  if (!building.texcoords3f.empty()) {batch.texcoords  =std::make_shared<GLArrayBuffer>(DTypes::FLOAT32_RGB , nvertices, HeapMemory::createManaged(&building.texcoords3f[0][0],nvertices * sizeof(Point3f))); building.texcoords3f.clear();}
+  if (!building.vertices   .empty()) {batch.vertices   =std::make_shared<GLArrayBuffer>(DTypes::FLOAT32_RGB , nvertices, HeapMemory::createManaged((Uint8*)&building.vertices   [0][0],nvertices * sizeof(Point3f))); building.vertices   .clear();}
+  if (!building.normals    .empty()) {batch.normals    =std::make_shared<GLArrayBuffer>(DTypes::FLOAT32_RGB , nvertices, HeapMemory::createManaged((Uint8*)&building.normals    [0][0],nvertices * sizeof(Point3f))); building.normals    .clear();}
+  if (!building.colors     .empty()) {batch.colors     =std::make_shared<GLArrayBuffer>(DTypes::FLOAT32_RGBA, nvertices, HeapMemory::createManaged((Uint8*)&building.colors     [0][0],nvertices * sizeof(Point4f))); building.colors     .clear();}
+  if (!building.texcoords2f.empty()) {batch.texcoords  =std::make_shared<GLArrayBuffer>(DTypes::FLOAT32_GA  , nvertices, HeapMemory::createManaged((Uint8*)&building.texcoords2f[0][0],nvertices * sizeof(Point3f))); building.texcoords2f.clear();}
+  if (!building.texcoords3f.empty()) {batch.texcoords  =std::make_shared<GLArrayBuffer>(DTypes::FLOAT32_RGB , nvertices, HeapMemory::createManaged((Uint8*)&building.texcoords3f[0][0],nvertices * sizeof(Point3f))); building.texcoords3f.clear();}
    
   this->batches.push_back(batch);
   this->building.vertices_per_batch=0;
