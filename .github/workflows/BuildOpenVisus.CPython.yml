@@ -48,10 +48,12 @@ jobs:
 
     - name: Install Swig for windows
       if: matrix.os == 'windows-latest'
+      shell: bash -l {0}
       run: curl -L --insecure https://cfhcable.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O  && unzip swigwin-4.0.2.zip # problems with choco
 
     - name: Install Swig for macos
       if: matrix.os == 'macos-latest'
+      shell: bash -l {0}
       run: brew install swig
       
     # ____________________________________________ INSTALL SDK 10.9
@@ -94,12 +96,14 @@ jobs:
 
     - name: Install glu on ubuntu
       if: matrix.os == 'ubuntu-latest'
+      shell: bash -l {0}
       run: sudo apt-get update && sudo apt-get install libglu1-mesa-dev 1>/dev/null
 
     # ____________________________________________ COMPILE OPENVISUS
     
     - name: Compile OpenVisus on windows
       if: matrix.os == 'windows-latest'
+      shell: bash -l {0}
       run: |
            mkdir -p build 
            cd build
@@ -109,6 +113,7 @@ jobs:
 
     - name: Compile OpenVisus on macos
       if: matrix.os == 'macos-latest'
+      shell: bash -l {0}
       run: |
            mkdir -p build 
            cd build
@@ -118,6 +123,7 @@ jobs:
 
     - name: Compile OpenVisus on ubuntu
       if: matrix.os == 'ubuntu-latest'
+      shell: bash -l {0}
       run: |
            # i can use the pyqt one, but I would need to share the directory to docker, for simplicity I'm not doing it
            docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=/opt/qt512 -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
@@ -126,6 +132,7 @@ jobs:
 
     # ____________________________________________ TEST
     - name: Test OpenVisus 
+      shell: bash -l {0}
       run: |
            set -x
            which python
@@ -137,6 +144,7 @@ jobs:
 
     # ____________________________________________ DISTRIB
     - name: Distrib OpenVisus
+      shell: bash -l {0}
       run: |
            cd build/Release/OpenVisus
            Version=${{ matrix.python-version }}
