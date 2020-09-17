@@ -46,7 +46,7 @@ jobs:
       
     # ____________________________________________ INSTALL SWIG 
 
-      name: Install Swig for windows
+    - name: Install Swig for windows
       if: matrix.os == 'windows-latest'
       run: curl -L --insecure https://cfhcable.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O  && unzip swigwin-4.0.2.zip # problems with choco
 
