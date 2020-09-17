@@ -103,7 +103,7 @@ jobs:
       run: |
            mkdir -p build
            cd build
-           cmake -GXcode -DQt5_DIR="${CONDA_PREFIX}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX10.9.sdk"  -DPython_EXECUTABLE=$(which python)  ../
+           cmake -GXcode -DQt5_DIR="${CONDA_PREFIX}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX10.9.sdk"  -DPython_EXECUTABLE=$(which python) -DSWIG_EXECUTABLE==$(which swig)  ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release 
 

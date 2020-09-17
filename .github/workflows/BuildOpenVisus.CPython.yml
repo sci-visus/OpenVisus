@@ -101,9 +101,8 @@ jobs:
     - name: Compile OpenVisus on windows
       if: matrix.os == 'windows-latest'
       run: |
-           SWIG_EXECUTABLE=$(pwd)/swigwin-4.0.2/swig.exe
            mkdir -p build && cd build
-           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${pythonLocation}/python.exe  -DSWIG_EXECUTABLE=${SWIG_EXECUTABLE} ../
+           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${pythonLocation}/python.exe  -DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4
            cmake --build . --target install   --config Release
 
