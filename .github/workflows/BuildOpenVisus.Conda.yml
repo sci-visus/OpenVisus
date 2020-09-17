@@ -36,17 +36,7 @@ jobs:
         timeout_minutes: 4
         retry_wait_seconds: 5
         command: 'rm -Rf ExternalLibs/ospray_win && git clone https://github.com/sci-visus/ospray_win.git  ExternalLibs/ospray_win'    
-    
-    # ____________________________________________ INSTALL CMAKE
-    - name: Install CMake
-      uses: lukka/get-cmake@latest
-      
-    # ____________________________________________ INSTALL SWIG (Windows: see below, problems with choco; Linux: using docker image)
 
-    - name: Install Swig for macos
-      if: matrix.os == 'macos-latest'
-      run: brew install swig
-      
     # ____________________________________________ INSTALL SDK 10.9
     
     - name: Install SDK 10.9 for macos 
@@ -73,6 +63,27 @@ jobs:
            conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
            conda install conda                                                             1>/dev/null
 
+    # ____________________________________________ INSTALL SWIG
+
+    - name: Install Swig
+      run: conda install -c conda-forge swig
+      
+    # ____________________________________________ INSTALL CMAKE
+
+    - name: Install CMake
+      run: conda install -c conda-forge cmake
+      
+    # ____________________________________________ INSTALL PyQt
+
+    - name: Install PyQt for windows
+      if: matrix.os == 'windows-latest'    
+      shell: bash -l {0}
+      run: conda install -y pyqt=5.9  # -c conda-forge -y pyqt=5.12 (they rename DLLS, like Qt5Core.dll->Qt5Core_conda.dll))
+           
+    - name: Install PyQt for osx
+      if: matrix.os == 'macos-latest'
+      shell: bash -l {0}
+      run: conda install -c conda-forge -y pyqt=5.12
 
     # ____________________________________________ COMPILE OPENVISUS
     
@@ -80,11 +91,9 @@ jobs:
       if: matrix.os == 'windows-latest'    
       shell: bash -l {0}
       run: |
-           conda install -y pyqt=5.9 1>/dev/null # contains all I need IMPORTANT don't add "-c conda-forge" because they rename DLLS (like Qt5Core.dll->Qt5Core_conda.dll)
            mkdir -p build
            cd build
-           curl -L --insecure https://cfhcable.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O  && unzip swigwin-4.0.2.zip
-           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${CONDA_PREFIX}/Library/lib/cmake/Qt5" -DPython_EXECUTABLE=$(which python) -DSWIG_EXECUTABLE=./swigwin-4.0.2/swig.exe -swiglib ../
+           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${CONDA_PREFIX}/Library/lib/cmake/Qt5" -DPython_EXECUTABLE=$(which python) ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4
            cmake --build . --target install   --config Release
 
@@ -92,7 +101,6 @@ jobs:
       if: matrix.os == 'macos-latest'
       shell: bash -l {0}
       run: |
-           conda install -c conda-forge -y pyqt=5.12  # contains all I need
            mkdir -p build
            cd build
            cmake -GXcode -DQt5_DIR="${CONDA_PREFIX}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX10.9.sdk"  -DPython_EXECUTABLE=$(which python)  ../
@@ -108,7 +116,6 @@ jobs:
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
 
-
     # ____________________________________________ TEST
     
     - name: Test OpenVisus 
@@ -121,7 +128,6 @@ jobs:
            python -m OpenVisus configure  || true  # segmentation fault problem on linux
            python -m OpenVisus test
            python -m OpenVisus test-gui
-
 
     # ____________________________________________ DISTRIB
     

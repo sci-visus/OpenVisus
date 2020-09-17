@@ -44,12 +44,17 @@ jobs:
     - name: Install CMake
       uses: lukka/get-cmake@latest
       
-    # ____________________________________________ INSTALL SWIG (Windows, see below, problems with choco; Linux: use docker image)
+    # ____________________________________________ INSTALL SWIG 
+
+      name: Install Swig for windows
+      if: matrix.os == 'windows-latest'
+      shell: bash -l {0}
+      run: curl -L --insecure https://cfhcable.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O  && unzip swigwin-4.0.2.zip # problems with choco
 
     - name: Install Swig for macos
       if: matrix.os == 'macos-latest'
       run: brew install swig
-           
+      
     # ____________________________________________ INSTALL SDK 10.9
     
     - name: Install SDK 10.9 for macos 
@@ -91,9 +96,7 @@ jobs:
     - name: Install glu on ubuntu
       if: matrix.os == 'ubuntu-latest'
       shell: bash
-      run: |
-           sudo apt-get update
-           sudo apt-get install libglu1-mesa-dev 1>/dev/null
+      run: sudo apt-get update && sudo apt-get install libglu1-mesa-dev 1>/dev/null
 
     # ____________________________________________ COMPILE OPENVISUS
     
@@ -101,9 +104,9 @@ jobs:
       if: matrix.os == 'windows-latest'    
       shell: bash -l {0}
       run: |
+           SWIG_EXECUTABLE=$(pwd)/swigwin-4.0.2/swig.exe
            mkdir -p build && cd build
-           curl -L --insecure https://cfhcable.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O  && unzip swigwin-4.0.2.zip
-           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${pythonLocation}/python.exe  -DSWIG_EXECUTABLE=./swigwin-4.0.2/swig.exe -swiglib ../
+           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${pythonLocation}/python.exe  -DSWIG_EXECUTABLE=${SWIG_EXECUTABLE} ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4
            cmake --build . --target install   --config Release
 
@@ -145,9 +148,9 @@ jobs:
            Version=${{ matrix.python-version }}
            if [[  "${{ matrix.os }}" == "windows-latest" ]] ; then PLATFORM_NAME=win_amd64            ; fi
            if [[  "${{ matrix.os }}" == "macos-latest"   ]] ; then PLATFORM_NAME=macosx_10_9_x86_64   ; fi
-           if [[  "${{ matrix.os }}" == "ubuntu-latest"  ]] ; then PLATFORM_NAME=manylinux2010_x86_64 ; fi             
+           if [[  "${{ matrix.os }}" == "ubuntu-latest"  ]] ; then PLATFORM_NAME=manylinux2010_x86_64 ; fi
            ${pythonLocation}/python -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
-           ${pythonLocation}/python setup.py -q bdist_wheel --python-tag=cp${Version:0:1}${Version:2:1} --plat-name=${PLATFORM_NAME}      
+           ${pythonLocation}/python setup.py -q bdist_wheel --python-tag=cp${Version:0:1}${Version:2:1} --plat-name=${PLATFORM_NAME}
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" ]] ; then
              ${pythonLocation}/python -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --skip-existing  "dist/*.whl" 

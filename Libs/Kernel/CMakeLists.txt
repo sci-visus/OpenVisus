@@ -140,7 +140,7 @@ file(GLOB OtherSources
 	${CMAKE_SOURCE_DIR}/README.md
 	${CMAKE_SOURCE_DIR}/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/OpenVisusConfig.cmake
-	${CMAKE_SOURCE_DIR}/.github/workflows/BuildOpenVisus.yml
+	${CMAKE_SOURCE_DIR}/.github/workflows/*
 	${CMAKE_SOURCE_DIR}/ExternalLibs/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/ExternalLibs/curl/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/ExternalLibs/curl/lib/CMakeLists.txt
