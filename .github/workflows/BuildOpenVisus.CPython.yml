@@ -48,7 +48,6 @@ jobs:
 
       name: Install Swig for windows
       if: matrix.os == 'windows-latest'
-      shell: bash -l {0}
       run: curl -L --insecure https://cfhcable.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O  && unzip swigwin-4.0.2.zip # problems with choco
 
     - name: Install Swig for macos
@@ -95,14 +94,12 @@ jobs:
 
     - name: Install glu on ubuntu
       if: matrix.os == 'ubuntu-latest'
-      shell: bash
       run: sudo apt-get update && sudo apt-get install libglu1-mesa-dev 1>/dev/null
 
     # ____________________________________________ COMPILE OPENVISUS
     
     - name: Compile OpenVisus on windows
-      if: matrix.os == 'windows-latest'    
-      shell: bash -l {0}
+      if: matrix.os == 'windows-latest'
       run: |
            SWIG_EXECUTABLE=$(pwd)/swigwin-4.0.2/swig.exe
            mkdir -p build && cd build
@@ -112,7 +109,6 @@ jobs:
 
     - name: Compile OpenVisus on macos
       if: matrix.os == 'macos-latest'
-      shell: bash -l {0}
       run: |
            mkdir -p build && cd build
            cmake -GXcode -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX10.9.sdk" -DPython_EXECUTABLE=${pythonLocation}/python  ../
@@ -120,8 +116,7 @@ jobs:
            cmake --build ./ --target install   --config Release 
 
     - name: Compile OpenVisus on ubuntu
-      if: matrix.os == 'ubuntu-latest' 
-      shell: bash -l {0}
+      if: matrix.os == 'ubuntu-latest'
       run: |
            # i can use the pyqt one, but I would need to share the directory to docker, for simplicity I'm not doing it
            docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=/opt/qt512 -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
@@ -130,7 +125,6 @@ jobs:
 
     # ____________________________________________ TEST
     - name: Test OpenVisus 
-      shell: bash
       run: |
            set -x
            which python
@@ -142,7 +136,6 @@ jobs:
 
     # ____________________________________________ DISTRIB
     - name: Distrib OpenVisus
-      shell: bash
       run: |
            cd build/Release/OpenVisus
            Version=${{ matrix.python-version }}
