@@ -1,4 +1,4 @@
-name: BuildOpenVisus
+name: BuildOpenVisus.CPython
 
 on: [push]
 

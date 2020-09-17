@@ -1,4 +1,4 @@
-name: BuildOpenVisusConda
+name: BuildOpenVisus.Conda
 
 on: [push]
 
