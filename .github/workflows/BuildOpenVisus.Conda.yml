@@ -74,18 +74,16 @@ jobs:
       if: matrix.os == 'windows-latest'
       shell: bash -l {0}    
       run: conda install -c conda-forge cmake
-      
-     - name: Install CMake for macos
+    
+    - name: Install CMake for macos
       if: matrix.os == 'macos-latest'
       shell: bash -l {0}    
       run: brew install cmake # problems with conda
-      
-     - name: Install CMake for Linux
+    - name: Install CMake for Linux
       if: matrix.os == 'ubuntu-latest' 
       shell: bash -l {0}    
       run: conda install -c conda-forge cmake     
 
-      
     # ____________________________________________ INSTALL PyQt
 
     - name: Install PyQt for windows

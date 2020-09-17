@@ -297,6 +297,7 @@ public:
 
 
   //getEdges
+#if !SWIG
   class Edge
   {
   public:
@@ -341,6 +342,7 @@ public:
     return Edges();
   };
 
+#endif
 
   //getAlphaPoint
   Point getAlphaPoint(Point alpha) const {

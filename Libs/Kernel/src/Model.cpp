@@ -99,7 +99,6 @@ void Model::execute(Archive& ar)
   if (ar.name == "Viewer")
     ar.name = "Transaction";
 
-
   if (ar.name == "Decode")
   {
     auto redo = ar;
@@ -124,7 +123,7 @@ void Model::execute(Archive& ar)
 
   if (ar.name == "Transaction")
   {
-    beginUpdate(Transaction(), Transaction());
+    beginTransaction();
     {
       for (auto sub_action : ar.getChilds())
       {
@@ -132,7 +131,7 @@ void Model::execute(Archive& ar)
           execute(*sub_action);
       }
     }
-    endUpdate();
+    endTransaction();
     return;
   }
 
@@ -204,32 +203,39 @@ void Model::beginUpdate(StringTree redo, StringTree undo)
 }
 
 ///////////////////////////////////////////////////////////////
-StringTree Model::simplify(StringTree action)
+StringTree Model::simplifyAction(StringTree action)
 {
+  //so far only Transaction can be simplied
   if (action.name != "Transaction")
     return action;
 
-  if (action.getChilds().size() == 1)
-    return simplify(*action.getChilds()[0]);
+  auto v = action.getChilds();
 
-  StringTree ret("Transaction");
-  for (auto it1 : action.getChilds())
+  // nothing to simplify 
+  if (v.size() == 0)
+    return action;
+
+  //a transaction with only only one action is equivalent to that action
+  if (v.size() == 1)
+    return simplifyAction(*v[0]);
+
+  //it is still a transaction (preserving attributes if present)
+  auto ret=Transaction();
+  ret.attributes = action.attributes;
+
+  for (auto it : v)
   {
-    auto child=simplify(*it1);
+    auto sub= simplifyAction(*it);
 
-    //remove invalid childs
-    if (child.name.empty())
-      continue;
-
-    //simplify transaction of transaction
-    if (child.name == "Transaction")
+    //simplify transaction of transactions
+    if (sub.name == "Transaction")
     {
-      for (auto it2 : child.getChilds())
-        ret.addChild(*it2);
+      for (auto jt : sub.getChilds())
+        ret.addChild(*jt);
     }
-    else
+    else if (bool bValid=!sub.name.empty())
     {
-      ret.addChild(child);
+      ret.addChild(sub);
     }
   }
 
@@ -239,8 +245,9 @@ StringTree Model::simplify(StringTree action)
 ///////////////////////////////////////////////////////////////
 void Model::endUpdate()
 {
-  auto redo = simplify(this->stack.top().redo); 
-  auto undo = simplify(this->stack.top().undo);
+  auto redo = simplifyAction(this->stack.top().redo);
+  auto undo = simplifyAction(this->stack.top().undo);
+
   this->stack.pop();
 
   if (stack.empty())
@@ -262,6 +269,16 @@ void Model::endUpdate()
     {
       this->log << redo.toString() << std::endl;
       this->log.flush();
+
+      //for debugging
+#ifdef _DEBUG
+      {
+        this->log << "<!--UNDO" << std::endl;
+        this->log << undo.toString() << std::endl;
+        this->log << "-->" << std::endl;
+        this->log.flush();
+      }
+#endif
     }
 
     //do not touch the undo/redo history if in the middle of an undo/redo

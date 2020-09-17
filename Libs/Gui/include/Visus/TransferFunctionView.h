@@ -364,6 +364,7 @@ public:
     { 
       model->beginTransaction();
       dragging.reset(new QTimer());
+
 #if 0
       //do not send too much updates
       connect(dragging.get(),&QTimer::timeout,[this](){
@@ -967,7 +968,7 @@ public:
         row->addWidget(new QLabel("Set default"));
         {
           auto combo=GuiFactory::CreateComboBox(TransferFunction::getDefaults()[0],TransferFunction::getDefaults(),[this](String name){
-            TransferFunction::copy(*this->model,*TransferFunction::getDefault(name));
+            this->model->setDefault(name,/*bFullCopy*/false);
           });
           combo->setCurrentText(this->model->getDefaultName().c_str()); 
           row->addWidget(widgets.default_palette=combo);

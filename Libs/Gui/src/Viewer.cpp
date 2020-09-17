@@ -1697,7 +1697,7 @@ void Viewer::addNode(Node* parent,Node* node,int index)
   node->end_update.connect([this,node]()
   {
     beginUpdate(
-      CreatePassThroughAction(concatenate("nodes", "/", getUUID(node)), node->lastRedo()),
+      CreatePassThroughAction(concatenate("nodes", "/", getUUID(node)), node->lastRedo()), 
       CreatePassThroughAction(concatenate("nodes", "/", getUUID(node)), node->lastUndo()));
     {
       //if something changes in the query...
@@ -1741,9 +1741,12 @@ void Viewer::removeNode(Node* NODE)
   if (!NODE)
     return;
 
+  //all uno actions inside beginUpdate/endUpdate will be appended to the Transaction
+  auto undo = Transaction();
+
   beginUpdate(
     StringTree("RemoveNode", "uuid",getUUID(NODE)),
-    Transaction());
+    undo);
   {
     dropProcessing();
     dropSelection();
@@ -1886,7 +1889,6 @@ void Viewer::autoConnectNodes()
         connectNodes(oport->getNode(), oport->getName(), iport->getName(), iport->getNode());
     }
   }
-
   endTransaction();
 
   postRedisplay();
@@ -1987,7 +1989,7 @@ DatasetNode* Viewer::addDataset(String uuid, Node* parent, String url)
 
     //time (this is for queries...)
     auto time_node = new TimeNode(dataset->getTime(), dataset->getTimesteps());
-    time_node->setUUID(concatenate(uuid, "/time"));
+    time_node->setUUID(uuid, "time");
     time_node->setName("Time");
     addNode(dataset_node, time_node);
   }
@@ -2005,10 +2007,16 @@ ModelViewNode* Viewer::addModelView(String uuid, Node* parent, bool insert)
   if (uuid.empty())
     uuid = dataflow->guessNodeUIID("modelview");
 
+  StringTree undo;
+  if (insert)
+    undo = Transaction(); //every undo actions will be appended to Transaction
+  else
+    undo = StringTree("RemoveNode", "uuid", uuid);
+
   ModelViewNode* ret = nullptr;
   beginUpdate(
     StringTree("AddModelView", "uuid", uuid, "parent", getUUID(parent), "insert", insert),
-    insert ? Transaction() : StringTree("RemoveNode", "uuid", uuid));
+    undo);
   {
     //modelview
     auto modelview_node = new ModelViewNode();
@@ -2154,7 +2162,7 @@ QueryNode* Viewer::addVolume(String uuid, Node* parent, String fieldname, int ac
     auto time_node = dataset_node->findChild<TimeNode*>();
     if (!time_node) {
       time_node = new TimeNode(dataset->getTime(), dataset->getTimesteps());
-      time_node->setUUID(concatenate(uuid, "/time"));
+      time_node->setUUID(uuid, "time");
       time_node->setName("Time");
       addNode(query_node, time_node);
     }
@@ -2162,7 +2170,7 @@ QueryNode* Viewer::addVolume(String uuid, Node* parent, String fieldname, int ac
 
     //field
     auto field_node = new FieldNode();
-    field_node->setUUID(concatenate(uuid, "/field"));
+    field_node->setUUID(uuid, "field");
     field_node->setName("Field");
     field_node->setFieldName(fieldname);
     addNode(query_node, field_node);
@@ -2170,13 +2178,13 @@ QueryNode* Viewer::addVolume(String uuid, Node* parent, String fieldname, int ac
 
     //scripting
     auto scripting_node = NodeFactory::getSingleton()->createInstance("ScriptingNode");
-    scripting_node->setUUID(concatenate(uuid, "/scripting"));
+    scripting_node->setUUID(uuid, "scripting");
     scripting_node->setName("Scripting");
     addNode(query_node, scripting_node);
     connectNodes(query_node, scripting_node);
 
     //render
-    addRender(concatenate(uuid, "/render"), scripting_node, "GrayTransparent");
+    addRender(concatenate(uuid, "_render"), scripting_node, "GrayTransparent");
   }
   endUpdate();
 
@@ -2238,7 +2246,7 @@ QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int acc
     if (!time_node)
     {
       time_node = new TimeNode(dataset->getTime(), dataset->getTimesteps());
-      time_node->setUUID(concatenate(uuid, "/time"));
+      time_node->setUUID(uuid, "time");
       time_node->setName("Time");
       addNode(query_node, time_node);
     }
@@ -2246,7 +2254,7 @@ QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int acc
 
     //field
     auto field_node = new FieldNode();
-    field_node->setUUID(concatenate(uuid, "/field"));
+    field_node->setUUID(uuid, "field");
     field_node->setName("Field");
     field_node->setFieldName(fieldname);
     addNode(query_node, field_node);
@@ -2254,13 +2262,13 @@ QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int acc
 
     //scripting
     auto scripting_node = NodeFactory::getSingleton()->createInstance("ScriptingNode");
-    scripting_node->setUUID(concatenate(uuid, "/scripting"));
+    scripting_node->setUUID(uuid, "scripting");
     scripting_node->setName("Scripting");
     addNode(query_node, scripting_node);
     connectNodes(query_node, scripting_node);
 
     //render
-    addRender(concatenate(uuid, "/render"), scripting_node, "GrayOpaque");
+    addRender(concatenate(uuid, "_render"), scripting_node, "GrayOpaque");
   }
   endUpdate();
 
@@ -2315,7 +2323,7 @@ QueryNode* Viewer::addIsoContour(String uuid, Node* parent, String fieldname, in
     auto time_node = dataset_node->findChild<TimeNode*>();
     if (!time_node) {
       time_node = new TimeNode(dataset->getTime(), dataset->getTimesteps());
-      time_node->setUUID(concatenate(uuid, "/time"));
+      time_node->setUUID(uuid, "time");
       time_node->setName("Time");
       addNode(query_node, time_node);
     }
@@ -2323,7 +2331,7 @@ QueryNode* Viewer::addIsoContour(String uuid, Node* parent, String fieldname, in
 
     //field
     auto field_node = new FieldNode();
-    field_node->setUUID(concatenate(uuid, "/field"));
+    field_node->setUUID(uuid, "field");
     field_node->setName("Field");
     field_node->setFieldName(fieldname);
     addNode(query_node, field_node);
@@ -2331,14 +2339,14 @@ QueryNode* Viewer::addIsoContour(String uuid, Node* parent, String fieldname, in
 
     //scripting
     auto scripting_node = NodeFactory::getSingleton()->createInstance("ScriptingNode");
-    scripting_node->setUUID(concatenate(uuid, "/scripting"));
+    scripting_node->setUUID(uuid, "scripting");
     scripting_node->setName("Scripting");
     connectNodes(query_node, scripting_node);
     addNode(query_node, scripting_node);
 
     //build isocontour
     auto build_isocontour = new IsoContourNode();
-    build_isocontour->setUUID(concatenate(uuid, "/isocontour"));
+    build_isocontour->setUUID(uuid, "isocontour");
     build_isocontour->setName("IsoContour");
     double isovalue = 0.0;
     if (!s_isovalue.empty()) {
@@ -2356,14 +2364,14 @@ QueryNode* Viewer::addIsoContour(String uuid, Node* parent, String fieldname, in
     //this is useful if the data coming from the data provider has 2 components, first is used to compute the 
     //marching cube, the second as a second field to color the vertices of the marching cube
     auto palette_node = new PaletteNode("GrayOpaque");
-    palette_node->setUUID(concatenate(uuid, "/palette"));
+    palette_node->setUUID(uuid, "palette");
     palette_node->setName("Palette");
     addNode(scripting_node, palette_node);
     connectNodes(scripting_node, palette_node); //this is for statistics
 
     //render
     auto render_node = new IsoContourRenderNode();
-    render_node->setUUID(concatenate(uuid, "/render"));
+    render_node->setUUID(uuid, "render");
     render_node->setName("MeshRender");
     GLMaterial material = render_node->getMaterial();
     material.front.diffuse = Color::createFromUint32(0x3c6d3eff);
@@ -2423,7 +2431,7 @@ KdQueryNode* Viewer::addKdQuery(String uuid, Node* parent,String fieldname,int a
     auto time_node = dataset_node->findChild<TimeNode*>();
     if (!time_node) {
       time_node = new TimeNode(dataset->getTime(), dataset->getTimesteps());
-      time_node->setUUID(concatenate(uuid, "/time"));
+      time_node->setUUID(uuid, "time");
       time_node->setName("Time");
       addNode(query_node, time_node);
     }
@@ -2431,13 +2439,13 @@ KdQueryNode* Viewer::addKdQuery(String uuid, Node* parent,String fieldname,int a
 
     //field
     auto field_node = new FieldNode();
-    field_node->setUUID(concatenate(uuid, "/field"));
+    field_node->setUUID(uuid, "field");
     field_node->setName("Field");
     field_node->setFieldName(fieldname);
     addNode(query_node, field_node);
     connectNodes(field_node, query_node);
 
-    addKdRender(concatenate(uuid, "/parent"), query_node, "GrayOpaque");
+    addKdRender(concatenate(uuid, "_render"), query_node, "GrayOpaque");
   }
   endUpdate();
 
@@ -2468,7 +2476,7 @@ ScriptingNode* Viewer::addScripting(String uuid, Node* parent)
     connectNodes(parent, scripting_node);
 
     //render
-    addRender(concatenate(uuid, "/scripting"), scripting_node, "GrayOpaque");
+    addRender(concatenate(uuid, "_render"), scripting_node, "GrayOpaque");
   }
   endUpdate();
 
@@ -2511,7 +2519,7 @@ CpuPaletteNode* Viewer::addCpuTransferFunction(String uuid, Node* parent)
     connectNodes(parent, node);
 
     //render
-    addRender(concatenate(uuid, "/render"), node,/*no need for a palette*/"");
+    addRender(concatenate(uuid, "_render"), node,/*no need for a palette*/"");
 
   }
   endUpdate();
@@ -2608,7 +2616,7 @@ Node* Viewer::addRender(String uuid, Node* parent, String palette)
     if (!palette.empty())
     {
       auto palette_node = new PaletteNode(palette);
-      palette_node->setUUID(concatenate(uuid, "/palette"));
+      palette_node->setUUID(uuid, "palette");
       palette_node->setName("Palette");
       addNode(render_node, palette_node);
       connectNodes(parent, palette_node); //this is for statistics
@@ -2649,7 +2657,7 @@ KdRenderArrayNode* Viewer::addKdRender(String uuid, Node* parent, String palette
     if (!palette.empty())
     {
       auto palette_node = new PaletteNode(palette);
-      palette_node->setUUID(concatenate(uuid, "/palette"));
+      palette_node->setUUID(uuid, "palette");
       palette_node->setName("Palette");
       addNode(render_node, palette_node);
       connectNodes(palette_node, render_node);
