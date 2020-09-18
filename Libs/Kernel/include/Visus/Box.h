@@ -296,8 +296,6 @@ public:
   }
 
 #if !SWIG
-  //getEdges
-#if !SWIG
   class Edge
   {
   public:

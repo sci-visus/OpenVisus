@@ -135,5 +135,5 @@ class MyTestCase(unittest.TestCase):
 
 # /////////////////////////////////////////////////////
 if __name__=="__main__":
-	unittest.main(verbosity=2,exit=True)
-	TestFilters("datasets/minmax/noise.tif", "wavelet")	
+	#unittest.main(verbosity=2,exit=True)
+	TestFilters("datasets/cat/gray.png", "wavelet")	
