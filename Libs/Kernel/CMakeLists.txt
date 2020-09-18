@@ -157,7 +157,9 @@ file(GLOB OtherSources
 	${CMAKE_SOURCE_DIR}/*.ipynb 
 	${CMAKE_SOURCE_DIR}/Samples/jupyter/*.ipynb 
 	${CMAKE_SOURCE_DIR}/Samples/python/*.py 
-	${CMAKE_SOURCE_DIR}/Samples/python/CloudStorage/*.py) 
+	${CMAKE_SOURCE_DIR}/Samples/python/cloud_storage/*.py
+	${CMAKE_SOURCE_DIR}/Samples/python/viewer/*.py
+	${CMAKE_SOURCE_DIR}/Samples/python/wavelets/*.py) 
 
 AssignSourceGroup(CMakeSourceDir ${CMAKE_SOURCE_DIR} ${OtherSources})
 

@@ -295,7 +295,7 @@ public:
     return ret;
   }
 
-
+#if !SWIG
   //getEdges
 #if !SWIG
   class Edge
@@ -341,7 +341,6 @@ public:
     ThrowException("internal error");
     return Edges();
   };
-
 #endif
 
   //getAlphaPoint
@@ -456,8 +455,6 @@ public:
 
 typedef BoxN<double> BoxNd;
 typedef BoxN<Int64 > BoxNi;
-
-
 
 ///////////////////////////////////////////////////////////////////
 //backward compatible (for VisusWeaving)
@@ -585,7 +582,6 @@ public:
   }
 
 };
-
 
 } //namespace Visus
 

@@ -44,7 +44,7 @@ namespace Visus {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 //TUTORIAL_1 create a dataset of dimension (16,16,16) and write some data
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
-void Tutorial_1(String default_layout)
+void CppSamples_WriteIdx(String default_layout)
 {
   //each sample is made of one uint32 (so a sample has 1*32 bits=32 bits)
   //each atomic data is a 32 bit unsigned integer 
