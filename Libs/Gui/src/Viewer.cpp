@@ -868,106 +868,49 @@ int Viewer::getWorldDimension() const
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 BoxNd Viewer::getWorldBox() const
 {
-  return getBounds(getRoot()).toAxisAlignedBox();
+  return computeNodeBounds(getRoot()).toAxisAlignedBox();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Position Viewer::getBounds(Node* node,bool bRecursive) const
+Position Viewer::computeNodeBounds(Node* node) const
 {
   if (!node)
     node = getRoot();
 
   //special case for QueryNode: its content is really its bounds
-  if (auto query=dynamic_cast<QueryNode*>(node))
+  if (auto query = dynamic_cast<QueryNode*>(node))
     return query->getBounds();
 
   //NOTE: the result in in local geometric coordinate system of node 
-  {
-    Position ret=node->getBounds();
-    if (ret.valid()) 
-      return ret;
-  }
+  Position node_bounds = node->getBounds();
+  if (node_bounds.valid())
+    return node_bounds;
 
-  auto T = Matrix::identity(4);
-
-  //modelview_node::modelview is used only if it's NOT recursive call
-  //stricly speaking , a transform node has as content its childs
-  if (bRecursive)
-  {
-    if (auto modelview_node=dynamic_cast<ModelViewNode*>(node))
-      T=modelview_node->getModelView();
-  }
-
-  std::vector<Node*> childs=node->getChilds();
-
+  auto childs = node->getChilds();
   if (childs.empty())
-  {
     return Position::invalid();
-  }
-  if (childs.size()==1)
+
+  //modelview is the only node affecting childs...
+  auto T = Matrix::identity(4);
+  if (auto modelview_node = dynamic_cast<ModelViewNode*>(node))
+    T = modelview_node->getModelView();
+
+  if (childs.size() == 1)
+    return Position(T, computeNodeBounds(childs[0]));
+
+  //union of boxes
+  auto box = BoxNd::invalid();
+  for (auto child : childs)
   {
-    return Position(T, getBounds(childs[0],true));
+    Position child_bounds = computeNodeBounds(child);
+    if (child_bounds.valid())
+      box = box.getUnion(child_bounds.toAxisAlignedBox());
   }
-  else
-  {
-    auto box= BoxNd::invalid();
-    for (auto child : childs)
-    {
-      Position child_bounds= getBounds(child,true);
-      if (child_bounds.valid())
-        box=box.getUnion(child_bounds.toAxisAlignedBox());
-    }
-    return Position(T,box);
-  }
+  return Position(T, box);
+
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-Position Viewer::computeNodeToNode(Node* dst,Node* src) const
-{
-  VisusAssert(dst && src && dst!=src);
-  
-  Position bounds= getBounds(src);
 
-  bool bAlreadySimplified=false;
-  std::deque<Node*> src2root;
-  for (Node* cursor=src;cursor;cursor=cursor->getParent())
-  {
-    if (cursor==dst)
-    {
-      bAlreadySimplified=true;
-      break;
-    }
-    src2root.push_back(cursor);
-  }
-
-  std::deque<Node*> root2dst;
-  if (!bAlreadySimplified)
-  {
-    for (Node* cursor=dst;cursor;cursor=cursor->getParent())
-      root2dst.push_front(cursor);
-
-    //symbolic simplification (i.e. if I traverse the same node back and forth)
-    while (!src2root.empty() && !root2dst.empty() && src2root.back()==root2dst.front())
-    {
-      src2root.pop_back();
-      root2dst.pop_front();
-    }
-  }
-
-  for (auto it=src2root.begin();it!=src2root.end();it++)
-  {
-    if (auto modelview_node=dynamic_cast<ModelViewNode*>(*it))
-      bounds=Position(modelview_node->getModelView() , bounds);
-  }
-
-  for (auto it=root2dst.begin();it!=root2dst.end();it++) 
-  {
-    if (auto modelview_node=dynamic_cast<ModelViewNode*>(*it))
-      bounds=Position(modelview_node->getModelView().invert() , bounds);
-  }
-
-  return bounds;
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Frustum Viewer::computeNodeToScreen(Frustum frustum,Node* node) const
@@ -985,9 +928,51 @@ Frustum Viewer::computeNodeToScreen(Frustum frustum,Node* node) const
 }
 
 //////////////////////////////////////////////////////////////////////
-Position Viewer::computeQueryBounds(QueryNode* query_node) const
+Position Viewer::computeQueryBoundsInDatasetCoordinates(QueryNode* query_node) const
 {
-  return computeNodeToNode(query_node->getDatasetNode(),query_node);
+  auto dataset_node = query_node->getDatasetNode();
+
+  Position bounds = query_node->getBounds();
+
+  bool bAlreadySimplified = false;
+  std::deque<Node*> src2root;
+  for (Node* cursor = query_node; cursor; cursor = cursor->getParent())
+  {
+    if (cursor == dataset_node)
+    {
+      bAlreadySimplified = true;
+      break;
+    }
+    src2root.push_back(cursor);
+  }
+
+  std::deque<Node*> root2dst;
+  if (!bAlreadySimplified)
+  {
+    for (Node* cursor = dataset_node; cursor; cursor = cursor->getParent())
+      root2dst.push_front(cursor);
+
+    //symbolic simplification (i.e. if I traverse the same node back and forth)
+    while (!src2root.empty() && !root2dst.empty() && src2root.back() == root2dst.front())
+    {
+      src2root.pop_back();
+      root2dst.pop_front();
+    }
+  }
+
+  for (auto it = src2root.begin(); it != src2root.end(); it++)
+  {
+    if (auto modelview_node = dynamic_cast<ModelViewNode*>(*it))
+      bounds = Position(modelview_node->getModelView(), bounds);
+  }
+
+  for (auto it = root2dst.begin(); it != root2dst.end(); it++)
+  {
+    if (auto modelview_node = dynamic_cast<ModelViewNode*>(*it))
+      bounds = Position(modelview_node->getModelView().invert(), bounds);
+  }
+
+  return bounds;
 }
 
 ////////////////////////////////////////////////////////////
@@ -1001,10 +986,10 @@ Node* Viewer::findPick(Node* node,Point2d screen_point,bool bRecursive,double* o
   auto viewport = widgets.glcanvas->getViewport();
     
   //I allow the picking of only queries
-  if (QueryNode* query=dynamic_cast<QueryNode*>(node))
+  if (auto query=dynamic_cast<QueryNode*>(node))
   {
     Frustum  node_to_screen = computeNodeToScreen(getGLCamera()->getCurrentFrustum(viewport),node);
-    Position node_bounds  = getBounds(node);
+    Position node_bounds  = node->getBounds();
 
     double query_distance= node_to_screen.computeDistance(node_bounds,screen_point,/*bUseFarPoint*/false);
     if (query_distance>=0)
@@ -1093,8 +1078,12 @@ void Viewer::beginFreeTransform(QueryNode* query_node)
 ///////////////////////////////////////////////////////////////////////////////
 void Viewer::beginFreeTransform(ModelViewNode* modelview_node)
 {
-  auto T=modelview_node->getModelView();
-  auto bounds= getBounds(modelview_node);
+  //this is what I want to edit
+  auto T = modelview_node->getModelView();
+
+  //take off the effect of T
+  auto bounds = computeNodeBounds(modelview_node);
+  bounds = Position(T.invert(), bounds);
 
   if (!T.valid() || !bounds.valid()) 
   {
@@ -1131,7 +1120,7 @@ void Viewer::dataflowBeforeProcessInput(Node* node)
   if (auto query_node=dynamic_cast<QueryNode*>(node))
   {
     //overwrite the query_bounds, need to actualize it to the dataset since QueryNode works in dataset reference space
-    auto query_bounds=computeQueryBounds(query_node);
+    auto query_bounds= computeQueryBoundsInDatasetCoordinates(query_node);
     query_node->setQueryBounds(query_bounds);
 
     //overwrite the viewdep frustum, since QueryNode works in dataset reference space
@@ -1622,11 +1611,6 @@ void Viewer::setSelection(Node* new_value)
   if (old_value == new_value)
     return;
 
-  auto bounds = getBounds(new_value);
-
-  auto axis_box = bounds.toAxisAlignedBox();
-  PrintInfo("New selection", "uuid", getUUID(new_value), "axis aligned box", axis_box, "center", axis_box.center());
-
   beginUpdate(
     StringTree("SetSelection", "value", getUUID(new_value)),
     StringTree("SetSelection", "value", getUUID(old_value)));
@@ -1914,7 +1898,7 @@ void Viewer::refreshNode(Node* node)
       {
         if (auto query_node=dynamic_cast<QueryNode*>(it))
         {
-          Position query_bounds=computeQueryBounds(query_node);
+          Position query_bounds= computeQueryBoundsInDatasetCoordinates(query_node);
           if (query_bounds !=query_node->getQueryBounds())
             dataflow->needProcessInput(query_node);
         }
