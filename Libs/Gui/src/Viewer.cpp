@@ -579,6 +579,7 @@ void Viewer::configureFromArgs(std::vector<String> args)
     else if (args[I] == "--server")
     {
       auto modvisus = new ModVisus();
+      modvisus->default_public = false;
       modvisus->configureDatasets();
       this->server = std::make_shared<NetServer>(10000, modvisus);
       this->server->runInBackground();

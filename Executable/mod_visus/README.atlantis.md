@@ -3,14 +3,13 @@
 Compiled and install OpenVisus: 
 
 ```
-
 mkdir build_atlantis
 cd build_atlantis
-cmake  -DVISUS_GUI=0  -DVISUS_HOME=/scratch/home/OpenVisus ../
-make -j
-make install
+cmake  -DVISUS_GUI=0 -DVISUS_HOME=/scratch/home/OpenVisus ../
+make -j && make install
 # NOTE: no need to configure since I disabled the GUI
-rsync -r -v $(pwd)/Release/OpenVisus/ /usr/lib/python3.6/site-packages/OpenVisus
+rsync -r -v --exclude visus.config $(pwd)/Release/OpenVisus/ /usr/lib/python3.6/site-packages/OpenVisus
+python3 -c "from OpenVisus import *;ModVisus().configureDatasets()"
 ```
 
 (OPTIONAL) Edit file '/etc/profile' and set where VISUS_HOME is:
@@ -46,11 +45,17 @@ Create `/scratch/home/OpenVisus/visus.config` with the following content (change
 
 ```
 cat <<EOF >/scratch/home/OpenVisus/visus.config
-<include url="/scratch/home/OpenVisus/visus.atlantis.config" />
+<?xml version="1.0" ?>
+<visus>
+	<include url="/scratch/home/OpenVisus/visus.atlantis.config" />
+</visus>
 EOF
 
 # customize as needed
-cp ~/backup/atlantis/visus.atlantis.config /scratch/home/OpenVisus/visus.atlantis.config
+cat <<EOF >/scratch/home/OpenVisus/visus.atlantis.config
+<alias key='visus_datasets'        value='file:///usr/sci/cedmav' />
+<dataset name="2kbit1" url="$(visus_datasets)/visus1/3d/2kbit1/visus.idx" />
+EOF
 ```
 
 Enable the modules you need:
@@ -61,10 +66,9 @@ sudo /usr/sbin/a2dismod visus
 sudo /usr/sbin/a2enmod  headers 
 sudo /usr/sbin/a2enmod  visus
 
-# CHECK THIS OUTPUT (!) just to be sure APACHE_MODULES has been changed
+# CHECK THIS OUTPUT (!) just to be sure APACHE_MODULES has been changed and contains headers and visus
 grep visus /etc/sysconfig/apache2
 ```
-
 
 Replace `/etc/apache2/default-server.conf` file:
 (NOTE: I'm having problems with IncludeOptional virtual hosts, so I'm replacing the main default-server file)

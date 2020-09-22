@@ -56,7 +56,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(ModVisus)
 
   //default_public
-  bool default_public = false;
+  bool default_public = true;
 
   //constructor
   ModVisus();
