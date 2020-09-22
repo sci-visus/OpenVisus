@@ -64,7 +64,8 @@ int main(int argn,const char* argv[])
 
   GuiModule::detach();
   	
-#if VISUS_PYTHON  	
+#if VISUS_PYTHON  
+  PrintInfo("EmbeddedPythonShutdown...");
   EmbeddedPythonShutdown();
 #endif
   

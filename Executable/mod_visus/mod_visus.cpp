@@ -168,7 +168,8 @@ public:
     SetCommandLine(argn, argv);
     DbModule::attach();
     	
-#if VISUS_PYTHON    	
+#if VISUS_PYTHON   
+    PrintInfo("EmbeddedPythonInit...");
     EmbeddedPythonInit(argn, argv, KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
 #endif
 
@@ -604,14 +605,15 @@ public:
   //initialiseInCurrentProcess (to call only after the process has been forked)
   void initialiseInCurrentProcess()
   {
-    PrintInfo("initialiseInCurrentProcess");
+    PrintInfo("ApacheModVisus initialiseInCurrentProcess");
     RedirectLogTo(MyWriteLog, this);
     static int argn =1;
     static const char *argv[]={"mod_visus"};
     SetCommandLine(argn,argv);
     DbModule::attach();
     	
-#if VISUS_PYTHON    	
+#if VISUS_PYTHON    
+    PrintInfo("EmbeddedPythonInit...");
     EmbeddedPythonInit(argn, argv, KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
 #endif
 
@@ -625,6 +627,7 @@ public:
     DbModule::detach();
     
 #if VISUS_PYTHON    	
+    PrintInfo("EmbeddedPythonShutdown...");
     EmbeddedPythonShutdown();
 #endif
 
