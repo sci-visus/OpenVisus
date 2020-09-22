@@ -6,9 +6,14 @@ Compiled and install OpenVisus:
 mkdir build_atlantis
 cd build_atlantis
 cmake  -DVISUS_GUI=0 -DVISUS_HOME=/scratch/home/OpenVisus ../
-make -j && make install
-# NOTE: no need to configure since I disabled the GUI
+make -j 
+make install
+ldd $(pwd)/Release/OpenVisus/bin/libVisusDb.so # check no absolute path
 rsync -r -v --exclude visus.config $(pwd)/Release/OpenVisus/ /usr/lib/python3.6/site-packages/OpenVisus
+
+
+python3 -m OpenVisus configure
+
 python3 -c "from OpenVisus import *;ModVisus().configureDatasets()"
 ```
 
@@ -216,7 +221,7 @@ rm -Rf /var/log/apache2/*
 
 # run in background
 sudo /usr/sbin/apache2ctl restart
-tail /var/log/apache2/error_log # here all OpenVisus logs...
+more /var/log/apache2/error_log # here all OpenVisus logs...
 sudo /usr/sbin/apache2ctl -M  # Dump a list of loaded Static and Shared Modules.
 sudo /usr/sbin/apache2ctl -S  # Show the settings as parsed from the config file 
 

@@ -107,7 +107,7 @@ def Configure(bUserInstall=False):
 	if is_conda:
 
 		import conda.cli 
-		conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'numpy', "pillow", 'opencv')
+		conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'numpy', "pillow")
 
 		# for some unknown reason I get: RuntimeError: module compiled against API version 0xc but this version of numpy is 0xa
 		# scrgiorgio: I don't care if it fails
@@ -116,45 +116,42 @@ def Configure(bUserInstall=False):
 		except:
 			pass
 
-		# scrgiorgio: TImos says this can fail but then the viewer works anyway
-		try:
-			conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'libglu')
-		except:
-			pass
 
 	else:
-		ExecuteCommand([sys.executable,"-m", "pip", "install", "--upgrade"] + (["--user"] if bUserInstall else [] ) + ["numpy", "pillow", "opencv-python"],check_result=True)
+		ExecuteCommand([sys.executable,"-m", "pip", "install", "--upgrade"] + (["--user"] if bUserInstall else [] ) + ["numpy", "pillow"],check_result=True)
 
-	
 
-	"""
-	python -m pip install johnnydep
 
-	johnnydep PyQt5~=5.14.0	-> PyQt5-sip<13,>=12.7
-	johnnydep PyQt5~=5.13.0	-> PyQt5_sip<13,>=4.19.19
-	johnnydep PyQt5~=5.12.0 -> PyQt5_sip<13,>=4.19.14
-	johnnydep PyQt5~=5.11.0 -> empty
-	johnnydep PyQt5~=5.10.0 -> empty
-	johnnydep PyQt5~=5.9.0  -> empty
-
-	johnnydep PyQtWebEngine~=5.14.0 -> PyQt5>=5.14 
-	johnnydep PyQtWebEngine~=5.13.0 -> PyQt5>=5.13
-	johnnydep PyQtWebEngine~=5.12.0 -> PyQt5>=5.12
-	johnnydep PyQtWebEngine~=5.11.0 -> does not exist
-	johnnydep PyQtWebEngine~=5.10.0 -> does not exist
-	johnnydep PyQtWebEngine~=5.19.0 -> does not exist
-
-	johnnydep PyQt5-sip~=12.7.0 -> empty
-	"""
-
-	QT_VERSION, QT5_LIB_DIR="",""
+	QT_VERSION, QT_LIB_DIR="",""
 	if os.path.isfile("QT_VERSION"):
+
+		"""
+		python -m pip install johnnydep
+
+		johnnydep PyQt5~=5.14.0	-> PyQt5-sip<13,>=12.7
+		johnnydep PyQt5~=5.13.0	-> PyQt5_sip<13,>=4.19.19
+		johnnydep PyQt5~=5.12.0 -> PyQt5_sip<13,>=4.19.14
+		johnnydep PyQt5~=5.11.0 -> empty
+		johnnydep PyQt5~=5.10.0 -> empty
+		johnnydep PyQt5~=5.9.0  -> empty
+
+		johnnydep PyQtWebEngine~=5.14.0 -> PyQt5>=5.14 
+		johnnydep PyQtWebEngine~=5.13.0 -> PyQt5>=5.13
+		johnnydep PyQtWebEngine~=5.12.0 -> PyQt5>=5.12
+		johnnydep PyQtWebEngine~=5.11.0 -> does not exist
+		johnnydep PyQtWebEngine~=5.10.0 -> does not exist
+		johnnydep PyQtWebEngine~=5.19.0 -> does not exist
+
+		johnnydep PyQt5-sip~=12.7.0 -> empty
+		"""
 
 		QT_VERSION=ReadTextFile("QT_VERSION")
 		print("Installing PyQt5...",QT_VERSION)
 		qt_major,qt_minor=QT_VERSION.split('.')[0:2]
 
 		if is_conda:
+
+			conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'opencv')
 			
 			if WIN32:
 				# cannot use conda-forge version because they rename DLLS (like Qt5Core.dll->Qt5Core_conda.dll)
@@ -162,11 +159,17 @@ def Configure(bUserInstall=False):
 			else:
 				conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', "pyqt={}.{}".format(qt_major,qt_minor))
 
+			# scrgiorgio: Timos says this can fail but then the viewer works anyway
+			try:
+				conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'libglu')
+			except:
+				pass
+
 		# do I need PyQtWebEngine for conda? considers Qt is 5.9 (very old)
 		# it has webengine and sip included
 
 		else:
-			cmd=[sys.executable,"-m", "pip", "install", "--upgrade"] + (["--user"] if bUserInstall else []) + ["PyQt5~={}.{}.0".format(qt_major,qt_minor)]
+			cmd=[sys.executable,"-m", "pip", "install"] + (["--user"] if bUserInstall else []) + ["opencv-python", "PyQt5~={}.{}.0".format(qt_major,qt_minor)]
 
 			if int(qt_major)==5 and int(qt_minor)>=12:
 				cmd+=["PyQtWebEngine~={}.{}.0".format(qt_major,qt_minor)]
@@ -180,7 +183,7 @@ def Configure(bUserInstall=False):
 		print("Linking','PyQt5_HOME",PyQt5_HOME, 'found_QT_VERSION',found_QT_VERSION)
 	
 		if found_QT_VERSION[0]!=qt_major or found_QT_VERSION[1]!=qt_minor:
-			raise Exception("THere is a problem with getting the right Qt5 version. Please try 'export PYTHONNOUSERSITE=True' needed({}.{}) found({}.{})".format(qt_major,qt_minor,found_QT_VERSION[0],found_QT_VERSION[1],))
+			raise Exception("There is a problem with getting the right Qt5 version. Please try 'export PYTHONNOUSERSITE=True' needed({}.{}) found({}.{})".format(qt_major,qt_minor,found_QT_VERSION[0],found_QT_VERSION[1],))
 	
 		if not os.path.isdir(PyQt5_HOME):
 			print("Error directory does not exists")
@@ -189,20 +192,20 @@ def Configure(bUserInstall=False):
 		if is_conda:
 			CONDA_PREFIX=os.environ['CONDA_PREFIX']
 			print("CONDA_PREFIX",CONDA_PREFIX)
-			QT5_LIB_DIR="{}/lib".format(CONDA_PREFIX)
+			QT_LIB_DIR="{}/lib".format(CONDA_PREFIX)
 		else:
-			QT5_LIB_DIR=os.path.join(PyQt5_HOME,'Qt/lib')
+			QT_LIB_DIR=os.path.join(PyQt5_HOME,'Qt/lib')
+
+		if not WIN32:
+			print("QT_LIB_DIR",QT_LIB_DIR)
+			Assert(os.path.isdir(QT_LIB_DIR))
 
 	# on windows it's enough to use sys.path (see *.i %pythonbegin section)
 	# i don't have any RPATH way of modifying DLLs
 	if WIN32:
-		return
+		pass
 
-	if QT5_VERSION:
-		print("QT5_LIB_DIR",QT5_LIB_DIR)
-		Assert(os.path.isdir(QT5_LIB_DIR))
-		
-	if APPLE:
+	elif APPLE:
 
 		dylibs=glob.glob("bin/*.dylib")
 		so=glob.glob("*.so")
@@ -228,17 +231,22 @@ def Configure(bUserInstall=False):
 						New="@rpath/Qt" + Old.split("/Qt", 1)[1]
 						ExecuteCommand(["install_name_tool","-change", Old, New, filename])	
 				
-			if filename in apps:
-				SetRPath(filename, "@loader_path/:@loader_path/../../../:" + QT5_LIB_DIR)
-			else:
-				SetRPath(filename, "@loader_path/:@loader_path/bin:" + QT5_LIB_DIR)
+			rpath=""
+			rpath+="@loader_path/"
+			rpath+=":@loader_path/../../../" if filename in apps else ":@loader_path/bin"
+			rpath+=":" + QT_LIB_DIR if QT_LIB_DIR else ""
+			SetRPath(filename, rpath)
 	
 		ShowDeps(all_bins)
 				
 	else:
 			
 		for filename in glob.glob("*.so") + glob.glob("bin/*.so") + ["bin/visus","bin/visusviewer"]:
-			SetRPath(filename,"$ORIGIN:$ORIGIN/bin:" + QT5_LIB_DIR)
+			rpath=""
+			rpath+="$ORIGIN"
+			rpath+=":$ORIGIN/bin"
+			rpath+=":" + QT_LIB_DIR if QT_LIB_DIR else ""
+			SetRPath(filename,rpath)
 
 # ////////////////////////////////////////////////
 def TestNetworkSpeed(args):
