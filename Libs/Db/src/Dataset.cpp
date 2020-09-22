@@ -496,6 +496,9 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
         if (prev_filename == value)
           return;
 
+        if (!prev_filename.empty())
+          PrintInfo("Compressed file", prev_filename);
+
         // close any read file handle only if it's the last read op
         if (value.empty())
           Raccess->endRead();

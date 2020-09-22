@@ -174,6 +174,7 @@ public:
 
     RedirectLogTo(MyWriteLog, this);
     mod_visus = new ModVisus();
+    mod_visus->default_public = true;
     mod_visus->configureDatasets();
   }
 
@@ -595,6 +596,7 @@ public:
   
   //constructor
   ApacheModVisus() {
+    this->default_public = true;
   }
   
   //destructor

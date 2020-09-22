@@ -314,10 +314,11 @@ def RunServer(args):
 	args = parser.parse_args(args)
 
 	modvisus = ModVisus()
+	modvisus.default_public=True
 
 	# -m OpenVisus server --port 10000 [--dataset D:\projects\OpenVisus\datasets\cat\rgb.idx]
 	if args.dataset:
-		config=ConfigFile.fromString("<visus><datasets><dataset name='default' url='{}' permissions='public' /></datasets></visus>".format(args.dataset))
+		config=ConfigFile.fromString("<visus><datasets><dataset name='default' url='{}' /></datasets></visus>".format(args.dataset))
 	else:
 		config=DbModule.getModuleConfig()
 			

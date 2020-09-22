@@ -52,6 +52,9 @@ def LoadDataset(url):
 	google=GoogleMapsDataset.castFrom(db)
 	if google: return PyDataset(google)
 	return PyDataset(db)
+
+def LoadIdxDataset(url):
+	return LoadDataset(url)
 %}
 
 %extend Visus::DbModule {

@@ -55,6 +55,9 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(ModVisus)
 
+  //default_public
+  bool default_public = false;
+
   //constructor
   ModVisus();
 
@@ -74,9 +77,9 @@ public:
 
 private:
 
-  class Datasets;
+  class PublicDatasets;
 
-  SharedPtr<Datasets>  m_datasets;
+  SharedPtr<PublicDatasets>  m_datasets;
 
   //for dynamic mode
   bool                   dynamic = false;
@@ -87,7 +90,7 @@ private:
   Int64                  config_timestamp = 0;
 
   //getDatasets
-  SharedPtr<Datasets> getDatasets();
+  SharedPtr<PublicDatasets> getDatasets();
 
   //reload
   bool reload();
