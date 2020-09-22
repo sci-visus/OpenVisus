@@ -242,6 +242,7 @@ def Configure(bUserInstall=False):
 	else:
 			
 		for filename in glob.glob("*.so") + glob.glob("bin/*.so") + ["bin/visus","bin/visusviewer"]:
+			if not os.path.isfile(filename): continue
 			rpath=""
 			rpath+="$ORIGIN"
 			rpath+=":$ORIGIN/bin"
