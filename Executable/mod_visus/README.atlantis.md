@@ -214,14 +214,17 @@ Run it:
 sudo /usr/sbin/apache2ctl stop
 rm -Rf /var/log/apache2/*
 
+# run in background
+sudo /usr/sbin/apache2ctl restart
+tail /var/log/apache2/error_log # here all OpenVisus logs...
+sudo /usr/sbin/apache2ctl -M  # Dump a list of loaded Static and Shared Modules.
+sudo /usr/sbin/apache2ctl -S  # Show the settings as parsed from the config file 
+
 
 # run in foreground for debugging purpouses
 sudo /usr/sbin/apache2ctl -e debug -X
 
-# run in background
-sudo /usr/sbin/apache2ctl restart
-sudo /usr/sbin/apache2ctl -M  # Dump a list of loaded Static and Shared Modules.
-sudo /usr/sbin/apache2ctl -S  # Show the settings as parsed from the config file 
+
 
 ``` 
 

@@ -96,8 +96,37 @@ def ShowDeps(all_bins):
 		print(filename)	
 
 # ////////////////////////////////////////////////
-def InstallAndUsePyQt5(bUserInstall=False):
+def Configure(bUserInstall=False):
 	
+	# see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
+	is_conda = os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history'))
+
+	# NOTE: I'm installing packages here because I have problems specifying them in setup.py. Worth to give another try?
+	print("sys.executable",sys.executable, "is_conda",is_conda)
+
+	if is_conda:
+
+		import conda.cli 
+		conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'numpy', "pillow", 'opencv')
+
+		# for some unknown reason I get: RuntimeError: module compiled against API version 0xc but this version of numpy is 0xa
+		# scrgiorgio: I don't care if it fails
+		try:
+			conda.cli.main('conda', 'update', '-y', 'numpy') 
+		except:
+			pass
+
+		# scrgiorgio: TImos says this can fail but then the viewer works anyway
+		try:
+			conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'libglu')
+		except:
+			pass
+
+	else:
+		ExecuteCommand([sys.executable,"-m", "pip", "install", "--upgrade"] + (["--user"] if bUserInstall else [] ) + ["numpy", "pillow", "opencv-python"],check_result=True)
+
+	
+
 	"""
 	python -m pip install johnnydep
 
@@ -118,81 +147,61 @@ def InstallAndUsePyQt5(bUserInstall=False):
 	johnnydep PyQt5-sip~=12.7.0 -> empty
 	"""
 
-	QT_VERSION=ReadTextFile("QT_VERSION")
-	print("Installing PyQt5...",QT_VERSION)
-	major,minor=QT_VERSION.split('.')[0:2]
+	QT_VERSION, QT5_LIB_DIR="",""
+	if os.path.isfile("QT_VERSION"):
 
-	# see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
-	is_conda = os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history'))
-	
-	# NOTE: I'm installing packages here because I have problems specifying them in setup.py. Worth to give another try?
-	print("sys.executable",sys.executable, "is_conda",is_conda)
-	if is_conda:
-		import conda.cli 
+		QT_VERSION=ReadTextFile("QT_VERSION")
+		print("Installing PyQt5...",QT_VERSION)
+		qt_major,qt_minor=QT_VERSION.split('.')[0:2]
 
-		conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'numpy', "pillow", 'opencv')
-		if WIN32:
-			# cannot use conda-forge version because they rename DLLS (like Qt5Core.dll->Qt5Core_conda.dll)
-			conda.cli.main('conda', 'install', '-y',                      "pyqt={}.{}".format(major,minor)) 
-		else:
-			conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', "pyqt={}.{}".format(major,minor))
+		if is_conda:
+			
+			if WIN32:
+				# cannot use conda-forge version because they rename DLLS (like Qt5Core.dll->Qt5Core_conda.dll)
+				conda.cli.main('conda', 'install', '-y',                      "pyqt={}.{}".format(qt_major,qt_minor)) 
+			else:
+				conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', "pyqt={}.{}".format(qt_major,qt_minor))
 
-		# for some unknown reason I get: RuntimeError: module compiled against API version 0xc but this version of numpy is 0xa
-		# scrgiorgio: I don't care if it fails
-		try:
-			conda.cli.main('conda', 'update', '-y', 'numpy') 
-		except:
-			pass
-
-		# scrgiorgio: TImos says this can fail but then the viewer works anyway
-		try:
-			conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'libglu')
-		except:
-			pass
-		
 		# do I need PyQtWebEngine for conda? considers Qt is 5.9 (very old)
 		# it has webengine and sip included
 
-	else:
-		cmd=[sys.executable,"-m", "pip", "install", "--upgrade"] 
-		
-		if bUserInstall: 
-			cmd+=["--user"]
-			
-		cmd+=["numpy","pillow","opencv-python", "PyQt5~={}.{}.0".format(major,minor)]
+		else:
+			cmd=[sys.executable,"-m", "pip", "install", "--upgrade"] + (["--user"] if bUserInstall else []) + ["PyQt5~={}.{}.0".format(qt_major,qt_minor)]
 
-		if int(major)==5 and int(minor)>=12:
-			cmd+=["PyQtWebEngine~={}.{}.0".format(major,minor)]
-			cmd+=["PyQt5-sip<13,>=12.7"] 
+			if int(qt_major)==5 and int(qt_minor)>=12:
+				cmd+=["PyQtWebEngine~={}.{}.0".format(qt_major,qt_minor)]
+				cmd+=["PyQt5-sip<13,>=12.7"] 
 
-		ExecuteCommand(cmd,check_result=True)
+			ExecuteCommand(cmd,check_result=True)
 
-	# this should cover the case where I just installed PyQt5
-	PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip()
-	found_QT_VERSION=GetCommandOutput([sys.executable,"-c","from PyQt5 import Qt; print(vars(Qt)['QT_VERSION_STR'])"]).strip().split(".")
-	print("Linking','PyQt5_HOME",PyQt5_HOME, 'found_QT_VERSION',found_QT_VERSION)
+		# this should cover the case where I just installed PyQt5
+		PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip()
+		found_QT_VERSION=GetCommandOutput([sys.executable,"-c","from PyQt5 import Qt; print(vars(Qt)['QT_VERSION_STR'])"]).strip().split(".")
+		print("Linking','PyQt5_HOME",PyQt5_HOME, 'found_QT_VERSION',found_QT_VERSION)
 	
-	if found_QT_VERSION[0]!=major or found_QT_VERSION[1]!=minor:
-		raise Exception("THere is a problem with getting the right Qt5 version. Please try 'export PYTHONNOUSERSITE=True' needed({}.{}) found({}.{})".format(major,minor,found_QT_VERSION[0],found_QT_VERSION[1],))
+		if found_QT_VERSION[0]!=qt_major or found_QT_VERSION[1]!=qt_minor:
+			raise Exception("THere is a problem with getting the right Qt5 version. Please try 'export PYTHONNOUSERSITE=True' needed({}.{}) found({}.{})".format(qt_major,qt_minor,found_QT_VERSION[0],found_QT_VERSION[1],))
 	
-	if not os.path.isdir(PyQt5_HOME):
-		print("Error directory does not exists")
-		raise Exception("internal error")
+		if not os.path.isdir(PyQt5_HOME):
+			print("Error directory does not exists")
+			raise Exception("internal error")
+
+		if is_conda:
+			CONDA_PREFIX=os.environ['CONDA_PREFIX']
+			print("CONDA_PREFIX",CONDA_PREFIX)
+			QT5_LIB_DIR="{}/lib".format(CONDA_PREFIX)
+		else:
+			QT5_LIB_DIR=os.path.join(PyQt5_HOME,'Qt/lib')
 
 	# on windows it's enough to use sys.path (see *.i %pythonbegin section)
+	# i don't have any RPATH way of modifying DLLs
 	if WIN32:
 		return
+
+	if QT5_VERSION:
+		print("QT5_LIB_DIR",QT5_LIB_DIR)
+		Assert(os.path.isdir(QT5_LIB_DIR))
 		
-	if is_conda:
-		CONDA_PREFIX=os.environ['CONDA_PREFIX']
-		print("CONDA_PREFIX",CONDA_PREFIX)
-		QT5_LIB_DIR="{}/lib".format(CONDA_PREFIX)
-	else:
-		QT5_LIB_DIR=os.path.join(PyQt5_HOME,'Qt/lib')
-	
-	print("QT5_LIB_DIR",QT5_LIB_DIR)
-	Assert(os.path.isdir(QT5_LIB_DIR))
-	
 	if APPLE:
 
 		dylibs=glob.glob("bin/*.dylib")
@@ -203,21 +212,22 @@ def InstallAndUsePyQt5(bUserInstall=False):
 		# remove any reference to absolute Qt (it happens with brew which has absolute path), make it relocable with rpath as is in PyQt5
 		for filename in all_bins:
 			
-			print("FIXING FILENAME",filename,"________________")
+			print("# FIXING",filename)
 			
-			# example .../libQt5*.dylib -> @rpath/libQt5*.dylib
-			if is_conda:
-				for Old in GetCommandOutput("otool -L %s | grep '.*/libQt5.*\.dylib' | awk '{print $1;}'" % filename, shell=True).splitlines():
-					New="@rpath/libQt5" + Old.split("libQt5", 1)[1]
-					ExecuteCommand(["install_name_tool","-change", Old, New, filename])
-				
-			# eample ../Qt*.framework -> @rpath/Qt*.framework
-			else:
-				for Old in GetCommandOutput("otool -L %s | grep '.*/Qt.*\.framework' | awk '{print $1;}'" % filename, shell=True).splitlines():
-					New="@rpath/Qt" + Old.split("/Qt", 1)[1]
-					ExecuteCommand(["install_name_tool","-change", Old, New, filename])	
-				
+			if QT_VERSION:
 
+				# example .../libQt5*.dylib -> @rpath/libQt5*.dylib
+				if is_conda:
+					for Old in GetCommandOutput("otool -L %s | grep '.*/libQt5.*\.dylib' | awk '{print $1;}'" % filename, shell=True).splitlines():
+						New="@rpath/libQt5" + Old.split("libQt5", 1)[1]
+						ExecuteCommand(["install_name_tool","-change", Old, New, filename])
+				
+				# eample ../Qt*.framework -> @rpath/Qt*.framework
+				else:
+					for Old in GetCommandOutput("otool -L %s | grep '.*/Qt.*\.framework' | awk '{print $1;}'" % filename, shell=True).splitlines():
+						New="@rpath/Qt" + Old.split("/Qt", 1)[1]
+						ExecuteCommand(["install_name_tool","-change", Old, New, filename])	
+				
 			if filename in apps:
 				SetRPath(filename, "@loader_path/:@loader_path/../../../:" + QT5_LIB_DIR)
 			else:
@@ -229,8 +239,6 @@ def InstallAndUsePyQt5(bUserInstall=False):
 			
 		for filename in glob.glob("*.so") + glob.glob("bin/*.so") + ["bin/visus","bin/visusviewer"]:
 			SetRPath(filename,"$ORIGIN:$ORIGIN/bin:" + QT5_LIB_DIR)
-
-
 
 # ////////////////////////////////////////////////
 def TestNetworkSpeed(args):
@@ -460,7 +468,7 @@ def Main(args):
 	# ___________________________________________________________________ openvisus utils
 	if action=="configure":
 		os.chdir(this_dir)
-		InstallAndUsePyQt5(bUserInstall="--user" in action_args)
+		Configure(bUserInstall="--user" in action_args)
 		print(action,"done")
 		sys.exit(0)
 

@@ -269,7 +269,9 @@ bool ModVisus::configureDatasets(const ConfigFile& config)
   }
 
   PrintInfo("ModVisus::configure dynamic",dynamic,"config_filename",config_filename,"...");
-  PrintInfo("/mod_visus?action=list\n",datasets->getDatasetsBody());
+  
+  //too long!
+  //PrintInfo("/mod_visus?action=list\n",datasets->getDatasetsBody());
 
   return true;
 }

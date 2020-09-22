@@ -1265,50 +1265,93 @@ void Viewer::reloadVisusConfig(bool bChooseAFile)
     String filename = cstring(QFileDialog::getOpenFileName(nullptr, "Choose a file to open...", last_dir.c_str(), "*"));
     if (filename.empty()) return;
     last_dir = Path(filename).getParent();
-    config.load(filename);
+    this->config.load(filename);
   }
   else
   {
-    config.reload();
+    this->config.reload();
   }
 
-  widgets.toolbar->bookmarks_button->setMenu(createBookmarks());
+  this->widgets.toolbar->bookmarks_button->setMenu(createBookmarks());
 }
  
 //////////////////////////////////////////////////////////////////////
-bool Viewer::open(String url,Node* parent)
+bool Viewer::open(String s_url,Node* parent)
 {
-  if (url.empty())
+  if (s_url.empty())
     return false;
 
-  //config means a visus.config: merge bookmarks and load first entry (ignore configuration)
-  if (StringUtils::endsWith(url,".config"))
+  //example
+  //  http://atlantis.sci.utah.edu:port?cached=1
+  //  http://atlantis.sci.utah.edu:port/mod_visus?cached=1
+  Url url(s_url);
+  if (url.isRemote() && (url.getPath().empty() || url.getPath()=="/mod_visus"))
   {
-    StringTree stree=StringTree::fromString(Utils::loadTextDocument(url));
-    if (!stree.valid())
+    url.setPath("/mod_visus");
+    url.setParam("action","list");
+
+    auto protocol= url.getProtocol();
+    auto hostname= url.getHostname();
+    auto port= url.getPort();
+
+    bool cached= cbool(url.getParam("cached"));
+    url.params.eraseValue("cached");
+
+    auto content=Utils::loadTextDocument(url.toString());
+    content = StringUtils::replaceAll(content, "$(protocol)", protocol);
+    content = StringUtils::replaceAll(content, "$(hostname)", hostname);
+    content = StringUtils::replaceAll(content, "$(port)", cstring(port));
+
+    auto config = StringTree::fromString(content);
+    if (!config.valid())
     {
       VisusAssert(false);
       return false;
     }
 
-    for (int i=0;i<stree.getNumberOfChilds();i++)
-      config.addChild(stree.getChild(i));
-
-    //load first bookmark from new config
-    auto children=stree.getAllChilds("dataset");
-    if (!children.empty())
+    //handle caching...
+    if (cached)
     {
-      url=children[0]->readString("name",children[0]->readString("url"));VisusAssert(!url.empty());
-      return this->open(url,parent);
+      for (auto dataset : config.getAllChilds("dataset"))
+      {
+        if (!dataset->getChild("access") && !dataset->getAttribute("name").empty())
+        {
+          auto dataset_name = dataset->getAttribute("name");
+          dataset->addChild(StringTree::fromString(
+            "  <access type='multiplex'>\n"
+            "     <access type='disk'    chmod='rw' url='file://$(VisusHome)/cache/" + hostname + "/" + cstring(port) + "/" + dataset_name + "/visus.idx'  />\n"
+            "     <access type='network' chmod='r'  compression='zip' />\n"
+            "  </access>\n"));
+        }
+      }
     }
 
+    this->config = config;
+    Utils::saveTextDocument("temp.config", this->config.toString());
+    reloadVisusConfig();
+    return true;
+  }
+
+  //open a *.config file and create bookmarks
+  if (StringUtils::endsWith(s_url,".config"))
+  {
+    auto content = Utils::loadTextDocument(s_url);
+    auto config=StringTree::fromString(content);
+    if (!config.valid())
+    {
+      VisusAssert(false);
+      return false;
+    }
+
+    this->config = config;
+    reloadVisusConfig();
     return true;
   }
 
   //could be a Viewer scene?
-  if (StringUtils::endsWith(url,".xml"))
+  if (StringUtils::endsWith(s_url,".xml"))
   {
-    auto content = StringUtils::trim(Utils::loadTextDocument(url));
+    auto content = StringUtils::trim(Utils::loadTextDocument(s_url));
     if (StringUtils::startsWith(content, "<Viewer"))
     {
       clearAll();
@@ -1328,7 +1371,7 @@ bool Viewer::open(String url,Node* parent)
 
       PrintInfo("worldbox",getWorldBox().toString());
 
-      PrintInfo("open", url, "done");
+      PrintInfo("open", s_url, "done");
 
       if (widgets.treeview)
         widgets.treeview->expandAll();
@@ -1341,11 +1384,11 @@ bool Viewer::open(String url,Node* parent)
   SharedPtr<Dataset> dataset;
   try
   {
-    dataset = LoadDatasetEx(FindDatasetConfig(this->config, url));
+    dataset = LoadDatasetEx(FindDatasetConfig(this->config, s_url));
   } 
   catch(...)
   {
-    QMessageBox::information(this, "Error", cstring("open file(" ,url, +") failed.").c_str());
+    QMessageBox::information(this, "Error", cstring("open file",concatenate("[", s_url, "]"),"failed.").c_str());
     return false;
   }
 
@@ -1358,7 +1401,7 @@ bool Viewer::open(String url,Node* parent)
     if (!parent)
       parent = addWorld("world");
 
-    auto dataset_node=addDataset("",parent, url);
+    auto dataset_node=addDataset("",parent, s_url);
 
     if (!getGLCamera())
       addGLCamera("", parent);
@@ -1387,7 +1430,7 @@ bool Viewer::open(String url,Node* parent)
     widgets.treeview->expandAll();
   
   refreshActions();
-  PrintInfo("open",url,"done");
+  PrintInfo("open",s_url,"done");
   return true;
 }
 
