@@ -163,13 +163,17 @@ public:
   MyGlobalModule()
   {
     g_hEventLog = RegisterEventSource(NULL, "IISADMIN"); // Open a handle to the Event Viewer.
-    static int argn = 3;
-    static const char* argv[] = { "mod_visus.dll", "--visus-config", "/inetpub/wwwroot/visus/visus.config" };
 
-#if VISUS_PYTHON   
-    PrintInfo("EmbeddedPythonInit...");
-    EmbeddedPythonInit(argn, argv, KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
+#if VISUS_PYTHON  
+    EmbeddedPythonInit();
+    auto acquire_gil = PyGILState_Ensure();
+    PyRun_SimpleString("from OpenVisus import *");
+    PyGILState_Release(acquire_gil);
+
 #else
+    static int argn = 3;
+    static String program_name = Path(Utils::getCurrentApplicationFile()).toString();
+    static const char* argv[] = { program_name.c_str() , "--visus-config", "/inetpub/wwwroot/visus/visus.config" };
     SetCommandLine(argn, argv);
     DbModule::attach();
 #endif
@@ -608,13 +612,16 @@ public:
   {
     PrintInfo("ApacheModVisus initialiseInCurrentProcess");
     RedirectLogTo(MyWriteLog, this);
-    static int argn =1;
-    static const char *argv[]={"mod_visus"};
 
 #if VISUS_PYTHON    
-    PrintInfo("EmbeddedPythonInit...");
-    EmbeddedPythonInit(argn, argv, KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
+    EmbeddedPythonInit();
+    auto acquire_gil = PyGILState_Ensure();
+    PyRun_SimpleString("from OpenVisus import *");
+    PyGILState_Release(acquire_gil);
 #else
+    static int argn = 1;
+    static String program_name = Path(Utils::getCurrentApplicationFile()).toString();
+    static const char* argv[] = { program_name.c_str() };
     SetCommandLine(argn, argv);
     DbModule::attach();
 #endif

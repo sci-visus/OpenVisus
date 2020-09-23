@@ -251,7 +251,7 @@ static void InitKnownPaths()
 #endif
 
   FileUtils::createDirectory(KnownPaths::VisusHome);
-  KnownPaths::BinaryDirectory = Path(osdep::getCurrentApplicationFile()).getParent();
+  KnownPaths::BinaryDirectory = Path(Utils::getCurrentApplicationFile()).getParent();
 }
 bool KernelModule::bAttached = false;
 

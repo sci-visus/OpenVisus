@@ -436,6 +436,8 @@ namespace Utils
   //getPid
   VISUS_KERNEL_API int getPid();
 
+  VISUS_KERNEL_API String getCurrentApplicationFile();
+
 }; //end class
 
 //////////////////////////////////////////////////////
