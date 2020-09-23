@@ -186,15 +186,17 @@ private:
     SharedPtr<Dataset> dataset;
     try
     {
+      PrintInfo("Loading dataset",concatenate("url(",url,")"),concatenate("name(",name,")"),"...");
       dataset = LoadDatasetEx(cursor);
+      PrintInfo("...","ok");
     }
     catch (...) {
-      PrintWarning("dataset name", name, "load failed, skipping it");
+      PrintWarning("... failed, skipping it");
       return 0;
     }
 
     if (dataset_map.count(name)) {
-      PrintWarning("dataset name", name, "already exists, skipping it");
+      PrintWarning("...", name, "already exists, skipping it");
       return 0;
     }
 
@@ -271,7 +273,7 @@ bool ModVisus::configureDatasets(const ConfigFile& config)
   PrintInfo("ModVisus::configure dynamic",dynamic,"config_filename",config_filename,"...");
   
   //too long!
-  //PrintInfo("/mod_visus?action=list\n",datasets->getDatasetsBody());
+  PrintInfo("/mod_visus?action=list\n",datasets->getDatasetsBody());
 
   return true;
 }

@@ -61,6 +61,7 @@ def LoadIdxDataset(url):
 	static void attach() {
 		//user defined attach
 		DbModule::attach();
+    PrintInfo("Registering PyMultipleDataset");
 		DatasetFactory::getSingleton()->registerDatasetType("IdxMultipleDataset", []() {return std::make_shared<PyMultipleDataset>(); });
 	}
 }

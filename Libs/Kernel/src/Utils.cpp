@@ -95,8 +95,11 @@ String Utils::loadTextDocument(String s_url)
 
     String fullpath=path.toString();
     std::ifstream file(fullpath.c_str(), std::ios::binary);
-    if (!file.is_open()) 
+    if (!file.is_open())
+    {
+	    PrintWarning("Failed to loadTextDocument", s_url, "Reason: ", strerror(errno));
       return "";
+    }
 
     std::stringstream sstream;
     sstream << file.rdbuf();
