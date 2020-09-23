@@ -12,6 +12,8 @@ Table of content:
 
 - [Binary Distribution](#binary-distribution)
 
+- [mod_visus Docker Image](#mod_visus-docker-image)
+
 - [Windows compilation Visual Studio](#windows-compilation-visual-studio)
 
 - [Windows compilation mingw](#windows-compilation-mingw)
@@ -98,6 +100,40 @@ Give a look to directory `Samples/python` and Jupyter examples:
 
 [Samples/jupyter/ReadAndView.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/ReadAndView.ipynb)
 
+
+<!--//////////////////////////////////////////////////////////////////////// -->
+# mod_visus Docker Image
+
+```
+
+# your dataset directory, it must contain a `datasets.conf` file
+DATASETS=/mnt/c/projects/OpenVisus/datasets
+
+sudo docker run  -v $DATASETS:/datasets --publish 8080:80 visus/mod_visus:2.1.93 
+
+# test it
+wget -q -O -  "http://localhost:8080/index.html"
+wget -q -O -  "http://localhost:8080/server-status"
+wget -q -O -  "http://localhost:8080/viewer/index.html"
+wget -q -O -  "http://localhost:8080/mod_visus?action=list"
+```
+
+Eventually inspect logs:
+
+```
+sudo docker ps  | grep mod_visus
+sudo docker logs <insert_container_id>
+```
+
+If you want to run multiple mod_visus with a ngix load balancer:
+
+```
+cd Docker/mod_visus/load_balancing
+
+# ... do all your customization....
+
+sudo docker-compose up 
+```
 
 
 <!--//////////////////////////////////////////////////////////////////////// -->

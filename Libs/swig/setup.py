@@ -49,12 +49,16 @@ def DoSetup():
 	
 # ///////////////////////////////////////////////////////////////
 if __name__ == "__main__":
-	
-	if len(sys.argv)>=2 and sys.argv[1]=="new-tag":
-		NewTag()
-		sys.exit(0)	
 
-	DoSetup()
-	sys.exit(0)	
+  if len(sys.argv)>=2 and sys.argv[1]=="print-tag":
+    print(PROJECT_VERSION)
+    sys.exit(0)
+	
+  if len(sys.argv)>=2 and sys.argv[1]=="new-tag":
+    NewTag()
+    sys.exit(0)	
+
+  DoSetup()
+  sys.exit(0)	
 
 

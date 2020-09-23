@@ -5,7 +5,10 @@ ENV VISUS_HOME=/home/OpenVisus
 
 RUN apt-get update
 RUN apt-get install -y git python3 python3-pip
-RUN python3 -m pip install --upgrade pip numpy OpenVisus
+RUN python3 -c "import sys;print(sys.version_info)"
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install --upgrade numpy 
+RUN python3 -m pip install OpenVisus==2.1.93
 RUN python3 -c "import os,OpenVisus;os.system('rm -Rf /home/OpenVisus');os.system('ln -s {} /home/OpenVisus'.format(os.path.dirname(OpenVisus.__file__)))"
 
 ADD https://api.github.com/repos/sci-visus/OpenVisusJS/git/refs/heads/master version.json

@@ -1,0 +1,32 @@
+
+worker1:
+  image: visus/mod_visus:2.1.93  
+  volumes:
+  - /mnt/c/projects/OpenVisus/datasets:/datasets
+  ports:
+  - "80"
+
+worker2:
+  image: visus/mod_visus:2.1.93
+  volumes:
+  - /mnt/c/projects/OpenVisus/datasets:/datasets
+  ports:
+  - "80"
+
+worker3:
+  image: visus/mod_visus:2.1.93
+  volumes:
+  - /mnt/c/projects/OpenVisus/datasets:/datasets
+  ports:
+  - "80"
+      
+nginx:
+  image: nginx
+  volumes:
+  - ./nginx.conf:/etc/nginx/nginx.conf
+  links:
+  - worker1:worker1
+  - worker2:worker2
+  - worker3:worker3
+  ports:
+  - "8080:8080"
