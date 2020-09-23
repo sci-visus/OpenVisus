@@ -51,6 +51,7 @@ int main(int argn, const char* argv[])
   auto T1 = Time::now();
 
 #if VISUS_PYTHON
+  EmbeddedPythonInit();
   auto acquire_gil = PyGILState_Ensure();
   PyRun_SimpleString("from OpenVisus     import *");
   PyGILState_Release(acquire_gil);
