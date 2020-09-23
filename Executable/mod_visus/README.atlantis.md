@@ -69,6 +69,10 @@ sudo /usr/sbin/a2dismod visus
 sudo /usr/sbin/a2enmod  headers 
 sudo /usr/sbin/a2enmod  visus
 
+# IMPORTANT: I had to disable this since it was loading libpython2.7 and got conflicts with python3
+sudo /usr/sbin/a2dismod wsgi
+
+
 # CHECK THIS OUTPUT (!) just to be sure APACHE_MODULES has been changed and contains headers and visus
 grep visus /etc/sysconfig/apache2
 ```
@@ -225,7 +229,11 @@ sudo /usr/sbin/apache2ctl -S  # Show the settings as parsed from the config file
 
 
 # run in foreground for debugging purpouses
-LD_DEBUG=libs,files sudo --preserve-env=LD_DEBUG /usr/sbin/apache2ctl -e debug -X
+sudo /usr/sbin/apache2ctl status
+sudo /usr/sbin/apache2ctl -h
+sudo /usr/sbin/apache2ctl -t -D DUMP_INCLUDES
+sudo rm  /var/run/httpd.pid
+sudo /usr/sbin/apache2ctl -e debug -X
 
 
 

@@ -158,6 +158,8 @@ file(GLOB OtherSources
 	${CMAKE_SOURCE_DIR}/Samples/jupyter/*.ipynb 
 	${CMAKE_SOURCE_DIR}/Samples/python/*.py 
 	${CMAKE_SOURCE_DIR}/Samples/python/cloud_storage/*.py
+	${CMAKE_SOURCE_DIR}/Samples/python/dataflow/*.py
+	${CMAKE_SOURCE_DIR}/Samples/python/idx/*.py
 	${CMAKE_SOURCE_DIR}/Samples/python/viewer/*.py
 	${CMAKE_SOURCE_DIR}/Samples/python/wavelets/*.py) 
 
