@@ -106,6 +106,23 @@ inline void EmbeddedPythonInit()
     out << "import os, sys\n";
     out << "sys.path.append(os.path.realpath('" + Path(program_name).getParent().toString() + "/../.." + "'))\n";
     PyRun_SimpleString(out.str().c_str());
+
+    PyObject* py_main = PyImport_AddModule("__main__"); // Borrowed reference.
+    PyObject* py_dict = PyModule_GetDict(py_main); //Borrowed reference.
+
+    PyObject* obj = PyRun_String("'{}.{}'.format(sys.version_info.major, sys.version_info.minor)", Py_eval_input, py_dict, NULL); // Owned reference
+    VisusReleaseAssert(obj != nullptr);
+
+    PyObject* temp_bytes = PyUnicode_AsEncodedString(obj, "UTF-8", "strict"); // Owned reference
+    VisusReleaseAssert(temp_bytes != NULL);
+    String s = PyBytes_AS_STRING(temp_bytes); 
+
+    //this can happen if you mix python 2.7 with 3.x (as it can happen with apache mod_visus with wsgi enabled)
+    if (s != concatenate(cstring(PY_MAJOR_VERSION), ".", cstring(PY_MINOR_VERSION)))
+      ThrowException("internal error, python returned a wrong version",s);
+
+    Py_DECREF(obj);
+    Py_DECREF(temp_bytes);
     PyGILState_Release(acquire_gil);
   }
 }
