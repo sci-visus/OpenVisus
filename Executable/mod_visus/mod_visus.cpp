@@ -165,12 +165,13 @@ public:
     g_hEventLog = RegisterEventSource(NULL, "IISADMIN"); // Open a handle to the Event Viewer.
     static int argn = 3;
     static const char* argv[] = { "mod_visus.dll", "--visus-config", "/inetpub/wwwroot/visus/visus.config" };
-    SetCommandLine(argn, argv);
-    DbModule::attach();
-    	
+
 #if VISUS_PYTHON   
     PrintInfo("EmbeddedPythonInit...");
     EmbeddedPythonInit(argn, argv, KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
+#else
+    SetCommandLine(argn, argv);
+    DbModule::attach();
 #endif
 
     RedirectLogTo(MyWriteLog, this);
@@ -609,12 +610,13 @@ public:
     RedirectLogTo(MyWriteLog, this);
     static int argn =1;
     static const char *argv[]={"mod_visus"};
-    SetCommandLine(argn,argv);
-    DbModule::attach();
-    	
+
 #if VISUS_PYTHON    
     PrintInfo("EmbeddedPythonInit...");
     EmbeddedPythonInit(argn, argv, KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
+#else
+    SetCommandLine(argn, argv);
+    DbModule::attach();
 #endif
 
     this->configureDatasets();

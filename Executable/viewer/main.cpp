@@ -48,11 +48,12 @@ For support : support@visus.net
 int main(int argn,const char* argv[])
 {
   using namespace Visus;
-  SetCommandLine(argn, argv);
-  GuiModule::attach();
 
 #if VISUS_PYTHON
   EmbeddedPythonInit(argn, argv, KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *", "from OpenVisus.gui import *" });
+#else
+  SetCommandLine(argn, argv);
+  GuiModule::attach();
 #endif
 
   {

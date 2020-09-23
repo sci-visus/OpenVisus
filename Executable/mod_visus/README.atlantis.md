@@ -8,12 +8,10 @@ cd build_atlantis
 cmake  -DVISUS_GUI=0 -DVISUS_HOME=/scratch/home/OpenVisus ../
 make -j 
 make install
-ldd $(pwd)/Release/OpenVisus/bin/libVisusDb.so # check no absolute path
 rsync -r -v --exclude visus.config $(pwd)/Release/OpenVisus/ /usr/lib/python3.6/site-packages/OpenVisus
-
-
 python3 -m OpenVisus configure
-
+python3 -m OpenVisus configure
+ldd /usr/lib/python3.6/site-packages/OpenVisus/bin/libVisusDb.so # check no absolute path
 python3 -c "from OpenVisus import *;ModVisus().configureDatasets()"
 ```
 
@@ -52,12 +50,12 @@ Create `/scratch/home/OpenVisus/visus.config` with the following content (change
 cat <<EOF >/scratch/home/OpenVisus/visus.config
 <?xml version="1.0" ?>
 <visus>
-	<include url="/scratch/home/OpenVisus/visus.atlantis.config" />
+	<include url="/scratch/home/OpenVisus/datasets.config" />
 </visus>
 EOF
 
 # customize as needed
-cat <<EOF >/scratch/home/OpenVisus/visus.atlantis.config
+cat <<EOF >/scratch/home/OpenVisus/datasets.config
 <alias key='visus_datasets'        value='file:///usr/sci/cedmav' />
 <dataset name="2kbit1" url="$(visus_datasets)/visus1/3d/2kbit1/visus.idx" />
 EOF
@@ -227,7 +225,7 @@ sudo /usr/sbin/apache2ctl -S  # Show the settings as parsed from the config file
 
 
 # run in foreground for debugging purpouses
-sudo /usr/sbin/apache2ctl -e debug -X
+LD_DEBUG=libs,files sudo --preserve-env=LD_DEBUG /usr/sbin/apache2ctl -e debug -X
 
 
 
