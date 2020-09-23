@@ -73,17 +73,21 @@ inline PyThreadState*& EmbeddedPythonThreadState() {
 inline void EmbeddedPythonInit()
 {
   using namespace Visus;
-  String program_name = Path(Utils::getCurrentApplicationFile()).toString();
+  static String program_name = Path(Utils::getCurrentApplicationFile()).toString();
 
   PrintInfo("Embedding python...");
 
 #if PY_VERSION_HEX >= 0x03050000
-  Py_SetProgramName(Py_DecodeLocale((char*)program_name.c_str(), NULL));
+  static const wchar_t* wprogram_name=Py_DecodeLocale((char*)program_name.c_str(), NULL);
 #else
-  Py_SetProgramName(_Py_char2wchar((char*)program_name.c_str(), NULL));
+  static const wchar_t* wprogram_name=_Py_char2wchar((char*)program_name.c_str(), NULL);
 #endif
 
+  Py_SetProgramName((wchar_t*)wprogram_name);
   Py_InitializeEx(0);
+
+  static wchar_t* wargv[]={(wchar_t*)wprogram_name};
+  PySys_SetArgv(1, wargv);
 
   //Initialize and acquire the global interpreter lock
   PyEval_InitThreads();
