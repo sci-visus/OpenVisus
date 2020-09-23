@@ -59,6 +59,9 @@ For support : support@visus.net
 #include <iostream>
 
 #include <Visus/Kernel.h>
+#include <Visus/StringUtils.h>
+#include <Visus/Utils.h>
+#include <Visus/Path.h>
 
 ////////////////////////////////////////////////////////////////////////////
 inline PyThreadState*& EmbeddedPythonThreadState() {
@@ -67,12 +70,17 @@ inline PyThreadState*& EmbeddedPythonThreadState() {
 }
 
 ////////////////////////////////////////////////////////////////////////////
-inline void EmbeddedPythonInit(int argn, const char* argv[], std::string sys_path, std::vector<std::string> commands)
+inline void EmbeddedPythonInit()
 {
+  using namespace Visus;
+  String program_name = Path(Utils::getCurrentApplicationFile()).toString();
+
+  PrintInfo("Embedding python...");
+
 #if PY_VERSION_HEX >= 0x03050000
-  Py_SetProgramName(Py_DecodeLocale((char*)argv[0], NULL));
+  Py_SetProgramName(Py_DecodeLocale((char*)program_name.c_str(), NULL));
 #else
-  Py_SetProgramName(_Py_char2wchar((char*)argv[0], NULL));
+  Py_SetProgramName(_Py_char2wchar((char*)program_name.c_str(), NULL));
 #endif
 
   Py_InitializeEx(0);
@@ -90,16 +98,9 @@ inline void EmbeddedPythonInit(int argn, const char* argv[], std::string sys_pat
   //evaluate some python commands
   {
     auto acquire_gil = PyGILState_Ensure();
-
     std::ostringstream out;
-    out << "import os, sys;\n";
-
-    if (!sys_path.empty())
-      out << "sys.path.append(os.path.realpath('" + sys_path + "'))\n";
-
-    for (auto cmd : commands)
-      out << cmd << "\n";
-
+    out << "import os, sys\n";
+    out << "sys.path.append(os.path.realpath('" + Path(program_name).getParent().toString() + "/../.." + "'))\n";
     PyRun_SimpleString(out.str().c_str());
     PyGILState_Release(acquire_gil);
   }
