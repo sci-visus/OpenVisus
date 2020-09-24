@@ -23,7 +23,7 @@ kubectl delete namespace openvisus
 Create a `mod-visus-deployment` deployment for example using the following command:
 
 ```
-kubectl create deployment --namespace openvisus  mod-visus-deployment --image=visus/mod_visus:2.1.93  --dry-run -o yaml > mod_visus_deployment.yaml
+kubectl create deployment --namespace openvisus  mod-visus-deployment --image=visus/mod_visus:latest  --dry-run -o yaml > mod_visus_deployment.yaml
 ```
 
 Edit the file and setup as needed (`vi ./mod_visus_deployment.yaml`)

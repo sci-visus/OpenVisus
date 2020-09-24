@@ -2,11 +2,10 @@
 
 # Upload a new Docker mod_visus image (OPTIONAL Developers only)
 
-Choose the tag you want to expose
+Choose the tag you want to expose (note: docker TAG and OpenVIsus TAG can be different
 
 ```
-# TAG=$(python3 Libs/swig/setup.py print-tag) && echo ${TAG}
-TAG=2.1.93
+TAG=$(python3 Libs/swig/setup.py print-tag) && echo ${TAG}
 ```
 
 Replace that tag in the Dockerfile and build the new Docker image:
@@ -19,10 +18,9 @@ sudo docker build --tag visus/mod_visus:$TAG  .
 Eventually debug it:
 
 ```
-DATASETS=/mnt/c/projects/OpenVisus/datasets
-sudo docker run -it --entrypoint /bin/bash -w=/home/OpenVisus -v $DATASETS:/datasets visus/mod_visus:$TAG
-httpd-foreground
-exit
+sudo docker run --publish 8080:80 visus/mod_visus:$TAG
+# sudo docker run --rm -it --publish 8080:80 visus/mod_visus:$TAG /bin/bash
+# open http://localhost:8080/mod_visus?action=list
 ```
 
 Eventually push it to docker hub (change username as needed):
@@ -31,4 +29,8 @@ Eventually push it to docker hub (change username as needed):
 sudo docker login --username=scrgiorgio 
 sudo docker push visus/mod_visus:$TAG
 ```
+
+
+
+
 

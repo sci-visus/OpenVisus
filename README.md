@@ -106,10 +106,8 @@ Give a look to directory `Samples/python` and Jupyter examples:
 
 ```
 
-# your dataset directory, it must contain a `datasets.conf` file
-DATASETS=/mnt/c/projects/OpenVisus/datasets
-
-sudo docker run  -v $DATASETS:/datasets --publish 8080:80 visus/mod_visus:2.1.93 
+# your dataset directory, it must contain a `datasets.conf` file (and maybe contains an `.htpasswd` file)
+sudo docker run  -v /mnt/c/projects/OpenVisus/datasets:/datasets --publish 8080:80 visus/mod_visus:latest 
 
 # test it
 wget -q -O -  "http://localhost:8080/index.html"

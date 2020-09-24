@@ -44,7 +44,7 @@ visus:visus:$apr1$IoPUtcML$NEKQOuHDDZAHLsPipsl3O.
 EOF
 ```
 
-Create `/scratch/home/OpenVisus/visus.config` with the following content (change as needed):
+Create `/scratch/home/OpenVisus/visus.config` with the following content (change as needed, you can use this site `https://www.web2generators.com/apache-tools/htpasswd-generator`):
 
 ```
 cat <<EOF >/scratch/home/OpenVisus/visus.config

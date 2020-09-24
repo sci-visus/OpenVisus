@@ -1,20 +1,20 @@
 
 worker1:
-  image: visus/mod_visus:2.1.93  
+  image: visus/mod_visus:latest 
   volumes:
   - /mnt/c/projects/OpenVisus/datasets:/datasets
   ports:
   - "80"
 
 worker2:
-  image: visus/mod_visus:2.1.93
+  image: visus/mod_visus:latest
   volumes:
   - /mnt/c/projects/OpenVisus/datasets:/datasets
   ports:
   - "80"
 
 worker3:
-  image: visus/mod_visus:2.1.93
+  image: visus/mod_visus:latest
   volumes:
   - /mnt/c/projects/OpenVisus/datasets:/datasets
   ports:
