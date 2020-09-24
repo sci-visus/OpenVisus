@@ -21,7 +21,7 @@ RUN echo "Include /usr/local/apache2/conf/000-default.conf"            >> /usr/l
 COPY 000-default.conf                       /usr/local/apache2/conf/
 COPY index.html                             /usr/local/apache2/htdocs/
 COPY visus.config                           /home/OpenVisus/
-COPY httd-foreground                        /usr/local/bin/
+COPY httpd-foreground                       /usr/local/bin/
 
 # example about adding a OpenVisus datasets, if you want to add your own simply
 # mount a new /datasets directory with a datasets.config file in it

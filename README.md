@@ -107,6 +107,7 @@ Give a look to directory `Samples/python` and Jupyter examples:
 ```
 
 # your dataset directory, it must contain a `datasets.conf` file (and maybe contains an `.htpasswd` file)
+sudo docker pull visus/mod_visus
 sudo docker run  -v /mnt/c/projects/OpenVisus/datasets:/datasets --publish 8080:80 visus/mod_visus:latest 
 
 # test it
@@ -481,7 +482,7 @@ which use a `Visus/Minimal.h` header.
 For OpenVisus developers only:
 
 ```
-TAG=$(python Libs/swig/setup.py new-tag) && echo ${TAG}
+TAG=$(python3 Libs/swig/setup.py new-tag) && echo ${TAG}
 git commit -a -m "New tag" && git tag -a $TAG -m "$TAG" && git push origin $TAG && git push origin
 ```
 

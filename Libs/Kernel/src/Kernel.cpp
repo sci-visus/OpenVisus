@@ -153,7 +153,8 @@ String cstring10(double value) {
 ///////////////////////////////////////////////////////////////////////////////
 void SetCommandLine(int argn, const char** argv)
 {
-  //already called
+  //already called (can happen with embedded python, when I fist call the C++ SetCommandLine, and then I call the Python one)
+  //C++ has precedence
   if (!CommandLine::args.empty())
     return;
 
@@ -184,9 +185,10 @@ void SetCommandLine(int argn, const char** argv)
 /////////////////////////////////////////////////////
 void SetCommandLine(std::vector<String> args)
 {
-  static auto keep_in_memory = args;
+  static std::vector<String> keep_in_memory = args;
   static const int argn = (int)args.size();
   static const char* argv[256];
+
   memset(argv, 0, sizeof(argv));
   for (int I = 0; I < args.size(); I++)
     argv[I] = args[I].c_str();

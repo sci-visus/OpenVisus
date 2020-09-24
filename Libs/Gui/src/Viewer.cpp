@@ -1281,21 +1281,22 @@ bool Viewer::open(String s_url,Node* parent)
   if (s_url.empty())
     return false;
 
-  //example
-  //  http://atlantis.sci.utah.edu:port?cached=1
-  //  http://atlantis.sci.utah.edu:port/mod_visus?cached=1
+  //get a visus.config from a remote server
+  //  http://atlantis.sci.utah.edu:8080/mod_visus?action=list
+  //  http://atlantis.sci.utah.edu:8080/mod_visus?action=list&cached=1
   Url url(s_url);
-  if (url.isRemote() && (url.getPath().empty() || url.getPath()=="/mod_visus"))
+  if (url.isRemote() && url.getPath()=="/mod_visus" && url.getParam("action")=="list")
   {
-    url.setPath("/mod_visus");
-    url.setParam("action","list");
-
     auto protocol= url.getProtocol();
     auto hostname= url.getHostname();
     auto port= url.getPort();
 
-    bool cached= cbool(url.getParam("cached"));
-    url.params.eraseValue("cached");
+    bool cached = false;
+    if (url.hasParam("cached"))
+    {
+      cached = cbool(url.getParam("cached"));
+      url.params.eraseValue("cached");
+    }
 
     auto content=Utils::loadTextDocument(url.toString());
     content = StringUtils::replaceAll(content, "$(protocol)", protocol);
@@ -1305,7 +1306,7 @@ bool Viewer::open(String s_url,Node* parent)
     auto config = StringTree::fromString(content);
     if (!config.valid())
     {
-      VisusAssert(false);
+      QMessageBox::information(this, "Error", cstring("Failed to download",url.toString()).c_str());
       return false;
     }
 
@@ -1329,6 +1330,7 @@ bool Viewer::open(String s_url,Node* parent)
     this->config = config;
     Utils::saveTextDocument("temp.config", this->config.toString());
     reloadVisusConfig();
+    QMessageBox::information(this, "Info", cstring("Loaded", url.toString(), "saved the content to temp.config").c_str());
     return true;
   }
 

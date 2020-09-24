@@ -86,8 +86,8 @@ inline void EmbeddedPythonInit()
   Py_SetProgramName((wchar_t*)wprogram_name);
   Py_InitializeEx(0);
 
-  static wchar_t* wargv[]={(wchar_t*)wprogram_name};
-  PySys_SetArgv(1, wargv);
+  //static wchar_t* wargv[]={(wchar_t*)wprogram_name};
+  PySys_SetArgv(0, nullptr);
 
   //Initialize and acquire the global interpreter lock
   PyEval_InitThreads();
@@ -123,6 +123,9 @@ inline void EmbeddedPythonInit()
 
     Py_DECREF(obj);
     Py_DECREF(temp_bytes);
+
+    PyRun_SimpleString("import sys; print(sys.executable,sys.argv)");
+
     PyGILState_Release(acquire_gil);
   }
 }

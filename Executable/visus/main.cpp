@@ -50,13 +50,14 @@ int main(int argn, const char* argv[])
 {
   auto T1 = Time::now();
 
+  SetCommandLine(argn, argv);
+
 #if VISUS_PYTHON
   EmbeddedPythonInit();
   auto acquire_gil = PyGILState_Ensure();
-  PyRun_SimpleString("from OpenVisus     import *");
+  PyRun_SimpleString("from OpenVisus import *");
   PyGILState_Release(acquire_gil);
 #else
-  SetCommandLine(argn, argv);
   DbModule::attach();
 #endif
 

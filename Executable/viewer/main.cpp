@@ -49,6 +49,8 @@ int main(int argn,const char* argv[])
 {
   using namespace Visus;
 
+  SetCommandLine(argn, argv);
+
 #if VISUS_PYTHON
   EmbeddedPythonInit();
   auto acquire_gil = PyGILState_Ensure();
@@ -56,7 +58,6 @@ int main(int argn,const char* argv[])
   PyRun_SimpleString("from OpenVisus.gui import *");
   PyGILState_Release(acquire_gil);
 #else
-  SetCommandLine(argn, argv);
   GuiModule::attach();
 #endif
 
