@@ -38,6 +38,11 @@ class Explorer3d(QMainWindow):
 			self.field.addItem(name)
 		self.field.setCurrentText(self.db.getFields()[0])
 		
+		self.type=QComboBox()
+		for name in ( 'max_intensity_proj','threshold'):
+			self.type.addItem(name)
+		self.type.setCurrentText('max_intensity_proj')
+		
 		self.opacity=QComboBox()
 		for name in ( 'linear', 'geom', 'geom_r','sigmoid','sigmoid_3','sigmoid_4','sigmoid_5','sigmoid_6','sigmoid_7','sigmoid_8','sigmoid_9','sigmoid_10'):
 			self.opacity.addItem(name)
@@ -61,32 +66,34 @@ class Explorer3d(QMainWindow):
 		self.run=QPushButton("Run")
 		self.run.clicked.connect(self.showVolume)
 		
+		main_layout=QVBoxLayout()
+		
 		# plotter
 		if True:
-			self.frame=QFrame()
-			self.plotter = QtInteractor(self.frame)
-			layout = QVBoxLayout()
-			self.frame.setLayout(self.createVerticalLayout([self.plotter.interactor]))
-			self.setCentralWidget(self.frame)
-
+			frame=QFrame()
+			self.plotter = QtInteractor(frame)
+			main_layout.addWidget(self.plotter)
+			
 		if True:
-			self.tools=QWidget()
 			layout=self.createVerticalLayout([
 				self.createGridLayout((
 					[QLabel("x1"),self.x1,QLabel("x2"),self.x2],
 					[QLabel("y1"),self.y1,QLabel("y2"),self.y2],
 					[QLabel("z1"),self.z1,QLabel("z2"),self.z2])),
 				self.createHorizontalLayout([QLabel("field"),self.field]),
+				self.createHorizontalLayout([QLabel("type"),self.type]),
 				self.createHorizontalLayout([QLabel("opacity"),self.opacity]),
 				self.createHorizontalLayout([QLabel("cmap"),self.cmap]),
 				self.createHorizontalLayout([QLabel("blending"),self.blending]),
 				self.createHorizontalLayout([QLabel("MBytes"),self.max_mb]),
 				self.run
 			])
-			self.tools.setLayout(layout)
+			main_layout.addLayout(layout)
 
-		self.show()
-		self.tools.show()		
+		central_widget=QFrame()
+		central_widget.setLayout(main_layout)
+		self.setCentralWidget(central_widget)
+		self.showMaximized()
 
 	# extractVolume
 	def extractVolume(self):
@@ -121,8 +128,16 @@ class Explorer3d(QMainWindow):
 	def showVolume(self):
 		data=self.extractVolume()
 		self.plotter.clear()
-		self.plotter.add_volume(data, opacity=self.opacity.currentText(), cmap=self.cmap.currentText(),blending=self.blending.currentText())
-		# p.add_mesh_threshold(data)
+		
+		if self.type.currentText()=='max_intensity_proj':
+			self.plotter.add_volume(data, opacity=self.opacity.currentText(), cmap=self.cmap.currentText(),blending=self.blending.currentText())
+			
+		elif self.type.currentText()=='threshold':
+			self.plotter.add_mesh_threshold(pv.wrap(data), opacity=self.opacity.currentText(), cmap=self.cmap.currentText())
+			
+		else:
+			raise Exception("internal error")
+			
 		self.plotter.reset_camera()
 
 	# createSlider
