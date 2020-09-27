@@ -39,9 +39,9 @@ class Explorer3d(QMainWindow):
 		self.field.setCurrentText(self.db.getFields()[0])
 		
 		self.type=QComboBox()
-		for name in ( 'max_intensity_proj','threshold','isovalue','slice'):
+		for name in ( 'vr','threshold','isovalue','slice'):
 			self.type.addItem(name)
-		self.type.setCurrentText('max_intensity_proj')
+		self.type.setCurrentText('vr')
 		
 		self.opacity=QComboBox()
 		for name in ( 'linear', 'geom', 'geom_r','sigmoid','sigmoid_3','sigmoid_4','sigmoid_5','sigmoid_6','sigmoid_7','sigmoid_8','sigmoid_9','sigmoid_10'):
@@ -56,7 +56,7 @@ class Explorer3d(QMainWindow):
 		self.blending=QComboBox()
 		for name in ( 'additive', 'maximum', 'minimum', 'composite',  'average'):
 			self.blending.addItem(name)
-		self.blending.setCurrentText('maximum')	
+		self.blending.setCurrentText('additive')	
 		
 		self.max_mb=QComboBox()
 		for name in ('8','16','32', '64', '128', '256', '512',  '1024',  '2048'):
@@ -94,14 +94,19 @@ class Explorer3d(QMainWindow):
 		central_widget.setLayout(main_layout)
 		self.setCentralWidget(central_widget)
 		self.showMaximized()
+		
+	# getVolumeBounds
+	def getVolumeBounds(self):
+		x1=self.x1.value();x2=self.x2.value();x1,x2=min(x1,x2),max(x1,x2)
+		y1=self.x1.value();y2=self.x2.value();y1,y2=min(y1,y2),max(y1,y2)
+		z1=self.x1.value();z2=self.x2.value();z1,z2=min(z1,z2),max(z1,z2)
+		return x1,x2,y1,y2,z1,z2
 
 	# extractVolume
 	def extractVolume(self):
 		field=self.db.getField(self.field.currentText())
 		
-		x1=self.x1.value();x2=self.x2.value();x1,x2=min(x1,x2),max(x1,x2)
-		y1=self.x1.value();y2=self.x2.value();y1,y2=min(y1,y2),max(y1,y2)
-		z1=self.x1.value();z2=self.x2.value();z1,z2=min(z1,z2),max(z1,z2)
+		x1,x2,y1,y2,z1,z2=self.getVolumeBounds()
 
 		# guess quality
 		dtype=field.dtype
@@ -128,18 +133,29 @@ class Explorer3d(QMainWindow):
 	def showVolume(self):
 		data=self.extractVolume()
 		self.plotter.clear()
+		# self.plotter.show_bounds(grid=True, location='back')
 		
-		if self.type.currentText()=='max_intensity_proj':
-			self.plotter.add_volume(data, opacity=self.opacity.currentText(), cmap=self.cmap.currentText(),blending=self.blending.currentText())
-			
+		grid = pv.UniformGrid()
+		grid.dimensions = numpy.array(data.shape) +1
+		x1,x2,y1,y2,z1,z2=self.getVolumeBounds()
+		grid.origin  = (0,0,0) # The bottom left corner of the data set
+		w,h,d=data.shape
+		grid.spacing = ((x2-x1)/w, (y2-y1)/h, (z2-z1)/d) # These are the cell sizes along each axis
+		grid.cell_arrays["values"] = data.flatten(order="F")		
+		
+		# /////////////////////////////////////////////////////////
+		# example https://docs.pyvista.org/examples/00-load/create-uniform-grid.html
+		if self.type.currentText()=='vr':
+			self.plotter.add_volume(grid, opacity=self.opacity.currentText(), cmap=self.cmap.currentText(),blending=self.blending.currentText())
+
 		elif self.type.currentText()=='threshold':
-			self.plotter.add_mesh_threshold(pv.wrap(data))
+			self.plotter.add_mesh_threshold(grid)
 			
 		elif self.type.currentText()=='isovalue':
-			self.plotter.add_mesh_isovalue(pv.wrap(data))		
+			self.plotter.add_mesh_isovalue(pv.wrap(data)) # TODO, aspect ratio not working
 			
 		elif self.type.currentText()=='slice':
-			self.plotter.add_mesh_slice(pv.wrap(data))						
+			self.plotter.add_mesh_slice(grid)
 			
 		else:
 			raise Exception("internal error")
