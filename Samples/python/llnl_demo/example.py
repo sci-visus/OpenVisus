@@ -39,7 +39,7 @@ class Explorer3d(QMainWindow):
 		self.field.setCurrentText(self.db.getFields()[0])
 		
 		self.type=QComboBox()
-		for name in ( 'max_intensity_proj','threshold'):
+		for name in ( 'max_intensity_proj','threshold','isovalue','slice'):
 			self.type.addItem(name)
 		self.type.setCurrentText('max_intensity_proj')
 		
@@ -59,9 +59,9 @@ class Explorer3d(QMainWindow):
 		self.blending.setCurrentText('maximum')	
 		
 		self.max_mb=QComboBox()
-		for name in ( '64', '128', '256', '512',  '1024'):
+		for name in ('8','16','32', '64', '128', '256', '512',  '1024',  '2048'):
 			self.max_mb.addItem(name)
-		self.max_mb.setCurrentText('128')
+		self.max_mb.setCurrentText('32')
 		
 		self.run=QPushButton("Run")
 		self.run.clicked.connect(self.showVolume)
@@ -133,7 +133,13 @@ class Explorer3d(QMainWindow):
 			self.plotter.add_volume(data, opacity=self.opacity.currentText(), cmap=self.cmap.currentText(),blending=self.blending.currentText())
 			
 		elif self.type.currentText()=='threshold':
-			self.plotter.add_mesh_threshold(pv.wrap(data), opacity=self.opacity.currentText(), cmap=self.cmap.currentText())
+			self.plotter.add_mesh_threshold(pv.wrap(data))
+			
+		elif self.type.currentText()=='isovalue':
+			self.plotter.add_mesh_isovalue(pv.wrap(data))		
+			
+		elif self.type.currentText()=='slice':
+			self.plotter.add_mesh_slice(pv.wrap(data))						
 			
 		else:
 			raise Exception("internal error")
