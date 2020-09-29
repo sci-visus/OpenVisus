@@ -153,6 +153,7 @@ jobs:
     - name: Distrib OpenVisus
       shell: bash -l {0}   
       run: |
+           set -x
            cd build/Release/OpenVisus
            conda install anaconda-client conda-build 1>/dev/null || true #conda-build is needed for 'bdist_conda'
            rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
