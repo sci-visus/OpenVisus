@@ -286,6 +286,9 @@ public:
   //getDefaults
   static std::vector<String> getDefaults();
 
+  //setDefault
+  void setDefault(String name,bool bFullCopy);
+
   //drawValues
   void drawValues(int function, int x1, int x2, std::vector<double> values);
 
@@ -335,6 +338,11 @@ private:
 
   //how to map the range [0,1] to some user range
   Range output_range = Range(0, 255, 1);
+
+  //setDefaultName
+  void setDefaultName(String value) {
+    setProperty("SetDefaultName", this->default_name, value);
+  }
 
 };
 

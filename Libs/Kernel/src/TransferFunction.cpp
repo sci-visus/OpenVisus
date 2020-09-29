@@ -84,10 +84,61 @@ StringTree DrawValues(int function, int x1, int x2, std::vector<double> values) 
   return StringTree("DrawValues").write("function", function).write("x1", x1).write("x2", x2).write("values", values);
 }
 
+
+
+////////////////////////////////////////////////////////////////////////////
+void TransferFunction::setDefault(String new_name, bool bFullCopy)
+{
+  if (bFullCopy)
+  {
+    TransferFunction::copy(*this, *getDefault(new_name));
+  }
+  else
+  {
+    auto new_functions = getDefault(new_name)->functions;
+
+    StringTree redo("SetDefault", "name", new_name, "full", bFullCopy);
+
+    //describe actions for undo
+    StringTree undo = Transaction();
+    {
+      undo.addChild("ClearFunctions");
+      undo.addChild("SetDefaultName")->write("value", this->default_name);
+      for (auto fn : this->functions)
+        undo.addChild("AddFunction")->addChild(fn->encode("Function"));
+    }
+
+    beginUpdate(redo, undo);
+    {
+      this->default_name = new_name;
+      this->functions = new_functions;
+      this->texture.reset();
+    }
+    endUpdate();
+  }
+}
  
   ////////////////////////////////////////////////////////////////////
 void TransferFunction::execute(Archive& ar)
 {
+  if (ar.name == "SetDefault")
+  {
+    String name;
+    bool bFullCopy = false;
+    ar.read("name", name);
+    ar.read("full", bFullCopy);
+    setDefault(name, bFullCopy);
+    return;
+  }
+
+  if (ar.name == "SetDefaultName")
+  {
+    String value;
+    ar.read("value", value);
+    setDefaultName(value);
+    return;
+  }
+
   if (ar.name == "SetNumberOfSamples")
   {
     int value;
@@ -257,10 +308,13 @@ void TransferFunction::setNumberOfSamples(int new_value)
   if (new_value == old_value || functions.empty())
     return;
 
+  //describe actions for undo
   auto undo = Transaction();
-  undo.addChild(StringTree("SetNumberOfSamples").write("value", cstring(old_value)));
-  for (int F = 0; F < getNumberOfFunctions(); F++)
-    undo.addChild(DrawValues(F, 0, getNumberOfSamples() - 1, functions[F]->values));
+  {
+    undo.addChild(StringTree("SetNumberOfSamples").write("value", cstring(old_value)));
+    for (int F = 0; F < getNumberOfFunctions(); F++)
+      undo.addChild(DrawValues(F, 0, getNumberOfSamples() - 1, functions[F]->values));
+  }
 
   beginUpdate(
     StringTree("SetNumberOfSamples").write("value", cstring(new_value)),

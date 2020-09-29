@@ -57,23 +57,25 @@ static NetResponse CreateNetResponseError(int status, String errormsg, String fi
 #define NetResponseError(status,errormsg) CreateNetResponseError(status,errormsg,__FILE__,__LINE__)
 
 ////////////////////////////////////////////////////////////////////////////////
-class ModVisus::Datasets
+class ModVisus::PublicDatasets
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(Datasets)
+  VISUS_NON_COPYABLE_CLASS(PublicDatasets)
+
+  ModVisus* owner;
 
   //constructor
-  Datasets() : datasets("datasets"){
+  PublicDatasets(ModVisus* owner_) : owner(owner_),datasets("datasets"){
   }
 
   //constructor
-  Datasets(const StringTree& config) : Datasets() {
+  PublicDatasets(ModVisus* owner, const StringTree& config) : PublicDatasets(owner) {
     addPublicDatasets(config);
   }
 
   //destructor
-  ~Datasets() {
+  ~PublicDatasets() {
   }
 
   //addPublicDatasets
@@ -173,7 +175,7 @@ private:
     if (!Url(url).valid())
       return 0;
 
-    bool is_public = StringUtils::contains(cursor.readString("permissions"), "public");
+    bool is_public = owner->default_public || StringUtils::contains(cursor.readString("permissions"), "public");
     if (!is_public)
       return 0;
 
@@ -184,15 +186,17 @@ private:
     SharedPtr<Dataset> dataset;
     try
     {
+      PrintInfo("Loading dataset",concatenate("url(",url,")"),concatenate("name(",name,")"),"...");
       dataset = LoadDatasetEx(cursor);
+      PrintInfo("...","ok");
     }
     catch (...) {
-      PrintWarning("dataset name", name, "load failed, skipping it");
+      PrintWarning("... failed, skipping it");
       return 0;
     }
 
     if (dataset_map.count(name)) {
-      PrintWarning("dataset name", name, "already exists, skipping it");
+      PrintWarning("...", name, "already exists, skipping it");
       return 0;
     }
 
@@ -219,7 +223,7 @@ ModVisus::~ModVisus()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-SharedPtr<ModVisus::Datasets> ModVisus::getDatasets()
+SharedPtr<ModVisus::PublicDatasets> ModVisus::getDatasets()
 {
   if (dynamic) rw_lock.enterRead();
   auto ret = m_datasets;
@@ -240,7 +244,7 @@ bool ModVisus::configureDatasets(const ConfigFile& config)
     this->dynamic = false;
   }
 
-  SharedPtr<Datasets> datasets = std::make_shared<Datasets>(config);
+  auto datasets = std::make_shared<PublicDatasets>(this, config);
   this->m_datasets = datasets;
   
   if (dynamic)
@@ -267,6 +271,8 @@ bool ModVisus::configureDatasets(const ConfigFile& config)
   }
 
   PrintInfo("ModVisus::configure dynamic",dynamic,"config_filename",config_filename,"...");
+  
+  //too long!
   PrintInfo("/mod_visus?action=list\n",datasets->getDatasetsBody());
 
   return true;
@@ -285,7 +291,7 @@ bool ModVisus::reload()
     return false;
   }
 
-  auto datasets = std::make_shared<Datasets>(config);
+  auto datasets = std::make_shared<PublicDatasets>(this, config);
   {
     ScopedWriteLock lock(this->rw_lock);
     this->m_datasets = datasets;

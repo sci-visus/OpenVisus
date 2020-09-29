@@ -207,8 +207,24 @@ void Viewer::glCanvasMousePressEvent(QMouseEvent* evt)
   //the center of rotation is fixed
   if (auto lookat = dynamic_cast<GLLookAtCamera*>(glcamera.get()))
   {
-    auto bounds = getBounds(getSelection());
-    lookat->setCenterOfRotation(bounds.getCentroid().toPoint3());
+    Position bounds;
+    if (dynamic_cast<QueryNode*>(getSelection()) || dynamic_cast<DatasetNode*>(getSelection()))
+      bounds = computeNodeBounds(getSelection());
+    else
+      bounds = computeNodeBounds(getRoot());
+
+    auto center_of_rot = bounds.getCentroid().toPoint3();
+
+#if 0
+    static int npress = 0;
+    PrintInfo("Press event",npress++);
+    PrintInfo("\t", "viewport", viewport);
+    PrintInfo("\t", "bounds.T", bounds.getTransformation());
+    PrintInfo("\t", "bounds.box", bounds.getBoxNd());
+    PrintInfo("\t", "center_of_rot", center_of_rot);
+#endif
+
+    lookat->setCenterOfRotation(center_of_rot);
   }
 
   glcamera->glMousePressEvent(evt, viewport);
@@ -398,11 +414,18 @@ void Viewer::glRenderNodes(GLCanvas& gl)
       if (auto globject = dynamic_cast<GLObject*>(node))
       {
         auto node_to_screen= computeNodeToScreen(getGLCamera()->getCurrentFrustum(viewport),node);
-        Position bounds= getBounds(node);
-        bool bUseFarPoint=(nqueue==2);
-        double distance= node_to_screen.computeZDistance(bounds,bUseFarPoint);
-        if (bOrthoCamera || distance>=0)
-          sorted_nodes.push_back(GLSortNode(nqueue,distance, node_to_screen,globject));
+        Position bounds= node->getBounds();
+        if (bounds.valid())
+        {
+          bool bUseFarPoint = (nqueue == 2);
+          double distance = node_to_screen.computeZDistance(bounds, bUseFarPoint);
+          if (bOrthoCamera || distance >= 0)
+            sorted_nodes.push_back(GLSortNode(nqueue, distance, node_to_screen, globject));
+        }
+        else
+        {
+          //scrgiorgio: why a GLObject doesn not return it's bounds? weird...
+        }
       }
     }
 
@@ -410,7 +433,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
     {
       if (dataset_node->showBounds())
       {
-        auto bounds= getBounds(dataset_node);
+        auto bounds= dataset_node->getBounds();
         GLBox(bounds,Colors::Transparent,Colors::Black.withAlpha(0.5)).glRender(gl);
         GLAxis(bounds, 3).glRender(gl);
       }
@@ -483,18 +506,19 @@ void Viewer::glRenderNodes(GLCanvas& gl)
 /////////////////////////////////////////////////////////////////////////////////////
 void Viewer::glRenderSelection(GLCanvas& gl)
 {
+  auto selection = getSelection();
+  if (!selection)
+    return;
+
+  auto bounds = selection->getBounds();
+  if (!bounds.valid())
+    return;
+
   auto viewport = gl.getViewport();
-  if (Node* selection=getSelection())
-  {
-    auto bounds= getBounds(selection);
-    if (bounds.valid())
-    {
-      gl.pushFrustum();
-      gl.setFrustum(computeNodeToScreen(getGLCamera()->getCurrentFrustum(viewport),selection));
-      GLBox(bounds,Colors::Transparent,Colors::Black.withAlpha(0.5)).glRender(gl);
-      gl.popFrustum();
-    }
-  }
+  gl.pushFrustum();
+  gl.setFrustum(computeNodeToScreen(getGLCamera()->getCurrentFrustum(viewport),selection));
+  GLBox(bounds,Colors::Transparent,Colors::Black.withAlpha(0.5)).glRender(gl);
+  gl.popFrustum();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////

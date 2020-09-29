@@ -48,11 +48,17 @@ For support : support@visus.net
 int main(int argn,const char* argv[])
 {
   using namespace Visus;
+
   SetCommandLine(argn, argv);
-  GuiModule::attach();
 
 #if VISUS_PYTHON
-  EmbeddedPythonInit(argn, argv, KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *", "from OpenVisus.gui import *" });
+  EmbeddedPythonInit();
+  auto acquire_gil = PyGILState_Ensure();
+  PyRun_SimpleString("from OpenVisus     import *");
+  PyRun_SimpleString("from OpenVisus.gui import *");
+  PyGILState_Release(acquire_gil);
+#else
+  GuiModule::attach();
 #endif
 
   {
@@ -64,7 +70,8 @@ int main(int argn,const char* argv[])
 
   GuiModule::detach();
   	
-#if VISUS_PYTHON  	
+#if VISUS_PYTHON  
+  PrintInfo("EmbeddedPythonShutdown...");
   EmbeddedPythonShutdown();
 #endif
   

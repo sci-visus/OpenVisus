@@ -147,22 +147,60 @@ class MyView(QMainWindow):
 		self.presets.clear()
 		self.addPreset("identity","output=input")
 		self.addPreset("cast to float32","output=input.astype(numpy.float32)")
-		self.addPreset("cast to float64","output=input.astype(numpy.float32)")
+		self.addPreset("cast to float64","output=input.astype(numpy.float64)")
 		
+		# if dtype is specified
 		if dtype is not None:
 			N = dtype.ncomponents()
 			for I in range(N):
 				self.addPreset("output=input[%d]" % (I,))		
-				
-		self.addPreset("Laplacian",[
-			"import cv2",
-			"output=cv2.Laplacian(input,cv2.CV_64F)"
-		])	
 
-		self.addPreset("Canny",[
-			"import cv2",
-			"output=cv2.Canny(input,100,200)"
-		])	
+		self.addPreset("Normalize","""
+import cv2
+output=cv2.normalize(input.astype(numpy.float32), None, alpha=0.0, beta=1.0, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+""")
+
+		self.addPreset("Gaussian Blur","""
+import cv2
+kernel_size=5
+output= cv2.GaussianBlur(output,(kernel_size,kernel_size),0)
+""")
+
+		self.addPreset("Median Blur","""
+import cv2
+kernel_size=5
+output=input.astype(numpy.float32)
+output= cv2.medianBlur(output,kernel_size)
+""")
+
+		self.addPreset("X Sobel","""
+import cv2
+kernel_size=5
+output=input.astype(numpy.float32)
+x_sobel = cv2.Sobel(output,cv2.CV_32F,1,0,ksize=kernel_size)
+""")
+
+		self.addPreset("Y Sobel","""
+import cv2
+kernel_size=5
+output=input.astype(numpy.float32)
+output = cv2.Sobel(output,cv2.CV_32F,0,1,ksize=kernel_size)
+""")
+
+		self.addPreset("Laplacian",""" 
+import cv2
+kernel_size=5
+output=input.astype(numpy.float32)
+output=cv2.Laplacian(output,cv2.CV_32F, ksize=kernel_size)
+""")
+
+		self.addPreset("Laplacian of Gaussian","""
+import cv2
+kernel_size=5
+output=input.astype(numpy.float32)
+output = cv2.GaussianBlur(output,(kernel_size,kernel_size),0)
+output = cv2.Laplacian(output ,cv2.CV_32F, ksize=kernel_size)
+""")
 
 	# appendOutput
 	def appendOutput(self,msg):

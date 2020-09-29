@@ -26,7 +26,7 @@ class MyDataflow(Dataflow):
 		
 		super().__init__()
 
-		dataset = LoadDataset("http://atlantis.sci.utah.edu/mod_visus?dataset=david")
+		dataset = LoadDataset("datasets/cat/gray.idx")
 		(X1,Y1),(X2,Y2)=dataset.getLogicBox()
 		
 		# 1% of the overall dataset

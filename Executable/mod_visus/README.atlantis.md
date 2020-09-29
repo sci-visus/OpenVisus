@@ -3,14 +3,16 @@
 Compiled and install OpenVisus: 
 
 ```
-
 mkdir build_atlantis
 cd build_atlantis
-cmake  -DVISUS_GUI=0  -DVISUS_HOME=/scratch/home/OpenVisus ../
-make -j
+cmake  -DVISUS_GUI=0 -DVISUS_HOME=/scratch/home/OpenVisus ../
+make -j 
 make install
-# NOTE: no need to configure since I disabled the GUI
-rsync -r -v $(pwd)/Release/OpenVisus/ /usr/lib/python3.6/site-packages/OpenVisus
+rsync -r -v --exclude visus.config $(pwd)/Release/OpenVisus/ /usr/lib/python3.6/site-packages/OpenVisus
+python3 -m OpenVisus configure
+python3 -m OpenVisus configure
+ldd /usr/lib/python3.6/site-packages/OpenVisus/bin/libVisusDb.so # check no absolute path
+python3 -c "from OpenVisus import *;ModVisus().configureDatasets()"
 ```
 
 (OPTIONAL) Edit file '/etc/profile' and set where VISUS_HOME is:
@@ -42,15 +44,21 @@ visus:visus:$apr1$IoPUtcML$NEKQOuHDDZAHLsPipsl3O.
 EOF
 ```
 
-Create `/scratch/home/OpenVisus/visus.config` with the following content (change as needed):
+Create `/scratch/home/OpenVisus/visus.config` with the following content (change as needed, you can use this site `https://www.web2generators.com/apache-tools/htpasswd-generator`):
 
 ```
 cat <<EOF >/scratch/home/OpenVisus/visus.config
-<include url="/scratch/home/OpenVisus/visus.atlantis.config" />
+<?xml version="1.0" ?>
+<visus>
+	<include url="/scratch/home/OpenVisus/datasets.config" />
+</visus>
 EOF
 
 # customize as needed
-cp ~/backup/atlantis/visus.atlantis.config /scratch/home/OpenVisus/visus.atlantis.config
+cat <<EOF >/scratch/home/OpenVisus/datasets.config
+<alias key='visus_datasets'        value='file:///usr/sci/cedmav' />
+<dataset name="2kbit1" url="$(visus_datasets)/visus1/3d/2kbit1/visus.idx" />
+EOF
 ```
 
 Enable the modules you need:
@@ -61,10 +69,13 @@ sudo /usr/sbin/a2dismod visus
 sudo /usr/sbin/a2enmod  headers 
 sudo /usr/sbin/a2enmod  visus
 
-# CHECK THIS OUTPUT (!) just to be sure APACHE_MODULES has been changed
+# IMPORTANT: I had to disable this since it was loading libpython2.7 and got conflicts with python3
+sudo /usr/sbin/a2dismod wsgi
+
+
+# CHECK THIS OUTPUT (!) just to be sure APACHE_MODULES has been changed and contains headers and visus
 grep visus /etc/sysconfig/apache2
 ```
-
 
 Replace `/etc/apache2/default-server.conf` file:
 (NOTE: I'm having problems with IncludeOptional virtual hosts, so I'm replacing the main default-server file)
@@ -210,14 +221,21 @@ Run it:
 sudo /usr/sbin/apache2ctl stop
 rm -Rf /var/log/apache2/*
 
-
-# run in foreground for debugging purpouses
-sudo /usr/sbin/apache2ctl -e debug -X
-
 # run in background
 sudo /usr/sbin/apache2ctl restart
+more /var/log/apache2/error_log # here all OpenVisus logs...
 sudo /usr/sbin/apache2ctl -M  # Dump a list of loaded Static and Shared Modules.
 sudo /usr/sbin/apache2ctl -S  # Show the settings as parsed from the config file 
+
+
+# run in foreground for debugging purpouses
+sudo /usr/sbin/apache2ctl status
+sudo /usr/sbin/apache2ctl -h
+sudo /usr/sbin/apache2ctl -t -D DUMP_INCLUDES
+sudo rm  /var/run/httpd.pid
+sudo /usr/sbin/apache2ctl -e debug -X
+
+
 
 ``` 
 

@@ -140,7 +140,7 @@ file(GLOB OtherSources
 	${CMAKE_SOURCE_DIR}/README.md
 	${CMAKE_SOURCE_DIR}/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/OpenVisusConfig.cmake
-	${CMAKE_SOURCE_DIR}/.github/workflows/BuildOpenVisus.yml
+	${CMAKE_SOURCE_DIR}/.github/workflows/*
 	${CMAKE_SOURCE_DIR}/ExternalLibs/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/ExternalLibs/curl/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/ExternalLibs/curl/lib/CMakeLists.txt
@@ -158,6 +158,8 @@ file(GLOB OtherSources
 	${CMAKE_SOURCE_DIR}/Samples/jupyter/*.ipynb 
 	${CMAKE_SOURCE_DIR}/Samples/python/*.py 
 	${CMAKE_SOURCE_DIR}/Samples/python/cloud_storage/*.py
+	${CMAKE_SOURCE_DIR}/Samples/python/dataflow/*.py
+	${CMAKE_SOURCE_DIR}/Samples/python/idx/*.py
 	${CMAKE_SOURCE_DIR}/Samples/python/viewer/*.py
 	${CMAKE_SOURCE_DIR}/Samples/python/wavelets/*.py) 
 

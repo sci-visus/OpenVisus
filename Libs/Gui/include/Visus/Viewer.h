@@ -437,8 +437,8 @@ public:
   //findPick
   Node* findPick(Node* node, Point2d screen_point, bool bRecursive, double* distance = nullptr) const;
 
-  //getBounds
-  Position getBounds(Node* node, bool bRecursive = false) const;
+  //computeNodeBounds
+  Position computeNodeBounds(Node* node) const;
 
   //getWorldDimension
   int getWorldDimension() const;
@@ -446,15 +446,11 @@ public:
   //getWorldBox
   BoxNd getWorldBox() const;
 
-  //computeNodeToNode
-  Position computeNodeToNode(Node* dst, Node* src) const;
-
-  //computeQueryBounds
-  Position computeQueryBounds(QueryNode* query_node) const;
+  //computeQueryBoundsInDatasetCoordinates
+  Position computeQueryBoundsInDatasetCoordinates(QueryNode* query_node) const;
 
   //computeNodeToScreen
   Frustum computeNodeToScreen(Frustum frustum, Node* node) const;
-
 
 public:
 

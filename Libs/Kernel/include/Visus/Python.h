@@ -59,6 +59,9 @@ For support : support@visus.net
 #include <iostream>
 
 #include <Visus/Kernel.h>
+#include <Visus/StringUtils.h>
+#include <Visus/Utils.h>
+#include <Visus/Path.h>
 
 ////////////////////////////////////////////////////////////////////////////
 inline PyThreadState*& EmbeddedPythonThreadState() {
@@ -67,15 +70,24 @@ inline PyThreadState*& EmbeddedPythonThreadState() {
 }
 
 ////////////////////////////////////////////////////////////////////////////
-inline void EmbeddedPythonInit(int argn, const char* argv[], std::string sys_path, std::vector<std::string> commands)
+inline void EmbeddedPythonInit()
 {
+  using namespace Visus;
+  static String program_name = Path(Utils::getCurrentApplicationFile()).toString();
+
+  PrintInfo("Embedding python...");
+
 #if PY_VERSION_HEX >= 0x03050000
-  Py_SetProgramName(Py_DecodeLocale((char*)argv[0], NULL));
+  static const wchar_t* wprogram_name=Py_DecodeLocale((char*)program_name.c_str(), NULL);
 #else
-  Py_SetProgramName(_Py_char2wchar((char*)argv[0], NULL));
+  static const wchar_t* wprogram_name=_Py_char2wchar((char*)program_name.c_str(), NULL);
 #endif
 
+  Py_SetProgramName((wchar_t*)wprogram_name);
   Py_InitializeEx(0);
+
+  //static wchar_t* wargv[]={(wchar_t*)wprogram_name};
+  PySys_SetArgv(0, nullptr);
 
   //Initialize and acquire the global interpreter lock
   PyEval_InitThreads();
@@ -90,17 +102,30 @@ inline void EmbeddedPythonInit(int argn, const char* argv[], std::string sys_pat
   //evaluate some python commands
   {
     auto acquire_gil = PyGILState_Ensure();
-
     std::ostringstream out;
-    out << "import os, sys;\n";
-
-    if (!sys_path.empty())
-      out << "sys.path.append(os.path.realpath('" + sys_path + "'))\n";
-
-    for (auto cmd : commands)
-      out << cmd << "\n";
-
+    out << "import os, sys\n";
+    out << "sys.path.append(os.path.realpath('" + Path(program_name).getParent().toString() + "/../.." + "'))\n";
     PyRun_SimpleString(out.str().c_str());
+
+    PyObject* py_main = PyImport_AddModule("__main__"); // Borrowed reference.
+    PyObject* py_dict = PyModule_GetDict(py_main); //Borrowed reference.
+
+    PyObject* obj = PyRun_String("'{}.{}'.format(sys.version_info.major, sys.version_info.minor)", Py_eval_input, py_dict, NULL); // Owned reference
+    VisusReleaseAssert(obj != nullptr);
+
+    PyObject* temp_bytes = PyUnicode_AsEncodedString(obj, "UTF-8", "strict"); // Owned reference
+    VisusReleaseAssert(temp_bytes != NULL);
+    String s = PyBytes_AS_STRING(temp_bytes); 
+
+    //this can happen if you mix python 2.7 with 3.x (as it can happen with apache mod_visus with wsgi enabled)
+    if (s != concatenate(cstring(PY_MAJOR_VERSION), ".", cstring(PY_MINOR_VERSION)))
+      ThrowException("internal error, python returned a wrong version",s);
+
+    Py_DECREF(obj);
+    Py_DECREF(temp_bytes);
+
+    PyRun_SimpleString("import sys; print(sys.executable,sys.argv)");
+
     PyGILState_Release(acquire_gil);
   }
 }

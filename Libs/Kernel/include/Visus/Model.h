@@ -258,8 +258,8 @@ private:
   int                      cursor_undo_redo = 0;
   StringTree               diff_begin;
 
-  //simplify
-  StringTree simplify(StringTree action);
+  //simplifyAction
+  StringTree simplifyAction(StringTree action);
 
 };
 

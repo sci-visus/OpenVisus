@@ -1,7 +1,7 @@
 import os,sys,shutil,setuptools
 
 PROJECT_NAME="OpenVisus"
-PROJECT_VERSION="2.1.88"
+PROJECT_VERSION="2.1.95"
 
 this_dir=os.path.dirname(os.path.abspath(__file__))
 
@@ -49,12 +49,16 @@ def DoSetup():
 	
 # ///////////////////////////////////////////////////////////////
 if __name__ == "__main__":
-	
-	if len(sys.argv)>=2 and sys.argv[1]=="new-tag":
-		NewTag()
-		sys.exit(0)	
 
-	DoSetup()
-	sys.exit(0)	
+  if len(sys.argv)>=2 and sys.argv[1]=="print-tag":
+    print(PROJECT_VERSION)
+    sys.exit(0)
+	
+  if len(sys.argv)>=2 and sys.argv[1]=="new-tag":
+    NewTag()
+    sys.exit(0)	
+
+  DoSetup()
+  sys.exit(0)	
 
 

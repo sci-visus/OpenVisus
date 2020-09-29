@@ -52,12 +52,16 @@ def LoadDataset(url):
 	google=GoogleMapsDataset.castFrom(db)
 	if google: return PyDataset(google)
 	return PyDataset(db)
+
+def LoadIdxDataset(url):
+	return LoadDataset(url)
 %}
 
 %extend Visus::DbModule {
 	static void attach() {
 		//user defined attach
 		DbModule::attach();
+    PrintInfo("Registering PyMultipleDataset");
 		DatasetFactory::getSingleton()->registerDatasetType("IdxMultipleDataset", []() {return std::make_shared<PyMultipleDataset>(); });
 	}
 }

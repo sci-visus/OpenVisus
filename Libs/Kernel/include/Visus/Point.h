@@ -831,6 +831,7 @@ public:
   };
 #endif
 
+
   typedef typename std::array<T, 5>::iterator       iterator;
   typedef typename std::array<T, 5>::const_iterator const_iterator;
 

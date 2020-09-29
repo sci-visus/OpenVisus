@@ -49,11 +49,16 @@ using namespace Visus;
 int main(int argn, const char* argv[])
 {
   auto T1 = Time::now();
+
   SetCommandLine(argn, argv);
-  DbModule::attach();
 
 #if VISUS_PYTHON
-  EmbeddedPythonInit(argn, argv, KnownPaths::BinaryDirectory + "/../..", { "from OpenVisus import *" });
+  EmbeddedPythonInit();
+  auto acquire_gil = PyGILState_Ensure();
+  PyRun_SimpleString("from OpenVisus import *");
+  PyGILState_Release(acquire_gil);
+#else
+  DbModule::attach();
 #endif
 
   auto args = std::vector<String>(CommandLine::args.begin() + 1, CommandLine::args.end());

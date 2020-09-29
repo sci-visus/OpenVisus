@@ -133,8 +133,20 @@ public:
   //setUUID
   void setUUID(String value) {
     VisusReleaseAssert(!value.empty());
+    VisusReleaseAssert(value.find('/') == String::npos); // special character not allowed
+    VisusReleaseAssert(value.find('.') == String::npos); // special character not allowed
     VisusReleaseAssert(!dataflow); //cannot change the uuid while inside the dataflow
     setProperty("SetUUID", this->uuid, value);
+  }
+
+  //setUUID
+  void setUUID(String a, String b) {
+    setUUID(concatenate(a, "_", b));
+  }
+
+  //setUUID
+  void setUUID(String a, String b, String c) {
+    setUUID(concatenate(a, "_", b, "_", c));
   }
 
   //getParent

@@ -12,6 +12,8 @@ Table of content:
 
 - [Binary Distribution](#binary-distribution)
 
+- [mod_visus Docker Image](#mod_visus-docker-image)
+
 - [Windows compilation Visual Studio](#windows-compilation-visual-studio)
 
 - [Windows compilation mingw](#windows-compilation-mingw)
@@ -98,6 +100,39 @@ Give a look to directory `Samples/python` and Jupyter examples:
 
 [Samples/jupyter/ReadAndView.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/ReadAndView.ipynb)
 
+
+<!--//////////////////////////////////////////////////////////////////////// -->
+# mod_visus Docker Image
+
+```
+
+# your dataset directory, it must contain a `datasets.conf` file (and maybe contains an `.htpasswd` file)
+sudo docker pull visus/mod_visus
+sudo docker run  -v /mnt/c/projects/OpenVisus/datasets:/datasets --publish 8080:80 visus/mod_visus:latest 
+
+# test it
+wget -q -O -  "http://localhost:8080/index.html"
+wget -q -O -  "http://localhost:8080/server-status"
+wget -q -O -  "http://localhost:8080/viewer/index.html"
+wget -q -O -  "http://localhost:8080/mod_visus?action=list"
+```
+
+Eventually inspect logs:
+
+```
+sudo docker ps  | grep mod_visus
+sudo docker logs <insert_container_id>
+```
+
+If you want to run multiple mod_visus with a ngix load balancer:
+
+```
+cd Docker/mod_visus/load_balancing
+
+# ... do all your customization....
+
+sudo docker-compose up 
+```
 
 
 <!--//////////////////////////////////////////////////////////////////////// -->
@@ -447,7 +482,7 @@ which use a `Visus/Minimal.h` header.
 For OpenVisus developers only:
 
 ```
-TAG=$(python Libs/swig/setup.py new-tag) && echo ${TAG}
+TAG=$(python3 Libs/swig/setup.py new-tag) && echo ${TAG}
 git commit -a -m "New tag" && git tag -a $TAG -m "$TAG" && git push origin $TAG && git push origin
 ```
 

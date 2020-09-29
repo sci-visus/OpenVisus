@@ -121,9 +121,11 @@ public:
   //setLookAt
   void setLookAt(Point3d pos, Point3d center, Point3d vup) {
     beginTransaction();
-    setPos(pos);
-    setCenter(center);
-    setVup(vup);
+    {
+      setPos(pos);
+      setCenter(center);
+      setVup(vup);
+    }
     endTransaction();
   }
 
