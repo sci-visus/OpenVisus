@@ -108,7 +108,30 @@ Give a look to directory `Samples/python` and Jupyter examples:
 
 # your dataset directory, it must contain a `datasets.conf` file (and maybe contains an `.htpasswd` file)
 sudo docker pull visus/mod_visus
-sudo docker run  -v /mnt/c/projects/OpenVisus/datasets:/datasets --publish 8080:80 visus/mod_visus:latest 
+
+# restart policy
+#   IMPPORTANT: you must enable docker service on boot: `sudo systemctl enable docker`
+#   no              Do not automatically restart the container. (the default)
+#   on-failure      Restart the container if it exits due to an error, which manifests as a non-zero exit code.
+#   always          Always restart the container if it stops. If it is manually stopped, it is restarted only when Docker daemon restarts or the container itself is manually restarted. (See the second bullet listed in restart policy details)
+#   unless-stopped  Similar to always, except that when the container is stopped (manually or otherwise), it is not restarted even after Docker daemon restarts.
+
+
+NAME=your_name_here
+
+# for short living containers
+# OPTS=--rm --restart=no
+
+# for long living auto-restarting containers (even after a reboot):
+#   By design, containers started in detached mode (-d) exit when the root process used to run the container exits
+#   unless you also specify the --rm option
+
+OPTS=-d --restart=always
+
+# the directory containning a datasets.conf file
+DATASETS=/mnt/c/projects/OpenVisus/datasets
+
+sudo docker run  --name $NAME  $OPTS -v $DATASETS:/datasets --publish 8080:80 \visus/mod_visus:latest 
 
 # test it
 wget -q -O -  "http://localhost:8080/index.html"
@@ -121,7 +144,7 @@ Eventually inspect logs:
 
 ```
 sudo docker ps  | grep mod_visus
-sudo docker logs <insert_container_id>
+sudo docker logs $NAME
 ```
 
 If you want to run multiple mod_visus with a ngix load balancer:
@@ -129,9 +152,8 @@ If you want to run multiple mod_visus with a ngix load balancer:
 ```
 cd Docker/mod_visus/load_balancing
 
-# ... do all your customization....
-
-sudo docker-compose up 
+# ... do all your customization (-d if you want to detach)....
+sudo docker-compose up -d
 ```
 
 

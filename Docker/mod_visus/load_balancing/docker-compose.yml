@@ -1,6 +1,7 @@
 
 worker1:
   image: visus/mod_visus:latest 
+  restart: always
   volumes:
   - /mnt/c/projects/OpenVisus/datasets:/datasets
   ports:
@@ -8,6 +9,7 @@ worker1:
 
 worker2:
   image: visus/mod_visus:latest
+  restart: always
   volumes:
   - /mnt/c/projects/OpenVisus/datasets:/datasets
   ports:
@@ -15,6 +17,7 @@ worker2:
 
 worker3:
   image: visus/mod_visus:latest
+  restart: always
   volumes:
   - /mnt/c/projects/OpenVisus/datasets:/datasets
   ports:
@@ -22,6 +25,7 @@ worker3:
       
 nginx:
   image: nginx
+  restart: always
   volumes:
   - ./nginx.conf:/etc/nginx/nginx.conf
   links:
