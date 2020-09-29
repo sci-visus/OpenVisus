@@ -7,9 +7,6 @@
 using namespace Visus;
 %}
 
-%include <std_shared_ptr.i>
-%include <std_vector.i>
-%include <std_string.i>
 %include <typemaps.i>
 
 %include <VisusPy.common>

@@ -17,6 +17,16 @@ using namespace Visus;
 
 %include <VisusPy.common>
 
+
+%template(StdVectorInt)                       std::vector<int>;
+%template(StdVectorDouble)                    std::vector<double>;
+%template(StdVectorFloat)                     std::vector<float>;
+%template(StdVectorStdString)                 std::vector< std::string >;
+%template(StdPairDoubleDouble)                std::pair<double,double>;
+%template(StdPairIntDouble)                   std::pair<int,double>;
+%template(StdMapStdStringStdString)           std::map< std::string , std::string >;
+%template(StdVectorLongLong)                  std::vector<long long>;
+
 //%feature("director") Visus::PLESE_README_ME_CAREFULLY
 /*
 see https://github.com/swig/swig/issues/306)
@@ -45,17 +55,10 @@ However, this is not the case for any C/C++ class that has been converted into a
 
 %apply SWIGTYPE *DISOWN                { Visus::NetServerModule* disown};
 
-%template(VectorInt)                       std::vector<int>;
-%template(VectorDouble)                    std::vector<double>;
-%template(VectorFloat)                     std::vector<float>;
-%template(VectorString)                    std::vector< std::string >;
-%template(PairDoubleDouble)                std::pair<double,double>;
-%template(PairIntDouble)                   std::pair<int,double>;
-%template(MapStringString)                 std::map< std::string , std::string >;
+
 
 %include <Visus/Kernel.h>
-	%template(VectorInt64)                 std::vector<Visus::Int64>;
-
+	
 %include <Visus/StringMap.h>
 %include <Visus/HeapMemory.h>
 %include <Visus/Aborted.h>

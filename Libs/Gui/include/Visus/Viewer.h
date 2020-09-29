@@ -455,34 +455,40 @@ public:
 public:
 
   //attachGLCamera
-  void attachGLCamera(SharedPtr<GLCamera> value);
+  virtual void attachGLCamera(SharedPtr<GLCamera> value);
 
   //detachGLCamera
-  void detachGLCamera();
+  virtual void detachGLCamera();
 
   //glGetRenderQueue
-  int glGetRenderQueue(Node* node);
+  virtual int glGetRenderQueue(Node* node);
 
   //glCameraChangeEvent
-  void glCameraChangeEvent();
+  virtual void glCameraChangeEvent();
+
+public:
 
   //glCanvasResizeEvent
-  void glCanvasResizeEvent(QResizeEvent* evt);
+  virtual void glCanvasResizeEvent(QResizeEvent* evt);
 
   //glCanvasMousePressEvent
-  void glCanvasMousePressEvent(QMouseEvent* evt);
+  virtual void glCanvasMousePressEvent(QMouseEvent* evt);
 
   //glCanvasMouseMoveEvent
-  void glCanvasMouseMoveEvent(QMouseEvent* evt);
+  virtual void glCanvasMouseMoveEvent(QMouseEvent* evt);
 
   //glCanvasMouseReleaseEvent
-  void glCanvasMouseReleaseEvent(QMouseEvent* evt);
+  virtual void glCanvasMouseReleaseEvent(QMouseEvent* evt);
 
   //glCanvasWheelEvent
-  void glCanvasWheelEvent(QWheelEvent* evt);
+  virtual void glCanvasWheelEvent(QWheelEvent* evt);
+  
+public:
 
   //keyPressEvent
   virtual void keyPressEvent(QKeyEvent* evt) override;
+
+public:
 
   //glRender
   void glRender(GLCanvas& gl);

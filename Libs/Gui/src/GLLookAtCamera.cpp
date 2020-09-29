@@ -48,6 +48,23 @@ GLLookAtCamera::GLLookAtCamera() {
 GLLookAtCamera::~GLLookAtCamera() {
 }
 
+
+//////////////////////////////////////////////////
+void GLLookAtCamera::setLookAt(Point3d pos, Point3d center, Point3d vup) {
+
+  //useless call
+  if (this->pos == pos && this->center == center && this->vup == vup)
+    return;
+
+  beginTransaction();
+  {
+    setPos(pos);
+    setCenter(center);
+    setVup(vup);
+  }
+  endTransaction();
+}
+
 //////////////////////////////////////////////////////////////////////
 Matrix GLLookAtCamera::getProjection(const Viewport& viewport) const
 {

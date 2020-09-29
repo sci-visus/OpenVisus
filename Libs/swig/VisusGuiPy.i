@@ -121,11 +121,25 @@ if QT5_DIR is None:
 %shared_ptr(Visus::GLOrthoCamera)
 %shared_ptr(Visus::GLLookAtCamera)
 
+%typemap(out) std::shared_ptr<Visus::GLCamera> 
+{
+  //GLCamera typemape GLTMP01
+  if(auto lookat=std::dynamic_pointer_cast<GLLookAtCamera>($1))
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr(result ? new std::shared_ptr<  Visus::GLLookAtCamera >(lookat) : 0), SWIGTYPE_p_std__shared_ptrT_Visus__GLLookAtCamera_t, SWIG_POINTER_OWN);
+
+  else if(auto ortho=std::dynamic_pointer_cast<GLOrthoCamera>($1))
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr(result ? new std::shared_ptr<  Visus::GLOrthoCamera >(ortho) : 0), SWIGTYPE_p_std__shared_ptrT_Visus__GLOrthoCamera_t, SWIG_POINTER_OWN);
+
+  else
+	$result= SWIG_NewPointerObj(SWIG_as_voidptr(result ? new std::shared_ptr<  Visus::GLCamera >(result) : 0), SWIGTYPE_p_std__shared_ptrT_Visus__GLCamera_t, SWIG_POINTER_OWN);
+}
+
 %include <Visus/Gui.h>
 %include <Visus/GLObject.h>
 %include <Visus/GLMesh.h>
 %include <Visus/GLObjects.h>
 %include <Visus/GLCanvas.h>
+%include <Visus/GLOrthoParams.h>
 %include <Visus/GLCamera.h>
 %include <Visus/GLOrthoCamera.h>
 %include <Visus/GLLookAtCamera.h>

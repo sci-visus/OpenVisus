@@ -225,6 +225,10 @@ void GLOrthoCamera::setOrthoParams(GLOrthoParams new_value, int smooth)
     StringTree("SetOrthoParams").write("value", old_value).write("smooth", smooth));
   {
     old_value = new_value;
+
+    if (!smooth)
+      this->ortho_params.current = this->ortho_params.final;
+
   }
   endUpdate();
 
@@ -234,16 +238,15 @@ void GLOrthoCamera::setOrthoParams(GLOrthoParams new_value, int smooth)
   {
     if (!ortho_params.timer.isActive())
     {
-      ortho_params.initial = ortho_params.current;
-      ortho_params.t1 = Time::now();
-      ortho_params.msec = smooth;
-      ortho_params.timer.start();
+      this->ortho_params.initial = ortho_params.current;
+      this->ortho_params.t1 = Time::now();
+      this->ortho_params.msec = smooth;
+      this->ortho_params.timer.start();
     }
   }
   else
   {
-    this->ortho_params.current = this->ortho_params.final;
-    ortho_params.timer.stop();
+    this->ortho_params.timer.stop();
     this->redisplay_needed.emitSignal();
   }
 }
@@ -329,6 +332,10 @@ GLOrthoParams GLOrthoCamera::checkZoomRange(GLOrthoParams value, const Viewport&
 ////////////////////////////////////////////////////////////////
 void GLOrthoCamera::setLookAt(Point3d pos, Point3d center, Point3d vup, double rotation)
 {
+  //useless call
+  if (this->pos == pos && this->center == center && this->vup == vup && this->rotation == rotation)
+    return;
+
   beginUpdate(
     StringTree("SetLookAt").write("pos",       pos.toString()).write("center",       center.toString()).write("vup",       vup.toString()).write("rotation",       rotation),
     StringTree("SetLookAt").write("pos", this->pos.toString()).write("center", this->center.toString()).write("vup", this->vup.toString()).write("rotation", this->rotation));

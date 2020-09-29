@@ -65,6 +65,21 @@ public:
     return "GLOrthoCamera";
   }
 
+  //getPos
+  Point3d getPos() const {
+    return pos;
+  }
+
+  //getCenter
+  Point3d getCenter() const {
+    return center;
+  }
+
+  //getVup
+  Point3d getVup() const {
+    return vup;
+  }
+
   //getLookAt
   virtual void getLookAt(Point3d& pos, Point3d& center, Point3d& vup) const override {
     pos = this->pos;
@@ -219,7 +234,6 @@ public:
 
 private:
 
- 
   bool                  disable_rotation = false;
   double                default_scale;
   double                max_zoom = 0;

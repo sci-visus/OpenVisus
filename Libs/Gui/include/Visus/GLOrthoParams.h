@@ -93,6 +93,10 @@ public:
     return GLOrthoParams(left - other.left, right - other.right, bottom - other.bottom, top - other.top, zNear - other.zNear, zFar - other.zFar);
   }
 
+  //toVector
+  std::vector<double> toVector() const {
+    return std::vector<double>({ left,right,bottom,top,zNear,zFar });
+  }
 
   //operator==
   bool operator==(const GLOrthoParams& other) const

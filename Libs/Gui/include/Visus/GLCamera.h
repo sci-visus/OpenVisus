@@ -113,6 +113,19 @@ public:
 
 public:
 
+  //beginTransaction (needed by swig)
+  void beginTransaction() {
+    Model::beginTransaction();
+  }
+
+  //endTransaction (needed by swig)
+  void endTransaction() {
+    Model::endTransaction();
+  }
+
+
+public:
+
   //write
   virtual void write(Archive& ar) const  override {
   }

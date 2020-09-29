@@ -25,17 +25,68 @@ class Buttons :
 	pass
 
 # //////////////////////////////////////////////////////////////////////////////
+class MyViewer(Viewer):
+	
+	# constructor
+	def __init__(self,name="",url=""):
+		super(MyViewer, self).__init__()
+		super(MyViewer, self).setMinimal()
+		self.name=name
+		if url:
+			self.open(url)
+		self.on_camera_change=None
+		
+	# glCameraChangeEvent
+	def glCameraChangeEvent(self):
+		super(MyViewer, self).glCameraChangeEvent()
+		if self.on_camera_change:
+			self.on_camera_change()
+
+
+# //////////////////////////////////////////////////////////////////////////////
 class MyWindow(QMainWindow):
 	
 	# constructor
 	def __init__(self):
 		super(MyWindow, self).__init__()
 		self.createGui()
+		self.showMaximized()
 		
 	# destroy
 	def destroy(self):
 		self.viewer1=None
 		self.viewer2=None
+		
+	# onCameraChange
+	def onCameraChange(self,cam1,cam2):
+		
+		# avoid rehentrant calls
+		if hasattr(self,"changing_camera") and self.changing_camera: 
+			return
+			
+		self.changing_camera=True
+
+		# 3d
+		if isinstance(cam1,GLLookAtCamera):
+			pos1,center1,vup1=[cam1.getPos(),cam1.getCenter(),cam1.getVup()]
+			pos2,center2,vup2=[cam2.getPos(),cam2.getCenter(),cam2.getVup()]
+			cam2.beginTransaction()
+			cam2.setLookAt(pos1,center1,vup1)
+			# todo... projection?
+			cam2.endTransaction()
+		# 3d
+		else:
+			pos1,cen1,vup1,proj1=cam1.getPos(),cam1.getCenter(),cam1.getVup(),cam1.getOrthoParams()
+			pos2,cen2,vup2,proj2=cam2.getPos(),cam2.getCenter(),cam2.getVup(),cam2.getOrthoParams()
+			#print("pos",pos1.toString(),"cen",cen1.toString(),"vup",vup1.toString(),"proj",proj1.toString())
+			#print("pos",pos2.toString(),"cen",cen2.toString(),"vup",vup2.toString(),"proj",proj2.toString())
+			cam2.beginTransaction()
+			cam2.setLookAt(pos1,cen1,vup1)
+			cam2.setOrthoParams(proj1)
+			cam2.endTransaction()
+			
+		self.changing_camera=False
+
 
 	# createGui
 	def createGui(self):
@@ -49,8 +100,18 @@ class MyWindow(QMainWindow):
 		
 		# create viewers
 		if True:
-			self.viewer1=Viewer(); self.viewer1.open("./datasets/cat/gray.idx"); self.viewer1.setMinimal()
-			self.viewer2=Viewer(); self.viewer2.open("./datasets/cat/rgb.idx");  self.viewer2.setMinimal()
+			self.viewer1=MyViewer(name="viewer1",url="./datasets/cat/gray.idx")
+			self.viewer2=MyViewer(name="viewer2",url="./datasets/cat/rgb.idx" )
+			
+			cam1=self.viewer1.getGLCamera()
+			cam2=self.viewer2.getGLCamera()
+
+			# disable smoothing
+			if isinstance(cam1,GLOrthoCamera): cam1.toggleDefaultSmooth()
+			if isinstance(cam2,GLOrthoCamera): cam2.toggleDefaultSmooth()
+			
+			self.viewer1.on_camera_change=lambda : self.onCameraChange(cam1,cam2)
+			self.viewer2.on_camera_change=lambda : self.onCameraChange(cam2,cam1)
 		
 		# create log
 		if True:
@@ -70,9 +131,9 @@ class MyWindow(QMainWindow):
 		# create central panel
 		if True:
 			center = QSplitter(QtCore.Qt.Horizontal)
-			center.addWidget(sip.wrapinstance(FromCppQtWidget(self.viewer2.c_ptr()), QMainWindow))
 			center.addWidget(sip.wrapinstance(FromCppQtWidget(self.viewer1.c_ptr()), QMainWindow))
-			center.setSizes([100,200])
+			center.addWidget(sip.wrapinstance(FromCppQtWidget(self.viewer2.c_ptr()), QMainWindow))
+			center.setSizes([100,100])
 		
 		# window layout
 		if True:
