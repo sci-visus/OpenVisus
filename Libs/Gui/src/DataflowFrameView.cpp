@@ -482,15 +482,15 @@ void DataflowFrameView::setElasticDraggingNode(Node* node)
 }
 
 /////////////////////////////////////////////////////////////
-void DataflowFrameView::dataflowSetName(Node* node,String old_value,String new_value) {
+void DataflowFrameView::dataflowSetNodeName(Node* node,String old_value,String new_value) {
   if (auto floating=dynamic_cast<NodeWidget*>(getWidget(node)))
     floating->setTitle(new_value);
 }
 
 /////////////////////////////////////////////////////////////
-void DataflowFrameView::dataflowSetHidden(Node* node,bool ,bool ) {
+void DataflowFrameView::dataflowSetNodeVisible(Node* node,bool old_value,bool new_value) {
   if (auto floating=dynamic_cast<NodeWidget*>(getWidget(node)))
-    floating->setTitleColor(Colors::LightBlue);
+    floating->setTitleColor(new_value? NodeWidget::getDefaultTitleColor() : Colors::LightBlue);
 }
 
 /////////////////////////////////////////////////////////////

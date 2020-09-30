@@ -138,11 +138,11 @@ private:
     setDataflow(nullptr);
   }
 
-  //dataflowSetName
-  virtual void dataflowSetName(Node* node,String old_value,String new_value) override;
+  //dataflowSetNodeName
+  virtual void dataflowSetNodeName(Node* node,String old_value,String new_value) override;
 
-  //dataflowSetHidden
-  virtual void dataflowSetHidden(Node* node,bool old_value,bool new_value) override;
+  //dataflowSetNodeVisible
+  virtual void dataflowSetNodeVisible(Node* node,bool old_value,bool new_value) override;
 
   //dataflowAddNode
   virtual void dataflowAddNode(Node* node) override;

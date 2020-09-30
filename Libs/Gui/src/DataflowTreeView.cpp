@@ -129,7 +129,7 @@ void DataflowTreeView::setDataflow(Dataflow* value)
 }
 
 /////////////////////////////////////////////////////////////////////////
-void DataflowTreeView::dataflowSetName(Node* node,String old_value,String new_value) 
+void DataflowTreeView::dataflowSetNodeName(Node* node,String old_value,String new_value) 
 {
   if (QTreeWidgetItem* widget=getWidget(node))
     widget->setText(0,new_value.c_str());
@@ -137,10 +137,10 @@ void DataflowTreeView::dataflowSetName(Node* node,String old_value,String new_va
 
 
 /////////////////////////////////////////////////////////////////////////
-void DataflowTreeView::dataflowSetHidden(Node* node,bool ,bool ) 
+void DataflowTreeView::dataflowSetNodeVisible(Node* node,bool old_value,bool new_value) 
 {
   if (QTreeWidgetItem* widget = getWidget(node))
-    SetWidgetVisible(widget, !node->isVisible());
+    SetWidgetVisible(widget, new_value);
 }
 
 

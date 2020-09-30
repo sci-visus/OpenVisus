@@ -79,12 +79,12 @@ public:
   virtual void dataflowAfterProcessInput(Node* node) {
   }
 
-  //dataflowSetName
-  virtual void dataflowSetName(Node* node, String old_value, String new_value) {
+  //dataflowSetNodeName
+  virtual void dataflowSetNodeName(Node* node, String old_value, String new_value) {
   }
 
-  //dataflowSetHidden
-  virtual void dataflowSetHidden(Node* node, bool old_value, bool new_value) {
+  //dataflowSetNodeVisible
+  virtual void dataflowSetNodeVisible(Node* node, bool old_value, bool new_value) {
   }
 
   //dataflowAddNode

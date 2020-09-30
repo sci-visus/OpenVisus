@@ -169,7 +169,8 @@ public:
           return;
 
         auto output = query->buffer.clone();
-        PrintInfo("PointQuery finished msec", t1.elapsedMsec(), 
+        output.origin = node->getName();
+        PrintInfo("PointQuery finished msec", node->getName(), t1.elapsedMsec(),
           "level", I, "/", query->end_resolutions.size(), "/", query->end_resolution, "/", dataset->getMaxResolution(),
           "dims", output.dims, 
           "dtype", output.dtype, 
@@ -206,12 +207,14 @@ public:
           return;
 
         auto output = query->buffer;
-        PrintInfo("BoxQuery executeBoxQuery", I, "/", N, "/", EndH, "/", dataset->getMaxResolution(),"done in", t1.elapsedMsec(),"msec",
+        output.origin = node->getName(); //origin
+        PrintInfo("BoxQuery executeBoxQuery", node->getName(), I, "/", N, "/", EndH, "/", dataset->getMaxResolution(),"done in", t1.elapsedMsec(),"msec",
           "dims", output.dims,"dtype", output.dtype,
           "mem", StringUtils::getStringFromByteSize(output.c_size()),
           "access", access ? "yes" : "nullptr",
           "url", dataset->getUrl());
-
+        
+        output.origin = node->getName(); //origin
         doPublish(output, query);
         dataset->nextBoxQuery(query);
         I++;

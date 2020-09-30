@@ -17,7 +17,7 @@ class MyJob(NodeJob):
 	# printMessage
 	def printMessage(self,*args):
 		
-		msg=""
+		msg="{} {} ".format(datetime.datetime.now(),"PyScriptingNode", self.node.getName()) 
 		for it in args:
 			msg+=str(it)+ " "
 		
@@ -25,6 +25,20 @@ class MyJob(NodeJob):
 			self.node.editor.appendOutput(msg)
 		else:
 			print(msg)	
+
+	# debugInput
+	def debugInput(self):
+		if not hasattr(self.node,"debug_input"): self.node.debug_input=0
+		slice = Array.createView(self.input, self.input.getWidth(), self.input.getHeight(), self.input.dtype);
+		ArrayUtils.saveImageUINT8("input.{}.{}.png".format(self.node.getName(),self.node.debug_input), slice)
+		self.node.debug_input+=1
+
+	# debugOutput
+	def debugOutput(self):
+		if not hasattr(self.node,"debug_output"): self.node.debug_output=0
+		slice = Array.createView(self.input, self.input.getWidth(), self.input.getHeight(), self.input.dtype);
+		ArrayUtils.saveImageUINT8("output.{}.{}.png".format(self.node.getName(),self.node.debug_output), slice)
+		self.node.debug_output+=1
 		
 	# runJob
 	def runJob(self):
@@ -36,36 +50,41 @@ class MyJob(NodeJob):
 		
 		input=Array.toNumPy(self.input,bShareMem=True)
 		
-		self.printMessage(datetime.datetime.now(),"Got in input",input.shape,input.dtype)
+		self.printMessage("Got in input",input.shape,input.dtype,"origin=",self.input.origin)
+		# self.debugInput()
 
-		g=globals()
-		g['input']=input
-		g['aborted']=self.aborted
+		_globals = globals()
+		_locals  = locals()
+
+		_locals['input']=input
+		_locals['aborted']=self.aborted
+		_locals['output']=None
 
 		try:
-			exec(self.code,g)
+			exec(self.code,_globals, _locals)
 
-			if not 'output' in g:
-				raise Exception('output empty. Did you forget to set it?')
+			if not 'output' in _locals or _locals['output'] is None:
+				raise Exception('output is None. Did you forget to set it?')
 
-			output=g['output']
-			
+			output=_locals['output']
+
 			if not type(output) is numpy.ndarray:
 				raise Exception('output is not a numpy array')
 			
 		except Exception as e:
 			if not self.aborted(): 
 				import traceback
-				self.printMessage(datetime.datetime.now(),'Python error\n',traceback.format_exc())
+				self.printMessage('Error\n',traceback.format_exc())
 			return	
 		
 		if self.aborted():
 			return				
 			
-		self.printMessage(datetime.datetime.now(),"Output is ",output.shape, output.dtype)
+		self.printMessage("Output is ",output.shape, output.dtype)
 		output=Array.fromNumPy(output,TargetDim=pdim,bShareMem=False)
 		output.shareProperties(self.input)
-		
+
+		# self.debugOutput()
 		self.msg.writeArray("array", output)
 		self.node.publish(self.msg) 	
 		
@@ -177,7 +196,7 @@ output= cv2.medianBlur(output,kernel_size)
 import cv2
 kernel_size=5
 output=input.astype(numpy.float32)
-x_sobel = cv2.Sobel(output,cv2.CV_32F,1,0,ksize=kernel_size)
+output = cv2.Sobel(output,cv2.CV_32F,1,0,ksize=kernel_size)
 """)
 
 		self.addPreset("Y Sobel","""
@@ -242,7 +261,7 @@ class PyScriptingNode(ScriptingNode):
 
 	# processInput
 	def processInput(self):
-	
+
 		self.abortProcessing()
 		self.joinProcessing()
 

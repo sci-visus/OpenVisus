@@ -116,7 +116,7 @@ void Node::setName(String new_value)
   if (dataflow)
   {
     for (auto listener : dataflow->listeners)
-      listener->dataflowSetName(this,old_value,new_value);
+      listener->dataflowSetNodeName(this,old_value,new_value);
   }
 }
 
@@ -134,7 +134,7 @@ void Node::setVisible(bool new_value)
   if (dataflow)
   {
     for (auto listener : dataflow->listeners)
-      listener->dataflowSetHidden(this,old_value,new_value);
+      listener->dataflowSetNodeVisible(this,old_value,new_value);
   }
 }
 

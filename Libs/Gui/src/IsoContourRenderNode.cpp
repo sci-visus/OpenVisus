@@ -205,6 +205,16 @@ void IsoContourRenderNode::glRender(GLCanvas& gl)
     mesh->field.texture = mesh->field.texture? mesh->field.texture : GLTexture::createFromArray(mesh->field);
     if (!mesh->field.texture)
       return;
+
+    //if you want to debug
+#if 0
+    {
+      static int I = 0;
+      auto slice = Array::createView(mesh->field, mesh->field.dims[0], mesh->field.dims[1], mesh->field.dtype);
+      ArrayUtils::saveImageUINT8(concatenate(this->name, ".", I++, ".png"), slice);
+    }
+#endif
+
   }
 
   //upload second field

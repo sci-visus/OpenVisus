@@ -84,6 +84,9 @@ public:
   //texture
   SharedPtr<Object> texture;
 
+  //in case you need to detect who generated it
+  String origin;
+
   //constructor
   Array() {
   }
@@ -174,6 +177,7 @@ public:
     this->layout   = other.layout;
     this->bounds   = other.bounds;
     this->clipping = other.clipping;
+    this->origin   = origin;
   }
 
 public:
