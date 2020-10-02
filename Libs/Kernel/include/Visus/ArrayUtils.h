@@ -43,10 +43,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-
-//predeclaration
-class TransferFunction;
-
 ///////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API ArrayUtils
 {
@@ -83,17 +79,6 @@ public:
 
   //computeRange
   static Range computeRange(Array src, int C, Aborted aborted = Aborted());
-
-  //how to map input data to [0,1]
-  enum ComputeRangeMode
-  {
-    UseDTypeRange,
-    ComputeSingleComponentRange,
-    ComputeAllComponentsRange,
-    UseFixedRange
-  };
-
-  static Range computeRange(Array src, int C, int mode, Aborted = Aborted());
 
   //compactDims
   static Array compactDims(Array src) 
@@ -357,10 +342,6 @@ public:
   //setBufferColor
   static void setBufferColor(Array& buffer, Color color);
 
-public:
-
-  //applyTransferFunction
-  static Array applyTransferFunction(SharedPtr<TransferFunction> tf, Array src, Aborted aborted= Aborted());
 
 private:
 

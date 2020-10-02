@@ -1163,31 +1163,6 @@ Range ArrayUtils::computeRange(Array src, int C, Aborted aborted)
   return ret;
 }
 
-/////////////////////////////////////////////////////////////////////////////
-Range ArrayUtils::computeRange(Array src, int C, int mode, Aborted aborted)
-{
-  //not a valid component
-  if (!(C >= 0 && C < src.dtype.ncomponents()))
-    return Range::invalid();
-
-  if (mode==UseDTypeRange)
-  {
-    Range ret = src.dtype.getDTypeRange(C);
-    return ret.delta() > 0? ret : ArrayUtils::computeRange(src,C,aborted);
-  }
-
-  if (mode == ComputeSingleComponentRange) {
-    return ArrayUtils::computeRange(src, C, aborted);
-  }
-
-  VisusReleaseAssert(mode == ComputeAllComponentsRange);
-  Range ret=Range::invalid();
-  for (int C = 0; C < src.dtype.ncomponents(); C++)
-    ret = ret.getUnion(ArrayUtils::computeRange(src, C, aborted));
-  return ret;
-}
-
-
 /////////////////////////////////////////////////////////
 class ComputeArrayPointOperation
 {
@@ -2881,104 +2856,6 @@ Array ArrayUtils::median(Array src,Array krn_size,int percent,Aborted aborted) {
   Array dst;
   MedianOp op;
   return ExecuteOnCppSamples(op,src.dtype,dst,src,krn_size,percent,aborted)? dst : Array();
-}
-
-
-
-/////////////////////////////////////////////////////////////////////
-template <typename SrcType>
-struct ApplyTransferFunctionOp2
-{
-  template <typename DstType>
-  bool execute(Array& dst, TransferFunction& tf, Array src, Aborted aborted)
-  {
-    int num_fn = (int)tf.functions.size();
-    if (!num_fn)
-      return false;
-
-    int src_ncomponents = (int)src.dtype.ncomponents();
-    if (!src_ncomponents)
-      return false;
-
-    DType dst_dtype = tf.getOutputDType();
-    if (!(dst_dtype == DTypes::UINT8 || dst_dtype == DTypes::FLOAT32 || dst_dtype == DTypes::FLOAT64))
-    {
-      VisusAssert(false);
-      return false;
-    }
-
-    Int64 tot = src.getTotalNumberOfSamples();
-
-    //example: f(a,b,c)   -> f(a) f(b) f(c)
-    int dst_ncomponents = 0;
-    if (num_fn == 1)
-      dst_ncomponents = src_ncomponents;
-
-    //example: (f,g,h)(a) -> f(a) g(a) h(a)
-    else if (src_ncomponents == 1)
-      dst_ncomponents = num_fn;
-
-    else
-      dst_ncomponents = std::min(num_fn, src_ncomponents);
-
-    if (!dst_ncomponents)
-      return false;
-
-    dst_dtype = DType(dst_ncomponents, dst_dtype);
-
-    if (!dst.resize(src.dims, dst_dtype, __FILE__, __LINE__))
-      return false;
-
-    for (int I = 0; I < dst_ncomponents; I++)
-    {
-      auto F = Utils::clamp(I, 0, num_fn - 1); auto FUN = tf.functions[F];
-      auto D = Utils::clamp(I, 0, dst_ncomponents - 1); auto DST = GetComponentSamples<DstType>(dst, D);
-      auto S = Utils::clamp(I, 0, src_ncomponents - 1); auto SRC = GetComponentSamples<SrcType>(src, S);
-
-      dst.dtype = dst.dtype.withDTypeRange(tf.getOutputRange(), I);
-
-      auto input_range = tf.computeRange(src, SRC.C, aborted);
-      auto  vs_t = input_range.getScaleTranslate();
-
-      Range dst_range = tf.getOutputRange();
-
-      double src_vs = vs_t.first;
-      double src_vt = vs_t.second;
-
-      double dst_vs = dst_range.delta();
-      double dst_vt = dst_range.from;
-
-      for (int I = 0; I < tot; I++)
-      {
-        if (aborted())
-          return false;
-
-        double x = src_vs * SRC[I] + src_vt;
-        double y = FUN->getValue(x);
-        DST[I] = (DstType)(dst_vs * y + dst_vt);
-      }
-    }
-
-    dst.shareProperties(src);
-    return true;
-  }
-};
-
-struct ApplyTransferFunctionOp
-{
-  template <typename SrcType>
-  bool execute(Array& dst, TransferFunction& tf, Array src, Aborted aborted) {
-    ApplyTransferFunctionOp2<SrcType> op;
-    return ExecuteOnCppSamples(op, tf.getOutputDType(), dst, tf, src, aborted);
-  }
-};
-
-Array ArrayUtils::applyTransferFunction(SharedPtr<TransferFunction> tf, Array src, Aborted aborted)
-{
-  if (!src.valid()) return src;
-  Array dst;
-  ApplyTransferFunctionOp op;
-  return ExecuteOnCppSamples(op, src.dtype, dst, *tf, src, aborted) ? dst : Array();
 }
 
 

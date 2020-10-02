@@ -81,7 +81,7 @@ public:
 
     if (this->model)
     {
-      widgets.palette = new PaletteView();
+      widgets.palette = new TransferFunctionView();
       widgets.palette->bindModel(model->getPalette().get());
 
       auto layout = new QVBoxLayout();
@@ -95,7 +95,7 @@ private:
   class Widgets
   {
   public:
-    PaletteView* palette=nullptr;
+    TransferFunctionView* palette=nullptr;
   };
 
   Widgets widgets;
@@ -103,10 +103,7 @@ private:
   //newStatsAvailable
   virtual void newStatsAvailable(const Statistics& value) override {
     if (widgets.palette)
-    {
-      widgets.palette->setInputStatistics(value);
-      widgets.palette->setOutputStatistics(value);
-    }
+      widgets.palette->setStatistics(value);
   }
 
 };

@@ -126,21 +126,15 @@ private:
     VisusAssert(model);
     this->img.reset();
 
-    int nfunctions = model->getNumberOfFunctions();
-    if (!(nfunctions>=1 && nfunctions<=4))
-      return;
-
     int nsamples = model->getNumberOfSamples();
     if (!nsamples)
       return;
 
     double attenuation=model->getAttenuation();
-    std::vector<double>* R=(nfunctions>=1)? &model->functions[0]->values : nullptr;
-    std::vector<double>* G=(nfunctions>=2)? &model->functions[1]->values : nullptr;
-    std::vector<double>* B=(nfunctions>=3)? &model->functions[2]->values : nullptr;
-    std::vector<double>* A=nullptr;
-    if (nfunctions==2 && bShowCheckedBoard) A=&model->functions[1]->values; //Gray Alpha
-    if (nfunctions==4 && bShowCheckedBoard) A=&model->functions[3]->values; //RGBA
+    std::vector<double>* R=&model->R->values;
+    std::vector<double>* G=&model->G->values;
+    std::vector<double>* B=&model->B->values;
+    std::vector<double>* A= bShowCheckedBoard? &model->A->values : nullptr;
 
     this->img.reset(new QImage(nsamples,1,QImage::Format_ARGB32));
     for (int x=0; x<nsamples; x++)
@@ -185,7 +179,12 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(TransferFunctionSelectedFunctionsView)
 
-  std::vector<QCheckBox*> checkboxes;
+  struct
+  {
+    std::vector<QCheckBox*> checkboxes;
+    QDoubleSlider* attenuation = nullptr;
+  }
+  widgets;
 
   //constructor
   TransferFunctionSelectedFunctionsView(TransferFunction* model=nullptr) {
@@ -204,39 +203,36 @@ public:
     if (this->model)
     {
       QUtils::clearQWidget(this);
-      checkboxes.clear();
+      widgets.checkboxes.clear();
     }
 
     View<ModelClass>::bindModel(model);
 
     if (this->model)
     {
-      auto layout = new QHBoxLayout();
+      QHBoxLayout* layout = new QHBoxLayout(),*sub;
+      layout->addLayout(sub = new QHBoxLayout());
 
-      for (int F = 0,nfunctions = (int)model->functions.size(); F < (int)nfunctions; F++)
-      {
-        auto name = model->functions[F]->name;
-        auto bChecked = F == nfunctions - 1 ? true : false;
-        auto checkbox=GuiFactory::CreateCheckBox(bChecked, name,[this,F](int) {checkBoxClicked(F);});
-        layout->addWidget(checkbox);
-        checkboxes.push_back(checkbox);
-      }
+      widgets.checkboxes.resize(4);
+      sub->addWidget(widgets.checkboxes[0] = GuiFactory::CreateCheckBox(false, "R", [this](int) {checkBoxClicked(0); }));
+      sub->addWidget(widgets.checkboxes[1] = GuiFactory::CreateCheckBox(false, "G", [this](int) {checkBoxClicked(1); }));
+      sub->addWidget(widgets.checkboxes[2] = GuiFactory::CreateCheckBox(false, "B", [this](int) {checkBoxClicked(2); }));
+      sub->addWidget(widgets.checkboxes[3] = GuiFactory::CreateCheckBox(true , "A", [this](int) {checkBoxClicked(3); }));
+
+      layout->addLayout(sub = new QHBoxLayout());
+      sub->addWidget(new QLabel("Attenuation"));
+      sub->addWidget(widgets.attenuation = GuiFactory::CreateDoubleSliderWidget(model->getAttenuation(), Range(0, 1, 0), [this](double value) {
+        this->model->setAttenutation(value);
+      }));
 
       setLayout(layout);
     }
   }
 
   //isSelected
-  bool isSelected(SingleTransferFunction* fn)
+  bool isSelected(int F) const 
   {
-    int F=0; 
-    for (auto it : model->functions) 
-    {
-      if (it.get()==fn)
-        return checkboxes[F]->isChecked();
-      F++;
-    }
-    return false;
+    return widgets.checkboxes[F]->isChecked();
   }
 
 signals:
@@ -250,7 +246,7 @@ private:
   {
     if (!(QApplication::keyboardModifiers() & Qt::ShiftModifier))
     { 
-      int I=0;for (auto checkbox : checkboxes)
+      int I=0;for (auto checkbox : widgets.checkboxes)
       {
         if (I!=index && checkbox->isChecked())
         {
@@ -268,16 +264,8 @@ private:
   //modelChanged
   virtual void modelChanged() override 
   {
-    std::vector<String> fn_names;
-    for (auto fn : model->functions)
-      fn_names.push_back(fn->name);
-
-    std::vector<String> check_names;
-    for (auto checkbox : checkboxes)
-      check_names.push_back(cstring(checkbox->text()));
-
-    if (fn_names!=check_names)
-      rebindModel();
+    widgets.attenuation->setValue(model->getAttenuation());
+    //rebindModel();
   }
 
 };
@@ -348,19 +336,17 @@ public:
     int x1 = Utils::clamp((int)(round(p1.x * (N - 1))), 0, N - 1);
     int x2 = Utils::clamp((int)(round(p2.x * (N - 1))), 0, N - 1);
 
-    for (auto F = 0; F < model->functions.size(); F++)
-    {
-      auto fn = model->functions[F];
-      if (selection->isSelected(fn.get()))
-        model->drawLine(F, x1, p1.y, x2, p2.y);
-    }
+    if (selection->isSelected(0)) model->drawLine(0, x1, p1.y, x2, p2.y);
+    if (selection->isSelected(1)) model->drawLine(1, x1, p1.y, x2, p2.y);
+    if (selection->isSelected(2)) model->drawLine(2, x1, p1.y, x2, p2.y);
+    if (selection->isSelected(3)) model->drawLine(3, x1, p1.y, x2, p2.y);
   }
 
   //mousePressEvent
   virtual void mousePressEvent(QMouseEvent* evt) override 
   {
     // painting functions
-    if (model && evt->button()==Qt::LeftButton && model->functions.size())
+    if (model && evt->button()==Qt::LeftButton)
     { 
       model->beginTransaction();
       dragging.reset(new QTimer());
@@ -434,18 +420,21 @@ public:
 
     if (bool bRenderFunctions=true)
     {
-      for (auto fn : model->functions)
+      std::vector<Color> colors = {Colors::Red,Colors::Green,Colors::Blue,Colors::Gray};
+      std::vector< SharedPtr<SingleTransferFunction> > functions = { model->R,model->G,model->B,model->A };
+
+      for (int F=0;F<4;F++)
       {
         std::vector<QPointF> points(nsamples);
 
         for (int I = 0; I < nsamples; I++)
         {
           double x=I/(double)(nsamples -1);
-          double y=fn->values[I];
+          double y=functions[F]->values[I];
           points[I] = project(QPointF(x,y));
         }
 
-        painter.setPen(QPen(QUtils::convert<QColor>(fn->color),selection->isSelected(fn.get())?2:1));
+        painter.setPen(QPen(QUtils::convert<QColor>(colors[F]),selection->isSelected(F)?2:1));
         painter.drawPolyline(&points[0],(int)points.size());
       }
     }
@@ -637,10 +626,9 @@ private:
       auto other=TransferFunction::fromArray(src);
       if (useColorVarMax || useColorVarMin)
       {
-        other->setInputRange(Range(colorVarMin, colorVarMax, 0));
-        other->setInputNormalizationMode(ArrayUtils::UseFixedRange);
+        other->setUserRange(Range(colorVarMin, colorVarMax, 0));
+        other->setNormalizationMode(TransferFunction::UserRange);
       }
-      other->setOutputDType(isFloatRange ? DTypes::FLOAT32_RGBA : DTypes::UINT8_RGBA);
       other->setAttenutation(attenuation);
 
       TransferFunction::copy(*this->model,*other);
@@ -698,20 +686,19 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(TransferFunctionInputView)
 
-  //___________________________________________________
-  class Widgets
+    //___________________________________________________
+    class Widgets
   {
   public:
-    QLineEdit* nsamples = nullptr;
-    QComboBox* input_normalization_mode = nullptr;
-    QLineEdit* range_from = nullptr;
-    QLineEdit* range_to = nullptr;
+    QComboBox* normalization_mode = nullptr;
+    QLineEdit* user_range_from = nullptr;
+    QLineEdit* user_range_to = nullptr;
   };
 
   Widgets widgets;
 
   //constructor
-  TransferFunctionInputView(TransferFunction* model=nullptr) {
+  TransferFunctionInputView(TransferFunction* model = nullptr) {
     if (model)
       bindModel(model);
   }
@@ -736,28 +723,19 @@ public:
     {
       auto layout = new QHBoxLayout();
 
-      layout->addWidget(new QLabel("X axis"));
-
-      layout->addWidget(new QLabel("Num samples"));
-      layout->addWidget(widgets.nsamples = GuiFactory::CreateIntegerTextBoxWidget((int)model->getNumberOfSamples(), [this](int nsamples) {
-        model->setNumberOfSamples(nsamples);
-      }));
-
-      std::vector<String> options = { "DType Range", "Range Per Component", "Overall Range", "Use Custom Range" };
+      std::vector<String> options = { "field range", "compute range/component", "compute range/overall", "user range" };
       layout->addWidget(new QLabel("Normalization mode"));
-      layout->addWidget(widgets.input_normalization_mode = GuiFactory::CreateComboBox(options[0],options,[this](String value) {
+      layout->addWidget(widgets.normalization_mode = GuiFactory::CreateComboBox(options[0], options, [this](String value) {
         updateInputNormalizationMode();
-      }));
-      
-      layout->addWidget(new QLabel("Custom Range from"));
-      layout->addWidget(widgets.range_from = GuiFactory::CreateDoubleTextBoxWidget(model->getInputRange().from, [this](double value) {
-        updateRange();
-      }));
+        }));
 
-      layout->addWidget(new QLabel("Custom Range to"));
-      layout->addWidget(widgets.range_to = GuiFactory::CreateDoubleTextBoxWidget(model->getInputRange().to, [this](double value) {
-        updateRange();
-      }));
+      layout->addWidget(widgets.user_range_from = GuiFactory::CreateDoubleTextBoxWidget(model->getUserRange().from, [this](double value) {
+        updateUserRange();
+        }));
+
+      layout->addWidget(widgets.user_range_to = GuiFactory::CreateDoubleTextBoxWidget(model->getUserRange().to, [this](double value) {
+        updateUserRange();
+        }));
 
       setLayout(layout);
       refreshGui();
@@ -769,29 +747,28 @@ private:
   //updateInputNormalizationMode
   void updateInputNormalizationMode()
   {
-    int value = widgets.input_normalization_mode->currentIndex();
-    model->setInputNormalizationMode(value);
-
+    int value = widgets.normalization_mode->currentIndex();
+    model->setNormalizationMode(value);
+    widgets.user_range_from->setEnabled(value == TransferFunction::UserRange);
+    widgets.user_range_to->setEnabled(value == TransferFunction::UserRange);
   }
 
-  //updateRange
-  void updateRange()
+  //updateUserRange
+  void updateUserRange()
   {
-    Range range;
-    range.from = cdouble(widgets.range_from->text());
-    range.to = cdouble(widgets.range_to->text());
-    range.step = model->getOutputDType().isDecimal() ? 0.0 : 1.0;
-    model->setInputRange(range);
+    auto From = cdouble(widgets.user_range_from->text());
+    auto To   = cdouble(widgets.user_range_to->text());
+    model->setUserRange(Range(From,To,0.0));
   }
 
   //refreshGui
   void refreshGui()
   {
-    widgets.nsamples->setText(cstring(model->getNumberOfSamples()).c_str());
-    widgets.input_normalization_mode->setCurrentIndex(model->getInputNormalizationMode());
-
-    widgets.range_from->setText(cstring(model->getInputRange().from).c_str());
-    widgets.range_to  ->setText(cstring(model->getInputRange().to).c_str());
+    widgets.normalization_mode->setCurrentIndex(model->getNormalizationMode());
+    widgets.user_range_from->setText(cstring(model->getUserRange().from).c_str());
+    widgets.user_range_to  ->setText(cstring(model->getUserRange().to).c_str());
+    widgets.user_range_from->setEnabled(model->getNormalizationMode() == TransferFunction::UserRange);
+    widgets.user_range_to->setEnabled(model->getNormalizationMode() == TransferFunction::UserRange);
   }
 
   //modelChanged
@@ -800,106 +777,6 @@ private:
   }
 };
 
-////////////////////////////////////////////////////////////////////////
-class VISUS_GUI_API TransferFunctionOutputView :
-  public QFrame,
-  public View<TransferFunction>
-{
-public:
-
-  VISUS_NON_COPYABLE_CLASS(TransferFunctionOutputView)
-
-  class Widgets
-  {
-  public:
-    QLineEdit*            nfunctions=nullptr;
-    QComboBox*            dtype=nullptr;
-    QLineEdit*            range_from=nullptr;
-    QLineEdit*            range_to=nullptr;
-    QDoubleSlider*        attenuation=nullptr;
-  };
-
-  Widgets widgets;
-
-  //constructor
-  TransferFunctionOutputView(TransferFunction* model) {
-    if (model)
-      bindModel(model);
-  }
-
-  //destructor
-  virtual ~TransferFunctionOutputView() {
-    bindModel(nullptr);
-  }
-
-  //bindModel
-  virtual void bindModel(TransferFunction* value) override
-  {
-    if (this->model)
-    {
-      QUtils::clearQWidget(this);
-      widgets = Widgets();
-    }
-
-    View<ModelClass>::bindModel(value);
-
-    if (this->model)
-    {
-      auto layout = new QHBoxLayout();
-
-      layout->addWidget(new QLabel("Y axis"));
-
-      layout->addWidget(new QLabel("Number functions"));
-      layout->addWidget(widgets.nfunctions = GuiFactory::CreateIntegerTextBoxWidget((int)model->functions.size(), [this](int value) {
-        model->setNumberOfFunctions(std::max(1, value));
-      }));
-
-      layout->addWidget(new QLabel("Output dtype"));
-      layout->addWidget(widgets.dtype = GuiFactory::CreateComboBox(model->getOutputDType().toString().c_str(),{"uint8","float32","float64"},[this](String s){
-          DType value=DType::fromString(s);
-          model->setOutputDType(value);
-          update();
-      }));
-
-      layout->addWidget(new QLabel("Range from"));
-      layout->addWidget(widgets.range_from = GuiFactory::CreateDoubleTextBoxWidget(model->getOutputRange().from,[this](double value){
-        model->setOutputRange(Range(value,model->getOutputRange().to,0));
-      }));
-
-      layout->addWidget(new QLabel("Range to"));
-      layout->addWidget(widgets.range_to = GuiFactory::CreateDoubleTextBoxWidget(model->getOutputRange().to,[this](double value){
-        model->setOutputRange(Range(model->getOutputRange().from,value,0));
-        }));
-
-      layout->addWidget(new QLabel("Attenuation"));
-      layout->addWidget(widgets.attenuation=GuiFactory::CreateDoubleSliderWidget(model->getAttenuation(),Range(0,1,0),[this](double value){
-        model->setAttenutation(value);
-      }));
-
-      setLayout(layout);
-      refreshGui();
-    }
-  }
-
-private:
-
-  //refreshGui
-  void refreshGui()
-  {
-    widgets.nfunctions->setText(cstring((int)model->functions.size()).c_str());
-    widgets.dtype->setCurrentText(model->getOutputDType().toString().c_str());
-    widgets.range_from->setText(cstring(model->getOutputRange().from).c_str());
-    widgets.range_to->setText(cstring(model->getOutputRange().to).c_str());
-    widgets.attenuation->setValue(model->getAttenuation());
-    widgets.attenuation->setValue(model->getAttenuation());
-  }
-
-  //modelChanged
-  virtual void modelChanged() override {
-    refreshGui();
-  }
-
-};
 
 ////////////////////////////////////////////////////////////////////////
 class VISUS_GUI_API TransferFunctionView :
@@ -919,19 +796,14 @@ public:
     QComboBox*                                default_palette=nullptr;
     QToolButton*                              btImport=nullptr;
     QToolButton*                              btExport=nullptr;
-    QDoubleSlider*                             attenuation=nullptr;
+    QDoubleSlider*                            attenuation=nullptr;
     QCheckBox*                                show_checkboard=nullptr;
     TransferFunctionCanvasView*               canvas=nullptr;
-    TransferFunctionTextEditView*             text=nullptr;
     TransferFunctionInputView*                input=nullptr;
-    TransferFunctionOutputView*               output=nullptr;
-    ArrayStatisticsView*                      input_statistics=nullptr;
-    ArrayStatisticsView*                      output_statistics = nullptr;
-    QTabWidget*                               tabs = nullptr;
+    ArrayStatisticsView*                      statistics=nullptr;
   };
 
   Widgets widgets;
-
 
   //default constructor
   TransferFunctionView(TransferFunction* model=nullptr) {
@@ -968,7 +840,7 @@ public:
         row->addWidget(new QLabel("Set default"));
         {
           auto combo=GuiFactory::CreateComboBox(TransferFunction::getDefaults()[0],TransferFunction::getDefaults(),[this](String name){
-            this->model->setDefault(name,/*bFullCopy*/false);
+            this->model->setDefault(name,/*bFullCopy*/false); //I want to keep other stuff like input range
           });
           combo->setCurrentText(this->model->getDefaultName().c_str()); 
           row->addWidget(widgets.default_palette=combo);
@@ -990,55 +862,35 @@ public:
       }
 
       layout->addWidget(widgets.selection=new TransferFunctionSelectedFunctionsView(this->model));
-
       layout->addWidget(widgets.canvas = new TransferFunctionCanvasView(this->model, widgets.selection));
       layout->addWidget(widgets.input = new TransferFunctionInputView(this->model));
-      layout->addWidget(widgets.output = new TransferFunctionOutputView(this->model));
-
-      this->widgets.tabs = new QTabWidget();
-      widgets.tabs->addTab(widgets.input_statistics = new ArrayStatisticsView(), "Input stats");
-      widgets.tabs->addTab(widgets.output_statistics = new ArrayStatisticsView(), "Output stats");
-      widgets.tabs->addTab(widgets.text = new TransferFunctionTextEditView(this->model), "Text");
-      layout->addWidget(widgets.tabs);
+      layout->addWidget(widgets.statistics = new ArrayStatisticsView());
 
       setLayout(layout);
     }
   }
 
   //setStatistics
-  void setStatistics(const Statistics& value,bool bOutput)  
+  void setStatistics(const Statistics& value)  
   {
-    if (auto& dst=bOutput? widgets.output_statistics : widgets.input_statistics)
+    widgets.statistics->setStatistics(value);
+
+    for (auto it : widgets.statistics->widgets.components)
     {
-      dst->setStatistics(value);
-
-      for (auto it : dst->widgets.components)
+      if (auto histogram_view=it.histogram)
       {
-        if (auto histogram_view=it.histogram)
+        auto sync=[](QCanvas2d* dst, QCanvas2d* src)
         {
-          auto sync=[](QCanvas2d* dst, QCanvas2d* src)
-          {
-            dst->blockSignals(true);
-            //dst->setProjection(src->getProjection());
-            dst->setCurrentPos(src->getCurrentPos());
-            dst->blockSignals(false);
-          };
+          dst->blockSignals(true);
+          //dst->setProjection(src->getProjection());
+          dst->setCurrentPos(src->getCurrentPos());
+          dst->blockSignals(false);
+        };
 
-          connect(widgets.canvas,&QCanvas2d::repaintNeeded,[this,histogram_view,sync](){ sync(histogram_view,widgets.canvas);});
-          connect(histogram_view,&QCanvas2d::repaintNeeded,[this,histogram_view,sync](){ sync(widgets.canvas,histogram_view);});
-        }
+        connect(widgets.canvas,&QCanvas2d::repaintNeeded,[this,histogram_view,sync](){ sync(histogram_view,widgets.canvas);});
+        connect(histogram_view,&QCanvas2d::repaintNeeded,[this,histogram_view,sync](){ sync(widgets.canvas,histogram_view);});
       }
     }
-  }
-
-  //setInputStatistics
-  void setInputStatistics(const Statistics& value) {
-    setStatistics(value,false);
-  }
-
-  //setOutputStatistics
-  void setOutputStatistics(const Statistics& value) {
-    setStatistics(value, true);
   }
 
   //setShowCheckboard
@@ -1064,8 +916,6 @@ public:
   }
 
 };
-
-typedef TransferFunctionView PaletteView;
 
 } //namespace Visus
 

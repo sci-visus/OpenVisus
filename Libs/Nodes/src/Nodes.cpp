@@ -40,7 +40,6 @@ For support : support@visus.net
 
 #include <Visus/Db.h>
 
-#include <Visus/CpuPaletteNode.h>
 #include <Visus/DatasetNode.h>
 #include <Visus/FieldNode.h>
 #include <Visus/FunnelNode.h>
@@ -68,7 +67,6 @@ void NodesModule::attach()
   DbModule::attach();
   DataflowModule::attach();
 
-  VISUS_REGISTER_NODE_CLASS(CpuPaletteNode);
   VISUS_REGISTER_NODE_CLASS(DatasetNode);
   VISUS_REGISTER_NODE_CLASS(FieldNode);
   VISUS_REGISTER_NODE_CLASS(FunnelNode);

@@ -50,6 +50,7 @@ class MyJob(NodeJob):
 		
 		input=Array.toNumPy(self.input,bShareMem=True)
 		
+		t1=Time.now()
 		self.printMessage("Got in input",input.shape,input.dtype,"origin=",self.input.origin)
 		# self.debugInput()
 
@@ -80,7 +81,8 @@ class MyJob(NodeJob):
 		if self.aborted():
 			return				
 			
-		self.printMessage("Output is ",output.shape, output.dtype)
+		
+		self.printMessage("Output is ",output.shape, output.dtype,"msec",t1.elapsedMsec())
 		output=Array.fromNumPy(output,TargetDim=pdim,bShareMem=False)
 		output.shareProperties(self.input)
 

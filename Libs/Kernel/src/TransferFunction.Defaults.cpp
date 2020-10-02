@@ -785,65 +785,43 @@ SharedPtr<TransferFunction> TransferFunction::getDefault(String default_name, co
 
   default_name = StringUtils::toLower(default_name);
 
+  auto ret = std::make_shared<TransferFunction>(nsamples, default_name);
+
   if (default_name == "grayopaque")
   {
-    auto ret=std::make_shared<TransferFunction>();
-    ret->default_name = default_name;
-    int nfunctions = 4;
-    for (int F = 0; F < nfunctions; F++)
-      ret->functions.push_back(std::make_shared<SingleTransferFunction>(guessName(F), guessColor(F), std::vector<double>(nsamples, 0.0)));
-
     for (int I = 0; I < nsamples; I++)
     {
       double alpha = I / (nsamples - 1.0);
-
-      for (int F = 0; F < nfunctions - 1; F++)
-        ret->functions[F]->values[I] = alpha;
-
-      ret->functions.back()->values[I] = 1.0;
+      ret->R->values[I] = alpha;
+      ret->G->values[I] = alpha;
+      ret->B->values[I] = alpha;
+      ret->A->values[I] = 1.0;
     }
     return ret;
   }
 
   if (default_name == "graytransparent")
   {
-    auto ret = std::make_shared<TransferFunction>();
-    ret->default_name = default_name;
-
-    int nfunctions = 4;
-    for (int F = 0; F < nfunctions; F++)
-      ret->functions.push_back(std::make_shared<SingleTransferFunction>(guessName(F), guessColor(F), std::vector<double>(nsamples, 0.0)));
-
     for (int I = 0; I < nsamples; I++)
     {
       double alpha = I / (nsamples - 1.0);
-
-      for (int F = 0; F < nfunctions - 1; F++)
-        ret->functions[F]->values[I] = alpha;
-
-      ret->functions.back()->values[I] = alpha * alpha;
+      ret->R->values[I] = alpha;
+      ret->G->values[I] = alpha;
+      ret->B->values[I] = alpha;
+      ret->A->values[I] = alpha * alpha;
     }
-
     return ret;
   }
 
   if (default_name == "hsl")
   {
-    auto ret = std::make_shared<TransferFunction>();
-    ret->default_name = default_name;
-
-    int nfunctions = 4;
-    for (int F = 0; F < nfunctions; F++)
-      ret->functions.push_back(std::make_shared<SingleTransferFunction>(guessName(F), guessColor(F), std::vector<double>(nsamples, 0.0)));
-
     for (int I = 0; I < nsamples; I++)
     {
-      double alpha = I / (nsamples - 1.0);
-      Color color = Color((float)alpha, 0.5f, 1.0f, 1.0f, Color::HLSType).toRGB();
-      ret->functions[0]->values[I] = color.getRed();
-      ret->functions[1]->values[I] = color.getGreen();
-      ret->functions[2]->values[I] = color.getBlue();
-      ret->functions[3]->values[I] = color.getAlpha();
+      Color color = Color((float)(I / (nsamples - 1.0)), 0.5f, 1.0f, 1.0f, Color::HLSType).toRGB();
+      ret->R->values[I] = color.getRed();
+      ret->G->values[I] = color.getGreen();
+      ret->B->values[I] = color.getBlue();
+      ret->A->values[I] = color.getAlpha();
     }
 
     return ret;
@@ -893,9 +871,8 @@ SharedPtr<TransferFunction> TransferFunction::getDefault(String default_name, co
 
   {
     auto fromRGBAColorMap = [&](const double* buffer, size_t buffer_size) {
-      auto ret = TransferFunction::fromArray(RGBAColorMap(buffer, buffer_size).toArray(nsamples));
-      ret->default_name = default_name;
-      return ret;
+      return TransferFunction::fromArray(RGBAColorMap(buffer, buffer_size).toArray(nsamples), default_name);
+       ret;
     };
 
     if (default_name == "bluegreendivergent")

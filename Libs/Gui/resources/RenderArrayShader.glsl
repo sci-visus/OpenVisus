@@ -152,6 +152,8 @@ void main()
   #if PALETTE_ENABLED
 
     #if TEXTURE_NCHANNELS==1
+      if (frag_color.r<0.0) discard;
+      if (frag_color.r>1.0) discard;
       frag_color=PALETTE(frag_color.r);
 
     #elif TEXTURE_NCHANNELS==2

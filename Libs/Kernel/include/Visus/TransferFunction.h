@@ -54,17 +54,15 @@ public:
 
   VISUS_CLASS(SingleTransferFunction)
 
-  String              name;
-  Color               color;
   std::vector<double> values;
 
   //constructor
-  SingleTransferFunction() {
+  SingleTransferFunction(std::vector<double> values_=std::vector<double>(256,0.0))
+    : values(values_) {
   }
 
   //constructor (identity function)
-  SingleTransferFunction(String name_, Color color_ = Colors::Black, std::vector<double> values_=std::vector<double>(256,0.0))
-    : name(name_),color(color_),values(values_) {
+  SingleTransferFunction(int nsamples) : SingleTransferFunction(std::vector<double>(nsamples, 0.0)) {
   }
 
   //destructor
@@ -74,14 +72,6 @@ public:
   //getNumberOfSamples
   inline int getNumberOfSamples() const {
     return (int)values.size();
-  }
-
-  //setNumberOfSamples
-  void setNumberOfSamples(int value) {
-    std::vector<double> values(value);
-    for (int I = 0; I < value; I++)
-      values[I] = getValue(I / (double)(value - 1));
-    this->values = values;
   }
 
   //getValue (x must be in range [0,1])
@@ -111,16 +101,12 @@ public:
   //write
   void write(Archive& ar) const
   {
-    ar.write("name", name);
-    ar.write("color", color);
     ar.write("values", values);
   }
 
   //read
   void read(Archive& ar)
   {
-    ar.read("name", name);
-    ar.read("color", color);
     ar.read("values", values);
   }
 
@@ -144,27 +130,37 @@ class VISUS_KERNEL_API TransferFunction : public Model
 {
 public:
 
-  //functions
-  std::vector< SharedPtr<SingleTransferFunction> > functions;
+  //how to map input data to [0,1]
+  enum NormalizationMode
+  {
+    FieldRange,
+    ComputeRangePerComponent,
+    ComputeRangeOverall,
+    UserRange
+  };
+
+  SharedPtr<SingleTransferFunction> R;
+  SharedPtr<SingleTransferFunction> G;
+  SharedPtr<SingleTransferFunction> B;
+  SharedPtr<SingleTransferFunction> A;;
 
   //texture
   SharedPtr<Object> texture;
 
   //constructor
-  TransferFunction() {
+  TransferFunction(int nsamples=256, String default_name_="") : default_name(default_name_) {
+    R = std::make_shared<SingleTransferFunction>(nsamples);
+    G = std::make_shared<SingleTransferFunction>(nsamples);
+    B = std::make_shared<SingleTransferFunction>(nsamples);
+    A = std::make_shared<SingleTransferFunction>(nsamples);
   }
-
-  //copy constructor
-  //TransferFunction(const TransferFunction& other) {
-  //  operator=(other);
-  //}
 
   //destructor
   virtual ~TransferFunction() {
   }
 
   //fromArray
-  static SharedPtr<TransferFunction> fromArray(Array src);
+  static SharedPtr<TransferFunction> fromArray(Array src, String default_name="");
 
   //fromString
   static SharedPtr<TransferFunction> fromString(String content);
@@ -172,40 +168,36 @@ public:
   //getDefault
   static SharedPtr<TransferFunction> getDefault(String default_name, const int nsamples=256);
 
-  //guessName
-  static String guessName(int I) {
-    return std::vector<String>({ "Red","Green","Blue","Alpha",cstring(I) })[Utils::clamp(I, 0, 4)];
-  }
-
-  //guessColor
-  static Color guessColor(int I) {
-    return std::vector<Color>({ Colors::Red, Colors::Green, Colors::Blue, Colors::Gray,Color::random() })[Utils::clamp(I, 0, 4)];
-  }
-
   //getTypeName
   virtual String getTypeName() const override {
     return "TransferFunction";
   }
 
+  //getFunctions
+  std::vector<SharedPtr<SingleTransferFunction> > getFunctions() const {
+    return { this->R,this->G,this->B,this->A };
+  }
+
+  //setRed
+  void setRed(SharedPtr<SingleTransferFunction> value);
+
+  //setGreen
+  void setGreen(SharedPtr<SingleTransferFunction> value);
+
+  //setBlue
+  void setBlue(SharedPtr<SingleTransferFunction> value);
+
+  //setRed
+  void setAlpha(SharedPtr<SingleTransferFunction> value);
+
   //getNumberOfSamples
   int getNumberOfSamples() const {
-    return functions.empty() ? 0 : functions[0]->getNumberOfSamples();
+    return R->getNumberOfSamples();
   }
-
-  //setNumberOfSamples
-  void setNumberOfSamples(int value);
-
-  //getNumberOfFunctions
-  int getNumberOfFunctions() const {
-    return (int)functions.size();
-  }
-
-  //setNumberOfFunctions
-  void setNumberOfFunctions(int value);
 
   //valid
   bool valid() const {
-    return getNumberOfSamples() > 0 && getNumberOfFunctions() >0;
+    return getNumberOfSamples() > 0;
   }
 
   //operator=
@@ -234,54 +226,25 @@ public:
   //computeRange
   Range computeRange(Array src, int C, Aborted aborted = Aborted()) const;
 
-  //getInputNormalization
-  int getInputNormalizationMode() const {
-    return input_normalization_mode;
+  //getNormalizationMode
+  int getNormalizationMode() const {
+    return normalization_mode;
   }
 
   //setInputNormalizationMode
-  void setInputNormalizationMode(int value) {
-    setProperty("SetInputNormalizationMode", this->input_normalization_mode, value);
+  void setNormalizationMode(int value) {
+    setProperty("SetNormalizationMode", this->normalization_mode, value);
   }
 
-  //getInputRange
-  Range getInputRange() {
-    return this->input_range;
+  //getUserRange
+  Range getUserRange() const {
+    return this->user_range;
   }
 
-  //setInputRange
-  void setInputRange(Range range) {
-    setProperty("SetInputRange", this->input_range, range);
+  //setUserRange
+  void setUserRange(Range range) {
+    setProperty("SetUserRange", this->user_range, range);
   }
-
-  //getOutputDType
-  DType getOutputDType() const {
-    return output_dtype;
-  }
-
-  //setOutputDType
-  void setOutputDType(DType value) {
-    setProperty("SetOutputDType", this->output_dtype, value);
-  }
-
-  //getOutputRange
-  Range getOutputRange() const {
-    return output_range;
-  }
-
-  //setOutputRange
-  void setOutputRange(Range value) {
-    setProperty("SetOutputRange", this->output_range, value);
-  }
-
-  //clearFunctions
-  void clearFunctions();
-
-  //addFunction
-  void addFunction(SharedPtr<SingleTransferFunction> fn);
-
-  //removeFunction
-  void removeFunction(int index);
 
   //getDefaults
   static std::vector<String> getDefaults();
@@ -328,16 +291,10 @@ private:
   double attenuation = 0.0;
 
   //input_normalization
-  int input_normalization_mode=ArrayUtils::UseDTypeRange;
+  int normalization_mode = FieldRange;
 
-  //input_range
-  Range input_range;
-
-  //what is the output (this must be atomic)
-  DType output_dtype = DTypes::UINT8;
-
-  //how to map the range [0,1] to some user range
-  Range output_range = Range(0, 255, 1);
+  //user_range
+  Range user_range;
 
   //setDefaultName
   void setDefaultName(String value) {

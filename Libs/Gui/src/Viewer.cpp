@@ -68,7 +68,6 @@ For support : support@visus.net
 #include <Visus/ModelViewNode.h>
 #include <Visus/KdRenderArrayNode.h>
 #include <Visus/KdQueryNode.h>
-#include <Visus/CpuPaletteNode.h>
 #include <Visus/StatisticsNode.h>
 #include <Visus/NetService.h>
 #include <Visus/ModVisus.h>
@@ -401,14 +400,6 @@ void Viewer::execute(Archive& ar)
     ar.read("uuid", uuid);
     ar.read("parent", parent);
     addScripting(uuid, findNodeByUUID(parent));
-    return;
-  }
-
-  if (ar.name == "AddCpuTransferFunction") {
-    String uuid, parent;
-    ar.read("uuid", uuid);
-    ar.read("parent", parent);
-    addCpuTransferFunction(uuid, findNodeByUUID(parent));
     return;
   }
 
@@ -2513,49 +2504,6 @@ ScriptingNode* Viewer::addScripting(String uuid, Node* parent)
   return ret;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-CpuPaletteNode* Viewer::addCpuTransferFunction(String uuid, Node* parent)
-{
-  if (!parent)
-    parent = getRoot();
-
-  if (uuid.empty())
-    uuid = dataflow->guessNodeUIID("cpu_tf");
-
-  //guess number of functions
-  int num_functions = 1;
-  if (DataflowPortValue* last_published = dataflow->guessLastPublished(parent->getOutputPort("array")))
-  {
-    if (auto last_data = std::dynamic_pointer_cast<Array>(last_published->value))
-      num_functions = last_data->dtype.ncomponents();
-  }
-
-  dropSelection();
-
-  CpuPaletteNode* ret = nullptr;
-  beginUpdate(
-    StringTree("AddCpuTransferFunction", "uuid", uuid, "parent", getUUID(parent)),
-    StringTree("RemoveNode", "uuid", uuid));
-  {
-    //node
-    auto node = new CpuPaletteNode();
-    ret = node;
-    node->setUUID(uuid);
-    node->setName("CpuPalette");
-    auto palette = TransferFunction::getDefault("GrayOpaque");
-    palette->setNumberOfFunctions(num_functions);
-    node->setTransferFunction(palette);
-    addNode(parent, node);
-    connectNodes(parent, node);
-
-    //render
-    addRender(concatenate(uuid, "_render"), node,/*no need for a palette*/"");
-
-  }
-  endUpdate();
-
-  return ret;
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 StatisticsNode* Viewer::addStatistics(String uuid, Node* parent)

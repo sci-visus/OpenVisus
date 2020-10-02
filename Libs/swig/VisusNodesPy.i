@@ -10,7 +10,6 @@
 #include <Visus/IdxDataset.h>
 #include <Visus/IdxMultipleDataset.h>
 #include <Visus/Dataflow.h>
-#include <Visus/CpuPaletteNode.h>
 #include <Visus/FieldNode.h>
 #include <Visus/ModelViewNode.h>
 #include <Visus/PaletteNode.h>
@@ -31,7 +30,6 @@ using namespace Visus;
 %include <Visus/Nodes.h>
 
 #if 0
-%feature("director") Visus::CpuPaletteNode;
 %feature("director") Visus::FieldNode;
 %feature("director") Visus::ModelViewNode;
 %feature("director") Visus::PaletteNode;
@@ -42,7 +40,6 @@ using namespace Visus;
 %feature("director") Visus::KdQueryNode;
 #endif
 
-%include <Visus/CpuPaletteNode.h>
 %include <Visus/FieldNode.h>
 %include <Visus/ModelViewNode.h>
 %include <Visus/PaletteNode.h>

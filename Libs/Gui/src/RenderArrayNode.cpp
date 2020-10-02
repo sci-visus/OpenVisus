@@ -226,7 +226,9 @@ public:
     SharedPtr<GLTexture> palette_texture;
     if (palette)
     {
-      palette_texture = GLTexture::createFromArray(palette->toArray());
+      auto array = palette->toArray();
+      //ArrayUtils::saveImage("tmp.png", array);
+      palette_texture = GLTexture::createFromArray(array);
       if (!palette_texture)
         return;
     }
@@ -484,9 +486,6 @@ public:
    
     // Read transfer function data from the palette and pass to OSPRay,
     // assuming an RGBA palette
-    if (palette->functions.size() != 4)
-      PrintInfo("WARNING: OSPRay palettes must be RGBA!");
-
     sceneChanged = true;
 
     const size_t npaletteSamples = 128;
@@ -498,10 +497,10 @@ public:
       const float x = static_cast<float>(i) / npaletteSamples;
 
       // Assumes functions = {R, G, B, A}
-      for (size_t j = 0; j < 3; ++j)
-        tfnColors[i][j] = palette->functions[j]->getValue(x);
-
-      tfnOpacities[i] = palette->functions[3]->getValue(x);
+      tfnColors[i][0] = palette->R->getValue(x);
+      tfnColors[i][1] = palette->G->getValue(x);
+      tfnColors[i][2] = palette->B->getValue(x);
+      tfnOpacities[i] = palette->A->getValue(x);
     }
 
     cpp::TransferFunction transferFcn("piecewiseLinear");

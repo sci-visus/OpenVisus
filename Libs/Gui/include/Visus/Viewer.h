@@ -75,7 +75,6 @@ class RenderArrayNode;
 class ModelViewNode;
 class KdRenderArrayNode;
 class KdQueryNode;
-class CpuPaletteNode;
 class StatisticsNode;
 
 ////////////////////////////////////////////////////////////////////
@@ -648,9 +647,6 @@ public:
   //setScriptingCode
   void setScriptingCode(String value);
 
-  //addCpuTransferFunction
-  CpuPaletteNode* addCpuTransferFunction(String uuid, Node* parent);
-
   //addStatistics
   StatisticsNode* addStatistics(String uuid, Node* parent);
 
@@ -776,7 +772,6 @@ private:
     QAction* AddKdRender = nullptr;
     QAction* AddScripting = nullptr;
     QAction* AddStatistics = nullptr;
-    QAction* AddCpuTransferFunction = nullptr;
 
     QAction* ShowLicences = nullptr;
 

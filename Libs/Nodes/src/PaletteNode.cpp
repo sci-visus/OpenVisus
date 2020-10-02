@@ -46,7 +46,7 @@ class ComputeStatsJob : public NodeJob
 {
 public:
 
-  Node* node;
+  Node*              node;
   Array              data;
   SharedPtr<Palette> palette;
 
@@ -58,11 +58,7 @@ public:
   //runJob
   virtual void runJob() override
   {
-    std::vector<Range> ranges;
-    for (int C = 0; C < data.dtype.ncomponents(); C++)
-      ranges.push_back(palette->computeRange(data, C, aborted));
-
-    if (auto stats = Statistics::compute(data, ranges, 256, aborted))
+    if (auto stats = Statistics::compute(data, 256, aborted))
     {
       DataflowMessage msg;
       msg.writeValue("statistics", stats);

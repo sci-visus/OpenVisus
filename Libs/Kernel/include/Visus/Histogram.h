@@ -71,7 +71,7 @@ public:
   }
 
   //compute
-  static bool compute(Histogram& dst,Array src,int C,const Range& range,int nbins,Aborted aborted=Aborted());
+  static bool compute(Histogram& dst,Array src,int C,int nbins,Aborted aborted=Aborted());
 
   //empty
   bool empty() const {

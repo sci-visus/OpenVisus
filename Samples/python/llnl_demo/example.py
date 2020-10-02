@@ -208,8 +208,9 @@ class Explorer3d(QMainWindow):
 		
 if __name__ == "__main__":
 	app = QApplication(sys.argv)
-
-	url=r'D:\GoogleSci\visus_dataset\TALASS\ACAM\battery.idx'
+	#url=r'D:\GoogleSci\visus_dataset\2kbit1\zip\rowmajor\visus.idx'
+	url=r'D:\GoogleSci\visus_dataset\rabbit3d\visus.idx'
+	#url=r'D:\GoogleSci\visus_dataset\TALASS\ACAM\battery.idx'
 	#url=r'D:\GoogleSci\visus_dataset\TALASS\ACAM\meteorite.idx'
 	#url=r'D:\GoogleSci\visus_dataset\TALASS\ACAM\TrussRecon.idx'
 	explorer=Explorer3d(url)

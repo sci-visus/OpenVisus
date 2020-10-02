@@ -216,7 +216,7 @@ bool KdRenderArrayNode::processInput()
 
       if (!dtype.isVectorOf(DTypes::UINT8))
       {
-        for (int C=0;C<std::min(4,dtype.ncomponents());C++)
+        for (int C = 0; C < std::min(4, dtype.ncomponents()); C++)
         {
           //NOTE if I had to compute the dynamic range I will use only root data
           auto input_range = palette ? 

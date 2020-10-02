@@ -46,18 +46,32 @@ struct ComputeHistogramOp
 {
 
   template <class Sample>
-  bool execute(Histogram& dst,Array src,int C,Range range,int nbins,Aborted aborted)
+  bool execute(Histogram& dst,Array src,int C,int nbins,Aborted aborted)
   {
     if (aborted())
       return false;
 
-    if (!range.delta())
-      return false;
+
+    //dynamic range
+    Range range;
+
+    if (src.dtype.isVectorOf(DTypes::UINT8))
+    {
+      range = Range(0, 255, 1);
+    }
+    else
+    {
+      range = ArrayUtils::computeRange(src, C, aborted);
+
+      if (!range.delta())
+        return false;
+    }
 
     Int64 Tot=src.getTotalNumberOfSamples();
     dst=Histogram(range,nbins); 
 
     auto samples=GetComponentSamples<Sample>(src,C);
+
 
     int offset=0;
     for (auto P = ForEachPoint(samples.dims); !P.end(); P.next(), offset++)
@@ -74,9 +88,9 @@ struct ComputeHistogramOp
 
 };
 
-bool Histogram::compute(Histogram& dst,Array src,int C,const Range& range,int nbins,Aborted aborted) {
+bool Histogram::compute(Histogram& dst,Array src,int C,int nbins,Aborted aborted) {
   ComputeHistogramOp op;
-  return ExecuteOnCppSamples(op,src.dtype,dst,src,C,range,nbins,aborted);
+  return ExecuteOnCppSamples(op,src.dtype,dst,src,C,nbins,aborted);
 }
 
 } //namespace Visus

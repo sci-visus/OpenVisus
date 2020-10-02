@@ -50,7 +50,6 @@ For support : support@visus.net
 #include <Visus/PaletteNode.h>
 #include <Visus/ModelViewNode.h>
 #include <Visus/FieldNode.h>
-#include <Visus/CpuPaletteNode.h>
 #include <Visus/GLCameraNode.h>
 #include <Visus/IsoContourNode.h>
 #include <Visus/IsoContourRenderNode.h>
@@ -63,7 +62,6 @@ For support : support@visus.net
 #include <Visus/StatisticsNodeView.h>
 #include <Visus/TimeNodeView.h>
 #include <Visus/FieldNodeView.h>
-#include <Visus/CpuTransferFunctionNodeView.h>
 #include <Visus/PaletteNodeView.h>
 
 #include <Visus/GLOrthoCamera.h>
@@ -180,8 +178,7 @@ void Viewer::createToolBar()
       actions.AddRender, 
       actions.AddKdRender, 
       actions.AddScripting, 
-      actions.AddStatistics, 
-      actions.AddCpuTransferFunction
+      actions.AddStatistics
     })); 
 
     widgets.toolbar->bookmarks_button=tab->addBlueMenu(QIcon(""), "Bookmarks", createBookmarks());
@@ -382,10 +379,6 @@ void Viewer::createActions()
     addStatistics("", getSelection());
   }));
 
-  addAction(actions.AddCpuTransferFunction=GuiFactory::CreateAction("Add CpuTransf",this, QIcon(":/cpu.png"), [this]() {
-    addCpuTransferFunction("", getSelection());
-  }));
-
   addAction(actions.ShowLicences = GuiFactory::CreateAction("Licences...", this, [this]() {
     showLicences();
   }));
@@ -532,8 +525,7 @@ DataflowTreeView* Viewer::createTreeView()
       actions.AddRender,
       actions.AddKdRender,
       actions.AddScripting,
-      actions.AddStatistics,
-      actions.AddCpuTransferFunction 
+      actions.AddStatistics
     })
     {
       if (action && action->isEnabled())
@@ -621,7 +613,6 @@ void Viewer::refreshActions()
   actions.AddKdRender->setEnabled(selection && dynamic_cast<KdQueryMode*>(selection));
   actions.AddScripting->setEnabled(selection && selection->hasOutputPort("array"));
   actions.AddStatistics->setEnabled(selection && selection->hasOutputPort("array"));
-  actions.AddCpuTransferFunction->setEnabled(selection && selection->hasOutputPort("array"));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -680,9 +671,6 @@ void Viewer::editNode(Node* node)
   if (auto field_node=dynamic_cast<FieldNode*>(node))
     return showWidget(new FieldNodeView(field_node));
 
-  if (auto model=dynamic_cast<CpuPaletteNode*>(node))
-    return showWidget(new CpuTransferFunctionNodeView(model));
-
   if (auto model=dynamic_cast<PaletteNode*>(node))
     return showWidget(new PaletteNodeView(model));
 
@@ -713,6 +701,7 @@ void Viewer::editNode(Node* node)
 ///////////////////////////////////////////////////////////
 void Viewer::showWidget(QWidget* widget, String title)
 {
+  widget->setWindowFlags(Qt::WindowStaysOnTopHint);
   widget->show();
 }
 

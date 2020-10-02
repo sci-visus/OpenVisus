@@ -41,22 +41,24 @@ For support : support@visus.net
 namespace Visus {
 
 /////////////////////////////////////////////////////////////////////
-SharedPtr<TransferFunction> TransferFunction::fromArray(Array src)
+SharedPtr<TransferFunction> TransferFunction::fromArray(Array src, String default_name)
 {
   int nfunctions = src.dtype.ncomponents();
+  VisusReleaseAssert(nfunctions == 4);
   int nsamples = (int)src.dims[0];
 
   src = ArrayUtils::smartCast(src, DType(src.dtype.ncomponents(), DTypes::FLOAT64));
 
-  auto ret=std::make_shared<TransferFunction>();
-  for (int F = 0; F < nfunctions; F++)
-  {
-    auto component = src.getComponent(F);
-    VisusAssert(component.c_size() == sizeof(Float64) * nsamples);
-    std::vector<double> values(component.c_ptr<Float64*>(), component.c_ptr<Float64*>() + nsamples);
-    ret->addFunction(std::make_shared<SingleTransferFunction>(guessName(F), guessColor(F), values));
-  }
+  auto values_R = src.getComponent(0); auto R = values_R.c_ptr<Float64*>();
+  auto values_G = src.getComponent(1); auto G = values_G.c_ptr<Float64*>();
+  auto values_B = src.getComponent(2); auto B = values_B.c_ptr<Float64*>();
+  auto values_A = src.getComponent(3); auto A = values_A.c_ptr<Float64*>();
 
+  auto ret = std::make_shared<TransferFunction>(nsamples, default_name);
+  ret->R = std::make_shared<SingleTransferFunction>(std::vector<double>(R, R + nsamples));
+  ret->G = std::make_shared<SingleTransferFunction>(std::vector<double>(G, G + nsamples));
+  ret->B = std::make_shared<SingleTransferFunction>(std::vector<double>(B, B + nsamples));
+  ret->A = std::make_shared<SingleTransferFunction>(std::vector<double>(A, A + nsamples));
   return ret;
 }
 
@@ -85,6 +87,43 @@ StringTree DrawValues(int function, int x1, int x2, std::vector<double> values) 
 }
 
 
+////////////////////////////////////////////////////////////////////
+void TransferFunction::setRed(SharedPtr<SingleTransferFunction> value)
+{
+  if (this->R == value) return;
+  beginUpdate(value->encode("SetRed"), this->R->encode("SetRed"));
+  this->R = value;
+  endUpdate();
+
+}
+
+////////////////////////////////////////////////////////////////////
+void TransferFunction::setGreen(SharedPtr<SingleTransferFunction> value)
+{
+  if (this->G == value) return;
+  beginUpdate(value->encode("SetGreen"), this->R->encode("SetGreena"));
+  this->G = value;
+  endUpdate();
+}
+
+////////////////////////////////////////////////////////////////////
+void TransferFunction::setBlue(SharedPtr<SingleTransferFunction> value)
+{
+  if (this->B == value) return;
+  beginUpdate(value->encode("SetBlue"), this->R->encode("SetBlue"));
+  this->B = value;
+  endUpdate();
+}
+
+////////////////////////////////////////////////////////////////////////////
+void TransferFunction::setAlpha(SharedPtr<SingleTransferFunction> value)
+{
+  if (this->A == value) return;
+  beginUpdate(value->encode("SetAlpha"), this->R->encode("SetAlpha"));
+  this->A = value;
+  endUpdate();
+}  
+
 
 ////////////////////////////////////////////////////////////////////////////
 void TransferFunction::setDefault(String new_name, bool bFullCopy)
@@ -95,23 +134,27 @@ void TransferFunction::setDefault(String new_name, bool bFullCopy)
   }
   else
   {
-    auto new_functions = getDefault(new_name)->functions;
+    auto def = getDefault(new_name);
 
     StringTree redo("SetDefault", "name", new_name, "full", bFullCopy);
 
     //describe actions for undo
     StringTree undo = Transaction();
     {
-      undo.addChild("ClearFunctions");
       undo.addChild("SetDefaultName")->write("value", this->default_name);
-      for (auto fn : this->functions)
-        undo.addChild("AddFunction")->addChild(fn->encode("Function"));
+      undo.addChild(R->encode("SetRed"));
+      undo.addChild(G->encode("SetGreen"));
+      undo.addChild(B->encode("SetBlue"));
+      undo.addChild(A->encode("SetAlpha"));
     }
 
     beginUpdate(redo, undo);
     {
       this->default_name = new_name;
-      this->functions = new_functions;
+      this->R = def->R;
+      this->G = def->G;
+      this->B = def->B;
+      this->A = def->A;
       this->texture.reset();
     }
     endUpdate();
@@ -139,51 +182,51 @@ void TransferFunction::execute(Archive& ar)
     return;
   }
 
-  if (ar.name == "SetNumberOfSamples")
+  if (ar.name == "SetRed")
   {
-    int value;
-    ar.read("value", value);
-    setNumberOfSamples(value);
+    auto value = std::make_shared<SingleTransferFunction>(); 
+    value->read(ar);
+    setRed(value);
     return;
   }
 
-  if (ar.name == "SetNumberOfFunctions")
+  if (ar.name == "SetGreen")
   {
-    int value;
-    ar.read("value", value);
-    setNumberOfFunctions(value);
+    auto value = std::make_shared<SingleTransferFunction>(); 
+    value->read(ar);
+    setGreen(value);
     return;
   }
 
-  if (ar.name == "SetInputRange")
+  if (ar.name == "SetBlue")
+  {
+    auto value = std::make_shared<SingleTransferFunction>(); 
+    value->read(ar);
+    setBlue(value);
+    return;
+  }
+
+  if (ar.name == "SetAlpha")
+  {
+    auto value = std::make_shared<SingleTransferFunction>(); 
+    value->read(ar);
+    setAlpha(value);
+    return;
+  }
+
+  if (ar.name == "SetUserRange")
   {
     Range value;
     ar.read("value", value);
-    setInputRange(input_range);
+    setUserRange(user_range);
     return;
   }
 
-  if (ar.name == "SetInputNormalizationMode")
+  if (ar.name == "SetNormalizationMode")
   {
-    int value = ArrayUtils::UseDTypeRange;
+    int value = FieldRange;
     ar.read("value", value);
-    setInputNormalizationMode(value);
-    return;
-  }
-
-  if (ar.name == "SetOutputDType")
-  {
-    DType value;
-    ar.read("value", value);
-    setOutputDType(value);
-    return;
-  }
-
-  if (ar.name == "SetOutputRange")
-  {
-    Range value;
-    ar.read("value", value);
-    setOutputRange(value);
+    setNormalizationMode(value);
     return;
   }
 
@@ -192,28 +235,6 @@ void TransferFunction::execute(Archive& ar)
     double value;
     ar.read("value", value);
     setAttenutation(value);
-    return;
-  }
-
-  if (ar.name == "ClearFunctions")
-  {
-    clearFunctions();
-    return;
-  }
-
-  if (ar.name == "AddFunction")
-  {
-    auto single = std::make_shared<SingleTransferFunction>();
-    single->read(*ar.getFirstChild());
-    addFunction(single);
-    return;
-  }
-
-  if (ar.name == "RemoveFunction")
-  {
-    int value;
-    ar.read("value", value);
-    removeFunction(value);
     return;
   }
 
@@ -240,116 +261,47 @@ void TransferFunction::execute(Archive& ar)
     return;
   }
 
-
   Model::execute(ar);
 }
 
 ////////////////////////////////////////////////////////////////////
 Range TransferFunction::computeRange(Array src, int C, Aborted aborted) const {
 
-  if (this->input_normalization_mode == ArrayUtils::UseFixedRange)
-    return this->input_range;
-  else
-    return ArrayUtils::computeRange(src, C, input_normalization_mode, aborted);
+  if (this->normalization_mode == UserRange)
+    return this->user_range;
+
+  //not a valid component
+  if (!(C >= 0 && C < src.dtype.ncomponents()))
+    return Range::invalid();
+
+  //FieldRange
+  if (this->normalization_mode == FieldRange)
+  {
+    Range ret = src.dtype.getDTypeRange(C);
+    if (ret.delta() > 0)
+      return ret;
+    else
+      return ArrayUtils::computeRange(src, C, aborted); 
+  }
+
+  //ComputeRangePerComponent
+  if (normalization_mode == ComputeRangePerComponent) 
+    return ArrayUtils::computeRange(src, C, aborted);
+
+  //ComputeRangeOverall
+  if (normalization_mode == ComputeRangeOverall)
+  {
+    Range ret = Range::invalid();
+    for (int C = 0; C < src.dtype.ncomponents(); C++)
+      ret = ret.getUnion(ArrayUtils::computeRange(src, C, aborted));
+    return ret;
+  }
+
+  VisusAssert(false);
+  return Range::invalid();
 }
 
 
-////////////////////////////////////////////////////////////////////
-void TransferFunction::addFunction(SharedPtr<SingleTransferFunction> fn)
-{
-  if (!functions.empty())
-    fn->setNumberOfSamples(getNumberOfSamples());
-
-  beginUpdate(
-    StringTree("AddFunction").addChild(fn->encode("Function")),
-    StringTree("RemoveFunction").write("index",(int)functions.size()));
-  {
-    this->default_name = "";
-    functions.push_back(fn);
-  }
-  endUpdate();
-}
-
-
-
-////////////////////////////////////////////////////////////////////
-void TransferFunction::removeFunction(int index)
-{
-  auto fn = functions[index];
-
-  beginUpdate(
-    StringTree("RemoveFunction").write("index", index),
-    StringTree("AddFunction").addChild(fn->encode("Function")));
-  {
-    this->default_name = "";
-    Utils::remove(functions, fn);
-  }
-  endUpdate();
-}
-
-////////////////////////////////////////////////////////////////////
-void TransferFunction::clearFunctions()
-{
-  if (functions.empty())
-    return;
-
-  beginTransaction();
-  {
-    while (!functions.empty())
-      removeFunction(0);
-  }
-  endTransaction();
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void TransferFunction::setNumberOfSamples(int new_value)
-{
-  auto old_value = this->getNumberOfSamples();
-  if (new_value == old_value || functions.empty())
-    return;
-
-  //describe actions for undo
-  auto undo = Transaction();
-  {
-    undo.addChild(StringTree("SetNumberOfSamples").write("value", cstring(old_value)));
-    for (int F = 0; F < getNumberOfFunctions(); F++)
-      undo.addChild(DrawValues(F, 0, getNumberOfSamples() - 1, functions[F]->values));
-  }
-
-  beginUpdate(
-    StringTree("SetNumberOfSamples").write("value", cstring(new_value)),
-    undo);
-  {
-    for (int F = 0; F < getNumberOfFunctions(); F++)
-      functions[F]->setNumberOfSamples(new_value);
-  }
-  endUpdate();
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void TransferFunction::setNumberOfFunctions(int value)
-{
-  if (getNumberOfSamples() == value)
-    return;
-
-  int nsamples = functions.empty() ? 256 : getNumberOfSamples();
-
-  beginTransaction();
-  {
-    while (getNumberOfFunctions() > value)
-      removeFunction(getNumberOfFunctions()-1);
-
-    while (getNumberOfFunctions() < value)
-    {
-      auto name = guessName(getNumberOfFunctions());
-      auto color = guessColor(getNumberOfFunctions());
-      auto values = std::vector<double>(nsamples, 0.0);
-      auto fn = std::make_shared<SingleTransferFunction>(name, color, values);
-      addFunction(fn);
-    }
-  }
-  endTransaction();
-}
 
 ////////////////////////////////////////////////////////////////////
 void TransferFunction::drawValues(int function, int x1, int x2, std::vector<double> new_values)
@@ -358,7 +310,7 @@ void TransferFunction::drawValues(int function, int x1, int x2, std::vector<doub
   VisusReleaseAssert(N==(1+x2-x1));
   VisusReleaseAssert(0<=x1 && x1<=x2 && x2<getNumberOfSamples());
 
-  auto fn = functions[function];
+  auto fn = getFunctions()[function];
 
   std::vector<double> old_values;
   for (int x = x1; x<=x2; x++)
@@ -393,7 +345,7 @@ void TransferFunction::drawLine(int function, int x1, double y1,int x2, double y
   x1 = Utils::clamp(x1, 0, getNumberOfSamples() - 1);
   x2 = Utils::clamp(x2, 0, getNumberOfSamples() - 1);
 
-  auto fn = functions[function];
+  auto fn = getFunctions()[function];
 
   std::vector<double> new_values; 
   for (int I=0; I < 1 + x2 - x1; I++)
@@ -423,59 +375,46 @@ void TransferFunction::drawLine(int function, int x1, double y1,int x2, double y
 }
 
 
-
 /////////////////////////////////////////////////////////////////////
 Array TransferFunction::toArray() const
 {
-  int nfunctions =(int)functions.size();
-  if (!nfunctions)
-    return Array();
-
   Array ret;
 
   int nsamples=getNumberOfSamples();
 
-  std::vector<double> alpha(nfunctions,1.0);
-  for (int F=0;F< nfunctions;F++)
+#if 1
   {
-    //RGBA palette
-    if (attenuation && nfunctions ==4 && F==3)
-      alpha[F]=1.0-attenuation;
-
-    //luminance+alpha
-    else if (attenuation && nfunctions ==2 && F==1)
-      alpha[F]=1.0-attenuation;
-  }
-
-  double vs=output_range.delta();
-  double vt=output_range.from;
-
-  if (output_dtype==DTypes::UINT8)
-  {
-    if (!ret.resize(nsamples,DType(nfunctions,DTypes::UINT8),__FILE__,__LINE__))
+    if (!ret.resize(nsamples,DTypes::UINT8_RGBA,__FILE__,__LINE__))
       return Array();
 
-    for (int F=0;F< nfunctions;F++)
+    for (int F=0;F< 4;F++)
     {
-      auto fn=functions[F];
-      GetComponentSamples<Uint8> write(ret,F);
-      for (int I=0;I<nsamples;I++)
-        write[I]=(Uint8)((alpha[F]*fn->values[I])*vs+vt);
+      auto fn = getFunctions()[F];
+      GetComponentSamples<Uint8> write(ret, F);
+      for (int I = 0; I < nsamples; I++)
+      {
+        double value = fn->values[I] * ((F == 3) ? (1 - this->attenuation) : 1.0);
+        write[I] = (Uint8)(value * 255.0);
+      }
     }
   }
-  else
+#else
   {
-    if (!ret.resize(nsamples,DType(nfunctions,DTypes::FLOAT32),__FILE__,__LINE__))
+    if (!ret.resize(nsamples,DTypes::FLOAT32_RGBA,__FILE__,__LINE__))
       return Array();
 
-    for (int F=0;F< nfunctions;F++)
+    for (int F = 0; F < 4; F++)
     {
-      auto fn=functions[F];
+      auto fn = functions[F];
       GetComponentSamples<Float32> write(ret,F);
-      for (int I=0;I<nsamples;I++)
-        write[I]=(Float32)((alpha[F]*fn->values[I])*vs+vt);
+      for (int I = 0; I < nsamples; I++)
+      {
+        auto value = fn->values[I] * (F == 3) ? (1 - this->attenuation) : 1.0;
+        write[I] = (Float32)(value);
+      }
     }
   }
+#endif
 
   return ret;
 }
@@ -501,7 +440,6 @@ SharedPtr<TransferFunction> TransferFunction::importTransferFunction(String url)
   }
 
   int nsamples = cint(lines[0]);
-  int nfunctions = 4;
   lines.erase(lines.begin());
   if (lines.size() != nsamples)
   {
@@ -509,23 +447,17 @@ SharedPtr<TransferFunction> TransferFunction::importTransferFunction(String url)
     return SharedPtr<TransferFunction>();
   }
 
-  auto ret=std::make_shared<TransferFunction>();
-  ret->output_dtype=DTypes::UINT8;
-  ret->output_range=Range(0, 255, 1);
-
-  for (int F = 0; F < nfunctions; F++)
-    ret->functions.push_back(std::make_shared<SingleTransferFunction>(guessName(F), guessColor(F), std::vector<double>(nsamples, 0.0)));
+  auto ret=std::make_shared<TransferFunction>(nsamples,"");
 
   for (int I = 0; I < nsamples; I++)
   {
     std::istringstream istream(lines[I]);
-
-    for (int F = 0; F < nfunctions; F++)
+    for (int F = 0; F < 4; F++)
     {
       double value;
       istream >> value;
       value = value / (nsamples - 1.0);
-      ret->functions[F]->values[I] = value;
+      ret->getFunctions()[F]->values[I] = value;
     }
   }
 
@@ -552,7 +484,7 @@ void TransferFunction::exportTransferFunction(String filename="")
   out<<nsamples<<std::endl;
   for (int I=0;I<nsamples;I++)
   {
-    for (auto fn : functions)
+    for (auto fn : getFunctions())
     {
       int value = (int)(fn->values[I] * (nsamples - 1));
       out << value << " ";
@@ -572,45 +504,44 @@ void TransferFunction::write(Archive& ar) const
   ar.write("default_name", default_name);
   ar.write("nsamples", nsamples);
   ar.write("attenuation", attenuation);
-  ar.write("input_range", input_range);
-  ar.write("input_normalization_mode", input_normalization_mode);
-  ar.write("output_dtype", output_dtype);
-  ar.write("output_range", output_range);
+  ar.write("user_range", user_range);
+  ar.write("normalization_mode", normalization_mode);
 
   if (!isDefault())
   {
-    for (auto fn : functions)
-      fn->write(*ar.addChild("function"));
+    this->R->write(*ar.addChild("function"));
+    this->G->write(*ar.addChild("function"));
+    this->B->write(*ar.addChild("function"));
+    this->A->write(*ar.addChild("function"));
   }
 }
 
 /////////////////////////////////////////////////////////////////////
 void TransferFunction::read(Archive& ar)
 {
-  this->functions.clear();
-
   int nsamples;
-
   ar.read("default_name", default_name);
   ar.read("nsamples", nsamples);
   ar.read("attenuation", attenuation);
-  ar.read("input_range", input_range);
-  ar.read("input_normalization_mode", input_normalization_mode);
-  ar.read("output_dtype", output_dtype);
-  ar.read("output_range", output_range);
+  
+  ar.read(ar.hasAttribute("input_range")? "input_range"              : "user_range",user_range);  //backward compatible
+  ar.read(ar.hasAttribute("input_range")? "input_normalization_mode" : "normalization_mode", normalization_mode);  //backward compatible
 
   if (this->default_name.empty())
   {
-    for (auto Function : ar.getChilds("function"))
-    {
-      auto single = std::make_shared<SingleTransferFunction>();
-      single->read(*Function);
-      functions.push_back(single);
-    }
+    auto v = ar.getChilds("function");
+    this->R = std::make_shared<SingleTransferFunction>(nsamples); this->R->read(*v[0]);
+    this->G = std::make_shared<SingleTransferFunction>(nsamples); this->G->read(*v[1]);
+    this->B = std::make_shared<SingleTransferFunction>(nsamples); this->B->read(*v[2]);
+    this->A = std::make_shared<SingleTransferFunction>(nsamples); this->A->read(*v[3]);
   }
   else
   {
-    this->functions = getDefault(default_name, nsamples)->functions;
+    auto def = getDefault(default_name, nsamples);
+    this->R = def->R;
+    this->G = def->G;
+    this->B = def->B;
+    this->A = def->A;
   }
 }
 
