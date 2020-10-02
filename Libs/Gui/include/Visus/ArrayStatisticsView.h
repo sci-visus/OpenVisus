@@ -74,7 +74,7 @@ public:
 
       QLabel*        dtype = nullptr;
       QLabel*        dims = nullptr;
-      QLabel*        array_range = nullptr;
+      QLabel*        field_range = nullptr;
       QLabel*        computed_range = nullptr;
       QLabel*        average = nullptr;
       QLabel*        median = nullptr;
@@ -91,7 +91,7 @@ public:
           auto form = new QFormLayout();
           form->addRow("DType", this->dtype = new QLabel(""));
           form->addRow("Dims", this->dims = new QLabel(""));
-          form->addRow("Array Range", this->array_range = new QLabel(""));
+          form->addRow("Array Range", this->field_range = new QLabel(""));
           form->addRow("Computed Range", this->computed_range = new QLabel(""));
           hlayout->addLayout(form);
         }
@@ -124,7 +124,7 @@ public:
       {
         this->dtype->setText(src.dtype.toString().c_str());
         this->dims->setText(src.dims.toString().c_str());
-        this->array_range->setText(formatRange(src.array_range).c_str());
+        this->field_range->setText(formatRange(src.field_range).c_str());
         this->computed_range->setText(formatRange(src.computed_range).c_str());
         this->average->setText(std::to_string(src.average).c_str());
         this->median->setText(std::to_string(src.median).c_str());

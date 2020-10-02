@@ -89,26 +89,26 @@ public:
     renderBackground(painter);
     renderGrid(painter);
 
-    auto fn=[&](double x) {
+    auto mylog=[&](double x) {
       return (x==0)? (0) : (1+log(x));
     };
 
     VisusAssert(getWorldBox().width ==1.0);
     VisusAssert(getWorldBox().height==1.0);
 
-    auto max_bin = 1.25*histogram.readBin(histogram.max);
-    if (!max_bin)
+    auto M = 1.25 * (*std::max_element(histogram.bins.begin(), histogram.bins.end()));
+    if (!M) 
       return;
 
-    double log_max_bin = fn(max_bin);
+    double log_max_bin = mylog(M);
 
     for (int x=0;x<histogram.getNumBins()-1;x++)
     {
       double x1=(x+0)/(double)(histogram.getNumBins()-1);
       double x2=(x+1)/(double)(histogram.getNumBins()-1);
 
-      double y =histogram.readBin(x)/max_bin;
-      auto log_h = fn(histogram.readBin(x));
+      double y =histogram.readBin(x)/ M;
+      auto log_h = mylog(histogram.readBin(x));
 
       //log
       painter.setPen(QColor(0,0,0,5));

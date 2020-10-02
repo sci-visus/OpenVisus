@@ -882,7 +882,6 @@ public:
         auto sync=[](QCanvas2d* dst, QCanvas2d* src)
         {
           dst->blockSignals(true);
-          //dst->setProjection(src->getProjection());
           dst->setCurrentPos(src->getCurrentPos());
           dst->blockSignals(false);
         };

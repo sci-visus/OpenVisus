@@ -122,7 +122,7 @@ struct ComputeStatisticsOp
       auto& single=stats.components[C];
       single.dtype=src.dtype.get(C);
       single.dims =src.dims;
-      single.array_range     = src.dtype.getDTypeRange(C);
+      single.field_range = src.dtype.getDTypeRange(C);
       single.computed_range  = ArrayUtils::computeRange(src, C, aborted);
 
       if (!nsamples)
@@ -143,7 +143,8 @@ struct ComputeStatisticsOp
       single.standard_deviation = running_stats.StandardDeviation();
       single.median             =(double)compute_median[nsamples/2];
 
-      if (!Histogram::compute(single.histogram,src,C, histogram_nbins,aborted))
+      single.histogram=Histogram(src.dtype.isVectorOf(DTypes::UINT8) ? Range(0, 255, 1) : single.computed_range, histogram_nbins);
+      if (!single.histogram.compute(src, C, aborted))
         return false;
     }
 

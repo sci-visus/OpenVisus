@@ -46,32 +46,17 @@ struct ComputeHistogramOp
 {
 
   template <class Sample>
-  bool execute(Histogram& dst,Array src,int C,int nbins,Aborted aborted)
+  bool execute(Histogram* histogram,Array src,int C, Aborted aborted)
   {
     if (aborted())
       return false;
 
-
-    //dynamic range
-    Range range;
-
-    if (src.dtype.isVectorOf(DTypes::UINT8))
-    {
-      range = Range(0, 255, 1);
-    }
-    else
-    {
-      range = ArrayUtils::computeRange(src, C, aborted);
-
-      if (!range.delta())
-        return false;
-    }
+    if (!histogram->range.delta())
+      return false;
 
     Int64 Tot=src.getTotalNumberOfSamples();
-    dst=Histogram(range,nbins); 
 
     auto samples=GetComponentSamples<Sample>(src,C);
-
 
     int offset=0;
     for (auto P = ForEachPoint(samples.dims); !P.end(); P.next(), offset++)
@@ -79,18 +64,17 @@ struct ComputeHistogramOp
       if (aborted()) 
         return false;
 
-      dst.incrementBin(dst.findBin((double)samples[offset]));
+      histogram->incrementBin(histogram->findBin((double)samples[offset]));
     }
 
-    dst.finilize();
     return true;
   }
 
 };
 
-bool Histogram::compute(Histogram& dst,Array src,int C,int nbins,Aborted aborted) {
+bool Histogram::compute(Array src,int C,Aborted aborted) {
   ComputeHistogramOp op;
-  return ExecuteOnCppSamples(op,src.dtype,dst,src,C,nbins,aborted);
+  return ExecuteOnCppSamples(op,src.dtype,this,src,C, aborted);
 }
 
 } //namespace Visus

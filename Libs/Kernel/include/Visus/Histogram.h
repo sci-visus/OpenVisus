@@ -51,12 +51,8 @@ public:
 
   VISUS_CLASS(Histogram)
 
-
-  Float64              from=0;
-  Float64              to=0;
+  Range                range=Range(0,0,0);
   std::vector<Uint64>  bins;
-  int                  min=0,max=0;
-  int                  start=0,end=0;
 
   //constructor
   Histogram() {
@@ -66,12 +62,11 @@ public:
   Histogram(Range range,int nbins) 
   {
     this->bins.resize(nbins);
-    this->from=range.from;
-    this->to  =range.to;
+    this->range = Range(range.from,range.to, (range.to - range.from) / nbins);
   }
 
   //compute
-  static bool compute(Histogram& dst,Array src,int C,int nbins,Aborted aborted=Aborted());
+  bool compute(Array src,int C,Aborted aborted=Aborted());
 
   //empty
   bool empty() const {
@@ -85,7 +80,7 @@ public:
 
   //getRange
   Range getRange() const {
-    return Range(from, to, (to - from) / getNumBins());
+    return this->range;
   }
 
   //getBinRange
@@ -93,8 +88,8 @@ public:
     int W=getNumBins();
     Range ret;
     if (!(x>=0 && x<W)) {VisusAssert(false);return ret;}
-    ret.from =this->from+((x+0)/((double)W))*(this->to-this->from);
-    ret.to   =this->from+((x+1)/((double)W))*(this->to-this->from);
+    ret.from =this->range.from+((x+0)/((double)W))*(this->range.to-this->range.from);
+    ret.to   =this->range.from+((x+1)/((double)W))*(this->range.to-this->range.from);
     return ret;
   }
 
@@ -109,9 +104,9 @@ public:
   int findBin(double value) const
   {
     VisusAssert(!this->bins.empty());
-    value=Utils::clamp(value,this->from,this->to);
+    value=Utils::clamp(value,this->range.from,this->range.to);
     int W = (int)getNumBins();
-    int ret = (int)(W*((value - this->from) / (this->to - this->from)));
+    int ret = (int)(W*((value - this->range.from) / (this->range.to - this->range.from)));
     if (ret < 0) ret = 0;
     if (ret >= W) ret = W - 1;
     return ret;
@@ -124,37 +119,7 @@ public:
     this->bins[x] = this->bins[x] + 1;
   }
 
-  //finilize
-  void finilize() 
-  {
-    if (bins.empty()) 
-      return;
 
-    int N=(int)bins.size();
-    
-    this->max=(int)(std::max_element(bins.begin(), bins.end())-bins.begin());
-    this->min=(int)(std::min_element(bins.begin(), bins.end())-bins.begin());
-
-    //start bin
-    {
-      this->start = 0;
-      for (int I=0; I<N; I++) 
-      {
-        if (bins[I]) break; 
-        this->start=I;
-      }
-    }
-
-    //end bin
-    {
-      this->end=N-1;
-      for (int I=N-1; I>0; I--) 
-      {
-        if (bins[I])  break;
-        this->end=I;
-      }
-    }
-  }
 
 };
 

@@ -56,7 +56,7 @@ public:
   public:
     DType     dtype;
     PointNi   dims;
-    Range     array_range;
+    Range     field_range;
     Range     computed_range;
     double    average=0;
     double    variance=0;
