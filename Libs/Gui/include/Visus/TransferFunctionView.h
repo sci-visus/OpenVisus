@@ -886,8 +886,8 @@ public:
           dst->blockSignals(false);
         };
 
-        connect(widgets.canvas,&QCanvas2d::repaintNeeded,[this,histogram_view,sync](){ sync(histogram_view,widgets.canvas);});
-        connect(histogram_view,&QCanvas2d::repaintNeeded,[this,histogram_view,sync](){ sync(widgets.canvas,histogram_view);});
+        connect(widgets.canvas,&QCanvas2d::postRedisplay,[this,histogram_view,sync](){ sync(histogram_view,widgets.canvas);});
+        connect(histogram_view,&QCanvas2d::postRedisplay,[this,histogram_view,sync](){ sync(widgets.canvas,histogram_view);});
       }
     }
   }
