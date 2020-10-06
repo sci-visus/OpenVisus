@@ -195,6 +195,9 @@ private:
 
 };
 
+VISUS_KERNEL_API Range GetCppRange(DType dtype);
+
+
 
   //////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API DTypes

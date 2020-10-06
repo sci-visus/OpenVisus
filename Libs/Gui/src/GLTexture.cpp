@@ -316,5 +316,67 @@ GLuint GLTexture::textureId(GLCanvas& gl)
   return texture_id;
 }
 
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+Range ComputeRange(Array data, int C, int normalization, Range user_range, bool bNormalizeToFloat)
+{
+  Range range;
+
+  if (normalization == Palette::UserRange)
+  {
+    range = user_range;
+  }
+  else if (normalization == Palette::FieldRange)
+  {
+    range = data.dtype.getDTypeRange(C);
+    if (range.delta() <= 0)
+    {
+      if (data.dtype.isDecimal())
+        range = ArrayUtils::computeRange(data, C); //just use the computer range of the data (the c++ range would be too high)
+      else
+        range = GetCppRange(data.dtype); //assume the data is spread in all the possible discrete range
+    }
+  }
+  else if (normalization == Palette::ComputeRangePerComponent)
+  {
+    range = ArrayUtils::computeRange(data, C);
+  }
+  else if (normalization == Palette::ComputeRangeOverall)
+  {
+    range = Range::invalid();
+    for (int C = 0; C < data.dtype.ncomponents(); C++)
+      range = range.getUnion(ArrayUtils::computeRange(data, C));
+  }
+  else
+  {
+    ThrowException("internal error");
+  }
+
+  //the GL textures is read from GPU memory always in the range [0,1]
+    //see https://www.khronos.org/opengl/wiki/Normalized_Integer
+  if (bNormalizeToFloat && !data.dtype.isDecimal() && range.delta())
+  {
+    auto cpp_range = GetCppRange(data.dtype);
+    auto A = cpp_range.from;
+    auto B = cpp_range.to;
+
+    auto C = data.dtype.isUnsigned() ? 0.0 : -1.0;
+    auto D = 1.0;
+
+    auto NormalizeInteger = [&](double value) {
+      auto alpha = (value - A) / (B - A);
+      return C + alpha * (D - C);
+    };
+
+    range = Range(
+      NormalizeInteger(range.from),
+      NormalizeInteger(range.to),
+      0.0);
+  }
+
+  return range;
+}
+
 } //namespace
 

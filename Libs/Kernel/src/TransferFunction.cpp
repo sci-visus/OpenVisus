@@ -264,44 +264,6 @@ void TransferFunction::execute(Archive& ar)
   Model::execute(ar);
 }
 
-////////////////////////////////////////////////////////////////////
-Range TransferFunction::computeRange(Array src, int C, Aborted aborted) const {
-
-  if (this->normalization_mode == UserRange)
-    return this->user_range;
-
-  //not a valid component
-  if (!(C >= 0 && C < src.dtype.ncomponents()))
-    return Range::invalid();
-
-  //FieldRange
-  if (this->normalization_mode == FieldRange)
-  {
-    Range ret = src.dtype.getDTypeRange(C);
-    if (ret.delta() > 0)
-      return ret;
-    else
-      return ArrayUtils::computeRange(src, C, aborted); 
-  }
-
-  //ComputeRangePerComponent
-  if (normalization_mode == ComputeRangePerComponent) 
-    return ArrayUtils::computeRange(src, C, aborted);
-
-  //ComputeRangeOverall
-  if (normalization_mode == ComputeRangeOverall)
-  {
-    Range ret = Range::invalid();
-    for (int C = 0; C < src.dtype.ncomponents(); C++)
-      ret = ret.getUnion(ArrayUtils::computeRange(src, C, aborted));
-    return ret;
-  }
-
-  VisusAssert(false);
-  return Range::invalid();
-}
-
-
 
 ////////////////////////////////////////////////////////////////////
 void TransferFunction::drawValues(int function, int x1, int x2, std::vector<double> new_values)

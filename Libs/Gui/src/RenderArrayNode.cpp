@@ -241,31 +241,21 @@ public:
     this->data_texture->minfilter = owner->minifyFilter();
     this->data_texture->magfilter = owner->magnifyFilter();
 
-    //compute translate scale for texture values (to go in the color range 0,1)
-    //TODO: this range stuff can be slow and blocking...
-    auto& vs = this->data_texture->vs; vs = Point4d(1, 1, 1, 1);
-    auto& vt = this->data_texture->vt; vt = Point4d(0, 0, 0, 0);
-
-    if (!this->data.dtype.isVectorOf(DTypes::UINT8))
+    //how to map texture value to [0,1] range
     {
-      int ncomponents = this->data.dtype.ncomponents();
+      auto& ranges = this->data_texture->ranges;
+      auto normalization = palette ? palette->getNormalizationMode() : TransferFunction::FieldRange;
+      auto user_range = palette ? palette->getUserRange() : Range::invalid();
 
-      for (int C = 0; C < std::min(4, ncomponents); C++)
-      {
-        Range range;
-        if (palette) range = palette->computeRange(this->data, C);
-        if (range.delta() <= 0) range = this->data.dtype.getDTypeRange(C);
-        if (range.delta() <= 0) range = ArrayUtils::computeRange(this->data, C);
-        auto p = range.getScaleTranslate();
-        vs[C] = p.first;
-        vt[C] = p.second;
-      }
+      int N = data.dtype.ncomponents();
+      for (int C = 0; C < std::min(4, N); C++)
+        ranges[C] = ComputeRange(data, C, normalization, user_range, /*bNormalizeToFloat*/true);
 
       //1 component will end up in texture RGB, I want all channels to be the same (as it was gray)
-      if (ncomponents == 1)
+      if (N == 1)
       {
-        vs = Point4d(vs[0], vs[0], vs[0], 1.0);
-        vt = Point4d(vt[0], vt[0], vt[0], 0.0);
+        ranges = std::vector<Range>(3, this->data_texture->ranges[0]);
+        ranges.push_back(Range(0.0, 1.0, 0.0));
       }
     }
 
@@ -506,8 +496,13 @@ public:
     cpp::TransferFunction transferFcn("piecewiseLinear");
     transferFcn.setParam("color", cpp::Data(tfnColors));
     transferFcn.setParam("opacity", cpp::Data(tfnOpacities));
-    const Range range = palette->computeRange(data, 0);
-    transferFcn.setParam("valueRange", math::vec2f(range.from, range.to));
+
+    auto value_range = ComputeRange(data, /*component*/0, 
+      palette ? palette->getNormalizationMode() : Palette::FieldRange,
+      palette ? palette->getUserRange() : Range::invalid(), 
+      /*bNormalizeToFloat*/false);
+
+    transferFcn.setParam("valueRange", math::vec2f(value_range.from, value_range.to));
     transferFcn.commit();
 
     const math::vec3ul volumeDims(data.getWidth(), data.getHeight(), data.getDepth());

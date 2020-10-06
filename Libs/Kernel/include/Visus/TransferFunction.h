@@ -223,9 +223,6 @@ public:
     setProperty("SetAttenutation", this->attenuation, value);
   }
 
-  //computeRange
-  Range computeRange(Array src, int C, Aborted aborted = Aborted()) const;
-
   //getNormalizationMode
   int getNormalizationMode() const {
     return normalization_mode;

@@ -204,8 +204,10 @@ bool KdRenderArrayNode::processInput()
     ScopedReadLock rlock(kdarray->lock); 
 
     auto dtype=kdarray->root->displaydata.dtype;
-    Point4d vs(1,1,1,1);
-    Point4d vt(0,0,0,0);
+
+    auto ranges = std::vector<Range>(4, Range(0.0, 1.0, 0.0));
+    auto normalization = palette ? palette->getNormalizationMode() : TransferFunction::FieldRange;
+    auto user_range = palette ? palette->getUserRange() : Range::invalid();
 
     if (palette && dtype.ncomponents()==1)
     {
@@ -216,16 +218,15 @@ bool KdRenderArrayNode::processInput()
 
       if (!dtype.isVectorOf(DTypes::UINT8))
       {
-        for (int C = 0; C < std::min(4, dtype.ncomponents()); C++)
-        {
-          //NOTE if I had to compute the dynamic range I will use only root data
-          auto input_range = palette ? 
-            palette->computeRange(kdarray->root->displaydata, C) : 
-            ArrayUtils::computeRange(kdarray->root->displaydata, C);
+        int N = dtype.ncomponents();
+        for (int C = 0; C < std::min(4, N); C++)
+          ranges[C] = ComputeRange(kdarray->root->displaydata, C, normalization, user_range, /*bNormalizeToFloat*/true);
 
-          auto vs_t = input_range.getScaleTranslate();
-          vs[C] = vs_t.first;
-          vt[C] = vs_t.second;
+        //1 component will end up in texture RGB, I want all channels to be the same (as it was gray)
+        if (N == 1)
+        {
+          ranges = std::vector<Range>(3, ranges[0]);
+          ranges.push_back(Range(0.0, 1.0, 0.0));
         }
       }
     }
@@ -246,8 +247,7 @@ bool KdRenderArrayNode::processInput()
           auto texture= GLTexture::createFromArray(node->displaydata);
           if (texture)
           {
-            texture->vs = vs;
-            texture->vt = vt;
+            texture->ranges = ranges;
             {
               //ScopedWriteLock wlock(rlock); Don't NEED wlock since I'm the only one to use the texture variable
               node->texture = texture;

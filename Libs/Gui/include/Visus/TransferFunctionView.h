@@ -626,8 +626,8 @@ private:
       auto other=TransferFunction::fromArray(src);
       if (useColorVarMax || useColorVarMin)
       {
-        other->setUserRange(Range(colorVarMin, colorVarMax, 0));
         other->setNormalizationMode(TransferFunction::UserRange);
+        other->setUserRange(Range(colorVarMin, colorVarMax, 0));
       }
       other->setAttenutation(attenuation);
 
@@ -730,11 +730,15 @@ public:
         }));
 
       layout->addWidget(widgets.user_range_from = GuiFactory::CreateDoubleTextBoxWidget(model->getUserRange().from, [this](double value) {
-        updateUserRange();
+        auto From = cdouble(widgets.user_range_from->text());
+        auto To = cdouble(widgets.user_range_to->text());
+        model->setUserRange(Range(From, To, 0.0));
         }));
 
       layout->addWidget(widgets.user_range_to = GuiFactory::CreateDoubleTextBoxWidget(model->getUserRange().to, [this](double value) {
-        updateUserRange();
+        auto From = cdouble(widgets.user_range_from->text());
+        auto To = cdouble(widgets.user_range_to->text());
+        model->setUserRange(Range(From, To, 0.0));
         }));
 
       setLayout(layout);
@@ -751,14 +755,6 @@ private:
     model->setNormalizationMode(value);
     widgets.user_range_from->setEnabled(value == TransferFunction::UserRange);
     widgets.user_range_to->setEnabled(value == TransferFunction::UserRange);
-  }
-
-  //updateUserRange
-  void updateUserRange()
-  {
-    auto From = cdouble(widgets.user_range_from->text());
-    auto To   = cdouble(widgets.user_range_to->text());
-    model->setUserRange(Range(From,To,0.0));
   }
 
   //refreshGui
@@ -783,9 +779,11 @@ class VISUS_GUI_API TransferFunctionView :
   public QFrame,
   public View<TransferFunction>
 {
+
 public:
 
   VISUS_NON_COPYABLE_CLASS(TransferFunctionView)
+
 
   //____________________________________________________
   class Widgets
@@ -879,15 +877,21 @@ public:
     {
       if (auto histogram_view=it.histogram)
       {
+        connect(histogram_view, &HistogramView::selectedRegionChanged, [this](Range range) {
+          model->setUserRange(range);
+          model->setNormalizationMode(TransferFunction::UserRange);
+        });
+
+#if 0
         auto sync=[](QCanvas2d* dst, QCanvas2d* src)
         {
           dst->blockSignals(true);
           dst->setCurrentPos(src->getCurrentPos());
           dst->blockSignals(false);
         };
-
         connect(widgets.canvas,&QCanvas2d::postRedisplay,[this,histogram_view,sync](){ sync(histogram_view,widgets.canvas);});
         connect(histogram_view,&QCanvas2d::postRedisplay,[this,histogram_view,sync](){ sync(widgets.canvas,histogram_view);});
+#endif
       }
     }
   }

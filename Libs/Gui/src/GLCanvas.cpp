@@ -480,11 +480,11 @@ void GLCanvas::popCullFace()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-void GLCanvas::setTextureInSlot(int slot,GLSampler& sampler,SharedPtr<GLTexture> texture) 
+void GLCanvas::setTextureInSlot(int slot, GLSampler& sampler, SharedPtr<GLTexture> texture)
 {
-  VisusAssert(slot>=0 && slot<8);
+  VisusAssert(slot >= 0 && slot < 8);
 
-  if (!texture) 
+  if (!texture)
     return;
 
   int texture_id = texture->textureId(*this);
@@ -493,24 +493,36 @@ void GLCanvas::setTextureInSlot(int slot,GLSampler& sampler,SharedPtr<GLTexture>
 
   int target = texture->target();
 
-  glActiveTexture(GL_TEXTURE0+slot);
+  glActiveTexture(GL_TEXTURE0 + slot);
 
-  glBindTexture  (target , texture_id);
-  glTexParameteri(target , GL_TEXTURE_MAG_FILTER ,(QOpenGLTexture::Filter)texture->magfilter);
-  glTexParameteri(target  ,GL_TEXTURE_MIN_FILTER ,(QOpenGLTexture::Filter)texture->minfilter);
+  glBindTexture(target, texture_id);
+  glTexParameteri(target, GL_TEXTURE_MAG_FILTER, (QOpenGLTexture::Filter)texture->magfilter);
+  glTexParameteri(target, GL_TEXTURE_MIN_FILTER, (QOpenGLTexture::Filter)texture->minfilter);
 
-  glTexParameteri(target , GL_TEXTURE_WRAP_S ,(QOpenGLTexture::WrapMode)texture->wrap);
-  glTexParameteri(target , GL_TEXTURE_WRAP_T ,(QOpenGLTexture::WrapMode)texture->wrap);
+  glTexParameteri(target, GL_TEXTURE_WRAP_S, (QOpenGLTexture::WrapMode)texture->wrap);
+  glTexParameteri(target, GL_TEXTURE_WRAP_T, (QOpenGLTexture::WrapMode)texture->wrap);
 
-  if (target==QOpenGLTexture::Target3D)
-    glTexParameteri(target , GL_TEXTURE_WRAP_R ,(QOpenGLTexture::WrapMode)texture->wrap);
+  if (target == QOpenGLTexture::Target3D)
+    glTexParameteri(target, GL_TEXTURE_WRAP_R, (QOpenGLTexture::WrapMode)texture->wrap);
 
   glActiveTexture(GL_TEXTURE0);
 
-  setUniform(sampler.u_sampler,slot);
-  setUniform(sampler.u_sampler_dims ,texture->dims.castTo<Point3d>());
-  setUniform(sampler.u_sampler_vs,texture->vs);
-  setUniform(sampler.u_sampler_vt,texture->vt);
+  setUniform(sampler.u_sampler, slot);
+  setUniform(sampler.u_sampler_dims, texture->dims.castTo<Point3d>());
+
+  //remap range to [0,1]
+  Point4d u_sampler_vs(1, 1, 1, 1);
+  Point4d u_sampler_vt(0, 0, 0, 0);
+  for (int C = 0; C < 4; C++)
+  {
+    const auto& range = texture->ranges[C];
+    u_sampler_vs[C] =         (1.0) / (range.to - range.from);
+    u_sampler_vt[C] = (-range.from) / (range.to - range.from);
+  }
+
+  setUniform(sampler.u_sampler_vs, u_sampler_vs);
+  setUniform(sampler.u_sampler_vt, u_sampler_vt);
+
   setUniform(sampler.u_sampler_envmode,texture->envmode);
   setUniform(sampler.u_sampler_ncomponents, texture->dtype.ncomponents());
 }

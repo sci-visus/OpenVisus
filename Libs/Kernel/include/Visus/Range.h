@@ -155,12 +155,6 @@ public:
     return ret;
   }
 
-  //range is equivalent to (value-from)/(from-to)=vs*value+vt where vs=1.0/(from-to) and vt=-from/vs
-  std::pair<double, double> getScaleTranslate(Aborted aborted = Aborted()) const
-  {
-    double d = this->delta();
-    return d? std::make_pair(1.0 / d, -from / d) : std::make_pair(1.0, 0.0);
-  }
 
 public:
 

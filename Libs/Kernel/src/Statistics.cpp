@@ -143,7 +143,7 @@ struct ComputeStatisticsOp
       single.standard_deviation = running_stats.StandardDeviation();
       single.median             =(double)compute_median[nsamples/2];
 
-      single.histogram=Histogram(src.dtype.isVectorOf(DTypes::UINT8) ? Range(0, 255, 1) : single.computed_range, histogram_nbins);
+      single.histogram=Histogram(src.dtype.isVectorOf(DTypes::UINT8) ? Range(0, 256, 1) : single.computed_range, histogram_nbins);
       if (!single.histogram.compute(src, C, aborted))
         return false;
     }

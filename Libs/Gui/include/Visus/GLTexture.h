@@ -40,10 +40,9 @@ For support : support@visus.net
 #define __VISUS_GL_TEXTURE_H
 
 #include <Visus/Gui.h>
-
 #include <Visus/KdArray.h>
-
 #include <QOpenGLTexture>
+#include <Visus/TransferFunction.h>
 
 namespace Visus {
 
@@ -71,9 +70,7 @@ public:
   int                           magfilter= GL_LINEAR;
   int                           wrap     = GL_CLAMP_TO_EDGE;
   int                           envmode  = GL_REPLACE;
-  Point4d                       vs       = Point4d(1,1,1,1);
-  Point4d                       vt       = Point4d(0,0,0,0);
-
+  std::vector<Range>            ranges = std::vector<Range>(4, Range(0.0,1.0,0.0));
   Compression                   compression = NoCompression;
 
   //constructor
@@ -124,6 +121,8 @@ private:
 
 };
 
+
+VISUS_GUI_API Range ComputeRange(Array data, int C, int normalization = Palette::FieldRange, Range user_range = Range::invalid(), bool bNormalizeToFloat = false);
 
 } //namespace
 
