@@ -91,7 +91,7 @@ public:
           auto form = new QFormLayout();
           form->addRow("DType", this->dtype = new QLabel(""));
           form->addRow("Dims", this->dims = new QLabel(""));
-          form->addRow("Array Range", this->field_range = new QLabel(""));
+          form->addRow("Field Range", this->field_range = new QLabel(""));
           form->addRow("Computed Range", this->computed_range = new QLabel(""));
           hlayout->addLayout(form);
         }

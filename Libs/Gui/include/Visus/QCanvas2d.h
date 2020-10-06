@@ -118,8 +118,7 @@ public:
       Matrix::translate(Point2d(-value.x,-value.y));
     this->Tunproject=Tproject.invert();
     
-    update();
-    emit repaintNeeded();
+    postRedisplay();
   }
 
   //setWorldBounds
@@ -135,7 +134,6 @@ public:
   //setProjection
   void setProjection(Matrix value) {
     Tproject=value;
-    emit repaintNeeded();
   }
 
   //project
@@ -189,22 +187,19 @@ public:
   //setCurrentPos
   void setCurrentPos(Point2d value) {
     this->current_pos =value;
-    update();
-    emit repaintNeeded();
+    postRedisplay();
   }
 
   //enterEvent
   virtual void enterEvent(QEvent* evt) override {
     setFocus();
-    update();
-    emit repaintNeeded();
+    postRedisplay();
   }
 
   //leaveEvent
   virtual void leaveEvent(QEvent* evt) override {
     clearFocus();
-    update();
-    emit repaintNeeded();
+    postRedisplay();
   }
 
   //resizeEvent
@@ -212,24 +207,15 @@ public:
     setWorldBox(getWorldBox());
   }
 
-  //mouseDoubleClickEvent
-  virtual void mouseDoubleClickEvent(QMouseEvent * e) override {
-    if (e->button()==Qt::RightButton)
-      setWorldBox(getWorldBox());
-  }
-
   //mousePressEvent
   virtual void mousePressEvent(QMouseEvent* evt) override 
   {
     if (evt->button()==Qt::RightButton)
-    {
       bPanning=true;
-      evt->accept();
-    }
     
     current_pos = QUtils::convert<Point2d>(unproject(evt->pos()));
-    update();
-    emit repaintNeeded();
+    postRedisplay();
+    evt->accept();
   }
 
   //mouseMoveEvent
@@ -241,26 +227,22 @@ public:
       auto w1=QUtils::convert<Point2d>(unproject(evt->pos()));
       Tproject     = Tproject * Matrix::translate(w1-w0);
       Tunproject = Tproject.invert();
-      evt->accept();
     }
     
     current_pos = QUtils::convert<Point2d>(unproject(evt->pos()));
-    update();
-    emit repaintNeeded();
+    postRedisplay();
+    evt->accept();
   }
 
   //mouseReleaseEvent
   virtual void mouseReleaseEvent(QMouseEvent* evt) override
   {
     if (bPanning)
-    {
       bPanning=false;
-      evt->accept();
-    }
     
     current_pos = QUtils::convert<Point2d>(unproject(evt->pos()));
-    update();
-    emit repaintNeeded();
+    postRedisplay();
+    evt->accept();
   }
 
   //wheelEvent
@@ -270,16 +252,16 @@ public:
     auto c0= current_pos;
     Tproject   = Tproject * Matrix::scaleAroundCenter(c0,vs);
     Tunproject = Tproject.invert();
-    update();
-    emit repaintNeeded();
+    postRedisplay();
+    evt->accept();
   }
 
-signals:
+  //postRedisplay
+  void postRedisplay() {
+    update();
+  }
 
-  //repaintNeeded
-  void repaintNeeded();
-
-private:
+protected:
 
   Matrix      Tproject =Matrix(3);
   Matrix      Tunproject = Matrix(3);

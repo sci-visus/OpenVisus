@@ -13,8 +13,14 @@ def SplitChannels(array):
 
 # ///////////////////////////////////////////////////
 def InterleaveChannels(v):
-	N=len(v)	
-	if N<=1: return v
+	N=len(v)
+
+	if N==0:
+		raise Exception("empty image")
+
+	if N==1: 
+		return v[0]
+	
 	ret=numpy.zeros(v[0].shape + (N,), dtype=v[0].dtype)
 	for C in range(N): 
 		ret[...,C]=v[C]

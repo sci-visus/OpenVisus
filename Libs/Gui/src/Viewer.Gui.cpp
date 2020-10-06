@@ -701,7 +701,7 @@ void Viewer::editNode(Node* node)
 ///////////////////////////////////////////////////////////
 void Viewer::showWidget(QWidget* widget, String title)
 {
-  widget->setWindowFlags(Qt::WindowStaysOnTopHint);
+  widget->setWindowFlags(Qt::WindowStaysOnTopHint | Qt::Tool);
   widget->show();
 }
 
