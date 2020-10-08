@@ -323,8 +323,8 @@ public:
     {
       gl.setUniformMaterial(*shader, owner->getLightingMaterial());
 
-      Point3d pos, center, vup;
-      gl.getModelview().getLookAt(pos, center, vup, 1.0);
+      Point3d pos, dir, vup;
+      gl.getModelview().getLookAt(pos, dir, vup);
       gl.setUniformLight(*shader, Point4d(pos, 1.0));
     }
 
@@ -424,29 +424,26 @@ public:
   ospray::cpp::Renderer renderer;
   ospray::cpp::FrameBuffer framebuffer;
 
-  Point4d prevEyePos = Point4d(0.f, 0.f, 0.f, 0.f);
-  Point4d prevEyeDir = Point4d(0.f, 0.f, 0.f, 0.f);
-  Point4d prevUpDir = Point4d(0.f, 0.f, 0.f, 0.f);
+  Frustum prev_frustum;
   bool sceneChanged = true;
   bool volumeValid = false;
 
   float varianceThreshold = 15.f;
 
-  std::array<int, 2> imgDims = { -1,-1 };
+  const size_t npaletteSamples = 128;
 
   //constructor
   OSPRayRenderArrayNode(RenderArrayNode* owner_) : owner(owner_)
   {
     world = cpp::World();
     camera = cpp::Camera("perspective");
+
     // TODO: Need a way to tell visus to keep calling render even if the camera isn't moving
     // so we can do progressive refinement
-    if (VisusModule::getModuleConfig()->readString("Configuration/VisusViewer/DefaultRenderNode/ospray_renderer") == "pathtracer") {
+    if (VisusModule::getModuleConfig()->readString("Configuration/VisusViewer/DefaultRenderNode/ospray_renderer") == "pathtracer") 
       renderer = cpp::Renderer("pathtracer");
-    }
-    else {
+    else 
       renderer = cpp::Renderer("scivis");
-    }
 
     // create and setup an ambient light
     cpp::Light ambient_light("ambient");
@@ -475,6 +472,57 @@ public:
   virtual ~OSPRayRenderArrayNode() {
   }
 
+  //convertData (OSPRay shares the data pointer with us, does not copy internally)
+  cpp::Data convertData(Array array) const
+  {
+    auto W = array.getWidth();
+    auto H = array.getHeight();
+    auto D = array.getDepth();
+
+    const OSPDataType ospray_dtype = DTypeToOSPDtype(array.dtype);
+
+    if (ospray_dtype == OSP_UCHAR)
+      return cpp::Data(math::vec3ul(W, H, D), reinterpret_cast<uint8_t*>(array.c_ptr()), true);
+
+    if (ospray_dtype == OSP_USHORT)
+      return cpp::Data(math::vec3ul(W, H, D), reinterpret_cast<uint16_t*>(array.c_ptr()), true);
+
+    if (ospray_dtype == OSP_FLOAT)
+      return cpp::Data(math::vec3ul(W, H, D), reinterpret_cast<float*>(array.c_ptr()), true);
+
+    if (ospray_dtype == OSP_DOUBLE)
+      return cpp::Data(math::vec3ul(W, H, D), reinterpret_cast<double*>(array.c_ptr()), true);
+
+    PrintInfo("OSPRay only supports scalar voxel types");
+    return cpp::Data();
+  }
+
+  //convertPalette
+  cpp::TransferFunction convertPalette(Array data, SharedPtr<Palette> palette)
+  {
+    const Range range = palette->computeRange(data, 0);
+
+    std::vector<math::vec3f> tfnColors(npaletteSamples, math::vec3f(0.f));
+    std::vector<float> tfnOpacities(npaletteSamples, 0.f);
+
+    // Assumes functions = {R, G, B, A}
+    for (size_t i = 0; i < npaletteSamples; ++i)
+    {
+      const float x = static_cast<float>(i) / npaletteSamples;
+      tfnColors[i][0] = palette->R->getValue(x);
+      tfnColors[i][1] = palette->G->getValue(x);
+      tfnColors[i][2] = palette->B->getValue(x);
+      tfnOpacities[i] = palette->A->getValue(x);
+    }
+
+    cpp::TransferFunction ret("piecewiseLinear");
+    ret.setParam("color", cpp::Data(tfnColors));
+    ret.setParam("opacity", cpp::Data(tfnOpacities));
+    ret.setParam("valueRange", math::vec2f(range.from, range.to));
+    ret.commit();
+    return ret;
+  }
+
   //setData
   virtual void setData(Array data, SharedPtr<Palette> palette) override
   {
@@ -484,91 +532,94 @@ public:
       return;
     }
    
-    // Read transfer function data from the palette and pass to OSPRay,
-    // assuming an RGBA palette
-    sceneChanged = true;
-
-    const size_t npaletteSamples = 128;
-    std::vector<math::vec3f> tfnColors(npaletteSamples, math::vec3f(0.f));
-    std::vector<float> tfnOpacities(npaletteSamples, 0.f);
-
-    for (size_t i = 0; i < npaletteSamples; ++i)
-    {
-      const float x = static_cast<float>(i) / npaletteSamples;
-
-      // Assumes functions = {R, G, B, A}
-      tfnColors[i][0] = palette->R->getValue(x);
-      tfnColors[i][1] = palette->G->getValue(x);
-      tfnColors[i][2] = palette->B->getValue(x);
-      tfnOpacities[i] = palette->A->getValue(x);
-    }
-
-    cpp::TransferFunction transferFcn("piecewiseLinear");
-    transferFcn.setParam("color", cpp::Data(tfnColors));
-    transferFcn.setParam("opacity", cpp::Data(tfnOpacities));
-    const Range range = palette->computeRange(data, 0);
-    transferFcn.setParam("valueRange", math::vec2f(range.from, range.to));
-    transferFcn.commit();
-
-    const math::vec3ul volumeDims(data.getWidth(), data.getHeight(), data.getDepth());
-
-    // OSPRay shares the data pointer with us, does not copy internally
-    const OSPDataType ospDType = DTypeToOSPDtype(data.dtype);
-    cpp::Data volumeData;
-    if (ospDType == OSP_UCHAR) {
-      volumeData = cpp::Data(volumeDims, reinterpret_cast<uint8_t*>(data.c_ptr()), true);
-    }
-    else if (ospDType == OSP_USHORT) {
-      volumeData = cpp::Data(volumeDims, reinterpret_cast<uint16_t*>(data.c_ptr()), true);
-    }
-    else if (ospDType == OSP_FLOAT) {
-      volumeData = cpp::Data(volumeDims, reinterpret_cast<float*>(data.c_ptr()), true);
-    }
-    else if (ospDType == OSP_DOUBLE) {
-      volumeData = cpp::Data(volumeDims, reinterpret_cast<double*>(data.c_ptr()), true);
-    }
-    else {
-      PrintInfo("OSPRay only supports scalar voxel types");
-      volumeValid = false;
-      return;
-    }
-    volumeValid = true;
+    this->sceneChanged = true;
 
     cpp::Volume volume = cpp::Volume("structuredRegular");
-    volume.setParam("dimensions", volumeDims);
-    volume.setParam("data", volumeData);
-    volume.setParam("voxelType", int(ospDType));
+    auto ospray_data = convertData(data);
+    this->volumeValid = ospray_data.type ? true : false;
+    if (!this->volumeValid)
+      return;
+    volume.setParam("data", ospray_data);
 
-    auto grid = data.bounds.toAxisAlignedBox();
-    grid.setPointDim(3);
-
-    // Scale the smaller volumes we get while loading progressively to fill the true bounds
-    // of the full dataset
-    const math::vec3f gridSpacing(
-      (grid.p2[0] - grid.p1[0]) / data.getWidth(),
-      (grid.p2[1] - grid.p1[1]) / data.getHeight(),
-      (grid.p2[2] - grid.p1[2]) / data.getDepth());
-    volume.setParam("gridSpacing", gridSpacing);
+    // Scale the smaller volumes we get while loading progressively to fill the true bounds of the full dataset
+    //size of the grid cells in object-space
+    auto bbox = data.bounds.toAxisAlignedBox().withPointDim(3);
+    volume.setParam("gridOrigin", math::vec3f(bbox.p1[0], bbox.p1[1], bbox.p1[2]));
+    volume.setParam("gridSpacing", math::vec3f(
+      bbox.size()[0] / data.getWidth(), 
+      bbox.size()[1] / data.getHeight(), 
+      bbox.size()[2] / data.getDepth()));
     volume.commit();
 
-    // TODO setup group/instance/world
-    cpp::VolumetricModel volumeModel(volume);
-    volumeModel.setParam("transferFunction", transferFcn);
-    volumeModel.commit();
+    cpp::VolumetricModel volume_with_palette(volume);
+    volume_with_palette.setParam("transferFunction", convertPalette(data, palette));
+    volume_with_palette.commit();
 
     cpp::Group group;
-    group.setParam("volume", cpp::Data(volumeModel));
+    group.setParam("volume", cpp::Data(volume_with_palette));
     group.commit();
 
     cpp::Instance instance(group);
     instance.commit();
-
     world.setParam("instance", cpp::Data(instance));
+
     // TODO some lights?
+    // ...
+
     world.commit();
 
     if (data.clipping.valid())
       PrintInfo("CLIPPING TODO");
+  }
+
+  //refreshCameraIfNeeded
+  bool refreshCameraIfNeeded(Viewport viewport, Matrix projection,Matrix modelview)
+  {
+    bool bSomethingChanged = false;
+
+    if (prev_frustum.getModelview() != modelview)
+    {
+      // Extract camera parameters from model view matrix
+      // TODO track camera position to see if it changed and reset accum only if that changed
+
+      Point3d pos, dir, vup;
+      modelview.getLookAt(pos, dir, vup);
+      this->camera.setParam("position", math::vec3f(pos.x, pos.y, pos.z));
+      this->camera.setParam("direction", math::vec3f(dir.x, dir.y, dir.z));
+      this->camera.setParam("up", math::vec3f(vup.x, vup.y, vup.z));
+      bSomethingChanged = true;
+    }
+
+    if (prev_frustum.getProjection() != projection)
+    {
+      //see https://stackoverflow.com/questions/56428880/how-to-extract-camera-parameters-from-projection-matrix
+      float fov = Utils::radiantToDegree(2.0 * atan(1.0f / projection(1, 1)));
+      float aspect = projection(1, 1) / projection(0, 0);
+      auto znear = projection(3, 2) / (projection(2, 2) - 1.0);
+      auto zfar = projection(3, 2) / (projection(2, 2) + 1.0);
+      this->camera.setParam("nearClip", znear);
+      this->camera.setParam("farClip", zfar);
+      this->camera.setParam("fovy", fov);
+      this->camera.setParam("aspect", aspect);
+      this->camera.setParam("apertureRadius", 0.0f);
+      bSomethingChanged = true;
+    }
+
+    // change in the viewport
+    if (prev_frustum.getViewport() != viewport)
+    {
+      // On windows it seems like the ref-counting doesn't quite work and we leak?
+      ospRelease(framebuffer.handle());
+      framebuffer = cpp::FrameBuffer(math::vec2i(viewport.width, viewport.height), OSP_FB_SRGBA, OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_VARIANCE);
+      bSomethingChanged = true;
+    }
+
+    this->prev_frustum = Frustum(viewport, projection, modelview);
+    
+    if (bSomethingChanged)
+      camera.commit();
+    
+    return bSomethingChanged;
   }
 
   //glRender
@@ -579,54 +630,19 @@ public:
       return;
     }
 
-    // Extract camera parameters from model view matrix
-    // TODO track camera position to see if it changed and reset accum only if that changed
-    const auto invCamera = gl.getModelview().invert();
-    const auto eyePos = invCamera * Point4d(0.f, 0.f, 0.f, 1.f);
-    const auto eyeDir = invCamera * Point4d(0.f, 0.f, -1.f, 0.f);
-    const auto upDir = invCamera * Point4d(0.f, 1.f, 0.f, 0.f);
-
-    if (eyePos != prevEyePos || eyeDir != prevEyeDir || upDir != prevUpDir) {
-      camera.setParam("position", math::vec3f(eyePos.x, eyePos.y, eyePos.z));
-      camera.setParam("direction", math::vec3f(eyeDir.x, eyeDir.y, eyeDir.z));
-      camera.setParam("up", math::vec3f(upDir.x, upDir.y, upDir.z));
-      camera.commit();
-      sceneChanged = true;
-    }
-    prevEyePos = eyePos;
-    prevEyeDir = eyeDir;
-    prevUpDir = upDir;
-
-    // Get window dimensions for framebuffer
-    const auto viewport = gl.getViewport();
-
-    if (viewport.width != imgDims[0] || viewport.height != imgDims[1])
-    {
-      // On windows it seems like the ref-counting doesn't quite work and we leak?
-      ospRelease(framebuffer.handle());
-      sceneChanged = true;
-
-      imgDims[0] = viewport.width;
-      imgDims[1] = viewport.height;
-
-      camera.setParam("aspect", imgDims[0] / static_cast<float>(imgDims[1]));
-      camera.commit();
-
-      framebuffer = cpp::FrameBuffer(math::vec2i(imgDims[0], imgDims[1]), OSP_FB_SRGBA,
-        OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_VARIANCE);
-    }
-
-    if (sceneChanged) {
-      sceneChanged = false;
+    this->sceneChanged = refreshCameraIfNeeded(gl.getViewport(),gl.getProjection(),gl.getModelview());
+    if (this->sceneChanged)
       framebuffer.clear();
-    }
+    this->sceneChanged = false;
 
     framebuffer.renderFrame(renderer, camera, world);
 
-    uint32_t* fb = (uint32_t*)framebuffer.map(OSP_FB_COLOR);
     // Blit the rendered framebuffer from OSPRay
     {
-      auto fbArray = Array(imgDims[0], imgDims[1], DTypes::UINT8_RGBA, HeapMemory::createUnmanaged((Uint8*)fb, imgDims[0] * imgDims[1] * 4));
+      auto W = gl.getViewport().width;
+      auto H = gl.getViewport().height;
+      uint32_t* fb = (uint32_t*)framebuffer.map(OSP_FB_COLOR);
+      auto fbArray = Array(W, H, DTypes::UINT8_RGBA, HeapMemory::createUnmanaged((Uint8*)fb, W * H * 4));
       auto fbTexture = GLTexture::createFromArray(fbArray);
       if (!fbTexture)
         return;
@@ -641,26 +657,19 @@ public:
 
       // Render directly to normalized device coordinates and overwrite everything
       // with the rendered result from OSPRay
-      gl.pushModelview();
-      gl.pushProjection();
-
-      gl.setModelview(Matrix::identity(4));
-      gl.setProjection(Matrix::identity(4));
-
-      gl.glRenderMesh(GLMesh::Quad(
-        Point3d(-1, -1, 0.5), 
-        Point3d(+1, -1, 0.5),
-        Point3d(+1, +1, 0.5),
-        Point3d(-1, +1, 0.5), false, true));
-
-      gl.popProjection();
-      gl.popModelview();
+      gl.pushFrustum();
+      gl.setHud();
+      gl.pushDepthTest(false);
+      gl.pushBlend(true);
+      gl.glRenderMesh(GLMesh::Quad(Point2d(0, 0), Point2d(W, H), /*bNormal*/false, /*bTextCoord*/true));
+      gl.popBlend();
+      gl.popDepthTest();
+      gl.popFrustum();
+      framebuffer.unmap(fb);
     }
-    framebuffer.unmap(fb);
-
-    if (ospGetVariance(framebuffer.handle()) > varianceThreshold) {
+    
+    if (ospGetVariance(framebuffer.handle()) > varianceThreshold) 
       gl.postRedisplay();
-    }
   }
 
   //DTypeToOSPDtype
@@ -673,8 +682,8 @@ public:
     if (dtype == DTypes::UINT8_RGB) return OSP_VEC3UC;
     if (dtype == DTypes::UINT8_RGBA) return OSP_VEC4UC;
 
-    if (dtype == DTypes::UINT16) return OSP_SHORT;
-    if (dtype == DTypes::INT16) return OSP_USHORT;
+    if (dtype == DTypes::INT16) return OSP_SHORT;
+    if (dtype == DTypes::UINT16) return OSP_USHORT;
 
     if (dtype == DTypes::INT32) return OSP_INT;
     if (dtype == DTypes::UINT32) return OSP_UINT;

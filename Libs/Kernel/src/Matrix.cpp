@@ -102,21 +102,13 @@ Matrix Matrix::lookAt(Point3d Eye,Point3d Center,Point3d Up)
 }
 
 //////////////////////////////////////////////////////////////////////
-void Matrix::getLookAt(Point3d& eye, Point3d& center, Point3d& up, double lookDistance) const
+void Matrix::getLookAt(Point3d& eye, Point3d& dir, Point3d& up) const
 {
   Matrix vmat = this->invert();
-  auto e = Point3d(vmat[3], vmat[7], vmat[11]);
+  eye = Point3d(vmat[3], vmat[7], vmat[11]);
   up = Point3d(vmat[1], vmat[5], vmat[9]);
-
-  auto c = Point3d(-vmat[2], -vmat[6], -vmat[10]);
-  c = c.normalized();
-  c = e + c * lookDistance;
-
-  eye = e;
-  center = c;
+  dir = Point3d(-vmat[2], -vmat[6], -vmat[10]).normalized();
 }
-
-
 
 //////////////////////////////////////////////////////////////////////
 Matrix Matrix::rotateAroundAxis(Point3d axis,double angle)

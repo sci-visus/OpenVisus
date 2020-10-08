@@ -311,11 +311,11 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
     shader->setPaletteTexture(gl,this->palette_texture);
 
   //decide how to render (along X Y or Z)
-  Point3d viewpos,center,viewup;
-  gl.getModelview().getLookAt(viewpos, center,viewup, 1.0);
+  Point3d viewpos, viewdir,viewup;
+  gl.getModelview().getLookAt(viewpos, viewdir,viewup);
 
   //need to go back to front (i.e. the opposite of viewdir)
-  auto viewdir = (center - viewpos).normalized();
+  viewdir = -viewdir;
 
   //decide how to render (along X Y or Z)
   int Z=0;
