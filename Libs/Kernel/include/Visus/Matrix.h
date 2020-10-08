@@ -487,7 +487,7 @@ public:
   static Matrix lookAt(Point3d eye, Point3d center, Point3d up);
 
   //getLookAt
-  void getLookAt(Point3d& pos, Point3d& center, Point3d& vup, double lookDistance) const;
+  void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const;
 
   //static perspective
   static Matrix perspective(double fovy, double aspect, double zNear, double zFar);

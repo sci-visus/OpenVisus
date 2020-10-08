@@ -660,7 +660,6 @@ void IdxFile::read(Archive& ar)
   ar.getChild("missing_blocks")->read("value", missing_blocks);
   ar.getChild("time_template")->read("value", time_template);
 
-
   if (ar.hasAttribute("physic_box"))
   {
     BoxNd value;

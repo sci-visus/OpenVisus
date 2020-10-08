@@ -208,8 +208,8 @@ void JTreeRenderNode::glRender(GLCanvas& gl)
 
   if (bool bEnableLighting= is_2d ?false:true)
   {
-    Point3d pos,center,vup;
-    gl.getModelview().getLookAt(pos, center,vup, 1.0);
+    Point3d pos,dir,vup;
+    gl.getModelview().getLookAt(pos, dir,vup);
     gl.setUniformLight(*shader,Point4d(pos,1.0));
   }
 

@@ -336,7 +336,8 @@ void GLLookAtCamera::glMouseReleaseEvent(QMouseEvent* evt, const Viewport& viewp
 void GLLookAtCamera::glWheelEvent(QWheelEvent* evt, const Viewport& viewport)
 {
   const double defaultZoomFactor = 1.1;
-  setFov(fov * ((evt->delta() > 0) ? (1.0 / defaultZoomFactor) : (defaultZoomFactor)));
+  auto new_fov = fov * ((evt->delta() > 0) ? (1.0 / defaultZoomFactor) : (defaultZoomFactor));
+  setFov(new_fov);
   evt->accept();
 }
 

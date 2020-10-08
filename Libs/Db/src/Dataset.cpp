@@ -189,36 +189,43 @@ StringTree FindDatasetConfig(StringTree ar, String url)
 SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
 {
   String url = ar.readString("url");
-  if (!Url(url).valid())
-    ThrowException("LoadDataset", url, "failed. Not a valid url");
 
-  auto content = Utils::loadTextDocument(url);
-
-  if (content.empty())
-    ThrowException("empty content");
-
-  //enrich ar by loaded document (ar has precedence)
-  auto doc = StringTree::fromString(content);
-  if (doc.valid())
+  //could the 'ar' self contained (as for GoogleMapsDatasets)
+  if (!url.empty())
   {
-    //backward compatible
-    if (doc.name == "midx")
+    if (!Url(url).valid())
+      ThrowException("LoadDataset", url, "failed. Not a valid url");
+
+    auto content = Utils::loadTextDocument(url);
+
+    if (content.empty())
+      ThrowException("empty content");
+
+    //enrich ar by loaded document
+    auto doc = StringTree::fromString(content);
+
+    // backward compatible, old idx text format that is not xml
+    if (!doc.valid())
     {
-      doc.name = "dataset";
-      doc.write("typename", "IdxMultipleDataset");
+      ar.write("typename", "IdxDataset");
+
+      IdxFile old_format;
+      old_format.readFromOldFormat(content);
+      ar.writeObject("idxfile", old_format);
     }
+    else
+    {
+      //backward compatible
+      if (doc.name == "midx")
+      {
+        doc.name = "dataset";
+        doc.write("typename", "IdxMultipleDataset");
+      }
 
-    StringTree::merge(ar, doc); //example <dataset tyname="IdxMultipleDataset">...</dataset>
-    VisusReleaseAssert(ar.hasAttribute("typename"));
-  }
-  else
-  {
-    // backward compatible, old idx text format 
-    ar.write("typename", "IdxDataset");
-
-    IdxFile old_format;
-    old_format.readFromOldFormat(content);
-    ar.writeObject("idxfile", old_format);
+      //example <dataset tyname="IdxMultipleDataset">...</dataset>
+      //note: ar has precedence
+      StringTree::merge(ar, doc);
+    }
   }
 
   auto TypeName = ar.getAttribute("typename");

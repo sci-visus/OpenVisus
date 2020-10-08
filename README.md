@@ -36,6 +36,10 @@ If you are using `pip`
 # For Linux sometimes you have to install some python libraries 
 # sudo apt-get install python3.6 libpython3/6
 
+# sometimes pip is not installed or is too old
+# wget https://bootstrap.pypa.io/get-pip.py
+# python3 get-pip.py
+# python3 -m pip install --user --no-cache-dir  --upgrade pip
 
 python -m pip install --user --upgrade pip
 python -m pip install --user virtualenv

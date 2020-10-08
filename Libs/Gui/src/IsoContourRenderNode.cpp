@@ -231,8 +231,8 @@ void IsoContourRenderNode::glRender(GLCanvas& gl)
 
   gl.pushModelview();
   gl.multModelview(T);
-  Point3d pos,center,vup;
-  gl.getModelview().getLookAt(pos, center,vup, 1.0);
+  Point3d pos,dir,vup;
+  gl.getModelview().getLookAt(pos, dir,vup);
 
   IsoContourShader::Config config;
   config.second_field_nchannels = mesh->second_field.dtype.ncomponents();
