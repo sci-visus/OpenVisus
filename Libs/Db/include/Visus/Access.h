@@ -82,6 +82,9 @@ public:
   //bDisableWriteLocks (to speed up writing with only one writer)
   bool bDisableWriteLocks = false;
 
+  //bSkipReading
+  bool bSkipReading = false;
+
   //constructor 
   Access() {
   }

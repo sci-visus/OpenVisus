@@ -38,6 +38,7 @@ For support : support@visus.net
 
 #include <Visus/Db.h>
 #include <Visus/VisusConvert.h>
+#include <Visus/RamResource.h>
 
 #if VISUS_PYTHON
 #include <Visus/Python.h>
@@ -60,6 +61,54 @@ int main(int argn, const char* argv[])
 #else
   DbModule::attach();
 #endif
+
+  if (true)
+  {
+    IdxFile idxfile;
+    idxfile.logic_box = BoxNi(PointNi(0,0,0),PointNi(19456, 12492, 1000));
+    idxfile.fields = { Field("myfield", DTypes::UINT16) };
+    idxfile.save("tmp/huge.idx");
+
+    auto db = LoadDataset("tmp/huge.idx");
+
+#if WIN32
+    _putenv_s("VISUS_IDX_SKIP_READING", "1");
+#else
+    setenv("VISUS_IDX_SKIP_READING", "1");
+#endif
+
+    auto access = db->createAccess();
+    Int64 query_size = 0;
+
+    auto ram = RamResource::getSingleton();
+
+    auto printStats = [&]() {
+      PrintInfo(
+        "query_size", StringUtils::getStringFromByteSize(query_size),
+        "Used memory", StringUtils::getStringFromByteSize(ram->getVisusUsedMemory()),
+        "Peak memory", StringUtils::getStringFromByteSize(ram->getPeakMemory())
+      );
+    };
+
+    //I should get a number of samples equals to the number of samples written in tutorial 1
+    for (int H=29;H<=36;H++)
+    {
+      auto t1 = Time::now();
+
+      query_size = 0;
+      PrintInfo("H", H);
+      printStats();
+      auto query = db->createBoxQuery(db->getLogicBox(), 'r');
+      query->end_resolutions = { H };
+      db->beginBoxQuery(query);
+      db->executeBoxQuery(access, query);
+      query_size = query->getByteSize();
+      printStats();
+      PrintInfo("done in", t1.elapsedMsec(), "msec\n");
+    }
+
+    return 0;
+  }
 
   auto args = std::vector<String>(CommandLine::args.begin() + 1, CommandLine::args.end());
   VisusConvert().runFromArgs(args);
