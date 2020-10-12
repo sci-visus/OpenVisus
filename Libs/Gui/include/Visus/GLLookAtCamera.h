@@ -87,6 +87,11 @@ public:
     setProperty("SetVup", this->vup, value);
   }
 
+  //getCenterOfRotation
+  Point3d getCenterOfRotation() const {
+    return center_of_rotation;
+  }
+
   //setCenterOfRotation
   void setCenterOfRotation(Point3d value) {
     setProperty("SetCenterOfRotation", this->center_of_rotation, value);
@@ -97,14 +102,34 @@ public:
     setProperty("SetRotation",this->rotation, value);
   }
 
+  //getRotation
+  Quaternion getRotation() const {
+    return rotation;
+  }
+
+  //getFov
+  double getFov() const {
+    return fov;
+  }
+
   //setFov
   void setFov(double value) {
     setProperty("SetFov", this->fov, value);
   }
 
+  //getZNear
+  double getZNear() const {
+    return zNear;
+  }
+
   //setZNear
   void setZNear(double value) {
     setProperty("SetZNear", this->zNear, value);
+  }
+
+  //getZFar
+  double getZFar() const {
+    return zFar;
   }
 
   //setZNear
