@@ -397,7 +397,7 @@ public:
   }
 
   //createBlockQueriesForBoxQuery
-  virtual std::vector< SharedPtr<BlockQuery> > createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query);
+  virtual std::vector<BigInt> createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query);
 
   //guessBoxQueryEndResolution
   virtual int guessBoxQueryEndResolution(Frustum logic_to_screen, Position logic_position);
@@ -437,7 +437,7 @@ public:
   }
 
   //createBlockQueriesForPointQuery
-  virtual std::vector< SharedPtr<BlockQuery> > createBlockQueriesForPointQuery(SharedPtr<PointQuery> query) {
+  virtual std::vector<BigInt> createBlockQueriesForPointQuery(SharedPtr<PointQuery> query) {
     return {};
   }
 

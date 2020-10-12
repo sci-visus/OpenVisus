@@ -122,9 +122,6 @@ void ModVisusAccess::flushBatch()
   Batch batch;
   std::swap(batch,this->batch);
 
-
-
-
   Url URL(this->url.getProtocol() + "://" + this->url.getHostname() + ":" + cstring(this->url.getPort()) + "/mod_visus");
   URL.setParam("action"      , "rangequery");
   URL.setParam("dataset"     , this->url.getParam("dataset"));

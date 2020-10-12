@@ -356,6 +356,10 @@ public:
 
     WaitAsync< Future<NetResponse> > wait_async_netresponse; //for boxquery
     WaitAsync< Future<Void>        > wait_async_blockquery;  //for blockquery
+    
+    //do I need it?                                                         
+    //wait_async_netresponse.setMaxRunning(512);
+    //wait_async_blockquery.setMaxRunning(512);
 
     if (bUseBlockQuery)
     {
@@ -424,8 +428,8 @@ public:
         if (netservice)
         {
           auto request = dataset->createBoxQueryRequest(query);
-          wait_async_netresponse.pushRunning(NetService::push(netservice, request)).when_ready([this, query, node, &rlock](NetResponse response) 
-          {
+          auto future_response = NetService::push(netservice, request);
+          wait_async_netresponse.pushRunning(future_response,[this, query, node, &rlock](NetResponse response) {
             VisusAssert(kdquery_mode == KdQueryMode::UseBoxQuery);
             if (this->aborted() || !response.isSuccessful())
               return;
@@ -470,8 +474,7 @@ public:
         //retrieve the block data
         auto blockquery = dataset->createBlockQuery(getBlockId(node), field, time, 'r', this->aborted);
         dataset->executeBlockQuery(access, blockquery);
-        wait_async_blockquery.pushRunning(blockquery->done).when_ready([this, blockquery, node, &rlock](Void) 
-        {
+        wait_async_blockquery.pushRunning(blockquery->done, [this, blockquery, node, &rlock](Void) {
           if (aborted() || blockquery->failed())
             return;
 

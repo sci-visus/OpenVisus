@@ -701,6 +701,7 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& ar)
     idxfile.fields.push_back(Field("__fake__", DTypes::UINT8));
   }
 
+  idxfile.validate(this->getUrl());
   ar.writeObject("idxfile", idxfile);
   IdxDataset::readDatasetFromArchive(ar);
 
@@ -718,8 +719,11 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& ar)
     auto LOGIC_PIXELS = Position(dataset->logic_to_LOGIC, logic_box).computeVolume();
     auto logic_pixels = Position(logic_box).computeVolume();
     auto ratio = logic_pixels / LOGIC_PIXELS; //ratio>1 means you are loosing pixels, ratio=1 is perfect, ratio<1 that you have more pixels than needed and you will interpolate
-    //PrintInfo("  ", it.first, "volume(logic_pixels)", logic_pixels, "volume(LOGIC_PIXELS)", LOGIC_PIXELS, "ratio==logic_pixels/LOGIC_PIXELS", ratio);
+    PrintInfo("  ", it.first, "volume(logic_pixels)", logic_pixels, "volume(LOGIC_PIXELS)", LOGIC_PIXELS, "ratio==logic_pixels/LOGIC_PIXELS", ratio);
   }
+
+
+  PrintInfo(this->dataset_body);
 }
 
 
