@@ -84,7 +84,6 @@ bool RamResource::allocateMemory(Int64 reqsize)
 
   peak_memory = std::max((Int64)used_memory, (Int64)peak_memory);
   return true;
-
 }
 
 //////////////////////////////////////////////////////////////////

@@ -621,7 +621,7 @@ void NetService::testSpeed(int nconnections, int nrequests, std::vector<String> 
   for (int request_id = 0; request_id < nrequests; request_id++)
   {
     NetRequest request(urls[request_id % urls.size()]);
-    wait_async.pushRunning(NetService::push(net, request)).when_ready([request_id](NetResponse response) {
+    wait_async.pushRunning(NetService::push(net, request),[request_id](NetResponse response) {
       PrintInfo("Request", request_id, response.isSuccessful()? "ok":"error");
     });
   }
