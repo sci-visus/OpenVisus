@@ -86,8 +86,8 @@ private:
   RamResource();
 
   Int64               os_total_memory=0;
-  std::atomic< Int64> used_memory = 0;
-  std::atomic< Int64> peak_memory = 0;
+  std::atomic< Int64> used_memory;
+  std::atomic< Int64> peak_memory;
 
   
 };

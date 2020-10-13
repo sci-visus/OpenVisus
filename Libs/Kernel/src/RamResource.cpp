@@ -47,7 +47,7 @@ namespace Visus {
 VISUS_IMPLEMENT_SINGLETON_CLASS(RamResource)
 
 ///////////////////////////////////////////////////////////////////////////
-RamResource::RamResource() 
+RamResource::RamResource() : : used_memory(0), peak_memory(0)
 {
   os_total_memory = osdep::GetTotalMemory();
 }
