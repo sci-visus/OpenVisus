@@ -935,12 +935,11 @@ bool Dataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
 		if (query->mode == 'r')
     {
       executeBlockQuery(access, read_block);
-      wait_async.pushRunning(read_block->done, [this, query, read_block](Void)
-      {
+      wait_async.pushRunning(read_block->done, [this, query, read_block](Void) {
         //I don't care if the read fails...
         if (!query->aborted() && read_block->ok())
           mergeBoxQueryWithBlockQuery(query, read_block);
-      });
+        });
     }
     else
     {

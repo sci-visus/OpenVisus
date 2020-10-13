@@ -60,6 +60,7 @@ public:
   StringTree                                       CONFIG;
   std::map< std::pair<String, String>, StringTree> configs;
   SharedPtr<ThreadPool>                            thread_pool;
+  std::map<String, SharedPtr<Access> >             down_access;
 
   //constructor
   IdxMultipleAccess(IdxMultipleDataset* VF, StringTree CONFIG);

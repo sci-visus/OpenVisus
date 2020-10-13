@@ -379,7 +379,7 @@ public:
   }
 
   //addBlendArg
-  void addBlendArg(Array arg, Matrix up_pixel_to_logic = Matrix::identity(4), PointNd logic_centroid = PointNd());
+  void addBlendArg(Array arg);
 
 private:
 
