@@ -142,9 +142,17 @@ public:
         return nullptr;
       });
 
-      addModuleFunction("voronoi", [this](PyObject* self, PyObject* args) {return blendBuffers(BlendBuffers::VororoiBlend, args); });
-      addModuleFunction("averageBlend", [this](PyObject* self, PyObject* args) {return blendBuffers(BlendBuffers::AverageBlend, args); });
-      addModuleFunction("noBlend", [this](PyObject* self, PyObject* args) {return blendBuffers(BlendBuffers::NoBlend, args); });
+      addModuleFunction("voronoi", [this](PyObject* self, PyObject* args) {
+        return blendBuffers(BlendBuffers::VororoiBlend, args); 
+       });
+
+      addModuleFunction("averageBlend", [this](PyObject* self, PyObject* args) {
+        return blendBuffers(BlendBuffers::AverageBlend, args); 
+        });
+
+      addModuleFunction("noBlend", [this](PyObject* self, PyObject* args) {
+        return blendBuffers(BlendBuffers::NoBlend, args); 
+        });
     }
   }
 
@@ -495,8 +503,7 @@ private:
 
     {
       ScopedReleaseGil release_gil;
-      auto down_query = DATASET->createDownQuery(this->ACCESS, this->QUERY, expr1, expr2);
-      ret = DATASET->executeDownQuery(QUERY, down_query);
+      ret = DATASET->executeDownQuery(QUERY, this->ACCESS, expr1, expr2);
     }
 
     return newPyObject(ret);
@@ -505,71 +512,56 @@ private:
   //blendBuffers
   PyObject* blendBuffers(BlendBuffers::Type type, PyObject* args)
   {
-    int N = args ? (int)PyObject_Length(args) : 0;
+    int nargs = args ? (int)PyObject_Length(args) : 0;
     BlendBuffers blend(type, aborted);
 
-    //preview only
-    if (!QUERY)
+    //arguments are arrays
+    if (nargs)
     {
-      if (!N)
+      PyObject* arg0 = nullptr;
+      if (!PyArg_ParseTuple(args, "O:blendBuffers", &arg0))
       {
-        for (auto it : DATASET->down_datasets)
-          blend.addBlendArg(Array(PointNi(DATASET->getPointDim()), it.second->getField().dtype));
+        PyErr_SetString(PyExc_SystemError, "invalid argument");
+        return (PyObject*)nullptr;
       }
-      else
+
+      if (!PyList_Check(arg0))
       {
-        //arguments are arrays
-        PyObject* arg0 = nullptr;
-        if (!PyArg_ParseTuple(args, "O:blendBuffers", &arg0))
-        {
-          PyErr_SetString(PyExc_SystemError, "invalid argument");
-          return (PyObject*)nullptr;
-        }
+        PyErr_SetString(PyExc_SystemError, "invalid argument");
+        return (PyObject*)nullptr;
+      }
 
-        if (!PyList_Check(arg0))
-        {
-          PyErr_SetString(PyExc_SystemError, "invalid argument");
-          return (PyObject*)nullptr;
-        }
+      std::vector<Array> buffers;
+      for (int I = 0; I < nargs; I++)
+        buffers.push_back(pythonObjectToArray(PyList_GetItem(arg0, I)));
 
-        for (int I = 0; I < N; I++)
-          blend.addBlendArg(pythonObjectToArray(PyList_GetItem(arg0, I)));
+      {
+        ScopedReleaseGil release_gil;
+        for (auto buffer : buffers)
+        {
+          if (!buffer.valid() || (QUERY && QUERY->aborted()))
+            continue;
+          blend.addBlendArg(buffer);
+        }
       }
     }
     else
     {
       ScopedReleaseGil release_gil;
 
-      //special case: empty argument means all down dataset default fields
-      if (!N)
+      for (auto it : DATASET->down_datasets)
       {
-        for (auto it : DATASET->down_datasets)
-        {
-          auto dataset_name = it.first;
-          auto fieldname = it.second->getField().name;
+        auto dataset_name = it.first;
+        auto field = it.second->getField();
 
-          auto query = DATASET->createDownQuery(this->ACCESS, this->QUERY, dataset_name, fieldname);
-          if (!query || query->failed() || query->aborted())
-            continue;
+        Array buffer = QUERY?
+          DATASET->executeDownQuery(QUERY, this->ACCESS, dataset_name, field.name) :
+          Array(PointNi(DATASET->getPointDim()), field.dtype);
 
-          DATASET->executeDownQuery(QUERY, query);
+        if (!buffer.valid() || (QUERY && QUERY->aborted()))
+          continue;
 
-          if (!query->down_info.BUFFER.valid() || query->aborted())
-            continue;
-
-          blend.addBlendArg(query->down_info.BUFFER, query->down_info.PIXEL_TO_LOGIC, query->down_info.LOGIC_CENTROID);
-        }
-      }
-      else
-      {
-        for (auto it : QUERY->down_queries)
-        {
-          auto query = it.second;
-          if (!query || !query->down_info.BUFFER.valid() || query->aborted())
-            continue;
-
-          blend.addBlendArg(query->down_info.BUFFER, query->down_info.PIXEL_TO_LOGIC, query->down_info.LOGIC_CENTROID);
-        }
+        blend.addBlendArg(buffer);
       }
     }
 

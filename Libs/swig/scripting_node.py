@@ -51,7 +51,7 @@ class MyJob(NodeJob):
 		input=Array.toNumPy(self.input,bShareMem=True)
 		
 		t1=Time.now()
-		self.printMessage("Got in input",input.shape,input.dtype,"origin=",self.input.origin)
+		self.printMessage("Got in input",input.shape,input.dtype,"origin",self.input.run_time_attributes.getValue("origin"))
 		# self.debugInput()
 
 		_globals = globals()
