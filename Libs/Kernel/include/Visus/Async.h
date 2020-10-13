@@ -259,7 +259,7 @@ public:
     while (this->max_running > 0 && this->num_running >= this->max_running)
       waitOneDone();
 
-    ++num_running;
+    
     auto promise = future.get_promise();
     VisusAssert(promise);
 
@@ -268,15 +268,14 @@ public:
     // immediate call of the callback
     if (auto value = promise->value)
     {
-      --num_running;
       promise->lock.unlock();
       fn(*value);
     }
     else
     {
       //need to wait, as soon as it becomes available I'm moving it to done deque
+      ++num_running;
       promise->addWhenDoneListener(Callback([this, fn](Value value) {
-        --num_running;
         ScopedLock this_lock(this->lock);
         this->done.push_front(std::make_pair(fn, value));
         this->semaphore.up();
@@ -299,6 +298,7 @@ public:
       this->done.pop_back();
     }
 
+    --this->num_running;
     fn(value); 
   }
 
