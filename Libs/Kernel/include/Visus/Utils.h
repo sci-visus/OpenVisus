@@ -438,6 +438,12 @@ namespace Utils
 
   VISUS_KERNEL_API String getCurrentApplicationFile();
 
+  //getenv
+  VISUS_KERNEL_API String getEnv(String key);
+
+  //setenv
+  VISUS_KERNEL_API void setEnv(String key, String value);
+
 }; //end class
 
 //////////////////////////////////////////////////////
