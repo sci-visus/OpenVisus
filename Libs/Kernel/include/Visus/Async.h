@@ -240,16 +240,11 @@ public:
   typedef typename BasePromise<Value>::Callback Callback;
 
   //constructor
-  WaitAsync()  {
+  WaitAsync(int max_running_=0) : max_running(max_running_)  {
   }
 
   //destructor
   ~WaitAsync() {
-  }
-
-  //setMaxRunning
-  void setMaxRunning(int value) {
-    this->max_running = value;
   }
 
   //pushRunning

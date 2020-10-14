@@ -528,7 +528,7 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
 
   auto access = dataset->createAccessForBlockQuery();
 
-  WaitAsync< Future<Void> > wait_async;
+  WaitAsync< Future<Void> > wait_async(/*max_running*/0);
   access->beginRead();
   Aborted aborted;
 

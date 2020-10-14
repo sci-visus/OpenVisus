@@ -98,7 +98,7 @@ public:
 
   //for midx
 #if !SWIG
-  std::map<String, SharedPtr<BoxQuery>>  down_queries;
+  std::map<String, SharedPtr<BoxQuery> >  down_queries;
 #endif
 
   //internal use only

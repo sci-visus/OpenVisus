@@ -487,26 +487,25 @@ private:
       }
     }
 
-    Array ret;
-
     //execute a query (expr2 is the fieldname)
     Field field = dataset->getField(expr2);
 
     if (!field.valid())
       ThrowException("C++ error. input['", expr1, "']['", expr2, "'] not found");
 
-    int pdim = DATASET->getPointDim();
-
     //only getting dtype for field name
-    if (!QUERY)
-      return newPyObject(Array(PointNi(pdim), field.dtype));
-
+    Array array;
+    if (bool bPreview=!QUERY)
+    {
+      array = Array(PointNi(DATASET->getPointDim()), field.dtype); 
+    }
+    else
     {
       ScopedReleaseGil release_gil;
-      ret = DATASET->executeDownQuery(QUERY, this->ACCESS, expr1, expr2);
+      array = DATASET->executeDownQuery(QUERY, this->ACCESS, expr1, expr2);
     }
 
-    return newPyObject(ret);
+    return newPyObject(array);
   }
 
   //blendBuffers
@@ -515,7 +514,7 @@ private:
     int nargs = args ? (int)PyObject_Length(args) : 0;
     BlendBuffers blend(type, aborted);
 
-    //arguments are arrays
+    //arguments are arrays, can we extend to be BoxQuery for 'deferred' evaluation?
     if (nargs)
     {
       PyObject* arg0 = nullptr;
