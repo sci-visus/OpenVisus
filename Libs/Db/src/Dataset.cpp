@@ -896,8 +896,9 @@ bool Dataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
     return executeBlockQuerWithFilters(access, query, filter);
 
   int nread = 0, nwrite = 0;
-  WaitAsync< Future<Void> > wait_async;
-  wait_async.setMaxRunning(512);//example, say each block is 32kb -> 512*32kb==16MB
+
+  //example, say each block is 32kb -> 512*32kb==16MB
+  WaitAsync< Future<Void> > wait_async(/*max_running*/512);
 
   auto blocks = createBlockQueriesForBoxQuery(query);
 
@@ -1559,8 +1560,9 @@ bool Dataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> 
   }
 
   int nread = 0, nwrite = 0;
-  WaitAsync< Future<Void> > wait_async;
-  wait_async.setMaxRunning(512); //512*32kb=16MB (32KB IS A reasonable block size)
+
+  //512*32kb=16MB (32KB IS A reasonable block size)
+  WaitAsync< Future<Void> > wait_async(/*max_running*/512);
   for (auto blockid : blocks)
   {
     auto block_query = createBlockQuery(blockid, query->field, query->time, query->mode, query->aborted);

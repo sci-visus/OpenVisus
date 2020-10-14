@@ -205,11 +205,16 @@ Array IdxMultipleDataset::executeDownQuery(BoxQuery* QUERY, SharedPtr<Access> AC
   }
 
   //if not multiple access i think it will be a pure remote query
+  //NOTE I'm creating a donw-access for each key (i.e. dataset_name.field_name)
+  //     this could be just dataset_name but what happens if I executeDownQuery in parallel on 2 fields of the same datasets?
+  //     at least this way I could run in parallel... even if I'm not doing it
   SharedPtr<Access> access;
   if (auto multiple_access = std::dynamic_pointer_cast<IdxMultipleAccess>(ACCESS))
   {
     if (multiple_access->down_access.count(key))
+    {
       access = multiple_access->down_access[key];
+    }
     else
     {
       access = multiple_access->createDownAccess(dataset_name, field.name);
@@ -691,7 +696,9 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& ar)
     idxfile.fields.push_back(Field("__fake__", DTypes::UINT8));
   }
 
+  //I need to validate before writing (otherwise for example I will be missing bitmask V0101...)
   idxfile.validate(this->getUrl());
+
   ar.writeObject("idxfile", idxfile);
   IdxDataset::readDatasetFromArchive(ar);
 
@@ -709,11 +716,11 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& ar)
     auto LOGIC_PIXELS = Position(dataset->logic_to_LOGIC, logic_box).computeVolume();
     auto logic_pixels = Position(logic_box).computeVolume();
     auto ratio = logic_pixels / LOGIC_PIXELS; //ratio>1 means you are loosing pixels, ratio=1 is perfect, ratio<1 that you have more pixels than needed and you will interpolate
-    PrintInfo("  ", it.first, "volume(logic_pixels)", logic_pixels, "volume(LOGIC_PIXELS)", LOGIC_PIXELS, "ratio==logic_pixels/LOGIC_PIXELS", ratio);
+    //PrintInfo("  ", it.first, "volume(logic_pixels)", logic_pixels, "volume(LOGIC_PIXELS)", LOGIC_PIXELS, "ratio==logic_pixels/LOGIC_PIXELS", ratio);
   }
 
 
-  PrintInfo(this->dataset_body);
+  //PrintInfo(this->dataset_body);
 }
 
 

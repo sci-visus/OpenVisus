@@ -354,12 +354,11 @@ public:
     if (bUseBoxQuery && !access && Url(dataset->getUrl()).isRemote())
       netservice = std::make_shared<NetService>(8);
 
-    WaitAsync< Future<NetResponse> > wait_async_netresponse; //for boxquery
-    WaitAsync< Future<Void>        > wait_async_blockquery;  //for blockquery
-    
-    //do I need it?                                                         
-    //wait_async_netresponse.setMaxRunning(512);
-    //wait_async_blockquery.setMaxRunning(512);
+    //for boxquery
+    WaitAsync< Future<NetResponse> > wait_async_netresponse(/*max_running*/512); 
+
+    //for blockquery     
+    WaitAsync< Future<Void>  > wait_async_blockquery(/*max_running*/512); 
 
     if (bUseBlockQuery)
     {
