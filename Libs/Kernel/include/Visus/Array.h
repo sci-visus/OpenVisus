@@ -84,8 +84,8 @@ public:
   //texture
   SharedPtr<Object> texture;
 
-  //in case you need to detect who generated it
-  String origin;
+  //run_time_attributes
+  StringMap run_time_attributes;
 
   //constructor
   Array() {
@@ -174,10 +174,10 @@ public:
   //shareProperties
   void shareProperties(Array other)
   {
-    this->layout   = other.layout;
-    this->bounds   = other.bounds;
-    this->clipping = other.clipping;
-    this->origin   = origin;
+    this->layout              = other.layout;
+    this->bounds              = other.bounds;
+    this->clipping            = other.clipping;
+    this->run_time_attributes = other.run_time_attributes;
   }
 
 public:

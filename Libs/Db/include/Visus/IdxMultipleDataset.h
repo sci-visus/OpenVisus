@@ -121,11 +121,8 @@ public:
   //getInputName
   static String getInputName(String dataset_name, String fieldname);
 
-  //createDownQuery
-  SharedPtr<BoxQuery> createDownQuery(SharedPtr<Access> ACCESS, BoxQuery* QUERY, String dataset_name, String fieldname);
-
   //executeDownQuery
-  Array executeDownQuery(BoxQuery* QUERY, SharedPtr<BoxQuery> query);
+  Array executeDownQuery(BoxQuery* QUERY, SharedPtr<Access> ACCESS, String dataset_name, String fieldname);
 
   //computeOuput (to override)
   virtual Array computeOuput(BoxQuery* QUERY, SharedPtr<Access> ACCESS, Aborted aborted, String CODE) const {

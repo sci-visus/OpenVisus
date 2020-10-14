@@ -617,11 +617,11 @@ void NetService::testSpeed(int nconnections, int nrequests, std::vector<String> 
 
   Time t1 = Time::now();
 
-  WaitAsync< Future<NetResponse> > wait_async;
+  WaitAsync< Future<NetResponse> > wait_async(/*max_running*/0);
   for (int request_id = 0; request_id < nrequests; request_id++)
   {
     NetRequest request(urls[request_id % urls.size()]);
-    wait_async.pushRunning(NetService::push(net, request)).when_ready([request_id](NetResponse response) {
+    wait_async.pushRunning(NetService::push(net, request),[request_id](NetResponse response) {
       PrintInfo("Request", request_id, response.isSuccessful()? "ok":"error");
     });
   }

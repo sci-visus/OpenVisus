@@ -127,26 +127,25 @@ String IdxMultipleDataset::getInputName(String dataset_name, String fieldname)
 };
 
 
+
+
 /////////////////////////////////////////////////////////////////////////////////////
-SharedPtr<BoxQuery> IdxMultipleDataset::createDownQuery(SharedPtr<Access> ACCESS, BoxQuery* QUERY, String dataset_name, String fieldname)
+Array IdxMultipleDataset::executeDownQuery(BoxQuery* QUERY, SharedPtr<Access> ACCESS, String dataset_name, String fieldname)
 {
   IdxMultipleDataset* DATASET = this;
-  auto key = dataset_name + "/" + fieldname;
 
-  //already created?
-  auto it = QUERY->down_queries.find(key);
-  if (it != QUERY->down_queries.end())
-    return it->second;
+  auto dataset = DATASET->down_datasets[dataset_name]; 
+  VisusReleaseAssert(dataset);
 
-  auto dataset = DATASET->down_datasets[dataset_name]; VisusAssert(dataset);
-  auto field = dataset->getField(fieldname); VisusAssert(field.valid());
+  auto field = dataset->getField(fieldname); 
+  VisusReleaseAssert(field.valid());
 
   auto QUERY_LOGIC_BOX = QUERY->logic_box.castTo<BoxNd>();
 
   //no intersection? just skip this down query
   auto VALID_LOGIC_REGION = Position(dataset->logic_to_LOGIC, dataset->getLogicBox()).toAxisAlignedBox();
   if (!QUERY_LOGIC_BOX.intersect(VALID_LOGIC_REGION))
-    return SharedPtr<BoxQuery>();
+    return Array();
 
   // consider that logic_to_logic could have mat(3,0) | mat(3,1) | mat(3,2) !=0 and so I can have non-parallel axis
   // using directly the QUERY_LOGIC_BOX could result in missing pieces for example in voronoi
@@ -155,70 +154,77 @@ SharedPtr<BoxQuery> IdxMultipleDataset::createDownQuery(SharedPtr<Access> ACCESS
 
   auto LOGIC_to_logic = dataset->logic_to_LOGIC.invert();
   auto query_logic_box = Position(LOGIC_to_logic, QUERY_LOGIC_BOX).toDiscreteAxisAlignedBox();
-  auto valid_logic_region = dataset->getLogicBox();
-  query_logic_box = query_logic_box.getIntersection(valid_logic_region);
+  query_logic_box = query_logic_box.getIntersection(dataset->getLogicBox());
 
   //euristic to find delta in the hzcurve (sometimes it produces too many samples)
   auto VOLUME = Position(DATASET->getLogicBox()).computeVolume();
   auto volume = Position(dataset->logic_to_LOGIC, dataset->getLogicBox()).computeVolume();
   int delta_h = -(int)log2(VOLUME / volume);
 
-  auto query = dataset->createBoxQuery(query_logic_box, field, QUERY->time, 'r', QUERY->aborted);
-  QUERY->down_queries[key] = query;
-  query->down_info.name = dataset_name;
-
-  //resolutions
-  if (!QUERY->start_resolution)
-    query->start_resolution = 0;
+  //query already created?
+  auto key = dataset_name + "/" + fieldname;
+  SharedPtr<BoxQuery> query;
+  if (QUERY->down_queries.count(key))
+  {
+    query  = QUERY->down_queries[key];
+  }
   else
-    query->start_resolution = Utils::clamp(QUERY->start_resolution + delta_h, 0, dataset->getMaxResolution()); //probably a block query
-
-  std::set<int> resolutions;
-  for (auto END_RESOLUTION : QUERY->end_resolutions)
   {
-    auto end_resolution = Utils::clamp(END_RESOLUTION + delta_h, 0, dataset->getMaxResolution());
-    resolutions.insert(end_resolution);
-  }
-  query->end_resolutions = std::vector<int>(resolutions.begin(), resolutions.end());
+    query = dataset->createBoxQuery(query_logic_box, field, QUERY->time, 'r', QUERY->aborted);
+    QUERY->down_queries[key] = query;
 
-  //skip this argument since returns empty array
-  dataset->beginBoxQuery(query);
-  if (!query->isRunning())
-  {
-    query->setFailed("cannot begin the query");
-    return query;
-  }
+    //resolutions
+    if (!QUERY->start_resolution)
+      query->start_resolution = 0;
+    else
+      query->start_resolution = Utils::clamp(QUERY->start_resolution + delta_h, 0, dataset->getMaxResolution()); //probably a block query
 
-  //ignore missing timesteps
-  if (!dataset->getTimesteps().containsTimestep(query->time))
-  {
-    PrintInfo("Missing timestep", query->time, "for input['", concatenate(dataset_name, ".", field.name), "']...ignoring it");
-    query->setFailed("wrong time");
-    return query;
-  }
+    std::set<int> resolutions;
+    for (auto END_RESOLUTION : QUERY->end_resolutions)
+    {
+      auto end_resolution = Utils::clamp(END_RESOLUTION + delta_h, 0, dataset->getMaxResolution());
+      resolutions.insert(end_resolution);
+    }
+    query->end_resolutions = std::vector<int>(resolutions.begin(), resolutions.end());
 
-  VisusAssert(!query->down_info.BUFFER.valid());
+    //skip this argument since returns empty array
+    dataset->beginBoxQuery(query);
+    if (!query->isRunning())
+    {
+      query->setFailed("cannot begin the query");
+      return Array();
+    }
+
+    //ignore missing timesteps
+    if (!dataset->getTimesteps().containsTimestep(query->time))
+    {
+      PrintInfo("Missing timestep", query->time, "for input['", concatenate(dataset_name, ".", field.name), "']...ignoring it");
+      query->setFailed("wrong time");
+      return Array();
+    }
+  }
 
   //if not multiple access i think it will be a pure remote query
+  //NOTE I'm creating a donw-access for each key (i.e. dataset_name.field_name)
+  //     this could be just dataset_name but what happens if I executeDownQuery in parallel on 2 fields of the same datasets?
+  //     at least this way I could run in parallel... even if I'm not doing it
+  SharedPtr<Access> access;
   if (auto multiple_access = std::dynamic_pointer_cast<IdxMultipleAccess>(ACCESS))
-    query->down_info.access = multiple_access->createDownAccess(dataset_name, field.name);
-
-  return query;
-}
-
-
-/////////////////////////////////////////////////////////////////////////////////////
-Array IdxMultipleDataset::executeDownQuery(BoxQuery* QUERY, SharedPtr<BoxQuery> query)
-{
-  IdxMultipleDataset* DATASET = this;
+  {
+    if (multiple_access->down_access.count(key))
+    {
+      access = multiple_access->down_access[key];
+    }
+    else
+    {
+      access = multiple_access->createDownAccess(dataset_name, field.name);
+      multiple_access->down_access[key] = access;
+    }
+  }
 
   //already failed
   if (!query || query->failed())
     return Array();
-
-  auto dataset_name = query->down_info.name;
-
-  auto dataset = DATASET->down_datasets[dataset_name]; VisusAssert(dataset);
 
   //NOTE if I cannot execute it probably reached max resolution for query, in that case I recycle old 'BUFFER'
   if (query->canExecute())
@@ -234,7 +240,7 @@ Array IdxMultipleDataset::executeDownQuery(BoxQuery* QUERY, SharedPtr<BoxQuery> 
     }
     else
     {
-      if (!dataset->executeBoxQuery(query->down_info.access, query))
+      if (!dataset->executeBoxQuery(access, query))
       {
         query->setFailed("cannot execute the query");
         return Array();
@@ -242,33 +248,21 @@ Array IdxMultipleDataset::executeDownQuery(BoxQuery* QUERY, SharedPtr<BoxQuery> 
     }
 
     //PrintInfo("MIDX up nsamples",QUERY->nsamples,"dw",dataset_name,".",field.name,"nsamples",query->buffer.dims.toString());
-
-    //force resampling
-    query->down_info.BUFFER = Array();
   }
 
-  //already resampled
-  auto NSAMPLES = QUERY->getNumberOfSamples();
-  if (query->down_info.BUFFER.valid() && query->down_info.BUFFER.dims == NSAMPLES)
-    return query->down_info.BUFFER;
-
   //create a brand new BUFFER for doing the warpPerspective
-  query->down_info.BUFFER = Array(NSAMPLES, query->buffer.dtype);
-  query->down_info.BUFFER.fillWithValue(query->field.default_value);
+  auto ret = Array(QUERY->getNumberOfSamples(), query->buffer.dtype);
+  ret.fillWithValue(query->field.default_value);
 
-  query->down_info.BUFFER.alpha = std::make_shared<Array>(NSAMPLES, DTypes::UINT8);
-  query->down_info.BUFFER.alpha->fillWithValue(0);
+  ret.alpha = std::make_shared<Array>(ret.dims, DTypes::UINT8);
+  ret.alpha->fillWithValue(0);
 
-  auto PIXEL_TO_LOGIC = Position::computeTransformation(Position(QUERY->logic_box), query->down_info.BUFFER.dims);
+  auto PIXEL_TO_LOGIC = Position::computeTransformation(Position(QUERY->logic_box), ret.dims);
   auto pixel_to_logic = Position::computeTransformation(Position(query->logic_box), query->buffer.dims);
 
   auto LOGIC_TO_PIXEL = PIXEL_TO_LOGIC.invert();
-  Matrix pixel_to_PIXEL = LOGIC_TO_PIXEL * dataset->logic_to_LOGIC * pixel_to_logic;
-
-  //this will help to find voronoi seams betweeen images
-  query->down_info.LOGIC_TO_PIXEL = LOGIC_TO_PIXEL;
-  query->down_info.PIXEL_TO_LOGIC = PIXEL_TO_LOGIC;
-  query->down_info.LOGIC_CENTROID = dataset->logic_to_LOGIC * dataset->getLogicBox().center();
+  auto pixel_to_PIXEL = LOGIC_TO_PIXEL * dataset->logic_to_LOGIC * pixel_to_logic;
+  auto LOGIC_CENTROID = dataset->logic_to_LOGIC * dataset->getLogicBox().center();
 
   //limit the samples to good logic domain
   //explanation: for each pixel in dims, tranform it to the logic dataset box, if inside set the pixel to 1 otherwise set the pixel to 0
@@ -277,27 +271,28 @@ Array IdxMultipleDataset::executeDownQuery(BoxQuery* QUERY, SharedPtr<BoxQuery> 
     query->buffer.alpha = std::make_shared<Array>(query->buffer.dims, DTypes::UINT8);
     query->buffer.alpha->fillWithValue(255);
   }
-
   VisusReleaseAssert(query->buffer.alpha->dims == query->buffer.dims);
 
-  if (!QUERY->aborted())
-  {
-    ArrayUtils::warpPerspective(query->down_info.BUFFER, pixel_to_PIXEL, query->buffer, QUERY->aborted);
+  ArrayUtils::warpPerspective(ret, pixel_to_PIXEL, query->buffer, QUERY->aborted);
 
-    if (DATASET->debug_mode & IdxMultipleDataset::DebugSaveImages)
-    {
-      static int cont = 0;
-      String tmp_dir = "tmp/debug_midx";
-      ArrayUtils::saveImage(concatenate(tmp_dir, "/", cont, ".dw." + dataset_name, ".", query->field.name, ".buffer.png"), query->buffer);
-      ArrayUtils::saveImage(concatenate(tmp_dir, "/", cont, ".dw." + dataset_name, ".", query->field.name, ".alpha_.png"), *query->buffer.alpha);
-      ArrayUtils::saveImage(concatenate(tmp_dir, "/", cont, ".up." + dataset_name, ".", query->field.name, ".buffer.png"), query->down_info.BUFFER);
-      ArrayUtils::saveImage(concatenate(tmp_dir, "/", cont, ".up." + dataset_name, ".", query->field.name, ".alpha_.png"), *query->down_info.BUFFER.alpha);
-      //ArrayUtils::setBufferColor(query->BUFFER, DATASET->childs[dataset_name].color);
-      cont++;
-    }
+  if (DATASET->debug_mode & IdxMultipleDataset::DebugSaveImages)
+  {
+    static int cont = 0;
+    String tmp_dir = "tmp/debug_midx";
+    ArrayUtils::saveImage(concatenate(tmp_dir, "/", cont, ".dw." + dataset_name, ".", query->field.name, ".buffer.png"), query->buffer);
+    ArrayUtils::saveImage(concatenate(tmp_dir, "/", cont, ".dw." + dataset_name, ".", query->field.name, ".alpha_.png"), *query->buffer.alpha);
+    ArrayUtils::saveImage(concatenate(tmp_dir, "/", cont, ".up." + dataset_name, ".", query->field.name, ".buffer.png"), ret);
+    ArrayUtils::saveImage(concatenate(tmp_dir, "/", cont, ".up." + dataset_name, ".", query->field.name, ".alpha_.png"), *ret.alpha);
+    //ArrayUtils::setBufferColor(query->BUFFER, DATASET->childs[dataset_name].color);
+    cont++;
   }
 
-  return query->down_info.BUFFER;
+  //this will help to find voronoi seams betweeen images
+  ret.run_time_attributes.setValue("LOGIC_TO_PIXEL", LOGIC_TO_PIXEL.toString());
+  ret.run_time_attributes.setValue("PIXEL_TO_LOGIC", PIXEL_TO_LOGIC.toString());
+  ret.run_time_attributes.setValue("LOGIC_CENTROID", LOGIC_CENTROID.toString());
+
+  return ret;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -369,7 +364,7 @@ void IdxMultipleDataset::nextBoxQuery(SharedPtr<BoxQuery> QUERY)
   for (auto it : QUERY->down_queries)
   {
     auto  query   = it.second;
-    auto  dataset = this->down_datasets[query->down_info.name]; VisusAssert(dataset);
+    auto  dataset = query->dataset; VisusAssert(dataset);
 
     //can advance to the next level?
     if (query && query->isRunning() && query->getCurrentResolution() == query->getEndResolution())
@@ -701,6 +696,9 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& ar)
     idxfile.fields.push_back(Field("__fake__", DTypes::UINT8));
   }
 
+  //I need to validate before writing (otherwise for example I will be missing bitmask V0101...)
+  idxfile.validate(this->getUrl());
+
   ar.writeObject("idxfile", idxfile);
   IdxDataset::readDatasetFromArchive(ar);
 
@@ -720,6 +718,9 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& ar)
     auto ratio = logic_pixels / LOGIC_PIXELS; //ratio>1 means you are loosing pixels, ratio=1 is perfect, ratio<1 that you have more pixels than needed and you will interpolate
     //PrintInfo("  ", it.first, "volume(logic_pixels)", logic_pixels, "volume(LOGIC_PIXELS)", LOGIC_PIXELS, "ratio==logic_pixels/LOGIC_PIXELS", ratio);
   }
+
+
+  //PrintInfo(this->dataset_body);
 }
 
 

@@ -1564,7 +1564,7 @@ public:
 
   //execute
   template <class CppType>
-  bool execute(Type type, Array& dst, Array src, Matrix up_pixel_to_logic, PointNd logic_centroid, Aborted aborted)
+  bool execute(Type type, Array& dst, Array src, Aborted aborted)
   {
     if (!src.valid()) {
       VisusAssert(false);
@@ -1602,7 +1602,6 @@ public:
     auto pdim   = dims.getPointDim(); 
     VisusReleaseAssert(pdim <= 3); //todo other cases
     dims.setPointDim(3,1);
-    logic_centroid.setPointDim(3);
 
     auto width  = dims[0];
     auto height = dims[1];
@@ -1736,7 +1735,7 @@ public:
     }
 
     if (type == VororoiBlend)
-    {
+    { 
       if (!best_distance.valid())
       {
         if (!best_distance.resize(src.dims, DType(ncomponents, DTypes::FLOAT64), __FILE__, __LINE__))
@@ -1750,8 +1749,16 @@ public:
         }
       }
 
+      VisusReleaseAssert(src.run_time_attributes.hasValue("PIXEL_TO_LOGIC"));
+      VisusReleaseAssert(src.run_time_attributes.hasValue("LOGIC_CENTROID"));
 
-      auto T = up_pixel_to_logic;
+      auto pixel_to_logic = Matrix::fromString(src.run_time_attributes.getValue("PIXEL_TO_LOGIC"));
+      auto logic_centroid = PointNd::fromString(src.run_time_attributes.getValue("LOGIC_CENTROID"));
+
+      VisusReleaseAssert(logic_centroid.getPointDim() == (pdim  ));
+      VisusReleaseAssert(pixel_to_logic.getSpaceDim() == (pdim+1));
+
+      auto T = pixel_to_logic;
 
       if (pdim == 2)
       {
@@ -1892,9 +1899,9 @@ BlendBuffers::~BlendBuffers() {
   delete pimpl;
 }
 
-void BlendBuffers::addBlendArg(Array src, Matrix up_pixel_to_logic, PointNd logic_centroid) {
+void BlendBuffers::addBlendArg(Array src) {
   ++nargs;
-  ExecuteOnCppSamples(*pimpl, src.dtype, type, result,src, up_pixel_to_logic, logic_centroid, aborted);
+  ExecuteOnCppSamples(*pimpl, src.dtype, type, result,src, aborted);
 }
 
 

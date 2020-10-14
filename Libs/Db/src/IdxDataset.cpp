@@ -384,12 +384,12 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////
-std::vector< SharedPtr<BlockQuery> > IdxDataset::createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query)
+std::vector<BigInt> IdxDataset::createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query)
 {
   if (blocksFullRes())
     return Dataset::createBlockQueriesForBoxQuery(query);
 
-  std::vector< SharedPtr<BlockQuery> > ret;
+  std::vector<BigInt> ret;
 
   int bitsperblock = getDefaultBitsPerBlock();
   VisusAssert(bitsperblock);
@@ -448,7 +448,7 @@ std::vector< SharedPtr<BlockQuery> > IdxDataset::createBlockQueriesForBoxQuery(S
       if ((H - item.H) <= bitsperblock)
       {
         auto blockid = hz >> bitsperblock;
-        ret.push_back(createBlockQuery(blockid, query->field, query->time, 'r', query->aborted));
+        ret.push_back(blockid);
 
         // I know that block 0 convers several hz-levels from [0 to bitsperblock]
         if (blockid == 0)
@@ -492,12 +492,12 @@ bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPt
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
-std::vector< SharedPtr<BlockQuery> > IdxDataset::createBlockQueriesForPointQuery(SharedPtr<PointQuery> query)
+std::vector<BigInt> IdxDataset::createBlockQueriesForPointQuery(SharedPtr<PointQuery> query)
 {
   if (blocksFullRes())
     return Dataset::createBlockQueriesForPointQuery(query);
 
-  std::vector< SharedPtr<BlockQuery> > ret;
+  std::vector<BigInt> ret;
 
   query->offsets.clear();
 
@@ -557,7 +557,7 @@ std::vector< SharedPtr<BlockQuery> > IdxDataset::createBlockQueriesForPointQuery
     if (!query->offsets.count(blockid))
     {
       query->offsets[blockid]=std::make_shared<PointQuery::Offsets>();
-      ret.push_back(createBlockQuery(blockid, query->field, query->time, 'r', query->aborted));
+      ret.push_back(blockid);
     }
 
     block_samples = getBlockQuerySamples(blockid, H);

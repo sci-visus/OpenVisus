@@ -63,28 +63,19 @@ class MyWindow(QMainWindow):
 		# avoid rehentrant calls
 		if hasattr(self,"changing_camera") and self.changing_camera: 
 			return
-			
+		
 		self.changing_camera=True
+		cam2.beginTransaction()
+		cam2.setLookAt(cam1.getPos(),cam1.getCenter(),cam1.getVup())
 
-		# 3d
 		if isinstance(cam1,GLLookAtCamera):
-			pos1,center1,vup1=[cam1.getPos(),cam1.getCenter(),cam1.getVup()]
-			pos2,center2,vup2=[cam2.getPos(),cam2.getCenter(),cam2.getVup()]
-			cam2.beginTransaction()
-			cam2.setLookAt(pos1,center1,vup1)
-			# todo... projection?
-			cam2.endTransaction()
-		# 3d
+			cam2.setFov(cam1.getFov())
+			cam2.setCenterOfRotation(cam1.getCenterOfRotation())
+			cam2.setRotation(cam1.getRotation())
 		else:
-			pos1,cen1,vup1,proj1=cam1.getPos(),cam1.getCenter(),cam1.getVup(),cam1.getOrthoParams()
-			pos2,cen2,vup2,proj2=cam2.getPos(),cam2.getCenter(),cam2.getVup(),cam2.getOrthoParams()
-			#print("pos",pos1.toString(),"cen",cen1.toString(),"vup",vup1.toString(),"proj",proj1.toString())
-			#print("pos",pos2.toString(),"cen",cen2.toString(),"vup",vup2.toString(),"proj",proj2.toString())
-			cam2.beginTransaction()
-			cam2.setLookAt(pos1,cen1,vup1)
-			cam2.setOrthoParams(proj1)
-			cam2.endTransaction()
+			cam2.setOrthoParams(cam1.getOrthoParams())
 			
+		cam2.endTransaction()
 		self.changing_camera=False
 
 
@@ -100,8 +91,8 @@ class MyWindow(QMainWindow):
 		
 		# create viewers
 		if True:
-			self.viewer1=MyViewer(name="viewer1",url="./datasets/cat/gray.idx")
-			self.viewer2=MyViewer(name="viewer2",url="./datasets/cat/rgb.idx" )
+			self.viewer1=MyViewer(name="viewer1",url=r"D:\GoogleSci\visus_dataset\llnl\battery.idx")
+			self.viewer2=MyViewer(name="viewer2",url=r"D:\GoogleSci\visus_dataset\llnl\meteorite.idx")
 			
 			cam1=self.viewer1.getGLCamera()
 			cam2=self.viewer2.getGLCamera()

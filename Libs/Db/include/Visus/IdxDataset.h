@@ -84,14 +84,14 @@ public:
   }
 
   //createBlockQueriesForBoxQuery
-  virtual std::vector< SharedPtr<BlockQuery> > createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query);
+  virtual std::vector<BigInt> createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query);
 
   //mergeBoxQueryWithBlockQuery
   virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) override;
 
 
   //createBlockQueriesForPointQuery
-  virtual std::vector< SharedPtr<BlockQuery> > createBlockQueriesForPointQuery(SharedPtr<PointQuery> query) override;
+  virtual std::vector<BigInt > createBlockQueriesForPointQuery(SharedPtr<PointQuery> query) override;
 
   //readDatasetFromArchive
   virtual void readDatasetFromArchive(Archive& ar) override;
