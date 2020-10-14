@@ -943,13 +943,21 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
   if (auto env = getenv("VISUS_DISABLE_WRITE_LOCK"))
     this->bDisableWriteLocks = cbool(String(env));
 
+  if (auto env = getenv("VISUS_IDX_SKIP_READING"))
+    this->bSkipReading = cbool(String(env));
+
   //if (this->bDisableWriteLocks)
   //  PrintInfo("IdxDiskAccess::IdxDiskAccess disabling write locsk. be careful");
 
-  // important!number of threads must be <=1 
+  
 #if 1
-  bool disable_async = config.readBool("disable_async", dataset->isServerMode());
+  bool disable_async=false;
+  if (auto env = getenv("VISUS_IDX_DISABLE_ASYNC"))
+    disable_async = cbool(String(env));
+  else
+    disable_async = config.readBool("disable_async", dataset->isServerMode());
 
+  // important!number of threads must be <=1 
   if (int nthreads = disable_async ? 0 : 1)
   {
     async_tpool = std::make_shared<ThreadPool>("IdxDiskAccess Thread", nthreads);
@@ -1062,7 +1070,12 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
     return readFailed(query);
   }
 
-  //return query->setOk();
+  if (bSkipReading)
+  {
+    query->allocateBufferIfNeeded();
+    query->buffer.fillWithValue(0);
+    return query->setOk();
+  }
 
   if (bool bAsync = !isWriting() && async_tpool)
   {

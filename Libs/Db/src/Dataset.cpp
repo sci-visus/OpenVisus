@@ -896,9 +896,11 @@ bool Dataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
     return executeBlockQuerWithFilters(access, query, filter);
 
   int nread = 0, nwrite = 0;
-  WaitAsync< Future<Void> > wait_async;
 
-  auto block_queries = createBlockQueriesForBoxQuery(query);
+  //example, say each block is 32kb -> 512*32kb==16MB
+  WaitAsync< Future<Void> > wait_async(/*max_running*/512);
+
+  auto blocks = createBlockQueriesForBoxQuery(query);
 
   if (query->aborted())
     return false;
@@ -922,29 +924,23 @@ bool Dataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
     }
 	}
 
-  for (auto read_block : block_queries)
+  for (auto blockid : blocks)
   {
     if (query->aborted())
       break;
 
-    //do not collect too much stuff...
-    if (wait_async.getNumRunning() > 512)
-    {
-      wait_async.waitAllDone();
-      //PrintInfo("aysnc read",concatenate(nread, "/", blocks.size()),"...");
-    }
-
     nread++;
+
+    auto read_block = createBlockQuery(blockid, query->field, query->time, 'r', query->aborted);
 
 		if (query->mode == 'r')
     {
       executeBlockQuery(access, read_block);
-      wait_async.pushRunning(read_block->done).when_ready([this, query, read_block](Void)
-      {
+      wait_async.pushRunning(read_block->done, [this, query, read_block](Void) {
         //I don't care if the read fails...
         if (!query->aborted() && read_block->ok())
           mergeBoxQueryWithBlockQuery(query, read_block);
-      });
+        });
     }
     else
     {
@@ -1142,10 +1138,10 @@ int Dataset::guessBoxQueryEndResolution(Frustum logic_to_screen, Position logic_
 }
 
 //////////////////////////////////////////////////////////////
-std::vector< SharedPtr<BlockQuery> > Dataset::createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query)
+std::vector<BigInt> Dataset::createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query)
 {
   VisusReleaseAssert(blocksFullRes());
-  std::vector< SharedPtr<BlockQuery> > ret;
+  std::vector<BigInt> ret;
 
   auto bitsperblock = this->getDefaultBitsPerBlock();
 
@@ -1170,8 +1166,7 @@ std::vector< SharedPtr<BlockQuery> > Dataset::createBlockQueriesForBoxQuery(Shar
     //is the resolution I need?
     if (H == query->end_resolution)
     {
-      auto blockquery = createBlockQuery(blockid, query->field, query->time, 'r', query->aborted);
-      ret.push_back(blockquery);
+      ret.push_back(blockid);
     }
     else
     {
@@ -1541,8 +1536,8 @@ bool Dataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> 
   VisusAssert(query->buffer.dims == query->getNumberOfPoints());
   VisusAssert((Int64)query->points->c_size() == query->getNumberOfPoints().innerProduct() * sizeof(Int64) * pdim);
 
-  auto block_queries = createBlockQueriesForPointQuery(query);
-  if (query->aborted() || block_queries.empty())
+  auto blocks = createBlockQueriesForPointQuery(query);
+  if (query->aborted() || blocks.empty())
     return false;
 
   //rehentrant call...(just to not close the file too soon)
@@ -1565,15 +1560,18 @@ bool Dataset::executePointQuery(SharedPtr<Access> access, SharedPtr<PointQuery> 
   }
 
   int nread = 0, nwrite = 0;
-  WaitAsync< Future<Void> > wait_async;
-  for (auto block_query : block_queries)
+
+  //512*32kb=16MB (32KB IS A reasonable block size)
+  WaitAsync< Future<Void> > wait_async(/*max_running*/512);
+  for (auto blockid : blocks)
   {
+    auto block_query = createBlockQuery(blockid, query->field, query->time, query->mode, query->aborted);
+
     if (query->mode=='r')
     {
       ++nread;
       executeBlockQuery(access, block_query);
-      wait_async.pushRunning(block_query->done).when_ready([this, query, block_query](Void)
-      {
+      wait_async.pushRunning(block_query->done,[this, query, block_query](Void) {
         mergePointQueryWithBlockQuery(query, block_query);
       });
     }

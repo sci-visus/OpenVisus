@@ -53,6 +53,7 @@ For support : support@visus.net
 #include <Visus/IdxDiskAccess.h>
 #include <Visus/IdxMultipleDataset.h>
 #include <Visus/MultiplexAccess.h>
+#include <Visus/RamResource.h>
 
 namespace Visus {
 
@@ -582,6 +583,82 @@ public:
   }
 };
 
+
+///////////////////////////////////////////////////////////
+class TestIdxMemory : public VisusConvert::Step
+{
+public:
+
+  //getHelp
+  virtual String getHelp(std::vector<String> args) override
+  {
+    std::ostringstream out;
+    out << args[0]
+      << std::endl;
+    return out.str();
+  }
+
+  //exec
+  virtual Array exec(Array data, std::vector<String> args) override
+  {
+    String url = "";
+    for (int I = 1; I < (int)args.size(); I++)
+    {
+      if (args[I] == "--url")
+      {
+        url = args[++I];
+        continue;
+      }
+
+      ThrowException(args[0], "Invalid arguments", args[I]);
+    }
+
+    if (url.empty())
+    {
+      url = "tmp/huge.idx";
+      IdxFile idxfile;
+      idxfile.logic_box = BoxNi(PointNi(0, 0, 0), PointNi(19456, 12492, 1000));
+      idxfile.fields = { Field("myfield", DTypes::UINT16) };
+      idxfile.save(url);
+    }
+
+    auto db = LoadDataset(url);
+    VisusReleaseAssert(db);
+
+    Utils::setEnv("VISUS_IDX_SKIP_READING", "1");
+    Utils::setEnv("VISUS_IDX_DISABLE_ASYNC", "1");
+
+    auto access = db->createAccess();
+    Int64 query_size = 0;
+
+    auto ram = RamResource::getSingleton();
+
+    //I should get a number of samples equals to the number of samples written in tutorial 1
+    for (int H = 29; H <= db->getMaxResolution(); H++)
+    {
+      auto t1 = Time::now();
+      query_size = 0;
+      PrintInfo("H", H);
+      PrintInfo("Executing query Used memory", StringUtils::getStringFromByteSize(ram->getVisusUsedMemory()), "...");
+      auto query = db->createBoxQuery(db->getLogicBox(), 'r');
+      query->end_resolutions = { H };
+      db->beginBoxQuery(query);
+      VisusReleaseAssert(query->isRunning());
+      db->executeBoxQuery(access, query);
+      query_size = query->getByteSize();
+      PrintInfo("DONE",
+        "query_nsamples", query->getNumberOfSamples(),
+        "query_size", StringUtils::getStringFromByteSize(query_size),
+        "Used memory", StringUtils::getStringFromByteSize(ram->getVisusUsedMemory()),
+        "Peak memory", StringUtils::getStringFromByteSize(ram->getPeakMemory())
+      );
+      PrintInfo("done in", t1.elapsedMsec(), "msec\n");
+    }
+
+    return Array();
+  }
+};
+
 } //namespace Private
 
 //////////////////////////////////////////////////////////////////////////////
@@ -602,6 +679,7 @@ VisusConvert::VisusConvert()
   addAction("resize", []() {return std::make_shared<ResizeData>(); });
   addAction("resample", []() {return std::make_shared<ResampleData>(); });
   addAction("get-component", []() {return std::make_shared<GetComponent>(); });
+  addAction("idx-memory", []() {return std::make_shared<TestIdxMemory>(); });
 }
 
 //////////////////////////////////////////////////////////////////////////////

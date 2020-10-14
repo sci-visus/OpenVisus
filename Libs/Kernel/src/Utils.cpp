@@ -64,6 +64,23 @@ String Utils::getCurrentApplicationFile() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
+String Utils::getEnv(String key)
+{
+  auto e = getenv(key.c_str());
+  return e? e : "";
+}
+
+///////////////////////////////////////////////////////////////////////////////////////
+void Utils::setEnv(String key, String value)
+{
+#if WIN32
+  _putenv_s(key.c_str(), value.c_str());
+#else
+  setenv(key.c_str(), value.c_str(), 1);
+#endif
+}
+
+///////////////////////////////////////////////////////////////////////////////////////
 double Utils::getRandDouble(double a, double b) {
   return osdep::GetRandDouble(a, b); 
 }

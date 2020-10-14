@@ -181,10 +181,6 @@ public:
 
   //when_ready
   void when_ready(typename BasePromise<Value>::Callback fn) {
-    if (!promise) {
-      VisusAssert(false);
-      return;
-    }
      return promise->when_ready(fn);
   }
 
@@ -241,87 +237,83 @@ class WaitAsync
 public:
 
   typedef typename Future::Value Value;
+  typedef typename BasePromise<Value>::Callback Callback;
 
   //constructor
-  WaitAsync()  {
+  WaitAsync(int max_running_=0) : max_running(max_running_)  {
   }
 
   //destructor
   ~WaitAsync() {
-    VisusAssert(ninside==0);
   }
 
   //pushRunning
-  Future pushRunning(Future future)
+  void pushRunning(Future future, Callback fn)
   {
-    Future ret = Promise<Value>().get_future();
+    //there is a limit about how much to push
+    while (this->max_running > 0 && this->num_running >= this->max_running)
+      waitOneDone();
 
+    
     auto promise = future.get_promise();
     VisusAssert(promise);
 
-    ScopedLock promise_lock(promise->lock);
+    promise->lock.lock();
+
+    // immediate call of the callback
+    if (auto value = promise->value)
     {
-      ScopedLock this_lock(this->lock);
-
-      ++ninside;
-
-      //no need to wait
-      if (promise->value)
-      {
-        ready.push_front(std::make_pair(ret,*promise->value));
-        nready.up();
-      }
-      //need to wait, as soon as it becomes available I'm moving it to ready deque
-      else
-      {
-        promise->addWhenDoneListener(typename BasePromise<Value>::Callback([this, future, ret](Value value)
-        {
-          ScopedLock this_lock(this->lock);
-          ready.push_front(std::make_pair(ret, value));
-          nready.up();
-        }));
-      }
+      promise->lock.unlock();
+      fn(*value);
     }
+    else
+    {
+      //need to wait, as soon as it becomes available I'm moving it to done deque
+      ++num_running;
+      promise->addWhenDoneListener(Callback([this, fn](Value value) {
+        ScopedLock this_lock(this->lock);
+        this->done.push_front(std::make_pair(fn, value));
+        this->semaphore.up();
+      }));
 
-    return ret;
+      promise->lock.unlock();
+    }
   }
 
-  //getNumRunning
-  int getNumRunning() const
+  //waitOneDone
+  void waitOneDone() 
   {
-    ScopedLock lock(const_cast<WaitAsync*>(this)->lock);
-    return this->ninside;
+    Callback fn; Value value;
+    this->semaphore.down();
+    {
+      ScopedLock lock(this->lock);
+      VisusReleaseAssert(!this->done.empty());
+      fn    = this->done.back().first;
+      value = this->done.back().second;
+      this->done.pop_back();
+    }
+
+    --this->num_running;
+    fn(value); 
   }
 
   //waitAllDone
-  void waitAllDone() 
+  void waitAllDone()
   {
-    for (int I = 0, N= getNumRunning(); I < N; I++)
-    {
-      Ready popped;
-      nready.down();
-      {
-        ScopedLock lock(this->lock);
-        VisusAssert(!this->ready.empty());
-        popped = this->ready.back();
-        this->ready.pop_back();
-        --ninside;
-      }
-
-      popped.first.get_promise()->set_value(popped.second);
-    }
+    while (num_running)
+      waitOneDone();
   }
 
 private:
 
   VISUS_NON_COPYABLE_CLASS(WaitAsync)
 
-  typedef std::pair<Future, Value > Ready;
+  CriticalSection                         lock;
+  Semaphore                               semaphore;
+  std::deque< std::pair<Callback,Value> > done;
 
-  CriticalSection     lock;
-  int                 ninside = 0;
-  Semaphore           nready;
-  std::deque< Ready > ready;
+  int                                     max_running = 0;
+  int                                     num_running = 0;
 
 };
 

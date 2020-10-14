@@ -104,6 +104,8 @@ private:
   UniquePtr<Access>     sync, async;
   SharedPtr<ThreadPool> async_tpool;
   IdxFile               idxfile;
+  bool                  bSkipReading = false;
+
 
 }; 
 

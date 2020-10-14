@@ -528,7 +528,7 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
 
   auto access = dataset->createAccessForBlockQuery();
 
-  WaitAsync< Future<Void> > wait_async;
+  WaitAsync< Future<Void> > wait_async(/*max_running*/0);
   access->beginRead();
   Aborted aborted;
 
@@ -537,7 +537,7 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
   {
     auto block_query = dataset->createBlockQuery(blockid, field, time, 'r', aborted);
     dataset->executeBlockQuery(access, block_query);
-    wait_async.pushRunning(block_query->done).when_ready([block_query, &responses, dataset, compression](Void) {
+    wait_async.pushRunning(block_query->done,[block_query, &responses, dataset, compression](Void) {
 
       if (block_query->failed())
       {

@@ -55,7 +55,9 @@ public:
   ~RamResource();
 
   //getVisusUsedMemory
-  Int64 getVisusUsedMemory() const;
+  Int64 getVisusUsedMemory() const {
+    return used_memory;
+  }
 
   //getOsUsedMemory
   Int64 getOsUsedMemory() const;
@@ -73,14 +75,19 @@ public:
   //freeMemory
   bool freeMemory(Int64 reqsize);
 
+  //peak_memory
+  Int64 getPeakMemory() const {
+    return peak_memory;
+  }
+
 private:
 
   //constructor
   RamResource();
 
-  CriticalSection lock;
-  
-  Int64 os_total_memory=0;
+  Int64               os_total_memory=0;
+  std::atomic< Int64> used_memory;
+  std::atomic< Int64> peak_memory;
 
   
 };

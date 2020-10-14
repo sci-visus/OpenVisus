@@ -38,6 +38,7 @@ For support : support@visus.net
 
 #include <Visus/Db.h>
 #include <Visus/VisusConvert.h>
+#include <Visus/RamResource.h>
 
 #if VISUS_PYTHON
 #include <Visus/Python.h>

@@ -98,17 +98,6 @@ public:
 
   //for midx
 #if !SWIG
-  struct
-  {
-    String                   name;
-    Array                    BUFFER;
-    Matrix                   PIXEL_TO_LOGIC;
-    Matrix                   LOGIC_TO_PIXEL;
-    PointNd                  LOGIC_CENTROID;
-    SharedPtr<Access>        access;
-  }
-  down_info;
-
   std::map<String, SharedPtr<BoxQuery> >  down_queries;
 #endif
 

@@ -42,14 +42,12 @@ For support : support@visus.net
 #include <Visus/StringUtils.h>
 #include "osdep.hxx"
 
-
-
 namespace Visus {
 
 VISUS_IMPLEMENT_SINGLETON_CLASS(RamResource)
 
 ///////////////////////////////////////////////////////////////////////////
-RamResource::RamResource() 
+RamResource::RamResource() : used_memory(0), peak_memory(0)
 {
   os_total_memory = osdep::GetTotalMemory();
 }
@@ -57,12 +55,6 @@ RamResource::RamResource()
 ///////////////////////////////////////////////////////////////////////////
 RamResource::~RamResource()
 {}
-
-///////////////////////////////////////////////////////////////////////////
-Int64 RamResource::getVisusUsedMemory() const
-{
-  return osdep::GetProcessUsedMemory();
-}
 
 ///////////////////////////////////////////////////////////////////////////
 Int64 RamResource::getOsUsedMemory() const
@@ -81,28 +73,25 @@ void RamResource::setOsTotalMemory(Int64 value)
 bool RamResource::allocateMemory(Int64 reqsize)
 {
   VisusAssert(reqsize>=0);
+  if (!reqsize) return true;
 
-  //NOTE if os_total_memory==0 means that no limit is imposed by the visus.config
-  if (!reqsize || !os_total_memory)
+  used_memory += reqsize;
+  if (os_total_memory > 0 && used_memory > 0.80*os_total_memory)
   {
-    return true;
+    used_memory -= reqsize;
+    return false;
   }
-  else
-  {
-    ScopedLock lock(this->lock);
-    Int64 os_free_memory=((Int64)(getOsTotalMemory()*0.80))-getVisusUsedMemory();
-    if (reqsize>os_free_memory)
-    {
-      return false;
-    }
-    return true;
-  }
+
+  peak_memory = std::max((Int64)used_memory, (Int64)peak_memory);
+  return true;
 }
 
 //////////////////////////////////////////////////////////////////
 bool RamResource::freeMemory(Int64 reqsize)
 {
   VisusAssert(reqsize>=0);
+  if (!reqsize) return true;
+  used_memory-=reqsize;
   return true;
 }
 
