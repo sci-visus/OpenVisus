@@ -723,8 +723,8 @@ public:
     {
       auto layout = new QHBoxLayout();
 
-      std::vector<String> options = { "field range", "compute range/component", "compute range/overall", "user range" };
-      layout->addWidget(new QLabel("Normalization mode"));
+      std::vector<String> options = { "Use field range (if exists)", "Compute dynamic range per component", "Compute all components dynamic range", "Use custom range" };
+      layout->addWidget(new QLabel("Palette range"));
       layout->addWidget(widgets.normalization_mode = GuiFactory::CreateComboBox(options[0], options, [this](String value) {
         updateInputNormalizationMode();
         }));

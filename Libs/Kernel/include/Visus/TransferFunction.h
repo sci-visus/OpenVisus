@@ -257,6 +257,11 @@ public:
 
 public:
 
+  //ComputeRange
+  static Range ComputeRange(Array data, int C, bool bNormalizeToFloat = false, int normalization = FieldRange, Range user_range = Range::invalid());
+
+public:
+
   //toArray
   Array toArray() const;
 

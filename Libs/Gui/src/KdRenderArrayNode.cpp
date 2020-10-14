@@ -206,8 +206,6 @@ bool KdRenderArrayNode::processInput()
     auto dtype=kdarray->root->displaydata.dtype;
 
     auto ranges = std::vector<Range>(4, Range(0.0, 1.0, 0.0));
-    auto normalization = palette ? palette->getNormalizationMode() : TransferFunction::FieldRange;
-    auto user_range = palette ? palette->getUserRange() : Range::invalid();
 
     if (palette && dtype.ncomponents()==1)
     {
@@ -220,7 +218,13 @@ bool KdRenderArrayNode::processInput()
       {
         int N = dtype.ncomponents();
         for (int C = 0; C < std::min(4, N); C++)
-          ranges[C] = ComputeRange(kdarray->root->displaydata, C, normalization, user_range, /*bNormalizeToFloat*/true);
+        {
+          ranges[C] = Palette::ComputeRange(
+            kdarray->root->displaydata, C,
+            /*bNormalizeToFloat*/true,
+            palette ? palette->getNormalizationMode() : TransferFunction::FieldRange,
+            palette ? palette->getUserRange() : Range::invalid());
+        }
 
         //1 component will end up in texture RGB, I want all channels to be the same (as it was gray)
         if (N == 1)

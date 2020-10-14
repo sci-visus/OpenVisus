@@ -244,12 +244,15 @@ public:
     //how to map texture value to [0,1] range
     {
       auto& ranges = this->data_texture->ranges;
-      auto normalization = palette ? palette->getNormalizationMode() : TransferFunction::FieldRange;
-      auto user_range = palette ? palette->getUserRange() : Range::invalid();
 
       int N = data.dtype.ncomponents();
       for (int C = 0; C < std::min(4, N); C++)
-        ranges[C] = ComputeRange(data, C, normalization, user_range, /*bNormalizeToFloat*/true);
+      {
+        ranges[C] = Palette::ComputeRange(data, C,
+          /*bNormalizeToFloat*/true,
+          palette ? palette->getNormalizationMode() : TransferFunction::FieldRange,
+          palette ? palette->getUserRange() : Range::invalid());
+      }
 
       //1 component will end up in texture RGB, I want all channels to be the same (as it was gray)
       if (N == 1)
@@ -490,10 +493,10 @@ public:
   //convertPalette
   cpp::TransferFunction convertPalette(Array data, SharedPtr<Palette> palette)
   {
-    auto value_range = ComputeRange(data, /*component*/0,
+    auto value_range = Palette::ComputeRange(data, /*component*/0,
+      /*bNormalizeToFloat*/false,
       palette ? palette->getNormalizationMode() : Palette::FieldRange,
-      palette ? palette->getUserRange() : Range::invalid(),
-      /*bNormalizeToFloat*/false);
+      palette ? palette->getUserRange() : Range::invalid());
 
     std::vector<math::vec3f> tfnColors(npaletteSamples, math::vec3f(0.f));
     std::vector<float> tfnOpacities(npaletteSamples, 0.f);

@@ -122,7 +122,6 @@ private:
 };
 
 
-VISUS_GUI_API Range ComputeRange(Array data, int C, int normalization = Palette::FieldRange, Range user_range = Range::invalid(), bool bNormalizeToFloat = false);
 
 } //namespace
 

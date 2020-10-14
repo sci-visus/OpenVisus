@@ -212,6 +212,8 @@ else()
 		MESSAGE(STATUS "Python_VERSION    ${Python_VERSION}")
 	endif()
 
+  # for windows do:
+  # clone https://github.com/sci-visus/ospray_win.git ./ExternalLibs/ospray_win
 	if (VISUS_OSPRAY)
 		set(OSPCOMMON_TBB_ROOT "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/tbb")
 		find_package(ospray 2.0   REQUIRED HINTS ${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/ospray/lib/cmake/ospray-2.1.1)
