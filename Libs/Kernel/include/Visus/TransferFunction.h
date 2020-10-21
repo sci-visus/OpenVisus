@@ -265,7 +265,7 @@ public:
   static SharedPtr<TransferFunction> getDefault(String name);
 
   //setDefault
-  void setDefault(String name, bool bFullCopy);
+  void setDefault(String name);
 
 public:
 
@@ -277,7 +277,6 @@ public:
 
   //setOpacity
   void setOpacity(String name);
-
 
 public:
 

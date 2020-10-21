@@ -126,39 +126,37 @@ void TransferFunction::setAlpha(SharedPtr<SingleTransferFunction> value)
 
 
 ////////////////////////////////////////////////////////////////////////////
-void TransferFunction::setDefault(String default_name, bool bFullCopy)
+void TransferFunction::setDefault(String default_name)
 {
-  if (bFullCopy)
+  //if (bFullCopy)
+  //{
+  //  TransferFunction::copy(*this, *getDefault(default_name));
+  //}
+
+  auto colormap = getDefault(default_name);
+
+  StringTree redo("SetDefault", "name", default_name);
+
+  //describe actions for undo
+  StringTree undo = Transaction();
   {
-    TransferFunction::copy(*this, *getDefault(default_name));
+    undo.addChild("SetDefaultName")->write("value", this->default_name);  //I need to keep the old default_name
+    undo.addChild(R->encode("SetRed"));
+    undo.addChild(G->encode("SetGreen"));
+    undo.addChild(B->encode("SetBlue"));
+    undo.addChild(A->encode("SetAlpha"));
   }
-  else
+
+  beginUpdate(redo, undo);
   {
-    auto colormap = getDefault(default_name);
-
-    StringTree redo("SetDefault", "name", default_name);
-
-    //describe actions for undo
-    StringTree undo = Transaction();
-    {
-      undo.addChild("SetDefaultName")->write("value", this->default_name);  //I need to keep the old default_name
-      undo.addChild(R->encode("SetRed"));
-      undo.addChild(G->encode("SetGreen"));
-      undo.addChild(B->encode("SetBlue"));
-      undo.addChild(A->encode("SetAlpha"));
-    }
-
-    beginUpdate(redo, undo);
-    {
-      this->default_name = default_name;
-      this->R = colormap->R;
-      this->G = colormap->G;
-      this->B = colormap->B;
-      this->A = colormap->A;
-      this->texture.reset();
-    }
-    endUpdate();
+    this->default_name = default_name;
+    this->R = colormap->R;
+    this->G = colormap->G;
+    this->B = colormap->B;
+    this->A = colormap->A;
+    this->texture.reset();
   }
+  endUpdate();
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -191,10 +189,8 @@ void TransferFunction::execute(Archive& ar)
   if (ar.name == "SetDefault")
   {
     String name;
-    bool bFullCopy = false;
     ar.read("name", name);
-    ar.read("full", bFullCopy);
-    setDefault(name, bFullCopy);
+    setDefault(name);
     return;
   }
 

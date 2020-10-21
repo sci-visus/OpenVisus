@@ -839,7 +839,7 @@ public:
         {
           auto defaults = TransferFunction::getDefaults();
           auto combo=GuiFactory::CreateComboBox(defaults[0], defaults,[this](String name){
-            this->model->setDefault(name,/*bFullCopy*/false); //I want to keep other stuff like input range
+            this->model->setDefault(name); 
           });
           combo->setCurrentText(this->model->getDefaultName().c_str()); 
           row->addWidget(widgets.default_palette=combo);
