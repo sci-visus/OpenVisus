@@ -837,11 +837,22 @@ public:
 
         row->addWidget(new QLabel("Set default"));
         {
-          auto combo=GuiFactory::CreateComboBox(TransferFunction::getDefaults()[0],TransferFunction::getDefaults(),[this](String name){
+          auto defaults = TransferFunction::getDefaults();
+          auto combo=GuiFactory::CreateComboBox(defaults[0], defaults,[this](String name){
             this->model->setDefault(name,/*bFullCopy*/false); //I want to keep other stuff like input range
           });
           combo->setCurrentText(this->model->getDefaultName().c_str()); 
           row->addWidget(widgets.default_palette=combo);
+        }
+
+        row->addWidget(new QLabel("Set opacity"));
+        {
+          auto defaults = TransferFunction::getDefaultOpacities();
+          auto combo = GuiFactory::CreateComboBox(defaults[0], defaults, [this](String name) {
+            this->model->setOpacity(name); 
+            });
+          combo->setCurrentText(this->model->getDefaultName().c_str());
+          row->addWidget(widgets.default_palette = combo);
         }
 
         row->addWidget(widgets.show_checkboard=GuiFactory::CreateCheckBox(true,"Show alpha",[this](int value){
