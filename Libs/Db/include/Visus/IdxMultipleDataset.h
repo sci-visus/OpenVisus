@@ -71,9 +71,7 @@ public:
   virtual ~IdxMultipleDataset();
 
   //castFrom
-  static SharedPtr<IdxMultipleDataset> castFrom(SharedPtr<Dataset> db) {
-    return std::dynamic_pointer_cast<IdxMultipleDataset>(db);
-  }
+  static SharedPtr<IdxMultipleDataset> castFrom(SharedPtr<Dataset> db);
 
   //getDatasetTypeName
   virtual String getDatasetTypeName() const override {

@@ -199,8 +199,8 @@ bool Viewer::addNetSnd(String url,Rectangle2d split_ortho,Rectangle2d screen_bou
     VisusAssert(false); //todo
 #else
     UniquePtr<SetMainComponentPreferences> action(new SetMainComponentPreferences("0",Preferences("")));
-    action->value.bHideMenus=true;
-    action->value.bHideTitleBar=true;
+    action->value.bShowTitleBar = false;
+    action->value.bShowToolbar=false;
     action->value.screen_bounds=screen_bounds;
     netsnd->sendNetMessage(action.get());
 #endif

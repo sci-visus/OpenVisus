@@ -40,18 +40,28 @@ using namespace Visus;
 %shared_ptr(Visus::IdxMultipleDataset)
 
 %rename(LoadDatasetCpp) Visus::LoadDataset;
+
+%typemap(out) std::shared_ptr<Visus::Dataset>  
+{
+  //Dataset typemape DSTMP01
+  if(auto midx=std::dynamic_pointer_cast<IdxMultipleDataset>($1))
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr(result ? new std::shared_ptr<  IdxMultipleDataset >(midx) : 0), SWIGTYPE_p_std__shared_ptrT_Visus__IdxMultipleDataset_t, SWIG_POINTER_OWN);
+
+  else if(auto idx=std::dynamic_pointer_cast<IdxDataset>($1))
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr(result ? new std::shared_ptr<  IdxDataset >(idx) : 0), SWIGTYPE_p_std__shared_ptrT_Visus__IdxDataset_t, SWIG_POINTER_OWN);
+
+  else if(auto google=std::dynamic_pointer_cast<GoogleMapsDataset>($1))
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr(result ? new std::shared_ptr<  GoogleMapsDataset >(google) : 0), SWIGTYPE_p_std__shared_ptrT_Visus__GoogleMapsDataset_t, SWIG_POINTER_OWN);
+
+  else
+	$result= SWIG_NewPointerObj(SWIG_as_voidptr(result ? new std::shared_ptr<  Dataset >(result) : 0), SWIGTYPE_p_std__shared_ptrT_Visus__Dataset_t, SWIG_POINTER_OWN);
+}
+
+
 %pythoncode %{
 def LoadDataset(url):
-	db=LoadDatasetCpp(url)
-	if not db: return None
 	from OpenVisus.dataset import PyDataset
-	midx=IdxMultipleDataset.castFrom(db)
-	if midx: return PyDataset(midx)
-	idx=IdxDataset.castFrom(db)
-	if idx: return PyDataset(idx)
-	google=GoogleMapsDataset.castFrom(db)
-	if google: return PyDataset(google)
-	return PyDataset(db)
+	return PyDataset(LoadDatasetCpp(url))
 
 def LoadIdxDataset(url):
 	return LoadDataset(url)
@@ -59,9 +69,12 @@ def LoadIdxDataset(url):
 
 %extend Visus::DbModule {
 	static void attach() {
+
 		//user defined attach
 		DbModule::attach();
-    PrintInfo("Registering PyMultipleDataset");
+
+		//any time I want to create an IdxMultipleDataset, I create a PyMultipleDataset instead
+		PrintInfo("Registering PyMultipleDataset");
 		DatasetFactory::getSingleton()->registerDatasetType("IdxMultipleDataset", []() {return std::make_shared<PyMultipleDataset>(); });
 	}
 }

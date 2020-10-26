@@ -148,7 +148,7 @@ public:
 
   //isUnsigned
   bool isUnsigned() const {
-    return num==1 && unsign;
+    return unsign? true: false;
   }
 
   //getBitsOffset

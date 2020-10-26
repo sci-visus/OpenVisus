@@ -238,6 +238,17 @@ public:
     return (((BigInt)1) << getMaxResolution()) / (((Int64)1) << getDefaultBitsPerBlock());
   }
 
+  //setEnableAnnotations
+  void setEnableAnnotations(bool value) {
+    annotations->enabled = value;
+    if (!annotations) return;
+  }
+
+  //getEnableAnnotations
+  bool getEnableAnnotations() const {
+    return annotations ? annotations->enabled : false;
+  }
+
 public:
 
   //________________________________________________

@@ -92,15 +92,11 @@ For support : support@visus.net
 
 namespace Visus {
 
-String ViewerPreferences::default_panels = "left center";
-bool   ViewerPreferences::default_show_logos = true;
-
 static void RedirectLogToViewer(String msg, void* user_data)
 {
   auto viewer = (Viewer*)user_data;
   viewer->printInfo(msg);
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 Viewer::Viewer(String title) : QMainWindow()
@@ -144,15 +140,6 @@ Viewer::Viewer(String title) : QMainWindow()
 
   //status bar
   setStatusBar(new QStatusBar());
-
-  //log
-  {
-    widgets.log=GuiFactory::CreateTextEdit(Colors::Black,Color(230,230,230));
-
-    auto dock = new QDockWidget("Log");
-    dock->setWidget(widgets.log);
-    addDockWidget(Qt::BottomDockWidgetArea, dock);
-  }
 
   enableLog("~visusviewer.history.txt");
 
@@ -1160,20 +1147,7 @@ void Viewer::setDataflow(SharedPtr<Dataflow> value)
     //remove all dock widgets
     auto dock_widgets = findChildren<QDockWidget*>();
     for (auto dock_widget : dock_widgets)
-    {
-      if (dock_widget->widget() == widgets.log)
-      {
-        widgets.log->show();
-        continue;
-      }
-      
       removeDockWidget(dock_widget);
-
-      //it seams they are already deallocated
-      #if 0
-      delete dock_widget;
-      #endif
-    }
   }
 
   this->dataflow=value;
@@ -1195,41 +1169,55 @@ void Viewer::setDataflow(SharedPtr<Dataflow> value)
   {
     this->dataflow->listeners.push_back(this);
 
-    setWindowTitle(preferences.title.c_str());
-
-    if (preferences.bHideMenus)
-      widgets.toolbar->hide();
-    else
-      widgets.toolbar->show();
-
     if (preferences.screen_bounds.valid())
       setGeometry(QUtils::convert<QRect>(preferences.screen_bounds));
 
-    widgets.glcanvas=createGLCanvas();
+    //titlebar
+    setWindowTitle(preferences.title.c_str());
 
-    //I want to show only the GLCanvas
-    if (preferences.panels.empty())
-    {
-      widgets.log->hide();
-      setCentralWidget(widgets.glcanvas);
-    }
+    //toolbar
+    if (preferences.bShowToolbar)
+      widgets.toolbar->show();
     else
+      widgets.toolbar->hide();
+
+
+    if (preferences.bShowTreeView)
     {
-      widgets.frameview = new DataflowFrameView(this->dataflow.get());
       widgets.treeview = createTreeView();
-
-      //central
-      widgets.tabs=new QTabWidget();
-      widgets.tabs->addTab(widgets.glcanvas,"GLCanvas");
-      widgets.tabs->addTab(widgets.frameview,"Dataflow");
-      setCentralWidget(widgets.tabs);
-
       auto dock = new QDockWidget("Explorer");
       dock->setWidget(widgets.treeview);
       addDockWidget(Qt::LeftDockWidgetArea, dock);
     }
 
-    if (auto glcamera_node= findNode<GLCameraNode>())
+    //glcanvas
+    widgets.glcanvas = createGLCanvas();
+
+    if (preferences.bShowDataflow)
+    {
+      widgets.frameview = new DataflowFrameView(this->dataflow.get());
+
+      widgets.tabs = new QTabWidget();
+      widgets.tabs->addTab(widgets.glcanvas, "GLCanvas");
+      widgets.tabs->addTab(widgets.frameview, "Dataflow");
+      setCentralWidget(widgets.tabs);
+    }
+    else
+    {
+      setCentralWidget(widgets.glcanvas);
+    }
+
+    //logs
+    if (preferences.bShowLogs)
+    {
+      widgets.log = GuiFactory::CreateTextEdit(Colors::Black, Color(230, 230, 230));
+
+      auto dock = new QDockWidget("Log");
+      dock->setWidget(widgets.log);
+      addDockWidget(Qt::BottomDockWidgetArea, dock);
+    }
+
+    if (auto glcamera_node = findNode<GLCameraNode>())
       attachGLCamera(glcamera_node->getGLCamera());
 
     enableSaveSession();
@@ -1668,6 +1656,20 @@ void Viewer::setSelection(Node* new_value)
   refreshActions();
 
   postRedisplay();
+}
+
+
+//////////////////////////////////////////////////////////
+void Viewer::setMinimal()
+{
+  ViewerPreferences pref;
+  pref.bShowTitleBar = true;
+  pref.bShowToolbar = false;
+  pref.bShowTreeView = false;
+  pref.bShowDataflow = false;
+  pref.bShowLogs = false;
+  pref.bShowLogos = true;
+  this->setPreferences(pref);
 }
 
 //////////////////////////////////////////////////////////
