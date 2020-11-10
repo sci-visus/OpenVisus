@@ -316,5 +316,7 @@ GLuint GLTexture::textureId(GLCanvas& gl)
   return texture_id;
 }
 
+
+
 } //namespace
 

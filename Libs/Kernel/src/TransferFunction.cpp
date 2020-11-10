@@ -126,40 +126,62 @@ void TransferFunction::setAlpha(SharedPtr<SingleTransferFunction> value)
 
 
 ////////////////////////////////////////////////////////////////////////////
-void TransferFunction::setDefault(String new_name, bool bFullCopy)
+void TransferFunction::setDefault(String default_name)
 {
-  if (bFullCopy)
+  //if (bFullCopy)
+  //{
+  //  TransferFunction::copy(*this, *getDefault(default_name));
+  //}
+
+  auto colormap = getDefault(default_name);
+
+  StringTree redo("SetDefault", "name", default_name);
+
+  //describe actions for undo
+  StringTree undo = Transaction();
   {
-    TransferFunction::copy(*this, *getDefault(new_name));
+    undo.addChild("SetDefaultName")->write("value", this->default_name);  //I need to keep the old default_name
+    undo.addChild(R->encode("SetRed"));
+    undo.addChild(G->encode("SetGreen"));
+    undo.addChild(B->encode("SetBlue"));
+    undo.addChild(A->encode("SetAlpha"));
   }
-  else
+
+  beginUpdate(redo, undo);
   {
-    auto def = getDefault(new_name);
-
-    StringTree redo("SetDefault", "name", new_name, "full", bFullCopy);
-
-    //describe actions for undo
-    StringTree undo = Transaction();
-    {
-      undo.addChild("SetDefaultName")->write("value", this->default_name);
-      undo.addChild(R->encode("SetRed"));
-      undo.addChild(G->encode("SetGreen"));
-      undo.addChild(B->encode("SetBlue"));
-      undo.addChild(A->encode("SetAlpha"));
-    }
-
-    beginUpdate(redo, undo);
-    {
-      this->default_name = new_name;
-      this->R = def->R;
-      this->G = def->G;
-      this->B = def->B;
-      this->A = def->A;
-      this->texture.reset();
-    }
-    endUpdate();
+    this->default_name = default_name;
+    this->R = colormap->R;
+    this->G = colormap->G;
+    this->B = colormap->B;
+    this->A = colormap->A;
+    this->texture.reset();
   }
+  endUpdate();
 }
+
+////////////////////////////////////////////////////////////////////////////
+void TransferFunction::setOpacity(String name)
+{
+  auto A = getDefaultOpacity(name);
+
+  StringTree redo("SetOpacity", "name", name);
+
+  //describe actions for undo
+  StringTree undo = Transaction();
+  {
+    undo.addChild("SetDefaultName")->write("value", this->default_name);  //I need to keep the old default_name
+    undo.addChild(A->encode("SetAlpha"));
+  }
+
+  beginUpdate(redo, undo);
+  {
+    this->default_name = ""; //
+    this->A = A;
+    this->texture.reset();
+  }
+  endUpdate();
+}
+
  
   ////////////////////////////////////////////////////////////////////
 void TransferFunction::execute(Archive& ar)
@@ -167,12 +189,19 @@ void TransferFunction::execute(Archive& ar)
   if (ar.name == "SetDefault")
   {
     String name;
-    bool bFullCopy = false;
     ar.read("name", name);
-    ar.read("full", bFullCopy);
-    setDefault(name, bFullCopy);
+    setDefault(name);
     return;
   }
+
+  if (ar.name == "SetOpacity" )
+  {
+    String name;
+    ar.read("name", name);
+    setOpacity(name);
+    return;
+  }
+
 
   if (ar.name == "SetDefaultName")
   {
@@ -263,44 +292,6 @@ void TransferFunction::execute(Archive& ar)
 
   Model::execute(ar);
 }
-
-////////////////////////////////////////////////////////////////////
-Range TransferFunction::computeRange(Array src, int C, Aborted aborted) const {
-
-  if (this->normalization_mode == UserRange)
-    return this->user_range;
-
-  //not a valid component
-  if (!(C >= 0 && C < src.dtype.ncomponents()))
-    return Range::invalid();
-
-  //FieldRange
-  if (this->normalization_mode == FieldRange)
-  {
-    Range ret = src.dtype.getDTypeRange(C);
-    if (ret.delta() > 0)
-      return ret;
-    else
-      return ArrayUtils::computeRange(src, C, aborted); 
-  }
-
-  //ComputeRangePerComponent
-  if (normalization_mode == ComputeRangePerComponent) 
-    return ArrayUtils::computeRange(src, C, aborted);
-
-  //ComputeRangeOverall
-  if (normalization_mode == ComputeRangeOverall)
-  {
-    Range ret = Range::invalid();
-    for (int C = 0; C < src.dtype.ncomponents(); C++)
-      ret = ret.getUnion(ArrayUtils::computeRange(src, C, aborted));
-    return ret;
-  }
-
-  VisusAssert(false);
-  return Range::invalid();
-}
-
 
 
 ////////////////////////////////////////////////////////////////////
@@ -496,6 +487,67 @@ void TransferFunction::exportTransferFunction(String filename="")
 }
 
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+Range TransferFunction::ComputeRange(Array data, int C, bool bNormalizeToFloat, int normalization, Range user_range)
+{
+  Range range;
+
+  if (normalization == Palette::UserRange)
+  {
+    range = user_range;
+  }
+  else if (normalization == Palette::FieldRange)
+  {
+    range = data.dtype.getDTypeRange(C);
+    if (range.delta() <= 0)
+    {
+      if (data.dtype.isDecimal())
+        range = ArrayUtils::computeRange(data, C); //just use the computer range of the data (the c++ range would be too high)
+      else
+        range = GetCppRange(data.dtype); //assume the data is spread in all the possible discrete range
+    }
+  }
+  else if (normalization == Palette::ComputeRangePerComponent)
+  {
+    range = ArrayUtils::computeRange(data, C);
+  }
+  else if (normalization == Palette::ComputeRangeOverall)
+  {
+    range = Range::invalid();
+    for (int C = 0; C < data.dtype.ncomponents(); C++)
+      range = range.getUnion(ArrayUtils::computeRange(data, C));
+  }
+  else
+  {
+    ThrowException("internal error");
+  }
+
+  //the GL textures is read from GPU memory always in the range [0,1]
+    //see https://www.khronos.org/opengl/wiki/Normalized_Integer
+  if (bNormalizeToFloat && !data.dtype.isDecimal() && range.delta())
+  {
+    auto cpp_range = GetCppRange(data.dtype);
+    auto A = cpp_range.from;
+    auto B = cpp_range.to;
+
+    auto C = data.dtype.isUnsigned() ? 0.0 : -1.0;
+    auto D = 1.0;
+
+    auto NormalizeInteger = [&](double value) {
+      auto alpha = (value - A) / (B - A);
+      return C + alpha * (D - C);
+    };
+
+    range = Range(
+      NormalizeInteger(range.from),
+      NormalizeInteger(range.to),
+      0.0);
+  }
+
+  return range;
+}
+
+
 /////////////////////////////////////////////////////////////////////
 void TransferFunction::write(Archive& ar) const
 {
@@ -519,9 +571,8 @@ void TransferFunction::write(Archive& ar) const
 /////////////////////////////////////////////////////////////////////
 void TransferFunction::read(Archive& ar)
 {
-  int nsamples;
+  const int nsamples=256;
   ar.read("default_name", default_name);
-  ar.read("nsamples", nsamples);
   ar.read("attenuation", attenuation);
   
   ar.read(ar.hasAttribute("input_range")? "input_range"              : "user_range",user_range);  //backward compatible
@@ -537,7 +588,7 @@ void TransferFunction::read(Archive& ar)
   }
   else
   {
-    auto def = getDefault(default_name, nsamples);
+    auto def = getDefault(default_name);
     this->R = def->R;
     this->G = def->G;
     this->B = def->B;

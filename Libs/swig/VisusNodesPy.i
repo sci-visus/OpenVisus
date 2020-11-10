@@ -7,8 +7,6 @@
 #include <Visus/BlockQuery.h>
 #include <Visus/BoxQuery.h>
 #include <Visus/PointQuery.h>
-#include <Visus/IdxDataset.h>
-#include <Visus/IdxMultipleDataset.h>
 #include <Visus/Dataflow.h>
 #include <Visus/FieldNode.h>
 #include <Visus/ModelViewNode.h>
@@ -19,6 +17,12 @@
 #include <Visus/QueryNode.h>
 #include <Visus/KdQueryNode.h>
 #include <Visus/IdxDiskAccess.h>
+
+#include <Visus/Dataset.h>
+#include <Visus/IdxDataset.h>
+#include <Visus/IdxMultipleDataset.h>
+#include <Visus/GoogleMapsDataset.h>
+
 using namespace Visus;
 %}
 

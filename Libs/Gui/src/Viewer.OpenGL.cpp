@@ -75,8 +75,8 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void Viewer::guessGLCameraPosition(int ref)  
 {
-  if (auto glcamera=getGLCamera())
-    glcamera->guessPosition(this->getWorldBox(),ref);
+  if (auto glcamera = getGLCamera())
+    glcamera->guessPosition(this->getWorldBox(), ref);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -564,7 +564,7 @@ void Viewer::glRenderGestures(GLCanvas& gl)
 /////////////////////////////////////////////////////////////////////////////////////
 void Viewer::glRenderLogos(GLCanvas& gl)
 {
-  if (!preferences.show_logos)
+  if (!preferences.bShowLogos)
     return;
 
   int W = gl.getViewport().width;

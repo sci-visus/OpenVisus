@@ -84,31 +84,32 @@ public:
 
   VISUS_CLASS(ViewerPreferences)
 
-  static String default_panels;
-  static bool   default_show_logos;
-
-
   String       title = "VisusViewer-" + OpenVisus_VERSION + "-" + OpenVisus_GIT_REVISION;
-  String       panels;
-  bool         bHideTitleBar = false;
-  bool         bHideMenus = false;
-  bool         bRightHanded = true;
+
+  bool         bShowTitleBar = true;
+  bool         bShowToolbar = true;
+  bool         bShowTreeView = true;
+  bool         bShowDataflow = true;
+  bool         bShowLogs = true;
+  bool         bShowLogos = true;
+
+  //in case you want to call Qt::setGeometry
   Rectangle2d  screen_bounds;
-  bool         show_logos = true;
 
   //constructor
   ViewerPreferences() {
-    this->panels = default_panels;
-    this->show_logos = default_show_logos;
   }
 
   //write
   void write(Archive& ar) const
   {
     ar.write("title", title);
-    ar.write("panels", panels);
-    ar.write("bHideTitleBar", bHideTitleBar);
-    ar.write("bHideMenus", bHideMenus);
+    ar.write("bShowTitleBar", bShowTitleBar);
+    ar.write("bShowToolbar", bShowToolbar);
+    ar.write("bShowTreeView", bShowTreeView);
+    ar.write("bShowDataflow", bShowDataflow);
+    ar.write("bShowLogs", bShowLogs);
+    ar.write("bShowLogos", bShowLogos);
     ar.write("screen_bounds", screen_bounds);
   }
 
@@ -116,9 +117,12 @@ public:
   void read(Archive& ar)
   {
     ar.read("title", title);
-    ar.read("panels", panels);
-    ar.read("bHideTitleBar", bHideTitleBar);
-    ar.read("bHideMenus", bHideMenus);
+    ar.read("bShowTitleBar", bShowTitleBar);
+    ar.read("bShowToolbar", bShowToolbar);
+    ar.read("bShowTreeView", bShowTreeView);
+    ar.read("bShowDataflow", bShowDataflow);
+    ar.read("bShowLogs", bShowLogs);
+    ar.read("bShowLogos", bShowLogos);
     ar.read("screen_bounds", screen_bounds);
   }
 
@@ -319,6 +323,9 @@ public:
     return this->glcamera;
   }
 
+  //getDataset
+  SharedPtr<Dataset> getDataset() const;
+
   //getTreeView
   DataflowTreeView* getTreeView() const {
     return widgets.treeview;
@@ -349,6 +356,12 @@ public:
 
   //showWidget
   void showWidget(QWidget* widget, String title="");
+
+  //setBackgroundColor
+  void setBackgroundColor(Color value) {
+    this->background_color = value;
+    postRedisplay();
+  }
 
   //openFile
   bool openFile(String filename, Node* parent = nullptr);
@@ -534,13 +547,7 @@ public:
   }
 
   //setMinimal
-  void setMinimal()
-  {
-    ViewerPreferences preferences;
-    preferences.panels = "";
-    preferences.bHideMenus = true;
-    this->setPreferences(preferences);
-  }
+  void setMinimal();
 
   //setNodeName
   void setNodeName(Node* node, String value);

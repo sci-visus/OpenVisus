@@ -2270,7 +2270,7 @@ public:
         VisusAssert(aborted());
         return DType(); //invalid
       }
-      all_unsigned=all_unsigned && dtype.get(0).isUnsigned();
+      all_unsigned=all_unsigned && dtype.isUnsigned();
     }
 
     for (int I=0;I<N;I++) {if (args[I].dtype.isVectorOf(DTypes::FLOAT64)) return args[I].dtype;}

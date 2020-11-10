@@ -626,8 +626,8 @@ private:
       auto other=TransferFunction::fromArray(src);
       if (useColorVarMax || useColorVarMin)
       {
-        other->setUserRange(Range(colorVarMin, colorVarMax, 0));
         other->setNormalizationMode(TransferFunction::UserRange);
+        other->setUserRange(Range(colorVarMin, colorVarMax, 0));
       }
       other->setAttenutation(attenuation);
 
@@ -723,18 +723,22 @@ public:
     {
       auto layout = new QHBoxLayout();
 
-      std::vector<String> options = { "field range", "compute range/component", "compute range/overall", "user range" };
-      layout->addWidget(new QLabel("Normalization mode"));
+      std::vector<String> options = { "Use field range (if exists)", "Compute dynamic range per component", "Compute all components dynamic range", "Use custom range" };
+      layout->addWidget(new QLabel("Palette range"));
       layout->addWidget(widgets.normalization_mode = GuiFactory::CreateComboBox(options[0], options, [this](String value) {
         updateInputNormalizationMode();
         }));
 
       layout->addWidget(widgets.user_range_from = GuiFactory::CreateDoubleTextBoxWidget(model->getUserRange().from, [this](double value) {
-        updateUserRange();
+        auto From = cdouble(widgets.user_range_from->text());
+        auto To = cdouble(widgets.user_range_to->text());
+        model->setUserRange(Range(From, To, 0.0));
         }));
 
       layout->addWidget(widgets.user_range_to = GuiFactory::CreateDoubleTextBoxWidget(model->getUserRange().to, [this](double value) {
-        updateUserRange();
+        auto From = cdouble(widgets.user_range_from->text());
+        auto To = cdouble(widgets.user_range_to->text());
+        model->setUserRange(Range(From, To, 0.0));
         }));
 
       setLayout(layout);
@@ -751,14 +755,6 @@ private:
     model->setNormalizationMode(value);
     widgets.user_range_from->setEnabled(value == TransferFunction::UserRange);
     widgets.user_range_to->setEnabled(value == TransferFunction::UserRange);
-  }
-
-  //updateUserRange
-  void updateUserRange()
-  {
-    auto From = cdouble(widgets.user_range_from->text());
-    auto To   = cdouble(widgets.user_range_to->text());
-    model->setUserRange(Range(From,To,0.0));
   }
 
   //refreshGui
@@ -783,9 +779,11 @@ class VISUS_GUI_API TransferFunctionView :
   public QFrame,
   public View<TransferFunction>
 {
+
 public:
 
   VISUS_NON_COPYABLE_CLASS(TransferFunctionView)
+
 
   //____________________________________________________
   class Widgets
@@ -839,11 +837,22 @@ public:
 
         row->addWidget(new QLabel("Set default"));
         {
-          auto combo=GuiFactory::CreateComboBox(TransferFunction::getDefaults()[0],TransferFunction::getDefaults(),[this](String name){
-            this->model->setDefault(name,/*bFullCopy*/false); //I want to keep other stuff like input range
+          auto defaults = TransferFunction::getDefaults();
+          auto combo=GuiFactory::CreateComboBox(defaults[0], defaults,[this](String name){
+            this->model->setDefault(name); 
           });
           combo->setCurrentText(this->model->getDefaultName().c_str()); 
           row->addWidget(widgets.default_palette=combo);
+        }
+
+        row->addWidget(new QLabel("Set opacity"));
+        {
+          auto defaults = TransferFunction::getDefaultOpacities();
+          auto combo = GuiFactory::CreateComboBox(defaults[0], defaults, [this](String name) {
+            this->model->setOpacity(name); 
+            });
+          combo->setCurrentText(this->model->getDefaultName().c_str());
+          row->addWidget(widgets.default_palette = combo);
         }
 
         row->addWidget(widgets.show_checkboard=GuiFactory::CreateCheckBox(true,"Show alpha",[this](int value){
@@ -879,15 +888,21 @@ public:
     {
       if (auto histogram_view=it.histogram)
       {
+        connect(histogram_view, &HistogramView::selectedRegionChanged, [this](Range range) {
+          model->setUserRange(range);
+          model->setNormalizationMode(TransferFunction::UserRange);
+        });
+
+#if 0
         auto sync=[](QCanvas2d* dst, QCanvas2d* src)
         {
           dst->blockSignals(true);
           dst->setCurrentPos(src->getCurrentPos());
           dst->blockSignals(false);
         };
-
         connect(widgets.canvas,&QCanvas2d::postRedisplay,[this,histogram_view,sync](){ sync(histogram_view,widgets.canvas);});
         connect(histogram_view,&QCanvas2d::postRedisplay,[this,histogram_view,sync](){ sync(widgets.canvas,histogram_view);});
+#endif
       }
     }
   }

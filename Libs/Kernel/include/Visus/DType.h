@@ -148,7 +148,7 @@ public:
 
   //isUnsigned
   bool isUnsigned() const {
-    return num==1 && unsign;
+    return unsign? true: false;
   }
 
   //getBitsOffset
@@ -194,6 +194,9 @@ private:
 
 
 };
+
+VISUS_KERNEL_API Range GetCppRange(DType dtype);
+
 
 
   //////////////////////////////////////////////////////////////////////////

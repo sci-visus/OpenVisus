@@ -180,6 +180,51 @@ DType DType::fromString(String s)
   return DType(num,DType(unsign,decimal,bitsize));
 }
 
+//////////////////////////////////////////////////////////////////////////
+Range GetCppRange(DType dtype)
+{
+    dtype = dtype.get(0);
+
+    if (dtype.isDecimal())
+    {
+        if (dtype == DTypes::FLOAT32)
+            return Range((double)NumericLimits<Float32>::lowest(), (double)NumericLimits<Float32>::highest(), 0.0);
+
+        if (dtype == DTypes::FLOAT64)
+            return Range((double)NumericLimits<Float64>::lowest(), (double)NumericLimits<Float64>::highest(), 0.0);
+    }
+    else if (dtype.isUnsigned())
+    {
+        if (dtype == DTypes::UINT8) //0 255
+            return Range((double)NumericLimits<Uint8>::lowest(), (double)NumericLimits<Uint8>::highest(), 1.0);
+
+        if (dtype == DTypes::UINT16) //0 65535
+            return Range((double)NumericLimits<Uint16>::lowest(), (double)NumericLimits<Uint16>::highest(), 1.0);
+
+        if (dtype == DTypes::UINT32) //0 4294967295
+            return Range((double)NumericLimits<Uint32>::lowest(), (double)NumericLimits<Uint32>::highest(), 1.0);
+
+        if (dtype == DTypes::UINT64)
+            return Range((double)NumericLimits<Uint64>::lowest(), (double)NumericLimits<Uint64>::highest(), 1.0);
+    }
+    else
+    {
+        if (dtype == DTypes::INT8) // -128 +127
+            return Range((double)NumericLimits<Int8>::lowest(), (double)NumericLimits<Int8>::highest(), 1.0);
+
+        if (dtype == DTypes::INT16) // 32768 32767
+            return Range((double)NumericLimits<Int16>::lowest(), (double)NumericLimits<Int16>::highest(), 1.0);
+
+        if (dtype == DTypes::INT32) //- 2147483648 2147483647
+            return Range((double)NumericLimits<Int32>::lowest(), (double)NumericLimits<Int32>::highest(), 1.0);
+
+        if (dtype == DTypes::INT64)
+            return Range((double)NumericLimits<Int64>::lowest(), (double)NumericLimits<Int64>::highest(), 1.0);
+    }
+
+    ThrowException("internal error");
+    return Range::invalid();
+}
 
 } //namespace Visus
 

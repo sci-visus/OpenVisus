@@ -87,11 +87,10 @@ void Viewer::setPreferences(ViewerPreferences value)
 {
   //for debugging I prefer to have always title bar and menus (example: debugging powerwall)
 #ifdef _DEBUG
-  value.bHideMenus   =false;
-  value.bHideTitleBar=false;
+  value.bShowTitleBar = true;
+  value.bShowToolbar = true;
 #endif
   
-  value.bRightHanded = true;
   this->preferences =value;
 
   auto dataflow=this->dataflow;
@@ -580,6 +579,15 @@ void Viewer::showLicences()
   });
 
   dialog->show();
+}
+
+////////////////////////////////////////////////////////////
+SharedPtr<Dataset> Viewer::getDataset() const 
+{
+  if (auto dataset_node = findNode<DatasetNode>())
+      return dataset_node->getDataset();
+  else
+      return SharedPtr<Dataset>();
 }
 
 ////////////////////////////////////////////////////////////

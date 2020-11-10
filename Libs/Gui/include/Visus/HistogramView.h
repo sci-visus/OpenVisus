@@ -51,6 +51,8 @@ namespace Visus {
 ////////////////////////////////////////////////////////////////////////
 class VISUS_GUI_API HistogramView : public QCanvas2d
 {
+  Q_OBJECT
+
 public:
 
   VISUS_NON_COPYABLE_CLASS(HistogramView)
@@ -67,8 +69,12 @@ public:
   void setHistogram(const Histogram& value) 
   {
     this->histogram=value;
-    this->setWorldBox(0.0,0.0,1.0,1.0);
-    this->update();
+    auto x1 = value.range.from;
+    auto x2 = value.range.to;
+    auto y1 = 0.0;
+    auto y2 = value.bins.empty()? 0.0 : 1.25 * (*std::max_element(value.bins.begin(), value.bins.end()));;
+    this->setWorldBox(x1, y1, x2 - x1, y2 - y1);
+    this->postRedisplay();
   }
 
     //resizeEvent
@@ -76,7 +82,60 @@ public:
   {
     QCanvas2d::resizeEvent(evt);
     setHistogram(histogram);
-    update();
+    postRedisplay();
+  }
+
+  //getSelectedRegion
+  Range getSelectedRegion() const {
+    return selected_region;
+  }
+
+  //setSelectedRegion
+  void setSelectedRegion(Range value) 
+  {
+    this->selected_region = value;
+    postRedisplay();
+    emit selectedRegionChanged(value);
+  }
+
+  //mousePressEvent
+  virtual void mousePressEvent(QMouseEvent* evt) override
+  {
+    QCanvas2d::mousePressEvent(evt);
+
+    if (evt->button() == Qt::LeftButton)
+    {
+      bSelectingRegion = true;
+      auto x1 = QUtils::convert<Point2d>(unproject(evt->pos())).x;
+      this->selected_region = Range(x1, x1, 0);
+      postRedisplay();
+    }
+  }
+
+  //mouseMoveEvent
+  virtual void mouseMoveEvent(QMouseEvent* evt) override
+  {
+    QCanvas2d::mouseMoveEvent(evt);
+
+    if (bSelectingRegion)
+    {
+      auto x2 = QUtils::convert<Point2d>(unproject(evt->pos())).x;
+      this->selected_region = Range(selected_region.from, x2, 0);
+      postRedisplay();
+    }
+  }
+
+  //mouseReleaseEvent
+  virtual void mouseReleaseEvent(QMouseEvent* evt) override
+  {
+    QCanvas2d::mouseReleaseEvent(evt);
+
+    if (bSelectingRegion)
+    {
+      bSelectingRegion = false;
+      auto x2 = QUtils::convert<Point2d>(unproject(evt->pos())).x;
+      setSelectedRegion(Range(selected_region.from, x2, 0));
+    }
   }
 
   //paint
@@ -85,70 +144,96 @@ public:
     if (!histogram.getNumBins())
       return;
 
+    auto W = getWorldBox().width;
+    auto H = getWorldBox().height;
+
     QPainter painter(this);
     renderBackground(painter);
-    renderGrid(painter);
 
-    auto mylog=[&](double x) {
-      return (x==0)? (0) : (1+log(x));
-    };
-
-    VisusAssert(getWorldBox().width ==1.0);
-    VisusAssert(getWorldBox().height==1.0);
-
-    auto M = 1.25 * (*std::max_element(histogram.bins.begin(), histogram.bins.end()));
-    if (!M) 
-      return;
-
-    double log_max_bin = mylog(M);
-
-    for (int x=0;x<histogram.getNumBins()-1;x++)
+    //render bars
+    for (int bLog : {1, 0})
     {
-      double x1=(x+0)/(double)(histogram.getNumBins()-1);
-      double x2=(x+1)/(double)(histogram.getNumBins()-1);
+      painter.save();
 
-      double y =histogram.readBin(x)/ M;
-      auto log_h = mylog(histogram.readBin(x));
+      if (bLog)
+      {
+        painter.setPen(QColor(0, 0, 0, 5));
+        painter.setBrush(QColor(173, 216, 230));
+      }
+      else
+      {
+        painter.setPen(QColor(0, 0, 0, 5));
+        painter.setBrush(QColor(100, 100, 100));
+      }
 
-      //log
-      painter.setPen(QColor(0,0,0,5));
-      painter.setBrush(QColor(173,216,230));
-      painter.drawRect(project(QRectF(x1,0,x2-x1,(log_h/log_max_bin))));
+      for (int B = 0; B < histogram.getNumBins() - 1; B++)
+      {
+        auto bin_range = histogram.getBinRange(B);
+        auto bin_value = histogram.readBin(B);
 
-      //linear
-      painter.setPen(QColor(0,0,0,5));
-      painter.setBrush(QColor(100,100,100));
-      painter.drawRect(project(QRectF(x1,0,x2-x1,y)));
+        auto mylog = [&](double x) { return (x == 0) ? (0) : (1 + log(x)); };
+        double x1 = bin_range.from;
+        double x2 = bin_range.to;
+        double y1 = 0;
+        double y2 = bLog ? (H * mylog(bin_value) / mylog(H)) : bin_value;
+        painter.drawRect(project(QRectF(x1, y1,  x2 - x1, y2-y1)));
+      }
+
+      painter.restore();
     }
 
+    //draw selection
+    if (selected_region.delta()>0)
     {
-      auto pos      = getCurrentPos();
-      auto screenpos= project(pos);
+      painter.save();
+      painter.setPen(QColor(0, 0, 0, 128));
+      painter.setBrush(QColor(100, 100, 0, 100));
+      auto x1 = selected_region.from; auto y1 = getWorldBox().p1().y;
+      auto x2 = selected_region.to;   auto y2 = getWorldBox().p2().y;
+      painter.drawRect(project(QRectF(x1, y1, x2 - x1, y2 - y1)));
+      painter.restore();
+    }
 
-      //render bin explanation
-      double alpha=histogram.getRange().from + pos[0]*histogram.getRange().delta();
-      int    bin = histogram.findBin(alpha);
-      String description=cstring(
-        cnamed("value", alpha),
-        cnamed("#bin", cstring(bin,"/", histogram.getNumBins())),
+    auto value = getCurrentPos();
+
+    //draw explanation
+    {
+      int bin = histogram.findBin(value.x);
+
+      String description = cstring(
+        cnamed("value", value),
+        cnamed("#bin", cstring(bin, "/", histogram.getNumBins())),
         cnamed("bin_count", histogram.readBin(bin)),
-        cnamed("bin_range", cstring(histogram.getBinRange(bin).from,",",histogram.getBinRange(bin).to)));
+        cnamed("bin_range", cstring(histogram.getBinRange(bin).from, ",", histogram.getBinRange(bin).to)));
 
-      painter.setPen(QColor(0,0,0));
-      painter.drawText(2,12,description.c_str());
+      painter.save();
+      painter.setPen(QColor(0, 0, 0));
+      painter.drawText(2, 12, description.c_str());
+      painter.restore();
+    }
 
-      //render cross
-      painter.setPen(QColor(0,0,0,100));
-      painter.drawLine(QPointF(0,screenpos[1]),QPointF(this->width(),screenpos[1]));
-      painter.drawLine(QPointF(screenpos[0],0),QPointF(screenpos[0],this->height()));
+  //render cross
+    {
+      painter.setPen(QColor(0, 0, 0, 100));
+      painter.save();
+      painter.drawLine(project(QPointF(0, value[1])), project(QPointF(W, value[1])));
+      painter.drawLine(project(QPointF(value[0], 0)), project(QPointF(value[0], H)));
+      painter.restore();
     }
 
     renderBorders(painter);
   }
 
+signals:
+
+  //selectedRegionChanged
+  void selectedRegionChanged(Range range);
+
 private:
 
   Histogram histogram;
+  bool      bSelectingRegion = false;
+  Range     selected_region = Range::invalid();
 
 };
 

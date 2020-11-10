@@ -85,8 +85,6 @@ public:
   ~Annotations() {
   }
 
-
-
   //empty
   bool empty() const {
     return v.empty();

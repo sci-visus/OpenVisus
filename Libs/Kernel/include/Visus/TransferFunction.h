@@ -61,6 +61,14 @@ public:
     : values(values_) {
   }
 
+  //constructor
+  SingleTransferFunction(unsigned char* values, int nvalues)
+  {
+    for (int I=0;I< nvalues;I++)
+      this->values.push_back(values[I]/255.0);
+  }
+
+
   //constructor (identity function)
   SingleTransferFunction(int nsamples) : SingleTransferFunction(std::vector<double>(nsamples, 0.0)) {
   }
@@ -165,9 +173,6 @@ public:
   //fromString
   static SharedPtr<TransferFunction> fromString(String content);
 
-  //getDefault
-  static SharedPtr<TransferFunction> getDefault(String default_name, const int nsamples=256);
-
   //getTypeName
   virtual String getTypeName() const override {
     return "TransferFunction";
@@ -223,9 +228,6 @@ public:
     setProperty("SetAttenutation", this->attenuation, value);
   }
 
-  //computeRange
-  Range computeRange(Array src, int C, Aborted aborted = Aborted()) const;
-
   //getNormalizationMode
   int getNormalizationMode() const {
     return normalization_mode;
@@ -246,17 +248,40 @@ public:
     setProperty("SetUserRange", this->user_range, range);
   }
 
-  //getDefaults
-  static std::vector<String> getDefaults();
 
-  //setDefault
-  void setDefault(String name,bool bFullCopy);
 
   //drawValues
   void drawValues(int function, int x1, int x2, std::vector<double> values);
 
   //drawLine 
   void drawLine(int function, int x1, double y1, int x2, double y2);
+
+public:
+
+  //getDefaults
+  static std::vector<String> getDefaults();
+
+  //getDefault
+  static SharedPtr<TransferFunction> getDefault(String name);
+
+  //setDefault
+  void setDefault(String name);
+
+public:
+
+  //getDefaultOpacities
+  static std::vector<String> getDefaultOpacities();
+
+  //getDefaultOpacity
+  static SharedPtr<SingleTransferFunction> getDefaultOpacity(String name);
+
+  //setOpacity
+  void setOpacity(String name);
+
+public:
+
+  //ComputeRange
+  static Range ComputeRange(Array data, int C, bool bNormalizeToFloat = false, int normalization = FieldRange, Range user_range = Range::invalid());
 
 public:
 

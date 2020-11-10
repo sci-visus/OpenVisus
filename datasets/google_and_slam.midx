@@ -5,7 +5,7 @@
 	</field>
 
 	<dataset name='google'  url='./google.xml' />
-	<dataset name='slam' url='D:/GoogleSci/visus_slam/TaylorGrant/VisusSlamFiles/visus.midx' />
+	<dataset name='visus' url='D:/GoogleSci/visus_slam/TaylorGrant/VisusSlamFiles/visus.midx' />
 	
 </dataset>
 

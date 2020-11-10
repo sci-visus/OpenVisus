@@ -17,6 +17,7 @@
 
 #include <Visus/IdxDataset.h>
 #include <Visus/IdxMultipleDataset.h>
+#include <Visus/GoogleMapsDataset.h>
 #include <Visus/IsoContourRenderNode.h>
 #include <Visus/GLCameraNode.h>
 #include <Visus/IsoContourNode.h>
