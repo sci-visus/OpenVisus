@@ -88,12 +88,14 @@ def LoadIdxDataset(url):
 %include <Visus/BoxQuery.h>
 %include <Visus/PointQuery.h>
 %include <Visus/Query.h>
+
+%include <Visus/IdxFile.h>
 %include <Visus/DatasetBitmask.h>
 %include <Visus/DatasetTimesteps.h>
 %include <Visus/Dataset.h>
 %include <Visus/ModVisus.h>
 %include <Visus/Db.h>
-%include <Visus/IdxFile.h>
+
 %include <Visus/IdxDataset.h>
 %include <Visus/IdxDiskAccess.h>
 %include <Visus/IdxMultipleDataset.h>
