@@ -66,13 +66,6 @@ jobs:
         timeout_minutes: 5
         retry_wait_seconds: 5
         command: 'cd /tmp && rm -Rf MacOSX-SDKs && git clone https://github.com/phracker/MacOSX-SDKs.git'
-           
-    # ____________________________________________ INSTALL CPYTHON
-    - name: Install CPython 
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }} 
-        architecture: 'x64'
 
     # ____________________________________________ INSTALL QT
     
@@ -98,6 +91,15 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       shell: bash -l {0}
       run: sudo apt-get update && sudo apt-get install libglu1-mesa-dev 1>/dev/null
+
+
+    # ____________________________________________ INSTALL CPYTHON (after QT since it seems Qt action will install python 3.9)
+    - name: Install CPython 
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }} 
+        architecture: 'x64'
+
 
     # ____________________________________________ COMPILE OPENVISUS
     
