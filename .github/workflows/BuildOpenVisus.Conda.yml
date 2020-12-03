@@ -50,9 +50,10 @@ jobs:
 
     # ____________________________________________ INSTALL CONDA
     - name: Install and confifure Miniconda 
-      uses: goanpeca/setup-miniconda@v1
+      uses: conda-incubator/setup-miniconda@v2
+      continue-on-error: true # if fails the cleaning process
       with:
-        miniconda-version: 'latest'    
+        miniconda-version: 'latest'
         python-version: ${{ matrix.python-version }}
         activate-environment: tmp
         auto-update-conda: true
