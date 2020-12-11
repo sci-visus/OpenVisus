@@ -22,7 +22,14 @@ FILE(GLOB TutorialSources ${CMAKE_SOURCE_DIR}/Samples/cpp/*.cpp src/SelfTest*.cp
 source_group("Samples\\cpp" FILES ${TutorialSources})
 
 file(GLOB Sources include/Visus/*.h src/*.cpp ${TutorialSources})
-add_library(VisusDb SHARED ${Sources})
+if (VISUS_WIN32_STATIC_LIB)
+	add_library(VisusDb STATIC ${Sources})
+	target_compile_options(VisusDb PUBLIC "$<$<CONFIG:DEBUG>:/MTd>")
+	target_compile_options(VisusDb PUBLIC "$<$<CONFIG:RELEASE>:/MT>")
+	target_compile_options(VisusDb PUBLIC -DVISUS_STATIC_KERNEL_LIB=1)
+else()
+	add_library(VisusDb SHARED ${Sources})
+endif()
 
 set_target_properties(VisusDb PROPERTIES FOLDER "")
 target_link_libraries(VisusDb PUBLIC VisusKernel)

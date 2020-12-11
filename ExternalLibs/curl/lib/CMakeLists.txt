@@ -65,6 +65,10 @@ set(Sources
 	vtls/mbedtls.c)
 	
 add_library(curl STATIC ${Sources})
+if (VISUS_WIN32_STATIC_LIB)
+	target_compile_options(curl PUBLIC "$<$<CONFIG:DEBUG>:/MTd>")
+	target_compile_options(curl PUBLIC "$<$<CONFIG:RELEASE>:/MT>")
+endif()
 set_target_properties(curl PROPERTIES FOLDER "ExternalLibs/")
 
 target_link_libraries(curl PRIVATE crypto ssl tls)

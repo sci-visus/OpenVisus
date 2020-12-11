@@ -70,7 +70,11 @@ endif()
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_NAME}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_NAME}/bin)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_NAME}/lib)
+if (VISUS_WIN32_STATIC_LIB)
+	set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${ConfigName}/dist/lib)
+else()
+	set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_NAME}/lib)
+endif()
 
 set (CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR} CACHE STRING "CMAKE_INSTALL_PREFIX" FORCE)
 
@@ -189,6 +193,9 @@ else()
 	option(VISUS_MODVISUS "Enable VISUS_MODVISUS" ${VISUS_DEFAULT_MODVISUS})
 	option(VISUS_SLAM     "Enable VISUS_SLAM"     ${VISUS_DEFAULT_SLAM})
 	option(VISUS_OSPRAY   "Enable VISUS_OSPRAY"   ${VISUS_DEFAULT_OSPRAY})
+	if (MSVC)
+		option(VISUS_WIN32_STATIC_LIB "Build static Win32 libraries" OFF)
+	endif()
 
 	MESSAGE(STATUS "VISUS_NET      ${VISUS_NET}")
 	MESSAGE(STATUS "VISUS_IMAGE    ${VISUS_IMAGE}")
@@ -222,7 +229,9 @@ else()
 
 	add_subdirectory(ExternalLibs)
 	add_subdirectory(Libs)
-	add_subdirectory(Executable)
+	if (!VISUS_WIN32_STATIC_LIB)
+		add_subdirectory(Executable)
+	endif()
 
 endif()
 
@@ -261,6 +270,11 @@ if (1)
 	INSTALL(DIRECTORY Libs/Dataflow/include/Visus             DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Dataflow/)
 	INSTALL(DIRECTORY Libs/Nodes/include/Visus                DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Nodes/)
 	INSTALL(DIRECTORY Libs/Gui/include/Visus                  DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/include/Gui/)
+
+	if (VISUS_WIN32_STATIC_LIB)
+		INSTALL(DIRECTORY Libs/Kernel/include/Visus               DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/dist/include)
+		INSTALL(DIRECTORY Libs/Db/include/Visus                   DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/dist/include)
+	endif()
 
 	if (WIN32)
 
