@@ -1,8 +1,7 @@
 
-# TAG=visus/portable-linux-binaries
-# sudo docker build --tag $TAG -f scripts/PortableLinuxBinaries.Dockerfile .
+# sudo docker build --tag visus/portable-linux-binaries --file Docker/PortableLinuxBinaries.Dockerfile .
 # sudo docker login 
-# sudo docker push $TAG
+# sudo docker push visus/portable-linux-binaries
 #
 # to start interactively
 # sudo docker run -it visus/portable-linux-binaries /bin/bash
@@ -31,6 +30,7 @@ RUN bash  swig.sh
 
 # python inside manylinux don't contain python shared library, so I need to compile by myself
 COPY scripts/install/cpython.sh .
+RUN bash cpython.sh 3.9.1
 RUN bash cpython.sh 3.8.2
 RUN bash cpython.sh 3.7.7
 RUN bash cpython.sh 3.6.10
