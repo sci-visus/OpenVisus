@@ -179,8 +179,17 @@ file(GLOB Sources
 	${tinyxml_Sources} 
 	${zfp_Sources} 
 	${zlib_Sources})
-	
-add_library(VisusKernel SHARED ${Sources})
+
+if (VISUS_STATIC_LIB)
+	add_library(VisusKernel STATIC ${Sources})
+	target_compile_options(VisusKernel PUBLIC -DVISUS_STATIC_KERNEL_LIB=1)
+	if (MSVC)
+		target_compile_options(VisusKernel PUBLIC "$<$<CONFIG:DEBUG>:/MTd>")
+		target_compile_options(VisusKernel PUBLIC "$<$<CONFIG:RELEASE>:/MT>")
+	endif()
+else()
+	add_library(VisusKernel SHARED ${Sources})
+endif()
 set_target_properties(VisusKernel PROPERTIES FOLDER "")
 
 if (WIN32)
