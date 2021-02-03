@@ -226,14 +226,15 @@ else()
 	endif()
 
 	if (VISUS_STATIC_LIB)
-		if (!MSVC)
+		if (NOT MSVC)
 			MESSAGE(FATAL_ERROR "VISUS_STATIC_LIB is supported only on Visual Studio")
 		endif()
 	endif()
 
 	add_subdirectory(ExternalLibs)
 	add_subdirectory(Libs)
-	if (!VISUS_STATIC_LIB)
+
+	if (NOT VISUS_STATIC_LIB)
 		add_subdirectory(Executable)
 	endif()
 
