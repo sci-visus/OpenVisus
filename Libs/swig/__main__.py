@@ -151,7 +151,9 @@ def Configure(bUserInstall=False):
 
 		if is_conda:
 
-			conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'opencv')
+			cmd=['conda', 'install', '-y', '-c', 'conda-forge']
+			if WIN32 or APPLE: cmd+=["opencv"] # on linux tries to compile opencv from scratch
+			conda.cli.main(*cmd)
 			
 			if WIN32:
 				# cannot use conda-forge version because they rename DLLS (like Qt5Core.dll->Qt5Core_conda.dll)
@@ -169,7 +171,8 @@ def Configure(bUserInstall=False):
 		# it has webengine and sip included
 
 		else:
-			cmd=[sys.executable,"-m", "pip", "install"] + (["--user"] if bUserInstall else []) + ["opencv-python", "PyQt5~={}.{}.0".format(qt_major,qt_minor)]
+			cmd=[sys.executable,"-m", "pip", "install"] + (["--user"] if bUserInstall else []) + ["PyQt5~={}.{}.0".format(qt_major,qt_minor)]
+			if WIN32 or APPLE: cmd+=["opencv-python"] # on linux tries to compile opencv from scratch
 
 			if int(qt_major)==5 and int(qt_minor)>=12:
 				cmd+=["PyQtWebEngine~={}.{}.0".format(qt_major,qt_minor)]
