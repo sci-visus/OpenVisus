@@ -1,5 +1,5 @@
 # OpenViSUS Visualization project  
-   
+    
 ![GitHub Actions](https://github.com/sci-visus/OpenVisus/workflows/BuildOpenVisus/badge.svg)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/sci-visus/OpenVisus/master?filepath=Samples%2Fjupyter)
 
@@ -294,70 +294,56 @@ We are showing as an example how to build OpenVisus on Ubuntu 16.
 Install prerequisites:
 
 ```
-sudo apt install -y patchelf swig
+sudo apt install -y patchelf swig cmake
 ```
 
-Install a recent cmake. For example:
+Install python3 (>=3.6):
 
 ```
-wget https://github.com/Kitware/CMake/releases/download/v3.17.2/cmake-3.17.2-Linux-x86_64.sh
-sudo mkdir /opt/cmake
-sudo sh cmake-3.17.2-Linux-x86_64.sh --skip-license --prefix=/opt/cmake
-sudo ln -s /opt/cmake/bin/cmake /usr/bin/cmake
+sudo apt install -y python3 python3-dev python3-pip
+python3 -m pip install numpy
 ```
 
-Install python (choose the version you prefer, here we are assuming 3.7):
-
-```
-sudo apt update
-sudo apt install -y software-properties-common
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt update
-sudo apt install -y python3.7 python3.7-dev python3-pip
-python3.7 -m pip install numpy
-```
-
-Install apache developer files (OPTIONAL for mod_visus):
+(OPTIONAL) Install apache developer files if you want to enable Apache mod_visus:
 
 ```
 sudo apt-get install -y libapr1 libapr1-dev libaprutil1 libaprutil1-dev apache2-dev
 ```
 
-Install qt5 (5.12 or another version):
+(OPTIONAL) Install qt5 if you want to compile the visus viewer (change repository and version as needed):
 
 ```
-#sudo add-apt-repository -y ppa:beineri/opt-qt592-xenial
-#sudo apt update
-#sudo apt-get install -y qt59base qt59imageformats
-
 sudo add-apt-repository -y ppa:beineri/opt-qt-5.12.8-xenial
 sudo apt update
 sudo apt-get install -y qt512base qt512imageformats
 ```
 
-
-Compile OpenVisus (change as needed):
+Compile OpenVisus (change options -D as needed):
 
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
+mkdir build && cd build
 
-export Python_EXECUTABLE=python3.7
-export Qt5_DIR=/opt/qt512/lib/cmake/Qt5 
-alias python=${Python_EXECUTABLE}
-
-mkdir build 
-cd build
-
-cmake -DPython_EXECUTABLE=${Python_EXECUTABLE} -DQt5_DIR=${Qt5_DIR} ../
+cmake -DPython_EXECUTABLE=$(which python3) -DQt5_DIR=/opt/qt512/lib/cmake/Qt5 -DVISUS_GUI=0 _DVISUS_MODVISUS=0 ../
 cmake --build ./ --target all     --config Release --parallel 4 
 cmake --build ./ --target install --config Release
+```
 
-python -m pip install --upgrade pip
+Test from command line:
 
-export PYTHONPATH=./Release
-python -m OpenVisus configure --user
-python -m OpenVisus viewer
+```
+# test embedding python
+Release/OpenVisus/bin/visus
+
+# test extending python
+PYTHONPATH=$(pwd)/Release python3 -c "from OpenVisus import *"
+```
+If you want to test the viewer:
+
+```
+PYTHONPATH=$(pwd)/Release python3 -m OpenVisus configure --user # configure is needed to install PyQt5
+PYTHONPATH=$(pwd)/Release python3 -m OpenVisus viewer
 ```
 
 

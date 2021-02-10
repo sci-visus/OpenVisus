@@ -151,7 +151,9 @@ def Configure(bUserInstall=False):
 
 		if is_conda:
 
-			conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'opencv')
+			cmd=['conda', 'install', '-y', '-c', 'conda-forge']
+			if WIN32 or APPLE: cmd+=["opencv"] # on linux tries to compile opencv from scratch
+			conda.cli.main(*cmd)
 			
 			if WIN32:
 				# cannot use conda-forge version because they rename DLLS (like Qt5Core.dll->Qt5Core_conda.dll)
@@ -169,7 +171,8 @@ def Configure(bUserInstall=False):
 		# it has webengine and sip included
 
 		else:
-			cmd=[sys.executable,"-m", "pip", "install"] + (["--user"] if bUserInstall else []) + ["opencv-python", "PyQt5~={}.{}.0".format(qt_major,qt_minor)]
+			cmd=[sys.executable,"-m", "pip", "install"] + (["--user"] if bUserInstall else []) + ["PyQt5~={}.{}.0".format(qt_major,qt_minor)]
+			if WIN32 or APPLE: cmd+=["opencv-python"] # on linux tries to compile opencv from scratch
 
 			if int(qt_major)==5 and int(qt_minor)>=12:
 				cmd+=["PyQtWebEngine~={}.{}.0".format(qt_major,qt_minor)]
@@ -179,11 +182,14 @@ def Configure(bUserInstall=False):
 
 		# this should cover the case where I just installed PyQt5
 		PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip()
-		found_QT_VERSION=GetCommandOutput([sys.executable,"-c","from PyQt5 import Qt; print(vars(Qt)['QT_VERSION_STR'])"]).strip().split(".")
-		print("Linking','PyQt5_HOME",PyQt5_HOME, 'found_QT_VERSION',found_QT_VERSION)
+		
+		# this has been disabled, problems under Linux with QT_VERSION_STR
+		if False:
+			found_QT_VERSION=GetCommandOutput([sys.executable,"-c","from PyQt5 import Qt; print(vars(Qt)['QT_VERSION_STR'])"]).strip().split(".")
+			print("Linking','PyQt5_HOME",PyQt5_HOME, 'found_QT_VERSION',found_QT_VERSION)
 	
-		if found_QT_VERSION[0]!=qt_major or found_QT_VERSION[1]!=qt_minor:
-			raise Exception("There is a problem with getting the right Qt5 version. Please try 'export PYTHONNOUSERSITE=True' needed({}.{}) found({}.{})".format(qt_major,qt_minor,found_QT_VERSION[0],found_QT_VERSION[1],))
+			if found_QT_VERSION[0]!=qt_major or found_QT_VERSION[1]!=qt_minor:
+				raise Exception("There is a problem with getting the right Qt5 version. Please try 'export PYTHONNOUSERSITE=True' needed({}.{}) found({}.{})".format(qt_major,qt_minor,found_QT_VERSION[0],found_QT_VERSION[1],))
 	
 		if not os.path.isdir(PyQt5_HOME):
 			print("Error directory does not exists")

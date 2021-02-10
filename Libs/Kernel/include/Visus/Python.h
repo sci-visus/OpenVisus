@@ -86,8 +86,8 @@ inline void EmbeddedPythonInit()
   Py_SetProgramName((wchar_t*)wprogram_name);
   Py_InitializeEx(0);
 
-  //static wchar_t* wargv[]={(wchar_t*)wprogram_name};
-  PySys_SetArgv(0, nullptr);
+  static wchar_t* wargv[]={(wchar_t*)wprogram_name};
+  PySys_SetArgv(1, wargv);
 
   //Initialize and acquire the global interpreter lock
   PyEval_InitThreads();
