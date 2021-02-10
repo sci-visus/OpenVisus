@@ -102,6 +102,14 @@ public:
   inline void setPath(String path)
   {VisusAssert(!StringUtils::contains(path,"?"));this->path=path;}
 
+  //withPath
+  Url withPath(String path)
+  {
+    auto ret = *this;
+    ret.setPath(path);
+    return ret;
+  }
+
   //hasParam
   inline bool hasParam(String key) const
   {return params.hasValue(key);}

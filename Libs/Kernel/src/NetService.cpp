@@ -123,9 +123,6 @@ public:
 
       curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
 
-      //PrintInfo("Disabling SSL verify peer , potential security hole");
-      curl_easy_setopt(this->handle, CURLOPT_SSL_VERIFYPEER, 0L);
-
       curl_easy_setopt(this->handle, CURLOPT_NOPROGRESS, 1L);
       curl_easy_setopt(this->handle, CURLOPT_HEADER, 0L);
       curl_easy_setopt(this->handle, CURLOPT_FAILONERROR, 1L);
@@ -138,6 +135,24 @@ public:
       curl_easy_setopt(this->handle, CURLOPT_HEADERDATA, this);
       curl_easy_setopt(this->handle, CURLOPT_WRITEDATA, this);
       curl_easy_setopt(this->handle, CURLOPT_READDATA, this);
+
+      //TODO: possible security hole
+      //PrintInfo("Disabling SSL verify peer , potential security hole");
+      curl_easy_setopt(this->handle, CURLOPT_SSL_VERIFYPEER, 0L);
+
+      //TODO: possible security hole
+      //this is needed for self signed certificate on localhost
+      curl_easy_setopt(this->handle, CURLOPT_SSL_VERIFYHOST, 0L);
+
+      //tricks to setup basic authentication
+      {
+        auto username = request.url.getParam("~auth_username"); request.url.params.eraseValue("~auth_username");
+        auto password = request.url.getParam("~auth_password"); request.url.params.eraseValue("~auth_password");
+
+        //see https://reqbin.com/req/c-haxm0xgr/curl-basic-auth-example#:~:text=To%20send%20basic%20auth%20credentials,%3D%22%20header%20to%20the%20request.
+        if (!username.empty() || !password.empty())
+          request.setHeader("Authorization", "Basic " + StringUtils::base64Encode(username + ":" + password));
+      }
 
       String proxy = NetService::Defaults::proxy;
       if (!proxy.empty())

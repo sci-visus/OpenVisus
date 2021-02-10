@@ -1266,21 +1266,13 @@ bool Viewer::open(String s_url,Node* parent)
   Url url(s_url);
   if (url.isRemote() && url.getPath()=="/mod_visus" && url.getParam("action")=="list")
   {
-    auto protocol= url.getProtocol();
-    auto hostname= url.getHostname();
-    auto port= url.getPort();
-
-    bool cached = false;
-    if (url.hasParam("cached"))
-    {
-      cached = cbool(url.getParam("cached"));
-      url.params.eraseValue("cached");
-    }
+    bool cached = cbool(url.getParam("cached", "false"));
+    url.params.eraseValue("cached");
 
     auto content=Utils::loadTextDocument(url.toString());
-    content = StringUtils::replaceAll(content, "$(protocol)", protocol);
-    content = StringUtils::replaceAll(content, "$(hostname)", hostname);
-    content = StringUtils::replaceAll(content, "$(port)", cstring(port));
+    content = StringUtils::replaceAll(content, "$(protocol)", url.getProtocol());
+    content = StringUtils::replaceAll(content, "$(hostname)", url.getHostname());
+    content = StringUtils::replaceAll(content, "$(port)", cstring(url.getPort()));
 
     auto config = StringTree::fromString(content);
     if (!config.valid())
@@ -1299,7 +1291,7 @@ bool Viewer::open(String s_url,Node* parent)
           auto dataset_name = dataset->getAttribute("name");
           dataset->addChild(StringTree::fromString(
             "  <access type='multiplex'>\n"
-            "     <access type='disk'    chmod='rw' url='file://$(VisusHome)/cache/" + hostname + "/" + cstring(port) + "/" + dataset_name + "/visus.idx'  />\n"
+            "     <access type='disk'    chmod='rw' url='file://$(VisusHome)/cache/" + url.getHostname() + "/" + cstring(url.getPort()) + "/" + dataset_name + "/visus.idx'  />\n"
             "     <access type='network' chmod='r'  compression='zip' />\n"
             "  </access>\n"));
         }

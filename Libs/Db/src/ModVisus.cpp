@@ -706,23 +706,11 @@ NetResponse ModVisus::handleRequest(NetRequest request)
 {
   Time t1 = Time::now();
 
-  //default action
-  if (request.url.getParam("action").empty())
-  {
-    bool bSpecifyDataset = request.url.hasParam("dataset");
-
-    if (bSpecifyDataset)
-    {
-      request.url.setParam("action", "readdataset");
-    }
-    else
-    {
-      request.url.setParam("action", "list");
-      request.url.setParam("format", "xml"); //"html"
-    }
-  }
-
   String action = request.url.getParam("action");
+
+  //default action
+  if (action.empty())
+    action= request.url.hasParam("dataset") ? "readdataset" : "list";
 
   NetResponse response;
 

@@ -60,10 +60,10 @@ ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_)
 
   if (this->num_queries_per_request>1)
   {
-    Url url(this->url.getProtocol() + "://" + this->url.getHostname() + ":" + cstring(this->url.getPort()) + "/mod_visus");
-    url.setParam("action", "ping");
+    //I may have some extra params I want to keep!
+    auto request=NetRequest(url.withPath("/mod_visus"));
+    request.url.setParam("action", "ping");
 
-    auto request = NetRequest(url);
     auto response = NetService::getNetResponse(request);
     bool bSupportAggregation = cbool(response.getHeader("block-query-support-aggregation", "0"));
     if (!bSupportAggregation)
@@ -89,7 +89,6 @@ ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_)
 //////////////////////////////////////////////////////////////////////////////////////
 ModVisusAccess::~ModVisusAccess() {
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 void ModVisusAccess::readBlock(SharedPtr<BlockQuery> query)
@@ -122,7 +121,7 @@ void ModVisusAccess::flushBatch()
   Batch batch;
   std::swap(batch,this->batch);
 
-  Url URL(this->url.getProtocol() + "://" + this->url.getHostname() + ":" + cstring(this->url.getPort()) + "/mod_visus");
+  Url URL(this->url.withPath("/mod_visus"));
   URL.setParam("action"      , "rangequery");
   URL.setParam("dataset"     , this->url.getParam("dataset"));
   URL.setParam("compression" , this->compression);

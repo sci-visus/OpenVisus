@@ -1,0 +1,16 @@
+(version)
+6
+(box)
+0 255 0 255
+(fields)
+data uint8 format(0) default_value(0) min(0) max(0) 
+(bits)
+V0101010101010101
+(bitsperblock)
+16
+(blocksperfile)
+1
+(interleave block)
+0
+(filename_template)
+./gray/%01x.bin

@@ -1391,9 +1391,8 @@ NetRequest Dataset::createBoxQueryRequest(SharedPtr<BoxQuery> query)
 
   Url url = this->getUrl();
 
-  NetRequest ret;
-  ret.url = url.getProtocol() + "://" + url.getHostname() + ":" + cstring(url.getPort()) + "/mod_visus";
-  ret.url.params = url.params;  //I may have some extra params I want to keep!
+  //I may have some extra params I want to keep!
+  auto ret = NetRequest(url.withPath("/mod_visus"));
   ret.url.setParam("action", "boxquery");
   ret.url.setParam("dataset", url.getParam("dataset"));
   ret.url.setParam("time", url.getParam("time", cstring(query->time)));
@@ -1403,6 +1402,7 @@ NetRequest Dataset::createBoxQueryRequest(SharedPtr<BoxQuery> query)
   ret.url.setParam("toh", cstring(query->getEndResolution()));
   ret.url.setParam("maxh", cstring(getMaxResolution())); //backward compatible
   ret.url.setParam("box", query->logic_box.toOldFormatString());
+
   ret.aborted = query->aborted;
   return ret;
 }
@@ -1786,9 +1786,9 @@ NetRequest Dataset::createPointQueryRequest(SharedPtr<PointQuery> query)
 {
   Url url = this->getUrl();
 
-  NetRequest request;
-  request.url = url.getProtocol() + "://" + url.getHostname() + ":" + cstring(url.getPort()) + "/mod_visus";
-  request.url.params = url.params;  //I may have some extra params I want to keep!
+  //I may have some extra params I want to keep!
+  auto request=NetRequest(url.withPath("/mod_visus"));
+
   request.url.setParam("action", "pointquery");
   request.url.setParam("dataset", url.getParam("dataset"));
   request.url.setParam("time", url.getParam("time", cstring(query->time)));
@@ -1800,6 +1800,7 @@ NetRequest Dataset::createPointQueryRequest(SharedPtr<PointQuery> query)
   request.url.setParam("matrix", query->logic_position.getTransformation().toString());
   request.url.setParam("box", query->logic_position.getBoxNd().toBox3().toString(/*bInterleave*/false));
   request.url.setParam("nsamples", query->getNumberOfPoints().toString());
+
   request.aborted = query->aborted;
 
   return request;

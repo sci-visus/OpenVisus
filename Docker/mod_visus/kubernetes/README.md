@@ -9,21 +9,20 @@ source <(kubectl completion bash)
 Create the Kubernet namespace you will use for resource creation:
 
 ```
-kubectl create namespace openvisus
+NAMESPACE=openvisus
+kubectl create namespace $NAMESPACE
+kubectl config set-context --current --namespace=$NAMESPACE
 ```
 
-Later on you can remove all resources with a simple:
+Later on you can remove all resources with a simple `kubectl delete namespace openvisus`:
 
-```
-kubectl delete namespace openvisus
-```
 
 # Create Kubernet deployment
 
 Create a `mod-visus-deployment` deployment for example using the following command:
 
 ```
-kubectl create deployment --namespace openvisus  mod-visus-deployment --image=visus/mod_visus:latest  --dry-run -o yaml > mod_visus_deployment.yaml
+kubectl create deployment mod-visus-deployment --image=visus/mod_visus:latest  --dry-run -o yaml > mod_visus_deployment.yaml
 ```
 
 Edit the file and setup as needed (`vi ./mod_visus_deployment.yaml`)
@@ -80,11 +79,12 @@ Finally create and inspect the deployment:
 
 ```
 kubectl apply -f mod_visus_deployment.yaml  --record 
-kubectl describe deployment --namespace=openvisus mod-visus-deployment
-kubectl get pods --namespace=openvisus
+kubectl describe deployment mod-visus-deployment
+kubectl get pods 
+kubectl logs mod-visus-deployment-67d987676d-2vsvd # replace with the name of the logs
 ```
 
-You can use `explain` keyword to check YAML syntax, for example:
+In case you don't rememeber specific YAML sections of your file, you can use `explain`. For example:
 
 ```
 kubectl explain Pod.spec.volumes
@@ -93,22 +93,22 @@ kubectl explain Pod.spec.volumes
 Or you can check the history of the deployment
 
 ```
-kubectl rollout history --namespace openvisus deployment mod-visus-deployment
-kubectl rollout status  --namespace openvisus deployment mod-visus-deployment
+kubectl rollout history deployment mod-visus-deployment
+kubectl rollout status  deployment mod-visus-deployment
 ```
 
 To get all the pods connected to the deployment:
 
 ```
-kubectl get pods --namespace=openvisus  -o wide
+kubectl get pods -o wide
 ```
 
-To check if openvisus server are running you can create a temporary pod inside the cluster, :
+To check if openvisus server are running you can create a temporary pod inside the cluster:
 
 ```
-kubectl run -i --tty --rm tmp1 --image=busybox --namespace=openvisus -- sh
+kubectl run -i --tty --rm tmp1 --image=busybox  -- sh
 
-# change the IP address with one given from get pods command one step above
+# change the IP address with one given from `kubectl get pods -o wide` command:
 IP_ADDRESS=10.1.0.34 
 
 wget -O- --no-verbose http://$IP_ADDRESS/mod_visus?action=list 
@@ -118,7 +118,7 @@ exit
 Or you can connect to one of the server pod:
 
 ```
-kubectl exec --namespace=openvisus deploy/mod-visus-deployment -i -t -- sh
+kubectl exec  deploy/mod-visus-deployment -i -t -- sh
 apt-get install -y wget
 wget -O- --no-verbose http://localhost:80/mod_visus?action=list
 exit
@@ -127,7 +127,7 @@ exit
 To inspect logs from the outside:
 
 ```
-kubectl logs --namespace=openvisus deployment/mod-visus-deployment
+kubectl logs  deployment/mod-visus-deployment
 ```
 
 # Create Kubernet Service
@@ -136,7 +136,7 @@ So far, no pods, nodes, deployment is already accessible from the outside.
 To do so you  need to expose the deployment:
 
 ```
-kubectl expose deployment --namespace openvisus mod-visus-deployment --port=80 --target-port=80 --name=mod-visus-service --type=NodePort --dry-run -o yaml > mod_visus_service.yaml
+kubectl expose deployment mod-visus-deployment --port=80 --target-port=80 --name=mod-visus-service --type=NodePort --dry-run -o yaml > mod_visus_service.yaml
 ```
 
 The edit the yaml file (`vi mod_visus_service.yaml`)
@@ -149,7 +149,7 @@ metadata:
   labels:
     app: mod-visus-deployment
   name: mod-visus-service
-  namespace: openvisus # scrgiorgio: add the namespace
+  namespace: openvisus # scrgiorgio: important to add
 spec:
   ports:
   - port: 80
@@ -170,21 +170,21 @@ kubectl apply -f mod_visus_service.yaml --record
 Inspect the service:
 
 ```
-kubectl get service --namespace=openvisus
-kubectl describe service --namespace=openvisus mod-visus-service
+kubectl get service 
+kubectl describe service mod-visus-service
 ```
 
-Check all resources in openvisus and all namespace:
+Check all resources in openvisus:
 
 ```
-kubectl get all --namespace=openvisus -o wide 
+kubectl get all  -o wide 
 kubectl get all --all-namespaces -o wide 
 ```
 
 You can access the service from a temporary pod using the service name:
 
 ```
-kubectl run -i --tty --rm tmp1 --image=busybox --namespace=openvisus -- sh
+kubectl run -i --tty --rm tmp1 --image=busybox -- sh
 wget -O- http://mod-visus-service/mod_visus?action=list
 ```
 
@@ -192,7 +192,7 @@ Or you can connect from external:
 
 ```
 #if you don't know the nodePort (i.e. the port exposed to the external)
-kubectl get service --namespace=openvisus -o yaml | grep nodePort
+kubectl get service -o yaml | grep nodePort
 
 wget -O- --no-verbose http://localhost:30080/mod_visus?action=list
 ```
@@ -240,8 +240,8 @@ Create/ Inspect/ Debug the ingress:
 
 ```
 kubectl apply -f mod_visus_ingress.yaml
-kubectl describe ingress --namespace=openvisus mod-visus-ingress 
-kubectl get ingress --namespace=openvisus
+kubectl describe ingress mod-visus-ingress 
+kubectl get ingress 
 ```
 
 See if it works:
