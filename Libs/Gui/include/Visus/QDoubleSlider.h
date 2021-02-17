@@ -158,12 +158,8 @@ private:
   void internalSetValue(double dval,bool bRefreshSlider)
   {
     dval=Utils::clamp(dval, range.from, range.to);
-    
-    if (dval==this->dval)
-      return;
-    
-    this->dval=dval;
-    
+
+    // on initialization of QDoubleSlider widget we need to set the slider's value (thus the dval==this->val check is done after setting the slider)
     if (bRefreshSlider)
     {
       auto ival=double_to_int(dval);
@@ -174,7 +170,12 @@ private:
         qslider->blockSignals(signals_were_blocked);
       }
     }
-    
+
+    if (dval==this->dval)
+      return;
+
+    this->dval=dval;
+
     emit doubleValueChanged(dval);
   }
   
