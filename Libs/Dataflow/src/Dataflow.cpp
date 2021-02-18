@@ -452,8 +452,13 @@ void Dataflow::connectNodes(Node* from,String oport_name,String iport_name,Node*
   DataflowPort* oport=from->getOutputPort(oport_name);
   DataflowPort* iport=to  ->getInputPort(iport_name);
 
-  VisusAssert(iport && containsNode(from) && iport->inputs .find(oport)==iport->inputs .end());
-  VisusAssert(oport && containsNode(to  ) && oport->outputs.find(iport)==oport->outputs.end());
+  VisusAssert(iport);
+  VisusAssert(containsNode(from));
+  VisusAssert(iport->inputs.find(oport) == iport->inputs.end());
+
+  VisusAssert(oport);
+  VisusAssert(containsNode(to));
+  VisusAssert(oport->outputs.find(iport) == oport->outputs.end());
 
   DataflowPortValue* last_published=guessLastPublished(oport);
 

@@ -1771,7 +1771,6 @@ void Viewer::removeNode(Node* NODE)
     //first disconnect all ports
     for (auto node : rev)
     {
-      VisusAssert(node->getChilds().empty());
 
       if (auto glcamera_node = dynamic_cast<GLCameraNode*>(node))
         detachGLCamera();
@@ -1800,6 +1799,7 @@ void Viewer::removeNode(Node* NODE)
     //then remove the nodes
     for (auto node : rev)
     {
+      VisusAssert(node->getChilds().empty()); 
       VisusAssert(node->isOrphan());
 
       beginUpdate(
@@ -2356,8 +2356,8 @@ QueryNode* Viewer::addIsoContour(String uuid, Node* parent, String fieldname, in
     auto scripting_node = NodeFactory::getSingleton()->createInstance("ScriptingNode");
     scripting_node->setUUID(uuid, "scripting");
     scripting_node->setName("Scripting");
-    connectNodes(query_node, scripting_node);
     addNode(query_node, scripting_node);
+    connectNodes(query_node, scripting_node);
 
     //build isocontour
     auto build_isocontour = new IsoContourNode();
