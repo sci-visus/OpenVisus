@@ -637,7 +637,7 @@ public:
     QDoubleSlider* slider = nullptr;
     QLabel* data_min = nullptr;
     QLabel* data_max = nullptr;
-    QLabel* value = nullptr;
+    QLineEdit* value = nullptr;
   };
 
   Widgets widgets;
@@ -672,7 +672,9 @@ public:
         model->setIsoValue(value);
       }));
 
-      layout->addRow("Value", widgets.value = new QLabel("0.0"));
+      layout->addRow("Value", widgets.value = GuiFactory::CreateDoubleTextBoxWidget(0, [this](double value) {
+        model->setIsoValue(value);
+      }));
       layout->addRow("From", widgets.data_min = new QLabel("0.0"));
       layout->addRow("To", widgets.data_max = new QLabel("0.0"));
 
@@ -692,7 +694,7 @@ private:
 
     widgets.slider->setRange(range);
     widgets.slider->setValue(model->getIsoValue());
-    widgets.value->setText(cstring(model->getIsoValue()).c_str());
+    widgets.value->setText(cstring(widgets.slider->value()).c_str());
     widgets.data_min->setText(cstring(range.from).c_str());
     widgets.data_max->setText(cstring(range.to).c_str());
   }

@@ -52,6 +52,7 @@ For support : support@visus.net
 #include <QLabel>
 #include <QFrame>
 #include <QFormLayout>
+#include <QLineEdit>
 
 namespace Visus {
 
