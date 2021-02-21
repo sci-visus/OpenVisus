@@ -177,50 +177,54 @@ class MyView(QMainWindow):
 				self.addPreset("output=input[%d]" % (I,))		
 
 		self.addPreset("Normalize","""
-import cv2
-output=cv2.normalize(input.astype(numpy.float32), None, alpha=0.0, beta=1.0, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+import numpy
+
+def NormalizeData(data):
+	m,M=numpy.min(data),numpy.max(data)
+	return (data - m) / (M - m)
+
+output=NormalizeData(input.astype(numpy.float32))
 """)
 
 		self.addPreset("Gaussian Blur","""
-import cv2
-kernel_size=5
-output= cv2.GaussianBlur(output,(kernel_size,kernel_size),0)
+from scipy import ndimage
+output = ndimage.gaussian_filter(input.astype(numpy.float32), sigma=1)
 """)
 
 		self.addPreset("Median Blur","""
-import cv2
-kernel_size=5
-output=input.astype(numpy.float32)
-output= cv2.medianBlur(output,kernel_size)
+from scipy import ndimage
+output = ndimage.median_filter(input.astype(numpy.float32),size=4)
 """)
 
-		self.addPreset("X Sobel","""
-import cv2
-kernel_size=5
-output=input.astype(numpy.float32)
-output = cv2.Sobel(output,cv2.CV_32F,1,0,ksize=kernel_size)
+		self.addPreset("Sobel","""
+from scipy import ndimage
+axis=0
+output = ndimage.sobel(input.astype(numpy.float32),axis=axis)
 """)
 
-		self.addPreset("Y Sobel","""
-import cv2
-kernel_size=5
-output=input.astype(numpy.float32)
-output = cv2.Sobel(output,cv2.CV_32F,0,1,ksize=kernel_size)
-""")
 
 		self.addPreset("Laplacian",""" 
-import cv2
-kernel_size=5
-output=input.astype(numpy.float32)
-output=cv2.Laplacian(output,cv2.CV_32F, ksize=kernel_size)
+from scipy import ndimage
+output = ndimage.laplace(input.astype(numpy.float32))
 """)
 
 		self.addPreset("Laplacian of Gaussian","""
-import cv2
-kernel_size=5
-output=input.astype(numpy.float32)
-output = cv2.GaussianBlur(output,(kernel_size,kernel_size),0)
-output = cv2.Laplacian(output ,cv2.CV_32F, ksize=kernel_size)
+from scipy import ndimage
+output = ndimage.laplace(ndimage.gaussian_filter(input.astype(numpy.float32), sigma=1))
+""")
+
+		self.addPreset("Threshold","""
+import numpy
+
+def NormalizeData(data):
+	m,M=numpy.min(data),numpy.max(data)
+	return (data - m) / (M - m)
+
+output=NormalizeData(input.astype(numpy.float32))
+A,B=0.5,0.8
+output=numpy.clip(output,A,B)
+output[output < A] = 0
+output[output > B] = 0
 """)
 
 	# appendOutput
