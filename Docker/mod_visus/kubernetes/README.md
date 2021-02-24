@@ -197,7 +197,7 @@ kubectl get service -o yaml | grep nodePort
 wget -O- --no-verbose http://localhost:30080/mod_visus?action=list
 ```
 
-# (OPTIONAL; needed if you have a real clusted) Create ingress 
+# (OPTIONAL; needed if you have a real cluster) Create ingress 
 
 On Windows WSL2 (BROKEN right now, see: https://github.com/docker/for-win/issues/7094):
 
