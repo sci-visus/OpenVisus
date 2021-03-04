@@ -292,10 +292,10 @@ public:
     }
 
     if (bVerbose)
-      PrintInfo("Read block",blockid,"from file",file.getFilename(),"ok");
-
-    if (bVerbose)
-      PrintInfo("IdxDiskAccess::read blockid",blockid,"ok");
+    {
+      PrintInfo("Read block", blockid, "from file", file.getFilename(), "ok");
+      PrintInfo("IdxDiskAccess::read blockid", blockid, "ok");
+    }
 
     owner->readOk(query);
   }

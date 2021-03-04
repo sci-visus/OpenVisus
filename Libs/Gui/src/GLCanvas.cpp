@@ -235,7 +235,7 @@ void GLCanvas::setViewport(const Viewport& value,bool bForce)
   this->viewport.top()=value;
   
   float sx=devicePixelRatio();
-  float sy=devicePixelRatio();
+  float sy= sx;
   glViewport(sx*value.x,sy*value.y,sx*value.width,sy*value.height);
 }
 

@@ -224,8 +224,7 @@ bool Viewer::addNetSnd(String url,Rectangle2d split_ortho,Rectangle2d screen_bou
       std::vector<NetRequest> requests;
       {
         ScopedLock lock(netsnd->requests_lock);
-        netsnd->requests=netsnd->requests;
-        netsnd->requests.clear();
+        swap(requests, netsnd->requests);
       }
 
       if (requests.empty())

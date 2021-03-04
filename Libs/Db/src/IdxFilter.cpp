@@ -382,7 +382,7 @@ public:
       vb[N]=(CppType)b; VisusAssert(vb[N]==b);
     }
     va[ncomponents-1]=(CppType)0;
-    va[ncomponents-1]=(CppType)0;
+    vb[ncomponents-1]=(CppType)0;
   }
 
   //internalComputeFilter

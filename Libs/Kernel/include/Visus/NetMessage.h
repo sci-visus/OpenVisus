@@ -397,7 +397,7 @@ public:
   bool isSuccessful   () const {return status>=200 && status<300;}
   bool isRedirection  () const {return status>=300 && status<400;}
   bool isClientError  () const {return status>=400 && status<500;}
-  bool isServerError  () const {return status>=500 && status<500;}
+  bool isServerError  () const {return status>=500 && status<600;}
   
   //getStatusDescription
   String getStatusDescription() const;

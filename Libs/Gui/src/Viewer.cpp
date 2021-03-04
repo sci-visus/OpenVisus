@@ -1335,7 +1335,7 @@ bool Viewer::open(String s_url,Node* parent)
         auto ar = StringTree::fromString(content);
         read(ar);
       }
-      catch (std::exception ex)
+      catch (const std::exception& ex)
       {
         VisusAssert(false);
         QMessageBox::information(this, "Error", ex.what());

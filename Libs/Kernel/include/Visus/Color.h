@@ -141,7 +141,7 @@ public:
     int A=value & 0xff; value>>=8; 
     int B=value & 0xff; value>>=8;
     int G=value & 0xff; value>>=8;
-    int R=value & 0xff; value>>=8;
+    int R=value & 0xff; 
     return Color(R,G,B,A);
   }
 

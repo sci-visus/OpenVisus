@@ -509,11 +509,11 @@ public:
 	
 	    else if (auto pw = getpwuid(getuid()))
 	      return pw->pw_dir;
+
+			ThrowException("internal error");
+			return "/";
 	  }
 	#endif
-	
-	  ThrowException("internal error");
-	  return "/";
 	}  
 
   //getCurrentApplicationFile

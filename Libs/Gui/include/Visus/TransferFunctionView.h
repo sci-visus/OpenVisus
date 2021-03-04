@@ -131,18 +131,18 @@ private:
       return;
 
     double attenuation=model->getAttenuation();
-    std::vector<double>* R=&model->R->values;
-    std::vector<double>* G=&model->G->values;
-    std::vector<double>* B=&model->B->values;
-    std::vector<double>* A= bShowCheckedBoard? &model->A->values : nullptr;
+    const auto& R=model->R->values;
+    const auto& G=model->G->values;
+    const auto& B=model->B->values;
+    const auto& A=model->A->values;
 
     this->img.reset(new QImage(nsamples,1,QImage::Format_ARGB32));
     for (int x=0; x<nsamples; x++)
     {
-      auto r  = R? (Uint8)((*R)[x] * 255.0                      ) : 0;
-      auto g  = G? (Uint8)((*G)[x] * 255.0                      ) : r;
-      auto b  = B? (Uint8)((*B)[x] * 255.0                      ) : g;
-      auto a  = A? (Uint8)((*A)[x] * 255.0 * (1.0 - attenuation)) : 255;
+      auto r  =                     (Uint8)(R[x] * 255.0);
+      auto g  =                     (Uint8)(G[x] * 255.0);
+      auto b  =                     (Uint8)(B[x] * 255.0);
+      auto a  = bShowCheckedBoard ? (Uint8)(A[x] * 255.0 * (1.0 - attenuation)) : 255;
       this->img->setPixel(x,0,qRgba(r,g,b,a));
     }
   }

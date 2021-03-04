@@ -510,7 +510,7 @@ public:
   T*            ptr = nullptr;
   PointNi       dims;
   Int64         tot=0;
-  int           stride;
+  int           stride=0;
   int           C=0;
 
   //default constructor

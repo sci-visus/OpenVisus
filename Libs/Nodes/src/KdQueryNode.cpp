@@ -65,8 +65,8 @@ public:
   int                           kdquery_mode =KdQueryMode::NotSpecified;
   SharedPtr<KdArray>            kdarray;
 
-  int                           maxh;
-  int                           pdim;
+  int                           maxh=0;
+  int                           pdim = 0;
   DatasetBitmask                bitmask;
 
   Time                          last_publish = Time::now();
@@ -108,7 +108,7 @@ public:
     VisusAssert(bitsperblock<=max_resolution);
 
     int end_resolution;
-    if (KdQueryMode::UseBlockQuery && !dataset->blocksFullRes())
+    if ((kdquery_mode == KdQueryMode::UseBlockQuery) && !dataset->blocksFullRes())
     {
       //I'm reading block 0+1 for block mode when the blocks are not fullres
       end_resolution = std::min(bitsperblock + 1, max_resolution);

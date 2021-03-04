@@ -182,9 +182,17 @@ public:
 class HzAddressConversion
 {
 public:
+
   CriticalSection lock;
   std::map<String, SharedPtr<IdxBoxQueryHzAddressConversion> >   box;
   std::map<String, SharedPtr<IdxPointQueryHzAddressConversion> > point;
+
+  void clear()
+  {
+    ScopedLock lock(this->lock);
+    box.clear();
+    point.clear();
+  }
 
   //create
   void create(IdxDataset* idx)
@@ -212,6 +220,11 @@ public:
 };
 
 static HzAddressConversion HZCONV;
+
+void flushHzAddressConversion()
+{
+  HZCONV.clear();
+}
 
 ///////////////////////////////////////////////////////////////////////////
 class ConvertHzOrderSamples

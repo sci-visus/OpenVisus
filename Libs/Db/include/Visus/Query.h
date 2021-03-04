@@ -95,7 +95,8 @@ public:
 
     this->status = value;
 
-    if (bool bFinalStatus = (status == QueryOk) || (status == QueryFailed))
+    //final status?
+    if ((this->status == QueryOk) || (this->status == QueryFailed))
       this->done.get_promise()->set_value(Void());
   }
 

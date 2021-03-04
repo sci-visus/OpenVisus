@@ -184,7 +184,7 @@ private:
       Field field=dataset->getFieldEx(fieldname);
       msg=cstring("DTYPE",field.dtype);
     }
-    catch (std::exception ex)
+    catch (const std::exception& ex)
     {
       msg=String("Error\n") + ex.what();
     }

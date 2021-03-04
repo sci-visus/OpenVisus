@@ -186,17 +186,26 @@ public:
 
   //reset
   inline void reset(iterator it) {
-    VisusAssert(it >= begin() && it < end()); if (*it) delete (*it); (*it) = nullptr;
+    VisusAssert(it >= begin() && it < end()); 
+    if (*it) 
+      delete (*it); 
+    (*it) = nullptr;
   }
 
   //reset
   inline void reset(iterator it, T* VISUS_DISOWN(item)){
-    VisusAssert(it >= begin() && it < end()); if (*it) delete (*it); (*it) = item;
+    VisusAssert(it >= begin() && it < end()); 
+    if (*it) 
+      delete (*it); 
+    (*it) = item;
   }
 
   //reset
   inline void reset(int index, T* VISUS_DISOWN(item)) {
-    VisusAssert(index >= 0 && index < size()); if (ptrs[index]) delete ptrs[index]; ptrs[index] = item;
+    VisusAssert(index >= 0 && index < size()); 
+    if (ptrs[index]) 
+      delete ptrs[index]; 
+    ptrs[index] = item;
   }
 
   //insert
@@ -206,7 +215,10 @@ public:
 
   //erase
   inline void erase(iterator it) {
-    VisusAssert(it >= begin() && it < end()); if (*it) delete (*it); ptrs.erase(it);
+    VisusAssert(it >= begin() && it < end()); 
+    if (*it) 
+      delete (*it); 
+    ptrs.erase(it);
   }
 #endif
 

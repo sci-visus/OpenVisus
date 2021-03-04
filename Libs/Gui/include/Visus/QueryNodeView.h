@@ -86,15 +86,15 @@ public:
     }
     progression;
 
-    QSlider* quality;
+    QSlider* quality=nullptr;
     
     // Export
-    QSlider* end_resolution;
+    QSlider* end_resolution = nullptr;
     Field selected_field;
-    QLineEdit* fileEdit;
-    QPushButton* saveButton;
-    QComboBox* formatComboBox;
-    QComboBox* fieldComboBox;
+    QLineEdit* fileEdit = nullptr;
+    QPushButton* saveButton = nullptr;
+    QComboBox* formatComboBox = nullptr;
+    QComboBox* fieldComboBox = nullptr;
   };
 
 

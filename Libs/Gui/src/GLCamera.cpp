@@ -58,7 +58,10 @@ SharedPtr<GLCamera> GLCamera::decode(StringTree& ar)
     ret =std::make_shared<GLOrthoCamera>();
 
   else
+  {
     ThrowException("internal error");
+    return SharedPtr<GLCamera>();
+  }
 
   ret->read(ar);
   return ret;

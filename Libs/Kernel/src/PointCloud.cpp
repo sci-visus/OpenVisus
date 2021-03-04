@@ -82,7 +82,10 @@ bool PointCloud::open(String filename)
     auto tokens=StringUtils::split(line," ",true);
 
     if (bFirstLine)
-      bHasColors=tokens.size()>=6;
+    {
+      bHasColors = tokens.size() >= 6;
+      bFirstLine = false;
+    }
 
     this->points.push_back(Point3d(atof(tokens[0].c_str()),atof(tokens[1].c_str()),atof(tokens[2].c_str())));
 

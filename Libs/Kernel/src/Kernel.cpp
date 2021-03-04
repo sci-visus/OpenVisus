@@ -272,8 +272,8 @@ void KernelModule::attach()
 
   //check types
   VisusReleaseAssert(sizeof(Int8) == 1 && sizeof(Uint8) == 1 && sizeof(char) == 1);
-  VisusReleaseAssert(sizeof(Int16) == 2 && sizeof(Int16) == 2 && sizeof(short) == 2);
-  VisusReleaseAssert(sizeof(Int32) == 4 && sizeof(Int32) == 4 && sizeof(int) == 4);
+  VisusReleaseAssert(sizeof(Int16) == 2 && sizeof(Uint16) == 2 && sizeof(short) == 2);
+  VisusReleaseAssert(sizeof(Int32) == 4 && sizeof(Uint32) == 4 && sizeof(int) == 4);
   VisusReleaseAssert(sizeof(Int64) == 8 && sizeof(Uint64) == 8);
   VisusReleaseAssert(sizeof(Float32) == 4 && sizeof(float) == 4);
   VisusReleaseAssert(sizeof(Float64) == 8 && sizeof(double) == 8);
@@ -353,7 +353,7 @@ void KernelModule::attach()
 
   NetSocket::Defaults::send_buffer_size = config->readInt("Configuration/NetSocket/send_buffer_size");
   NetSocket::Defaults::recv_buffer_size = config->readInt("Configuration/NetSocket/recv_buffer_size");
-  NetSocket::Defaults::tcp_no_delay = config->readBool("Configuration/NetSocket/tcp_no_delay", "1");
+  NetSocket::Defaults::tcp_no_delay = config->readBool("Configuration/NetSocket/tcp_no_delay", true);
 
   //array plugins
   {

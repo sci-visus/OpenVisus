@@ -165,7 +165,7 @@ GLInfo::GLInfo()
   #else
   {
     this->extension_GL_NVX_gpu_memory_info = StringUtils::contains(this->extensions, "GL_NVX_gpu_memory_info");
-    if (extension_GL_NVX_gpu_memory_info)
+    if (this->extension_GL_NVX_gpu_memory_info)
     {
       GLint kb = 0;
       glGetIntegerv(GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX, &kb); VisusAssert(kb > 0);

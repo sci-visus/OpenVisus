@@ -222,8 +222,8 @@ bool KdRenderArrayNode::processInput()
           ranges[C] = Palette::ComputeRange(
             kdarray->root->displaydata, C,
             /*bNormalizeToFloat*/true,
-            palette ? palette->getNormalizationMode() : TransferFunction::FieldRange,
-            palette ? palette->getUserRange() : Range::invalid());
+            palette->getNormalizationMode(),
+            palette->getUserRange());
         }
 
         //1 component will end up in texture RGB, I want all channels to be the same (as it was gray)

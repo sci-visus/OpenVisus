@@ -232,7 +232,10 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
   VisusReleaseAssert(!TypeName.empty());
   auto ret = DatasetFactory::getSingleton()->createInstance(TypeName);
   if (!ret)
+  {
     ThrowException("LoadDataset", url, "failed. Cannot DatasetFactory::getSingleton()->createInstance", TypeName);
+    return SharedPtr<Dataset>();
+  }
 
   ret->readDatasetFromArchive(ar);
   return ret;

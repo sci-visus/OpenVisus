@@ -147,8 +147,7 @@ void NetServer::runInThisThread()
               }
               else
               {
-                if (verbose)
-                  PrintInfo("!response.isSuccessful()... skipping it");
+                PrintInfo("!response.isSuccessful()... skipping it");
               }
             }
           }

@@ -48,9 +48,37 @@ static bool IsGoodVariableName(String name)
 {
   const std::set<String> ReservedWords =
   {
-    "and", "del","from","not","while","as","elif","global","or","with","assert", "else","if",
-    "pass","yield","break","except","import","print", "class","exec""in","raise","continue",
-    "finally","is","return","def","for","lambda","try"
+    "and", 
+    "del",
+    "from",
+    "not",
+    "while",
+    "as",
+    "elif",
+    "global",
+    "or",
+    "with",
+    "assert", 
+    "else",
+    "if",
+    "pass",
+    "yield",
+    "break",
+    "except",
+    "import",
+    "print", 
+    "class",
+    "exec",
+    "in",
+    "raise",
+    "continue",
+    "finally",
+    "is",
+    "return",
+    "def",
+    "for",
+    "lambda",
+    "try"
   };
 
   if (name.empty() || ReservedWords.count(name))
@@ -330,7 +358,7 @@ bool IdxMultipleDataset::executeBoxQuery(SharedPtr<Access> ACCESS,SharedPtr<BoxQ
   {
     OUTPUT = computeOuput(QUERY.get(), ACCESS, QUERY->aborted, QUERY->field.name);
   }
-  catch (std::exception ex)
+  catch (const std::exception& ex)
   {
     QUERY->setFailed(QUERY->aborted() ? "query aborted" : ex.what());
     return false;

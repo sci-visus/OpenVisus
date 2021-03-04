@@ -307,7 +307,9 @@ std::vector<Field> IdxFile::parseFields(String fields_content)
       last.push_back(ch);
       continue;
     }
-    if (!(last=StringUtils::trim(last)).empty()) v.push_back(last);last="";
+
+    if (!(last=StringUtils::trim(last)).empty()) v.push_back(last);
+    last="";
   }
 
   std::vector<Field> ret;
