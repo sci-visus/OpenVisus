@@ -416,10 +416,13 @@ def MidxToIdx(args):
 
 	# save the new idx file
 	idxfile=midx.idxfile
-	idxfile.filename_template = "" # //force guess
-	idxfile.time_template = ""     #force guess
+
+	# disable compression, at the end I will compress
 	idxfile.fields.clear()
-	idxfile.fields.push_back(Field("DATA", FIELD.dtype, "rowmajor")) # note that compression will is empty in writing (at the end I will compress)
+	idxfile.fields.push_back(Field("DATA", FIELD.dtype, "rowmajor")) 
+
+	# force validation
+	idxfile.version=0 
 	idxfile.save(args.dataset)
 
 	idx = LoadDataset(args.dataset)
@@ -456,7 +459,12 @@ def MidxToIdx(args):
 		print("Generating tile",I,"of",len(TILES),TILE,"...")
 
 		t1 = Time.now()
-		buffer = midx.read(access=ACCESS, field=FIELD, time=TIME, logic_box=TILE) 
+		buffer=None
+		try:
+			buffer = midx.read(access=ACCESS, field=FIELD, time=TIME, logic_box=TILE) 
+		except:
+			buffer=None # can fail because that area is empty
+			
 		msec_read = t1.elapsedMsec()
 		if buffer is None: continue
 

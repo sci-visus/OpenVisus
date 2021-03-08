@@ -193,6 +193,9 @@ Array IdxMultipleDataset::executeDownQuery(BoxQuery* QUERY, SharedPtr<Access> AC
   auto volume = Position(dataset->logic_to_LOGIC, dataset->getLogicBox()).computeVolume();
   int delta_h = -(int)log2(VOLUME / volume);
 
+  //sometimes I miss the last level
+  delta_h++; 
+
   //query already created?
   auto key = dataset_name + "/" + fieldname;
   SharedPtr<BoxQuery> query;
@@ -214,8 +217,10 @@ Array IdxMultipleDataset::executeDownQuery(BoxQuery* QUERY, SharedPtr<Access> AC
     std::set<int> resolutions;
     for (auto END_RESOLUTION : QUERY->end_resolutions)
     {
-      auto end_resolution = Utils::clamp(END_RESOLUTION + delta_h, 0, dataset->getMaxResolution());
+      int max_resolution = dataset->getMaxResolution();
+      auto end_resolution = Utils::clamp(END_RESOLUTION + delta_h, 0, max_resolution);
       resolutions.insert(end_resolution);
+      //PrintInfo(END_RESOLUTION, delta_h, max_resolution,end_resolution);
     }
     query->end_resolutions = std::vector<int>(resolutions.begin(), resolutions.end());
 
