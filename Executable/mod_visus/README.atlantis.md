@@ -36,6 +36,7 @@ Add webviewer:
 git clone git@github.com:sci-visus/OpenVisusJS.git /scratch/home/OpenVisus/webviewer
 ```
 
+(OPTIONAL IF YOU NEED SECURITY)
 Create `/scratch/home/OpenVisus/.htpasswd` file with the following content (change as needed):
 
 ```
