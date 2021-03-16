@@ -131,67 +131,17 @@ public:
 };
 
 ////////////////////////////////////////////////////////
-class IdxPointQueryHzAddressConversion
-{
-public:
-
-  Int64 memsize = 0;
-
-  std::vector< std::pair<BigInt, Int32>* > loc;
-
-  //create
-  IdxPointQueryHzAddressConversion(DatasetBitmask bitmask)
-  {
-    //todo cases for which I'm using regexp
-    auto MaxH = bitmask.getMaxResolution();
-    BigInt last_bitmask = ((BigInt)1) << MaxH;
-
-    HzOrder hzorder(bitmask);
-    int pdim = bitmask.getPointDim();
-    loc.resize(pdim);
-
-    for (int D = 0; D < pdim; D++)
-    {
-      Int64 dim = bitmask.getPow2Dims()[D];
-      this->loc[D] = new std::pair<BigInt, Int32>[dim];
-      BigInt one = 1;
-      for (int i = 0; i < dim; i++)
-      {
-        PointNi p(pdim);
-        p[D] = i;
-        auto& pair = this->loc[D][i];
-        pair.first = hzorder.interleave(p);
-        pair.second = 0;
-        BigInt temp = pair.first | last_bitmask;
-        while ((one & temp) == 0) { pair.second++; temp >>= 1; }
-        temp >>= 1;
-        pair.second++;
-      }
-    }
-  }
-
-  //destructor
-  ~IdxPointQueryHzAddressConversion() {
-    for (auto it : loc)
-      delete[] it;
-  }
-
-};
-
-////////////////////////////////////////////////////////
 class HzAddressConversion
 {
 public:
 
   CriticalSection lock;
   std::map<String, SharedPtr<IdxBoxQueryHzAddressConversion> >   box;
-  std::map<String, SharedPtr<IdxPointQueryHzAddressConversion> > point;
 
   void clear()
   {
     ScopedLock lock(this->lock);
     box.clear();
-    point.clear();
   }
 
   //create
@@ -206,16 +156,6 @@ public:
       this->box[key] = std::make_shared<IdxBoxQueryHzAddressConversion>(bitmask);
 
     idx->hzconv.box = this->box[key];
-
-    //create the loc-cache only for 3d data, in 2d I know I'm not going to use it!
-    //instead in 3d I will use it a lot (consider a slice in odd position)
-    if (bitmask.getPointDim() == 3)
-    {
-      if (!this->point.count(key))
-        this->point[key] = std::make_shared<IdxPointQueryHzAddressConversion>(bitmask);
-
-      idx->hzconv.point = this->point[key];
-    }
   }
 };
 
@@ -529,12 +469,7 @@ std::vector<BigInt> IdxDataset::createBlockQueriesForPointQuery(SharedPtr<PointQ
   BigInt hzaddress;
   LogicSamples block_samples;
 
-  auto hzconv = this->hzconv.point ? &this->hzconv.point->loc : nullptr;
-  if (!hzconv)
-  {
-    PrintWarning("The hzaddress_conversion_pointquery has not been created, so loc-by-loc queries will be a lot slower!!!!");
-    VisusAssert(false); //so you investigate why it's happening! 
-  }
+
 
   for (int N = 0, Tot = (int)query->getNumberOfPoints().innerProduct(); N < Tot; N++, SRC += pdim)
   {
@@ -555,16 +490,7 @@ std::vector<BigInt> IdxDataset::createBlockQueriesForPointQuery(SharedPtr<PointQ
       continue;
     }
 
-    if (!hzconv)
-    {
-      hzaddress = hzorder.getAddress(p);
-    }
-    else
-    {
-      shift = Utils::min((*hzconv)[0][p[0]].second, (*hzconv)[1][p[1]].second, (*hzconv)[2][p[2]].second);
-      zaddress = (*hzconv)[0][p[0]].first | (*hzconv)[1][p[1]].first | (*hzconv)[2][p[2]].first;
-      hzaddress = ((zaddress | last_bitmask) >> shift);
-    }
+    hzaddress = hzorder.getAddress(p);
 
     blockid = hzaddress >> bitsperblock;
     if (!query->offsets.count(blockid))
