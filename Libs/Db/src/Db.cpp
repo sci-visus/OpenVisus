@@ -52,8 +52,6 @@ namespace Visus {
 
 bool DbModule::bAttached = false;
 
-void flushHzAddressConversion();
-
 ///////////////////////////////////////////////////////////////////////////////////////////
 void DbModule::attach()
 {
@@ -82,7 +80,6 @@ void DbModule::detach()
 {
   if (!bAttached)  return;
   bAttached = false;
-  flushHzAddressConversion();
   DatasetFactory::releaseSingleton();
   KernelModule::detach();
 }

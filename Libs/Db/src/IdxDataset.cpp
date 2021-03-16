@@ -41,131 +41,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-////////////////////////////////////////////////////////
-class IdxBoxQueryHzAddressConversion
-{
-public:
-
-  //_______________________________________________________________
-  class Level
-  {
-  public:
-
-    int                   num = 0;// total number of cachable elements
-    int                   pdim = 0;// what is the space I need to work
-    SharedPtr<HeapMemory> cached_points = std::make_shared<HeapMemory>();
-
-    //constructor
-    Level(const DatasetBitmask& bitmask, int H, int numbits = 10)
-    {
-      VisusAssert(bitmask.valid());
-      --H; //yes! it is correct
-
-      numbits = std::max(0, std::min(numbits, H));
-
-      //number of bits which can be cached for current H
-      this->num = 1 << numbits; VisusAssert(this->num);
-      this->pdim = bitmask.getPointDim();
-
-      if (!cached_points->resize(this->num * sizeof(PointNi), __FILE__, __LINE__))
-      {
-        this->clear();
-        return;
-      }
-
-      cached_points->fill(0);
-
-      PointNi* ptr = (PointNi*)cached_points->c_ptr();
-
-      HzOrder hzorder(bitmask, H);
-
-      //create the delta for points  
-      for (BigInt zaddress = 0; zaddress < (this->num - 1); zaddress++, ptr++)
-      {
-        PointNi Pcur = hzorder.deinterleave(zaddress + 0);
-        PointNi Pnex = hzorder.deinterleave(zaddress + 1);
-
-        (*ptr) = PointNi(pdim);
-
-        //store the delta
-        for (int D = 0; D < pdim; D++)
-          (*ptr)[D] = Pnex[D] - Pcur[D];
-      }
-
-      //i want the last (FAKE and unused) element to be zero
-      (*ptr) = PointNi(pdim);
-    }
-
-    //destructor
-    inline ~Level() {
-      clear();
-    }
-
-    //valid
-    bool valid() {
-      return this->num > 0;
-    }
-
-    //memsize
-    inline int memsize() const {
-      return sizeof(PointNi) * (this->num);
-    }
-
-    //clear
-    inline void clear() {
-      this->cached_points.reset();
-      this->num = 0;
-      this->pdim = 0;
-    }
-  };
-
-  std::vector< SharedPtr<Level> > levels;
-
-  //constructor
-  IdxBoxQueryHzAddressConversion(DatasetBitmask& bitmask)
-  {
-		for (int I = 0; I <= bitmask.getMaxResolution(); I++)
-			this->levels.push_back(std::make_shared<Level>(bitmask, I));
-  }
-
-};
-
-////////////////////////////////////////////////////////
-class HzAddressConversion
-{
-public:
-
-  CriticalSection lock;
-  std::map<String, SharedPtr<IdxBoxQueryHzAddressConversion> >   box;
-
-  void clear()
-  {
-    ScopedLock lock(this->lock);
-    box.clear();
-  }
-
-  //create
-  void create(IdxDataset* idx)
-  {
-    ScopedLock lock(this->lock);
-
-    auto bitmask = idx->getBitmask();
-    auto key = bitmask.toString();
-
-    if (!this->box.count(key))
-      this->box[key] = std::make_shared<IdxBoxQueryHzAddressConversion>(bitmask);
-
-    idx->hzconv.box = this->box[key];
-  }
-};
-
-static HzAddressConversion HZCONV;
-
-void flushHzAddressConversion()
-{
-  HZCONV.clear();
-}
-
 ///////////////////////////////////////////////////////////////////////////
 class ConvertHzOrderSamples
 {
@@ -200,25 +75,20 @@ public:
     if (bInvertOrder)
       std::swap(Wbox, Rbox);
 
-    auto hzconv = vf->hzconv.box;
-    VisusReleaseAssert(hzconv);
-
-    int              numused = 0;
     int              bit;
     Int64 delta;
     BoxNi            logic_box = query->logic_samples.logic_box;
     PointNi          stride = query->getNumberOfSamples().stride();
     PointNi          qshift = query->logic_samples.shift;
-    BigInt           numpoints;
     Aborted          aborted = query->aborted;
 
     typedef struct { 
       int    H; 
       BoxNi  box; 
     } 
-    FastLoopStack;
-    FastLoopStack item;
-    std::vector<FastLoopStack> __stack__(max_resolution +1);
+    KdStack;
+    KdStack item;
+    std::vector<KdStack> __stack__(max_resolution +1);
     const auto STACK = &__stack__[0];
 
     //layout of the block
@@ -247,13 +117,6 @@ public:
       if (!box.isFullDim())
         continue;
 
-      VisusReleaseAssert(hzconv->levels[H]);
-      const auto& fllevel = *(hzconv->levels[H]);
-      int cachable = std::min(fllevel.num, samplesperblock);
-
-      //i need this to "split" the fast loop in two chunks
-      VisusAssert(cachable > 0 && cachable <= samplesperblock);
-
       //push root in the kdtree
       item.box = zbox;
       item.H = H ? std::max(1, H - bitsperblock) : (0);
@@ -271,66 +134,33 @@ public:
         if (!item.box.strictIntersect(box))
         {
           hz += (((BigInt)1) << (H - item.H));
-          continue;
         }
-
-        // all intersection and all the samples are contained in the FastLoopCache
-        numpoints = ((BigInt)1) << (H - item.H);
-        if (numpoints <= cachable && box.containsBox(item.box))
+        //reached the level: only one point
+        else if (H == item.H)
         {
-          Int64    hzfrom = cint64(hz - HzFrom);
-          Int64    num = cint64(numpoints);
-          PointNi* cc = (PointNi*)fllevel.cached_points->c_ptr();
-          const PointNi  query_p1 = logic_box.p1;
           PointNi  P = item.box.p1;
-
-          ++numused;
-
-          VisusAssert(hz >= HzFrom && hz < HzTo);
-
+          Int64    hzfrom = cint64(hz - HzFrom);
+          const PointNi  query_p1 = logic_box.p1;
           Int64 from = stride.dotProduct((P - query_p1).rightShift(qshift));
-
           auto& Windex = bInvertOrder ? hzfrom : from;
           auto& Rindex = bInvertOrder ? from : hzfrom;
+          from = stride.dotProduct((P - query_p1).rightShift(qshift));
+          Wbox[Windex] = Rbox[Rindex];
 
-          auto shift = (lshift - qshift);
-
-          //slow version (enable it if you have problems)
-#if 0
-          for (; num--; ++hzfrom, ++cc)
-          {
-            from = stride.dotProduct((P - query_p1).rightShift(qshift));
-            Wbox[Windex] = Rbox[Rindex];
-            P += (cc->leftShift(lshift));
-          }
-          //fast version
-#else
-
-#define EXPRESSION(num) stride[num] * ((*cc)[num] << shift[num]) 
-          switch (fllevel.pdim) {
-          case 2: for (; num--; ++hzfrom, ++cc) { Wbox[Windex] = Rbox[Rindex]; from += EXPRESSION(0) + EXPRESSION(1); } break;
-          case 3: for (; num--; ++hzfrom, ++cc) { Wbox[Windex] = Rbox[Rindex]; from += EXPRESSION(0) + EXPRESSION(1) + EXPRESSION(2); } break;
-          case 4: for (; num--; ++hzfrom, ++cc) { Wbox[Windex] = Rbox[Rindex]; from += EXPRESSION(0) + EXPRESSION(1) + EXPRESSION(2) + EXPRESSION(3); } break;
-          case 5: for (; num--; ++hzfrom, ++cc) { Wbox[Windex] = Rbox[Rindex]; from += EXPRESSION(0) + EXPRESSION(1) + EXPRESSION(2) + EXPRESSION(3) + EXPRESSION(4); } break;
-          default: ThrowException("internal error"); break;
-          }
-#undef EXPRESSION
-#endif
-
-          hz += numpoints;
-          continue;
+          hz++;
         }
-
         //kd-traversal code
-        bit = bitmask[item.H];
-        delta = deltas[item.H];
-        ++item.H;
-        item.box.p1[bit] += delta;                            VisusAssert(item.box.isFullDim()); *(stack++) = item;
-        item.box.p1[bit] -= delta; item.box.p2[bit] -= delta; VisusAssert(item.box.isFullDim()); *(stack++) = item;
+        else
+        {
+          bit = bitmask[item.H];
+          delta = deltas[item.H];
+          ++item.H;
+          item.box.p1[bit] += delta;                            VisusAssert(item.box.isFullDim()); *(stack++) = item;
+          item.box.p1[bit] -= delta; item.box.p2[bit] -= delta; VisusAssert(item.box.isFullDim()); *(stack++) = item;
+        }
       }
     }
 
-    VisusAssert(numused > 0);
     return true;
   }
 
@@ -354,10 +184,10 @@ std::vector<BigInt> IdxDataset::createBlockQueriesForBoxQuery(SharedPtr<BoxQuery
     int H; 
     BoxNi box; 
   } 
-  FastLoopStack;
+  KdStack;
 
-  FastLoopStack  item;
-  std::vector<FastLoopStack> __stack__(max_resolution + 1);
+  KdStack  item;
+  std::vector<KdStack> __stack__(max_resolution + 1);
   const auto STACK = &__stack__[0];
 
   std::vector<Int64> deltas(max_resolution + 1);
@@ -462,8 +292,8 @@ std::vector<BigInt> IdxDataset::createBlockQueriesForPointQuery(SharedPtr<PointQ
   auto bitsperblock = getDefaultBitsPerBlock();
   auto samplesperblock = 1 << bitsperblock;
 
-  BigInt zaddress, blockid, block_offset;
-  int    shift, H;
+  BigInt blockid, block_offset;
+  int    H;
   PointNi p(pdim),stride;
   auto SRC = (Int64*)query->points->c_ptr();
   BigInt hzaddress;
@@ -518,7 +348,6 @@ std::vector<BigInt> IdxDataset::createBlockQueriesForPointQuery(SharedPtr<PointQ
 void IdxDataset::readDatasetFromArchive(Archive& ar)
 {
   Dataset::readDatasetFromArchive(ar);
-  HZCONV.create(this);
 }
 
 } //namespace Visus

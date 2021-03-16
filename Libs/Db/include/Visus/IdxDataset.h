@@ -46,22 +46,11 @@ For support : support@visus.net
 
 namespace Visus {
 
-#if !SWIG
-class IdxBoxQueryHzAddressConversion;
-#endif
 
   //////////////////////////////////////////////////////////////////////
 class VISUS_DB_API IdxDataset : public Dataset
 {
 public:
-
-#if !SWIG
-  struct
-  {
-    SharedPtr<IdxBoxQueryHzAddressConversion> box;
-  }
-  hzconv;
-#endif
 
   //default constructor
   IdxDataset() {
