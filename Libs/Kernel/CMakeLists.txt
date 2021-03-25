@@ -99,7 +99,7 @@ IF (MSVC OR CLANG)
 endif()
 
 if (VISUS_SLAM)
-	file(GLOB SlamSources ../slamcpp/*.h ../slamcpp/*.cpp ../slampy/*.py ../slampy/README.md)
+	file(GLOB SlamSources ../slamcpp/*.h ../slamcpp/*.cpp)
 	source_group("slam" FILES ${SlamSources})
 endif()
 
