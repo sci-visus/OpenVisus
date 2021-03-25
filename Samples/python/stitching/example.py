@@ -8,14 +8,22 @@ import shutil
 from glob import glob
 from PIL import Image,ImageOps
 
-from OpenVisus import *
+from OpenVisus           import *
+from OpenVisus.__main__ import MidxToIdx
+
 DbModule.attach()
+
+# little optimization
+# since all writing are done serially I can disable file locks
+os.environ["VISUS_DISABLE_WRITE_LOCK"]="1"
 
 # prerequisites for windows: download and install GDAL and rasterio from here https://www.lfd.uci.edu/~gohlke/pythonlibs
 dst_directory="./tmp"
 
 # find images
-images=glob.glob("./ABBY/*.tif",recursive=False)
+images=glob.glob("./NIWO/NIWO/*.tif",recursive=False)
+
+print("Found images",images)
 
 # if you want to limit the images
 # images=images[0:2]
@@ -36,10 +44,10 @@ for I,filename in enumerate(images):
 		
 	x1,y1,x2,y2=sx*x1,sy*y1,sx*x2,sy*y2
 	tile={"name": name, "size" : (width,height), "bounds" : (x1,y1,x2,y2)}
-	print("Converting tile...",tile,I,"/",len(images))
+	print(I,"/",len(images), name,"width", width, "height", height,"x1", "y1", x1, y1, "x2-x1", x2-x1, "y2-y1", y2-y1)
 	tiles.append(tile) 
 	
-	# avoid creation multiple times
+	# avoid creation multiple times (useful for debugging)
 	if not os.path.isfile(os.path.join(dst_directory,name,"visus.idx")):
 		data=Image.open(filename)
 		data=ImageOps.flip(data)
@@ -61,8 +69,7 @@ with open(midx_filename,"wt") as file:
 db=LoadDataset(midx_filename)
 print(db.getDatasetBody().toString())
 
-from OpenVisus.__main__ import MidxToIdx
-idx_filename=os.path.join(dst_directory,"visus.idx")
+# midx-to-idx
+idx_filename=os.path.join(dst_directory, "visus.idx")
 MidxToIdx(["--midx", midx_filename, "--field","output=voronoi()", "--tile-size","4*1024", "--idx", idx_filename])
-
 print("ALL DONE")
