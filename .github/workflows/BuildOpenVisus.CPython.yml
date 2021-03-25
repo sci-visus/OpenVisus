@@ -20,15 +20,7 @@ jobs:
     
     - name: git clone OpenVisus
       uses: actions/checkout@v2
-      
-    - name: git clone visuscpp
-      uses: nick-invision/retry@v1
-      with:
-        max_attempts: 3
-        timeout_minutes: 4
-        retry_wait_seconds: 5
-        command: 'rm -Rf Libs/slamcpp && git clone https://${{ secrets.VISUS_SLAM_ACCESS_TOKEN }}@github.com/sci-visus/slamcpp.git Libs/slamcpp'
-
+     
     - name: git clone opsray for windows
       if: matrix.os == 'windows-latest'
       uses: nick-invision/retry@v1

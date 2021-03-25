@@ -170,10 +170,7 @@ else()
 	set(VISUS_DEFAULT_GUI      ON)
 	set(VISUS_DEFAULT_MODVISUS OFF)
 	set(VISUS_DEFAULT_OSPRAY   OFF)
-
-	if(EXISTS "${CMAKE_SOURCE_DIR}/Libs/slamcpp/slam.cpp")
-		set(VISUS_DEFAULT_SLAM 1)
-	endif()
+	set(VISUS_DEFAULT_SLAM     OFF)
 
 	if(WIN2 AND EXISTS "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/README.txt")
 		set(VISUS_DEFAULT_OSPRAY ON)
