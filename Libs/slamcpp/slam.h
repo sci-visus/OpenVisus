@@ -20,6 +20,10 @@
 #include <limits>
 #include <fstream>
 
+#include <Visus/Time.h>
+#include <Visus/Ray.h>
+#include <Visus/File.h>
+
 #include <Visus/Quaternion.h>
 #include <Visus/Matrix.h>
 #include <Visus/Color.h>
@@ -215,9 +219,46 @@ public:
     :x(_x), y(_y), size(_size), angle(_angle), response(_response), octave(_octave), class_id(_class_id) {
   }
 
-
   //adaptiveNonMaximalSuppression (NOTE: responses,xs and ys must be sorted in DESC order)
-  static std::vector<int> adaptiveNonMaximalSuppression(const std::vector<float>& responses, const std::vector<float>& xs, const std::vector<float>& ys, int anms);
+  static std::vector<int> adaptiveNonMaximalSuppression(const std::vector<float>& responses, const std::vector<float>& xs, const std::vector<float>& ys, int max_keypoints)
+  {
+    int N = (int)responses.size();
+
+    //http://answers.opencv.org/question/93317/orb-keypoints-distribution-over-an-image/#93395
+    //anms (NOTE swift can have problem with duplicated keypoints,see above)
+    //NOTE anms seems to be more stable than using the 'response'
+
+    std::vector<double> r2(N);
+    for (int I = 0; I < N; ++I)
+    {
+      float response = responses[I] * 1.11;
+
+      //find the radius to a 'stronger' keypoint
+      r2[I] = std::numeric_limits<double>::max();
+      for (int J = 0; J < I && responses[J] > response; ++J)
+      {
+        auto dx = xs[I] - xs[J];
+        auto dy = ys[I] - ys[J];
+        r2[I] = std::min(r2[I], (double)dx * dx + (double)dy * dy);
+      }
+    }
+
+    auto sorted_r2 = r2;
+    std::sort(sorted_r2.begin(), sorted_r2.end(), [&](const double& A, const double& B) {
+      return A > B;
+      });
+    double r2_threshold = sorted_r2[max_keypoints];
+
+    std::vector<int> ret;
+    ret.reserve(N);
+    for (int I = 0; I < N; ++I)
+    {
+      if (r2[I] >= r2_threshold)
+        ret.push_back(I);
+    }
+
+    return ret;
+  }
 
 };
 
@@ -407,6 +448,18 @@ public:
 
 };
 
+
+inline 
+void SlamEdge::setMatches(const std::vector<Match>& matches, String text)
+{
+  auto cross = this->other->getEdge(this->origin);
+  this->matches = matches; this->text = text;
+  cross->matches = matches; cross->text = text;
+  for (auto& it : cross->matches)
+    std::swap(it.queryIdx, it.trainIdx);
+}
+
+
 //////////////////////////////////////////////////////////
 class VISUS_KERNEL_API Slam
 {
@@ -427,56 +480,336 @@ public:
   Calibration calibration;
 
   //constructor
-  Slam();
+  Slam() {
+  }
 
   //destructor
-  virtual ~Slam();
+  virtual ~Slam() {
+    for (auto it : cameras)
+      delete it;
+  }
 
   //addCamera
-  void addCamera(Camera* VISUS_DISOWN(camera));
+  void addCamera(Camera* VISUS_DISOWN(camera)) {
+    camera->quad = Quad(this->width, this->height);
+    camera->homography = Matrix(3);
+    this->cameras.push_back(camera);
+  }
 
   //previousCamera
-  Camera* previousCamera(Camera* camera) const;
+  Camera* previousCamera(Camera* camera) const
+  {
+    if (cameras.empty() || cameras.front() == camera)
+      return nullptr;
+
+    for (int I = 0; I < (int)cameras.size(); I++)
+    {
+      if (cameras[I] == camera)
+        return cameras[I - 1];
+    }
+    return nullptr;
+  }
 
   //previousCamera
-  Camera* nextCamera(Camera* camera) const;
+  Camera* nextCamera(Camera* camera) const
+  {
+    if (cameras.empty() || cameras.back() == camera)
+      return nullptr;
+
+    for (int I = 0; I < (int)cameras.size(); I++)
+    {
+      if (cameras[I] == camera)
+        return cameras[I + 1];
+    }
+    return nullptr;
+  }
 
   //removeCamera
-  void removeCamera(Camera* camera2);
+  void removeCamera(Camera* camera2)
+  {
+    for (auto camera1 : camera2->getAllLocalCameras())
+      camera2->removeLocalCamera(camera1);
+    VisusReleaseAssert(camera2->edges.empty());
+
+    //PrintInfo("removing camera " , camera2->id ," from group ", GroupId);
+    Utils::remove(this->cameras, camera2);
+    delete camera2;
+  }
 
   //findGroups
-  std::vector< std::vector<Camera*> > findGroups() const;
+  std::vector< std::vector<Camera*> > findGroups() const
+  {
+    std::vector< std::vector<Camera*> > groups;
+
+    std::set<Camera*> toassign(this->cameras.begin(), this->cameras.end());
+    while (!toassign.empty())
+    {
+      std::set<Camera*> group;
+
+      auto first = *toassign.begin();
+
+      std::stack<Camera*> stack;
+      stack.push(first);
+      while (!stack.empty())
+      {
+        auto camera = stack.top();
+        stack.pop();
+
+        if (group.count(camera))
+          continue;
+
+        group.insert(camera);
+        toassign.erase(camera);
+
+        for (auto it : camera->getGoodLocalCameras())
+          stack.push(it);
+      }
+
+      //sort by camera id
+      auto v = std::vector<Camera*>(group.begin(), group.end());
+      std::sort(v.begin(), v.end(), [](Camera* c1, Camera* c2) {
+        return c1->id < c2->id;
+        });
+
+      groups.push_back(v);
+    }
+
+    //sort in descending order
+    std::sort(groups.begin(), groups.end(), [](const std::vector<Camera*>& a, const std::vector<Camera*>& b) {
+      return a.size() > b.size();
+      });
+
+    //print the groups
+    PrintInfo("Found the following groups");
+    for (int GroupId = 0; GroupId < (int)groups.size(); GroupId++)
+    {
+      auto group = groups[GroupId];
+      std::ostringstream out;
+      out << "Group " << GroupId << " #cameras(" << group.size() << ")";
+      for (auto camera : group)
+        out << " " << camera->id;
+      PrintInfo(out.str());
+    }
+
+    return groups;
+  }
 
   //removeDisconnectedCameras
-  void removeDisconnectedCameras();
+  void removeDisconnectedCameras()
+  {
+    int old_num_cameras = (int)this->cameras.size();
+
+    auto to_remove = findGroups();
+    to_remove.erase(to_remove.begin());
+
+    for (auto group : to_remove) {
+      for (auto camera : group)
+        removeCamera(camera);
+    }
+
+    int num_removed = old_num_cameras - (int)this->cameras.size();
+    if (num_removed)
+      PrintInfo("Removed num_disconnected(", num_removed, ") cameras");
+  }
 
   //removeCamerasWithTooMuchSkew
-  void removeCamerasWithTooMuchSkew();
+  void removeCamerasWithTooMuchSkew()
+  {
+    for (auto camera : std::vector<Camera*>(this->cameras))
+    {
+      auto quad = camera->quad;
+      if (!quad.isConvex() || quad.wrongAngles() || quad.wrongScale(this->width, this->height))
+      {
+        PrintInfo("Removing camera ", camera->id, " because non convex or too much skew");
+        removeCamera(camera);
+      }
+    }
+  }
 
   //computeWorldQuad
   // note: camera->quad is in pixel coordinates
-  Quad computeWorldQuad(Camera* camera);
+  Quad computeWorldQuad(Camera* camera)
+  {
+    int W = this->width;
+    int H = this->height;
+    auto wc = camera->pose.getWorldCenter();
+    auto p0 = Ray::fromTwoPoints(wc, camera->pose.cameraToWorld(calibration.screenToCamera(Point2d(0, 0)))).findIntersectionOnZeroPlane().toPoint2();
+    auto p1 = Ray::fromTwoPoints(wc, camera->pose.cameraToWorld(calibration.screenToCamera(Point2d(W, 0)))).findIntersectionOnZeroPlane().toPoint2();
+    auto p2 = Ray::fromTwoPoints(wc, camera->pose.cameraToWorld(calibration.screenToCamera(Point2d(W, H)))).findIntersectionOnZeroPlane().toPoint2();
+    auto p3 = Ray::fromTwoPoints(wc, camera->pose.cameraToWorld(calibration.screenToCamera(Point2d(0, H)))).findIntersectionOnZeroPlane().toPoint2();
+    return { p0,p1,p2,p3 };
+  }
 
   //getQuadsBox
-  BoxNd getQuadsBox() const;
+  BoxNd getQuadsBox() const
+  {
+    auto box = BoxNd::invalid();
+    for (auto camera : cameras)
+    {
+      for (auto point : camera->quad.points)
+        box.addPoint(point);
+    }
+    return box;
+  }
 
   //refreshQuads
-  void refreshQuads();
+  void refreshQuads()
+  {
+    auto box = BoxNd::invalid();
+    double avg_physical_area = 0.0;
+    for (auto camera : cameras)
+    {
+      auto quad = computeWorldQuad(camera);
+
+      for (auto it : quad.points)
+        box.addPoint(Point3d(it));
+
+      avg_physical_area += double(quad.area()) / double(cameras.size());
+    }
+
+    //try to keep the same number of pixels
+    //i.e this->width*this->height = avg_physical_area*scale*scale
+    double avg_pixel_area = double(this->width) * double(this->height);
+    double scale = sqrt(avg_pixel_area / avg_physical_area);
+
+    auto T =
+      Matrix::scale(Point2d(scale, scale)) *
+      Matrix::translate(-box.p1.toPoint2());
+
+    for (auto camera : this->cameras)
+    {
+      auto dst = Quad(T, computeWorldQuad(camera));
+      auto src = Quad(this->width, this->height);
+
+      camera->homography = Quad::findQuadHomography(dst, src);
+      camera->quad = Quad(camera->homography, Quad(this->width, this->height));
+    }
+  }
 
   //loadKeyPoints
-  bool loadKeyPoints(Camera* camera2, String filename);
+  bool loadKeyPoints(Camera* camera2, String filename)
+  {
+    std::fstream in(filename.c_str(), std::ios::in | std::ios::binary);
+    if (!in.is_open())
+      return false;
+
+    Int64 nkyepoints = 0;
+    in.read((char*)&nkyepoints, sizeof(Int64));
+    camera2->keypoints.resize(nkyepoints);
+
+    if (nkyepoints)
+    {
+      //read keypoints
+      in.read((char*)&camera2->keypoints[0], nkyepoints * sizeof(KeyPoint));
+
+      //write descriptors
+      int width = 0, height = 0, type = 0;
+      in.read((char*)&height, sizeof(int)); VisusReleaseAssert(height == nkyepoints);
+      in.read((char*)&width, sizeof(int));
+      in.read((char*)&type, sizeof(int)); VisusReleaseAssert(type == 0); //means "uint8"
+      camera2->descriptors = Array(width, height, DTypes::UINT8);
+      in.read((char*)camera2->descriptors.c_ptr(), camera2->descriptors.c_size());
+    }
+
+    return true;
+  }
 
   //saveKeyPoints
-  bool saveKeyPoints(Camera* camera2, String filename);
+  bool saveKeyPoints(Camera* camera2, String filename)
+  {
+    FileUtils::createDirectory(Path(filename).getParent());
+    std::fstream out(filename.c_str(), std::ios::out | std::ios::binary);
+    if (!out.is_open())
+      return false;
+
+    //write keypoints
+    Int64 nkeypoints = (Int64)camera2->keypoints.size();
+    out.write((char*)&nkeypoints, sizeof(Int64));
+
+    if (nkeypoints)
+    {
+      out.write((char*)&camera2->keypoints[0], nkeypoints * sizeof(KeyPoint));
+
+      //write descriptors
+      int width = (int)camera2->descriptors.getWidth();
+      int height = (int)camera2->descriptors.getHeight(); VisusReleaseAssert(height == nkeypoints);
+      int type = 0; VisusReleaseAssert(camera2->descriptors.dtype == DTypes::UINT8);
+      out.write((char*)&height, sizeof(int));
+      out.write((char*)&width, sizeof(int));
+      out.write((char*)&type, sizeof(int));
+      out.write((char*)camera2->descriptors.c_ptr(), camera2->descriptors.c_size());
+    }
+
+    return true;
+  }
 
   //removeOutlierMatches
-  void removeOutlierMatches(double max_reproj_error);
+  void removeOutlierMatches(double max_reproj_error)
+  {
+    Time t1 = Time::now();
+
+    int num_inliers = 0;
+    int num_outliers = 0;
+
+    for (auto camera2 : this->cameras)
+    {
+      for (auto camera1 : camera2->getGoodLocalCameras())
+      {
+        if (camera1->id < camera2->id)
+        {
+          auto& matches1 = camera2->getEdge(camera1)->matches;
+          auto& matches2 = camera1->getEdge(camera2)->matches;
+
+          VisusReleaseAssert(!matches1.empty());
+          VisusReleaseAssert(matches1.size() == matches2.size());
+
+          auto Hw1 = camera1->homography; auto H1w = Hw1.invert();
+          auto Hw2 = camera2->homography; auto H2w = Hw2.invert();
+
+          auto H21 = H2w * Hw1;
+          auto H12 = H1w * Hw2;
+
+          int ngood = 0;
+          for (int I = 0; I < (int)matches1.size(); I++)
+          {
+            const auto& k1 = camera1->keypoints[matches1[I].queryIdx]; auto point1 = Point2d(k1.x, k1.y); auto point21 = (H21 * Point3d(point1, 1.0)).dropHomogeneousCoordinate();
+            const auto& k2 = camera2->keypoints[matches1[I].trainIdx]; auto point2 = Point2d(k2.x, k2.y); auto point12 = (H12 * Point3d(point2, 1.0)).dropHomogeneousCoordinate();
+
+            auto d1 = Utils::square(point21.x - point2.x) + Utils::square(point21.y - point2.y);
+            auto d2 = Utils::square(point12.x - point1.x) + Utils::square(point12.y - point1.y);
+            auto error = sqrt(Utils::max(d1, d2));
+
+            if (error <= max_reproj_error)
+            {
+              matches1[ngood] = matches1[I];
+              matches2[ngood] = matches2[I];
+              ++ngood;
+              ++num_inliers;
+            }
+            else
+            {
+              ++num_outliers;
+            }
+          }
+
+          matches1.resize(ngood);
+          matches2.resize(ngood);
+        }
+      }
+    }
+
+    PrintInfo("Removed outliers in ", t1.elapsedMsec(), "msec"
+      , " num_inliers(", num_inliers, ")"
+      , " num_outliers(", num_outliers, ")"
+      , " max_reproj_error(", max_reproj_error, ")");
+  }
 
   //bundleAdjustment
   void bundleAdjustment(double ba_tolerance, String algorithm="");
 
   //doPostIterationAction
-  virtual void doPostIterationAction();
+  virtual void doPostIterationAction() {
+  }
 
 };
 
