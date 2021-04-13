@@ -66,7 +66,7 @@ public:
   virtual void writeBlock(SharedPtr<BlockQuery> query) override
   {
     VisusAssert(false);//not supported
-    writeFailed(query);
+    writeFailed(query, "not supported");
   }
 
   //printStatistics

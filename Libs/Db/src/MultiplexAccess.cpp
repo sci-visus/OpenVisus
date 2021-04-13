@@ -115,7 +115,7 @@ void MultiplexAccess::scheduleOp(int mode, int index, SharedPtr<BlockQuery> up_q
 
     //invalid index
     if (!isGoodIndex(index)) {
-      return readFailed(up_query);
+      return readFailed(up_query,"wrong index");
     }
   }
 

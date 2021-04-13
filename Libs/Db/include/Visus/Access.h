@@ -219,9 +219,9 @@ public:
   }
 
   //readFailed
-  void readFailed(SharedPtr<BlockQuery> query) {
+  void readFailed(SharedPtr<BlockQuery> query,String errormsg) {
     ++statistics.rfail;
-    query->setFailed();
+    query->setFailed(errormsg);
   }
 
   //writeOk
@@ -231,9 +231,9 @@ public:
   }
 
   //writeFailed
-  void writeFailed(SharedPtr<BlockQuery> query) {
+  void writeFailed(SharedPtr<BlockQuery> query, String errormsg) {
     ++statistics.wfail;
-    query->setFailed();
+    query->setFailed(errormsg);
   }
 
 private:

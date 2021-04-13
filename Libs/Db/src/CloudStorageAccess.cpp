@@ -106,12 +106,15 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
     blob.metadata.setValue("visus-nsamples", query->getNumberOfSamples().toString());
     blob.metadata.setValue("visus-layout", this->layout);
 
-    if (query->aborted() || !blob.valid())
-      return readFailed(query);
+    if (query->aborted())
+      return readFailed(query, "query aborted");
+
+    if (!blob.valid())
+      return readFailed(query, "blob not valid");
 
     auto decoded = ArrayUtils::decodeArray(blob.metadata, blob.body);
     if (!decoded.valid())
-      return readFailed(query);
+      return readFailed(query, "cannot decode array");
 
     VisusAssert(decoded.dims == query->getNumberOfSamples());
     VisusAssert(decoded.dtype == query->field.dtype);
@@ -125,7 +128,7 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 ///////////////////////////////////////////////////////////////////////////////////////
 void CloudStorageAccess::writeBlock(SharedPtr<BlockQuery> query)
 {
-  return query->setFailed();
+  return query->setFailed("not supported");
 }
 
 

@@ -114,7 +114,7 @@ void IdxMultipleAccess::readBlock(SharedPtr<BlockQuery> BLOCKQUERY)
   ThreadPool::push(thread_pool, [this, BLOCKQUERY]()
   {
     if (BLOCKQUERY->aborted())
-      return readFailed(BLOCKQUERY);
+      return readFailed(BLOCKQUERY,"aborted");
 
     /*
     TODO: can be async block query be enabled for simple cases?
@@ -128,7 +128,7 @@ void IdxMultipleAccess::readBlock(SharedPtr<BlockQuery> BLOCKQUERY)
     auto QUERY = DATASET->createEquivalentBoxQuery('r', BLOCKQUERY);
     DATASET->beginBoxQuery(QUERY);
     if (!DATASET->executeBoxQuery(shared_from_this(), QUERY))
-      return readFailed(BLOCKQUERY);
+      return readFailed(BLOCKQUERY,"box query failed");
 
     BLOCKQUERY->buffer = QUERY->buffer;
     return readOk(BLOCKQUERY);
@@ -139,7 +139,7 @@ void IdxMultipleAccess::readBlock(SharedPtr<BlockQuery> BLOCKQUERY)
 void IdxMultipleAccess::writeBlock(SharedPtr<BlockQuery> BLOCKQUERY) {
   //not supported
   VisusAssert(false);
-  writeFailed(BLOCKQUERY);
+  writeFailed(BLOCKQUERY,"not supported");
 }
 
 } //namespace Visus

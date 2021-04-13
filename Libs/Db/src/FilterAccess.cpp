@@ -103,7 +103,7 @@ void FilterAccess::readBlock(SharedPtr<BlockQuery> query)
   if (passThrought(query))
     target->readBlock(query);
   else
-    readFailed(query);    
+    readFailed(query,"filtered out");    
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -112,7 +112,7 @@ void FilterAccess::writeBlock(SharedPtr<BlockQuery> query)
   if (passThrought(query))
     target->writeBlock(query);
   else
-    writeFailed(query);
+    writeFailed(query,"filtered out");
 }
 
 } //namespace Visus 

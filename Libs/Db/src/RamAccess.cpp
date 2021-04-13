@@ -224,13 +224,13 @@ void RamAccess::shareMemoryWith(SharedPtr<RamAccess> value)
 ////////////////////////////////////////////////////////////////////////////////
 void RamAccess::readBlock(SharedPtr<BlockQuery> query)  
 {
-  return shared->read(query)? readOk(query):readFailed(query);
+  return shared->read(query)? readOk(query):readFailed(query,"not found");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void RamAccess::writeBlock(SharedPtr<BlockQuery> query)  
 {
-  return shared->write(query)? writeOk(query):writeFailed(query);
+  return shared->write(query)? writeOk(query):writeFailed(query,"not found");
 }
 
 

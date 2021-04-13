@@ -117,9 +117,8 @@ public:
       request.aborted = query->aborted;
 
       NetService::push(netservice, request).when_ready([this,query](NetResponse response) {
-
         // As noted above, this stage always returns query failed. Third layer of multiplex will get data
-        owner->readFailed(query);
+        owner->readFailed(query,"managed failure");
       });
     }
     else
@@ -137,7 +136,7 @@ public:
       PrintInfo("path",converter_url,"time",t1.elapsedMsec());
 
       // as noted above, this stage will return query failed, then depend on third layer of multiplex to get the data
-      return owner->readFailed(query);
+      return owner->readFailed(query,"managed failure");
     }
   }
 
@@ -177,7 +176,7 @@ public:
 
     LogicSamples logic_samples = query->logic_samples;
     if (!logic_samples.valid())
-      return owner->readFailed(query);
+      return owner->readFailed(query,"logic samples wrong");
 
     Int64 Width  = dataset->getLogicBox().size()[0];
     Int64 Height = dataset->getLogicBox().size()[1];
@@ -217,7 +216,7 @@ public:
     }
 
     // this stage will return query failed, then depend on third layer of multiplex to get the data
-    owner->readFailed(query);
+    owner->readFailed(query,"managed failure");
   }
 
 };
@@ -254,7 +253,7 @@ public:
     else if (dtype == DTypes::UINT64 ) return templatedGenerateBlock<Uint64 >(query);
     else if (dtype == DTypes::FLOAT32) return templatedGenerateBlock<Float32>(query);
     else if (dtype == DTypes::FLOAT64) return templatedGenerateBlock<Float64>(query);
-    return owner->readFailed(query);;
+    return owner->readFailed(query, "unsupported dtype");
   }
 
   //templatedGenerateBlock
@@ -265,7 +264,7 @@ public:
 
     LogicSamples logic_samples = query->logic_samples;
     if (!logic_samples.valid())
-      return owner->readFailed(query);
+      return owner->readFailed(query,"logic samples not valid");
 
     DType dtype = query->field.dtype;
     VisusAssert(dtype.getByteSize(1) == sizeof(CppType));
@@ -284,7 +283,7 @@ public:
     for (auto loc = ForEachPoint(buffer.dims); !loc.end(); loc.next())
     {
       if (query->aborted())
-        return owner->readFailed(query);
+        return owner->readFailed(query,"query aborted");
 
       PointNi logic_pos = logic_samples.pixelToLogic(loc.pos);
 

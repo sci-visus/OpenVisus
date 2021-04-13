@@ -61,7 +61,7 @@ void MandelbrotAccess::readBlock(SharedPtr<BlockQuery> query)
 
   //wrong field (so far only 1*float32)
   if (field.dtype != (DTypes::FLOAT32))
-    return readFailed(query);
+    return readFailed(query,"only float32[1] supported");
 
   Time t1 = Time::now();
   VisusAssert(this->bitsperblock == dataset->getDefaultBitsPerBlock());
@@ -73,10 +73,10 @@ void MandelbrotAccess::readBlock(SharedPtr<BlockQuery> query)
 
   LogicSamples logic_samples = query->logic_samples;
   if (!logic_samples.valid())
-    return readFailed(query);
+    return readFailed(query,"wrong logic_samples");
 
   if (!query->allocateBufferIfNeeded())
-    return readFailed(query);
+    return readFailed(query,"cannot allocate buffer");
 
   auto& buffer = query->buffer;
   buffer.layout = "";

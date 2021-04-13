@@ -95,26 +95,26 @@ void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
   String filename  = Access::getFilename(query);
 
   if (filename.empty())
-    return readFailed(query);
+    return readFailed(query,"filename empty");
 
   if (query->aborted())
-    return readFailed(query);
+    return readFailed(query,"query aborted");
 
   auto encoded=std::make_shared<HeapMemory>();
   if (!encoded->resize(FileUtils::getFileSize(filename),__FILE__,__LINE__))
-    return readFailed(query);
+    return readFailed(query,"cannot create encoded buffer");
 
   File file;
   if (!file.open(filename,"r"))
-    return readFailed(query);
+    return readFailed(query,cstring("cannot open file", filename));
 
   if (!file.read(0,encoded->c_size(), encoded->c_ptr()))
-    return readFailed(query);
+    return readFailed(query,"cannot read encoded data");
 
   auto nsamples = query->getNumberOfSamples();
   auto decoded=ArrayUtils::decodeArray(this->compression,nsamples,query->field.dtype, encoded);
   if (!decoded.valid())
-    return readFailed(query);
+    return readFailed(query,"cannot decode data");
 
   VisusAssert(decoded.dims==query->getNumberOfSamples());
   decoded.layout=""; //rowmajor
@@ -130,19 +130,22 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   Int64  blockdim        = query->field.dtype.getByteSize(getSamplesPerBlock());
   String filename        = Access::getFilename(query);
 
-  if (filename.empty() || query->buffer.c_size()!=blockdim)
-    return writeFailed(query);
+  if (filename.empty())
+    return writeFailed(query,"filename is empty");
+    
+  if (query->buffer.c_size()!=blockdim)
+    return writeFailed(query,"wrong buffer");
 
   //only RowMajor is supported!
   auto layout=query->buffer.layout;
   if (!layout.empty())
   {
     PrintInfo("Failed to write block, only RowMajor format is supported");
-    return writeFailed(query);
+    return writeFailed(query,"only raw major format is supported");
   }
 
   if (query->aborted())
-    return writeFailed(query);
+    return writeFailed(query,"query aborted");
 
   FileUtils::removeFile(filename);
 
@@ -150,7 +153,7 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   if (!file.createAndOpen(filename,"w"))
   {
     PrintInfo("Failed to write block filename", filename, "cannot create file and/or directory");
-    return writeFailed(query);
+    return writeFailed(query,"cannot create file or directory");
   }
 
   auto decoded=query->buffer;
@@ -158,13 +161,13 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   if (!encoded)
   {
     PrintInfo("Failed to write block filename", filename, "file.write failed");
-    return writeFailed(query);
+    return writeFailed(query, "Failed to encode data");
   }
 
   if (!file.write(0, encoded->c_size(), encoded->c_ptr()))
   {
     PrintInfo("Failed to write block filename", filename, "compression or file.write failed");
-    return writeFailed(query);
+    return writeFailed(query,"failed to write encoded data");
   }
 
   return writeOk(query);

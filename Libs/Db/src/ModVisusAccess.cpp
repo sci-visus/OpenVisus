@@ -168,16 +168,21 @@ void ModVisusAccess::flushBatch()
       if (!response.hasHeader("visus-nsamples"))
         response.setHeader("visus-nsamples", query->getNumberOfSamples().toString());
 
-      if (query->aborted() || !response.isSuccessful())
+      if (query->aborted()) {
+        readFailed(query,"aborted");
+        continue;
+      }
+      
+      if (!response.isSuccessful())
       {
-        readFailed(query);
+        readFailed(query,"response not valid");
         continue;
       }
 
       auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
       if (!decoded.valid())
       {
-        readFailed(query);
+        readFailed(query,"cannot decode array");
         continue;
       }
 

@@ -149,7 +149,7 @@ public:
   virtual void readBlock(SharedPtr<BlockQuery> query) override {
 
     if (query->aborted())
-      return readFailed(query);
+      return readFailed(query, "aborted");
 
     ThreadPool::push(thread_pool,[this, query]() {
         pimpl->generateBlock(query);
@@ -160,7 +160,7 @@ public:
   virtual void writeBlock(SharedPtr<BlockQuery> query) override {
     VisusAssert(false);
     PrintInfo("OnDemandAccess::write block not supported");
-    return writeFailed(query);
+    return writeFailed(query,"not supported");
   }
 
   //printStatistics

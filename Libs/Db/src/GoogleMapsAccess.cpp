@@ -79,7 +79,7 @@ void GoogleMapsAccess::readBlock(SharedPtr<BlockQuery> query)
   auto request = NetRequest(url);
 
   if (!request.valid())
-    return readFailed(query);
+    return readFailed(query,"request not valid");
 
   request.aborted = query->aborted;
 
@@ -91,12 +91,15 @@ void GoogleMapsAccess::readBlock(SharedPtr<BlockQuery> query)
     response.setHeader("visus-dtype", query->field.dtype.toString());
     response.setHeader("visus-layout", "");
 
-    if (query->aborted() || !response.isSuccessful())
-      return readFailed(query);
+    if (query->aborted())
+      return readFailed(query,"aborted");
+      
+    if (!response.isSuccessful())
+      return readFailed(query,"response not valid");
 
     auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
     if (!decoded.valid())
-      return readFailed(query);
+      return readFailed(query,"cannot decode array");
 
     query->buffer = decoded;
 

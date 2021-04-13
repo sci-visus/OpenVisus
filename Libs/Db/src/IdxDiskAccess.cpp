@@ -233,13 +233,13 @@ public:
       if (bVerbose)
         PrintInfo("IdxDiskAccess::read blockid",blockid,"failed",reason);
 
-      return owner->readFailed(query);
+      return owner->readFailed(query,reason);
     };
 
     //try to open the existing file
     String filename = getFilename(query->field, query->time, blockid);
     if (!openFile(filename, "r"))
-      return failed("cannot open file");
+      return failed(cstring("cannot open file", filename));
 
     const auto& block_header = block_headers[cint(query->field.index)*idxfile.blocksperfile + idxfile.getBlockPositionInFile(blockid)];
     
@@ -252,7 +252,7 @@ public:
       PrintInfo("Block header contains the following: block_offset",block_offset,"block_size",block_size,"compression",compression,"layout",layout);
 
     if (!block_offset || !block_size)
-      return failed("the idx data seeems not stored in the file");
+      return failed(cstring("the idx data seeems not stored in the file","block_offset", block_offset,"block_size", block_size));
 
     auto encoded = std::make_shared<HeapMemory>();
     if (!encoded->resize(block_size, __FILE__, __LINE__))
@@ -304,7 +304,7 @@ public:
   virtual void writeBlock(SharedPtr<BlockQuery> query) override
   {
     VisusAssert(false);
-    return owner->writeFailed(query);
+    return owner->writeFailed(query,"not supported");
   }
 
 private:
@@ -443,7 +443,7 @@ public:
       if (bVerbose)
         PrintInfo("IdxDiskAccess::read blockid",blockid,"failed ",reason);
 
-      return owner->readFailed(query);
+      return owner->readFailed(query,reason);
     };
 
     auto& aborted = query->aborted;
@@ -454,7 +454,7 @@ public:
     //try to open the existing file
     String filename = getFilename(query->field, query->time, blockid);
     if (!openFile(filename, isWriting() ? "rw" : "r"))
-      return failed("cannot open file");
+      return failed(cstring("cannot open file", filename));
 
     if (aborted())
       return failed("aborted");
@@ -469,7 +469,7 @@ public:
       PrintInfo("Block header contains the following: block_offset",block_offset,"block_size",block_size,"compression",compression,"layout",layout);
 
     if (!block_offset || !block_size)
-      return failed("the idx data seeems not stored in the file");
+      return failed(cstring("the idx data seeems not stored in the file","block_offset", block_offset,"block_size", block_size));
 
     auto encoded = std::make_shared<HeapMemory>();
     if (!encoded->resize(block_size, __FILE__, __LINE__))
@@ -519,7 +519,7 @@ public:
       //if (bVerbose)
         PrintInfo("IdxDiskAccess::write blockid",blockid,"failed",reason);
 
-      return owner->writeFailed(query);
+      return owner->writeFailed(query,reason);
     };
 
     if (idxfile.version < 6)
@@ -555,7 +555,7 @@ public:
 
     String filename = getFilename(query->field, query->time, blockid);
     if (!openFile(filename, "rw"))
-      return failed("cannot open file");
+      return failed(cstring("cannot open file", filename));
 
     BlockHeader existing = getBlockHeader(query->field,blockid);
 
@@ -1067,7 +1067,7 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
     if (bVerbose)
       PrintInfo("IdxDiskAccess::read blockid",blockid,"failed blockid is wrong",blockid);
 
-    return readFailed(query);
+    return readFailed(query,"blockid negative");
   }
 
   if (bSkipReading)

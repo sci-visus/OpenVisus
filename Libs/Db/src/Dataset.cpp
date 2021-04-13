@@ -685,9 +685,9 @@ void Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<BlockQuery> q
   auto failed = [&](String reason) {
 
     if (!access)
-      query->setFailed();
+      query->setFailed(reason);
     else
-      mode == 'r'? access->readFailed(query) : access->writeFailed(query);
+      mode == 'r'? access->readFailed(query, reason) : access->writeFailed(query, reason);
    
     PrintInfo("executeBlockQUery failed", reason);
     return;
@@ -707,6 +707,10 @@ void Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<BlockQuery> q
 
   if (!query->logic_samples.valid())
     return failed("logic_samples not valid");
+
+  //scrgiorgio: add this optimization to avoid empty blocks
+  if (!query->logic_samples.logic_box.intersect(this->getLogicBox()))
+    return failed("no intersection with logic box");
 
   if (mode == 'w' && !query->buffer.valid())
     return failed("no buffer to write");
@@ -855,7 +859,7 @@ void Dataset::beginBoxQuery(SharedPtr<BoxQuery> query)
       return query->setRunning();
   }
 
-  query->setFailed();
+  query->setFailed("cannot find a good end_resolution to start with");
 }
 
 //////////////////////////////////////////////////////////////

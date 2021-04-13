@@ -126,9 +126,8 @@ public:
   }
 
   //setOk
-  void setFailed(String error_msg = "") {
-    if (!error_msg.empty())
-      this->errormsg = error_msg;
+  void setFailed(String error_msg) {
+    this->errormsg = error_msg;
     setStatus(QueryFailed);
   }
 
