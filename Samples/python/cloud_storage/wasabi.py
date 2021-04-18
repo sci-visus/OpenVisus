@@ -144,7 +144,7 @@ Use the following Wasabi config (change as needed):
 	  <access type="CloudStorageAccess" url="{destination}" chmod="r" compression="zip" layout="{layout}" />
 	</access>
 </dataset>
-""".format(destination=destination,bucket_name=bucket_nam,layout=layout))	
+""".format(destination=destination,bucket_name=bucket_name,layout=layout))	
 		
 	
 # /////////////////////////////////////////////////////////////////////////
