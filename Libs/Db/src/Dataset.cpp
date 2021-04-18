@@ -689,7 +689,9 @@ void Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<BlockQuery> q
     else
       mode == 'r'? access->readFailed(query, reason) : access->writeFailed(query, reason);
    
-    PrintInfo("executeBlockQUery failed", reason);
+    if (!reason.empty())
+      PrintInfo("executeBlockQUery failed", reason);
+
     return;
   };
 
@@ -710,7 +712,7 @@ void Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<BlockQuery> q
 
   //scrgiorgio: add this optimization to avoid empty blocks
   if (!query->logic_samples.logic_box.intersect(this->getLogicBox()))
-    return failed("no intersection with logic box");
+    return failed("");//"no intersection with logic box" (TOO many messages with )
 
   if (mode == 'w' && !query->buffer.valid())
     return failed("no buffer to write");
