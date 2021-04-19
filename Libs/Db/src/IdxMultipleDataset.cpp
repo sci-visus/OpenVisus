@@ -676,7 +676,7 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& ar)
       Field FIELD = getField(code);
       VisusReleaseAssert(FIELD.valid());
       addField(name, FIELD); //FIELD.name now contain the real code
-      idxfile.fields.push_back(Field(name, FIELD.dtype, "rowmajor"));
+      idxfile.fields.push_back(Field(name, FIELD.dtype));
     }
   }
   else

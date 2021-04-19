@@ -67,7 +67,7 @@ void MinimalDataset::Create(std::string idx_filename, std::string dtype, int N_x
   idxfile.logic_box = BoxNi(PointNi(0, 0, 0), PointNi(N_x, N_y, N_z));
   Field field("myfield", DType::fromString(dtype));
   field.default_compression = "";
-  field.default_layout = "row_major";
+  field.default_layout = "";
   idxfile.fields.push_back(field);
   idxfile.save(idx_filename);
 }

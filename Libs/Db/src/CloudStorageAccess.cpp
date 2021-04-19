@@ -53,7 +53,6 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   this->url = config.readString("url", dataset->getUrl()); VisusAssert(url.valid());
   this->compression = config.readString("compression", "zip"); //zip compress more than lz4 for network.. 
   this->layout = config.readString("layout", ""); //row major is default
-  this->filename_template = config.readString("filename_template", "/${time}/${field}/${block}");
   this->reverse_filename = config.readBool("reverse_filename", false);
 
   this->config.write("url", url.toString());
@@ -74,12 +73,12 @@ CloudStorageAccess::~CloudStorageAccess()
 ///////////////////////////////////////////////////////////////////////////////////////
 String CloudStorageAccess::getFilename(Field field, double time, BigInt blockid) const
 {
-  String fieldname = StringUtils::removeSpaces(field.name);
-  String ret = filename_template;
+  auto ret  = Path(url.getPath()).getParent().toString() + "/${time}/${field}/${block}";
 
   // new format
   if (StringUtils::contains(ret, "${"))
   {
+    String fieldname = StringUtils::removeSpaces(field.name);
     ret = StringUtils::replaceFirst(ret, "${time}", StringUtils::onlyAlNum(int(time) == time ? cstring((int)time) : cstring(time)));
     ret = StringUtils::replaceFirst(ret, "${field}", fieldname.length() < 32 ? StringUtils::onlyAlNum(fieldname) : StringUtils::computeChecksum(fieldname));
     ret = StringUtils::replaceFirst(ret, "${block}", StringUtils::formatNumber("%016x", blockid));
@@ -99,7 +98,9 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 {
   VisusAssert((int)query->getNumberOfSamples().innerProduct()==(1<<bitsperblock));
 
-  cloud_storage->getBlob(netservice, Access::getFilename(query), query->aborted).when_ready([this, query](CloudStorageBlob blob) {
+  auto blob_name = Access::getFilename(query);
+
+  cloud_storage->getBlob(netservice, blob_name, query->aborted).when_ready([this, query](CloudStorageBlob blob) {
 
     blob.metadata.setValue("visus-compression", this->compression);
     blob.metadata.setValue("visus-dtype", query->field.dtype.toString());

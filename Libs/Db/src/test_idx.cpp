@@ -292,10 +292,8 @@ void SelfTestIdx(int max_seconds)
   Time t1 = Time::now();
 
 #if 1
-  for (auto rowmajor : { false,true })
+  for (auto default_layout : { "" , "hzorder" })
   {
-    String default_layout = rowmajor ? "rowmajor" : "hzorder";
-
     PrintInfo("Running CppSamples_WriteIdx...");
     CppSamples_WriteIdx(default_layout);
     PrintInfo("...done");
@@ -326,7 +324,7 @@ void SelfTestIdx(int max_seconds)
   //test byte aligned query (the fast loop has special sample copy for byte aligned data)
   if (true)
   {
-    for (auto rowmajor : { false,true })
+    for (auto layout : { "" , "hzorder" })
     {
       for (int pdim = 2; pdim <= 5; pdim++)
       {
@@ -338,7 +336,7 @@ void SelfTestIdx(int max_seconds)
           idxfile.logic_box = user_box;
           {
             Field field("myfield", DType(true, false, nbits));
-            field.default_layout = rowmajor ? "rowmajor" : "hzorder";
+            field.default_layout = layout;
             field.default_compression = Utils::getRandInteger(0, 1) ? "lz4" : "";
             idxfile.fields.push_back(field);
           }
@@ -373,7 +371,7 @@ void SelfTestIdx(int max_seconds)
       idxfile.logic_box = user_box;
       {
         Field field("myfield", DType(Utils::getRandInteger(1, 4), GetRandomDType()));
-        field.default_layout = Utils::getRandInteger(0, 1) ? "rowmajor" : "hzorder";
+        field.default_layout = Utils::getRandInteger(0, 1) ? "" : "hzorder";
         field.default_compression = Utils::getRandInteger(0, 1) ? "lz4" : "";
         idxfile.fields.push_back(field);
       }

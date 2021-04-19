@@ -117,7 +117,7 @@ void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
     return readFailed(query,"cannot decode data");
 
   VisusAssert(decoded.dims==query->getNumberOfSamples());
-  decoded.layout=""; //rowmajor
+  decoded.layout=""; 
   query->buffer=decoded;
 
   return readOk(query);

@@ -66,7 +66,7 @@ public:
   //Url
   String url;
 
-  //if empty means row major (can be "hzorder" for idx format) 
+  // layout
   String layout;
 
   //the bounds of the data

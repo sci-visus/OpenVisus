@@ -302,6 +302,8 @@ def FixRange(args):
 		if not db.executeBlockQueryAndWait(access, read_block):
 			continue
 
+		# i don't care about the layout
+
 		buffer=Array.toNumPy(read_block.buffer,bShareMem=True)
 
 		for C in range(N):
@@ -419,7 +421,7 @@ def MidxToIdx(args):
 
 	# disable compression, at the end I will compress
 	idxfile.fields.clear()
-	idxfile.fields.push_back(Field("DATA", FIELD.dtype, "rowmajor")) 
+	idxfile.fields.push_back(Field("DATA", FIELD.dtype)) 
 
 	# force validation
 	idxfile.version=0 

@@ -461,6 +461,8 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
           if (!executeBlockQueryAndWait(Raccess, read_block))
             continue;
 
+          //NOTE: the layout will remain the same, I am not switching it]
+
           //compression can depend on level
           int H = read_block->H;
           VisusReleaseAssert(H >= 0 && H < compression.size());
@@ -557,6 +559,8 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
           //compression can depend on level
           int H = read_block->H;
           VisusReleaseAssert(H >= 0 && H < compression.size());
+
+          //NOTE: the layout will be the same
 
           auto Wfield = Rfield;
           Wfield.default_compression = compression[H];
@@ -968,6 +972,7 @@ bool Dataset::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
       else
         write_block->allocateBufferIfNeeded();
 
+      //here a change in the layout (hzorder) can happen
       mergeBoxQueryWithBlockQuery(query, write_block);
 
       //need to write and wait for the block
@@ -1192,7 +1197,6 @@ std::vector<BigInt> Dataset::createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> q
 //////////////////////////////////////////////////////////////
 bool Dataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query)
 {
-  //only rowmajor is supported here
   VisusAssert(block_query->buffer.layout.empty());
 
   VisusAssert(query->field.dtype == block_query->field.dtype);

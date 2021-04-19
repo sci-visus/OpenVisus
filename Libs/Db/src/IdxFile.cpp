@@ -151,6 +151,7 @@ void IdxFile::validate(String url)
     return;
   }
 
+  //parse layout
   for (int N = 0; N < (int)this->fields.size(); N++)
   {
     Field& field = this->fields[N];
@@ -163,40 +164,11 @@ void IdxFile::validate(String url)
       return;
     }
 
-    //full-res-block always row major (scrgiorgio: does it make sense to have IDX full-res in hzorder?)
-    if (bitmask[0] == 'F')
-    {
-      field.default_layout = "";
-      continue;
-    }
-
-    //guess
-    if (field.default_layout.empty())
-    {
-      if (version < 6)
-        field.default_layout = "hzorder";
-      else
-        field.default_layout = "";
-
-      continue;
-    }
-    
-    //for historical reason '0' means hz and '1' means rowmajor; empty means row major
-    if (field.default_layout == "1" || StringUtils::contains(field.default_layout, "row"))
-    {
-      field.default_layout = "";
-      continue;
-    }
-
-    if (field.default_layout == "0" || StringUtils::contains(field.default_layout, "hz"))
-    {
+    //for historical reason '0' me
+    if (field.default_layout == "0" || StringUtils::contains(field.default_layout, "hz") || version < 6)
       field.default_layout = "hzorder";
-      continue;
-    }
-
-    VisusAssert(false);
-    PrintWarning("unknown field.default_layout", field.default_layout);
-    field.default_layout = ""; //rowmajor
+    else
+      field.default_layout = "";
   }
 
   //bitsperblock
@@ -423,7 +395,7 @@ String IdxFile::writeToOldFormat() const
     }
 
     //default_layout(...) (1 means row major, 0 means hzorder)
-    out << "default_layout("<< (field.default_layout.empty()? "row_major" : field.default_layout) <<") ";
+    out << "default_layout("<< field.default_layout <<") ";
 
     //default_value
     out<<"default_value("<<field.default_value<<")"<<" ";

@@ -101,7 +101,7 @@ Field Field::fromString(String sfield)
       ret.default_layout = parseRoundBracketArgument(sfield, "format");
 
     else
-      ret.default_layout = ""; //empty (what it means will depend on the IdxFile version, see IdxFile::validate (i.e. rowmajor for version>=6 and hzorder for version<6
+      ret.default_layout = ""; 
   }
 
   //default_value

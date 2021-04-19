@@ -246,10 +246,9 @@ public:
     Int64 block_offset = block_header.offset;
     Int32 block_size   = block_header.len;
     String compression = block_header.compressed ? "zip" : "";
-    String layout="hzorder";
 
     if (bVerbose)
-      PrintInfo("Block header contains the following: block_offset",block_offset,"block_size",block_size,"compression",compression,"layout",layout);
+      PrintInfo("Block header contains the following: block_offset",block_offset,"block_size",block_size,"compression",compression);
 
     if (!block_offset || !block_size)
       return failed(cstring("the idx data seeems not stored in the file","block_offset", block_offset,"block_size", block_size));
@@ -271,7 +270,7 @@ public:
     if (!decoded.valid())
       return failed("cannot decode the data");
 
-    decoded.layout = layout;
+    decoded.layout = "hzorder";
 
     //i'm reading the entire block stored on this
     VisusAssert(decoded.dims == query->getNumberOfSamples());
@@ -714,13 +713,12 @@ private:
     }
 
     //setLayout
-    void setLayout(String value) {
-
-      if (value.empty() || value == "rowmajor")
+    void setLayout(String value) 
+    {
+      if (value == "hzorder")
+        flags |= 0;
+      else
         flags |= FormatRowMajor;
-      else 
-        VisusAssert(value=="hzorder");
-
     }
 
     //getCompression
@@ -895,6 +893,11 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
       new_idxfile.version = 6;
       new_idxfile.block_interleaving = 0;
       new_idxfile.filename_template = new_idxfile.guessFilenameTemplate(filename);
+
+      //store in row major
+      for (auto& field : new_idxfile.fields)
+        field.default_layout = "";
+
       new_idxfile.save(filename);
     }
 
