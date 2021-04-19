@@ -261,17 +261,18 @@ std::vector<BigInt> IdxDataset::createBlockQueriesForBoxQuery(SharedPtr<BoxQuery
 //////////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query)
 {
-  if (bool is_hz_order = !block_query->buffer.layout.empty())
+  if (bool is_hz_order = block_query->buffer.layout=="hzorder")
   {
-    //block query is hzorder, query is rowmajor
     if (!query->allocateBufferIfNeeded())
       return false;
 
     ConvertHzOrderSamples op;
     return NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get());
   }
-
-  return Dataset::mergeBoxQueryWithBlockQuery(query, block_query);
+  else
+  {
+    return Dataset::mergeBoxQueryWithBlockQuery(query, block_query);
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

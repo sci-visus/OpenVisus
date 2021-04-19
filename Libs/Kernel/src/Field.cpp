@@ -44,7 +44,14 @@ namespace Visus {
 static String parseRoundBracketArgument(String s, String name)
 {
   String arg = StringUtils::nextToken(s, name + "(");
-  return arg.empty() ? "" : StringUtils::trim(StringUtils::split(arg, ")")[0]);
+  if (arg.empty())
+    return "";
+
+  auto v = StringUtils::split(arg, ")");
+  if (v.empty())
+    return "";
+
+  return StringUtils::trim(v[0]);
 }
 
   ////////////////////////////////////////////////////
@@ -101,7 +108,7 @@ Field Field::fromString(String sfield)
       ret.default_layout = parseRoundBracketArgument(sfield, "format");
 
     else
-      ret.default_layout = ""; //empty (what it means will depend on the IdxFile version, see IdxFile::validate (i.e. rowmajor for version>=6 and hzorder for version<6
+      ret.default_layout = ""; 
   }
 
   //default_value

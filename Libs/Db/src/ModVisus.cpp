@@ -501,6 +501,7 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
   String compression = request.url.getParam("compression");
   String fieldname = request.url.getParam("field", dataset->getField().name);
   double time = cdouble(request.url.getParam("time", cstring(dataset->getTime())));
+  bool rowmajor = cdouble(request.url.getParam("rowmajor", false));
 
   auto bitsperblock = dataset->getDefaultBitsPerBlock();
 
@@ -537,7 +538,7 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
   {
     auto block_query = dataset->createBlockQuery(blockid, field, time, 'r', aborted);
     dataset->executeBlockQuery(access, block_query);
-    wait_async.pushRunning(block_query->done,[block_query, &responses, dataset, compression](Void) {
+    wait_async.pushRunning(block_query->done,[block_query, &responses, dataset, compression, rowmajor](Void) {
 
       if (block_query->failed())
       {
@@ -545,18 +546,16 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
         return;
       }
 
+      //by default i return the block as it is,unless the users specified rowmajor in headers
+      if (rowmajor)
+        dataset->convertBlockQueryToRowMajor(block_query);
+
       //encode data
       NetResponse response(HttpStatus::STATUS_OK);
       if (!response.setArrayBody(compression, block_query->buffer))
       {
-        //maybe i need to convert to row major to compress
-        dataset->convertBlockQueryToRowMajor(block_query);
-
-        if (!response.setArrayBody(compression, block_query->buffer))
-        {
-          responses.push_back(NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "Encoding converting to row major failed"));
-          return;
-        }
+        responses.push_back(NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "Encoding converting to row major failed"));
+        return;
       }
 
       responses.push_back(response);

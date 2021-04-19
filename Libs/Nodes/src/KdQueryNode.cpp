@@ -473,7 +473,8 @@ public:
         //retrieve the block data
         auto blockquery = dataset->createBlockQuery(getBlockId(node), field, time, 'r', this->aborted);
         dataset->executeBlockQuery(access, blockquery);
-        wait_async_blockquery.pushRunning(blockquery->done, [this, blockquery, node, &rlock](Void) {
+        wait_async_blockquery.pushRunning(blockquery->done, [this, blockquery, node, &rlock](Void) 
+          {
           if (aborted() || blockquery->failed())
             return;
 

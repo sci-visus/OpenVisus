@@ -179,15 +179,18 @@ class PyDataset(object):
 		read_block = self.db.createBlockQuery(block_id, field, time, ord('r'), aborted)
 		self.executeBlockQueryAndWait(access, read_block)
 		if not read_block.ok(): return None
+		self.db.convertBlockQueryToRowMajor(read_block) # default is to change the layout to rowmajor
 		return Array.toNumPy(read_block.buffer, bShareMem=False)
 
 	# writeBlock
 	def writeBlock(self, block_id, time=None, field=None, access=None, data=None, aborted=Aborted()):
 		Assert(access and data)
+		Assert(isinstance(data, numpy.ndarray))
 		field=self.getField() if field is None else self.getField(field)	
 		time = self.getTime() if time is None else time
 		write_block = self.db.createBlockQuery(block_id, field, time, ord('w'), aborted)
 		write_block.buffer=Array.fromNumPy(data,TargetDim=self.getPointDim(), bShareMem=True)
+		# note write_block.buffer.layout is empty (i.e. rowmajor)
 		self.executeBlockQueryAndWait(access, write_block)
 		return write_block.ok()
 

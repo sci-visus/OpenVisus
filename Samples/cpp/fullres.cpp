@@ -51,7 +51,7 @@ void CppSamples_FullRes()
   IdxFile file;
   file.bitmask = DatasetBitmask::fromString("F"); 
   file.logic_box = BoxNi(PointNi(2), PointNi(2048, 1600));
-  file.fields.push_back(Field::fromString("data uint8[3] layout(rowmajor)"));
+  file.fields.push_back(Field::fromString("data uint8[3]"));
   file.save("tmp/fullres/visus.idx");
 
   auto dataset = LoadDataset("tmp/fullres/visus.idx");

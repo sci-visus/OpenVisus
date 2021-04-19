@@ -66,7 +66,7 @@ public:
   // name of compression (for storage)
   String default_compression;
 
-  // default_layout (empty means rowmajor)
+  // default_layout
   String default_layout;
 
   //default_value
