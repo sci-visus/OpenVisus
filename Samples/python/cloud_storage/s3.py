@@ -114,7 +114,7 @@ class CopyToS3:
 		if not exists:
 			self.bucket.put_object(Key=blob_name, Body=body, ACL=self.acl)
 		
-		return {"blob_name" : blob_name, "exists" : exists}
+		return {"filename" : self.endpoint_url + "/" + self.bucket_name+ "/" + blob_name, "exists" : exists}
 		
 
 	
