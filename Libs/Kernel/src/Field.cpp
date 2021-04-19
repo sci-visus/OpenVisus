@@ -44,7 +44,14 @@ namespace Visus {
 static String parseRoundBracketArgument(String s, String name)
 {
   String arg = StringUtils::nextToken(s, name + "(");
-  return arg.empty() ? "" : StringUtils::trim(StringUtils::split(arg, ")")[0]);
+  if (arg.empty())
+    return "";
+
+  auto v = StringUtils::split(arg, ")");
+  if (v.empty())
+    return "";
+
+  return StringUtils::trim(v[0]);
 }
 
   ////////////////////////////////////////////////////
