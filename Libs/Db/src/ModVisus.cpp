@@ -501,7 +501,7 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
   String compression = request.url.getParam("compression");
   String fieldname = request.url.getParam("field", dataset->getField().name);
   double time = cdouble(request.url.getParam("time", cstring(dataset->getTime())));
-  bool rowmajor = cdouble(request.url.getParam("rowmajor", false));
+  bool rowmajor = cbool(request.url.getParam("rowmajor", "0"));
 
   auto bitsperblock = dataset->getDefaultBitsPerBlock();
 

@@ -114,7 +114,7 @@ class CopyToS3:
 		if not exists:
 			self.bucket.put_object(Key=blob_name, Body=body, ACL=self.acl)
 		
-		return {"filename" : self.endpoint_url + "/" + self.bucket_name+ "/" + blob_name, "exists" : exists}
+		return {"filename" : self.endpoint_url + "/" + self.bucket_name+ "/" + blob_name, "exists" : exists, "nbytes": 0 if exists else len(body)}
 		
 
 	
@@ -154,10 +154,11 @@ class CopyBlocks:
 		# and run in parallel
 		self.access={}
 		self.t1=Time.now()
+		self.nbytes=0
 		
 		# for debugging purpouse
 		if self.nthreads<=1:
-			for I,job in enumerate(jobs):
+			for I,job in enumerate(self.jobs):
 				job()
 				self.advanceCallback(I)
 		else:
@@ -172,8 +173,12 @@ class CopyBlocks:
 
 	# advanceCallback
 	def advanceCallback(self,ndone):
-		if self.t1.elapsedSec()>1:
-			print("{:.2f}%".format(100.0*ndone/float(len(self.jobs))))
+		
+		sec=self.t1.elapsedSec()
+		if sec>3:
+			mb_per_sec=(self.nbytes / sec)/(1024*1024)
+			print("# *** Progress {:.2f}%".format(100.0*ndone/float(len(self.jobs))),"{:.2f}MB/sec".format(mb_per_sec),"{}/{}".format(ndone,len(self.jobs)))
+			self.nbytes=0
 			self.t1=Time.now()
 
 	# copyBlock
@@ -204,7 +209,9 @@ class CopyBlocks:
 			if self.reverse_filename:  
 				filename=filename[::-1]
 					
-			print("Copied block",filename,self.dst.doCopy(filename,buffer))
+			ret=self.dst.doCopy(filename,buffer)
+			print("Copied block",filename,ret)
+			self.nbytes+=ret["nbytes"]
 
 	# Main
 	@staticmethod
