@@ -71,7 +71,7 @@ public:
   }
 
   //createBlockQueriesForBoxQuery
-  virtual std::vector<BigInt> createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query);
+  virtual std::vector<BigInt> createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query) override;
 
   //mergeBoxQueryWithBlockQuery
   virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) override;

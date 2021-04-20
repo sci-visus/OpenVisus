@@ -114,7 +114,7 @@ class CopyToS3:
 		if not exists:
 			self.bucket.put_object(Key=blob_name, Body=body, ACL=self.acl)
 		
-		return {"filename" : self.endpoint_url + "/" + self.bucket_name+ "/" + blob_name, "exists" : exists, "nbytes": 0 if exists else len(body)}
+		return {"filename" : self.endpoint_url + "/" + self.bucket_name+ "/" + blob_name, "exists" : exists, "nbytes" : len(body)}
 		
 
 	
@@ -122,12 +122,13 @@ class CopyToS3:
 class CopyBlocks:
 	
 	# __init__
-	def __init__(self, src="", dst=None, nthreads=8,reverse_filename=False):
+	def __init__(self, src="", dst=None, nthreads=8,reverse_filename=False,verbose=False):
 		self.dst=dst
 		self.src=src
 		self.nthreads=nthreads
 		self.reverse_filename=reverse_filename
 		self.T1=Time.now()
+		self.verbose=verbose
 
 	# copyMainFile
 	def copyMainFile(self):
@@ -210,7 +211,8 @@ class CopyBlocks:
 				filename=filename[::-1]
 					
 			ret=self.dst.doCopy(filename,buffer)
-			print("Copied block",filename,ret)
+			if self.verbose:
+				print("Copied block",filename,ret)
 			self.nbytes+=ret["nbytes"]
 
 	# Main
@@ -226,6 +228,7 @@ class CopyBlocks:
 		parser.add_argument("--reverse-filename" , help="Reverse filename, sometimes you gain some speed reversing (see https://aws.amazon.com/blogs/aws/amazon-s3-performance-tips-tricks-seattle-hiring-event/)", action='store_true') 
 		parser.add_argument("--acl", type=str, help="acl", required=False,default="public-read") 
 		parser.add_argument("--num-threads", type=int, help="Number of threads", required=False,default=8) 
+		parser.add_argument("--verbose", help="Verbose", required=False,action='store_true') 
 		
 		args = parser.parse_args(args)
 		
@@ -242,7 +245,8 @@ class CopyBlocks:
 			src=args.src, 
 			dst=dst, 
 			nthreads=args.num_threads,
-			reverse_filename=args.reverse_filename)
+			reverse_filename=args.reverse_filename,
+			verbose=args.verbose)
 			
 		copy_blocks.copyMainFile()
 		copy_blocks.copyBlocks()
