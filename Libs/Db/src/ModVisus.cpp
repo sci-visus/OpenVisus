@@ -92,7 +92,7 @@ public:
   }
 
   //findDataset
-  SharedPtr<Dataset> findDataset(String name) const
+  SharedPtr<Dataset> findDataset(String name) 
   {
     // first remove any temp datasets older than 5 minutes
     for (auto it = temp_dataset_map.cbegin(); it != temp_dataset_map.cend(); /* no increment */) {
