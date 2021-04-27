@@ -37,31 +37,37 @@ class Explorer3d(QMainWindow):
 		for name in self.db.getFields():
 			self.field.addItem(name)
 		self.field.setCurrentText(self.db.getFields()[0])
-		
+		self.field.currentIndexChanged.connect(self.showVolume)
+
 		self.type=QComboBox()
 		for name in ( 'vr','threshold','isovalue','slice'):
 			self.type.addItem(name)
 		self.type.setCurrentText('vr')
-		
+		self.type.currentIndexChanged.connect(self.showVolume)
+
 		self.opacity=QComboBox()
 		for name in ( 'linear', 'geom', 'geom_r','sigmoid','sigmoid_3','sigmoid_4','sigmoid_5','sigmoid_6','sigmoid_7','sigmoid_8','sigmoid_9','sigmoid_10'):
 			self.opacity.addItem(name)
 		self.opacity.setCurrentText('sigmoid')
-		
+		self.opacity.currentIndexChanged.connect(self.showVolume)
+
 		self.cmap=QComboBox()
 		for name in ( 'gist_ncar','bone', 'cool','viridis','coolwarm','magma'):
 			self.cmap.addItem(name)
 		self.cmap.setCurrentText('gist_ncar')		
-		
+		self.cmap.currentIndexChanged.connect(self.showVolume)
+
 		self.blending=QComboBox()
 		for name in ( 'additive', 'maximum', 'minimum', 'composite',  'average'):
 			self.blending.addItem(name)
 		self.blending.setCurrentText('additive')	
+		self.blending.currentIndexChanged.connect(self.showVolume)
 		
 		self.max_mb=QComboBox()
 		for name in ('8','16','32', '64', '128', '256', '512',  '1024',  '2048'):
 			self.max_mb.addItem(name)
 		self.max_mb.setCurrentText('32')
+		self.max_mb.currentIndexChanged.connect(self.showVolume)
 		
 		self.run=QPushButton("Run")
 		self.run.clicked.connect(self.showVolume)
@@ -98,8 +104,8 @@ class Explorer3d(QMainWindow):
 	# getVolumeBounds
 	def getVolumeBounds(self):
 		x1=self.x1.value();x2=self.x2.value();x1,x2=min(x1,x2),max(x1,x2)
-		y1=self.x1.value();y2=self.x2.value();y1,y2=min(y1,y2),max(y1,y2)
-		z1=self.x1.value();z2=self.x2.value();z1,z2=min(z1,z2),max(z1,z2)
+		y1=self.y1.value();y2=self.x2.value();y1,y2=min(y1,y2),max(y1,y2)
+		z1=self.z1.value();z2=self.x2.value();z1,z2=min(z1,z2),max(z1,z2)
 		return x1,x2,y1,y2,z1,z2
 
 	# extractVolume
@@ -169,7 +175,8 @@ class Explorer3d(QMainWindow):
 		ret.setValue(value)
 		ret.setFocusPolicy(Qt.NoFocus)
 		ret.setPageStep(5)
-		# ret.valueChanged.connect(self.showVolume)
+		ret.sliderReleased.connect(self.showVolume)
+		
 		return ret
 		
 	# createHorizontalLayout
@@ -209,7 +216,8 @@ class Explorer3d(QMainWindow):
 if __name__ == "__main__":
 	app = QApplication(sys.argv)
 	#url=r'D:\GoogleSci\visus_dataset\2kbit1\zip\rowmajor\visus.idx'
-	url=r'D:\GoogleSci\visus_dataset\rabbit3d\visus.idx'
+	url=r'C:\Users\miao1\Data\2020-10-23-NLPuptake\idx_group1_v2_stack0000\IDX_group1_v2_stack0000.idx'
+	# url=r'D:\GoogleSci\visus_dataset\rabbit3d\visus.idx'
 	#url=r'D:\GoogleSci\visus_dataset\TALASS\ACAM\battery.idx'
 	#url=r'D:\GoogleSci\visus_dataset\TALASS\ACAM\meteorite.idx'
 	#url=r'D:\GoogleSci\visus_dataset\TALASS\ACAM\TrussRecon.idx'
