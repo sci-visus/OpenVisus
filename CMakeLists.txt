@@ -26,10 +26,13 @@ SET(MSVC_INCREMENTAL_DEFAULT OFF) # disable incremental linking for windows
 
 PROJECT(OpenVisus) 
 
+string( TOLOWER "${CMAKE_CXX_COMPILER_ID}" COMPILER_ID )
+MESSAGE(STATUS "COMPILER_ID ${COMPILER_ID}")
+
 # detect compiler
 if (MSVC)
 	MESSAGE(STATUS "Detected visual studio (C++ __MSVC_VER - WIN32)")
-elseif (CMAKE_CXX_COMPILER MATCHES ".*clang")
+elseif (COMPILER_ID MATCHES ".*clang")
 	set(CLANG 1)
 	MESSAGE(STATUS "Detected apple clang (C++: __clang__ __APPLE__)")
 else()
