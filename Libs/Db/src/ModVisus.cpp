@@ -92,10 +92,58 @@ public:
   }
 
   //findDataset
-  SharedPtr<Dataset> findDataset(String name) const
+  SharedPtr<Dataset> findDataset(String name) 
   {
+    // first remove any temp datasets older than 5 minutes
+    for (auto it = temp_dataset_map.cbegin(); it != temp_dataset_map.cend(); /* no increment */) {
+      if (it->second.second.elapsedMsec() > 5*60*1000 &&
+          it->first != name) {
+        PrintInfo("releasing temp dataset", it->first);
+        it = temp_dataset_map.erase(it);
+      }
+      else {
+        ++it;
+      }
+    }
+    
+    // return dataset from visus.config, if it exists
     auto it = dataset_map.find(name);
-    return (it != dataset_map.end()) ? it->second : SharedPtr<Dataset>();
+    if (it != dataset_map.end()) {
+      return it->second;
+    }
+
+    // return dataset from already loaded temp datasets, update timestamp if it's there
+    auto itt = temp_dataset_map.find(name);
+    if (itt != temp_dataset_map.end()) {
+      PrintInfo("reusing temp dataset", itt->first);
+      itt->second.second = Time::now();
+      return itt->second.first;
+    }
+    
+    // search the filesystem for the dataset
+    Path homePath(KnownPaths::VisusHome);
+    Path idxPath = homePath.getChild("converted/"+name+"/visus.idx");
+    if (FileUtils::existsFile(idxPath)) {
+      PrintInfo("creating temp dataset", name, idxPath.toString());
+      
+      StringTree stree("dataset");
+      stree.write("name", name);
+      stree.write("url", "file://" + idxPath.toString());
+      stree.write("permissions", "public");
+
+      try
+      {
+        auto d = LoadDatasetEx(stree);
+        temp_dataset_map[name] = { d, Time::now() };
+        return d;
+      }
+      catch(...) {
+        PrintWarning("dataset name", name, "load failed");
+      }
+    }
+
+    // couldn't find the dataset
+    return SharedPtr<Dataset>();
   }
 
   //createPublicUrl
@@ -116,6 +164,7 @@ private:
 
   StringTree                              datasets;
   std::map<String, SharedPtr<Dataset > >  dataset_map;
+  std::map<String, std::pair<SharedPtr<Dataset>, Time>> temp_dataset_map;
   String                                  datasets_xml_body;
   String                                  datasets_json_body;
 
