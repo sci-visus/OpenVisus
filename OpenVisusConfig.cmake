@@ -43,7 +43,14 @@ if(OpenVisus_FOUND)
 		if (MSVC)
 			set_target_properties(OpenVisus::${Name}  PROPERTIES IMPORTED_IMPLIB "${OpenVisus_ROOT}/lib/Visus${Name}.lib")
 		elseif (CLANG)
-			set_target_properties(OpenVisus::${Name}  PROPERTIES IMPORTED_IMPLIB "${OpenVisus_ROOT}/bin/libVisus${Name}.dylib")
+		
+			# not sure what we need here
+			if(${CMAKE_VERSION} VERSION_LESS "3.20.0")
+				set_target_properties(OpenVisus::${Name}  PROPERTIES IMPORTED_IMPLIB   "${OpenVisus_ROOT}/bin/libVisus${Name}.dylib")
+			else()
+				set_target_properties(OpenVisus::${Name}  PROPERTIES IMPORTED_LOCATION "${OpenVisus_ROOT}/bin/libVisus${Name}.dylib")
+			endif()
+		
 		else()
 			set_target_properties(OpenVisus::${Name}  PROPERTIES IMPORTED_IMPLIB "${OpenVisus_ROOT}/bin/libVisus${Name}.so")
 		endif()
