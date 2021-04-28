@@ -140,14 +140,31 @@ jobs:
     - name: Distrib OpenVisus
       shell: bash -l {0}
       run: |
-           cd build/Release/OpenVisus
-           Version=${{ matrix.python-version }}
-           if [[  "${{ matrix.os }}" == "windows-latest" ]] ; then PLATFORM_NAME=win_amd64            ; fi
-           if [[  "${{ matrix.os }}" == "macos-latest"   ]] ; then PLATFORM_NAME=macosx_10_9_x86_64   ; fi
-           if [[  "${{ matrix.os }}" == "ubuntu-latest"  ]] ; then PLATFORM_NAME=manylinux2010_x86_64 ; fi
-           ${pythonLocation}/python -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
-           ${pythonLocation}/python setup.py -q bdist_wheel --python-tag=cp${Version:0:1}${Version:2:1} --plat-name=${PLATFORM_NAME}
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" ]] ; then
+             echo "GIT_TAG $GIT_TAG"
+             
+             # install some needed packages
+             ${pythonLocation}/python -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
+             pushd build/Release/OpenVisus
+             
+             # running setup to create the wheel
+             Version=${{ matrix.python-version }}
+             if [[  "${{ matrix.os }}" == "windows-latest" ]] ; then PLATFORM_NAME=win_amd64            ; fi
+             if [[  "${{ matrix.os }}" == "macos-latest"   ]] ; then PLATFORM_NAME=macosx_10_9_x86_64   ; fi
+             if [[  "${{ matrix.os }}" == "ubuntu-latest"  ]] ; then PLATFORM_NAME=manylinux2010_x86_64 ; fi
+             ${pythonLocation}/python setup.py -q bdist_wheel --python-tag=cp${Version:0:1}${Version:2:1} --plat-name=${PLATFORM_NAME}
+             
+             # upload the weel
              ${pythonLocation}/python -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --skip-existing  "dist/*.whl" 
+             popd
+             
+             # *** distribute to Docker ***
+             TAG=`${pythonLocation}/python Libs/swig/setup.py print-tag` 
+             echo "Uploading ${TAG} to Docker"
+             pushd Docker/mod_visus/httpd
+             docker login -u=${{ secrets.DOCKER_USERNAME }} $ -p=${{ secrets.DOCKER_PASSWORD }}
+             docker build --tag visus/mod_visus:$TAG  --build-arg TAG=$TAG .
+             docker push visus/mod_visus:$TAG
+             popd
            fi
