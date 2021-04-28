@@ -6548,7 +6548,6 @@ SharedPtr<TransferFunction> TransferFunction::getDefault(String name)
 	{
 		auto fromRGBAColorMap = [&](const double* buffer, size_t buffer_size) {
 			return TransferFunction::fromArray(RGBAColorMap(buffer, buffer_size).toArray(nsamples), name);
-			ret;
 		};
 
 		#define NEW_PALETTE(__name__)\
