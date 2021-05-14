@@ -80,6 +80,11 @@ public:
     return peak_memory;
   }
 
+  //resetPeakMemory
+  void setPeakMemory(Int64 value) {
+    peak_memory = value;
+  }
+
 private:
 
   //constructor

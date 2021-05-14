@@ -62,7 +62,7 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
     this->netservice = std::make_shared<NetService>(nconnections);
 
-  this->cloud_storage=CloudStorage::createInstance(url); 
+  this->cloud_storage=CloudStorage::createInstance(url);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -129,7 +129,7 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 ///////////////////////////////////////////////////////////////////////////////////////
 void CloudStorageAccess::writeBlock(SharedPtr<BlockQuery> query)
 {
-  return query->setFailed("not supported");
+  return writeFailed(query, "not supported");
 }
 
 

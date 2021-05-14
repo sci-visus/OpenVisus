@@ -232,14 +232,11 @@ class CopyBlocks:
 		
 		args = parser.parse_args(args)
 		
-		if 'wasabi' in args.dst or 'amazon' in args.dst:
-			dst=CopyToS3(
-				dst=args.dst,
-				access_key=args.access_key, 
-				secret_access_key=args.secret_access_key, 	
-				acl=args.acl)
-		else:
-			raise Exception("TODO")
+		dst=CopyToS3(
+			dst=args.dst,
+			access_key=args.access_key, 
+			secret_access_key=args.secret_access_key, 	
+			acl=args.acl)
 		
 		copy_blocks=CopyBlocks(
 			src=args.src, 
@@ -273,6 +270,7 @@ if __name__ == '__main__':
 	python Samples/python/cloud_storage/s3.py copy-blocks --src C:/projects/OpenVisus/datasets/cat/gray.idx              --dst https://s3.us-west-1.wasabisys.com/cat-gray
 	python Samples/python/cloud_storage/s3.py copy-blocks --src C:/projects/OpenVisus/datasets/cat/gray.idx              --dst https://s3.us-west-1.wasabisys.com/cat-gray/example/prefix
 	python Samples/python/cloud_storage/s3.py copy-blocks --src D:/GoogleSci/visus_dataset/2kbit1/zip/hzorder/visus.idx  --dst https://s3.us-west-1.wasabisys.com/2kbit1
+	python Samples/python/cloud_storage/s3.py copy-blocks --src D:/GoogleSci/visus_dataset/2kbit1/zip/hzorder/visus.idx  --dst https://mghp.osn.xsede.org/vpascuccibucket1/2kbit1
 	
 	"""	
 

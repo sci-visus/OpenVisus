@@ -11,6 +11,7 @@
 #include <Visus/Ray.h>
 #include <Visus/Frustum.h>
 #include <Visus/NetService.h>
+#include <Visus/RamResource.h>
 
 using namespace Visus;
 %}
@@ -61,6 +62,7 @@ However, this is not the case for any C/C++ class that has been converted into a
 	
 %include <Visus/StringMap.h>
 %include <Visus/HeapMemory.h>
+%include <Visus/RamResource.h>
 %include <Visus/Aborted.h>
 %include <Visus/StringTree.h>
 %include <Visus/Color.h>

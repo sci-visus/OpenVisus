@@ -949,6 +949,9 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
   if (auto env = getenv("VISUS_IDX_SKIP_READING"))
     this->bSkipReading = cbool(String(env));
 
+  if (auto env = getenv("VISUS_IDX_SKIP_WRITING"))
+    this->bSkipWriting = cbool(String(env));
+
   //if (this->bDisableWriteLocks)
   //  PrintInfo("IdxDiskAccess::IdxDiskAccess disabling write locsk. be careful");
 
@@ -1077,7 +1080,7 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
   {
     query->allocateBufferIfNeeded();
     query->buffer.fillWithValue(0);
-    return query->setOk();
+    return readOk(query);
   }
 
   if (bool bAsync = !isWriting() && async_tpool)
@@ -1103,6 +1106,13 @@ void IdxDiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   if (bVerbose)
     PrintInfo("got request to write block blockid",blockid);
 
+  if (bSkipWriting)
+  {
+    query->allocateBufferIfNeeded();
+    query->buffer.fillWithValue(0);
+    return writeOk(query);
+  }
+
   acquireWriteLock(query);
   sync->writeBlock(query);
   releaseWriteLock(query);
@@ -1113,14 +1123,19 @@ void IdxDiskAccess::writeBlock(SharedPtr<BlockQuery> query)
 void IdxDiskAccess::acquireWriteLock(SharedPtr<BlockQuery> query)
 {
   VisusAssert(isWriting());
-  if (bDisableWriteLocks) return;
+
+  if (bDisableWriteLocks || bSkipWriting) 
+    return;
+  
   sync->acquireWriteLock(query);
 }
 
 ///////////////////////////////////////////////////////
 void IdxDiskAccess::releaseWriteLock(SharedPtr<BlockQuery> query)
 {
-  if (bDisableWriteLocks) return;
+  if (bDisableWriteLocks || bSkipWriting)
+    return;
+
   VisusAssert(isWriting());
   sync->releaseWriteLock(query);
 }

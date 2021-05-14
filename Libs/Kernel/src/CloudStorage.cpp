@@ -59,14 +59,12 @@ SharedPtr<CloudStorage> CloudStorage::createInstance(Url url)
   if (StringUtils::contains(url.getHostname(), "core.windows"))
     return std::make_shared<AzureCloudStorage>(url);
 
-  if (StringUtils::contains(url.getHostname(), "s3.amazonaws") ||
-      StringUtils::contains(url.getHostname(), "wasabisys.com"))
-    return std::make_shared<AmazonCloudStorage>(url);
 
   if (StringUtils::contains(url.getHostname(), "googleapis"))
     return std::make_shared<GoogleDriveStorage>(url);
 
-  return SharedPtr<CloudStorage>();
+  //default is S3
+  return std::make_shared<AmazonCloudStorage>(url);
 }
 
 

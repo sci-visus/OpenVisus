@@ -72,6 +72,16 @@ public:
     return std::make_shared<IdxDiskAccess>(dataset);
   }
 
+  //setSkipReading
+  void setSkipReading(bool value) {
+    bSkipReading = value;
+  }
+
+  //setSkipWriting
+  void setSkipWriting(bool value) {
+    bSkipWriting = value;
+  }
+
   //disableAsync
   void disableAsync();
   
@@ -105,7 +115,7 @@ private:
   SharedPtr<ThreadPool> async_tpool;
   IdxFile               idxfile;
   bool                  bSkipReading = false;
-
+  bool                  bSkipWriting = false;
 
 }; 
 

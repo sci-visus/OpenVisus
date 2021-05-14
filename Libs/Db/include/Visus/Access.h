@@ -46,20 +46,30 @@ namespace Visus {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
+class VISUS_DB_API AccessStatistics
+{
+public:
+
+  Int64 rok = 0, rfail = 0;
+  Int64 wok = 0, wfail = 0;
+
+  //reset
+  void reset()
+  {
+    rok = rfail = 0;
+    wok = wfail = 0;
+  }
+};
+
+
+///////////////////////////////////////////////////////////////////////////////////////
 class VISUS_DB_API Access
 {
 public:
 
   VISUS_NON_COPYABLE_CLASS(Access)
 
-  //___________________________________________
-  class VISUS_DB_API Statistics
-  {
-  public:
-
-    Int64 rok=0,rfail=0;
-    Int64 wok=0,wfail=0;
-  };
+  typedef AccessStatistics Statistics;
 
   static const String DefaultChMod;
 
