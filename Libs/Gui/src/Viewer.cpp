@@ -141,7 +141,8 @@ Viewer::Viewer(String title) : QMainWindow()
   //status bar
   setStatusBar(new QStatusBar());
 
-  enableLog("~visusviewer.history.txt");
+  //this can be used to replicate what you were doing (like replay)
+  enableLog("~visusviewer.history.xml");
 
   clearAll();
   addWorld("world");
@@ -1473,7 +1474,7 @@ bool Viewer::openFile(String url, Node* parent)
   if (url.empty())
   {
     url = cstring(QFileDialog::getOpenFileName(nullptr, "Choose a file to open...", last_filename.c_str(),
-      "All supported (*.idx *.midx *.gidx *.obj *.xml *.config *.scn);;IDX (*.idx *.midx *.gidx);;OBJ (*.obj);;XML files (*.xml *.config *.scn)"));
+      "All supported (*.idx *.midx *.gidx *.obj *.xml *.config *.scn);;IDX (*.idx *.midx *.gidx);;OBJ (*.obj);;XML files (*.xml *.config *.scn);; All files (*.*)"));
 
     if (url.empty()) return false;
     last_filename = url;
