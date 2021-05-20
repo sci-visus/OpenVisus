@@ -35,11 +35,11 @@ Specify where all your datasets are:
 DATASETS=/path/to/your/dataset
 ```
 
-Create a `datasets.conf` file inside with path relative to the container path `/datasets/`.
+Create a `datasets.config` file inside with path relative to the container path `/datasets/`.
 For example:
 
 ```
-cat <<EOF > $DATASETS/datasets.conf
+cat <<EOF > $DATASETS/datasets.config
 <visus>
   <datasets>
     <dataset name="cat_gray" url="/datasets/cat/gray.idx" />

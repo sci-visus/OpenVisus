@@ -81,28 +81,37 @@ private:
 
   SharedPtr<PublicDatasets>  m_datasets;
 
-  //for dynamic mode
-  bool                   dynamic = false;
-  RWLock                 rw_lock;
-  bool                   bExit = false;
-  String                 config_filename;
-  SharedPtr<std::thread> config_thread;
-  Int64                  config_timestamp = 0;
+  String                     config_filename;
+
+  class Dynamic
+  {
+  public:
+    bool                   enabled = false;
+    RWLock                 lock;
+    bool                   exit_thread = false;
+    SharedPtr<std::thread> thread;
+    String                 filename;
+    int                    msec;
+  };
+
+  Dynamic dynamic;
 
   //getDatasets
   SharedPtr<PublicDatasets> getDatasets();
 
-  //reload
-  bool reload();
-
   //all requests
-  NetResponse handleReload           (const NetRequest& request);
   NetResponse handleReadDataset      (const NetRequest& request);
   NetResponse handleGetListOfDatasets(const NetRequest& request);
-  NetResponse handleAddDataset       (const NetRequest& request);
   NetResponse handleBlockQuery       (const NetRequest& request);
   NetResponse handleBoxQuery         (const NetRequest& request);
   NetResponse handlePointQuery       (const NetRequest& request);
+
+  //deprecated, use dynamic 
+  NetResponse handleDynamicReload(const NetRequest& request);
+  NetResponse handleDynamicAddDataset(const NetRequest& request);
+
+  //trackConfigChangesInBackground
+  void trackConfigChangesInBackground();
 
 };
 

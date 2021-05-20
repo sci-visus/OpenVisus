@@ -263,100 +263,111 @@ ModVisus::ModVisus()
 ////////////////////////////////////////////////////////////////////////////////
 ModVisus::~ModVisus()
 { 
-  if (dynamic)
+  if (dynamic.enabled)
   {
-    bExit = true;
-    config_thread->join();
-    config_thread.reset();
+    dynamic.exit_thread = true;
+    dynamic.thread->join();
+    dynamic.thread.reset();
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 SharedPtr<ModVisus::PublicDatasets> ModVisus::getDatasets()
 {
-  if (dynamic) rw_lock.enterRead();
-  auto ret = m_datasets;
-  if (dynamic) rw_lock.exitRead();
-  return ret;
+  if (dynamic.enabled)
+  {
+    ScopedReadLock lock(dynamic.lock);
+    return m_datasets;
+  }
+  else
+  {
+    return m_datasets;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ModVisus::trackConfigChangesInBackground()
+{
+  PrintInfo("Tracking config changes", this->dynamic.filename, this->dynamic.msec);
+  auto TIMESTAMP = FileUtils::getTimeLastModified(this->dynamic.filename);
+
+  while (!this->dynamic.exit_thread)
+  {
+    auto timestamp = FileUtils::getTimeLastModified(this->dynamic.filename);
+
+    if (TIMESTAMP == timestamp)
+    {
+      Thread::sleep(dynamic.msec);
+      continue;
+    }
+
+    PrintInfo("config file", this->dynamic.filename,"changed");
+
+    ConfigFile config;
+    if (!config.load(this->config_filename))
+    {
+      PrintInfo("Reload", this->config_filename, "failed");
+    }
+    else
+    {
+      auto datasets = std::make_shared<PublicDatasets>(this, config);
+      PrintInfo("Reload", this->config_filename, "ok", "#datasets", datasets->getNumberOfDatasets());
+
+      //make this as fast as possible
+      {
+        ScopedWriteLock lock(dynamic.lock);
+        this->m_datasets = datasets;
+        TIMESTAMP = timestamp;
+      }
+    }
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 bool ModVisus::configureDatasets(const ConfigFile& config)
 {
-  this->dynamic = config.readBool("Configuration/ModVisus/dynamic", false);
+  this->dynamic.enabled = false;
   this->config_filename = config.getFilename();
-
-  //for dynamic I need to reload the file
-  if (config_filename.empty() && this->dynamic)
-  {
-    PrintInfo("Switching ModVisus to non-dynamic content since the config file is not stored on disk");
-    this->dynamic = false;
-  }
 
   auto datasets = std::make_shared<PublicDatasets>(this, config);
   this->m_datasets = datasets;
-  
-  if (dynamic)
-  {
-    this->config_timestamp = FileUtils::getTimeLastModified(this->config_filename);
 
-    this->config_thread = Thread::start("Check config thread", [this]() 
+  PrintInfo("ModVisus::configure", config_filename, "...");
+  PrintInfo("/mod_visus?action=list\n", datasets->getDatasetsBody());
+
+  //for in-memory configueation file I cannot reload from disk, so it does not make sense to configure dynamic
+  if (!this->config_filename.empty())
+  {
+    if (config.getChild("Configuration/ModVisus/Dynamic"))
     {
-      while (!bExit)
-      {
-        auto timestamp = FileUtils::getTimeLastModified(this->config_filename);
-        bool bReload = false;
-        {
-          ScopedReadLock lock(rw_lock);
-          bReload = this->config_timestamp != timestamp;
-        }
+      this->dynamic.enabled = config.readBool("Configuration/ModVisus/Dynamic/enabled", false);
+      this->dynamic.msec = config.readInt("Configuration/ModVisus/Dynamic/msec", 3000);
+      this->dynamic.filename = config.readString("Configuration/ModVisus/Dynamic/filename", this->config_filename);
+    }
+    else
+    {
+      this->dynamic.enabled = config.readBool("Configuration/ModVisus/dynamic", false);
+      this->dynamic.filename = this->config_filename;
+      this->dynamic.msec = 3000;
+    }
 
-        if (bReload)
-          reload();
-
-        Thread::sleep(1000);
-      }
-    });
+    if (this->dynamic.enabled)
+    {
+      this->dynamic.thread = Thread::start("modvisus-trackConfigChangesInBackground", [this]() {
+        this->trackConfigChangesInBackground();
+      });
+    }
   }
 
-  PrintInfo("ModVisus::configure dynamic",dynamic,"config_filename",config_filename,"...");
-  
-  //too long!
-  PrintInfo("/mod_visus?action=list\n",datasets->getDatasetsBody());
-
-  return true;
-}
-
-///////////////////////////////////////////////////////////////////////////
-bool ModVisus::reload()
-{
-  if (!dynamic)
-    return false;
-
-  ConfigFile config;
-  if (!config.load(this->config_filename))
-  {
-    PrintInfo("Reload modvisus config_filename", this->config_filename,"failed");
-    return false;
-  }
-
-  auto datasets = std::make_shared<PublicDatasets>(this, config);
-  {
-    ScopedWriteLock lock(this->rw_lock);
-    this->m_datasets = datasets;
-    this->config_timestamp = FileUtils::getTimeLastModified(this->config_filename);
-  }
-
-  PrintInfo("modvisus config file changed config_filename",this->config_filename,"#datasets",datasets->getNumberOfDatasets());
   return true;
 }
 
 
 ///////////////////////////////////////////////////////////////////////////
-NetResponse ModVisus::handleAddDataset(const NetRequest& request)
+NetResponse ModVisus::handleDynamicAddDataset(const NetRequest& request)
 {
-  //not supported
-  if (!this->dynamic)
+  //only for dynamic mode
+  if (!this->dynamic.enabled)
     return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Mod visus is in non-dynamic mode");
 
   auto datasets = getDatasets();
@@ -380,9 +391,10 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Cannot decode xml");
   }
 
-  //add the dataset
+  //using a file lock to make sure I have no collision on the same file
+  //a reload will happen in the background thread soon or later
+  //(lazy add-dataset)
   {
-    //need to use a file_lock to make sure I don't loose any addPublicDataset 
     ScopedFileLock file_lock(this->config_filename);
 
     String name = stree.readString("name");
@@ -401,6 +413,7 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
     }
 
+    //add a <dataset> child to the file
     config.addChild(stree);
 
     try
@@ -412,23 +425,35 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
       PrintWarning("Cannot save", config.getFilename());
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
     }
-
-    if (!reload()) {
-      PrintWarning("Cannot reload modvisus config");
-      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Reload failed");
-    }
   }
 
   return NetResponse(HttpStatus::STATUS_OK);
 }
 
 ///////////////////////////////////////////////////////////////////////////
-NetResponse ModVisus::handleReload(const NetRequest& request)
+NetResponse ModVisus::handleDynamicReload(const NetRequest& request)
 {
-  if (!reload())
+  //only for dynamic mode
+  if (!this->dynamic.enabled)
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Mod visus is in non-dynamic mode");
+
+  ConfigFile config;
+  if (!config.load(this->config_filename))
+  {
+    PrintInfo("Reload modvisus config_filename", this->config_filename, "failed");
     return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "Cannot reload");
-  else
-    return NetResponse(HttpStatus::STATUS_OK);
+  }
+
+  auto datasets = std::make_shared<PublicDatasets>(this, config);
+
+  //make this as fast as possible
+  {
+    ScopedWriteLock lock(dynamic.lock);
+    this->m_datasets = datasets;
+  }
+
+  PrintInfo("reload done", this->config_filename, "#datasets", datasets->getNumberOfDatasets());
+  return NetResponse(HttpStatus::STATUS_OK);
 }
 
 
@@ -777,17 +802,22 @@ NetResponse ModVisus::handleRequest(NetRequest request)
   else if (action == "list")
     response = handleGetListOfDatasets(request);
 
-  else if (action == "configure_datasets" || action == "configure" || action == "reload")
-    response = handleReload(request);
-
-  else if (action == "AddDataset" || action == "add_dataset")
-    response = handleAddDataset(request);
-
   else if (action == "ping")
   {
     response = NetResponse(HttpStatus::STATUS_OK);
     response.setHeader("block-query-support-aggregation", "1");
   }
+
+  ////////////////////////// DEPRECATED, do not use. Use COnfiguration/ModVisus/Dynamic instead
+#if 1
+
+  else if (action == "configure_datasets" || action == "configure" || action == "reload")
+    response = handleDynamicReload(request);
+
+  else if (action == "AddDataset" || action == "add_dataset")
+    response = handleDynamicAddDataset(request);
+
+#endif
 
   else
     response = NetResponseError(HttpStatus::STATUS_NOT_FOUND, "unknown action(" + action + ")");
