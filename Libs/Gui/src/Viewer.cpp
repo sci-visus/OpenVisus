@@ -334,12 +334,13 @@ void Viewer::execute(Archive& ar)
 
   if (ar.name == "AddSlice")
   {
-    String uuid, parent, fieldname; int  access_id;
+    String uuid, parent, fieldname; int  access_id; int axis;
     ar.read("uuid", uuid);
     ar.read("parent", parent);
     ar.read("fieldname", fieldname);
     ar.read("access_id", access_id, 0);
-    addSlice(uuid, findNodeByUUID(parent), fieldname, access_id);
+    ar.read("axis", axis, 2);
+    addSlice(uuid, findNodeByUUID(parent), fieldname, access_id, axis);
     return;
   }
   if (ar.name == "AddVolume") {
@@ -2208,7 +2209,7 @@ QueryNode* Viewer::addVolume(String uuid, Node* parent, String fieldname, int ac
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int access_id)
+QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int access_id, int axis)
 {
   if (!parent)
   {
@@ -2231,7 +2232,7 @@ QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int acc
 
   QueryNode* ret = nullptr;
   beginUpdate(
-    StringTree("AddSlice", "uuid", uuid, "parent", getUUID(parent), "fieldname", fieldname, "access_id", access_id),
+    StringTree("AddSlice", "uuid", uuid, "parent", getUUID(parent), "fieldname", fieldname, "access_id", access_id, "axis", axis),
     StringTree("RemoveNode", "uuid", uuid));
   {
     //query
@@ -2244,14 +2245,35 @@ QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int acc
     query_node->setViewDependentEnabled(true);
     query_node->setProgression(QueryGuessProgression);
     query_node->setQuality(QueryDefaultQuality);
+
     if (bool bPointQuery = dataset->getPointDim() == 3)
     {
-      auto box = dataset_node->getBounds().getBoxNd().withPointDim(3);
-      box.p1[2] = box.p2[2] = box.center()[2];
-      query_node->setBounds(Position(dataset_node->getBounds().getTransformation(), box));
+      auto BOX = dataset_node->getBounds().getBoxNd().withPointDim(3);
+      if (axis == 2)
+      {
+        auto box = BOX;
+        box.p1[2] = box.p2[2] = box.center()[2];
+        query_node->setBounds(Position(dataset_node->getBounds().getTransformation(), box));
+      }
+      else
+      {
+        //this is so difficult because I want the original quad to be in XY plane
+        auto box = BoxNd(PointNd(0,0,0),PointNd(BOX.size()[(axis +1 )%2],BOX.size()[(axis + 2) % 2],0));
+        auto vt = BOX.p1;
+        vt[axis] = BOX.center()[axis];
+
+        auto Rotate = Matrix::rotate(std::vector<Quaternion>({
+          Quaternion(Point3d(0,1,0),-Math::Pi / 2),
+          Quaternion(Point3d(1,0,0),+Math::Pi / 2),
+          Quaternion(Point3d(0,0,1),0)
+        })[axis]);
+
+        query_node->setBounds(Position(dataset_node->getBounds().getTransformation(), Matrix::translate(vt), Rotate, box));
+      }
     }
     else
     {
+      //in 2d it is all the dataset
       query_node->setBounds(dataset_node->getBounds());
     }
     addNode(parent, query_node);

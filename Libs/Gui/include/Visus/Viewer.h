@@ -637,7 +637,7 @@ public:
   QueryNode* addVolume(String uuid, Node* parent, String fieldname = "", int access_id = 0);
 
   //addSlice
-  QueryNode* addSlice(String uuid, Node* parent, String fieldname = "", int access_id = 0);
+  QueryNode* addSlice(String uuid, Node* parent, String fieldname = "", int access_id = 0, int axis=2);
 
   //setFieldName
   void setFieldName(String value);
@@ -771,7 +771,9 @@ private:
     QAction* AddGroup = nullptr;
     QAction* AddTransform = nullptr;
     QAction* InsertTransform = nullptr;
-    QAction* AddSlice = nullptr;
+    QAction* AddSliceX = nullptr;
+    QAction* AddSliceY = nullptr;
+    QAction* AddSliceZ = nullptr;
     QAction* AddVolume = nullptr;
     QAction* AddIsoContour = nullptr;
     QAction* AddKdQuery = nullptr;
