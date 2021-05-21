@@ -401,8 +401,8 @@ void QueryNode::setBounds(Position new_value)
     return;
 
   beginUpdate(
-    StringTree("SetBounds").writeIfNotDefault("T", new_value.getTransformation(), old_value.getTransformation()).write("box", new_value.getBoxNd()),
-    StringTree("SetBounds").writeIfNotDefault("T", old_value.getTransformation(), new_value.getTransformation()).write("box", old_value.getBoxNd()));
+    StringTree("SetBounds").write("T", new_value.getTransformation()).write("box", new_value.getBoxNd()),
+    StringTree("SetBounds").write("T", old_value.getTransformation()).write("box", old_value.getBoxNd()));
   {
     old_value = new_value;
   }

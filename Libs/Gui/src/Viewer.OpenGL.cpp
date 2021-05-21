@@ -205,6 +205,8 @@ void Viewer::glCanvasMousePressEvent(QMouseEvent* evt)
   }
 
   //the center of rotation is fixed
+  //scrgiorgio: this code should not be here!
+#if 0
   if (auto lookat = dynamic_cast<GLLookAtCamera*>(glcamera.get()))
   {
     Position bounds;
@@ -226,6 +228,7 @@ void Viewer::glCanvasMousePressEvent(QMouseEvent* evt)
 
     lookat->setCenterOfRotation(center_of_rot);
   }
+#endif
 
   glcamera->glMousePressEvent(evt, viewport);
 
