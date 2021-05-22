@@ -157,48 +157,77 @@ GLInfo::GLInfo()
   glGetIntegerv(GL_MAX_CLIP_PLANES, &this->max_clip_planes);
   #endif
 
-  //gpu_total_memory
+  //GPU memory
   #if __clang__
   {
-    this->gpu_total_memory =getTotalVideoMemoryBytes();
+    this->gpu_total_memory = getTotalVideoMemoryBytes();
+    this->gpu_free_memory  = this->gpu_total_memory - ReadPerfInt64Value(CFSTR("vramUsedBytes"));
+    this->gpu_used_memory = 0;
   }
   #else
   {
-    this->extension_GL_NVX_gpu_memory_info = StringUtils::contains(this->extensions, "GL_NVX_gpu_memory_info");
-    if (this->extension_GL_NVX_gpu_memory_info)
+    if (StringUtils::contains(this->extensions, "GL_NVX_gpu_memory_info"))
     {
       GLint kb = 0;
-      glGetIntegerv(GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX, &kb); VisusAssert(kb > 0);
+
+      glGetIntegerv(GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX, &kb);   VisusAssert(kb > 0);
       this->gpu_total_memory = 1024 * (Int64)kb;
+
+      glGetIntegerv(GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX, &kb); VisusAssert(kb > 0);
+      this->gpu_free_memory = 1024 * (Int64)kb;
+
+      //no used memory so far
+      this->gpu_used_memory = 0;
+    }
+    else
+    {
+      this->gpu_total_memory = StringUtils::getByteSizeFromString("1024GB"); //no information provided, pick a very high value for GPU (1024GB)
+      this->gpu_free_memory = Int64(gpu_total_memory);
+      this->gpu_used_memory = 0;
     }
   }
   #endif
 }
 
-//////////////////////////////////////////////////////////
-Int64 GLInfo::getGpuUsedMemory()
-{
-  #if __clang__
-  {
-    return ReadPerfInt64Value(CFSTR("vramUsedBytes"));
-  }
-  #else
-  {
-    GLNeedContext gl;
-    if (!extension_GL_NVX_gpu_memory_info)
-      return 0;
 
-    GLint kb = 0;
-    glGetIntegerv(GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX, &kb); VisusAssert(kb > 0);
-    Int64 ret = gpu_total_memory - (kb * (Int64)1024);
-    return ret;
-  }
-  #endif
-
+//////////////////////////////////////////////////////////////////////
+void GLInfo::setGpuTotalMemory(Int64 value) {
+  this->gpu_total_memory = value;
+  this->gpu_free_memory = value;
+  this->gpu_used_memory = 0;
 }
 
+/// ///////////////////////////////////////////////////////////////////
+bool GLInfo::mallocOpenGLMemory(Int64 size, bool simulate_only)
+{
+  if (simulate_only)
+    return (this->gpu_free_memory - size) >= 0;
 
+  //consider atomicity
+  this->gpu_used_memory += size;
+  this->gpu_free_memory -= size;
+  
+  if (this->gpu_free_memory < 0)
+  {
+    this->gpu_used_memory -= size;
+    this->gpu_free_memory += size;
+    PrintInfo("mallocOpenGLMemory failed, not enough space", "requested", StringUtils::getStringFromByteSize(size), "free", StringUtils::getStringFromByteSize(gpu_free_memory));
+    return false;
+  }
+  else
+  {
+    //PrintInfo("GPU Allocated", StringUtils::getStringFromByteSize(size));
+    return true;
+  }
+}
 
+/// ///////////////////////////////////////////////////////////////////
+void GLInfo::freeOpenGLMemory(Int64 size)
+{
+  //PrintInfo("GPU Freeed", StringUtils::getStringFromByteSize(size));
+  this->gpu_used_memory -= size;
+  this->gpu_free_memory += size;
+}
 
 } //namespace
 

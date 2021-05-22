@@ -77,24 +77,31 @@ public:
     return gpu_total_memory;
   }
 
-  //setGpuTotalMemory
-  void setGpuTotalMemory(Int64 value) {
-    gpu_total_memory = value;
-  }
-
   //getGpuUsedMemory
-  Int64 getGpuUsedMemory();
+  Int64 getGpuUsedMemory() {
+    return gpu_used_memory;
+  }
 
   //setOsTotalMemory
   Int64 getGpuFreeMemory() {
-    return getGpuTotalMemory() - getGpuUsedMemory();
+    return gpu_free_memory;
   }
+
+public:
+
+  //setGpuTotalMemory
+  void setGpuTotalMemory(Int64 value);
+
+  bool mallocOpenGLMemory(Int64 size, bool simulate_only=false);
+
+  //freeOpenGLMemory
+  void freeOpenGLMemory(Int64 size);
 
 private:
 
-  Int64 gpu_total_memory;
-
-  bool extension_GL_NVX_gpu_memory_info=false;
+  std::atomic<Int64> gpu_total_memory = 0;
+  std::atomic<Int64> gpu_used_memory = 0;
+  std::atomic<Int64> gpu_free_memory = 0;
 
   //constructor
   GLInfo();
