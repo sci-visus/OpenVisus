@@ -91,6 +91,12 @@ bool RamResource::freeMemory(Int64 reqsize)
 {
   VisusAssert(reqsize>=0);
   if (!reqsize) return true;
+
+  //probably the application is shutting down
+  if (!KernelModule::bAttached)
+    return true;
+
+
   used_memory-=reqsize;
   return true;
 }
