@@ -128,7 +128,7 @@ static Int64 ReadPerfInt64Value(CFStringRef name)
 
 
 ///////////////////////////////////////////////
-GLInfo::GLInfo() 
+GLInfo::GLInfo() : gpu_total_memory(0), gpu_free_memory(0), gpu_used_memory(0)
 {
   GLNeedContext gl;
 

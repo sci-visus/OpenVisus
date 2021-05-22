@@ -99,9 +99,9 @@ public:
 
 private:
 
-  std::atomic<Int64> gpu_total_memory = 0;
-  std::atomic<Int64> gpu_used_memory = 0;
-  std::atomic<Int64> gpu_free_memory = 0;
+  std::atomic<Int64> gpu_total_memory;
+  std::atomic<Int64> gpu_used_memory;
+  std::atomic<Int64> gpu_free_memory;
 
   //constructor
   GLInfo();
