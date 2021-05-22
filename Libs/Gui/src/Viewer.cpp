@@ -2241,26 +2241,29 @@ QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int acc
     if (bool bPointQuery = dataset->getPointDim() == 3)
     {
       auto BOX = dataset_node->getBounds().getBoxNd().withPointDim(3);
-      if (axis == 2)
+      auto Width = BOX.size()[0];
+      auto Height = BOX.size()[1];
+      auto Depth = BOX.size()[2];
+
+      if (axis == 0)
+      {
+        auto box = BoxNd(PointNd(0, 0, 0), PointNd(Depth, Height, 0));
+        auto vt = BOX.p1;
+        vt[axis] = BOX.center()[0];
+        query_node->setBounds(Position(dataset_node->getBounds().getTransformation(), Matrix::translate(vt), Matrix::rotate(Quaternion(Point3d(0, 1, 0), -Math::Pi / 2)), box));
+      }
+      else if (axis==1)
+      {
+        auto box = BoxNd(PointNd(0,0,0),PointNd(Width, Depth,0));
+        auto vt = BOX.p1;
+        vt[axis] = BOX.center()[1];
+        query_node->setBounds(Position(dataset_node->getBounds().getTransformation(), Matrix::translate(vt), Matrix::rotate(Quaternion(Point3d(1, 0, 0), +Math::Pi / 2)), box));
+      }
+      else
       {
         auto box = BOX;
         box.p1[2] = box.p2[2] = box.center()[2];
         query_node->setBounds(Position(dataset_node->getBounds().getTransformation(), box));
-      }
-      else
-      {
-        //this is so difficult because I want the original quad to be in XY plane
-        auto box = BoxNd(PointNd(0,0,0),PointNd(BOX.size()[(axis +1 )%2],BOX.size()[(axis + 2) % 2],0));
-        auto vt = BOX.p1;
-        vt[axis] = BOX.center()[axis];
-
-        auto Rotate = Matrix::rotate(std::vector<Quaternion>({
-          Quaternion(Point3d(0,1,0),-Math::Pi / 2),
-          Quaternion(Point3d(1,0,0),+Math::Pi / 2),
-          Quaternion(Point3d(0,0,1),0)
-        })[axis]);
-
-        query_node->setBounds(Position(dataset_node->getBounds().getTransformation(), Matrix::translate(vt), Rotate, box));
       }
     }
     else
