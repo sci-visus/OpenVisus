@@ -65,6 +65,7 @@ public:
 
   //prependModelview
   virtual void prependModelview(Matrix T) = 0;
+
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -133,7 +134,7 @@ class VISUS_KERNEL_API PointOfInterest : public Annotation
 {
 public:
 
-  Point2d point;
+  Point3d point;
   int     magnet_size = 0;
   String  text;
 
@@ -148,11 +149,12 @@ public:
 
   //prependModelview
   virtual void prependModelview(Matrix T) override {
-    T.setSpaceDim(3);
-    this->point = (T * PointNd(this->point)).toPoint2();
+    T.setSpaceDim(4);
+    this->point = (T * PointNd(this->point)).toPoint3();
   }
 
 };
+
 
 
 ///////////////////////////////////////////////////////
@@ -160,7 +162,7 @@ class VISUS_KERNEL_API PolygonAnnotation : public Annotation
 {
 public:
 
-  std::vector<Point2d> points;
+  std::vector<Point3d> points;
 
   //destructor
   virtual ~PolygonAnnotation() {
@@ -173,9 +175,9 @@ public:
 
   //prependModelview
   virtual void prependModelview(Matrix T) override {
-    T.setSpaceDim(3);
+    T.setSpaceDim(4);
     for (auto& point : points)
-      point = (T * PointNd(point)).toPoint2();
+      point = (T * PointNd(point)).toPoint3();
   }
 
 };

@@ -194,7 +194,30 @@ void Viewer::glCanvasMousePressEvent(QMouseEvent* evt)
   this->mouse.glMousePressEvent(evt);
 
   auto viewport = widgets.glcanvas->getViewport();
-  
+
+  //print the current ray intersection
+  if (auto query_node = dynamic_cast<QueryNode*>(getSelection()))
+  {
+    auto frustum = glcamera->getCurrentFrustum(viewport);
+    auto screen_pos = Point2d(evt->pos().x(), evt->pos().y());
+    auto ray = FrustumMap(frustum).getRay(screen_pos);
+    auto p0 = ray.getPoint(0).toPoint3();
+
+    auto bounds = query_node->getQueryBounds();
+    auto T = bounds.getTransformation();
+    auto box = bounds.getBoxNd();
+
+    auto ray2 = ray.transformByMatrix(T.invert());
+
+    RayBoxIntersection intersection(ray2, box);
+    if (intersection.valid)
+    {
+      auto p1 = (T * ray2.getPoint(intersection.tmin)).toPoint3();
+      auto distance = (p1 - p0).module();
+      PrintInfo("Point", p1);
+    }
+  }
+
   if (free_transform)
   {
     free_transform->glMousePressEvent(FrustumMap(glcamera->getCurrentFrustum(viewport)),evt);
@@ -268,7 +291,7 @@ void Viewer::glCanvasMouseReleaseEvent(QMouseEvent* evt)
   auto viewport = widgets.glcanvas->getViewport();
   this->mouse_timer.reset();
   this->mouse.glMouseReleaseEvent(evt);
-
+  
   if (free_transform)
   {
     free_transform->glMouseReleaseEvent(FrustumMap(glcamera->getCurrentFrustum(viewport)),evt);
@@ -442,6 +465,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
       }
 
       auto dataset = dataset_node->getDataset();
+      auto pointdim = dataset->getPointDim();
 
       //render annotations
       if (dataset->annotations && dataset->annotations->enabled)
@@ -454,21 +478,37 @@ void Viewer::glRenderNodes(GLCanvas& gl)
           //poi
           if (auto poi = std::dynamic_pointer_cast<PointOfInterest>(annotation))
           {
-            auto screen_pos = map.projectPoint(Point3d(poi->point));
-            auto obj = std::make_shared<GLQuad>(
-              screen_pos - Point2d(poi->magnet_size / 2, poi->magnet_size / 2),
-              screen_pos + Point2d(poi->magnet_size / 2, poi->magnet_size / 2),
-              poi->fill, poi->stroke, poi->stroke_width);
-            huds.push_back(obj);
+            if (pointdim == 3)
+            {
+              GLPoint(poi->point, poi->stroke, poi->stroke_width).glRender(gl);
+              auto screen_pos = map.projectPoint(poi->point);
+              gl.glRenderScreenText(screen_pos.x,screen_pos.y,poi->point.toString(),Colors::White);
+            }
+            else
+            {
+              auto screen_pos = map.projectPoint(Point3d(poi->point));
+              auto obj = std::make_shared<GLQuad>(
+                screen_pos - Point2d(poi->magnet_size / 2, poi->magnet_size / 2),
+                screen_pos + Point2d(poi->magnet_size / 2, poi->magnet_size / 2),
+                poi->fill, poi->stroke, poi->stroke_width);
+              huds.push_back(obj);
+            }
           }
           //polygon
           else if (auto polygon = std::dynamic_pointer_cast<PolygonAnnotation>(annotation))
           {
-            std::vector<Point2d> screen_points;
-            for (auto it : polygon->points)
-              screen_points.push_back(map.projectPoint(Point3d(it)));
-            auto obj = std::make_shared<GLPolygon>(screen_points, polygon->fill, polygon->stroke, polygon->stroke_width);
-            huds.push_back(obj);
+            if (pointdim == 3)
+            {
+              //TODO
+            }
+            else
+            {
+              std::vector<Point2d> screen_points;
+              for (auto it : polygon->points)
+                screen_points.push_back(map.projectPoint(Point3d(it)));
+              auto obj = std::make_shared<GLPolygon>(screen_points, polygon->fill, polygon->stroke, polygon->stroke_width);
+              huds.push_back(obj);
+            }
           }
           else
           {
