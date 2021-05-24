@@ -607,6 +607,9 @@ public:
   //save
   void save(String filename, bool bSaveHistory = false);
 
+  //enableHistory
+  void enableHistory();
+
   //setDataflow
   void setDataflow(SharedPtr<Dataflow> dataflow);
 

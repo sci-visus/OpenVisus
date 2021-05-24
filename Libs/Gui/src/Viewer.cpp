@@ -133,8 +133,7 @@ Viewer::Viewer(String title) : QMainWindow()
   //status bar
   setStatusBar(new QStatusBar());
 
-  //this can be used to replicate what you were doing (like replay)
-  enableLog("~visusviewer.history.xml");
+  enableHistory();
 
   clearAll();
   addWorld("world");
@@ -150,6 +149,15 @@ Viewer::~Viewer()
   PrintInfo("destroying VisusViewer");
   RedirectLogTo(nullptr);
   setDataflow(nullptr);
+}
+
+////////////////////////////////////////////////////////////
+void Viewer::enableHistory()
+{
+  //this can be used to replicate what you were doing (like replay)
+  auto filename = "~visusviewer.history." + Time::now().getFormattedLocalTime() + ".xml";
+  PrintInfo("Enabling history",filename);
+  enableLog(filename);
 }
 
 ////////////////////////////////////////////////////////////
@@ -1253,6 +1261,9 @@ bool Viewer::open(String s_url,Node* parent)
 {
   if (s_url.empty())
     return false;
+
+  //will restart th history from scratch...
+  enableHistory();
 
   //get a visus.config from a remote server
   //  http://atlantis.sci.utah.edu:8080/mod_visus?action=list

@@ -158,8 +158,8 @@ void Model::enableLog(String filename)
 
   if (!filename.empty())
   {
+    //important to set the buffer to zerro
     log.open(log_filename.c_str(), std::fstream::out);
-    log.rdbuf()->pubsetbuf(0, 0);
     log.rdbuf()->pubsetbuf(0, 0);
   }
 }
