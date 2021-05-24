@@ -95,6 +95,7 @@ For support : support@visus.net
 	#include <sys/sysctl.h>
 	#include <sys/ioctl.h>
 	#include <sys/time.h>
+	#include <dirent.h>
 	
 	#include <mach/mach.h>
 	#include <mach/task.h>
@@ -149,7 +150,9 @@ For support : support@visus.net
 	
 	#include <arpa/inet.h>
 	#include <netinet/tcp.h>
-	
+
+	#include <dirent.h>
+
 	#define getIpCat(__value__)    __value__
 	#define closesocket(socketref) ::close(socketref)
 	#define Stat64                 ::stat
@@ -563,7 +566,59 @@ public:
 	  sigaction(SIGPIPE, &act, &oact);
 	#endif
 	}
-  
+
+
+	//findFilesInDirectory
+	static std::vector<String> findFilesInDirectory(const String& directory)
+	{
+		std::vector<String> out;
+
+#if WIN32
+		WIN32_FIND_DATA file_data;
+		HANDLE dir = FindFirstFile((directory + "/*").c_str(), &file_data);
+		if (dir == INVALID_HANDLE_VALUE)
+			return out;
+		do
+		{
+			const String file_name = file_data.cFileName;
+			const String full_file_name = directory + "/" + file_name;
+			const bool is_directory = (file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+
+			if (is_directory)
+				continue;
+
+			out.push_back(full_file_name);
+		}   
+		while (FindNextFile(dir, &file_data));
+		FindClose(dir);
+
+#else
+
+		auto dir = opendir(directory);
+
+		struct dirent* ent = nullptr;
+		while ((ent = readdir(dir)) != NULL)
+		{
+			const String file_name = ent->d_name;
+			const String full_file_name = directory + "/" + file_name;
+
+			class stat st;
+			if (stat(full_file_name.c_str(), &st) == -1)
+				continue;
+
+			const bool is_directory = (st.st_mode & S_IFDIR) != 0;
+
+			if (is_directory)
+				continue;
+
+			out.push_back(full_file_name);
+		}
+		closedir(dir);
+#endif
+
+		return out;
+	}
+
 
 }; //end class
 

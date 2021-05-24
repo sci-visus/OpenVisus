@@ -116,6 +116,9 @@ void Viewer::createToolBar()
       actions.SaveFileAs,
       actions.SaveSceneAs,
       actions.SaveHistoryAs,
+      actions.SaveSnapshot,
+      actions.OpenNextSnapshot,
+      actions.OpenPreviousSnapshot,
       actions.OpenUrl,
       actions.AddUrl,
       actions.ReloadVisusConfig,
@@ -217,6 +220,25 @@ void Viewer::createActions()
   addAction(actions.SaveHistoryAs = GuiFactory::CreateAction("Save history as...",this, [this]() {
     saveFile("", /*bSaveHistory*/true);
   }));
+
+  addAction(actions.SaveSnapshot = GuiFactory::CreateAction("Save snapshot", this, [this]() {
+    saveSnapshot();
+    }));
+  actions.SaveSnapshot->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_P));
+  actions.SaveSnapshot->setToolTip("Save snapshot [CTRL+P]");
+
+  addAction(actions.OpenPreviousSnapshot = GuiFactory::CreateAction("Open previous snapshot", this, [this]() {
+    openSnapshot(/*prev*/true);
+    }));
+  actions.OpenPreviousSnapshot->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_BracketLeft));
+  actions.OpenPreviousSnapshot->setToolTip("Open previous snapshot [CTRL+'[']");
+
+  addAction(actions.OpenNextSnapshot = GuiFactory::CreateAction("Open next snapshot", this, [this]() {
+    openSnapshot(/*prev*/false);
+    }));
+  actions.OpenNextSnapshot->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_BracketRight));
+  actions.OpenNextSnapshot->setToolTip("Open next snapshot [CTRL+']']");
+
 
   addAction(actions.AddFile = GuiFactory::CreateAction("Add file...", this, [this]() {
     openFile("", getRoot());

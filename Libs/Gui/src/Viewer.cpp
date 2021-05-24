@@ -1533,6 +1533,70 @@ void Viewer::save(String url,bool bSaveHistory)
 }
 
 ////////////////////////////////////////////////////////////
+bool Viewer::saveSnapshot()
+{
+  auto filename = snapshots.dir + "/visusviewer.snapshot." + Time::now().getFormattedLocalTime() + ".xml";
+  auto ar = StringTree("Viewer");
+  this->write(ar);
+  Utils::saveTextDocument(filename, ar.toString());
+  PrintInfo("Save snapshot", filename);
+  return true;
+}
+
+
+
+////////////////////////////////////////////////////////////
+bool Viewer::openSnapshot(bool prev)
+{
+  auto v=FileUtils::findFilesInDirectory(snapshots.dir);
+  if (v.empty())
+    return false;
+
+  //filter snapshots
+  int N = 0;
+  for (auto filename : v)
+  {
+    if (Path(filename).getExtension()!=".xml" || !StringUtils::contains(filename, "visusviewer.snapshot."))
+      continue;
+
+    v[N++] = filename;
+  }
+
+  v.resize(N);
+
+  std::sort(v.begin(), v.end());
+
+  for (auto filename : v)
+    PrintInfo(filename);
+
+  String filename;
+
+  if (snapshots.current.empty())
+  {
+    filename = v[0];
+  }
+  else
+  {
+    auto it = std::find(v.begin(), v.end(), snapshots.current);
+    if (it == v.end())
+      filename = v[0];
+    else
+    {
+      auto index = Utils::clamp((int)std::distance(v.begin(), it) + (prev ? -1 : 1), 0, (int)v.size());
+      filename = v[index];
+    }
+  }
+
+  if (!open(filename))
+    return false;
+
+  //ready for the next one
+  snapshots.current = filename;
+  PrintInfo("Opened snapshot",filename, "prev",prev);
+  return true; 
+}
+
+////////////////////////////////////////////////////////////
 void Viewer::saveFile(String url, bool bSaveHistory)
 {
   if (url.empty())

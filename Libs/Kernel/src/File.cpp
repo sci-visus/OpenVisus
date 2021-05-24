@@ -42,6 +42,7 @@ For support : support@visus.net
 #include <Visus/Time.h>
 #include "osdep.hxx"
 
+
 namespace Visus {
 
 
@@ -999,6 +1000,12 @@ bool FileUtils::moveFile(String src_filename, String dst_filename)
 bool FileUtils::createLink(String existing_file, String new_file)
 {
   return osdep::createLink(existing_file, new_file);
+}
+
+/////////////////////////////////////////////////////////////////////////
+std::vector<String> FileUtils::findFilesInDirectory(String dir)
+{
+  return osdep::findFilesInDirectory(dir);
 }
 
 } //namespace Visus

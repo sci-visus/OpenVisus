@@ -607,6 +607,12 @@ public:
   //save
   void save(String filename, bool bSaveHistory = false);
 
+  //openSnapshot
+  bool openSnapshot(bool prev=false);
+
+  //saveSnapshot
+  bool saveSnapshot();
+
   //enableHistory
   void enableHistory();
 
@@ -746,6 +752,9 @@ private:
     QAction* SaveFileAs = nullptr;
     QAction* SaveSceneAs = nullptr;
     QAction* SaveHistoryAs = nullptr;
+    QAction* SaveSnapshot = nullptr;
+    QAction* OpenNextSnapshot = nullptr;
+    QAction* OpenPreviousSnapshot = nullptr;
     QAction* OpenUrl = nullptr;
     QAction* AddUrl = nullptr;
     QAction* ReloadVisusConfig = nullptr;
@@ -889,6 +898,14 @@ private:
     std::deque<StringTree> actions;
   }
   scheduled;
+
+  struct
+  {
+    String dir = ".";
+    String current;
+    std::vector<String> list;
+  }
+  snapshots;
 
   //openScreenLogo
   SharedPtr<ViewerLogo> openScreenLogo(String key, String default_logo);
