@@ -594,7 +594,7 @@ public:
 
 #else
 
-		auto dir = opendir(directory);
+		auto dir = opendir(directory.c_str());
 
 		struct dirent* ent = nullptr;
 		while ((ent = readdir(dir)) != NULL)
