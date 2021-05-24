@@ -92,6 +92,12 @@ public:
     return dataset? dataset->getDatasetBounds() : Position::invalid();
   }
 
+  //setBounds
+  void setBounds(Position value) {
+    if (dataset)
+      dataset->setDatasetBounds(value);
+  }
+
   //showBounds
   bool showBounds() const {
     return show_bounds;

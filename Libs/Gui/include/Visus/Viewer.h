@@ -384,11 +384,14 @@ public:
   //editNode
   virtual void editNode(Node* node = nullptr);
 
-  //beginFreeTransform
-  void beginFreeTransform(QueryNode* node);
+  //beginFreeTransformOnQueryNode
+  void beginFreeTransformOnQueryNode(QueryNode* node);
 
-  //beginFreeTransform
-  void beginFreeTransform(ModelViewNode* node);
+  //beginFreeTransformOnDatasetNode
+  void beginFreeTransformOnDatasetNode(DatasetNode* node);
+
+  //beginFreeTransformOnModelviewNode
+  void beginFreeTransformOnModelviewNode(ModelViewNode* node);
 
   //endFreeTransform
   void endFreeTransform();

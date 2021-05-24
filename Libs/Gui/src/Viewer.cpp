@@ -1003,7 +1003,7 @@ Node* Viewer::findPick(Node* node,Point2d screen_point,bool bRecursive,double* o
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void Viewer::beginFreeTransform(QueryNode* query_node)
+void Viewer::beginFreeTransformOnQueryNode(QueryNode* query_node)
 {
   //NOTE: this is different from query->getPositionInDatasetNode()
   Position bounds=query_node->getBounds();
@@ -1056,8 +1056,37 @@ void Viewer::beginFreeTransform(QueryNode* query_node)
   postRedisplay();
 }
 
+
+
+////////////////////////////////////////////////////////////////////////////////
+void Viewer::beginFreeTransformOnDatasetNode(DatasetNode* dataset_node)
+{
+  //NOTE: this is different from query->getPositionInDatasetNode()
+  Position bounds = dataset_node->getBounds();
+  if (!bounds.valid())
+  {
+    free_transform.reset();
+    postRedisplay();
+    return;
+  }
+
+  if (!free_transform)
+  {
+    free_transform = std::make_shared<FreeTransform>();
+
+    //whenever free transform change....
+    free_transform->object_changed.connect([this, dataset_node](Position new_bounds) {
+      dataset_node->setBounds(new_bounds);
+    });
+  }
+
+  free_transform->setObject(bounds);
+  postRedisplay();
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
-void Viewer::beginFreeTransform(ModelViewNode* modelview_node)
+void Viewer::beginFreeTransformOnModelviewNode(ModelViewNode* modelview_node)
 {
   //this is what I want to edit
   auto T = modelview_node->getModelView();
@@ -1708,11 +1737,14 @@ void Viewer::setSelection(Node* new_value)
   //in case there is an old free transform going...
   endFreeTransform();
 
-  if (auto query_node=dynamic_cast<QueryNode*>(new_value))
-    beginFreeTransform(query_node);
+  if (auto node =dynamic_cast<QueryNode*>(new_value))
+    beginFreeTransformOnQueryNode(node);
+
+  else if (auto node = dynamic_cast<DatasetNode*>(new_value))
+    beginFreeTransformOnDatasetNode(node);
     
-  else if (auto modelview_node=dynamic_cast<ModelViewNode*>(new_value))
-    beginFreeTransform(modelview_node);
+  else if (auto node=dynamic_cast<ModelViewNode*>(new_value))
+    beginFreeTransformOnModelviewNode(node);
 
   refreshActions();
 
