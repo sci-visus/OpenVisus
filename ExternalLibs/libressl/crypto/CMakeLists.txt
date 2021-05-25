@@ -704,12 +704,6 @@ else()
 endif()
 
 add_library(crypto STATIC ${CRYPTO_SRC})
-if (VISUS_STATIC_LIB)
-	if (MSVC)
-		target_compile_options(crypto PUBLIC "$<$<CONFIG:DEBUG>:/MTd>")
-		target_compile_options(crypto PUBLIC "$<$<CONFIG:RELEASE>:/MT>")
-	endif()
-endif()
 set_target_properties(crypto PROPERTIES FOLDER "ExternalLibs/")
 
 target_include_directories(crypto

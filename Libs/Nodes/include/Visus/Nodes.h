@@ -43,7 +43,7 @@ For support : support@visus.net
 
 namespace Visus {
 
-#if SWIG || VISUS_STATIC_NODES_LIB
+#if SWIG || VISUS_STATIC_LIB
   #define VISUS_NODES_API
 #else
   #if VISUS_BUILDING_VISUSNODES

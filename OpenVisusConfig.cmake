@@ -3,70 +3,55 @@ find_path(OpenVisus_DIR Names OpenVisusConfig.cmake NO_DEFAULT_PATH)
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(OpenVisus DEFAULT_MSG OpenVisus_DIR)
 
-string( TOLOWER "${CMAKE_CXX_COMPILER_ID}" COMPILER_ID )
-MESSAGE(STATUS "COMPILER_ID ${COMPILER_ID}")
-
-# detect compiler
-if (MSVC)
-	MESSAGE(STATUS "Detected visual studio (C++ __MSVC_VER - WIN32)")
-elseif (COMPILER_ID MATCHES ".*clang")
-	set(CLANG 1)
-	MESSAGE(STATUS "Detected apple clang (C++: __clang__ __APPLE__)")
-else()
-	set(GNUC  1)
-	if (MINGW)
-		MESSAGE(STATUS "Detected GNU on windows (C++ __GNUC__ WIN32)")
-		#minimum support is Vista
-		add_compile_options(-D_WIN32_WINNT=0x0600)
-		add_compile_options(-DWINVER=0x0600)
-		set(WIN32 1)
-	elseif (APPLE)
-		MESSAGE(STATUS "Detected GNU on apple (C++ __GNUC__ __APPLE__)")
-		set(APPLE 1)
-	else()
-		MESSAGE(STATUS "Detected GNU on unix (C++ __GNUC__)")
-	endif()
-endif()
-
 if(OpenVisus_FOUND)
 
 	if (MSVC)
 		string(REPLACE "\\" "/" OpenVisus_DIR "${OpenVisus_DIR}")
 	endif()
-
+	
 	get_filename_component(OpenVisus_ROOT "${OpenVisus_DIR}/../../../" REALPATH)
-	MESSAGE(STATUS "OpenVisus_ROOT ${OpenVisus_ROOT} ")
+	MESSAGE(STATUS "OpenVisus_ROOT ${OpenVisus_ROOT} ")	
 
-	macro(AddOpenVisusLibrary Name)
-		add_library(OpenVisus::${Name} SHARED IMPORTED GLOBAL)
-		set_target_properties(OpenVisus::${Name}      PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${OpenVisus_ROOT}/include/${Name}") 
+	# /////////////////////////////////////////////////////////////////
+	macro(SetImportedLibLocation Name)
+		string(TOLOWER "${CMAKE_CXX_COMPILER_ID}" __compiler_id__)
 		if (MSVC)
-			set_target_properties(OpenVisus::${Name}  PROPERTIES IMPORTED_IMPLIB "${OpenVisus_ROOT}/lib/Visus${Name}.lib")
-		elseif (CLANG)
-		
-			# not sure what we need here
+			set_target_properties(OpenVisus::${Name}    PROPERTIES IMPORTED_IMPLIB   "${OpenVisus_ROOT}/lib/${Name}.lib")
+		elseif (__compiler_id__ MATCHES ".*clang")
+			set(CLANG 1)
 			if(${CMAKE_VERSION} VERSION_LESS "3.20.0")
-				set_target_properties(OpenVisus::${Name}  PROPERTIES IMPORTED_IMPLIB   "${OpenVisus_ROOT}/bin/libVisus${Name}.dylib")
+				set_target_properties(OpenVisus::${Name}  PROPERTIES IMPORTED_IMPLIB   "${OpenVisus_ROOT}/bin/lib${Name}.dylib")
 			else()
-				set_target_properties(OpenVisus::${Name}  PROPERTIES IMPORTED_LOCATION "${OpenVisus_ROOT}/bin/libVisus${Name}.dylib")
+				set_target_properties(OpenVisus::${Name}  PROPERTIES IMPORTED_LOCATION "${OpenVisus_ROOT}/bin/lib${Name}.dylib")
 			endif()
-		
 		else()
-			set_target_properties(OpenVisus::${Name}  PROPERTIES IMPORTED_IMPLIB "${OpenVisus_ROOT}/bin/libVisus${Name}.so")
+			set_target_properties(OpenVisus::${Name}    PROPERTIES IMPORTED_IMPLIB   "${OpenVisus_ROOT}/bin/lib${Name}.so")
 		endif()
-		if (NOT "${ARGN}"  STREQUAL "" )
-			set_target_properties(OpenVisus::${Name}  PROPERTIES INTERFACE_LINK_LIBRARIES "${ARGN}") 
-		endif()
-	endmacro()
+	endmacro()	
 	
-	AddOpenVisusLibrary(Visus)
+	# ***** Visus ***** 
+	add_library(OpenVisus::Visus SHARED IMPORTED GLOBAL)
+	SetImportedLibLocation(Visus)
+	set_target_properties(OpenVisus::Visus PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${OpenVisus_ROOT}/include/Kernel;${OpenVisus_ROOT}/include/Db") 
 	
-	# by default GUI it'is disabled (don't want the user to have Qt5 installed)
+	if (MINGW)
+			#minimum support is Vista
+			target_compile_options(OpenVisus::Visus PUBLIC -D_WIN32_WINNT=0x0600 -DWINVER=0x0600)
+	endif()
+	
+	# ***** VisusGui ***** 
   if(EXISTS "${OpenVisus_ROOT}/QT_VERSION")
+  
+  	# by default GUI it'is disabled (don't want the user to have Qt5 installed)
 		option(VISUS_GUI "Enable VISUS_GUI" OFF)
+		
 		if (VISUS_GUI)
 			find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS ${Qt5_DIR} NO_DEFAULT_PATH)
-			AddOpenVisusLibrary(Gui "OpenVisus::Visus;Qt5::Core;Qt5::Widgets;Qt5::Gui;Qt5::OpenGL")
+			
+			add_library(OpenVisus::VisusGui SHARED IMPORTED GLOBAL)
+			SetImportedLibLocation(VisusGui)
+			set_target_properties(OpenVisus::VisusGui PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${OpenVisus_ROOT}/include/Dataflow;${OpenVisus_ROOT}/include/Nodes;${OpenVisus_ROOT}/include/Gui")
+			set_target_properties(OpenVisus::VisusGui PROPERTIES INTERFACE_LINK_LIBRARIES      "OpenVisus::Visus;Qt5::Core;Qt5::Widgets;Qt5::Gui;Qt5::OpenGL") 
 		endif()
   endif()
 
