@@ -2,7 +2,7 @@
 FILE(GLOB Sources *.h *.cpp)
 add_executable(visus ${Sources})
 
-target_link_libraries(visus PUBLIC VisusDb)
+target_link_libraries(visus PUBLIC Visus)
 
 if (VISUS_PYTHON)
 	target_compile_definitions(visus PUBLIC VISUS_PYTHON=1)

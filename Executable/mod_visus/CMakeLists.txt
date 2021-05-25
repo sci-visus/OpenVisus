@@ -62,7 +62,7 @@ if (VISUS_PYTHON)
 endif()
 
 set_target_properties(mod_visus PROPERTIES FOLDER Executable/)
-target_link_libraries(mod_visus PUBLIC VisusDb)
+target_link_libraries(mod_visus PUBLIC Visus)
 
 if (WIN32)
 	# nop

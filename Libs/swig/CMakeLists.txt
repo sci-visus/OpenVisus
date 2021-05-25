@@ -48,7 +48,7 @@ macro(AddSwigLibrary WrappedLib)
 		set_target_properties(${NamePy} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
 	endif()
 
-	# swig generated *.py file and *.so must be in the same OpenVisus/ root directoryc otherwise it won't work (since swig auto-generate "from . import _VisusKernelPy") 
+	# swig generated *.py file and *.so must be in the same OpenVisus/ root directoryc otherwise it won't work (since swig auto-generate "from . import _VisusPy") 
 	set_target_properties(${NamePy} PROPERTIES 
 		LIBRARY_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_NAME} 
 		RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/${ConfigName}/${PROJECT_NAME}
@@ -64,26 +64,20 @@ macro(AddPythonTarget GroupName Name)
 	set_property(TARGET ${Name} PROPERTY FOLDER ${GroupName})
 endmacro()
 
-if (TARGET VisusKernel)
-
-	if (VISUS_SLAM)
-		set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/VisusKernelPy.i APPEND PROPERTY SWIG_FLAGS  "-DVISUS_SLAM=1")
-	endif()
-
-	AddSwigLibrary(VisusKernel __init__.py __main__.py setup.py utils.py image_utils.py VisusPy.common)
-
-	if (VISUS_SLAM)
-		target_compile_definitions(VisusKernelPy PRIVATE VISUS_SLAM=1)
-		target_include_directories(VisusKernelPy PRIVATE  ../slamcpp)
-	endif()
-
+if (VISUS_SLAM)
+	set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/VisusPy.i APPEND PROPERTY SWIG_FLAGS  "-DVISUS_SLAM=1")
 endif()
 
-if (TARGET VisusDb)
-	AddSwigLibrary(VisusDb dataset.py PyMultipleDataset.h)
-	AddPythonTarget("CMakePredefinedTargets" test      -m OpenVisus test)
-	AddPythonTarget("CMakePredefinedTargets" test-idx  -m OpenVisus test-idx)
+AddSwigLibrary(Visus __init__.py __main__.py setup.py utils.py image_utils.py VisusPy.common dataset.py PyMultipleDataset.h)
+
+if (VISUS_SLAM)
+	target_compile_definitions(VisusPy PRIVATE VISUS_SLAM=1)
+	target_include_directories(VisusPy PRIVATE  ../slamcpp)
 endif()
+
+AddPythonTarget("CMakePredefinedTargets" test      -m OpenVisus test)
+AddPythonTarget("CMakePredefinedTargets" test-idx  -m OpenVisus test-idx)
+
 
 if (TARGET VisusGui)
 	AddSwigLibrary(VisusGui scripting_node.py viewer.py gui.py)

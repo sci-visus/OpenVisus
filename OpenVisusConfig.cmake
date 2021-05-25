@@ -59,15 +59,14 @@ if(OpenVisus_FOUND)
 		endif()
 	endmacro()
 	
-	AddOpenVisusLibrary(Kernel)
-	AddOpenVisusLibrary(Db "OpenVisus::Kernel")
+	AddOpenVisusLibrary(Visus)
 	
 	# by default GUI it'is disabled (don't want the user to have Qt5 installed)
   if(EXISTS "${OpenVisus_ROOT}/QT_VERSION")
 		option(VISUS_GUI "Enable VISUS_GUI" OFF)
 		if (VISUS_GUI)
 			find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS ${Qt5_DIR} NO_DEFAULT_PATH)
-			AddOpenVisusLibrary(Gui "OpenVisus::Kernel;OpenVisus::Db;Qt5::Core;Qt5::Widgets;Qt5::Gui;Qt5::OpenGL")
+			AddOpenVisusLibrary(Gui "OpenVisus::Visus;Qt5::Core;Qt5::Widgets;Qt5::Gui;Qt5::OpenGL")
 		endif()
   endif()
 

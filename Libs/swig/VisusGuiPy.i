@@ -1,8 +1,37 @@
 %module(directors="1") VisusGuiPy
 
 %{ 
-#include <Visus/Gui.h>
 
+#include <Visus/StringTree.h>
+#include <Visus/DataflowModule.h>
+#include <Visus/DataflowMessage.h>
+#include <Visus/DataflowPort.h>
+#include <Visus/DataflowNode.h>
+#include <Visus/Dataflow.h>
+
+#include <Visus/LogicSamples.h>
+#include <Visus/Nodes.h>
+#include <Visus/Query.h>
+#include <Visus/BlockQuery.h>
+#include <Visus/BoxQuery.h>
+#include <Visus/PointQuery.h>
+#include <Visus/Dataflow.h>
+#include <Visus/FieldNode.h>
+#include <Visus/ModelViewNode.h>
+#include <Visus/PaletteNode.h>
+#include <Visus/StatisticsNode.h>
+#include <Visus/TimeNode.h>
+#include <Visus/DatasetNode.h>
+#include <Visus/QueryNode.h>
+#include <Visus/KdQueryNode.h>
+#include <Visus/IdxDiskAccess.h>
+
+#include <Visus/Dataset.h>
+#include <Visus/IdxDataset.h>
+#include <Visus/IdxMultipleDataset.h>
+#include <Visus/GoogleMapsDataset.h>
+
+#include <Visus/Gui.h>
 #include <Visus/Frustum.h>
 #include <Visus/GLCanvas.h>
 #include <Visus/StringTree.h>
@@ -43,11 +72,109 @@ using namespace Visus;
 
 %include <VisusPy.common>
 
-%import  <VisusKernelPy.i>
-%import  <VisusDbPy.i>
+%import  <VisusPy.i>
 
-%include <VisusDataflowPy.i>
-%include <VisusNodesPy.i>
+
+///////////////////////////////////////////////// DATAFLOW
+
+%shared_ptr(Visus::DataflowValue)
+%shared_ptr(Visus::Dataflow)
+%shared_ptr(Visus::ReturnReceipt)
+//%shared_ptr(Visus::NodeJob) NOTE: you cannot mix shared_ptr with directors
+
+%feature("director") Visus::Node;
+    %feature("nodirector") Visus::Node::enterInDataflow;
+    %feature("nodirector") Visus::Node::exitFromDataflow;
+    %feature("nodirector") Visus::Node::abortProcessing;
+    %feature("nodirector") Visus::Node::joinProcessing;
+    %feature("nodirector") Visus::Node::messageHasBeenPublished;
+
+%feature("director") Visus::NodeJob;
+%feature("director") Visus::NodeCreator;
+%feature("director") Visus::DataflowListener; //this is needed by PyViewer
+
+//VISUS_DISOWN -> DISOWN | DISOWN_FOR_DIRECTOR
+%apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::Node* disown };
+%apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::NodeCreator* disown};
+%apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::NodeJob* disown};
+
+%template(VectorNode) std::vector<Visus::Node*>;
+
+//VISUS_NEWOBJECT
+%newobject_director(Visus::Node *,Visus::NodeCreator::createInstance);
+%newobject_director(Visus::Node *,Visus::NodeFactory::createInstance);
+
+//NOTE I don't think this will help since I don't know all the classes in advance
+//https://github.com/swig/swig/blob/master/Examples/test-suite/dynamic_cast.i
+
+//see https://stackoverflow.com/questions/42349170/passing-java-object-to-c-using-swig-then-back-to-java
+//see https://cta-redmine.irap.omp.eu/issues/287
+%extend Visus::Node {
+PyObject* __asPythonObject() {
+    if (auto director = dynamic_cast<Swig::Director*>($self)) 
+    {
+        auto ret=director->swig_get_self();
+        director->swig_incref(); //if python is owner this will increase the counter
+        return ret;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+%pythoncode %{
+   # asPythonObject (whenever you have a director and need to access the python object)
+   def asPythonObject(self):
+    py_object=self.__asPythonObject()
+    return py_object if py_object else self 
+%}
+}
+
+
+%include <Visus/DataflowModule.h>
+%include <Visus/DataflowMessage.h>
+%include <Visus/DataflowPort.h>
+%include <Visus/DataflowNode.h>
+%include <Visus/Dataflow.h>
+
+%pythoncode %{
+def VISUS_REGISTER_NODE_CLASS(TypeName, creator):
+    # print("Registering Python class",TypeName)
+    class PyNodeCreator(NodeCreator):
+        def __init__(self,creator):
+            super().__init__()
+            self.creator=creator
+        def createInstance(self):
+            return self.creator()
+    NodeFactory.getSingleton().registerClass(TypeName, PyNodeCreator(creator))
+%}
+
+
+////////////////////////////////////////////// NODES
+%include <Visus/Nodes.h>
+
+#if 0
+%feature("director") Visus::FieldNode;
+%feature("director") Visus::ModelViewNode;
+%feature("director") Visus::PaletteNode;
+%feature("director") Visus::StatisticsNode;
+%feature("director") Visus::TimeNode;
+%feature("director") Visus::DatasetNode;
+%feature("director") Visus::QueryNode;
+%feature("director") Visus::KdQueryNode;
+#endif
+
+%include <Visus/FieldNode.h>
+%include <Visus/ModelViewNode.h>
+%include <Visus/PaletteNode.h>
+%include <Visus/StatisticsNode.h>
+%include <Visus/TimeNode.h>
+%include <Visus/DatasetNode.h>
+%include <Visus/QueryNode.h>
+%include <Visus/KdQueryNode.h>
+
+//not exposing anything, don't know if we need it
 
 //__________________________________________________________
 %pythonbegin %{

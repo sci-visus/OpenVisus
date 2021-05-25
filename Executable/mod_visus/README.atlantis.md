@@ -11,7 +11,7 @@ make install
 rsync -r -v --exclude visus.config $(pwd)/Release/OpenVisus/ /usr/lib/python3.6/site-packages/OpenVisus
 python3 -m OpenVisus configure
 python3 -m OpenVisus configure
-ldd /usr/lib/python3.6/site-packages/OpenVisus/bin/libVisusDb.so # check no absolute path
+ldd /usr/lib/python3.6/site-packages/OpenVisus/bin/libVisus.so # check no absolute path
 python3 -c "from OpenVisus import *;ModVisus().configureDatasets()"
 ```
 

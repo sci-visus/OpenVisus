@@ -1,6 +1,5 @@
 
 add_subdirectory(Kernel)
-add_subdirectory(Db)
 
 if (VISUS_GUI)
 	add_subdirectory(Gui)

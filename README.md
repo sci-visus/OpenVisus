@@ -443,9 +443,9 @@ which use a `Visus/Minimal.h` header.
 <!--//////////////////////////////d////////////////////////////////////////// -->
 ## Static Win32 library compilation
 
-Enable `VISUS_WIN32_STATIC_LIB` and `VISUS_NET` to build the core libraries (`VisusKernel.lib` and `VisusDb.lib`) and their dependencies statically (`/MTd` and `/MT` runtime library settings).
+Enable `VISUS_WIN32_STATIC_LIB` and `VISUS_NET` to build the core library (`Visus.lib`) and their dependencies statically (`/MTd` and `/MT` runtime library settings).
 Make sure all the other options are disabled. Only Debug and Release builds are supported. After running the `INSTALL` target, both the headers
-and binaries are in `build/Debug/dist` or `build/Release/dist`. Make sure to link with `VisusKernel.lib VisusDb.lib curl.lib crypto.lib ssl.lib` and also system libraries `Shell32.lib Ws2_32.lib advapi32.lib`.
+and binaries are in `build/Debug/dist` or `build/Release/dist`. Make sure to link with `Visus.lib curl.lib crypto.lib ssl.lib` and also system libraries `Shell32.lib Ws2_32.lib advapi32.lib`.
 
 To use the idx reader, include the `IdxDataset.h` as follows.
 
