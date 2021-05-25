@@ -9,7 +9,6 @@ macro(AddSwigLibrary WrappedLib)
 
 	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}")
 	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
-	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../XIdx/include")
 	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include")
 	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include")
 	set_property(SOURCE ${SwigFile} APPEND PROPERTY SWIG_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../Nodes/include")
@@ -78,10 +77,6 @@ if (TARGET VisusKernel)
 		target_include_directories(VisusKernelPy PRIVATE  ../slamcpp)
 	endif()
 
-endif()
-
-if (TARGET VisusXIdx)
-	AddSwigLibrary(VisusXIdx)
 endif()
 
 if (TARGET VisusDb)

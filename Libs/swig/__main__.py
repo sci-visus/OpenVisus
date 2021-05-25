@@ -531,7 +531,6 @@ def Main(args):
 	if action=="test":
 		os.chdir(this_dir)
 		ExecuteCommand([sys.executable, "Samples/python/array.py"],check_result=True) 
-		ExecuteCommand([sys.executable, "Samples/python/xidx.py"],check_result=True) 
 
 		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow1.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow2.py"],check_result=True) 

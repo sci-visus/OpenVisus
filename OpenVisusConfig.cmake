@@ -60,7 +60,6 @@ if(OpenVisus_FOUND)
 	endmacro()
 	
 	AddOpenVisusLibrary(Kernel)
-	AddOpenVisusLibrary(XIdx     "OpenVisus::Kernel")
 	AddOpenVisusLibrary(Db       "OpenVisus::Kernel")
 	AddOpenVisusLibrary(Dataflow "OpenVisus::Kernel")
 	AddOpenVisusLibrary(Nodes    "OpenVisus::Db;OpenVisus::Dataflow")

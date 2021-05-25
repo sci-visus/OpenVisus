@@ -91,7 +91,7 @@ if (VISUS_OSPRAY)
 	target_link_libraries(VisusGui PUBLIC ospray::ospray ospcommon::ospcommon)
 endif()
 
-target_link_libraries(VisusGui PUBLIC VisusNodes VisusDb VisusDataflow VisusXIdx VisusKernel)
+target_link_libraries(VisusGui PUBLIC VisusNodes VisusDb VisusDataflow VisusKernel)
 target_link_libraries(VisusGui PUBLIC Qt5::Core Qt5::Widgets Qt5::Gui Qt5::OpenGL)
 
 if (WIN32)
