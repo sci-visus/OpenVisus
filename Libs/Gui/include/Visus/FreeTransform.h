@@ -234,6 +234,7 @@ public:
       layout->addWidget(tabs);
       setLayout(layout);
 
+      refreshGui();
     }
   }
 

@@ -62,17 +62,17 @@ public:
 private:
 
   //readPoint
-  static Point2d readPoint(String s)
+  static Point3d readPoint(String s)
   {
     auto v = StringUtils::split(s, ",");
     v.resize(2, "0.0");
-    return Point2d(cdouble(v[0]), cdouble(v[1]));
+    return Point3d(cdouble(v[0]), cdouble(v[1]), 0.0);
   }
 
   //readPoints
-  static std::vector<Point2d> readPoints(String s)
+  static std::vector<Point3d> readPoints(String s)
   {
-    std::vector<Point2d> ret;
+    std::vector<Point3d> ret;
     for (auto it : StringUtils::split(s, " "))
       ret.push_back(readPoint(it));
     return ret;

@@ -384,11 +384,14 @@ public:
   //editNode
   virtual void editNode(Node* node = nullptr);
 
-  //beginFreeTransform
-  void beginFreeTransform(QueryNode* node);
+  //beginFreeTransformOnQueryNode
+  void beginFreeTransformOnQueryNode(QueryNode* node);
 
-  //beginFreeTransform
-  void beginFreeTransform(ModelViewNode* node);
+  //beginFreeTransformOnDatasetNode
+  void beginFreeTransformOnDatasetNode(DatasetNode* node);
+
+  //beginFreeTransformOnModelviewNode
+  void beginFreeTransformOnModelviewNode(ModelViewNode* node);
 
   //endFreeTransform
   void endFreeTransform();
@@ -607,6 +610,15 @@ public:
   //save
   void save(String filename, bool bSaveHistory = false);
 
+  //openSnapshot
+  bool openSnapshot(bool prev=false);
+
+  //saveSnapshot
+  bool saveSnapshot();
+
+  //enableHistory
+  void enableHistory();
+
   //setDataflow
   void setDataflow(SharedPtr<Dataflow> dataflow);
 
@@ -637,7 +649,7 @@ public:
   QueryNode* addVolume(String uuid, Node* parent, String fieldname = "", int access_id = 0);
 
   //addSlice
-  QueryNode* addSlice(String uuid, Node* parent, String fieldname = "", int access_id = 0);
+  QueryNode* addSlice(String uuid, Node* parent, String fieldname = "", int access_id = 0, int axis=2);
 
   //setFieldName
   void setFieldName(String value);
@@ -743,6 +755,9 @@ private:
     QAction* SaveFileAs = nullptr;
     QAction* SaveSceneAs = nullptr;
     QAction* SaveHistoryAs = nullptr;
+    QAction* SaveSnapshot = nullptr;
+    QAction* OpenNextSnapshot = nullptr;
+    QAction* OpenPreviousSnapshot = nullptr;
     QAction* OpenUrl = nullptr;
     QAction* AddUrl = nullptr;
     QAction* ReloadVisusConfig = nullptr;
@@ -771,7 +786,9 @@ private:
     QAction* AddGroup = nullptr;
     QAction* AddTransform = nullptr;
     QAction* InsertTransform = nullptr;
-    QAction* AddSlice = nullptr;
+    QAction* AddSliceX = nullptr;
+    QAction* AddSliceY = nullptr;
+    QAction* AddSliceZ = nullptr;
     QAction* AddVolume = nullptr;
     QAction* AddIsoContour = nullptr;
     QAction* AddKdQuery = nullptr;
@@ -884,6 +901,14 @@ private:
     std::deque<StringTree> actions;
   }
   scheduled;
+
+  struct
+  {
+    String dir = ".";
+    String current;
+    std::vector<String> list;
+  }
+  snapshots;
 
   //openScreenLogo
   SharedPtr<ViewerLogo> openScreenLogo(String key, String default_logo);

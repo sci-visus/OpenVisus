@@ -46,6 +46,7 @@ class IsoContourShaderConfig
 {
 public:
 
+  bool clippingbox_enabled = false;
   int second_field_nchannels=0;
 
   //constructor
@@ -65,8 +66,8 @@ public:
 private:
 
   //key
-  std::tuple<int> key() const {
-    return std::make_tuple(second_field_nchannels);
+  std::tuple<bool, int> key() const {
+    return std::make_tuple(clippingbox_enabled, second_field_nchannels);
   }
 
 };
@@ -94,6 +95,7 @@ public:
     GLShader(":/IsoContourShader.glsl"),
     config(config_)
   {
+    addDefine("CLIPPINGBOX_ENABLED", cstring(config.clippingbox_enabled ? 1 : 0));
     addDefine("SECOND_FIELD_NCHANNELS", cstring(config.second_field_nchannels));
 
     u_field = addSampler("u_field");
@@ -229,12 +231,17 @@ void IsoContourRenderNode::glRender(GLCanvas& gl)
       return;
   }
 
+  //how to clip bounds
+  if (data.clipping.valid())
+    gl.pushClippingBox(data.clipping);
+
   gl.pushModelview();
   gl.multModelview(T);
   Point3d pos,dir,vup;
   gl.getModelview().getLookAt(pos, dir,vup);
 
   IsoContourShader::Config config;
+  config.clippingbox_enabled = gl.hasClippingBox();
   config.second_field_nchannels = mesh->second_field.dtype.ncomponents();
 
   auto shader=IsoContourShader::getSingleton(config);
@@ -252,6 +259,9 @@ void IsoContourRenderNode::glRender(GLCanvas& gl)
 
   gl.glRenderMesh(*mesh);
   gl.popModelview();
+
+  if (data.clipping.valid())
+    gl.popClippingBox();
 }
 
 /////////////////////////////////////////////////////////////

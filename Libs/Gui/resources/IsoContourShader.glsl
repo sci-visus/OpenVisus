@@ -30,6 +30,8 @@ uniform sampler2D u_palette;
 #endif
 
 
+CLIPPINGBOX_GLOBALS()
+
 ///////////////////////////////////////////////////////////////
 #ifdef VERTEX_SHADER
 
@@ -56,6 +58,8 @@ void main()
   v_lighting_normal = u_normal_matrix * world_normal;
   v_lighting_dir    = normalize(vec3(u_light_position.xyz - vVertex));
   v_lighting_eyevec = normalize(-vVertex);
+
+  CLIPPINGBOX_VERTEX_SHADER()
 }
 
 #endif
@@ -65,6 +69,8 @@ void main()
 #ifdef FRAGMENT_SHADER
 void main()
 {
+  CLIPPINGBOX_FRAGMENT_SHADER()
+
   #if SECOND_FIELD_NCHANNELS>0
 
     vec4 color=texture3D(u_second_field, v_texcoord);

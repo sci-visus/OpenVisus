@@ -78,7 +78,8 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(GLPhongObject)
 
-  int                  line_width=1;
+  int                  line_width = 1;
+  int                  point_size = 1;
   Color                color=Colors::White;
   SharedPtr<GLTexture> texture;
   GLMesh               mesh;
@@ -124,8 +125,15 @@ public:
     if (line_width)
       gl.pushLineWidth(line_width);
 
+    if (point_size)
+      gl.pushPointSize(point_size);
+
+    //render the mesh
     gl.glRenderMesh(mesh);
     
+    if (point_size)
+      gl.popPointSize();
+
     if (line_width)
       gl.popLineWidth();
   }
@@ -168,6 +176,37 @@ public:
         it->glRender(gl);
     }
     gl.popModelview();
+  }
+
+};
+
+
+class VISUS_GUI_API GLPoint : public GLPhongObject
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(GLPoint)
+
+  //constructor
+  GLPoint(const Point2d& p_, const Color& color_, int point_size_ = 1)
+  : GLPhongObject(GLMesh::Points(std::vector<Point2d>({ p_ })), color_, 1) {
+    this->point_size = point_size_;
+  }
+
+  //constructor
+  GLPoint(const Point3d& p_, const Color& color_, int point_size_ = 1)
+    : GLPhongObject(GLMesh::Points(std::vector<Point3d>({ p_ })), color_, 1) {
+    this->point_size = point_size_;
+  }
+
+  //constructor
+  GLPoint(const PointNd& p_, const Color& color_, int point_size_ = 1)
+    : GLPhongObject(GLMesh::Points(std::vector<PointNd>({ p_})), color_, 1) {
+    this->point_size = point_size_;
+  }
+
+  //destructor
+  virtual ~GLPoint() {
   }
 
 };

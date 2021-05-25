@@ -1,9 +1,6 @@
 
 add_subdirectory(Kernel)
 
-if (VISUS_XIDX)
-	add_subdirectory(XIdx)
-endif()
 
 add_subdirectory(Db)
 

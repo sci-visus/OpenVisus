@@ -116,6 +116,9 @@ void Viewer::createToolBar()
       actions.SaveFileAs,
       actions.SaveSceneAs,
       actions.SaveHistoryAs,
+      actions.SaveSnapshot,
+      actions.OpenNextSnapshot,
+      actions.OpenPreviousSnapshot,
       actions.OpenUrl,
       actions.AddUrl,
       actions.ReloadVisusConfig,
@@ -170,7 +173,9 @@ void Viewer::createToolBar()
       actions.AddGroup, 
       actions.AddTransform, 
       actions.InsertTransform, 
-      actions.AddSlice, 
+      actions.AddSliceX,
+      actions.AddSliceY,
+      actions.AddSliceZ,
       actions.AddVolume, 
       actions.AddIsoContour, 
       actions.AddKdQuery, 
@@ -215,6 +220,25 @@ void Viewer::createActions()
   addAction(actions.SaveHistoryAs = GuiFactory::CreateAction("Save history as...",this, [this]() {
     saveFile("", /*bSaveHistory*/true);
   }));
+
+  addAction(actions.SaveSnapshot = GuiFactory::CreateAction("Save snapshot", this, [this]() {
+    saveSnapshot();
+    }));
+  actions.SaveSnapshot->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_P));
+  actions.SaveSnapshot->setToolTip("Save snapshot [CTRL+P]");
+
+  addAction(actions.OpenPreviousSnapshot = GuiFactory::CreateAction("Open previous snapshot", this, [this]() {
+    openSnapshot(/*prev*/true);
+    }));
+  actions.OpenPreviousSnapshot->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_BracketLeft));
+  actions.OpenPreviousSnapshot->setToolTip("Open previous snapshot [CTRL+'[']");
+
+  addAction(actions.OpenNextSnapshot = GuiFactory::CreateAction("Open next snapshot", this, [this]() {
+    openSnapshot(/*prev*/false);
+    }));
+  actions.OpenNextSnapshot->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_BracketRight));
+  actions.OpenNextSnapshot->setToolTip("Open next snapshot [CTRL+']']");
+
 
   addAction(actions.AddFile = GuiFactory::CreateAction("Add file...", this, [this]() {
     openFile("", getRoot());
@@ -345,9 +369,18 @@ void Viewer::createActions()
     addModelView("", getSelection(),/*bInsert*/true);
   }));
 
-  addAction(actions.AddSlice=GuiFactory::CreateAction("Add Slice",this, QIcon(":/slice.png"), [this]() {
-    addSlice("", getSelection());
+
+  addAction(actions.AddSliceX = GuiFactory::CreateAction("Add Slice (X)",this, QIcon(":/slice.png"), [this]() {
+    addSlice("", getSelection(),/*fieldname*/"",/*access id*/0,/*axis*/0);
   }));
+
+  addAction(actions.AddSliceY = GuiFactory::CreateAction("Add Slice (Y)", this, QIcon(":/slice.png"), [this]() {
+    addSlice("", getSelection(),/*fieldname*/"",/*access id*/0,/*axis*/1);
+    }));
+
+  addAction(actions.AddSliceZ = GuiFactory::CreateAction("Add Slice (Z)", this, QIcon(":/slice.png"), [this]() {
+    addSlice("", getSelection(),/*fieldname*/"",/*access id*/0,/*axis*/2);
+    }));
 
   addAction(actions.AddVolume=GuiFactory::CreateAction("Add Volume",this, QIcon(":/volume.png"), [this]() {
     addVolume("", getSelection());
@@ -517,7 +550,9 @@ DataflowTreeView* Viewer::createTreeView()
       actions.AddGroup,
       actions.AddTransform, 
       actions.InsertTransform,
-      actions.AddSlice,
+      actions.AddSliceX,
+      actions.AddSliceY,
+      actions.AddSliceZ,
       actions.AddVolume,
       actions.AddIsoContour,
       actions.AddKdQuery,
@@ -613,7 +648,9 @@ void Viewer::refreshActions()
   actions.AddGroup->setEnabled(selection?true:false);
   actions.AddTransform->setEnabled(selection?true:false);
   actions.InsertTransform->setEnabled(selection && selection!=getRoot());
-  actions.AddSlice->setEnabled(selection && dynamic_cast<DatasetNode*>(selection));
+  actions.AddSliceX->setEnabled(selection && dynamic_cast<DatasetNode*>(selection) && !b2D);
+  actions.AddSliceY->setEnabled(selection && dynamic_cast<DatasetNode*>(selection) && !b2D);
+  actions.AddSliceZ->setEnabled(selection && dynamic_cast<DatasetNode*>(selection));
   actions.AddVolume->setEnabled(selection && dynamic_cast<DatasetNode*>(selection));
   actions.AddIsoContour->setEnabled(selection && (dynamic_cast<DatasetNode*>(selection) || selection->hasOutputPort("array")));
   actions.AddKdQuery->setEnabled(selection && dynamic_cast<DatasetNode*>(selection));

@@ -279,6 +279,9 @@ public:
   //createLink
   static bool createLink(String existing_file, String new_file);
 
+  //findFilesInDirectory
+  static std::vector<String> findFilesInDirectory(String dir);
+
 private:
 
   FileUtils()=delete;

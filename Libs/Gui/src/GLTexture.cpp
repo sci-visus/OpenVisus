@@ -57,8 +57,8 @@ SharedPtr<GLTexture> GLTexture::createFromArray(Array src)
     return SharedPtr<GLTexture>();
   }
 
-  auto glinfo = GLInfo::getSingleton();
-  if (glinfo->getGpuTotalMemory() && src.c_size() > glinfo->getGpuFreeMemory())
+  //simulate if I will get the memory
+  if (!GLInfo::getSingleton()->mallocOpenGLMemory(src.c_size(),/*simulate_only*/true))
   {
     PrintInfo("failed to create Texture, not enough memory", "requested", StringUtils::getStringFromByteSize(src.c_size()));
     return SharedPtr<GLTexture>();
@@ -101,11 +101,13 @@ GLTexture::~GLTexture()
   auto size = this->dtype.getByteSize((Int64)this->dims[0]*(Int64)this->dims[1]*(Int64)this->dims[2]);
   this->texture_id = 0;
 
+  //PrintInfo("GPU scheduled deallocation", StringUtils::getStringFromByteSize(size));
+
   if (auto do_with_context = GLDoWithContext::getSingleton())
   {
-    do_with_context->push_back([texture_id]()
+    do_with_context->push_back([texture_id, size]()
     {
-      //GLInfo::getSingleton()->freeOpenGLMemory(size);
+      GLInfo::getSingleton()->freeOpenGLMemory(size);
       glDeleteTextures(1, &texture_id);
     });
   }
@@ -223,8 +225,7 @@ GLuint GLTexture::textureId(GLCanvas& gl)
   }
 
   auto glinfo = GLInfo::getSingleton();
-
-  if (glinfo->getGpuTotalMemory() && fullsize > glinfo->getGpuFreeMemory())
+  if (!glinfo->mallocOpenGLMemory(fullsize))
   {
     PrintInfo("Failed to upload texture Not enough VRAM");
     return 0;
@@ -271,10 +272,7 @@ GLuint GLTexture::textureId(GLCanvas& gl)
   {
     PrintInfo("Failed to create texture");
 
-    //see not above for allocate Memory
-#if 0
-    GLInfo::getSingleton()->freeOpenGLMemory(fullsize);
-#endif
+    glinfo->freeOpenGLMemory(fullsize);
 
     if (texture_id)
     {

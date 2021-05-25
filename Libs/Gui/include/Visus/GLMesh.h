@@ -233,6 +233,20 @@ public:
 
 public:
 
+  //Points
+  template <class Point>
+  static GLMesh Points(const std::vector<Point>& points)
+  {
+    GLMesh ret;
+    ret.begin(GL_POINTS);
+    for (int I = 0; I < (int)points.size(); I ++)
+      ret.vertex(points[I + 0]);
+    ret.end();
+    return ret;
+  }
+
+public:
+
   //Lines
   template <class Point>
   static GLMesh Lines(const std::vector<Point>& points)

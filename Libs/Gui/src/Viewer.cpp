@@ -101,16 +101,8 @@ static void RedirectLogToViewer(String msg, void* user_data)
 ///////////////////////////////////////////////////////////////////////////////////////////////
 Viewer::Viewer(String title) : QMainWindow()
 {
-  if (GLInfo::getSingleton()->getGpuTotalMemory())
-  {
-    QueryNode::willFitOnGpu = [](Int64 size) {
-
-      auto freemem = GLInfo::getSingleton()->getGpuFreeMemory();
-      if ((1.2 * size) < freemem)
-        return true;
-      PrintInfo("Discarning data since it wont' fit on GPU", StringUtils::getStringFromByteSize(size), "freemem", StringUtils::getStringFromByteSize(freemem));
-      return false;
-    };
+  QueryNode::willFitOnGpu = [](Int64 size) ->bool {
+    return GLInfo::getSingleton()->mallocOpenGLMemory(1.2 * size,/*simulate_only*/true);
   };
 
   this->config = *GuiModule::getModuleConfig();
@@ -141,7 +133,7 @@ Viewer::Viewer(String title) : QMainWindow()
   //status bar
   setStatusBar(new QStatusBar());
 
-  enableLog("~visusviewer.history.txt");
+  enableHistory();
 
   clearAll();
   addWorld("world");
@@ -157,6 +149,15 @@ Viewer::~Viewer()
   PrintInfo("destroying VisusViewer");
   RedirectLogTo(nullptr);
   setDataflow(nullptr);
+}
+
+////////////////////////////////////////////////////////////
+void Viewer::enableHistory()
+{
+  //this can be used to replicate what you were doing (like replay)
+  auto filename = "~visusviewer.history." + Time::now().getFormattedLocalTime() + ".xml";
+  PrintInfo("Enabling history",filename);
+  enableLog(filename);
 }
 
 ////////////////////////////////////////////////////////////
@@ -333,12 +334,13 @@ void Viewer::execute(Archive& ar)
 
   if (ar.name == "AddSlice")
   {
-    String uuid, parent, fieldname; int  access_id;
+    String uuid, parent, fieldname; int  access_id; int axis;
     ar.read("uuid", uuid);
     ar.read("parent", parent);
     ar.read("fieldname", fieldname);
     ar.read("access_id", access_id, 0);
-    addSlice(uuid, findNodeByUUID(parent), fieldname, access_id);
+    ar.read("axis", axis, 2);
+    addSlice(uuid, findNodeByUUID(parent), fieldname, access_id, axis);
     return;
   }
   if (ar.name == "AddVolume") {
@@ -1001,7 +1003,7 @@ Node* Viewer::findPick(Node* node,Point2d screen_point,bool bRecursive,double* o
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void Viewer::beginFreeTransform(QueryNode* query_node)
+void Viewer::beginFreeTransformOnQueryNode(QueryNode* query_node)
 {
   //NOTE: this is different from query->getPositionInDatasetNode()
   Position bounds=query_node->getBounds();
@@ -1054,8 +1056,37 @@ void Viewer::beginFreeTransform(QueryNode* query_node)
   postRedisplay();
 }
 
+
+
+////////////////////////////////////////////////////////////////////////////////
+void Viewer::beginFreeTransformOnDatasetNode(DatasetNode* dataset_node)
+{
+  //NOTE: this is different from query->getPositionInDatasetNode()
+  Position bounds = dataset_node->getBounds();
+  if (!bounds.valid())
+  {
+    free_transform.reset();
+    postRedisplay();
+    return;
+  }
+
+  if (!free_transform)
+  {
+    free_transform = std::make_shared<FreeTransform>();
+
+    //whenever free transform change....
+    free_transform->object_changed.connect([this, dataset_node](Position new_bounds) {
+      dataset_node->setBounds(new_bounds);
+    });
+  }
+
+  free_transform->setObject(bounds);
+  postRedisplay();
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
-void Viewer::beginFreeTransform(ModelViewNode* modelview_node)
+void Viewer::beginFreeTransformOnModelviewNode(ModelViewNode* modelview_node)
 {
   //this is what I want to edit
   auto T = modelview_node->getModelView();
@@ -1259,6 +1290,9 @@ bool Viewer::open(String s_url,Node* parent)
 {
   if (s_url.empty())
     return false;
+
+  //will restart th history from scratch...
+  enableHistory();
 
   //get a visus.config from a remote server
   //  http://atlantis.sci.utah.edu:8080/mod_visus?action=list
@@ -1473,7 +1507,7 @@ bool Viewer::openFile(String url, Node* parent)
   if (url.empty())
   {
     url = cstring(QFileDialog::getOpenFileName(nullptr, "Choose a file to open...", last_filename.c_str(),
-      "All supported (*.idx *.midx *.gidx *.obj *.xml *.config *.scn);;IDX (*.idx *.midx *.gidx);;OBJ (*.obj);;XML files (*.xml *.config *.scn)"));
+      "All supported (*.idx *.midx *.gidx *.obj *.xml *.config *.scn);;IDX (*.idx *.midx *.gidx);;OBJ (*.obj);;XML files (*.xml *.config *.scn);; All files (*.*)"));
 
     if (url.empty()) return false;
     last_filename = url;
@@ -1525,6 +1559,70 @@ void Viewer::save(String url,bool bSaveHistory)
 
   Utils::saveTextDocument(url, ar.toString());
   this->last_saved_filename=url;
+}
+
+////////////////////////////////////////////////////////////
+bool Viewer::saveSnapshot()
+{
+  auto filename = snapshots.dir + "/visusviewer.snapshot." + Time::now().getFormattedLocalTime() + ".xml";
+  auto ar = StringTree("Viewer");
+  this->write(ar);
+  Utils::saveTextDocument(filename, ar.toString());
+  PrintInfo("Save snapshot", filename);
+  return true;
+}
+
+
+
+////////////////////////////////////////////////////////////
+bool Viewer::openSnapshot(bool prev)
+{
+  auto v=FileUtils::findFilesInDirectory(snapshots.dir);
+  if (v.empty())
+    return false;
+
+  //filter snapshots
+  int N = 0;
+  for (auto filename : v)
+  {
+    if (Path(filename).getExtension()!=".xml" || !StringUtils::contains(filename, "visusviewer.snapshot."))
+      continue;
+
+    v[N++] = filename;
+  }
+
+  v.resize(N);
+
+  std::sort(v.begin(), v.end());
+
+  for (auto filename : v)
+    PrintInfo(filename);
+
+  String filename;
+
+  if (snapshots.current.empty())
+  {
+    filename = v[0];
+  }
+  else
+  {
+    auto it = std::find(v.begin(), v.end(), snapshots.current);
+    if (it == v.end())
+      filename = v[0];
+    else
+    {
+      auto index = Utils::clamp((int)std::distance(v.begin(), it) + (prev ? -1 : 1), 0, (int)v.size());
+      filename = v[index];
+    }
+  }
+
+  if (!open(filename))
+    return false;
+
+  //ready for the next one
+  snapshots.current = filename;
+  PrintInfo("Opened snapshot",filename, "prev",prev);
+  return true; 
 }
 
 ////////////////////////////////////////////////////////////
@@ -1639,11 +1737,14 @@ void Viewer::setSelection(Node* new_value)
   //in case there is an old free transform going...
   endFreeTransform();
 
-  if (auto query_node=dynamic_cast<QueryNode*>(new_value))
-    beginFreeTransform(query_node);
+  if (auto node =dynamic_cast<QueryNode*>(new_value))
+    beginFreeTransformOnQueryNode(node);
+
+  else if (auto node = dynamic_cast<DatasetNode*>(new_value))
+    beginFreeTransformOnDatasetNode(node);
     
-  else if (auto modelview_node=dynamic_cast<ModelViewNode*>(new_value))
-    beginFreeTransform(modelview_node);
+  else if (auto node=dynamic_cast<ModelViewNode*>(new_value))
+    beginFreeTransformOnModelviewNode(node);
 
   refreshActions();
 
@@ -2207,7 +2308,7 @@ QueryNode* Viewer::addVolume(String uuid, Node* parent, String fieldname, int ac
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int access_id)
+QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int access_id, int axis)
 {
   if (!parent)
   {
@@ -2230,7 +2331,7 @@ QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int acc
 
   QueryNode* ret = nullptr;
   beginUpdate(
-    StringTree("AddSlice", "uuid", uuid, "parent", getUUID(parent), "fieldname", fieldname, "access_id", access_id),
+    StringTree("AddSlice", "uuid", uuid, "parent", getUUID(parent), "fieldname", fieldname, "access_id", access_id, "axis", axis),
     StringTree("RemoveNode", "uuid", uuid));
   {
     //query
@@ -2243,14 +2344,38 @@ QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int acc
     query_node->setViewDependentEnabled(true);
     query_node->setProgression(QueryGuessProgression);
     query_node->setQuality(QueryDefaultQuality);
+
     if (bool bPointQuery = dataset->getPointDim() == 3)
     {
-      auto box = dataset_node->getBounds().getBoxNd().withPointDim(3);
-      box.p1[2] = box.p2[2] = box.center()[2];
-      query_node->setBounds(Position(dataset_node->getBounds().getTransformation(), box));
+      auto BOX = dataset_node->getBounds().getBoxNd().withPointDim(3);
+      auto Width = BOX.size()[0];
+      auto Height = BOX.size()[1];
+      auto Depth = BOX.size()[2];
+
+      if (axis == 0)
+      {
+        auto box = BoxNd(PointNd(0, 0, 0), PointNd(Depth, Height, 0));
+        auto vt = BOX.p1;
+        vt[axis] = BOX.center()[0];
+        query_node->setBounds(Position(dataset_node->getBounds().getTransformation(), Matrix::translate(vt), Matrix::rotate(Quaternion(Point3d(0, 1, 0), -Math::Pi / 2)), box));
+      }
+      else if (axis==1)
+      {
+        auto box = BoxNd(PointNd(0,0,0),PointNd(Width, Depth,0));
+        auto vt = BOX.p1;
+        vt[axis] = BOX.center()[1];
+        query_node->setBounds(Position(dataset_node->getBounds().getTransformation(), Matrix::translate(vt), Matrix::rotate(Quaternion(Point3d(1, 0, 0), +Math::Pi / 2)), box));
+      }
+      else
+      {
+        auto box = BOX;
+        box.p1[2] = box.p2[2] = box.center()[2];
+        query_node->setBounds(Position(dataset_node->getBounds().getTransformation(), box));
+      }
     }
     else
     {
+      //in 2d it is all the dataset
       query_node->setBounds(dataset_node->getBounds());
     }
     addNode(parent, query_node);
