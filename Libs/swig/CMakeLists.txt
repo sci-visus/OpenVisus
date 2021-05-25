@@ -81,30 +81,20 @@ endif()
 
 if (TARGET VisusDb)
 	AddSwigLibrary(VisusDb dataset.py PyMultipleDataset.h)
-endif()
-
-if (TARGET VisusDataflow)
-	AddSwigLibrary(VisusDataflow)
 	AddPythonTarget("CMakePredefinedTargets" test      -m OpenVisus test)
 	AddPythonTarget("CMakePredefinedTargets" test-idx  -m OpenVisus test-idx)
 endif()
 
-if (TARGET VisusNodes)
-	AddSwigLibrary(VisusNodes)
-endif()
-
 if (TARGET VisusGui)
 	AddSwigLibrary(VisusGui scripting_node.py viewer.py gui.py)
-	AddPythonTarget("CMakePredefinedTargets" configure -m OpenVisus configure)
-	AddPythonTarget("CMakePredefinedTargets" viewer    -m OpenVisus viewer)
-	AddPythonTarget("CMakePredefinedTargets" viewer1   -m OpenVisus viewer1)
-	AddPythonTarget("CMakePredefinedTargets" viewer2   -m OpenVisus viewer2)	
-
-	AddPythonTarget("Jupyter" quick_tour.ipynb              -m OpenVisus jupyter Samples/jupyter/quick_tour.ipynb)
-	AddPythonTarget("Jupyter" Agricolture.ipynb             -m OpenVisus jupyter Samples/jupyter/Agricolture.ipynb)
-	AddPythonTarget("Jupyter" Climate.ipynb                 -m OpenVisus jupyter Samples/jupyter/Climate.ipynb)
-	AddPythonTarget("Jupyter" ReadAndView.ipynb             -m OpenVisus jupyter Samples/jupyter/ReadAndView.ipynb)
-	AddPythonTarget("Jupyter" TestIdxBlockCompression.ipynb -m OpenVisus jupyter Samples/jupyter/TestIdxBlockCompression.ipynb)
+	AddPythonTarget("CMakePredefinedTargets" configure          -m OpenVisus configure)
+	AddPythonTarget("CMakePredefinedTargets" viewer             -m OpenVisus viewer)
+	AddPythonTarget("CMakePredefinedTargets" test-dataflow      -m OpenVisus test-dataflow)
+	AddPythonTarget("CMakePredefinedTargets" test-gui           -m OpenVisus test-gui)
+	AddPythonTarget("CMakePredefinedTargets" test-viewer        -m OpenVisus test-viewer)
+	AddPythonTarget("CMakePredefinedTargets" test-viewer1       -m OpenVisus test-viewer1)
+	AddPythonTarget("CMakePredefinedTargets" test-viewer2       -m OpenVisus test-viewer2)	
+	AddPythonTarget("CMakePredefinedTargets" test-two-viewers   -m OpenVisus test-two-viewers)
 endif()
 
 

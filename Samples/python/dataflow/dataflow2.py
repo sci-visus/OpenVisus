@@ -2,7 +2,8 @@
 import time
 import unittest
 
-from OpenVisus import *
+from OpenVisus     import *
+from OpenVisus.gui import *
 
 # /////////////////////////////////////////////////
 class MyReceiverNode(Node):

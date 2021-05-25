@@ -91,8 +91,8 @@ class MyWindow(QMainWindow):
 		
 		# create viewers
 		if True:
-			self.viewer1=MyViewer(name="viewer1",url=r"D:\GoogleSci\visus_dataset\llnl\battery.idx")
-			self.viewer2=MyViewer(name="viewer2",url=r"D:\GoogleSci\visus_dataset\llnl\meteorite.idx")
+			self.viewer1=MyViewer(name="viewer1",url=r"D:\GoogleSci\visus_dataset\TALASS\ACAM\battery.idx")
+			self.viewer2=MyViewer(name="viewer2",url=r"D:\GoogleSci\visus_dataset\TALASS\ACAM\meteorite.idx")
 			
 			cam1=self.viewer1.getGLCamera()
 			cam2=self.viewer2.getGLCamera()

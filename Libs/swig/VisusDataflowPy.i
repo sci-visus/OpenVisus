@@ -1,4 +1,4 @@
-%module(directors="1") VisusDataflowPy
+
 
 %{ 
 #include <Visus/StringTree.h>

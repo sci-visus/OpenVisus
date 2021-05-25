@@ -1,4 +1,4 @@
-%module(directors="1") VisusNodesPy
+
 
 %{ 
 #include <Visus/LogicSamples.h>

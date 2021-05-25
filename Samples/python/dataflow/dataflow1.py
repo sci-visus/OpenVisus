@@ -44,7 +44,8 @@ import string
 import unittest
 import os
 
-from OpenVisus import *
+from OpenVisus     import *
+from OpenVisus.gui import *
   
 # ////////////////////////////////////////////////////////////////////////
 class PyProducer(Node):

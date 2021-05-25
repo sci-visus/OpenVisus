@@ -7,7 +7,7 @@ from OpenVisus.viewer          import *
 
 def VISUS_REGISTER_NODE_CLASS(TypeName, creator):
 	# print("Registering Python class",TypeName)
-	from OpenVisus.VisusDataflowPy import NodeCreator,NodeFactory
+	from OpenVisus.VisusGuiPy import NodeCreator,NodeFactory
 	class PyNodeCreator(NodeCreator):
 		def __init__(self,creator):
 			super().__init__()

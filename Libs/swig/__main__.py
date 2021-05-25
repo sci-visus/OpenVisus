@@ -526,19 +526,25 @@ def Main(args):
 	if action=="convert":
 		VisusConvert().runFromArgs(action_args)
 		sys.exit(0)
+		
+	# example: python -m OpenVisus viewer 
+	if action=="viewer":
+		from OpenVisus.gui import PyViewer, GuiModule
+		from PyQt5.QtWidgets import QApplication
+		viewer=PyViewer()
+		viewer.configureFromArgs(action_args)
+		QApplication.exec()
+		viewer=None
+		print("viewer done")
+		sys.exit(0)
 
 	# ___________________________________________________________________ test
 	if action=="test":
 		os.chdir(this_dir)
 		ExecuteCommand([sys.executable, "Samples/python/array.py"],check_result=True) 
-
-		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow1.py"],check_result=True) 
-		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow2.py"],check_result=True) 
-
 		ExecuteCommand([sys.executable, "Samples/python/idx/read.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "Samples/python/idx/convert.py"],check_result=True) 
 		# ExecuteCommand([sys.executable, "Samples/python/idx/speed.py"],check_result=True) 
-		
 		ExecuteCommand([sys.executable, "Samples/python/wavelets/filters.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "-m","OpenVisus","server","--dataset","./datasets/cat/rgb.idx","--port","10000","--exit"],check_result=True) 
 		sys.exit(0)
@@ -547,22 +553,26 @@ def Main(args):
 		os.chdir(this_dir)
 		SelfTestIdx()
 		sys.exit(0)
+		
+	# example -m OpenVisus test-network-speed  --nconnections 1 --nrequests 100 --url "http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled" 
+	if action=="test-network-speed":
+		TestNetworkSpeed(action_args)
+		sys.exit(0)		
 
+	if action=="test-dataflow":
+		os.chdir(this_dir)
+		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow1.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow2.py"],check_result=True) 
+		sys.exit(0)
+		
 	# this is just to test run-time linking of shared libraries
 	if action=="test-gui":
 		from OpenVisus.VisusGuiPy import GuiModule
 		print("test-gui ok")
 		sys.exit(0)
-		
-	# example -m OpenVisus test-network-speed  --nconnections 1 --nrequests 100 --url "http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled" 
-	if action=="test-network-speed":
-		TestNetworkSpeed(action_args)
-		sys.exit(0)
-		
-	# ___________________________________________________________________ gui
 
-	# example: python -m OpenVisus viewer ....
-	if action=="viewer":
+	# example: python -m OpenVisus test-viewer ....
+	if action=="test-viewer":
 		os.chdir(this_dir)
 		from OpenVisus.gui import PyViewer, GuiModule
 		from PyQt5.QtWidgets import QApplication
@@ -573,28 +583,20 @@ def Main(args):
 		print("viewer done")
 		sys.exit(0)
 
-	if action=="viewer1":
+	if action=="test-viewer1":
 		os.chdir(this_dir)
-		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "viewer","viewer1.py")]) 
+		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples/python/viewer/viewer1.py")]) 
 		sys.exit(0)
 
-	if action=="viewer2":
+	if action=="test-viewer2":
 		os.chdir(this_dir)
-		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "viewer","viewer2.py")]) 
+		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples/python/viewer/viewer2.py")]) 
 		sys.exit(0)
 
-	if action=="visible-human":
+	if action=="test-two-viewers":
 		os.chdir(this_dir)
-		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "viewer","visible_human.py")]) 
+		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples/python/viewer/two_viewers.py")]) 
 		sys.exit(0)
-
-	if action=="jupyter":
-		filename=action_args[0]
-		ExecuteCommand([sys.executable,"-m","jupyter","nbconvert","--execute", filename]) 
-		# import webbrowser  
-		# webbrowser.open("file://"+filename.replace(".ipynb",".html"))
-		sys.exit(0)
-
 
 
 	raise Exception("unknown action",action)
