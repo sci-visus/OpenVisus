@@ -223,8 +223,8 @@ python3 -m OpenVisus viewer
 
 # OPTIONAL
 python3 -m pip install --upgrade opencv-python opencv-contrib-python 
-python3 -m OpenVisus viewer1
-python3 -m OpenVisus viewer2
+python3 -m OpenVisus test-viewer1
+python3 -m OpenVisus test-viewer2
 
 # OPTIONAL
 python3 -m pip install --upgrade jupyter

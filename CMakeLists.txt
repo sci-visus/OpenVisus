@@ -80,7 +80,7 @@ macro(InstallDlls pattern)
 		file(GLOB __dlls__ ${pattern})
 		foreach(__it__ ${__dlls__})
 			get_filename_component(__path__ "${__it__}"  REALPATH)
-			INSTALL(FILES __path__ DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/bin/)
+			INSTALL(FILES ${__path__} DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/bin/)
 		endforeach()
 	endif()
 endmacro()
@@ -212,10 +212,13 @@ endif()
 
 add_subdirectory(ExternalLibs)
 add_subdirectory(Libs)
-add_subdirectory(Executable)
+
+if (NOT VISUS_MINIMAL)
+	add_subdirectory(Executable)
+endif()
 
 # ///////////////////////////////////////////////////////////////////////////
-# install step
+# install step (NOTE: there is no need to install binaries/libraries since they are already in correct position)
 # ///////////////////////////////////////////////////////////////////////////
 
 set (CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR} CACHE STRING "CMAKE_INSTALL_PREFIX" FORCE)
