@@ -440,12 +440,13 @@ StringTree& StringTree::write(String key,String value)
 SharedPtr<StringTree> StringTree::getChild(String name) const
 {
   auto cursor = NormalizeR(this, name);
+  if (!cursor) return SharedPtr<StringTree>();
   for (auto child : cursor->getChilds())
   {
     if (child->name == name)
       return child;
   }
-  return nullptr;
+  return SharedPtr<StringTree>();
 }
 
 /////////////////////////////////////////////////
