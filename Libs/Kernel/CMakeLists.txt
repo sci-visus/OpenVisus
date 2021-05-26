@@ -180,16 +180,12 @@ file(GLOB Sources
 	${zfp_Sources} 
 	${zlib_Sources})
 
-if (VISUS_STATIC_LIB)
-	add_library(VisusKernel STATIC ${Sources})
-	target_compile_options(VisusKernel PUBLIC -DVISUS_STATIC_KERNEL_LIB=1)
-	if (MSVC)
-		target_compile_options(VisusKernel PUBLIC "$<$<CONFIG:DEBUG>:/MTd>")
-		target_compile_options(VisusKernel PUBLIC "$<$<CONFIG:RELEASE>:/MT>")
-	endif()
-else()
-	add_library(VisusKernel SHARED ${Sources})
+add_library(VisusKernel ${Sources})
+
+if (NOT BUILD_SHARED_LIBS)
+	target_compile_options(VisusKernel PUBLIC -DVISUS_STATIC_LIB=1)
 endif()
+
 set_target_properties(VisusKernel PROPERTIES FOLDER "")
 
 if (WIN32)

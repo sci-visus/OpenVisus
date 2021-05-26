@@ -43,7 +43,7 @@ For support : support@visus.net
 
 namespace Visus {
 
-#if SWIG || VISUS_STATIC_DATAFLOW_LIB
+#if SWIG || VISUS_STATIC_LIB
   #define VISUS_DATAFLOW_API
 #else
   #if VISUS_BUILDING_VISUSDATAFLOW

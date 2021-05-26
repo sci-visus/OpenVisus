@@ -422,8 +422,7 @@ OpenVisus_DIR=build/Release/OpenVisus
 CXX_FLAGS=\
 	-I$(OpenVisus_DIR)/include/Db \
 	-I$(OpenVisus_DIR)/include/Kernel \
-	-DVISUS_STATIC_KERNEL_LIB=1 \
-	-DVISUS_STATIC_DB_LIB=1
+	-DVISUS_STATIC_=1 
 
 main: main.o
 	$(CXX) -o $@ $< -L${OpenVisus_DIR}/lib -lVisusMinimal
@@ -452,8 +451,7 @@ To use the idx reader, include the `IdxDataset.h` as follows.
 ```
 #undef min
 #undef max
-#define VISUS_STATIC_KERNEL_LIB 1
-#define VISUS_STATIC_DB_LIB 1
+#define VISUS_STATIC_LIB 1
 #include <Visus/IdxDataset.h>
 ```
 
