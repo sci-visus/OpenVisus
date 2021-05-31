@@ -486,6 +486,17 @@ void Viewer::setScriptingCode(String value)
     node->setCode(value);
 }
 
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+void Viewer::showMaximized() {
+  // needed for LLNL-demo
+  //sometimes in Jupyter notebook the current window (with Qt5 loop in the baground) does not show up
+  QMainWindow::setVisible(true);
+  QMainWindow::show();
+  QMainWindow::setFocus();
+  QMainWindow::showMaximized();
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 void Viewer::configureFromArgs(std::vector<String> args)
 {

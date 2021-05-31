@@ -294,6 +294,9 @@ public:
     return "Viewer";
   }
 
+  //showMaximized 
+  void showMaximized();
+
   //configureFromArgs
   void configureFromArgs(std::vector<String> args);
 
