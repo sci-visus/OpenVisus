@@ -214,7 +214,9 @@ void Viewer::glCanvasMousePressEvent(QMouseEvent* evt)
     {
       auto p1 = (T * ray2.getPoint(intersection.tmin)).toPoint3();
       auto distance = (p1 - p0).module();
-      PrintInfo("Point", p1);
+      static Point3d last_point;
+      PrintInfo("Point", p1,"distance",p1.distance(last_point));
+      last_point = p1;
     }
   }
 
