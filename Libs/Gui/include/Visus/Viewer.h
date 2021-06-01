@@ -694,6 +694,11 @@ public:
 
 public:
 
+  //rotateCamera
+  void  rotateCamera(Point3d axis, double angle = 5);;
+
+public:
+
   //execute
   virtual void execute(Archive& ar) override;
 
@@ -782,6 +787,13 @@ private:
     QAction* CameraX = nullptr;
     QAction* CameraY = nullptr;
     QAction* CameraZ = nullptr;
+
+    QAction* RotatePosX = nullptr;
+    QAction* RotatePosY = nullptr;
+    QAction* RotatePosZ = nullptr;
+    QAction* RotateNegX = nullptr;
+    QAction* RotateNegY = nullptr;
+    QAction* RotateNegZ = nullptr;
 
     QAction* EditNode = nullptr;
     QAction* RemoveNode = nullptr;

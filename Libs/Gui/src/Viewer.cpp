@@ -59,6 +59,7 @@ For support : support@visus.net
 #include <Visus/IsoContourNode.h>
 #include <Visus/IsoContourRenderNode.h>
 #include <Visus/GLOrthoCamera.h>
+#include <Visus/GLLookAtCamera.h>
 #include <Visus/GLCameraNode.h>
 #include <Visus/DatasetNode.h>
 #include <Visus/QueryNode.h>
@@ -2693,6 +2694,18 @@ PaletteNode* Viewer::addPalette(String uuid, Node* parent,String palette)
   endUpdate();
 
   return ret;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void Viewer::rotateCamera(Point3d axis, double angle)
+{
+  if (auto glcamera = std::dynamic_pointer_cast<GLLookAtCamera>(getGLCamera()))
+  {
+    glcamera->setRotation(glcamera->getRotation() * Quaternion(axis, Utils::degreeToRadiant(angle)));
+    refreshAll();
+    postRedisplay();
+  }
 }
 
 

@@ -224,8 +224,8 @@ void Viewer::createActions()
   addAction(actions.SaveSnapshot = GuiFactory::CreateAction("Save snapshot", this, [this]() {
     saveSnapshot();
     }));
-  actions.SaveSnapshot->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_P));
-  actions.SaveSnapshot->setToolTip("Save snapshot [CTRL+P]");
+  actions.SaveSnapshot->setShortcuts({ QKeySequence(Qt::Key_P), QKeySequence(Qt::SHIFT + Qt::Key_P) });
+  actions.SaveSnapshot->setToolTip("Save snapshot [P | SHIFT+P]");
 
   addAction(actions.OpenPreviousSnapshot = GuiFactory::CreateAction("Open previous snapshot", this, [this]() {
     openSnapshot(/*prev*/true);
@@ -307,6 +307,14 @@ void Viewer::createActions()
   addAction(actions.CameraZ= GuiFactory::CreateAction("Z axis",this,[this](){
     guessGLCameraPosition(2);
   }));
+
+
+  addAction(actions.RotatePosX = GuiFactory::CreateAction("Rotate +X", this, [this]() {rotateCamera(Point3d(1, 0, 0), +5);})); actions.RotatePosX->setShortcut(QKeySequence(            Qt::Key_X)); actions.RotatePosX->setToolTip("Rotate +X [X]");
+  addAction(actions.RotatePosY = GuiFactory::CreateAction("Rotate +Y", this, [this]() {rotateCamera(Point3d(0, 1, 0), +5);})); actions.RotatePosY->setShortcut(QKeySequence(            Qt::Key_Y)); actions.RotatePosY->setToolTip("Rotate +Y [Y]");
+  addAction(actions.RotatePosZ = GuiFactory::CreateAction("Rotate +Z", this, [this]() {rotateCamera(Point3d(0, 0, 1), +5);})); actions.RotatePosZ->setShortcut(QKeySequence(            Qt::Key_Z)); actions.RotatePosZ->setToolTip("Rotate +Z [Z]");
+  addAction(actions.RotateNegX = GuiFactory::CreateAction("Rotate -X", this, [this]() {rotateCamera(Point3d(1, 0, 0), -5);})); actions.RotateNegX->setShortcut(QKeySequence(Qt::SHIFT + Qt::Key_X)); actions.RotateNegX->setToolTip("Rotate -X [SHIFT+X]");
+  addAction(actions.RotateNegY = GuiFactory::CreateAction("Rotate -Y", this, [this]() {rotateCamera(Point3d(0, 1, 0), -5);})); actions.RotateNegY->setShortcut(QKeySequence(Qt::SHIFT + Qt::Key_Y)); actions.RotateNegY->setToolTip("Rotate -Y [SHIFT+Y]");
+  addAction(actions.RotateNegZ = GuiFactory::CreateAction("Rotate -Z", this, [this]() {rotateCamera(Point3d(0, 0, 1), -5);})); actions.RotateNegZ->setShortcut(QKeySequence(Qt::SHIFT + Qt::Key_Z)); actions.RotateNegZ->setToolTip("Rotate -Z [SHIFT+Z]");
 
   addAction(actions.EditNode= GuiFactory::CreateAction("Edit node",this, QIcon(":/edit.png"), [this]() {
     auto selection = getSelection();
