@@ -305,6 +305,11 @@ public:
     return this;
   }
 
+  //isRunning
+  bool isRunning() const {
+    return running.value;
+  }
+
   //printInfo
   void printInfo(String msg);
 
