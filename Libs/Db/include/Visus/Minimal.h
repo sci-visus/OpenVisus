@@ -18,7 +18,7 @@ It is used as a simplified wrapper layer for old C++98 compilers
     #define VISUS_SHARED_IMPORT 
   #endif 
 
-  #if VISUS_STATIC_DB_LIB
+  #if VISUS_STATIC_LIB
     #define VISUS_DB_API
   #else
     #if VISUS_BUILDING_VISUSDB

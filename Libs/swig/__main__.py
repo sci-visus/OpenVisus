@@ -490,7 +490,6 @@ def Main(args):
 
 	print("-m OpenVisus",action,action_args)
 
-	# ___________________________________________________________________ openvisus utils
 	if action=="configure":
 		os.chdir(this_dir)
 		Configure(bUserInstall="--user" in action_args)
@@ -527,7 +526,7 @@ def Main(args):
 		VisusConvert().runFromArgs(action_args)
 		sys.exit(0)
 
-	# ___________________________________________________________________ test
+	# test
 	if action=="test":
 		os.chdir(this_dir)
 		ExecuteCommand([sys.executable, "Samples/python/array.py"],check_result=True) 
@@ -558,12 +557,8 @@ def Main(args):
 	if action=="test-network-speed":
 		TestNetworkSpeed(action_args)
 		sys.exit(0)
-		
-	# ___________________________________________________________________ gui
 
-	# example: python -m OpenVisus viewer ....
 	if action=="viewer":
-		os.chdir(this_dir)
 		from OpenVisus.gui import PyViewer, GuiModule
 		from PyQt5.QtWidgets import QApplication
 		viewer=PyViewer()
@@ -573,29 +568,38 @@ def Main(args):
 		print("viewer done")
 		sys.exit(0)
 
-	if action=="viewer1":
+
+	if action=="test-viewer":
 		os.chdir(this_dir)
-		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "viewer","viewer1.py")]) 
+		from OpenVisus.gui import PyViewer, GuiModule
+		from PyQt5.QtWidgets import QApplication
+		viewer=PyViewer()
+		viewer.configureFromArgs(action_args)
+		QApplication.exec()
+		viewer=None
 		sys.exit(0)
 
-	if action=="viewer2":
+	if action=="test-viewer1":
 		os.chdir(this_dir)
-		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "viewer","viewer2.py")]) 
+		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples/python/viewer/viewer1.py")]) 
 		sys.exit(0)
 
-	if action=="visible-human":
+	if action=="test-viewer2":
 		os.chdir(this_dir)
-		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples", "python", "viewer","visible_human.py")]) 
+		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples/python/viewer/viewer2.py")]) 
+		sys.exit(0)
+
+	if action=="test-two-viewers":
+		os.chdir(this_dir)
+		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples/python/viewer/two_viewers.py")]) 
 		sys.exit(0)
 
 	if action=="jupyter":
 		filename=action_args[0]
-		ExecuteCommand([sys.executable,"-m","jupyter","nbconvert","--execute", filename]) 
-		# import webbrowser  
+		ExecuteCommand([sys.executable,"-m","jupyter","nbconvert","--execute", filename])
+		# import webbrowser
 		# webbrowser.open("file://"+filename.replace(".ipynb",".html"))
 		sys.exit(0)
-
-
 
 	raise Exception("unknown action",action)
 

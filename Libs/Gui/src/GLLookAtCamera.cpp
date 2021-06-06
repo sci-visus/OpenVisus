@@ -350,6 +350,7 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt, const Viewport& viewport)
 
   switch(key)
   {
+    /*
     //print info
     case Qt::Key_P:
     {
@@ -359,6 +360,7 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt, const Viewport& viewport)
       evt->accept();
       return;
     }
+    */
   }
 }
 

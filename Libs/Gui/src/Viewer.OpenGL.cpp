@@ -203,18 +203,25 @@ void Viewer::glCanvasMousePressEvent(QMouseEvent* evt)
     auto ray = FrustumMap(frustum).getRay(screen_pos);
     auto p0 = ray.getPoint(0).toPoint3();
 
+    //this are in physic coordinates
     auto bounds = query_node->getQueryBounds();
     auto T = bounds.getTransformation();
     auto box = bounds.getBoxNd();
-
     auto ray2 = ray.transformByMatrix(T.invert());
 
+    //needed for llnl-demo
     RayBoxIntersection intersection(ray2, box);
     if (intersection.valid)
     {
-      auto p1 = (T * ray2.getPoint(intersection.tmin)).toPoint3();
-      auto distance = (p1 - p0).module();
-      PrintInfo("Point", p1);
+      static Point3d last_point_physic;
+      auto p1_physic = (T * ray2.getPoint(intersection.tmin)).toPoint3();
+      PrintInfo("Physic point", p1_physic,"physic_distance", p1_physic.distance(last_point_physic));
+      last_point_physic = p1_physic;
+
+      static Point3d last_point_logic;
+      auto p1_logic = query_node->getDataset()->physicToLogic() * p1_physic;
+      PrintInfo("Logic point", p1_logic, "logic_distance", p1_logic.distance(last_point_logic));
+      last_point_logic = p1_logic;
     }
   }
 

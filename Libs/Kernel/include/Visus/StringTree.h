@@ -507,10 +507,10 @@ private:
   //toJSONString
   static String toJSONString(const StringTree& stree, int nrec);
 
-  //NormalizeR
+  //NormalizeR (normlize for reading, return null if does not exist)
   static const StringTree* NormalizeR(const StringTree* cursor, String& key);
 
-  //NormalizeW
+  //NormalizeW (normalize for writing, create the node if does not exist)
   static StringTree* NormalizeW(StringTree* cursor, String& key);
 
 }; //end class

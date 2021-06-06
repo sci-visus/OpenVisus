@@ -52,7 +52,7 @@ For support : support@visus.net
 
 namespace Visus {
 
-#if SWIG || VISUS_STATIC_GUI_LIB
+#if SWIG || VISUS_STATIC_LIB
   #define VISUS_GUI_API
 #else
   #if VISUS_BUILDING_VISUSGUI

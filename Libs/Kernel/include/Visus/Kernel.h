@@ -95,7 +95,7 @@ For support : support@visus.net
   #define VISUS_NEWOBJECT(...) __VA_ARGS__
 #endif
 
-#if SWIG || VISUS_STATIC_KERNEL_LIB
+#if SWIG || VISUS_STATIC_LIB
   #define VISUS_KERNEL_API
 #else
   #if VISUS_BUILDING_VISUSKERNEL
