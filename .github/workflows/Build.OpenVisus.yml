@@ -140,20 +140,19 @@ jobs:
       shell: bash -l {0}
       run: |
            set -x
-           # install some needed packages
-           ${pythonLocation}/python -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
-           cd build/Release/OpenVisus
-           
-           # running setup to create the wheel
-           Version=${{ matrix.python-version }}
-           if [[  "${{ matrix.os }}" == "windows-latest" ]] ; then PLATFORM_NAME=win_amd64            ; fi
-           if [[  "${{ matrix.os }}" == "macos-latest"   ]] ; then PLATFORM_NAME=macosx_10_9_x86_64   ; fi
-           if [[  "${{ matrix.os }}" == "ubuntu-latest"  ]] ; then PLATFORM_NAME=manylinux2010_x86_64 ; fi
-           ${pythonLocation}/python setup.py -q bdist_wheel --python-tag=cp${Version:0:1}${Version:2:1} --plat-name=${PLATFORM_NAME}
-                     
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            echo "GIT_TAG $GIT_TAG" 
            if [[ "${GIT_TAG}" != "" ]] ; then
+             # install some needed packages
+             ${pythonLocation}/python -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
+             cd build/Release/OpenVisus
+             
+             # running setup to create the wheel
+             Version=${{ matrix.python-version }}
+             if [[  "${{ matrix.os }}" == "windows-latest" ]] ; then PLATFORM_NAME=win_amd64            ; fi
+             if [[  "${{ matrix.os }}" == "macos-latest"   ]] ; then PLATFORM_NAME=macosx_10_9_x86_64   ; fi
+             if [[  "${{ matrix.os }}" == "ubuntu-latest"  ]] ; then PLATFORM_NAME=manylinux2010_x86_64 ; fi
+             ${pythonLocation}/python setup.py -q bdist_wheel --python-tag=cp${Version:0:1}${Version:2:1} --plat-name=${PLATFORM_NAME}
              echo "Uploading to PyPi GIT_TAG=$GIT_TAG"
              ${pythonLocation}/python -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --skip-existing  "dist/*.whl" 
            fi
