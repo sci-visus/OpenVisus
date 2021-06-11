@@ -68,7 +68,7 @@ jobs:
            fi
     # ____________________________________________ DISTRIB Docker
     - name: Distrib OpenVisus
-      if: python-version == '3.8'
+      if: ${{ matrix.python-version=='3.8' }}
       shell: bash -l {0}
       run: |
            TAG=`${pythonLocation}/python Libs/swig/setup.py print-tag`
