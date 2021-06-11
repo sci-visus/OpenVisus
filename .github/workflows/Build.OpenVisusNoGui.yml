@@ -33,7 +33,7 @@ jobs:
       shell: bash -l {0}
       run: |
            # i can use the pyqt one, but I would need to share the directory to docker, for simplicity I'm not doing it
-           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
+           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e VISUS_GUI=0 -e VISUS_MODVISUS=1 -e VISUS_SLAM=0 -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
 
