@@ -1,4 +1,4 @@
-name: BuildOpenVisus.CPython
+name: Build.OpenVisusNoGui
 
 on: [push]
 
