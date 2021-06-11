@@ -72,7 +72,8 @@ jobs:
       if: ${{ matrix.python-version=='3.8' }}
       shell: bash -l {0}
       run: |
-           set -x           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
+           set -x           
+           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" ]] ; then
              TAG=`${pythonLocation}/python Libs/swig/setup.py print-tag`
              echo "TAG=${TAG}" 
