@@ -5,10 +5,10 @@ RUN apt-get install -y git python3 python3-pip
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install --upgrade numpy
 
-# install OpenVisus (change version as needed) and webviewer
+# install OpenVisusNoGui (change version as needed) and webviewer
 ARG TAG
-RUN python3 -m pip install --upgrade OpenVisus==$TAG
-RUN python3 -c "import os,OpenVisus;os.system('rm -Rf /home/OpenVisus');os.system('ln -s {} /home/OpenVisus'.format(os.path.dirname(OpenVisus.__file__)))"
+RUN python3 -m pip install --upgrade OpenVisusNoGui==$TAG
+RUN python3 -c "import os,OpenVisusNoGui;os.system('rm -Rf /home/OpenVisus');os.system('ln -s {} /home/OpenVisus'.format(os.path.dirname(OpenVisusNoGui.__file__)))"
 RUN git clone -bmaster https://github.com/sci-visus/OpenVisusJS.git /home/OpenVisus/webviewer
 
 # How do I create a self-signed SSL Certificate for testing purposes:
