@@ -52,8 +52,9 @@ jobs:
     - name: Distrib OpenVisusNoGui
       shell: bash -l {0}
       run: |
+           set -x
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-           echo "GIT_TAG $GIT_TAG"
+           echo "GIT_TAG=$GIT_TAG"
            
            # install some needed packages
            ${pythonLocation}/python -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
@@ -71,6 +72,7 @@ jobs:
       if: ${{ matrix.python-version=='3.8' }}
       shell: bash -l {0}
       run: |
+           set -x
            TAG=`${pythonLocation}/python Libs/swig/setup.py print-tag`
            echo "TAG=${TAG}" 
            cd Docker/mod_visus/httpd

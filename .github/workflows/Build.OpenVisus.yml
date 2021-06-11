@@ -128,7 +128,6 @@ jobs:
     - name: Test OpenVisus 
       shell: bash -l {0}
       run: |
-           set -x
            which python
            cd build/Release/OpenVisus
            export PYTHONPATH=../
@@ -140,6 +139,7 @@ jobs:
     - name: Distrib OpenVisus
       shell: bash -l {0}
       run: |
+           set -x
            # install some needed packages
            ${pythonLocation}/python -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
            cd build/Release/OpenVisus
