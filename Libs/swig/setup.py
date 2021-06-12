@@ -1,9 +1,14 @@
 import os,sys,shutil,setuptools
 
-PROJECT_NAME="OpenVisus"
-PROJECT_VERSION="2.1.136"
+PROJECT_VERSION="2.1.137"
 
 this_dir=os.path.dirname(os.path.abspath(__file__))
+
+# special name for no-gui
+if os.path.isfile(os.path.join(this_dir,"QT_VERSION")):
+	PROJECT_NAME="OpenVisusNoGui"
+else:
+	PROJECT_NAME="OpenVisus"
 
 # ///////////////////////////////////////////////////////////////
 def NewTag():
