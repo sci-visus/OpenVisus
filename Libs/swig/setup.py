@@ -1,7 +1,6 @@
 import os,sys,shutil,setuptools
 
-PROJECT_NAME="OpenVisus"
-PROJECT_VERSION="2.1.135"
+PROJECT_VERSION="2.1.138"
 
 this_dir=os.path.dirname(os.path.abspath(__file__))
 
@@ -22,7 +21,8 @@ def DoSetup():
 	shutil.rmtree('./dist', ignore_errors=True)	
 	shutil.rmtree('./.git', ignore_errors=True)	
 	shutil.rmtree('./tmp', ignore_errors=True)	
-	shutil.rmtree('./{}.egg-info'.format(PROJECT_NAME), ignore_errors=True)	
+	shutil.rmtree('./{}.egg-info'.format("OpenVisus"), ignore_errors=True)	
+	shutil.rmtree('./{}.egg-info'.format("OpenVisusNoGui"), ignore_errors=True)	
 	files=[]	
 	for dirpath, __dirnames__, filenames in os.walk("."):
 		for it in filenames:
@@ -31,17 +31,26 @@ def DoSetup():
 			if os.path.splitext(filename)[1] in [".ilk",".pdb",".pyc",".pyo"]:  continue
 			files.append(filename)
 	
+	
+	# special name for no-gui
+	# see https://github.com/opencv/opencv-python/blob/master/setup.py
+	package_name="OpenVisus"
+	
+	# special case no gui
+	if not os.path.isfile(os.path.join(this_dir,"QT_VERSION")):
+		package_name="OpenVisusNoGui"	
+	
 	# dependency on numpy removed otherwise I have problems with conda which downgrade numpy for unknown reasons
 	setuptools.setup(
-	  name = PROJECT_NAME,
+	  name = package_name,
 	  description = "ViSUS multiresolution I/O, analysis, and visualization system",
 	  version=PROJECT_VERSION,
 	  url="https://github.com/sci-visus/OpenVisus",
 	  author="visus.net",
 	  author_email="support@visus.net",
-	  packages=[PROJECT_NAME],
-	  package_dir={PROJECT_NAME:'.'},
-	  package_data={PROJECT_NAME: files},
+	  packages=["OpenVisus"],
+	  package_dir={"OpenVisus":'.'},
+	  package_data={"OpenVisus": files},
 	  platforms=['Linux', 'OS-X', 'Windows'],
 	  license = "BSD",
 	  python_requires='>=3.6',
