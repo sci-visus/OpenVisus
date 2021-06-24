@@ -326,6 +326,9 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
       {
         VisusAssert(url.isRemote());
 
+        if (bool is_cloud = !CloudStorage::guessType(url).empty())
+          return std::make_shared<CloudStorageAccess>(this, config);
+
         if (bForBlockQuery)
           return std::make_shared<ModVisusAccess>(this, config);
         else
