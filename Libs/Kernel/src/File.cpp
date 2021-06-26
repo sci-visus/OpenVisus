@@ -906,6 +906,8 @@ bool FileUtils::touch(Path path)
   return file.createAndOpen(path.toString(), "rw");
 }
 
+bool VERBOSE_FILE_LOCK = false;
+
 /////////////////////////////////////////////////////////////////////////
 void FileUtils::lock(Path path)
 {
@@ -919,7 +921,6 @@ void FileUtils::lock(Path path)
   //let's try a little more
   Time T1=Time::now();
   Time last_info_time=T1;
-  bool bVerboseReturn=false;
   for (int nattempt=0; ;nattempt++)
   {
     File file;
@@ -927,7 +928,7 @@ void FileUtils::lock(Path path)
     {
       file.close();
 
-      if (bVerboseReturn)
+      if (VERBOSE_FILE_LOCK)
         PrintInfo("PID",pid,"got file lock",lock_filename);
 
       return;
@@ -938,7 +939,7 @@ void FileUtils::lock(Path path)
     {
       PrintInfo("PID",pid,"waiting for lock on",lock_filename);
       last_info_time=Time::now();
-      bVerboseReturn =true;
+      VERBOSE_FILE_LOCK =true;
     }
 
     Thread::yield();
@@ -950,12 +951,18 @@ void FileUtils::unlock(Path path)
 {
   VisusAssert(!path.empty());
 
+  int pid = Utils::getPid();
+
   String fullpath = path.toString();
 
   String lock_filename = fullpath + ".lock";
   bool bRemoved = ::remove(lock_filename.c_str()) == 0 ? true : false;
   if (!bRemoved)
     ThrowException("cannot remove lock file",lock_filename);
+
+  if (VERBOSE_FILE_LOCK)
+    PrintInfo("PID", pid, "released file lock", lock_filename);
+
 }
 
 /////////////////////////////////////////////////////////////////////////

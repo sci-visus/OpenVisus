@@ -59,6 +59,14 @@ jobs:
         retry_wait_seconds: 5
         command: 'cd /tmp && rm -Rf MacOSX-SDKs && git clone https://github.com/phracker/MacOSX-SDKs.git'
 
+    # ____________________________________________ INSTALL CPYTHON (after QT since it seems Qt action will install python 3.9)
+    - name: Install CPython 
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }} 
+        architecture: 'x64'
+
+
     # ____________________________________________ INSTALL QT
     
     - name: Install Qt for windows
@@ -69,6 +77,7 @@ jobs:
         arch: 'win64_msvc2017_64'
         install-deps: 'true'
         dir: C:\
+        setup-python: 'false' # use the existing python (see https://github.com/jurplel/install-qt-action)
         
     - name: Install Qt for macos
       if: matrix.os == 'macos-latest' 
@@ -83,14 +92,6 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       shell: bash -l {0}
       run: sudo apt-get update && sudo apt-get install libglu1-mesa-dev 1>/dev/null
-
-
-    # ____________________________________________ INSTALL CPYTHON (after QT since it seems Qt action will install python 3.9)
-    - name: Install CPython 
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }} 
-        architecture: 'x64'
 
 
     # ____________________________________________ COMPILE OPENVISUS

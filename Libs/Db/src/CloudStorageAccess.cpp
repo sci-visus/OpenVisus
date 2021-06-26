@@ -50,16 +50,16 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   this->can_read  = StringUtils::find(config.readString("chmod", DefaultChMod), "r") >= 0;
   this->can_write = StringUtils::find(config.readString("chmod", DefaultChMod), "w") >= 0;
   this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
-  this->url = config.readString("url", dataset->getUrl()); VisusAssert(url.valid());
-  this->compression = config.readString("compression", "zip"); //zip compress more than lz4 for network.. 
-  this->layout = config.readString("layout", ""); //row major is default
-  this->reverse_filename = config.readBool("reverse_filename", false);
 
+  this->url = config.readString("url", dataset->getUrl()); VisusAssert(url.valid());
   this->config.write("url", url.toString());
 
-  bool disable_async = config.readBool("disable_async", dataset->isServerMode());
+  this->compression = config.readString("compression", this->url.getParam("compression","zip")); //zip compress more than lz4 for network.. 
+  this->layout = config.readString("layout", this->url.getParam("layout","")); //row major is default
+  this->reverse_filename = config.readBool("reverse_filename", cbool(this->url.getParam("reverse_filename","0")));
+  bool disable_async = config.readBool("disable_async", cbool(this->url.getParam("disable_async",cstring(dataset->isServerMode()))));
 
-  if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
+  if (int nconnections = disable_async ? 0 : config.readInt("nconnections", cint(this->url.getParam("nconnections",cstring(8)))))
     this->netservice = std::make_shared<NetService>(nconnections);
 
   this->cloud_storage=CloudStorage::createInstance(url);
