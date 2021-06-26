@@ -104,6 +104,11 @@ public:
   virtual ~CloudStorage() {
   }
 
+
+
+  //possible return types: empty(i.e. invalid) azure gcs s3
+  static String guessType(Url url);
+
   //createInstance
   static SharedPtr<CloudStorage> createInstance(Url url);
   

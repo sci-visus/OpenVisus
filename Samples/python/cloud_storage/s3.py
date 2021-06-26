@@ -134,7 +134,13 @@ class CopyBlocks:
 	def copyMainFile(self):
 		self.db=LoadDataset(self.src)
 		body=self.db.getDatasetBody().toString().encode()
-		print("Copied dataset body to", self.dst.doCopy(os.path.basename(self.src), body))
+		
+		dst_filename=os.path.basename(self.src)
+		
+		# remove parameters (i.e all after the ?)
+		dst_filename=dst_filename.split("?")[0]
+		
+		print("Copied dataset body to", self.dst.doCopy(dst_filename, body))
 
 	# copyBlocks
 	def copyBlocks(self):

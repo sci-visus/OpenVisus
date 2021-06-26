@@ -184,7 +184,7 @@ class PyDataset(object):
 
 	# writeBlock
 	def writeBlock(self, block_id, time=None, field=None, access=None, data=None, aborted=Aborted()):
-		Assert(access and data)
+		Assert(access is not None)
 		Assert(isinstance(data, numpy.ndarray))
 		field=self.getField() if field is None else self.getField(field)	
 		time = self.getTime() if time is None else time
