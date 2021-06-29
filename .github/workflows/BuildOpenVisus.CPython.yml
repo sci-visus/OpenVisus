@@ -87,6 +87,7 @@ jobs:
         target: 'desktop'
         install-deps: 'true'  
         dir: /tmp
+        setup-python: 'false' # use the existing python (see https://github.com/jurplel/install-qt-action)
 
     - name: Install glu on ubuntu
       if: matrix.os == 'ubuntu-latest'
