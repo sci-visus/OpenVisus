@@ -462,6 +462,7 @@ For OpenVisus developers only:
 
 ```
 TAG=$(python3 Libs/swig/setup.py new-tag) && echo ${TAG}
+# replace manually the version in enviroment.yml if needed for binder
 git commit -a -m "New tag" && git tag -a $TAG -m "$TAG" && git push origin $TAG && git push origin
 ```
 
