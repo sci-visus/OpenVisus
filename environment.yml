@@ -2,9 +2,9 @@ name: visus-environment
 channels:
   - visus
 dependencies:
-  - python=3.7
+  - python=3.8
   - numpy
   - matplotlib
   - pillow
-  - OpenVisus==2.1.46
+  - OpenVisus
   - itkwidgets
