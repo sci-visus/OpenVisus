@@ -67,21 +67,19 @@ jobs:
            
              ${pythonLocation}/python -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --skip-existing  "dist/*.whl" 
            fi
-    # to REENABLE!
-    # ____________________________________________ DISTRIB Docker
-    #- name: Distrib mod_visus Docker
-    #  if: ${{ matrix.python-version=='3.8' }}
-    #  shell: bash -l {0}
-    #  run: |
-    #       set -x           
-    #       GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-    #       if [[ "${GIT_TAG}" != "" ]] ; then
-    #         TAG=`${pythonLocation}/python Libs/swig/setup.py print-tag`
-    #         echo "TAG=${TAG}" 
-    #         cd Docker/mod_visus/httpd
-    #         echo ${{ secrets.DOCKER_TOKEN }} | docker login -u=${{ secrets.DOCKER_USERNAME }} --password-stdin
-    #         docker build --tag visus/mod_visus:$TAG  --build-arg TAG=$TAG .           
-    #       
-    #         echo "Uploading  visus/mod_visus:$TAG to Docker"
-    #         docker push visus/mod_visus:$TAG
-    #       fi
+    # ____________________________________________ DISTRIB Docker (nogui)
+    - name: Distrib mod_visus Docker
+      if: ${{ matrix.python-version=='3.8' }}
+      shell: bash -l {0}
+      run: |
+           set -x
+           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
+           if [[ "${GIT_TAG}" != "" ]] ; then
+             TAG=`${pythonLocation}/python Libs/swig/setup.py print-tag`
+             echo "TAG=${TAG}" 
+             cd Docker/mod_visus/httpd
+             echo ${{ secrets.DOCKER_TOKEN }} | docker login -u=${{ secrets.DOCKER_USERNAME }} --password-stdin
+             docker build --tag visus/mod_visus:$TAG  --build-arg TAG=$TAG .                  
+             echo "Uploading  visus/mod_visus:$TAG to Docker"
+             docker push visus/mod_visus:$TAG
+           fi
