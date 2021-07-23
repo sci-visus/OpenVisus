@@ -77,9 +77,10 @@ jobs:
            if [[ "${GIT_TAG}" != "" ]] ; then
              TAG=`${pythonLocation}/python Libs/swig/setup.py print-tag`
              echo "TAG=${TAG}" 
-             cd Docker/mod_visus/httpd
+             cd Docker/mod_visus
              echo ${{ secrets.DOCKER_TOKEN }} | docker login -u=${{ secrets.DOCKER_USERNAME }} --password-stdin
-             docker build --tag visus/mod_visus:$TAG  --build-arg TAG=$TAG .                  
+             docker build --tag visus/mod_visus:$TAG --tag visus/mod_visus:latest --build-arg TAG=$TAG .                  
              echo "Uploading  visus/mod_visus:$TAG to Docker"
              docker push visus/mod_visus:$TAG
+             docker push visus/mod_visus:latest
            fi

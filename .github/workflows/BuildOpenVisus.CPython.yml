@@ -165,7 +165,7 @@ jobs:
              # DISABLED, for Docker see nogui options
              # TAG=`${pythonLocation}/python Libs/swig/setup.py print-tag` 
              # echo "Uploading ${TAG} to Docker"
-             # pushd Docker/mod_visus/httpd
+             # pushd Docker/mod_visus
              # echo ${{ secrets.DOCKER_TOKEN }} | docker login -u=${{ secrets.DOCKER_USERNAME }} --password-stdin
              # docker build --tag visus/mod_visus:$TAG  --build-arg TAG=$TAG .
              #  docker push visus/mod_visus:$TAG

@@ -1,4 +1,16 @@
-# First Kubernet setup
+# Introduction
+
+This tutorial shows how to run one or multiple modvisus with a frontend load balancer using Kubernetes (K8s).
+
+# Prerequisites
+
+If you are running on Windows, and would like to experiment with K8s, please follow https://learnk8s.io/installing-docker-kubernetes-windows; you should install [WSL](https://docs.microsoft.com/en-us/windows/wsl/install-win10), [Docker Desktop](https://www.docker.com/products/docker-desktop) and [minikube](https://minikube.sigs.k8s.io/docs/start/):
+
+```
+choco install minikube -y
+minikube start
+```
+
 
 Make sure completition is enabled:
 
@@ -6,18 +18,21 @@ Make sure completition is enabled:
 source <(kubectl completion bash)
 ```
 
-Create the Kubernet namespace you will use for resource creation:
+And create a unique K8s namespace you will use for resource creation:
 
 ```
-NAMESPACE=openvisus
-kubectl create namespace $NAMESPACE
-kubectl config set-context --current --namespace=$NAMESPACE
+kubectl create namespace my-namespace
+kubectl config set-context --current --namespace=my-namespace
 ```
 
-Later on you can remove all resources with a simple `kubectl delete namespace openvisus`:
+Later on you can remove all resources with a simple by:
+
+```
+kubectl delete namespace my-namespace
+```
 
 
-# Create Kubernet deployment
+# Create K8s deployment
 
 Create a `mod-visus-deployment` deployment for example using the following command:
 
@@ -130,7 +145,7 @@ To inspect logs from the outside:
 kubectl logs  deployment/mod-visus-deployment
 ```
 
-# Create Kubernet Service
+# Create K8s Service
 
 So far, no pods, nodes, deployment is already accessible from the outside.
 To do so you  need to expose the deployment:
@@ -197,14 +212,7 @@ kubectl get service -o yaml | grep nodePort
 wget -O- --no-verbose http://localhost:30080/mod_visus?action=list
 ```
 
-# (OPTIONAL; needed if you have a real cluster) Create ingress 
-
-On Windows WSL2 (BROKEN right now, see: https://github.com/docker/for-win/issues/7094):
-
-```
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-0.32.0/deploy/static/provider/cloud/deploy.yaml
-https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-0.32.0/deploy/static/provider/cloud/deploy.yaml
-```
+#  Create ingress (OPTIONAL needed only for real cluster)
 
 On minikube:
 
@@ -213,10 +221,9 @@ minikube addons enable ingress
 ```
 
 
-Create the file for ingress:
+Create a ` mod_visus_ingress.yaml` file for ingress:
 
 ```
-cat <<EOF  > mod_visus_ingress.yaml
 apiVersion: networking.k8s.io/v1beta1 # for versions before >1.16 use extensions/v1
 kind: Ingress
 metadata:
@@ -233,7 +240,6 @@ spec:
         backend:
           serviceName: mod-visus-service
           servicePort: 80 # note: this is the service port, not the nodePort (you could use even a Cluster service instead of NodePort service?)
-EOF
 ```
 
 Create/ Inspect/ Debug the ingress:
@@ -251,6 +257,4 @@ wget -O- --no-verbose http://localhost:80/mod_visus?action=list
 ```
 
 
-# (OPTIONAL). Add Network policy and ssh for better security
 
-TODO

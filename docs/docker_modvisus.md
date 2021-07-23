@@ -51,10 +51,10 @@ You can run the server from the external (change the image version as needed):
 
 ```
 IMAGE=visus/mod_visus:2.1.142
-sudo docker run --rm --publish 8080:80 --publish 443:443 -v $DATASETS:/datasets $IMAGE
+sudo docker run --rm --publish 8080:80 --publish 443:443 --name my-modvisus -v $DATASETS:/datasets $IMAGE
 ```
 
-From another shell:
+From another shell check if it is working (for `HTTPS` use `https://localhost:443`):
 
 ```
 # should return an HTML document (BODY it works)
@@ -70,14 +70,50 @@ curl http://localhost:8080/mod_visus?action=list
 curl http://localhost:8080/mod_visus?dataset=2kbit1 
 ```
 
+# Optional sections
 
-If you want to debug the server with an internal shell:
+## Debug the Container
 
-```
+To debug the container from the inside:
+
+``` 
 sudo docker run --rm -it --publish 8080:80 --publish 443:443 -v $DATASETS:/datasets $IMAGE /bin/bash
 /usr/local/bin/httpd-foreground
 ```
-# Optional sections
+
+## Build the image
+
+```
+cd Docker/mod_visus/httpd
+TAG=YOUR_TAG_HERE
+sudo docker build --tag visus/mod_visus:$TAG  --build-arg TAG=$TAG .
+sudo docker push visus/mod_visus:$TAG
+```
+
+## Inspect the logs
+
+Type:
+
+```
+sudo docker ps  | grep mod_visus
+sudo docker logs my-modvisus
+```
+
+
+## Start containers automatically
+
+
+Add some options to the run command (see https://docs.docker.com/config/containers/start-containers-automatically):
+
+```
+sudo docker run --rm --publish 8080:80 --publish 443:443 -v $DATASETS:/datasets --name my-modvisus --restart=always -d -name restart-always-modvisus $IMAGE
+``` 
+
+and start the docker daemon (see https://docs.docker.com/config/daemon/systemd): 
+
+```
+sudo systemctl start docker
+```
 
 
 ## Enable password security 
