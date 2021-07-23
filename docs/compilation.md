@@ -1,16 +1,15 @@
 
-[Windows compilation Visual Studio](#windows-compilation-visual-studio)
+# How to build OpenVisus
 
-[Windows compilation mingw](#windows-compilation-mingw)
+Table of content:
 
-[MacOSX compilation clang](#macosx-compilation-clang)
-
-[MacOSX compilation gcc](#macosx-compilation-gcc)
-
-[Linux compilation gcc](#linux-compilation-gcc)
-
-[Minimal compilation](#minimal-compilation)
-
+- [Windows compilation using Visual Studio](#windows-compilation-visual-studio)
+- [Windows compilation using mingw](#windows-compilation-mingw)
+- [MacOSX compilation using clang](#macosx-compilation-clang)
+- [MacOSX compilation using gcc](#macosx-compilation-gcc)
+- [Linux compilation using gcc](#linux-compilation-gcc)
+- [Minimal compilation](#minimal-compilation)
+- [Commit tag](#commit-tag)
 
 ## Windows compilation Visual Studio
 
@@ -352,3 +351,23 @@ To use the idx reader, include the `IdxDataset.h` as follows.
 #define VISUS_STATIC_LIB 1
 #include <Visus/IdxDataset.h>
 ```
+
+
+
+
+<!--//////////////////////////////////////////////////////////////////////// -->
+## Commit tag
+
+For OpenVisus developers only:
+
+```
+TAG=$(python3 Libs/swig/setup.py new-tag) && echo ${TAG}
+
+git commit -a -m "New tag" && \
+git tag -a $TAG -m "$TAG" && \
+git push origin $TAG && \
+git push origin
+```
+
+Also remember to manually change the version in [environment.yml](https://github.com/sci-visus/OpenVisus/blob/master/environment.yml) that is used in binder.
+

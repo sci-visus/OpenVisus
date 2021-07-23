@@ -2,6 +2,8 @@
 
 This tutorial shows how to run one or multiple modvisus with a frontend load balancer using Kubernetes (K8s).
 
+See [docs/powerpoint/Kubernetes.pptx](https://github.com/sci-visus/OpenVisus/blob/master/docs/powerpoint/Kubernetes.pptx) for a graphical expolanation.
+
 # Prerequisites
 
 If you are running on Windows, and would like to experiment with K8s, please follow https://learnk8s.io/installing-docker-kubernetes-windows; you should install [WSL](https://docs.microsoft.com/en-us/windows/wsl/install-win10), [Docker Desktop](https://www.docker.com/products/docker-desktop) and [minikube](https://minikube.sigs.k8s.io/docs/start/):

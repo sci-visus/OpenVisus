@@ -8,60 +8,54 @@
 
 The mission of ViSUS.org is to provide support for the scientific community with Big Data, management, analysis and visualization tools.
 In this website we provide access to open source software tools and libraries such as the ViSUS framework and the PIDX library.
-These softwares are distributed under the permissive BSD license.
+These softwares are distributed under the permissive BSD license (see [LICENSE](https://github.com/sci-visus/OpenVisus/tree/master/LICENSE) file).
 
-# Pip install
+# Installation
 
-To install OpenVisus using `pip` (add `--user` to `pip install` if you get permission denied errors):
+If you are using conda see [docs/conda_installation.md](https://github.com/sci-visus/OpenVisus/blob/master/docs/conda_installation.md) document.
+
+To install OpenVisus using `pip`:
 
 ```
-# 
 python -m pip install --upgrade pip
-
-# uncomment the following lines if you want to use virtual env
-# python -m pip install virtualenv
-# python -m venv ~/my-virtual-environment
-# source ~/my-virtual-environment/bin/activate
-
 python -m pip install --upgrade OpenVisus
 python -m OpenVisus configure 
 ```
 
-And run the OpenVisus viewer:
+If you get *permission denied* errors, just use `python -m pip install  --user` 
+
+
+Run the viewer:
 
 ```
 python -m OpenVisus viewer
 ```
 
-# Conda install
-
-See 
-
-
-
-Give a look to directory `Samples/python` and Jupyter examples:
-
-[Samples/jupyter/quick_tour.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/quick_tour.ipynb)
-
-[Samples/jupyter/Agricolture.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/Agricolture.ipynb)
-
-[Samples/jupyter/Climate.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/Climate.ipynb)
-
-[Samples/jupyter/ReadAndView.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/ReadAndView.ipynb)
-
-
-
-
-
-<!--//////////////////////////////////////////////////////////////////////// -->
-## Commit CI
-
-For OpenVisus developers only:
+If you want to use venv to *experiment* with OpenVisus without corrupting your python:
 
 ```
-TAG=$(python3 Libs/swig/setup.py new-tag) && echo ${TAG}
-# replace manually the version in enviroment.yml if needed for binder
-git commit -a -m "New tag" && git tag -a $TAG -m "$TAG" && git push origin $TAG && git push origin
+python -m pip install virtualenv
+python -m venv ~/my-virtual-environment
+source ~/my-virtual-environment/bin/activate
 ```
+
+# Compilation
+
+See [docs/compilation.md](https://github.com/sci-visus/OpenVisus/blob/master/docs/compilation.md) document
+
+# Server side
+
+To run an OpenVisus server see [docs/docker_modvisus](https://github.com/sci-visus/OpenVisus/blob/master/docs/docker_modvisus.md) document.
+
+To run multiple OpenVisus servers with a load-balancer in `Kubernetes` see [docs/kubernetes.md](https://github.com/sci-visus/OpenVisus/blob/master/docs/kubernetes.md) 
+
+
+To run multiple OpenVisus servers with a load-balancer in `Docker Swarm` see [docs/docker_swarm_modvisus.md](https://github.com/sci-visus/OpenVisus/blob/master/docs/docker_swarm_modvisus.md) 
+
+
+# Tutorials
+
+Give a loot [Samples/jupyter](https://github.com/sci-visus/OpenVisus/tree/master/Samples/jupyter) in particular to [Samples/jupyter/quick_tour.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/quick_tour.ipynb).
+
 
 
