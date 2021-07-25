@@ -3,6 +3,7 @@ import os,sys
 import unittest
 from PIL import Image
 import random
+import shutil
 
 from OpenVisus import *
 
@@ -31,20 +32,24 @@ class MyTestCase(unittest.TestCase):
 		dtype="uint8[3]"
 		width,height,depth=1025,512,256
 		field=Field("data",dtype,"row_major")
-		db=CreateIdx(url='tmp/test_convert/visus.idx', rmtree=True, dims=[width,height,depth],fields=[field])
+		shutil.rmtree('tmp/test_convert', ignore_errors=True)
+		db=CreateIdx(url='tmp/test_convert/visus.idx', dims=[width,height,depth],fields=[field])
 
 	def testCreate2dDatasetFromNumPy(self):
 		data=numpy.asarray(Image.open('datasets/cat/rgb.png'))
-		db=CreateIdx(url='tmp/test_convert/visus.idx', rmtree=True, dim=2,data=data)
+		shutil.rmtree('tmp/test_convert', ignore_errors=True)
+		db=CreateIdx(url='tmp/test_convert/visus.idx', dim=2,data=data)
 		
 	def testCreate3dDatasetFromNumPy(self):
 		data=numpy.zeros((100,100,100,3),dtype=numpy.float32) # depth,height,width,nchannels
-		db=CreateIdx(url='tmp/test_convert/visus.idx', rmtree=True, dim=3, data=data)
+		shutil.rmtree('tmp/test_convert', ignore_errors=True)
+		db=CreateIdx(url='tmp/test_convert/visus.idx', dim=3, data=data)
 		
 	def testCreate3dDatasetFromSlices(self):
 		width, height,depth=256,256,10
 		fields=[Field("data","uint8[3]","row_major")]
-		db=CreateIdx(url='tmp/test_convert/visus.idx',rmtree=True, dims=[width,height,depth],fields=fields)
+		shutil.rmtree('tmp/test_convert', ignore_errors=True)
+		db=CreateIdx(url='tmp/test_convert/visus.idx',dims=[width,height,depth],fields=fields)
 
 		rgb=numpy.asarray(Image.open('datasets/cat/rgb.png'))
 
@@ -64,7 +69,8 @@ class MyTestCase(unittest.TestCase):
 		width,height,depth=256,256,100
 		
 		field=Field("data","uint8[3]","row_major")
-		db=CreateIdx(url='tmp/test_convert/visus.idx', rmtree=True, dims=[width,height,depth], fields=[field])
+		shutil.rmtree('tmp/test_convert', ignore_errors=True)
+		db=CreateIdx(url='tmp/test_convert/visus.idx', dims=[width,height,depth], fields=[field])
 		# print(db.getDatasetBody().toString())
 			
 		# write first slice at offset z=0
@@ -82,7 +88,8 @@ class MyTestCase(unittest.TestCase):
 			
 	def testCompression(self):
 		dims=(128,128,128)
-		db=CreateIdx(url="tmp/test_convert/visus.idx",rmtree=True, blocksperfile=4, dims=(dims),fields=[Field("data","uint8")])
+		shutil.rmtree('tmp/test_convert', ignore_errors=True)
+		db=CreateIdx(url="tmp/test_convert/visus.idx",blocksperfile=4, dims=(dims),fields=[Field("data","uint8")])
 		data=numpy.zeros(dims,numpy.uint8)
 		# add some random sample
 		for z in [random.randint(0, dims[2]-1) for I in range(int(dims[2]/2))]:

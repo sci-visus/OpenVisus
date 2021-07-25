@@ -1,6 +1,7 @@
 from OpenVisus import *
 from PIL import Image
 import unittest
+import shutil
 
 # /////////////////////////////////////////////////////////////////
 # example: ((rrr...),(ggg...),(bbb...)) -> (rgb rgb rgb ...)
@@ -53,7 +54,9 @@ def TestFilters(img_filename, filter):
 	temp_dir="tmp/test_minmax"
 
 	# create source dataset for comparison purpouse
-	src_db=CreateIdx(url=temp_dir + '/src_db/visus.idx', rmtree=True, dim=2, data=noise)
+	idx_filename=temp_dir + '/src_db/visus.idx'
+	shutil.rmtree(os.path.dirname(idx_filename), ignore_errors=True)
+	src_db=CreateIdx(url=idx_filename, dim=2, data=noise)
 	SaveImage(temp_dir + "/src.full.tif", src_db.read())
 
 	# read data coarse to fine
@@ -64,7 +67,9 @@ def TestFilters(img_filename, filter):
 
 	# create filter_level dataset
 	# in order to compute filters I need an extra channel to store coefficients (i.e. A B C D -> A0 B0 C0 D0 )
-	filter_db=CreateIdx(url=temp_dir + '/filter_db/visus.idx', rmtree=True, dim=src_db.getPointDim(), data=AddChannel(noise), filters=[filter])
+	idx_filename=temp_dir + '/filter_db/visus.idx'
+	shutil.rmtree(os.path.dirname(idx_filename), ignore_errors=True)
+	filter_db=CreateIdx(url=idx_filename, dim=src_db.getPointDim(), data=AddChannel(noise), filters=[filter])
 	
 	# compute the filter fine to coarse (4096 is the window size to apply the filter, bigger values consumes more memory)
 	filter_db.computeFilter(filter_db.getField(),4096)

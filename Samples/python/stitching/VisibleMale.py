@@ -256,7 +256,6 @@ if __name__ == '__main__':
 		bounds=BoxNd(PointNd(0,0,0),PointNd(Width*Density[0],Height*Density[1],Depth*Density[2]))
 		db=CreateIdx(
 				url=filename, 
-				rmtree=False,
 				dim=3,
 				dims=(Width,Height,Depth),
 				blockperfile=-1,

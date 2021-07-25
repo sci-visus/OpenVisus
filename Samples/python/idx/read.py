@@ -43,6 +43,7 @@ import unittest
 import string 
 import unittest
 import os
+import shutil
 
 import numpy as np
 
@@ -54,7 +55,8 @@ class TestIdx(unittest.TestCase):
 	# testIdx
 	def testIdx(self):
 		data=np.random.randint(0, np.iinfo(np.uint32).max, (16, 16, 16), dtype=np.uint32)
-		db=CreateIdx(url='tmp/test_idx/visus.idx', rmtree=True, dim=3, dims=(16,16,16),fields=[Field("myfield","uint32")],data=data, compression=["zip"])
+		shutil.rmtree('tmp/test_idx', ignore_errors=True)
+		db=CreateIdx(url='tmp/test_idx/visus.idx', dim=3, dims=(16,16,16),fields=[Field("myfield","uint32")],data=data, compression=["zip"])
 		data_check=db.read()
 		Assert((data==data_check).all())
 

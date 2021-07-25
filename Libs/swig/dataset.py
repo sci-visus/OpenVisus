@@ -20,10 +20,6 @@ def CreateIdx(**args):
 
 	url=args["url"]
 
-	if "rmtree" in args and args["rmtree"]==True:
-		dir=os.path.dirname(url)
-		shutil.rmtree(dir, ignore_errors=True)
-
 	idx=IdxFile()
 		
 	buffer=None

@@ -1,6 +1,7 @@
 
 import os
 import subprocess
+import shutil
 
 from OpenVisus import *
 
@@ -21,7 +22,9 @@ print("Dsize",Dsize)
 # create the idx
 field=src.getField()
 field.default_compression="raw"
-dst=CreateIdx(url=Durl, rmtree=True, dims=Dsize,fields=[field])
+
+shutil.rmtree(os.path.dirname(Durl), ignore_errors=True)
+dst=CreateIdx(url=Durl, dims=Dsize,fields=[field])
 print(dst.getDatasetBody().toString())
 print("memsize",StringUtils.getStringFromByteSize(field.dtype.getByteSize(PointNi(Dsize))))
 

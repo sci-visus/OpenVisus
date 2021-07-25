@@ -7,6 +7,7 @@ import pathlib
 import shutil
 from glob import glob
 from PIL import Image,ImageOps
+import shutil
 
 from OpenVisus           import *
 from OpenVisus.__main__ import MidxToIdx
@@ -51,7 +52,10 @@ for I,filename in enumerate(images):
 	if not os.path.isfile(os.path.join(dst_directory,name,"visus.idx")):
 		data=Image.open(filename)
 		data=ImageOps.flip(data)
-		CreateIdx(url=os.path.join(dst_directory,name,"visus.idx"), rmtree=True, dim=2,data=numpy.asarray(data))
+		
+		idx_filename=os.path.join(dst_directory,name,"visus.idx")
+		shutil.rmtree(os.path.dirname(idx_filename), ignore_errors=True)
+		CreateIdx(url=idx_filename, dim=2,data=numpy.asarray(data))
 
 # create midx
 X1=min([tile["bounds"][0] for tile in tiles])
