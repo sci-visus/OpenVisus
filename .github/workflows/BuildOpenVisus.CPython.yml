@@ -166,7 +166,7 @@ jobs:
            fi
 
     # ____________________________________________ DISTRIB PYPI
-    - name: Distrib OpenVisus to PyPi
+    - name: Distrib to PyPi
       shell: bash -l {0}
       run: |
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
@@ -187,9 +187,10 @@ jobs:
              # upload the weel
              ${pythonLocation}/python -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --skip-existing  "dist/*.whl" 
              popd
+           fi
              
     # ____________________________________________ DISTRIB DOCKER (for python version see Docker file (it's 3.7 on http:2.4 / debian:buster-slim)
-    - name: Distrib OpenVisus to Docker
+    - name: Distrib to Docker
       if: matrix.os == 'ubuntu-latest' && matrix.VISUS_GUI == '0' && matrix.python-version=='3.7' 
       shell: bash -l {0}
       run: |
