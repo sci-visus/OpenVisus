@@ -1,6 +1,6 @@
 FROM httpd:2.4
 
-RUN apt-get update
+RUN apt-get -qq update
 RUN apt-get install -y git python3 python3-pip
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install --upgrade numpy
