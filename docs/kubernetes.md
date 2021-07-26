@@ -92,14 +92,19 @@ spec:
             port: 80
 ```
 
+
 Finally create and inspect the deployment:
 
 ```
 kubectl apply -f mod_visus_deployment.yaml  --record 
 kubectl describe deployment mod-visus-deployment
-kubectl get pods 
+kubectl get mod-visus-deployment -o wide
+kubectl get pods -o wide
+kubectl logs mod-visus-deployment
 kubectl logs mod-visus-deployment-67d987676d-2vsvd # replace with the name of the logs
 ```
+
+
 
 In case you don't rememeber specific YAML sections of your file, you can use `explain`. For example:
 
