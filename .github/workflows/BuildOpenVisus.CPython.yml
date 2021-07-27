@@ -180,12 +180,10 @@ jobs:
            if [[  "${{ matrix.os }}" == "ubuntu-latest"  ]] ; then PLATFORM_NAME=manylinux2010_x86_64 ; fi
            ${pythonLocation}/python setup.py -q bdist_wheel --python-tag=cp${Version:0:1}${Version:2:1} --plat-name=${PLATFORM_NAME}
              
-           # upload the weel
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)           
            if [[ "${GIT_TAG}" != "" ]] ; then
              echo "GIT_TAG $GIT_TAG"
              ${pythonLocation}/python -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --skip-existing  "dist/*.whl" 
-             popd
            fi
              
     # ____________________________________________ DISTRIB DOCKER (for python version see Docker file (it's 3.7 on http:2.4 / debian:buster-slim)
