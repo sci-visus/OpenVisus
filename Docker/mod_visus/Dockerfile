@@ -1,14 +1,14 @@
 FROM httpd:2.4
 
-RUN apt-get -qq update
-RUN apt-get -qq install -y git python3 python3-pip
+RUN apt-get update
+RUN apt-get install -y git python3 python3-pip
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install --upgrade numpy
 
 # install OpenVisus (change version as needed) and webviewer
 ARG TAG
 RUN python3 --version
-RUN python3 -m pip install --upgrade OpenVisusNoGui==$TAG
+RUN python3 -m pip install -vvv --upgrade OpenVisusNoGui==$TAG
 RUN python3 -c "import os,OpenVisus;os.system('rm -Rf /home/OpenVisus');os.system('ln -s {} /home/OpenVisus'.format(os.path.dirname(OpenVisus.__file__)))"
 RUN git clone -bmaster https://github.com/sci-visus/OpenVisusJS.git /home/OpenVisus/webviewer
 
