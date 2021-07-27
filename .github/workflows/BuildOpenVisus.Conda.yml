@@ -148,7 +148,9 @@ jobs:
       run: |
            set -x
            cd build/Release/OpenVisus
-           conda install anaconda-client conda-build wheel 1>/dev/null || true
+           conda install anaconda-client  1>/dev/null  || true
+           conda install conda-build      1>/dev/null  || true
+           conda install wheel            1>/dev/null  || true
            rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
            python setup.py -q bdist_conda 1>/dev/null || true # sometimes it fails to remove temporary directory
            CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1)       
