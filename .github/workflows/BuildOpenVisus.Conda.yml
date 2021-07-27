@@ -48,7 +48,8 @@ jobs:
         miniconda-version: 'latest'
         python-version: ${{ matrix.python-version }}
         activate-environment: tmp
-        auto-update-conda: true
+        auto-update-conda: false
+        channels: conda-forge,defaults
 
     - name: Configure Miniconda 
       shell: bash -l {0}
@@ -80,6 +81,7 @@ jobs:
       if: matrix.os == 'macos-latest'
       shell: bash -l {0}    
       run: brew install cmake # problems with conda
+      
     - name: Install CMake for Linux
       if: matrix.os == 'ubuntu-latest' 
       shell: bash -l {0}    
@@ -154,7 +156,7 @@ jobs:
            conda install --yes conda-build      1>/dev/null  || true
            conda install --yes wheel            1>/dev/null  || true
            rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
-           python setup.py -q bdist_conda 1>/dev/null || true # sometimes it fails to remove temporary directory
+           python setup.py -q bdist_conda 1>/dev/null
            CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1)       
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != ""  ]] ; then
