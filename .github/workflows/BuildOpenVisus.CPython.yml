@@ -13,6 +13,7 @@ jobs:
       matrix:
         python-version: [ '3.6', '3.7', '3.8', '3.9'] 
         os: ["windows-latest", "macos-latest", "ubuntu-latest"]
+        VISUS_GUI: ['1', '0']
      
     steps:
     
@@ -21,8 +22,10 @@ jobs:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
      
+    # ____________________________________________ INSTALL  OSPRAY for windows
+     
     - name: git clone opsray for windows
-      if: matrix.os == 'windows-latest'
+      if: matrix.os == 'windows-latest' && matrix.VISUS_GUI == '1'
       uses: nick-invision/retry@v1
       with:
         max_attempts: 3
@@ -30,11 +33,14 @@ jobs:
         retry_wait_seconds: 5
         command: 'rm -Rf ExternalLibs/ospray_win && git clone https://github.com/sci-visus/ospray_win.git  ExternalLibs/ospray_win'
 
-    
     # ____________________________________________ INSTALL CMAKE
-    
-    - name: Install CMake
+    - name: Install CMake for windows
       uses: lukka/get-cmake@latest
+      if: matrix.os == 'windows-latest' 
+      
+    - name: Install CMake for macos
+      uses: lukka/get-cmake@latest
+      if: matrix.os == 'macos-latest'
       
     # ____________________________________________ INSTALL SWIG 
 
@@ -59,7 +65,7 @@ jobs:
         retry_wait_seconds: 5
         command: 'cd /tmp && rm -Rf MacOSX-SDKs && git clone https://github.com/phracker/MacOSX-SDKs.git'
 
-    # ____________________________________________ INSTALL CPYTHON (after QT since it seems Qt action will install python 3.9)
+    # ____________________________________________ INSTALL CPYTHON 
     - name: Install CPython 
       uses: actions/setup-python@v2
       with:
@@ -67,30 +73,30 @@ jobs:
         architecture: 'x64'
 
 
-    # ____________________________________________ INSTALL QT
+    # ____________________________________________ INSTALL QT (use existing python see https://github.com/jurplel/install-qt-action)
     
     - name: Install Qt for windows
-      if: matrix.os == 'windows-latest' 
+      if: matrix.os == 'windows-latest' && matrix.VISUS_GUI == '1'
       uses: jurplel/install-qt-action@v2
       with:
         version: '5.12.8'
         arch: 'win64_msvc2017_64'
         install-deps: 'true'
         dir: C:\
-        setup-python: 'false' # use the existing python (see https://github.com/jurplel/install-qt-action)
+        setup-python: 'false' 
         
     - name: Install Qt for macos
-      if: matrix.os == 'macos-latest' 
+      if: matrix.os == 'macos-latest'  && matrix.VISUS_GUI == '1'
       uses: jurplel/install-qt-action@v2
       with:
         version: '5.12.8'
         target: 'desktop'
         install-deps: 'true'  
         dir: /tmp
-        setup-python: 'false' # use the existing python (see https://github.com/jurplel/install-qt-action)
+        setup-python: 'false' 
 
     - name: Install glu on ubuntu
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-latest'  && matrix.VISUS_GUI == '1' 
       shell: bash -l {0}
       run: sudo apt-get update && sudo apt-get install libglu1-mesa-dev 1>/dev/null
 
@@ -103,7 +109,13 @@ jobs:
       run: |
            mkdir -p build 
            cd build
-           cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DPython_EXECUTABLE=${pythonLocation}/python.exe  -DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe ../
+           cmake -G "Visual Studio 16 2019" -A "x64" \
+             -DVISUS_GUI=${{ matrix.VISUS_GUI }} \
+             -DVISUS_SLAM=${{ matrix.VISUS_GUI }} \
+             -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" \
+             -DPython_EXECUTABLE=${pythonLocation}/python.exe  \
+             -DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe \
+             ../
            cmake --build . --target ALL_BUILD --config Release --parallel 4
            cmake --build . --target install   --config Release
 
@@ -113,7 +125,13 @@ jobs:
       run: |
            mkdir -p build 
            cd build
-           cmake -GXcode -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX10.9.sdk" -DPython_EXECUTABLE=${pythonLocation}/python  ../
+           cmake -GXcode  \
+             -DVISUS_GUI=${{ matrix.VISUS_GUI }} \
+             -DVISUS_SLAM=${{ matrix.VISUS_GUI }} \
+             -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" \
+             -DCMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX10.9.sdk" \
+             -DPython_EXECUTABLE=${pythonLocation}/python  \
+             ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release 
 
@@ -121,8 +139,15 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       shell: bash -l {0}
       run: |
-           # i can use the pyqt one, but I would need to share the directory to docker, for simplicity I'm not doing it
-           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=/opt/qt512 -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
+           docker run \
+             -e PYTHON_VERSION=${{ matrix.python-version }} \
+             -e VISUS_GUI=${{ matrix.VISUS_GUI }} \
+             -e VISUS_SLAM=${{ matrix.VISUS_GUI }} \
+             -e Qt5_DIR=/opt/qt512 \
+             -e VISUS_MODVISUS=1 \
+             -v ${PWD}:${PWD}  \
+             -w ${PWD} visus/portable-linux-binaries \
+             /bin/bash -c "./scripts/build_linux.sh"
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
 
@@ -136,38 +161,47 @@ jobs:
            export PYTHONPATH=../
            ${pythonLocation}/python  -m OpenVisus configure  || true  # segmentation fault problem on linux
            ${pythonLocation}/python  -m OpenVisus test
-           ${pythonLocation}/python  -m OpenVisus test-gui 
+           if [[ "${{ matrix.VISUS_GUI }}" == "1" ]] ; then 
+             ${pythonLocation}/python  -m OpenVisus test-gui 
+           fi
 
-    # ____________________________________________ DISTRIB
-    - name: Distrib OpenVisus
+    # ____________________________________________ DISTRIB PYPI
+    - name: Distrib to PyPi
       shell: bash -l {0}
       run: |
+
+           ${pythonLocation}/python -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
+           cd build/Release/OpenVisus
+           
+           # running setup to create the wheel
+           Version=${{ matrix.python-version }}
+           if [[  "${{ matrix.os }}" == "windows-latest" ]] ; then PLATFORM_NAME=win_amd64            ; fi
+           if [[  "${{ matrix.os }}" == "macos-latest"   ]] ; then PLATFORM_NAME=macosx_10_9_x86_64   ; fi
+           if [[  "${{ matrix.os }}" == "ubuntu-latest"  ]] ; then PLATFORM_NAME=manylinux2010_x86_64 ; fi
+           ${pythonLocation}/python setup.py -q bdist_wheel --python-tag=cp${Version:0:1}${Version:2:1} --plat-name=${PLATFORM_NAME}
+             
+           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)           
+           if [[ "${GIT_TAG}" != "" ]] ; then
+             echo "GIT_TAG $GIT_TAG"
+             ${pythonLocation}/python -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --skip-existing  "dist/*.whl" 
+           fi
+             
+    # ____________________________________________ DISTRIB DOCKER (for python version see Docker file (it's 3.7 on http:2.4 / debian:buster-slim)
+    - name: Distrib to Docker
+      if: matrix.os == 'ubuntu-latest' && matrix.VISUS_GUI == '0' && matrix.python-version=='3.7' 
+      shell: bash -l {0}
+      run: |
+           set -x
+           TAG=`${pythonLocation}/python Libs/swig/setup.py print-tag`
+           echo "TAG=${TAG}" 
+           cd Docker/mod_visus
+           echo ${{ secrets.DOCKER_TOKEN }} | docker login -u=${{ secrets.DOCKER_USERNAME }} --password-stdin
+           docker build --tag visus/mod_visus:$TAG --tag visus/mod_visus:latest --build-arg TAG=$TAG .
+           
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            if [[ "${GIT_TAG}" != "" ]] ; then
              echo "GIT_TAG $GIT_TAG"
-             
-             # install some needed packages
-             ${pythonLocation}/python -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
-             pushd build/Release/OpenVisus
-             
-             # running setup to create the wheel
-             Version=${{ matrix.python-version }}
-             if [[  "${{ matrix.os }}" == "windows-latest" ]] ; then PLATFORM_NAME=win_amd64            ; fi
-             if [[  "${{ matrix.os }}" == "macos-latest"   ]] ; then PLATFORM_NAME=macosx_10_9_x86_64   ; fi
-             if [[  "${{ matrix.os }}" == "ubuntu-latest"  ]] ; then PLATFORM_NAME=manylinux2010_x86_64 ; fi
-             ${pythonLocation}/python setup.py -q bdist_wheel --python-tag=cp${Version:0:1}${Version:2:1} --plat-name=${PLATFORM_NAME}
-             
-             # upload the weel
-             ${pythonLocation}/python -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --skip-existing  "dist/*.whl" 
-             popd
-             
-             # *** distribute to Docker ***
-             # DISABLED, for Docker see nogui options
-             # TAG=`${pythonLocation}/python Libs/swig/setup.py print-tag` 
-             # echo "Uploading ${TAG} to Docker"
-             # pushd Docker/mod_visus
-             # echo ${{ secrets.DOCKER_TOKEN }} | docker login -u=${{ secrets.DOCKER_USERNAME }} --password-stdin
-             # docker build --tag visus/mod_visus:$TAG  --build-arg TAG=$TAG .
-             #  docker push visus/mod_visus:$TAG
-             # popd
+             echo "Uploading  visus/mod_visus:$TAG to Docker"
+             docker push visus/mod_visus:$TAG
+             docker push visus/mod_visus:latest
            fi

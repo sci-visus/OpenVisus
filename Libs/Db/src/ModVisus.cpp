@@ -705,6 +705,40 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
       buffer = filter->dropExtraComponentIfExists(buffer);
   }
 
+#if 1
+  String palette = request.url.getParam("palette");
+  if (!palette.empty() && buffer.dtype.ncomponents() == 1)
+  {
+    auto tf = TransferFunction::getDefault(palette);
+    if (!tf)
+    {
+      VisusAssert(false);
+      PrintInfo("invalid palette specified", palette);
+      PrintInfo("use one of:");
+      std::vector<String> tf_defaults = TransferFunction::getDefaults();
+      for (int i = 0; i < tf_defaults.size(); i++)
+        PrintInfo("\t", tf_defaults[i]);
+    }
+    else
+    {
+      double palette_min = cdouble(request.url.getParam("palette_min"));
+      double palette_max = cdouble(request.url.getParam("palette_max"));
+
+      if (palette_min != palette_max)
+      {
+        tf->beginTransaction();
+        tf->setUserRange(Range(palette_min, palette_max, 0));
+        tf->setNormalizationMode(TransferFunction::UserRange);
+        tf->endTransaction();
+      }
+
+      buffer = tf->applyToArray(buffer);
+      if (!buffer.valid())
+        return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "palette failed");
+    }
+  }
+#endif
+
   NetResponse response(HttpStatus::STATUS_OK);
   if (!response.setArrayBody(compression, buffer))
     return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "NetResponse encodeBuffer failed");
@@ -766,6 +800,38 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
     return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeBoxQuery() failed " + query->errormsg);
 
   buffer = query->buffer;
+
+#if 1
+  String palette = request.url.getParam("palette");
+  if (!palette.empty() && buffer.dtype.ncomponents() == 1)
+  {
+    auto tf = TransferFunction::getDefault(palette);
+    if (!tf)
+    {
+      VisusAssert(false);
+      PrintInfo("invalid palette specified", palette);
+      PrintInfo("use one of:");
+      std::vector<String> tf_defaults = TransferFunction::getDefaults();
+      for (int i = 0; i < tf_defaults.size(); i++)
+        PrintInfo("\t", tf_defaults[i]);
+    }
+    else
+    {
+      double palette_min = cdouble(request.url.getParam("palette_min"));
+      double palette_max = cdouble(request.url.getParam("palette_max"));
+
+      if (palette_min != palette_max)
+      {
+        tf->setNormalizationMode(TransferFunction::UserRange);
+        tf->setUserRange(Range(palette_min, palette_max, 0));
+      }
+
+      buffer = buffer = tf->applyToArray(buffer);
+      if (!buffer.valid())
+        return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "palette failed");
+    }
+  }
+#endif
 
   NetResponse response(HttpStatus::STATUS_OK);
   if (!response.setArrayBody(compression, buffer))

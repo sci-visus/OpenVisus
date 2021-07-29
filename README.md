@@ -12,50 +12,64 @@ These softwares are distributed under the permissive BSD license (see [LICENSE](
 
 # Installation
 
-If you are using conda see [docs/conda_installation.md](https://github.com/sci-visus/OpenVisus/blob/master/docs/conda_installation.md) document.
+For `conda` see 
+[docs/conda_installation.md](https://github.com/sci-visus/OpenVisus/blob/master/docs/conda_installation.md).
 
-To install OpenVisus using `pip`:
+
+Install OpenVisus:
 
 ```
 python -m pip install --upgrade pip
 python -m pip install --upgrade OpenVisus
 python -m OpenVisus configure 
+python -c "from OpenVisus import *"
 ```
 
-If you get *permission denied* errors, just use `python -m pip install  --user` 
+Notes:
+- if you get *permission denied* error, use `python -m pip install  --user`.
+- if you need a *minimal installation* without the GUI replace `OpenVisus` with `OpenVisusNoGui`
+- If you want to create an isolated *virtual environment*:
+	```
+	python -m pip install --upgrade virtualenv
+	python -m venv ~/my-virtual-environment
+	source ~/my-virtual-environment/bin/activate
+	```
 
-
-Run the viewer:
+Run the OpenVisus viewer:
 
 ```
 python -m OpenVisus viewer
 ```
 
-If you want to use venv to *experiment* with OpenVisus without corrupting your python:
+# Quick tour and Tutorials
 
-```
-python -m pip install virtualenv
-python -m venv ~/my-virtual-environment
-source ~/my-virtual-environment/bin/activate
-```
+Start with 
+[quick_tour.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/quick_tour.ipynb) 
+Jupyter Notebook.
+
+See 
+[Samples/jupyter](https://github.com/sci-visus/OpenVisus/tree/master/Samples/jupyter)
+directory. 
+
+To run the tutorials on the cloud click this [binder link](https://mybinder.org/v2/gh/sci-visus/OpenVisus/master?filepath=Samples%2Fjupyter).
+
+
+# Run OpenVisus server
+
+Run single `Docker` OpenVisus server:  
+[docs/docker_modvisus](https://github.com/sci-visus/OpenVisus/blob/master/docs/docker_modvisus.md).
+
+Runload-balanced `Kubernetes` OpenVisus servers: 
+[docs/kubernetes.md](https://github.com/sci-visus/OpenVisus/blob/master/docs/kubernetes.md).
+
+
+Run load-balanced `Docker Swarm` OpenVisus servers: 
+[docs/docker_swarm_modvisus.md](https://github.com/sci-visus/OpenVisus/blob/master/docs/docker_swarm_modvisus.md).
+
+
 
 # Compilation
 
-See [docs/compilation.md](https://github.com/sci-visus/OpenVisus/blob/master/docs/compilation.md) document
-
-# Server side
-
-To run an OpenVisus server see [docs/docker_modvisus](https://github.com/sci-visus/OpenVisus/blob/master/docs/docker_modvisus.md) document.
-
-To run multiple OpenVisus servers with a load-balancer in `Kubernetes` see [docs/kubernetes.md](https://github.com/sci-visus/OpenVisus/blob/master/docs/kubernetes.md) 
-
-
-To run multiple OpenVisus servers with a load-balancer in `Docker Swarm` see [docs/docker_swarm_modvisus.md](https://github.com/sci-visus/OpenVisus/blob/master/docs/docker_swarm_modvisus.md) 
-
-
-# Tutorials
-
-Give a loot [Samples/jupyter](https://github.com/sci-visus/OpenVisus/tree/master/Samples/jupyter) in particular to [Samples/jupyter/quick_tour.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/quick_tour.ipynb).
-
+See [docs/compilation.md](https://github.com/sci-visus/OpenVisus/blob/master/docs/compilation.md).
 
 
