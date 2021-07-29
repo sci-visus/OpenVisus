@@ -182,6 +182,57 @@ void TransferFunction::setOpacity(String name)
   endUpdate();
 }
 
+
+/// //////////////////////////////////////////////////////////////
+struct ApplyTransferFunctionOp
+{
+  template <typename SrcType>
+  bool execute(Array& dst, TransferFunction& tf, Array src, Aborted aborted) 
+  {
+    int NS = (int)src.dtype.ncomponents();
+    if (!NS)
+      return false;
+
+    // for one input-> R(input) G(input) B(input) A(input)
+    // otherwise    -> R(input[0]) G(input[1]) B(input[2]) A(input[3]) 
+    int ND = (NS == 1)? 4 : std::min(4, NS);
+
+    if (!dst.resize(src.dims, DType(ND, DTypes::FLOAT32), __FILE__, __LINE__))
+      return false;
+
+    for (int I = 0; I < ND; I++)
+    {
+      auto D = I < ND ? I : ND - 1; auto DST = GetComponentSamples<Float32>(dst, D);
+      auto S = I < NS ? I : NS - 1; auto SRC = GetComponentSamples<SrcType>(src, S);
+
+      auto input_range = TransferFunction::ComputeRange(src, S,/*bNormalizeToFloat*/false, tf.getNormalizationMode(), tf.getUserRange());
+      double A = input_range.from;
+      double B = input_range.to;
+
+      VisusReleaseAssert(I>=0 && I<4);
+      auto f = tf.getFunctions()[I];
+      for (Int64 I = 0, Tot= src.getTotalNumberOfSamples(); I < Tot; I++)
+      {
+        if (aborted())  return false;
+        double x = (SRC[I] - A) / (B - A);
+        DST[I] = (Float32)(f->getValue(x));
+      }
+    }
+
+    dst.shareProperties(src);
+    return true;
+  }
+};
+
+////////////////////////////////////////////////////////////////////
+Array TransferFunction::applyToArray(Array src, Aborted aborted)
+{
+  if (!src.valid()) return src;
+  Array dst;
+  ApplyTransferFunctionOp op;
+  return ExecuteOnCppSamples(op, src.dtype, dst, *this, src, aborted) ? dst : Array();
+}
+
  
   ////////////////////////////////////////////////////////////////////
 void TransferFunction::execute(Archive& ar)

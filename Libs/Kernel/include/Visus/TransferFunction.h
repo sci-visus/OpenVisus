@@ -248,8 +248,6 @@ public:
     setProperty("SetUserRange", this->user_range, range);
   }
 
-
-
   //drawValues
   void drawValues(int function, int x1, int x2, std::vector<double> values);
 
@@ -295,6 +293,11 @@ public:
 
   //exportTransferFunction
   void exportTransferFunction(String filename);
+
+public:
+
+  //applyToArray
+  Array applyToArray(Array src, Aborted aborted = Aborted());
 
 public:
 
