@@ -7,6 +7,7 @@ if (WIN32)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
 endif()
 
+add_subdirectory(libressl)
 add_subdirectory(lib)
 
-set_target_properties(curl PROPERTIES FOLDER "ExternalLibs/VISUS_NET")
+

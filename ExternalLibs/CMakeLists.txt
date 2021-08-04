@@ -8,7 +8,6 @@ else()
 endif()
 
 if (VISUS_NET)
-	add_subdirectory(libressl)
 	add_subdirectory(curl)
 endif()
 

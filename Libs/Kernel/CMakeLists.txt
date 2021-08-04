@@ -142,13 +142,7 @@ file(GLOB OtherSources
 	${CMAKE_SOURCE_DIR}/OpenVisusConfig.cmake
 	${CMAKE_SOURCE_DIR}/.github/workflows/*
 	${CMAKE_SOURCE_DIR}/ExternalLibs/CMakeLists.txt
-	${CMAKE_SOURCE_DIR}/ExternalLibs/curl/CMakeLists.txt
-	${CMAKE_SOURCE_DIR}/ExternalLibs/curl/lib/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/ExternalLibs/FreeImage/CMakeLists.txt
-	${CMAKE_SOURCE_DIR}/ExternalLibs/libressl/CMakeLists.txt
-	${CMAKE_SOURCE_DIR}/ExternalLibs/libressl/crypto/CMakeLists.txt
-	${CMAKE_SOURCE_DIR}/ExternalLibs/libressl/ssl/CMakeLists.txt
-	${CMAKE_SOURCE_DIR}/ExternalLibs/libressl/tls/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/Executable/mod_visus/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/Executable/viewer/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/Executable/visus/CMakeLists.txt
