@@ -33,8 +33,8 @@ macro(DetectAndSetupCompiler)
 	set(CMAKE_CXX_STANDARD_REQUIRED     ON)
 
 	if (MSVC AND NOT BUILD_SHARED_LIBS)
-		compile_options("$<$<CONFIG:DEBUG>:/MTd>")
-		compile_options("$<$<CONFIG:RELEASE>:/MT>")
+		# see https://cmake.org/cmake/help/v3.18/variable/CMAKE_MSVC_RUNTIME_LIBRARY.html
+		set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 	endif()
 	
 	#minimum support is Vista
@@ -134,50 +134,40 @@ SET(MSVC_INCREMENTAL_DEFAULT OFF)
 
 PROJECT(OpenVisus) 
 
-if (VISUS_MINIMAL)
-	set(DEFAULT_BUILD_SHARED_LIBS  OFF)
-	set(VISUS_DEFAULT_NET          OFF)
-	set(VISUS_DEFAULT_IMAGE        OFF)
-	set(VISUS_DEFAULT_DATAFLOW     OFF)
-	set(VISUS_DEFAULT_PYTHON       OFF)
-	set(VISUS_DEFAULT_GUI          OFF)
-	set(VISUS_DEFAULT_MODVISUS     OFF)
-	set(VISUS_DEFAULT_OSPRAY       OFF)
-	set(VISUS_DEFAULT_SLAM         OFF) 
-else()
-	set(DEFAULT_BUILD_SHARED_LIBS  ON)
-	set(VISUS_DEFAULT_NET          ON)
-	set(VISUS_DEFAULT_IMAGE        ON)
-	set(VISUS_DEFAULT_DATAFLOW     ON)
-	set(VISUS_DEFAULT_PYTHON       ON)
-	set(VISUS_DEFAULT_GUI          ON)
 
-	# todo this default for linux too
-	set(VISUS_DEFAULT_MODVISUS OFF)
-	if (NOT APPLE AND NOT WIN32)
-		set(VISUS_DEFAULT_MODVISUS ON)
-	endif()
-
-	# git clone https://github.com/sci-visus/ospray_win.git ./ExternalLibs/ospray_win
-	set(VISUS_DEFAULT_OSPRAY  OFF)
-	if(WIN2 AND EXISTS "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/README.txt")
-		set(VISUS_DEFAULT_OSPRAY ON)
-	endif()
-
-	# todo: make this default OFF
-	set(VISUS_DEFAULT_SLAM     ON) 
-
+# todo this default for linux too
+if (NOT APPLE AND NOT WIN32)
+	set(VISUS_DEFAULT_MODVISUS ON)
 endif()
 
-option(BUILD_SHARED_LIBS  "Build shared libraries" ${DEFAULT_BUILD_SHARED_LIBS})
-option(VISUS_NET          "Enable VISUS_NET"       ${VISUS_DEFAULT_NET})
-option(VISUS_IMAGE        "Enable VISUS_IMAGE"     ${VISUS_DEFAULT_IMAGE})
-option(VISUS_DATAFLOW     "Enable VISUS_DATAFLOW"  ${VISUS_DEFAULT_DATAFLOW})
-option(VISUS_PYTHON       "Enable VISUS_PYTHON"    ${VISUS_DEFAULT_PYTHON})
-option(VISUS_GUI          "Enable VISUS_GUI"       ${VISUS_DEFAULT_GUI})
-option(VISUS_MODVISUS     "Enable VISUS_MODVISUS"  ${VISUS_DEFAULT_MODVISUS})
-option(VISUS_SLAM         "Enable VISUS_SLAM"      ${VISUS_DEFAULT_SLAM})
+# git clone https://github.com/sci-visus/ospray_win.git ./ExternalLibs/ospray_win
+set(VISUS_DEFAULT_OSPRAY  OFF)
+if(WIN2 AND EXISTS "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/README.txt")
+	set(VISUS_DEFAULT_OSPRAY ON)
+endif()
+
+option(VISUS_MINIMAL      "Enable VISUS_MINIMAL"   OFF)
+option(BUILD_SHARED_LIBS  "Build shared libraries" ON)
+option(VISUS_NET          "Enable VISUS_NET"       ON)
+option(VISUS_IMAGE        "Enable VISUS_IMAGE"     ON)
+option(VISUS_DATAFLOW     "Enable VISUS_DATAFLOW"  ON)
+option(VISUS_PYTHON       "Enable VISUS_PYTHON"    ON)
+option(VISUS_GUI          "Enable VISUS_GUI"       ON)
+option(VISUS_SLAM         "Enable VISUS_SLAM"      ON)
 option(VISUS_OSPRAY       "Enable VISUS_OSPRAY"    ${VISUS_DEFAULT_OSPRAY})
+option(VISUS_MODVISUS     "Enable VISUS_MODVISUS"  OFF)
+
+if (VISUS_MINIMAL)
+	SET(BUILD_SHARED_LIBS OFF CACHE BOOL "disabled" FORCE)
+	SET(VISUS_NET         OFF CACHE BOOL "disabled" FORCE)
+	SET(VISUS_IMAGE       OFF CACHE BOOL "disabled" FORCE)
+	SET(VISUS_DATAFLOW    OFF CACHE BOOL "disabled" FORCE)
+	SET(VISUS_PYTHON      OFF CACHE BOOL "disabled" FORCE)
+	SET(VISUS_GUI         OFF CACHE BOOL "disabled" FORCE)
+	SET(VISUS_MODVISUS    OFF CACHE BOOL "disabled" FORCE)
+	SET(VISUS_SLAM        OFF CACHE BOOL "disabled" FORCE)
+	SET(VISUS_OSPRAY      OFF CACHE BOOL "disabled" FORCE)
+endif()
 	
 MESSAGE(STATUS "BUILD_SHARED_LIBS  ${BUILD_SHARED_LIBS}")
 MESSAGE(STATUS "VISUS_NET          ${VISUS_NET}")

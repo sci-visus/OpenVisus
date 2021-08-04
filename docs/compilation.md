@@ -49,7 +49,7 @@ python -m OpenVisus viewer
 <!--//////////////////////////////////////////////////////////////////////// -->
 ## Windows compilation mingw
 
-NOTE: only VISUS_MINIMAL is supported.
+
 
 Install prerequisites. The fastest way is to use `chocolatey`:
 
@@ -68,7 +68,7 @@ cd build_gcc
 
 set PATH=%PATH%;C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin
 
-
+# NOTE: only VISUS_MINIMAL is supported.
 cmake -G "MinGW Makefiles" -DVISUS_MINIMAL=1 ../ 
 cmake --build . --target all       --config Release
 cmake --build . --target install   --config Release
@@ -255,7 +255,6 @@ Minimal compilation disable
 
 it enables only minimal IDX read/write operations.
 
-
 For Windows/Visual Studio:
 
 ```
@@ -322,7 +321,7 @@ CXX_FLAGS=\
 	-DVISUS_STATIC_=1 
 
 main: main.o
-	$(CXX) -o $@ $< -L${OpenVisus_DIR}/lib -lVisusMinimal
+	$(CXX) -o $@ $< -L${OpenVisus_DIR}/lib -lVisusKernel VisusDb
  
 main.o: main.cpp 
 	$(CXX) $(CXX_FLAGS) -c -o $@ $< 
@@ -334,25 +333,7 @@ clean:
 ```
 
 If you don't want to use C++11 because you have an old compiler (like C++98) see Executable/use_minimal directory
-which use a `Visus/Minimal.h` header.
-
-<!--//////////////////////////////d////////////////////////////////////////// -->
-## Static Win32 library compilation
-
-Enable `VISUS_WIN32_STATIC_LIB` and `VISUS_NET` to build the core libraries (`VisusKernel.lib` and `VisusDb.lib`) and their dependencies statically (`/MTd` and `/MT` runtime library settings).
-Make sure all the other options are disabled. Only Debug and Release builds are supported. After running the `INSTALL` target, both the headers
-and binaries are in `build/Debug/dist` or `build/Release/dist`. Make sure to link with `VisusKernel.lib VisusDb.lib curl.lib crypto.lib ssl.lib` and also system libraries `Shell32.lib Ws2_32.lib advapi32.lib`.
-
-To use the idx reader, include the `IdxDataset.h` as follows.
-
-```
-#undef min
-#undef max
-#define VISUS_STATIC_LIB 1
-#include <Visus/IdxDataset.h>
-```
-
-
+which use exclusively a `Visus/Minimal.h` header.
 
 
 <!--//////////////////////////////////////////////////////////////////////// -->

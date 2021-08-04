@@ -1,5 +1,5 @@
-#ifndef VISUS_MINIMAL
-#define VISUS_MINIMAL
+#ifndef VISUS_MINIMAL_HEADER_H__
+#define VISUS_MINIMAL_HEADER_H__
 
 /*
 NOTE: this file should not use any OpenVisus header file
@@ -87,4 +87,4 @@ VISUS_DB_API void ShutdownMinimalModule();
 
 } //namespace Visus
 
-#endif //VISUS_MINIMAL
+#endif //VISUS_MINIMAL_HEADER_H__
