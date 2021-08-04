@@ -10,4 +10,4 @@ endif()
 add_subdirectory(libressl)
 add_subdirectory(lib)
 
-set_target_properties(curl PROPERTIES FOLDER "ExternalLibs/VISUS_NET")
+

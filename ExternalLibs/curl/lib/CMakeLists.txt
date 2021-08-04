@@ -1,4 +1,6 @@
-set(Sources 	
+set(Sources 
+	../CMakeLists.txt
+	../libressl/CMakeLists.txt
 	../include/curl/curl.h
 	../include/curl/curlver.h
 	../include/curl/easy.h
@@ -66,12 +68,13 @@ set(Sources
 	
 add_library(curl STATIC ${Sources})
 
-set_target_properties(curl PROPERTIES FOLDER "ExternalLibs/")
 
 target_link_libraries(curl PRIVATE crypto ssl tls)
 
 target_compile_definitions(curl PRIVATE BUILDING_LIBCURL)
 target_include_directories(curl PRIVATE ./ ../include)
 target_include_directories(curl PUBLIC  ../include)
+
+set_target_properties(curl PROPERTIES FOLDER "ExternalLibs/VISUS_NET")
 
 
