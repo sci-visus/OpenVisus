@@ -142,7 +142,15 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
 ///////////////////////////////////////////////////////////////////////////////
 Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
 {
-  auto dataset= LoadDataset(url);
+  SharedPtr<Dataset> dataset;
+  
+  try
+  {
+    dataset = LoadDataset(url);
+  }
+  catch (...) {
+    return Array();
+  }
 
   DatasetArrayPluginParseArguments args(dataset.get());
   if (!args.exec(args_))

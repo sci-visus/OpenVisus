@@ -68,6 +68,8 @@ namespace Visus {
           num_bit_planes = (int)temp;
         }
       }
+
+      VisusReleaseAssert(num_bit_planes);
     }
 
     //destructor
