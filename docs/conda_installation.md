@@ -51,13 +51,26 @@ python -m OpenVisus configure
 python -c "from OpenVisus import *"
 ```
 
-Then run the viewer:
+(OPTIONAL ) if you get *numpy import error* such as  `Library not loaded: @rpath/libopenblas.dylib`,  this:
+
+```
+conda uninstall --name myenv  -y numpy
+conda install   --name myenv  -y nomkl numpy scipy scikit-learn numexpr openblas blas
+conda remove    --name myenv  -y mkl mkl-service
+python -c "import numpy"
+```
+
+Run the viewer:
 
 ```
 python -m OpenVisus viewer
 ```
 
-Optionally remove the enviroment:
+
+
+
+
+(OPTIONAL) Remove the enviroment:
 
 ```
 conda deactivate
