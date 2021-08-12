@@ -1,6 +1,6 @@
 import os,sys,shutil,setuptools
 
-PROJECT_VERSION="2.1.151"
+PROJECT_VERSION="2.1.152"
 
 this_dir=os.path.dirname(os.path.abspath(__file__))
 
