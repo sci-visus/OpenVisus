@@ -266,6 +266,7 @@ public:
     if (bVerbose)
       PrintInfo("Decoding buffer");
 
+    //only zip was supported
     auto decoded = ArrayUtils::decodeArray(compression, query->getNumberOfSamples(), query->field.dtype, encoded);
     if (!decoded.valid())
       return failed("cannot decode the data");
@@ -488,6 +489,14 @@ public:
 
     if (aborted())
       return failed("aborted");
+
+#if 1
+    //problem with zfp. In the block header I just write it's zfp, but I don't know the number of bitplanes
+    //so I am trying to get the full information from the field default_compression (example "zfp-64")
+    //TODO: can we be sure we will get the full specs always from default_compression? not so sure
+    if (compression == "zfp" && StringUtils::startsWith(query->field.default_compression, "zfp"))
+      compression = query->field.default_compression;
+#endif
 
     //TODO: noninterruptile
     auto decoded = ArrayUtils::decodeArray(compression, query->getNumberOfSamples(), query->field.dtype, encoded);

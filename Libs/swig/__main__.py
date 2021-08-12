@@ -396,7 +396,7 @@ def CompressDataset(args):
 	args = parser.parse_args(args)
 
 	db=LoadDataset(args.dataset);Assert(db)
-	Assert(db.compressDataset([args.compression]))
+	db.compressDataset([args.compression])
 
 
 # ////////////////////////////////////////////////
