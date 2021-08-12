@@ -5,10 +5,6 @@ You need a `conda` installation. For Windows, go to [this link](https://www.anac
 ```
 curl -O https://repo.anaconda.com/archive/Anaconda3-2020.07-MacOSX-x86_64.sh
 bash Anaconda3-2020.07-MacOSX-x86_64.sh 
-
-# OPTIONAL to avoid conflicts with CPython installations
-conda config --set auto_activate_base false
-conda activate
 ```
 
 On Linux:
@@ -16,11 +12,20 @@ On Linux:
 ```
 curl -O https://repo.anaconda.com/archive/Anaconda3-2019.03-Linux-x86_64.sh
 bash Anaconda3-2019.03-Linux-x86_64.sh
+```
 
-# OPTIONAL to avoid conflicts with CPython installations
+(OPTIONAL) To avoid conflicts with CPython installations:
+
+```
 conda config --set auto_activate_base false
+```
+
+The activate conda:
+
+```
 conda activate
 ```
+
 
 For OSX and Linux you may need to add this variable to avoid conflicts with `pip` CPython installed packages in `~/.local` (see [this link](https://github.com/conda/conda/issues/7173) for more info):
 
@@ -32,7 +37,7 @@ export PYTHONNOUSERSITE=True
 Open a Windows `Anaconda prompt` or a shell and type (change python version and env name as needed): 
 
 ```
-conda create -n myenv python=3.6 
+conda create -n myenv python=3.7 
 conda activate myenv
 conda install --name myenv  -y conda
 conda install --name myenv  -y --channel visus openvisus
