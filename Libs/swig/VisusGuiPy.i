@@ -52,35 +52,39 @@ using namespace Visus;
 
 this_dir=os.path.dirname(os.path.realpath(__file__))
 
-import PyQt5
+# ///////////////////////////////////////////////////////////
+# Qt5 dependency
+if True:
 
-qt5_candidates=[os.path.join(os.path.dirname(PyQt5.__file__),"Qt")]
+	import PyQt5
 
-# see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
-is_conda = os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history'))
-if is_conda:
-	qt5_candidates.append(os.path.join(os.environ['CONDA_PREFIX'],"Library"))
+	# see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
+	is_conda = os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history'))
 
-QT5_DIR=None
-for it in qt5_candidates:
-
-	if not os.path.isdir(it):  
-		continue
-	
-	QT5_DIR=it
-	print("QT5_DIR", QT5_DIR)
-
-	# for windows I need to tell how to find Qt
 	if WIN32:
-		AddSysPath(os.path.join(QT5_DIR,"bin"))
 
-	# I need to tell where to found Qt plugins
-	os.environ["QT_PLUGIN_PATH"]= os.path.join(QT5_DIR, "plugins")
+		if os.path.isdir(os.path.join(os.path.dirname(PyQt5.__file__),"Qt")):
+			AddSysPath(os.path.join(os.path.dirname(PyQt5.__file__),"Qt/bin"))
+			os.environ["QT_PLUGIN_PATH"]= os.path.join(os.path.join(os.path.dirname(PyQt5.__file__),"Qt/plugins"))
+			print("QT_PLUGIN_PATH",os.environ["QT_PLUGIN_PATH"])
+		else:
+			print("Cannot find Qt5 directory, OpenVisus GUI is probably going to crash")
 
-	break
+	else:
 
-if QT5_DIR is None:
-	print("Cannot find QT5_DIR, OpenVisus GUI is probably going to crash")
+		if os.path.isdir(os.path.join(os.path.dirname(PyQt5.__file__),"Qt/plugins")):
+			os.environ["QT_PLUGIN_PATH"]= os.path.join(os.path.dirname(PyQt5.__file__),"Qt/plugins")
+		
+		elif is_conda and os.path.isdir(os.path.join(os.environ['CONDA_PREFIX'],"Library/plugins")):
+			os.environ["QT_PLUGIN_PATH"]= os.path.join(os.environ['CONDA_PREFIX'],"Library/plugins")
+		
+		elif is_conda and os.path.join(os.environ['CONDA_PREFIX'],"plugins"):
+			os.environ["QT_PLUGIN_PATH"]= os.path.join(os.environ['CONDA_PREFIX'],"plugins")
+		else:
+			print("Cannot find Qt5 plugins directory, OpenVisus GUI is probably going to crash")
+
+		print("QT_PLUGIN_PATH",os.environ["QT_PLUGIN_PATH"])
+# ///////////////////////////////////////////////////////////
 %}
 
 
