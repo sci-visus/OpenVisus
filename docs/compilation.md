@@ -343,11 +343,10 @@ For OpenVisus developers only:
 
 ```
 TAG=$(python3 Libs/swig/setup.py new-tag) && echo ${TAG}
-
 git commit -a -m "New tag" && \
-git tag -a $TAG -m "$TAG" && \
-git push origin $TAG && \
-git push origin
+  git tag -a $TAG -m "$TAG" && \
+  git push origin $TAG && \
+  git push origin
 ```
 
 Also remember to manually change the version in [environment.yml](https://github.com/sci-visus/OpenVisus/blob/master/environment.yml) that is used in binder.
