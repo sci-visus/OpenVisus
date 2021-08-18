@@ -196,6 +196,7 @@ jobs:
            echo "TAG=${TAG}" 
            cd Docker/mod_visus
            echo ${{ secrets.DOCKER_TOKEN }} | docker login -u=${{ secrets.DOCKER_USERNAME }} --password-stdin
+           sleep 30 # give time pypi to get the pushed file
            docker build --tag visus/mod_visus:$TAG --tag visus/mod_visus:latest --build-arg TAG=$TAG .
            
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
