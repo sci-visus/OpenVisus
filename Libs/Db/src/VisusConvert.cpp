@@ -217,6 +217,38 @@ public:
 
 };
 
+///////////////////////////////////////////////////////////
+String PrintLoadArgs()
+{
+  std::ostringstream out;
+  out<<"[load_args]*" << std::endl;
+  out << "#NULL plugin" << std::endl;
+  out << "/dev/null  --dtype uint8[3] --dims \"1024 768\" [--value 0]" << std::endl << std::endl;
+  out << "#FREEIMAGE plugin" << std::endl;
+  out << "file.tif [--page 0]" << std::endl << std::endl;
+  out << "#RAW plugin :" << std::endl;
+  out << "file.raw --dtype \"float32[3]\" --dims \"1024 512\" [--offset 0]" << std::endl << std::endl;
+  out << "#IDX plugin :" << std::endl;
+  out << "file.idx --box \"0 1023 0 767\" [--time <time>] [--field \"myfield\"] [--fromh <int>] [--toh <int>] [--disable - filters]" << std::endl << std::endl;
+  return out.str();
+}
+
+///////////////////////////////////////////////////////////
+String PrintSaveArgs()
+{
+  std::ostringstream out;
+  out << "[save_args]*" << std::endl;
+  out << "#NULL plugin" << std::endl;
+  out << "/dev/null" << std::endl << std::endl;
+  out << "#FREEIMAGE plugin" << std::endl;
+  out << "no extra argument supported" << std::endl << std::endl;
+  out << "#RAW plugin :" << std::endl;
+  out << "file.raw ---offset 0" << std::endl << std::endl;
+  out << "#IDX plugin :" << std::endl;
+  out << "file.idx --box \"0 1023 0 767\" [--time <time>] [--field \"myfield\"] [--fromh <int>] [--toh <int>] [--disable - filters]" << std::endl << std::endl;
+  return out.str();
+}
+
 
 ///////////////////////////////////////////////////////////
 class ImportData : public VisusConvert::Step
@@ -228,8 +260,8 @@ public:
   {
     std::ostringstream out;
     out << args[0]
-      << " <filename> " << std::endl
-      << "   [load_args]*" << std::endl;
+      << " <filename> [load_args]*" << std::endl << std::endl;
+    out << PrintLoadArgs();
     return out.str();
   }
 
@@ -259,7 +291,8 @@ public:
   {
     std::ostringstream out;
     out << args[0]
-      << " <filename> [save_args]*" << std::endl;
+      << " <filename> [save_args]*" << std::endl << std::endl;
+    out << PrintSaveArgs();
     return out.str();
   }
 
@@ -291,7 +324,8 @@ public:
       << " <filename> " << std::endl
       << "   [--source-box      <BoxNi>]" << std::endl
       << "   [--destination-box <BoxNi>]" << std::endl
-      << "   [load_args]*" << std::endl;
+      << "   [load_args]*" << std::endl<< std::endl;
+    out << PrintLoadArgs();
     return out.str();
   }
 
@@ -702,13 +736,24 @@ static String TrimDash(String value) {
 }
 
 
+String NormalizeArg(String value)
+{
+  return TrimDash(StringUtils::toLower(value));
+}
+
+
 //////////////////////////////////////////////////////////////////////////////
 void VisusConvert::runFromArgs(std::vector<String> args)
 {
-  if (args.empty())
+  if (args.empty() || (args.size() == 1 && NormalizeArg(args[0]) == "help"))
   {
     PrintInfo(getHelp());
     return;
+  }
+
+  if (args.size() == 1 && NormalizeArg(args[0]) == "test-idx")
+  {
+    return SelfTestIdx();
   }
 
   std::vector< std::vector<String> > steps;
@@ -716,16 +761,7 @@ void VisusConvert::runFromArgs(std::vector<String> args)
 
   for (auto arg : args)
   {
-    String name = TrimDash(StringUtils::toLower(arg));
-
-    if (name == "help")
-    {
-      PrintInfo(getHelp());
-      return;
-    }
-
-    if (name == "test-idx")
-      return SelfTestIdx();
+    String name = NormalizeArg(arg);
 
     //begin of a new command
     if (actions.find(name) != actions.end())
@@ -742,17 +778,18 @@ void VisusConvert::runFromArgs(std::vector<String> args)
     auto action = actions[name]();
 
     PrintInfo("//*** STEP ", name, "***");
-    PrintInfo("Input dtype", data.dtype, "dims", data.dims, "step", StringUtils::join(step, " "));
+    PrintInfo("INPUT dtype:", data.dtype, "dims:", data.dims, "step:", "args:",StringUtils::join(step, " "));
 
-    if (step.size() == 2 && (step[1] == "help" || step[1] == "--help" || step[1] == "-h"))
+    if (step.size() == 2 && NormalizeArg(step[1]) == "help")
     {
-      PrintInfo("\n", step[0], name, action->getHelp(step));
+      PrintInfo("\n", action->getHelp(step));
       return;
     }
 
     Time t1 = Time::now();
     data = action->exec(data, step);
     PrintInfo("STEP ", name, "done in", t1.elapsedMsec(), "msec");
+    PrintInfo("OUTPUT dtype:", data.dtype, "dims:", data.dims, "step:", "args:", StringUtils::join(step, " "));
   }
 }
 
