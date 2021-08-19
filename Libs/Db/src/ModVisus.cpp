@@ -705,6 +705,9 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
       buffer = filter->dropExtraComponentIfExists(buffer);
   }
 
+  //this is needed by VisusSlam (ref John and Steve)
+  //this was the old code:
+  //https://github.com/sci-visus/OpenVisus/commit/0c0ccf7235f8f5547bb2a4808cea60a697dac895
 #if 1
   String palette = request.url.getParam("palette");
   if (!palette.empty() && buffer.dtype.ncomponents() == 1)
@@ -826,7 +829,7 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
         tf->setUserRange(Range(palette_min, palette_max, 0));
       }
 
-      buffer = buffer = tf->applyToArray(buffer);
+      buffer = tf->applyToArray(buffer);
       if (!buffer.valid())
         return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "palette failed");
     }

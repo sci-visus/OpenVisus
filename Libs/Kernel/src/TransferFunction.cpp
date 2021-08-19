@@ -197,12 +197,12 @@ struct ApplyTransferFunctionOp
     // otherwise    -> R(input[0]) G(input[1]) B(input[2]) A(input[3]) 
     int ND = (NS == 1)? 4 : std::min(4, NS);
 
-    if (!dst.resize(src.dims, DType(ND, DTypes::FLOAT32), __FILE__, __LINE__))
+    if (!dst.resize(src.dims, DType(ND, DTypes::UINT8), __FILE__, __LINE__))
       return false;
 
     for (int I = 0; I < ND; I++)
     {
-      auto D = I < ND ? I : ND - 1; auto DST = GetComponentSamples<Float32>(dst, D);
+      auto D = I < ND ? I : ND - 1; auto DST = GetComponentSamples<Uint8  >(dst, D);
       auto S = I < NS ? I : NS - 1; auto SRC = GetComponentSamples<SrcType>(src, S);
 
       auto input_range = TransferFunction::ComputeRange(src, S,/*bNormalizeToFloat*/false, tf.getNormalizationMode(), tf.getUserRange());
@@ -215,7 +215,8 @@ struct ApplyTransferFunctionOp
       {
         if (aborted())  return false;
         double x = (SRC[I] - A) / (B - A);
-        DST[I] = (Float32)(f->getValue(x));
+        double y = f->getValue(x);
+        DST[I] = (Uint8)Utils::clamp((Uint8)(y*255.0), (Uint8)0, (Uint8)255);
       }
     }
 
