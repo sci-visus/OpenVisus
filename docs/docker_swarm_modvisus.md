@@ -9,7 +9,7 @@ Create a `docker-compose.yml` file with 3 mod_visus_workers. Replace $DATASETS w
 ```
 worker1:
   image: visus/mod_visus:$TAG 
-  restart: always
+  restart: unless-stopped
   volumes:
   - $DATASETS:/datasets
   ports:
@@ -17,7 +17,7 @@ worker1:
 
 worker2:
   image: visus/mod_visus:$TAG
-  restart: always
+  restart: unless-stopped
   volumes:
   - $DATASETS:/datasets
   ports:
@@ -25,7 +25,7 @@ worker2:
 
 worker3:
   image: visus/mod_visus:$TAG
-  restart: always
+  restart: unless-stopped
   volumes:
   - $DATASETS:/datasets
   ports:
@@ -33,7 +33,7 @@ worker3:
       
 nginx:
   image: nginx
-  restart: always
+  restart: unless-stopped
   volumes:
   - ./nginx.conf:/etc/nginx/nginx.conf
   links:
