@@ -1,12 +1,17 @@
 # Introduction
 
 In this example, we run an OpenVisus server inside a Docker container. 
+(NOTE it will work just fine with PodMan too)
 
-The OpenVisus server is a C++ [Apache module](http://httpd.apache.org/docs/2.4/developer/modguide.html) called [mod_visus](https://github.com/sci-visus/OpenVisus/tree/master/Executable/mod_visus).  
+The OpenVisus server is a C++ [Apache module](http://httpd.apache.org/docs/2.4/developer/modguide.html) called 
+[mod_visus](https://github.com/sci-visus/OpenVisus/tree/master/Executable/mod_visus).  
 
-In this tutorial we assume that the datasets are stored in a *shared* directory (i.e. an *host* directory mounted  inside the Docker instance); but there are other more advanced options, such as using Object Storage (e.g. Amazon S3, Wasabi, Google Cloud Storage, Azure Blob Storage etc.) and let the OpenVisus server to create a local cache. 
+In this tutorial we assume that the datasets are stored in a *shared* directory (i.e. an *host* directory mounted  inside the Docker instance); 
+but there are other more advanced options, such as using Object Storage (e.g. Amazon S3, Wasabi, Google Cloud Storage, Azure Blob Storage etc.) 
+and let the OpenVisus server to create a local cache. 
 
-Apache server is the `httpd:2.4` version and runs in `event` mode under  `daemon` account. `HTTP` (port 80) and `HTTPS` (port 443) will be mapped to port `8080` and port `443`. If you need to change this setup, you may need to customize the [Dockerfile](https://github.com/sci-visus/OpenVisus/tree/master/Docker/mod_visus/httpd).
+Apache server is the `httpd:2.4` version and runs in `event` mode under  `daemon` account. `HTTP` (port 80) and `HTTPS` (port 443) will be mapped to port `8080` and port `8443`. 
+If you need to change this setup, you may need to customize the [Dockerfile](https://github.com/sci-visus/OpenVisus/tree/master/Docker/mod_visus/httpd).
 
 <p align = "center">
 <img src="https://github.com/sci-visus/images/blob/main/diagram.png?raw=true">
@@ -17,9 +22,42 @@ Apache server is the `httpd:2.4` version and runs in `event` mode under  `daemon
 For more complex case with a load balancer (e.g. nginx or HAProxy) in front of OpenVisus instances, please refer to `Kubernetes` or `Docker Swarm` tutorials.  
 
 
-# Create a dataset directory
+# Run OpenVisus server
 
-As an example of creating a minimal dataset directory, type:
+Example:
+
+```
+IMAGE=visus/mod_visus:latest
+sudo docker run --rm --publish 8080:80 --publish 8443:443 --name my-modvisus $IMAGE
+```
+
+
+From another shell check if it is working:
+
+```
+# should return an HTML document (BODY it works)
+curl http://localhost:8080
+
+# internal messages
+curl http://localhost:8080/server-status
+
+# it should return an XML list with 2kbit1 inside
+curl http://localhost:8080/mod_visus?action=list
+
+# it should return an XML list with 2kbit1 inside
+# NOTE --insecure since by default OpenVisus is using self-signed certificates
+curl --insecure https://localhost:8443/mod_visus?action=list
+
+# it should return a text file with (version) as first line
+curl http://localhost:8080/mod_visus?dataset=2kbit1 
+```
+
+
+
+
+# Run OpenVisus server with you datasets 
+
+Example:
 
 ```
 export DATASETS=/mnt/data/datasets
@@ -45,43 +83,66 @@ EOF
 
 **Important note**: Docker instance will see the `$DATASET` directory as `/datasets`, so the `<dataset ...>` items should be filled accordingly.
 
-# Run the OpenVisus server
-
-You can run the server from the external (change the image version as needed):
+then type:
 
 ```
-IMAGE=visus/mod_visus:2.1.142
-sudo docker run --rm --publish 8080:80 --publish 443:443 --name my-modvisus -v $DATASETS:/datasets $IMAGE
+IMAGE=visus/mod_visus:latest
+sudo docker run --rm --publish 8080:80 --publish 8443:443 --name my-modvisus -v $DATASETS:/datasets $IMAGE
 ```
 
-From another shell check if it is working (for `HTTPS` use `https://localhost:443`):
+
+From another shell check if it is working:
 
 ```
-# should return an HTML document (BODY it works)
-curl http://localhost:8080
 
-# internal messages
-curl http://localhost:8080/server-status
-
-# it should return an XML list with 2kbit1 inside
-curl http://localhost:8080/mod_visus?action=list
-
-# it should return a text file with (version) as first line
 curl http://localhost:8080/mod_visus?dataset=2kbit1 
+curl --insecure https://localhost:8443/mod_visus?dataset=2kbit1 
 ```
 
-# Optional sections
 
-## Debug the Container
+# (OPTIONAL) Debug the Container
 
 To debug the container from the inside:
 
 ``` 
-sudo docker run --rm -it --publish 8080:80 --publish 443:443 -v $DATASETS:/datasets $IMAGE /bin/bash
+sudo docker run --rm -it --publish 8080:80 --publish 8443:443 -v $DATASETS:/datasets $IMAGE /bin/bash
 /usr/local/bin/httpd-foreground
 ```
 
-## Build the image
+# (OPTIONAL)Generate CA certificates
+
+ee https://certbot.eff.org/docs/install.html#running-with-docker for full instructions:
+
+``
+DOMAIN=$atlantis.sci.utah.edu 
+
+sudo docker run -it --rm --name certbot \
+   -v "$HOME/.certbot/etc/letsencrypt:/etc/letsencrypt" \
+   -v "$HOME/.certbot/var/lib/letsencrypt:/var/lib/letsencrypt" \
+    -p 80:80 \
+    -p 443:443 \
+   certbot/certbot certonly --standalone -m scrgiorgio@gmail.com -n --agree-tos -d $DOMAIN
+
+# fix file permissions
+sudo docker run\
+   -v "$HOME/.certbot/etc/letsencrypt:/etc/letsencrypt" \
+   -v "$HOME/.certbot/var/lib/letsencrypt:/var/lib/letsencrypt" \
+   ubuntu:latest chmod a+rX -R /etc/letsencrypt
+
+``
+
+and then during `docker run` mount the certificate:
+
+```
+sudo docker run \
+   ... \
+   --mount type=bind,source=$HOME/.certbot/etc/letsencrypt/live/$DOMAIN/fullchain.pem,target=/usr/local/apache2/conf/server.crt \
+   --mount type=bind,source=$HOME/.certbot/etc/letsencrypt/live/$DOMAIN/privkey.pem,target=/usr/local/apache2/conf/server.key \
+   ...
+```
+
+
+# (OPTIONAL)Build the image
 
 ```
 cd Docker/mod_visus/httpd
@@ -90,7 +151,7 @@ sudo docker build --tag visus/mod_visus:$TAG  --build-arg TAG=$TAG .
 sudo docker push visus/mod_visus:$TAG
 ```
 
-## Inspect the logs
+# (OPTIONAL) Inspect the logs
 
 Type:
 
@@ -100,13 +161,20 @@ sudo docker logs my-modvisus
 ```
 
 
-## Start containers automatically
+# (OPTIONAL) Start containers automatically
 
 
 Add some options to the run command (see https://docs.docker.com/config/containers/start-containers-automatically):
 
 ```
-sudo docker run --rm --publish 8080:80 --publish 443:443 -v $DATASETS:/datasets --name my-modvisus --restart=always -d -name restart-always-modvisus $IMAGE
+sudo docker run --rm \
+   --publish 8080:80 \
+   --publish 8443:443 \
+   -v $DATASETS:/datasets \
+   --name my-modvisus \
+   --restart=always \
+   -d --restart=unless-stopped \
+   $IMAGE
 ``` 
 
 and start the docker daemon (see https://docs.docker.com/config/daemon/systemd): 
@@ -116,7 +184,7 @@ sudo systemctl start docker
 ```
 
 
-## Enable password security 
+# (OPTIONAL) Enable password security 
 
 To enable password security:
 
@@ -146,7 +214,7 @@ curl -u$MODVISUS_USERNAME:$MODVISUS_PASSWORD ...
 ```
 
 
-## Enable dynamic datasets 
+# (OPTIONAL)Enable dynamic datasets 
 
 If your need to change the `datasets.config` at runtime, for example because you want to dynamically add/remove datasets at runtime, add a `ModVisus/Dynamic` section to your `datasets.config`:
 
@@ -162,7 +230,7 @@ If your need to change the `datasets.config` at runtime, for example because you
 This way mod_visus will check for file changes every 5000 milliseconds, and will fire a `reload` dataset event if needed.
 
 
-## File permission problems 
+# (OPTIONAL) File permission problems 
 
 The *quick-and-dirty* way of fixing file permissions is to set `read-write` permissions for all datasets:
 

@@ -750,7 +750,7 @@ double NDVI_Bright[]={
 1.0,0.0,0,1.0,
 1.0,1,0,1.0,
 0.0,200.0/255.0,0,1.0,
-0.0,100.0/255.0,0,1.0};
+0.0,100.0/255.0,0,1.0 };
 
 double NDVI_Beach[]={
 139.0/255.0,196.0/255.0,249/255.0,1.0,
@@ -758,7 +758,7 @@ double NDVI_Beach[]={
 199.0/255.0,210.0/255.0,112/255.0,1.0,
 138.0/255.0,221.0/255.0,96/255.0,1.0,
 7/255.0,114.0/255.0,42.0/255.0,1.0,
-9.0/255.0,114.0/255.0,16/255.0,1.0};
+9.0/255.0,114.0/255.0,16/255.0,1.0 };
 
 double NDVI_Forest[]={
 48/255.0,100/255.0,102/255.0,1.0,
@@ -766,20 +766,20 @@ double NDVI_Forest[]={
 156/255.0,171/255.0,104/255.0,1.0,
 204/255.0,204/255.0,102/255.0,1.0,
 156/255.0,132/255.0,72/255.0,1.0,
-110/255.0,70/255.0,44/255.0,1.0)};
+110/255.0,70/255.0,44/255.0,1.0 };
 
 
 double NDVI_VIRIDIS[]={
 250/255.0,230/255.0,34/255.0,1.0,
 32/255.0,144/255.0,140/255.0,1.0,
-64/255.0,0/255.0,79/255.0,1.0};
+64/255.0,0/255.0,79/255.0,1.0 };
 
 double NDVI_BlueGreen[]={
 0/255.0,0/255.0,0/255.0,1.0,
 42/255.0,137/255.0,0/255.0,1.0,
 189/255.0,165/255.0,123/255.0,1.0,
 252/255.0,251/255.0,249/255.0,1.0,
-9.0/255.0,27/255.0,84/255.0,1.0};
+9.0/255.0,27/255.0,84/255.0,1.0 };
 
 double NDVI_Rainbow[]={
 19/255.0,71/255.0,33/255.0,1.0,
@@ -789,7 +789,7 @@ double NDVI_Rainbow[]={
 189/255.0,32/255.0,15/255.0,1.0 ,
 142/255.0,74/255.0,147/255.0,1.0 ,
 0/255.0,0/255.0,0/255.0,1.0 ,
-255/255.0,255/255.0,255/255.0,1.0 }
+255/255.0,255/255.0,255/255.0,1.0 };
 
 
 } //namespace Private
@@ -6437,6 +6437,12 @@ std::vector<String> TransferFunction::getDefaults()
     "LinearYellow",
     "LinearGray5",
     "LinearGray4",
+		"NDVI_Bright",
+		"NDVI_Beach",
+		"NDVI_Forest",
+		"NDVI_VIRIDIS",
+		"NDVI_BlueGreen",
+		"NDVI_Rainbow",
 
 		//plt
 		"Blues",
@@ -6614,6 +6620,12 @@ SharedPtr<TransferFunction> TransferFunction::getDefault(String name)
 		NEW_PALETTE(LinearYellow)
 		NEW_PALETTE(LinearGray5)
 		NEW_PALETTE(LinearGray4)
+		NEW_PALETTE(NDVI_Bright)
+		NEW_PALETTE(NDVI_Beach)
+		NEW_PALETTE(NDVI_Forest)
+		NEW_PALETTE(NDVI_VIRIDIS)
+		NEW_PALETTE(NDVI_BlueGreen)
+		NEW_PALETTE(NDVI_Rainbow)
 
 		#undef NEW_PALETTE
 	}

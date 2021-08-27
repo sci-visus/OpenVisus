@@ -2,15 +2,6 @@
 
 Login to atlantis.
 
-Create and configure your datasets. 
-
-if you want to start/stop the official non-dockerized Apache server you can do:
-
-```
-sudo /usr/sbin/apache2ctl stop
-sudo /usr/sbin/apache2ctl restart
-```
-
 Run the Docker OpenVisus server:
 
 ```
@@ -18,9 +9,10 @@ cd /home/sci/scrgiorgio/atlantis-docker
 
 # important the `:shared` for the NFS mounts otherwise you will get Docker "Too many levels of symbolic links" error message
 # NOTE: -d is for `detach`
-# NOTE: --restart should cover crashes, not sure about Atlantis reboot  
+# NOTE: --restart should cover crashes, not sure about Atlantis reboot (TOCHECK!)
 # NOTE: I am exposing either HTTP and HTTPS ports
 CONTAINER_NAME=atlantis-docker-1
+TAG=2.1.158
 sudo docker stop $CONTAINER_NAME || true
 sudo docker rm   $CONTAINER_NAME || true
 sudo docker run \
@@ -32,9 +24,9 @@ sudo docker run \
    --mount type=bind,source=$PWD/certbot/etc/letsencrypt/live/atlantis.sci.utah.edu/privkey.pem,target=/usr/local/apache2/conf/server.key \
     -v /usr/sci/cedmav:/usr/sci/cedmav:shared \
     -v /usr/sci/brain:/usr/sci/brain:shared   \
-   --restart unless-stopped --name $CONTAINER_NAME -d visus/mod_visus:2.1.155
+   --restart unless-stopped --name $CONTAINER_NAME -d visus/mod_visus:$TAG
 
-# if you want to run httpd-foreground manually
+# (OPTIONAL) if you want to run httpd-foreground manually
 sudo docker run \
    --publish 80:80  \
    --publish 443:443 \
@@ -44,13 +36,13 @@ sudo docker run \
    --mount type=bind,source=$PWD/certbot/etc/letsencrypt/live/atlantis.sci.utah.edu/privkey.pem,target=/usr/local/apache2/conf/server.key \
     -v /usr/sci/cedmav:/usr/sci/cedmav:shared \
     -v /usr/sci/brain:/usr/sci/brain:shared   \
-   --rm -it visus/mod_visus:2.1.155 /bin/bash
+   --rm -it visus/mod_visus:$TAG /bin/bash
    
    
-# if you want to enter in the container
+# (OPTIONAL) if you want to enter in the container
 sudo docker exec -it $CONTAINER_NAME /bin/bash
 
-# to inspect the logs
+# (OPTIONAL) to inspect the logs
 sudo docker logs --follow $CONTAINER_NAME
 ```
 
@@ -63,21 +55,21 @@ curl http://atlantis.sci.utah.edu/mod_visus?action=list
 
 
 # HTTPS
-curl --insecure https://atlantis.sci.utah.edu/mod_visus?action=list
+curl https://atlantis.sci.utah.edu/mod_visus?action=list
 ```
  
 
-For developers. If you need to copy some files from a container:
+(OPTIONAL) Example for developers. If you need to copy some files from a container:
 
 ```
-sudo docker run --name temp visus/mod_visus:2.1.155 /bin/true
+sudo docker run --name temp visus/mod_visus:$TAG /bin/true
 sudo docker cp temp:/usr/local/apache2/conf/extra/httpd-ssl.conf ./httpd-ssl.conf
 sudo docker rm temp
 sudo docker run --rm --mount type=bind,source=$PWD/httpd-ssl.conf,target=/tmp/httpd-ssl.conf ubuntu chown $UID /tmp/httpd-ssl.conf
 
 ```
 
-# CA certificates
+# Generate new CA certificates
 
 This is what I did:
 
@@ -98,9 +90,8 @@ sudo docker run\
    ubuntu:latest chmod a+rX -R /etc/letsencrypt
 
 ```
-
 TODO:
-- does not start Apache on atlantis
+- (DONE) does not start Apache on atlantis
 - find a way to renew (automatically?) certificates (THIS ONE EXPIRES 2021-11-17). Maybe using a docker compose? Probably with an nginx reverse proxy in front...
 - ask Ali for sudo docker-compose
 - what happens on atlantis-reboot? will openvisus Docker come up?
