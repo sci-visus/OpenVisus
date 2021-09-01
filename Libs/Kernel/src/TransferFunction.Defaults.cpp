@@ -744,53 +744,6 @@ double LinearGray4[]={
 0.950000,0.286275,0.298039,0.411765,
 1.000000,0.286275,0.282353,0.388235};
 
-double NDVI_Bright[]={
-100.0/255.0,0.000000,0.0,1.0,
-100.0/255.0,0.000000,0.0,1.0,
-1.0,0.0,0,1.0,
-1.0,1,0,1.0,
-0.0,200.0/255.0,0,1.0,
-0.0,100.0/255.0,0,1.0 };
-
-double NDVI_Beach[]={
-139.0/255.0,196.0/255.0,249/255.0,1.0,
-201.0/255.0,153.0/255.0,92/255.0,1.0,
-199.0/255.0,210.0/255.0,112/255.0,1.0,
-138.0/255.0,221.0/255.0,96/255.0,1.0,
-7/255.0,114.0/255.0,42.0/255.0,1.0,
-9.0/255.0,114.0/255.0,16/255.0,1.0 };
-
-double NDVI_Forest[]={
-48/255.0,100/255.0,102/255.0,1.0,
-48/255.0,100/255.0,102/255.0,1.0,
-156/255.0,171/255.0,104/255.0,1.0,
-204/255.0,204/255.0,102/255.0,1.0,
-156/255.0,132/255.0,72/255.0,1.0,
-110/255.0,70/255.0,44/255.0,1.0 };
-
-
-double NDVI_VIRIDIS[]={
-250/255.0,230/255.0,34/255.0,1.0,
-32/255.0,144/255.0,140/255.0,1.0,
-64/255.0,0/255.0,79/255.0,1.0 };
-
-double NDVI_BlueGreen[]={
-0/255.0,0/255.0,0/255.0,1.0,
-42/255.0,137/255.0,0/255.0,1.0,
-189/255.0,165/255.0,123/255.0,1.0,
-252/255.0,251/255.0,249/255.0,1.0,
-9.0/255.0,27/255.0,84/255.0,1.0 };
-
-double NDVI_Rainbow[]={
-19/255.0,71/255.0,33/255.0,1.0,
-25/255.0,148/255.0,16/255.0,1.0 ,
-255/255.0,251/255.0,0/255.0,1.0 ,
-235/255.0,125/255.0,46/255.0,1.0 ,
-189/255.0,32/255.0,15/255.0,1.0 ,
-142/255.0,74/255.0,147/255.0,1.0 ,
-0/255.0,0/255.0,0/255.0,1.0 ,
-255/255.0,255/255.0,255/255.0,1.0 };
-
 
 } //namespace Private
 
@@ -6437,6 +6390,7 @@ std::vector<String> TransferFunction::getDefaults()
     "LinearYellow",
     "LinearGray5",
     "LinearGray4",
+
 		"NDVI_Bright",
 		"NDVI_Beach",
 		"NDVI_Forest",
@@ -6527,50 +6481,50 @@ std::vector<String> TransferFunction::getDefaults()
 ////////////////////////////////////////////////////////////////////////////
 SharedPtr<TransferFunction> TransferFunction::getDefault(String name)
 {
-  using namespace Private;
+	using namespace Private;
 	const int nsamples = 256;
 
-  auto ret = std::make_shared<TransferFunction>(nsamples, name);
+	auto ret = std::make_shared<TransferFunction>(nsamples, name);
 
-  if (StringUtils::toLower(name) == "grayopaque")
-  {
-    for (int I = 0; I < nsamples; I++)
-    {
-      double alpha = I / (nsamples - 1.0);
-      ret->R->values[I] = alpha;
-      ret->G->values[I] = alpha;
-      ret->B->values[I] = alpha;
-      ret->A->values[I] = 1.0;
-    }
-    return ret;
-  }
+	if (StringUtils::toLower(name) == "grayopaque")
+	{
+		for (int I = 0; I < nsamples; I++)
+		{
+			double alpha = I / (nsamples - 1.0);
+			ret->R->values[I] = alpha;
+			ret->G->values[I] = alpha;
+			ret->B->values[I] = alpha;
+			ret->A->values[I] = 1.0;
+		}
+		return ret;
+	}
 
-  if (StringUtils::toLower(name) == "graytransparent")
-  {
-    for (int I = 0; I < nsamples; I++)
-    {
-      double alpha = I / (nsamples - 1.0);
-      ret->R->values[I] = alpha;
-      ret->G->values[I] = alpha;
-      ret->B->values[I] = alpha;
-      ret->A->values[I] = alpha * alpha;
-    }
-    return ret;
-  }
+	if (StringUtils::toLower(name) == "graytransparent")
+	{
+		for (int I = 0; I < nsamples; I++)
+		{
+			double alpha = I / (nsamples - 1.0);
+			ret->R->values[I] = alpha;
+			ret->G->values[I] = alpha;
+			ret->B->values[I] = alpha;
+			ret->A->values[I] = alpha * alpha;
+		}
+		return ret;
+	}
 
-  if (StringUtils::toLower(name) == "hsl")
-  {
-    for (int I = 0; I < nsamples; I++)
-    {
-      Color color = Color((float)(I / (nsamples - 1.0)), 0.5f, 1.0f, 1.0f, Color::HLSType).toRGB();
-      ret->R->values[I] = color.getRed();
-      ret->G->values[I] = color.getGreen();
-      ret->B->values[I] = color.getBlue();
-      ret->A->values[I] = color.getAlpha();
-    }
+	if (StringUtils::toLower(name) == "hsl")
+	{
+		for (int I = 0; I < nsamples; I++)
+		{
+			Color color = Color((float)(I / (nsamples - 1.0)), 0.5f, 1.0f, 1.0f, Color::HLSType).toRGB();
+			ret->R->values[I] = color.getRed();
+			ret->G->values[I] = color.getGreen();
+			ret->B->values[I] = color.getBlue();
+			ret->A->values[I] = color.getAlpha();
+		}
 
-    return ret;
-  }
+		return ret;
+	}
 
 	auto FromRGBA = [&](unsigned char* buffer, size_t buffer_size) {
 		auto ret = TransferFunction::fromArray(Array(nsamples, DTypes::UINT8_RGBA, HeapMemory::createUnmanaged(buffer, buffer_size)));
@@ -6579,56 +6533,125 @@ SharedPtr<TransferFunction> TransferFunction::getDefault(String name)
 	};
 
 	{
-		#define NEW_PALETTE(__name__)\
+#define NEW_PALETTE(__name__)\
 			if (StringUtils::toLower(name) == StringUtils::toLower(#__name__)) \
 			return FromRGBA(Private::__name__##_data, sizeof(Private::__name__##_data));\
 			/*--*/
 
 		NEW_PALETTE(banded)
-		NEW_PALETTE(bry)
-		NEW_PALETTE(bgry)
-		NEW_PALETTE(gamma)
-		NEW_PALETTE(hot1)
-		NEW_PALETTE(hot2)
-		NEW_PALETTE(ice)
-		NEW_PALETTE(lighthues)
-		NEW_PALETTE(rich)
-		NEW_PALETTE(smoothrich)
-		NEW_PALETTE(lut16)
+			NEW_PALETTE(bry)
+			NEW_PALETTE(bgry)
+			NEW_PALETTE(gamma)
+			NEW_PALETTE(hot1)
+			NEW_PALETTE(hot2)
+			NEW_PALETTE(ice)
+			NEW_PALETTE(lighthues)
+			NEW_PALETTE(rich)
+			NEW_PALETTE(smoothrich)
+			NEW_PALETTE(lut16)
 
-		#undef NEW_PALETTE
-  }
+#undef NEW_PALETTE
+	}
 
+	//some other palette
 	{
 		auto fromRGBAColorMap = [&](const double* buffer, size_t buffer_size) {
 			return TransferFunction::fromArray(RGBAColorMap(buffer, buffer_size).toArray(nsamples), name);
 		};
 
-		#define NEW_PALETTE(__name__)\
+#define NEW_PALETTE(__name__)\
 			if (StringUtils::toLower(name) == StringUtils::toLower(#__name__)) \
 			return fromRGBAColorMap(Private::__name__, sizeof(Private::__name__)/ sizeof(double));\
 			/*--*/
 
 		NEW_PALETTE(BlueGreenDivergent)
-		NEW_PALETTE(AsymmetricBlueGreenDivergent)
-		NEW_PALETTE(GreenGold)
-		NEW_PALETTE(LinearGreen)
-		NEW_PALETTE(LinearTurquois)
-		NEW_PALETTE(MutedBlueGreen)
-		NEW_PALETTE(ExtendedCoolWarm)
-		NEW_PALETTE(AsymmetricBlueOrangeDivergent)
-		NEW_PALETTE(LinearYellow)
-		NEW_PALETTE(LinearGray5)
-		NEW_PALETTE(LinearGray4)
-		NEW_PALETTE(NDVI_Bright)
-		NEW_PALETTE(NDVI_Beach)
-		NEW_PALETTE(NDVI_Forest)
-		NEW_PALETTE(NDVI_VIRIDIS)
-		NEW_PALETTE(NDVI_BlueGreen)
-		NEW_PALETTE(NDVI_Rainbow)
+			NEW_PALETTE(AsymmetricBlueGreenDivergent)
+			NEW_PALETTE(GreenGold)
+			NEW_PALETTE(LinearGreen)
+			NEW_PALETTE(LinearTurquois)
+			NEW_PALETTE(MutedBlueGreen)
+			NEW_PALETTE(ExtendedCoolWarm)
+			NEW_PALETTE(AsymmetricBlueOrangeDivergent)
+			NEW_PALETTE(LinearYellow)
+			NEW_PALETTE(LinearGray5)
+			NEW_PALETTE(LinearGray4)
 
-		#undef NEW_PALETTE
+#undef NEW_PALETTE
 	}
+
+	//amy palette
+	{
+		auto FromOffsetAndColors = [name](std::vector< std::pair<double, Uint32> > colors)
+		{
+			if (colors[0].first != 0)
+				colors.insert(colors.begin(), std::make_pair(0.0, colors[0].second));
+
+			if (colors.back().first != 100)
+				colors.push_back(std::make_pair(100.0, colors.back().second));
+
+			RGBAColorMap colormap;
+			for (auto it : colors)
+				colormap.setColorAt(it.first / 100.0, Color::createFromUint32(it.second));
+
+			return TransferFunction::fromArray(colormap.toArray(256), name);
+		};
+
+		if (StringUtils::toLower(name) == StringUtils::toLower("NDVI_Beach"))
+			return FromOffsetAndColors({
+				std::make_pair( 5.0, 0x8bc4f9ff),
+				std::make_pair(27.5, 0xc9995cff),
+				std::make_pair(50.0, 0xc7d270ff),
+				std::make_pair(72.5, 0x8add60ff),
+				std::make_pair(95.0, 0x097210ff),
+				});
+
+
+		if (StringUtils::toLower(name) == StringUtils::toLower("NDVI_Bright"))
+			return FromOffsetAndColors({
+					std::make_pair( 5.0, 0x640000ff),
+					std::make_pair(50.0, 0xffff00ff),
+					std::make_pair(72.5, 0x00c800ff),
+					std::make_pair(85.0, 0x006400ff)
+				});
+
+		if (StringUtils::toLower(name) == StringUtils::toLower("NDVI_Forest"))
+			return FromOffsetAndColors({
+				std::make_pair(5.0, 0x6e462cff),
+				std::make_pair(27.5, 0x9c8448ff),
+				std::make_pair(50.0, 0xcccc66ff),
+				std::make_pair(72.5, 0x9cab68ff),
+				std::make_pair(85.0, 0x306466ff)
+				});
+
+		if (StringUtils::toLower(name) == StringUtils::toLower("NDVI_VIRIDIS"))
+			return FromOffsetAndColors({
+					std::make_pair( 5.0, 0x40004fff),
+					std::make_pair(50.0, 0x20908cff),
+					std::make_pair(95.0, 0xfae622ff)
+				});
+
+		if (StringUtils::toLower(name) == StringUtils::toLower("NDVI_BlueGreen"))
+			return FromOffsetAndColors({
+					std::make_pair( 5.0, 0x091b54ff),
+					std::make_pair(50.0, 0xfcfbf9ff),
+					std::make_pair(60.0, 0xbda57bff),
+					std::make_pair(75.0, 0x2a8900ff),
+					std::make_pair(90.0, 0x000000ff)
+				});
+
+		if (StringUtils::toLower(name) == StringUtils::toLower("NDVI_Rainbow"))
+			return FromOffsetAndColors({
+				std::make_pair( 0.0, 0xffffffff),
+				std::make_pair(50.0, 0x000000ff),
+				std::make_pair(51.0, 0x8e4a93ff),
+				std::make_pair(62.0, 0xbd200fff),
+				std::make_pair(73.0, 0xeb7d2eff),
+				std::make_pair(84.0, 0xfffb00ff),
+				std::make_pair(95.0, 0x199410ff),
+				std::make_pair(100.0, 0x134721ff)
+				});
+
+	} //amy palette
 
 	//plt
 	{

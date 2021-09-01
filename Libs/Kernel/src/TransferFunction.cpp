@@ -63,6 +63,29 @@ SharedPtr<TransferFunction> TransferFunction::fromArray(Array src, String defaul
 }
 
 /////////////////////////////////////////////////////////////////////
+SharedPtr<TransferFunction> TransferFunction::fromColors(std::vector<Color> colors, String default_name)
+{
+  auto ncolors = (int)colors.size();
+
+  auto nsamples = 256;
+  Array array(256, DTypes::UINT8_RGBA);
+
+  Uint8* DST = array.c_ptr();
+  for (int I = 0; I < nsamples; I++)
+  {
+    double alpha = I / (double)nsamples;
+    auto index = (int)(alpha * (colors.size()));
+    auto color = colors[Utils::clamp(index, 0, ncolors)];
+    *DST++ = (Uint8)(255 * color.getRed());
+    *DST++ = (Uint8)(255 * color.getGreen());
+    *DST++ = (Uint8)(255 * color.getBlue());
+    *DST++ = (Uint8)(255 * color.getAlpha());
+  }
+
+  return TransferFunction::fromArray(array, default_name);
+}
+
+/////////////////////////////////////////////////////////////////////
 SharedPtr<TransferFunction> TransferFunction::fromString(String content)
 {
   StringTree in=StringTree::fromString(content);

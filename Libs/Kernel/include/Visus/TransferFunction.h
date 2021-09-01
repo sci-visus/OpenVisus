@@ -170,6 +170,9 @@ public:
   //fromArray
   static SharedPtr<TransferFunction> fromArray(Array src, String default_name="");
 
+  //in case you want banded palette
+  static SharedPtr<TransferFunction> fromColors(std::vector<Color> colors, String default_name = "");
+
   //fromString
   static SharedPtr<TransferFunction> fromString(String content);
 
