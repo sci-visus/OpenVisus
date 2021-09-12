@@ -44,7 +44,7 @@ namespace Visus {
 static String parseRoundBracketArgument(String s, String name)
 {
   String arg = StringUtils::nextToken(s, name + "(");
-  if (arg.empty())
+  if (arg.empty() || arg[0]==')')
     return "";
 
   auto v = StringUtils::split(arg, ")");
@@ -128,6 +128,7 @@ Field Field::fromString(String sfield)
 		auto vmax = StringUtils::split(parseRoundBracketArgument(sfield, "max"));
     if (!vmin.empty() && !vmax.empty())
 		{
+      //you can specify a range for all components or a range for each component (separated by spaces)
 			vmin.resize(ret.dtype.ncomponents(), vmin.back());
       vmax.resize(ret.dtype.ncomponents(), vmax.back());
 
@@ -142,14 +143,52 @@ Field Field::fromString(String sfield)
 ////////////////////////////////////////////////////
 void Field::write(Archive& ar) const
 {
-  ar.write("name", name);
-  ar.write("description", description);
-  ar.write("index", index);
-  ar.write("default_compression", default_compression);
-  ar.write("default_layout", default_layout);
-  ar.write("default_value", default_value);
-  ar.write("filter", filter);
-  ar.write("dtype", dtype);
+  ar.write("name", this->name);
+  ar.write("description", this->description);
+  ar.write("index", this->index);
+  ar.write("default_compression", this->default_compression);
+  ar.write("default_layout", this->default_layout);
+  ar.write("default_value", this->default_value);
+  ar.write("filter", this->filter);
+  ar.write("dtype", this->dtype);
+
+  //write the min="..." max="..." extracted from the dtype range
+#if 1
+  {
+    auto allZero = [](const std::vector<double>& v) {
+      for (auto it : v)
+        if (it != 0) return false;
+      return true;;
+    };
+
+    auto allEqual = [](const std::vector< double>& v) {
+      for (auto it : v)
+        if (it != v[0]) return false;
+      return true;
+    };
+    
+    auto joinString = [](const std::vector< double>& v) {
+      std::vector<String> tmp;
+      for (auto it : v)
+        tmp.push_back(cstring(it));
+      return StringUtils::join(tmp, " ");
+    };
+
+    std::vector<double> vmin, vmax;
+    for (int C = 0; C < this->dtype.ncomponents(); C++)
+    {
+      Range range = this->dtype.getDTypeRange(C);
+      vmin.push_back(range.from);
+      vmax.push_back(range.to);
+    }
+
+    if (!vmin.empty() && !allZero(vmin))
+      ar.write("min", allEqual(vmin)? cstring(vmin[0]) : joinString(vmin));
+
+    if (!vmax.empty() && !allZero(vmax))
+      ar.write("max", allEqual(vmax)? cstring(vmax[0]) : joinString(vmax));
+  }
+#endif
 
   //params
   if (!params.empty())
@@ -163,14 +202,32 @@ void Field::write(Archive& ar) const
 ////////////////////////////////////////////////////
 void Field::read(Archive& ar)
 {
-  ar.read("name", name);
-  ar.read("description", description);
-  ar.read("index", index);
-  ar.read("default_compression", default_compression);
-  ar.read("default_layout", default_layout);
-  ar.read("default_value", default_value);
-  ar.read("filter", filter);
-  ar.read("dtype", dtype);
+  ar.read("name", this->name);
+  ar.read("description", this->description);
+  ar.read("index", this->index);
+  ar.read("default_compression", this->default_compression);
+  ar.read("default_layout", this->default_layout);
+  ar.read("default_value", this->default_value);
+  ar.read("filter", this->filter);
+  ar.read("dtype", this->dtype);
+
+  //read the min(..) max(...) and store in the dtype range
+#if 1
+  {
+    String s_m;  ar.read("min", s_m); std::vector<String> vmin = StringUtils::split(s_m);
+    String s_M;  ar.read("max", s_M); std::vector<String> vmax = StringUtils::split(s_M);
+
+    if (!vmin.empty() && !vmax.empty())
+    {
+      //you can specify a range for all components or a range for each component (separated by spaces)
+      vmin.resize(this->dtype.ncomponents(), vmin.back());
+      vmax.resize(this->dtype.ncomponents(), vmax.back());
+
+      for (int C = 0; C < dtype.ncomponents(); C++)
+        this->setDTypeRange(Range(cdouble(vmin[C]), cdouble(vmax[C]), 0.0), C);
+    }
+  }
+#endif
 
   this->params.clear();
   if (auto params= ar.getChild("params"))
