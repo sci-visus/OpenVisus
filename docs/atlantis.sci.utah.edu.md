@@ -1,4 +1,36 @@
-# ATLANTIS Docker mod_visus
+# How to add a dataset
+
+Copy the data to atlantis:
+
+```
+export ATLANTIS=scrgiorgio@atlantis.sci.utah.edu
+scp -r arecibo1 $ATLANTIS:/usr/sci/cedmav/data
+```
+
+Login into atlantis, fix permissions,add the new dataset and run the new server:
+
+```
+ssh $ATLANTIS
+
+cd /home/sci/scrgiorgio/atlantis-docker
+chmod -R a+rX /usr/sci/cedmav/data/arecibo1
+
+# add this line to `datasets.config
+#     <dataset name="arecibo1" url="$(visus_datasets)/data/arecibo1/visus.idx" />
+vi datasets.config
+
+# EVENTUALLY edit `run.background.sh` file and change the tag to the latest one
+./run.background.sh
+```
+
+Test it:
+
+```
+curl https://atlantis.sci.utah.edu/mod_visus?action=list
+visusviewer https://atlantis.sci.utah.edu/mod_visus?dataset=arecibo1
+```
+
+# Run mod_visus in Docker
 
 Login to atlantis.
 
