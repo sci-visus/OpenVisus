@@ -1,5 +1,5 @@
 #include <iostream>
-#include "hdf5.h"
+#include <hdf5.h>
 
 #define CHECK(cond) \
 	{ \
@@ -15,10 +15,9 @@
 ////////////////////////////////////////////////////////////////////
 int main()
 {
-  const int NX = 5;
-  const int NY = 6;
+  const int height = 5;
+  const int width = 6;
   
-
   // CREATE a file
   std::cout << "H5Fcreate..." << std::endl;
   hid_t file = H5Fcreate("testfile.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -29,8 +28,8 @@ int main()
 
   // CREATE dataspace (i.e. dataset dimensions)
   std::cout << "H5Screate_simple..." << std::endl;
-  hsize_t dimsf[2] = { NX , NY };
-  hid_t dataspace = H5Screate_simple(2, dimsf, nullptr);
+  hsize_t shape[] = { height , width };
+  hid_t dataspace = H5Screate_simple(2, shape, nullptr);
 
   //CREATE datatype: INT little endian
   std::cout << "H5Tcopy..." << std::endl;
@@ -49,10 +48,10 @@ int main()
   {
     std::cout << "H5Dwrite..." << std::endl;
 
-    int buffer[NX][NY];
-    for (int j = 0; j < NX; j++)
+    int buffer[height][width];
+    for (int j = 0; j < height; j++)
     {
-      for (int i = 0; i < NY; i++)
+      for (int i = 0; i < width; i++)
         buffer[j][i] = i + j;
     }
     /*
@@ -65,7 +64,6 @@ int main()
 
     CHECK(H5Dwrite(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer) == 0);
   }
-
 
   std::cout << "H5Sclose..." << std::endl;
   H5Sclose(dataspace);

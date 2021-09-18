@@ -1,26 +1,22 @@
-#include <assert.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <iostream>
-#include <vector>
-#include <sstream>
-
 #include "plugin.h"
-
-/* Public headers needed by this file */
 #include <H5VLpublic.h>  
+
+#include <Visus/Kernel.h>
+#include <Visus/Db.h>
+#include <Visus/Path.h>
+#include <Visus/StringUtils.h>
+#include <Visus/Utils.h>
+#include <Visus/DType.h>
+
+#if VISUS_PYTHON
+#include <Visus/Python.h>
+#endif
+
+using namespace Visus;
 
 #ifdef _WIN32
 #pragma warning(disable:4996)
 #endif
-
-#define CHECK(cond) \
-  if (cond==0) \
-    throw "internal error";\
-  /*--*/
 
 typedef struct
 {
@@ -73,7 +69,22 @@ static herr_t FreePluginObject(PluginObject* obj)
 static herr_t my_init(hid_t vipl_id)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_init"<<std::endl;
+  PrintInfo("my_init");
+#endif
+
+  static int argn = 1;
+  static String program_name = Path(Utils::getCurrentApplicationFile()).toString();
+  static const char* argv[] = { program_name.c_str() };
+
+  SetCommandLine(argn, argv);
+
+#if VISUS_PYTHON
+  EmbeddedPythonInit();
+  auto acquire_gil = PyGILState_Ensure();
+  PyRun_SimpleString("from OpenVisus import *");
+  PyGILState_Release(acquire_gil);
+#else
+  DbModule::attach();
 #endif
 
   return 0;
@@ -83,7 +94,13 @@ static herr_t my_init(hid_t vipl_id)
 static herr_t my_term(void)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_term"<<std::endl;
+  PrintInfo("my_term");
+#endif
+
+  DbModule::detach();
+
+#if VISUS_PYTHON
+  EmbeddedPythonShutdown();
 #endif
 
   return 0;
@@ -93,7 +110,7 @@ static herr_t my_term(void)
 static void* my_info_copy(const void* _info)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_info_copy"<<std::endl;
+  PrintInfo("my_info_copy");
 #endif
 
   const PluginVOL* info = (const PluginVOL*)_info;
@@ -116,11 +133,11 @@ static void* my_info_copy(const void* _info)
 static herr_t my_info_cmp(int* cmp_value, const void* _info1, const void* _info2)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_info_cmp"<<std::endl;
+  PrintInfo("my_info_cmp");
 #endif
 
-  const PluginVOL* info1 = (const PluginVOL*)_info1; CHECK(info1);
-  const PluginVOL* info2 = (const PluginVOL*)_info2; CHECK(info2);
+  const PluginVOL* info1 = (const PluginVOL*)_info1; VisusReleaseAssert(info1);
+  const PluginVOL* info2 = (const PluginVOL*)_info2; VisusReleaseAssert(info2);
 
   // Initialize comparison value 
   *cmp_value = 0;
@@ -143,7 +160,7 @@ static herr_t my_info_cmp(int* cmp_value, const void* _info1, const void* _info2
 static herr_t my_info_free(void* _info)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_info_free"<<std::endl;
+  PrintInfo("my_info_free");
 #endif
 
   // Note:	Take care to preserve the current HDF5 error stack when calling HDF5 API calls.
@@ -169,7 +186,7 @@ static herr_t my_info_free(void* _info)
 static herr_t my_info_to_str(const void* _info, char** str)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_info_to_str"<<std::endl;
+  PrintInfo("my_info_to_str");
 #endif
 
   const PluginVOL* info = (const PluginVOL*)_info;
@@ -188,7 +205,7 @@ static herr_t my_info_to_str(const void* _info, char** str)
 
   // Allocate space for our info 
   *str = (char*)H5allocate_memory(32 + under_vol_str_len, (hbool_t)0);
-  CHECK(*str);
+  VisusReleaseAssert(*str);
 
   // Encode our info
   // Normally we'd use snprintf() here for a little extra safety, but that
@@ -205,7 +222,7 @@ static herr_t my_info_to_str(const void* _info, char** str)
 static herr_t my_info_from_str(const char* str, void** _info)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_info_from_str"<<std::endl;
+  PrintInfo("my_info_from_str");
 #endif
 
   // Retrieve the underlying VOL connector value and info 
@@ -215,7 +232,7 @@ static herr_t my_info_from_str(const char* str, void** _info)
   hid_t vol_id = H5VLregister_connector_by_value((H5VL_class_value_t)under_vol_value, H5P_DEFAULT);
   const char* under_vol_info_start = strchr(str, '{');
   const char* under_vol_info_end   = strrchr(str, '}');
-  CHECK(under_vol_info_end > under_vol_info_start);
+  VisusReleaseAssert(under_vol_info_end > under_vol_info_start);
 
   void* vol_info = nullptr;
   if (under_vol_info_end != (under_vol_info_start + 1)) 
@@ -246,7 +263,7 @@ static herr_t my_info_from_str(const char* str, void** _info)
 static void* my_get_object(const void* obj)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_get_object"<<std::endl;
+  PrintInfo("my_get_object");
 #endif
 
   const PluginObject* down = (const PluginObject*)obj;
@@ -258,7 +275,7 @@ static void* my_get_object(const void* obj)
 static herr_t my_get_wrap_ctx(const void* obj, void** context)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_get_wrap_ctx"<<std::endl;
+  PrintInfo("my_get_wrap_ctx");
 #endif
 
   const PluginObject* down = (const PluginObject*)obj;
@@ -284,7 +301,7 @@ static herr_t my_get_wrap_ctx(const void* obj, void** context)
 static void* my_wrap_object(void* obj, H5I_type_t obj_type, void* _down_context)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_wrap_object"<<std::endl;
+  PrintInfo("my_wrap_object");
 #endif
 
   PluginContext* down_context = (PluginContext*)_down_context;
@@ -302,7 +319,7 @@ static void* my_wrap_object(void* obj, H5I_type_t obj_type, void* _down_context)
 static void* my_unwrap_object(void* obj)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_unwrap_object"<<std::endl;
+  PrintInfo("my_unwrap_object");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -321,7 +338,7 @@ static void* my_unwrap_object(void* obj)
 static herr_t my_free_wrap_ctx(void* _down_context)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_free_wrap_ctx"<<std::endl;
+  PrintInfo("my_free_wrap_ctx");
 #endif
 
   // Note:	Take care to preserve the current HDF5 error stack when calling HDF5 API calls.
@@ -351,7 +368,7 @@ static void* my_attr_create(void* obj, const H5VL_loc_params_t* loc_params,
   hid_t aapl_id, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_attr_create"<<std::endl;
+  PrintInfo("my_attr_create");
 #endif
 
   PluginObject* up = (PluginObject*)obj;
@@ -374,7 +391,7 @@ static void* my_attr_create(void* obj, const H5VL_loc_params_t* loc_params,
 static void* my_attr_open(void* obj, const H5VL_loc_params_t* loc_params, const char* name, hid_t aapl_id, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_attr_open"<<std::endl;
+  PrintInfo("my_attr_open");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -397,7 +414,7 @@ static void* my_attr_open(void* obj, const H5VL_loc_params_t* loc_params, const 
 static herr_t my_attr_read(void* attr, hid_t mem_type_id, void* buf, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_attr_read"<<std::endl;
+  PrintInfo("my_attr_read");
 #endif
 
   PluginObject* down = (PluginObject*)attr;
@@ -416,7 +433,7 @@ static herr_t my_attr_read(void* attr, hid_t mem_type_id, void* buf, hid_t dxpl_
 static herr_t my_attr_write(void* attr, hid_t mem_type_id, const void* buf, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_attr_write"<<std::endl;
+  PrintInfo("my_attr_write");
 #endif
 
   PluginObject* down = (PluginObject*)attr;
@@ -435,7 +452,7 @@ static herr_t my_attr_write(void* attr, hid_t mem_type_id, const void* buf, hid_
 static herr_t my_attr_get(void* obj, H5VL_attr_get_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_attr_get"<<std::endl;
+  PrintInfo("my_attr_get");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -453,7 +470,7 @@ static herr_t my_attr_get(void* obj, H5VL_attr_get_args_t* args, hid_t dxpl_id, 
 static herr_t my_attr_specific(void* obj, const H5VL_loc_params_t* loc_params, H5VL_attr_specific_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_attr_specific"<<std::endl;
+  PrintInfo("my_attr_specific");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -472,7 +489,7 @@ static herr_t my_attr_specific(void* obj, const H5VL_loc_params_t* loc_params, H
 static herr_t my_attr_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_attr_optional"<<std::endl;
+  PrintInfo("my_attr_optional");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -490,7 +507,7 @@ static herr_t my_attr_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl
 static herr_t my_attr_close(void* attr, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_attr_close"<<std::endl;
+  PrintInfo("my_attr_close");
 #endif
 
   PluginObject* down = (PluginObject*)attr;
@@ -511,8 +528,45 @@ static herr_t my_attr_close(void* attr, hid_t dxpl_id, void** req)
 //https://github.com/DataLib-ECP/vol-log-based/tree/b13778efd9e0c79135a9d7352104985408078d45
 
 //////////////////////////////////////////////////////////////////////////////
+static DType ToDType(hid_t type_id)
+{ 
+  size_t type_size = H5Tget_size(type_id);
+  H5T_class_t type_class = H5Tget_class(type_id);
+  H5T_sign_t type_sign = H5Tget_sign(type_id);
+
+  String ret = "";
+
+  if (type_class == H5T_INTEGER)
+  {
+    switch (type_size)
+    {
+    case 1: ret = "int8"; break;
+    case 2: ret = "int16"; break;
+    case 4: ret = "int32"; break;
+    case 8: ret = "int64"; break;
+    default: break;
+    }
+
+    if (!ret.empty() && !type_sign)
+      ret = "u" + ret;
+  }
+  else if (type_class == H5T_FLOAT)
+  {
+    switch (type_size) {
+    case 4: ret = "float32";
+    case 8: ret = "float64";
+    default: break;
+    }
+  }
+
+  VisusReleaseAssert(!ret.empty());
+  return DType::fromString(ret);
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
 static void* my_dataset_create(
-  void* obj,
+  void* parent_,
   const H5VL_loc_params_t* loc_params,
   const char* name,
   hid_t lcpl_id,
@@ -524,56 +578,20 @@ static void* my_dataset_create(
   void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout << "  OpenVisusHd5Plugin my_dataset_create" << std::endl;
+  PrintInfo("my_dataset_create");
 #endif
 
-  PluginObject* up = (PluginObject*)obj;
+  PluginObject* parent = (PluginObject*)parent_;
 
-  size_t type_size  = H5Tget_size(type_id);
-  H5T_class_t type_class = H5Tget_class(type_id);
-  H5T_sign_t type_sign  = H5Tget_sign(type_id);
-
-  std::string dtype = "";
-
-  if (type_class == H5T_INTEGER)
-  {
-    switch (type_size)
-    {
-      case 1: dtype = "int8" ; break;
-      case 2: dtype = "int16"; break;
-      case 4: dtype = "int32"; break;
-      case 8: dtype = "int64"; break;
-      default: break;
-    }
-
-    if (!dtype.empty() && !type_sign)
-      dtype = "u" + dtype;
-  }
-  else if (type_class == H5T_FLOAT)
-  {
-    switch (type_size) {
-    case 4: dtype = "float32";
-    case 8: dtype = "float64";
-    default: break;
-    }
-  }
-
-  CHECK(!dtype.empty());
+  auto dtype = ToDType(type_id);
   
-  //dims
+  //shape -> dims
   std::vector<hsize_t> dims(H5S_MAX_RANK);
   int _ndim=H5Sget_simple_extent_dims(space_id, &dims[0], NULL);
   dims.resize(_ndim);
+  std::reverse(dims.begin(), dims.end());
 
-  auto toString=[](std::vector<hsize_t> v)
-  {
-    std::ostringstream out;
-    for (auto it : v)
-      out << it << " ";
-    return out.str();
-  };
-
-  std::cout << "  Creating dataset name("<<name<<") dtype("<<dtype<<") dims("<< toString(dims)<<")" << std::endl;
+  PrintInfo("Creating dataset","name",name,"dtype",dtype,"dims",StringUtils::join(dims));
 
   // Filters not supported
 #if 1
@@ -583,7 +601,7 @@ static void* my_dataset_create(
     {
       unsigned int flags = 0;
       std::vector<unsigned int> cd_values(256); //out
-      std::string name(256, 0);
+      String name(256, 0);
       unsigned int filter_config = 0; //inout
 
       size_t cd_number_elements = cd_values.size();
@@ -592,19 +610,19 @@ static void* my_dataset_create(
       name.resize(name_len);
       cd_values.resize(cd_number_elements);
 
-      std::cout << "WARNING! filters not supported id() name(" << name << ") flags(" << flags << ") #cd_values(" << cd_values.size() << ") filter_config(" << filter_config << ")" << std::endl;
+      PrintWarning("filters not supported","name", name, "flags", flags, "#cd_values", cd_values.size(), "filter_config", filter_config);
     }
   }
 #endif
 
-  void* dataset = H5VLdataset_create(up->object, loc_params, up->vol_id, name, lcpl_id, type_id, space_id, dcpl_id, dapl_id, dxpl_id, req);
+  void* dataset = H5VLdataset_create(parent->object, loc_params, parent->vol_id, name, lcpl_id, type_id, space_id, dcpl_id, dapl_id, dxpl_id, req);
   if (!dataset)
     return nullptr;
 
-  PluginObject* ret = CreatePluginObject(dataset, up->vol_id);
+  PluginObject* ret = CreatePluginObject(dataset, parent->vol_id);
 
   //todo async
-  CHECK(req == nullptr); 
+  VisusReleaseAssert(req == nullptr); 
 
   return ret;
 }
@@ -614,7 +632,7 @@ static void* my_dataset_create(
 static void* my_dataset_open(void* obj, const H5VL_loc_params_t* loc_params, const char* name, hid_t dapl_id, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_dataset_open"<<std::endl;
+  PrintInfo("my_dataset_open");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -624,7 +642,7 @@ static void* my_dataset_open(void* obj, const H5VL_loc_params_t* loc_params, con
 
   PluginObject* dset = CreatePluginObject(under, down->vol_id);
 
-  CHECK(req == nullptr); //todo async
+  VisusReleaseAssert(req == nullptr); //todo async
 
   return (void*)dset;
 }
@@ -634,13 +652,13 @@ static void* my_dataset_open(void* obj, const H5VL_loc_params_t* loc_params, con
 static herr_t my_dataset_read(void* dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id, hid_t plist_id, void* buf, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_dataset_read"<<std::endl;
+  PrintInfo("my_dataset_read");
 #endif
 
   PluginObject* down = (PluginObject*)dset;
   herr_t ret_value = H5VLdataset_read(down->object, down->vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
 
-  CHECK(req == nullptr); //todo async
+  VisusReleaseAssert(req == nullptr); //todo async
 
   return ret_value;
 }
@@ -650,13 +668,13 @@ static herr_t my_dataset_read(void* dset, hid_t mem_type_id, hid_t mem_space_id,
 static herr_t my_dataset_write(void* dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id, hid_t plist_id, const void* buf, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_dataset_write"<<std::endl;
+  PrintInfo("my_dataset_write");
 #endif
 
   PluginObject* down = (PluginObject*)dset;
   herr_t ret_value = H5VLdataset_write(down->object, down->vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
 
-  CHECK(req == nullptr); //todo async
+  VisusReleaseAssert(req == nullptr); //todo async
 
   return ret_value;
 }
@@ -666,14 +684,14 @@ static herr_t my_dataset_write(void* dset, hid_t mem_type_id, hid_t mem_space_id
 static herr_t my_dataset_get(void* dset, H5VL_dataset_get_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_dataset_get"<<std::endl;
+  PrintInfo("my_dataset_get");
 #endif
 
   PluginObject* down = (PluginObject*)dset;
 
   herr_t ret_value = H5VLdataset_get(down->object, down->vol_id, args, dxpl_id, req);
 
-  CHECK(req == nullptr); //todo async
+  VisusReleaseAssert(req == nullptr); //todo async
 
   return ret_value;
 }
@@ -683,7 +701,7 @@ static herr_t my_dataset_get(void* dset, H5VL_dataset_get_args_t* args, hid_t dx
 static herr_t my_dataset_specific(void* obj, H5VL_dataset_specific_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_dataset_specific"<<std::endl;
+  PrintInfo("my_dataset_specific");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -694,7 +712,7 @@ static herr_t my_dataset_specific(void* obj, H5VL_dataset_specific_args_t* args,
 
   herr_t ret_value = H5VLdataset_specific(down->object, down->vol_id, args, dxpl_id, req);
 
-  CHECK(req == nullptr); //todo async
+  VisusReleaseAssert(req == nullptr); //todo async
 
   return ret_value;
 }
@@ -704,13 +722,13 @@ static herr_t my_dataset_specific(void* obj, H5VL_dataset_specific_args_t* args,
 static herr_t my_dataset_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_dataset_optional"<<std::endl;
+  PrintInfo("my_dataset_optional");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
   herr_t ret_value = H5VLdataset_optional(down->object, down->vol_id, args, dxpl_id, req);
 
-  CHECK(req == nullptr); //todo async
+  VisusReleaseAssert(req == nullptr); //todo async
 
   return ret_value;
 }
@@ -720,13 +738,13 @@ static herr_t my_dataset_optional(void* obj, H5VL_optional_args_t* args, hid_t d
 static herr_t my_dataset_close(void* dset, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_dataset_close"<<std::endl;
+  PrintInfo("my_dataset_close");
 #endif
 
   PluginObject* down = (PluginObject*)dset;
   herr_t ret_value = H5VLdataset_close(down->object, down->vol_id, dxpl_id, req);
 
-  CHECK(req == nullptr); //todo async
+  VisusReleaseAssert(req == nullptr); //todo async
 
   // Release our wrapper, if underlying dataset was closed 
   if (ret_value >= 0)
@@ -742,7 +760,7 @@ static void* my_datatype_commit(void* obj, const H5VL_loc_params_t* loc_params,
   hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_datatype_commit"<<std::endl;
+  PrintInfo("my_datatype_commit");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -765,7 +783,7 @@ static void* my_datatype_commit(void* obj, const H5VL_loc_params_t* loc_params,
 static void* my_datatype_open(void* obj, const H5VL_loc_params_t* loc_params, const char* name, hid_t tapl_id, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_datatype_open"<<std::endl;
+  PrintInfo("my_datatype_open");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -787,7 +805,7 @@ static void* my_datatype_open(void* obj, const H5VL_loc_params_t* loc_params, co
 static herr_t my_datatype_get(void* dt, H5VL_datatype_get_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_datatype_get"<<std::endl;
+  PrintInfo("my_datatype_get");
 #endif
 
   PluginObject* down = (PluginObject*)dt;
@@ -805,7 +823,7 @@ static herr_t my_datatype_get(void* dt, H5VL_datatype_get_args_t* args, hid_t dx
 static herr_t my_datatype_specific(void* obj, H5VL_datatype_specific_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_datatype_specific"<<std::endl;
+  PrintInfo("my_datatype_specific");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -828,7 +846,7 @@ static herr_t my_datatype_specific(void* obj, H5VL_datatype_specific_args_t* arg
 static herr_t my_datatype_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_datatype_optional"<<std::endl;
+  PrintInfo("my_datatype_optional");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -846,11 +864,11 @@ static herr_t my_datatype_optional(void* obj, H5VL_optional_args_t* args, hid_t 
 static herr_t my_datatype_close(void* dt, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_datatype_close"<<std::endl;
+  PrintInfo("my_datatype_close");
 #endif
 
   PluginObject* down = (PluginObject*)dt;
-  CHECK(down->object);
+  VisusReleaseAssert(down->object);
 
   herr_t ret_value = H5VLdatatype_close(down->object, down->vol_id, dxpl_id, req);
 
@@ -870,7 +888,7 @@ static herr_t my_datatype_close(void* dt, hid_t dxpl_id, void** req)
 static void* my_file_create(const char* name, unsigned flags, hid_t fcpl_id, hid_t fapl_id, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_file_create"<<std::endl;
+  PrintInfo("my_file_create");
 #endif
 
   // Get copy of our VOL info from FAPL 
@@ -911,7 +929,7 @@ static void* my_file_create(const char* name, unsigned flags, hid_t fcpl_id, hid
 static void* my_file_open(const char* name, unsigned flags, hid_t fapl_id, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_file_open"<<std::endl;
+  PrintInfo("my_file_open");
 #endif
 
   // Get copy of our VOL info from FAPL 
@@ -951,7 +969,7 @@ static void* my_file_open(const char* name, unsigned flags, hid_t fapl_id, hid_t
 static herr_t my_file_get(void* file, H5VL_file_get_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_file_get"<<std::endl;
+  PrintInfo("my_file_get");
 #endif
 
   PluginObject* down = (PluginObject*)file;
@@ -970,7 +988,7 @@ static herr_t my_file_get(void* file, H5VL_file_get_args_t* args, hid_t dxpl_id,
 static herr_t my_file_specific(void* file, H5VL_file_specific_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_file_specific"<<std::endl;
+  PrintInfo("my_file_specific");
 #endif
 
   PluginObject* down = (PluginObject*)file;
@@ -1088,7 +1106,7 @@ static herr_t my_file_specific(void* file, H5VL_file_specific_args_t* args, hid_
 static herr_t my_file_optional(void* file, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_file_optional"<<std::endl;
+  PrintInfo("my_file_optional");
 #endif
 
   PluginObject* down = (PluginObject*)file;
@@ -1106,7 +1124,7 @@ static herr_t my_file_optional(void* file, H5VL_optional_args_t* args, hid_t dxp
 static herr_t my_file_close(void* file, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_file_close"<<std::endl;
+  PrintInfo("my_file_close");
 #endif
 
   PluginObject* down = (PluginObject*)file;
@@ -1130,7 +1148,7 @@ static void* my_group_create(void* obj, const H5VL_loc_params_t* loc_params, con
 {
 
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_group_create"<<std::endl;
+  PrintInfo("my_group_create");
 #endif
 
   PluginObject* up = (PluginObject*)obj;
@@ -1153,7 +1171,7 @@ static void* my_group_create(void* obj, const H5VL_loc_params_t* loc_params, con
 static void* my_group_open(void* obj, const H5VL_loc_params_t* loc_params, const char* name, hid_t gapl_id, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_group_open"<<std::endl;
+  PrintInfo("my_group_open");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1175,7 +1193,7 @@ static void* my_group_open(void* obj, const H5VL_loc_params_t* loc_params, const
 static herr_t my_group_get(void* obj, H5VL_group_get_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_group_get"<<std::endl;
+  PrintInfo("my_group_get");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1193,7 +1211,7 @@ static herr_t my_group_get(void* obj, H5VL_group_get_args_t* args, hid_t dxpl_id
 static herr_t my_group_specific(void* obj, H5VL_group_specific_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_group_specific"<<std::endl;
+  PrintInfo("my_group_specific");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1231,7 +1249,7 @@ static herr_t my_group_specific(void* obj, H5VL_group_specific_args_t* args, hid
 static herr_t my_group_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_group_optional"<<std::endl;
+  PrintInfo("my_group_optional");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1249,7 +1267,7 @@ static herr_t my_group_optional(void* obj, H5VL_optional_args_t* args, hid_t dxp
 static herr_t my_group_close(void* grp, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_group_close"<<std::endl;
+  PrintInfo("my_group_close");
 #endif
 
   PluginObject* down = (PluginObject*)grp;
@@ -1270,7 +1288,7 @@ static herr_t my_group_close(void* grp, hid_t dxpl_id, void** req)
 static herr_t my_link_create(H5VL_link_create_args_t* args, void* obj, const H5VL_loc_params_t* loc_params, hid_t lcpl_id, hid_t lapl_id, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_link_create"<<std::endl;
+  PrintInfo("my_link_create");
 #endif
 
   PluginObject* up = (PluginObject*)obj;
@@ -1319,7 +1337,7 @@ static herr_t my_link_copy(
   hid_t lcpl_id, hid_t lapl_id, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_link_copy"<<std::endl;
+  PrintInfo("my_link_copy");
 #endif
 
   // Renames an object within an HDF5 container and copies it to a new group.  
@@ -1331,7 +1349,7 @@ static herr_t my_link_copy(
 
   // Retrieve the "under" VOL id 
   hid_t vol_id = o_src? o_src->vol_id : (o_dst ? o_dst->vol_id  : -1);
-  CHECK(vol_id > 0);
+  VisusReleaseAssert(vol_id > 0);
 
   herr_t ret_value = H5VLlink_copy(
     (o_src ? o_src->object : nullptr), 
@@ -1357,7 +1375,7 @@ static herr_t my_link_copy(
 static herr_t my_link_move(void* src_obj, const H5VL_loc_params_t* loc_params1, void* dst_obj, const H5VL_loc_params_t* loc_params2, hid_t lcpl_id, hid_t lapl_id, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_link_move"<<std::endl;
+  PrintInfo("my_link_move");
 #endif
 
   // The original name SRC is unlinked from the group graph and then inserted with the new name DST (which can specify a new path for the object) as an atomic operation. 
@@ -1367,7 +1385,7 @@ static herr_t my_link_move(void* src_obj, const H5VL_loc_params_t* loc_params1, 
   PluginObject* o_dst = (PluginObject*)dst_obj;
 
   // Retrieve the "under" VOL id 
-  hid_t vol_id = o_src? o_src->vol_id  : (o_dst ? o_dst->vol_id  : -1); CHECK(vol_id > 0);
+  hid_t vol_id = o_src? o_src->vol_id  : (o_dst ? o_dst->vol_id  : -1); VisusReleaseAssert(vol_id > 0);
 
   herr_t ret_value = H5VLlink_move(
     (o_src ? o_src->object : nullptr), 
@@ -1394,7 +1412,7 @@ static herr_t my_link_get(void* obj, const H5VL_loc_params_t* loc_params, H5VL_l
   PluginObject* down = (PluginObject*)obj;
 
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_link_get"<<std::endl;
+  PrintInfo("my_link_get");
 #endif
 
   herr_t ret_value = H5VLlink_get(down->object, loc_params, down->vol_id, args, dxpl_id, req);
@@ -1411,7 +1429,7 @@ static herr_t my_link_specific(void* obj, const H5VL_loc_params_t* loc_params, H
 {
 
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_link_specific"<<std::endl;
+  PrintInfo("my_link_specific");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1429,7 +1447,7 @@ static herr_t my_link_specific(void* obj, const H5VL_loc_params_t* loc_params, H
 static herr_t my_link_optional(void* obj, const H5VL_loc_params_t* loc_params, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin LINK Optional"<<std::endl;
+  PrintInfo("LINK Optional");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1448,7 +1466,7 @@ static herr_t my_link_optional(void* obj, const H5VL_loc_params_t* loc_params, H
 static void* my_object_open(void* obj, const H5VL_loc_params_t* loc_params, H5I_type_t* opened_type, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_object_open"<<std::endl;
+  PrintInfo("my_object_open");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1474,7 +1492,7 @@ static herr_t my_object_copy(void* src_obj, const H5VL_loc_params_t* src_loc_par
   void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_object_copy"<<std::endl;
+  PrintInfo("my_object_copy");
 #endif
 
   PluginObject* o_src = (PluginObject*)src_obj;
@@ -1494,7 +1512,7 @@ static herr_t my_object_copy(void* src_obj, const H5VL_loc_params_t* src_loc_par
 static herr_t my_object_get(void* obj, const H5VL_loc_params_t* loc_params, H5VL_object_get_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_object_get"<<std::endl;
+  PrintInfo("my_object_get");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1511,7 +1529,7 @@ static herr_t my_object_get(void* obj, const H5VL_loc_params_t* loc_params, H5VL
 static herr_t my_object_specific(void* obj, const H5VL_loc_params_t* loc_params,H5VL_object_specific_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_object_specific"<<std::endl;
+  PrintInfo("my_object_specific");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1534,7 +1552,7 @@ static herr_t my_object_specific(void* obj, const H5VL_loc_params_t* loc_params,
 static herr_t my_object_optional(void* obj, const H5VL_loc_params_t* loc_params, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_object_optional"<<std::endl;
+  PrintInfo("my_object_optional");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1552,7 +1570,7 @@ static herr_t my_object_optional(void* obj, const H5VL_loc_params_t* loc_params,
 herr_t my_introspect_get_conn_cls(void* obj, H5VL_get_conn_lvl_t lvl, const H5VL_class_t** conn_cls)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_introspect_get_conn_cls"<<std::endl;
+  PrintInfo("my_introspect_get_conn_cls");
 #endif
   
   if (H5VL_GET_CONN_LVL_CURR == lvl)
@@ -1572,7 +1590,7 @@ herr_t my_introspect_get_conn_cls(void* obj, H5VL_get_conn_lvl_t lvl, const H5VL
 herr_t my_introspect_get_cap_flags(const void* _info, unsigned* cap_flags)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_introspect_get_cap_flags"<<std::endl;
+  PrintInfo("my_introspect_get_cap_flags");
 #endif
 
   const PluginVOL* info = (const PluginVOL*)_info;
@@ -1590,7 +1608,7 @@ herr_t my_introspect_opt_query(void* obj, H5VL_subclass_t cls,
   int op_type, uint64_t* flags)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_introspect_opt_query"<<std::endl;
+  PrintInfo("my_introspect_opt_query");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1602,7 +1620,7 @@ herr_t my_introspect_opt_query(void* obj, H5VL_subclass_t cls,
 static herr_t my_request_wait(void* obj, uint64_t timeout, H5VL_request_status_t* status)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_request_wait"<<std::endl;
+  PrintInfo("my_request_wait");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1614,7 +1632,7 @@ static herr_t my_request_wait(void* obj, uint64_t timeout, H5VL_request_status_t
 static herr_t my_request_notify(void* obj, H5VL_request_notify_t cb, void* ctx)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_request_notify"<<std::endl;
+  PrintInfo("my_request_notify");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1626,7 +1644,7 @@ static herr_t my_request_notify(void* obj, H5VL_request_notify_t cb, void* ctx)
 static herr_t my_request_cancel(void* obj, H5VL_request_status_t* status)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_request_cancel"<<std::endl;
+  PrintInfo("my_request_cancel");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1638,7 +1656,7 @@ static herr_t my_request_cancel(void* obj, H5VL_request_status_t* status)
 static herr_t my_request_specific(void* obj, H5VL_request_specific_args_t* args)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_request_specific"<<std::endl;
+  PrintInfo("my_request_specific");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1650,7 +1668,7 @@ static herr_t my_request_specific(void* obj, H5VL_request_specific_args_t* args)
 static herr_t my_request_optional(void* obj, H5VL_optional_args_t* args)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_request_optional"<<std::endl;
+  PrintInfo("my_request_optional");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1662,7 +1680,7 @@ static herr_t my_request_optional(void* obj, H5VL_optional_args_t* args)
 static herr_t my_request_free(void* obj)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_request_free"<<std::endl;
+  PrintInfo("my_request_free");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1676,7 +1694,7 @@ static herr_t my_request_free(void* obj)
 herr_t my_blob_put(void* obj, const void* buf, size_t size, void* blob_id, void* ctx)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_blob_put"<<std::endl;
+  PrintInfo("my_blob_put");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1687,7 +1705,7 @@ herr_t my_blob_put(void* obj, const void* buf, size_t size, void* blob_id, void*
 herr_t my_blob_get(void* obj, const void* blob_id, void* buf, size_t size, void* ctx)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_blob_get"<<std::endl;
+  PrintInfo("my_blob_get");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1699,7 +1717,7 @@ herr_t my_blob_get(void* obj, const void* blob_id, void* buf, size_t size, void*
 herr_t my_blob_specific(void* obj, void* blob_id, H5VL_blob_specific_args_t* args)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_blob_specific"<<std::endl;
+  PrintInfo("my_blob_specific");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1713,7 +1731,7 @@ herr_t my_blob_optional(void* obj, void* blob_id, H5VL_optional_args_t* args)
   PluginObject* down = (PluginObject*)obj;
 
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_blob_optional"<<std::endl;
+  PrintInfo("my_blob_optional");
 #endif
 
   return H5VLblob_optional(down->object, down->vol_id, blob_id, args);
@@ -1724,7 +1742,7 @@ herr_t my_blob_optional(void* obj, void* blob_id, H5VL_optional_args_t* args)
 static herr_t my_token_cmp(void* obj, const H5O_token_t* token1, const H5O_token_t* token2, int* cmp_value)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_token_cmp"<<std::endl;
+  PrintInfo("my_token_cmp");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1736,7 +1754,7 @@ static herr_t my_token_cmp(void* obj, const H5O_token_t* token1, const H5O_token
 static herr_t my_token_to_str(void* obj, H5I_type_t obj_type, const H5O_token_t* token, char** token_str)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_token_to_str"<<std::endl;
+  PrintInfo("my_token_to_str");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1748,7 +1766,7 @@ static herr_t my_token_to_str(void* obj, H5I_type_t obj_type, const H5O_token_t*
 static herr_t my_token_from_str(void* obj, H5I_type_t obj_type, const char* token_str, H5O_token_t* token)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_token_from_str"<<std::endl;
+  PrintInfo("my_token_from_str");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1760,7 +1778,7 @@ static herr_t my_token_from_str(void* obj, H5I_type_t obj_type, const char* toke
 herr_t my_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
 {
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  std::cout<<"  OpenVisusHd5Plugin my_optional"<<std::endl;
+  PrintInfo("my_optional");
 #endif
 
   PluginObject* down = (PluginObject*)obj;
@@ -1916,12 +1934,12 @@ const H5VL_class_t openvisus_vol_instance =
 };
 
 
-H5PL_type_t H5PLget_plugin_type(void) 
+extern "C" H5PL_type_t H5PLget_plugin_type(void)
 { 
   return H5PL_TYPE_VOL; 
 }
 
-const void* H5PLget_plugin_info(void) 
+extern "C" const void* H5PLget_plugin_info(void)
 { 
   return &openvisus_vol_instance;
 }
