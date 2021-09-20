@@ -14,6 +14,10 @@
 #include <Visus/Python.h>
 #endif
 
+
+
+#define USE_OPENVISUS_DATASET 1
+
 using namespace Visus;
 
 #ifdef _WIN32
@@ -845,7 +849,7 @@ static hid_t ToTypeId(DType dtype)
   VisusReleaseAssert(false);
   return 0;
 }
-
+ 
 
 /*-------------------------------------------------------------------------
 * Function:    openvisus_vol_dataset_create
@@ -862,16 +866,89 @@ openvisus_vol_dataset_create(void* obj, const H5VL_loc_params_t* loc_params, con
   hid_t lcpl_id, hid_t type_id, hid_t space_id, hid_t dcpl_id, hid_t dapl_id,
   hid_t dxpl_id, void** req)
 {
-
-
-
 #if ENABLE_LOGGING
   PrintInfo("openvisus_vol_dataset_create");
 #endif
 
-#if 1
-
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
+
+#if USE_OPENVISUS_DATASET
+
+  //shape
+  std::vector<hsize_t> shape(H5S_MAX_RANK);
+  int _ndim = H5Sget_simple_extent_dims(space_id, &shape[0], NULL);
+  shape.resize(_ndim);
+
+  //dtype
+  DType dtype = ToDType(type_id);;
+  PointNi dims;
+
+  //shape==(height,width) 2D dataset
+  if (shape.size() == 2)
+  {
+    auto width = shape[1];
+    auto height = shape[0];
+    dims = PointNi(width, height);
+  }
+  //shape==(depth,height,width) 3D dataset (note: 2D with multiple channels not supported right now)
+  else if (shape.size() == 3)
+  {
+    auto depth = shape[0];
+    auto height = shape[1];
+    auto width = shape[2];
+    dims = PointNi(width, height, depth);
+  }
+  //shape==(depth,height,width,nchannels)
+  else if (shape.size() == 4)
+  {
+    auto depth = shape[0];
+    auto height = shape[1];
+    auto width = shape[2];
+    auto nchannels = shape[3];
+    dtype = DType((int)nchannels, dtype);
+    dims = PointNi(width, height, depth);
+  }
+  else
+  {
+    VisusAssert(false);
+  }
+
+  // Filters not supported
+  if (int nfilter = H5Pget_nfilters(dcpl_id))
+    PrintWarning("filters not supported");
+
+  //TODO
+  /*
+  - Continuos vs Chunked does it matter to set the dataset propery? Or should I set virtual
+    - see https://github.com/DataLib-ECP/vol-log-based/blob/b13778efd9e0c79135a9d7352104985408078d45/src/H5VL_log_dataset.cpp
+    - Example: H5Pset_layout (dcpl_id, H5D_CONTIGUOUS);
+  - filename should not be only the name
+  - automatically set chunked
+  - add other coarse-dataset
+  */
+
+  String filename = name + String(".idx");
+
+  //create the idx file
+  {
+    IdxFile idxfile;
+    idxfile.logic_box = BoxNi(PointNi::zero(dims.getPointDim()), dims);
+    idxfile.fields.push_back(Field("myfield", dtype));
+    idxfile.save(filename);
+  }
+
+  //equivalent to open
+  auto db = LoadIdxDataset(filename);
+  SharedPtr<Dataset>* under = new SharedPtr<Dataset>(db);
+
+  //todo asyn
+  if (req && *req)
+    VisusReleaseAssert(false);
+
+  PrintInfo("Created dataset", "filename", filename, "name", name, "dtype", dtype, "dims", dims, "under",(Uint64)under);
+  return openvisus_vol_new_obj(under, o->under_vol_id);
+
+#else
 
   void* under = H5VLdataset_create(o->under_object, loc_params, o->under_vol_id, name, lcpl_id, type_id, space_id, dcpl_id, dapl_id, dxpl_id, req);
 
@@ -885,10 +962,8 @@ openvisus_vol_dataset_create(void* obj, const H5VL_loc_params_t* loc_params, con
       *req = openvisus_vol_new_obj(*req, o->under_vol_id);
   } 
 
-
   return (void*)dset;
-#endif
-
+#endif 
 } 
 
 /*-------------------------------------------------------------------------
@@ -910,9 +985,20 @@ openvisus_vol_dataset_open(void* obj, const H5VL_loc_params_t* loc_params, const
   PrintInfo("openvisus_vol_dataset_open");
 #endif
 
-#if 1
-
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
+
+#if USE_OPENVISUS_DATASET
+
+  String filename = name + String(".idx");
+  SharedPtr<Dataset>* under = new SharedPtr<Dataset>(LoadDataset(filename));
+
+  //todo asyn
+  if (req && *req)
+    VisusReleaseAssert(false);
+
+  return openvisus_vol_new_obj(under, o->under_vol_id);
+
+#else
 
   void* under = H5VLdataset_open(o->under_object, loc_params, o->under_vol_id, name, dapl_id, dxpl_id, req);
 
@@ -928,8 +1014,213 @@ openvisus_vol_dataset_open(void* obj, const H5VL_loc_params_t* loc_params, const
   return (void*)dset;
 
 #endif
-
 }
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_dataset_close
+*
+* Purpose:     Closes a dataset.
+*
+* Return:      Success:    0
+*              Failure:    -1, dataset not closed.
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_dataset_close(void* dset, hid_t dxpl_id, void** req)
+{
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_dataset_close");
+#endif
+
+  openvisus_vol_t* o = (openvisus_vol_t*)dset;
+
+#if USE_OPENVISUS_DATASET
+
+  SharedPtr<Dataset>* under = (SharedPtr<Dataset>*)o->under_object; VisusReleaseAssert(under);
+  auto db = *under;
+  PrintInfo("Closing database", "dims", db->getLogicBox().size(), "dtype", db->getField().dtype, "under", (Uint64)under);
+
+  delete under;
+  openvisus_vol_free_obj(o);
+  return 0;
+
+#else
+
+  
+  herr_t ret_value = H5VLdataset_close(o->under_object, o->under_vol_id, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  /* Release our wrapper, if underlying dataset was closed */
+  if (ret_value >= 0)
+    openvisus_vol_free_obj(o);
+
+  return ret_value;
+#endif 
+}
+
+
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_dataset_write
+*
+* Purpose:     Writes data elements from a buffer into a dataset.
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+
+static herr_t
+openvisus_vol_dataset_io(SharedPtr<Dataset> db, int mode, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id, hid_t plist_id, const void* buf, void** req)
+{
+  BoxNi world_box = db->getLogicBox();
+  int pdim = db->getPointDim();
+  auto access = db->createAccess();
+  auto dtype = db->getField().dtype;
+
+  //TODO casting for memory
+  VisusReleaseAssert(dtype== ToDType(mem_type_id));
+
+  auto mem_space_type  = mem_space_id  == H5S_ALL ? H5S_SEL_ALL : H5Sget_select_type(mem_space_id);
+  auto file_space_type = file_space_id == H5S_ALL ? H5S_SEL_ALL : H5Sget_select_type(file_space_id);
+
+  //TODO deal with subarea (i.e. subarray) inside destination memory buffer (i.e. only onememcpy wound not be enough)
+  VisusReleaseAssert(mem_space_type == H5S_SEL_ALL);
+
+  BoxNi logic_box(pdim);
+
+  switch (file_space_type)
+  {
+  case H5S_SEL_NONE:
+    return 0;
+
+  case H5S_SEL_POINTS:
+  {
+    VisusReleaseAssert(false);
+    return -1; //not supported
+  }
+  case H5S_SEL_ALL:
+  {
+    logic_box = world_box;
+    break;
+  }
+
+  case H5S_SEL_HYPERSLABS:
+  {
+    //TODO: other cases
+#if 0
+    hssize_t nblock = H5Sget_select_hyper_nblocks(file_space_id);
+    VisusReleaseAssert(nblock > 0);
+    VisusReleaseAssert(H5Sget_select_hyper_nblocks(mem_space_id) == nblock);
+
+    //coordinates:= start_block1 start_block2 start_block3... corner_block1 corner_block2 corner_block3
+    //   where each item has pdim values
+    std::vector<hsize_t> coordinates(pdim * 2 * nblock);
+    VisusReleaseAssert(H5Sget_select_hyper_blocklist(file_space_id, 0, nblock, &coordinates[0]) == 0);
+
+    std::vector<hsize_t> mem_coordinates(pdim * 2 * nblock);
+    VisusReleaseAssert(H5Sget_select_hyper_blocklist(mem_space_id, 0, nblock, &mem_coordinates[0]) == 0);
+
+    //see http://davis.lbl.gov/Manuals/HDF5-1.6.1/RM_H5S.html#Dataspace-SelectHyperBlockList
+    for (int Block = 0; Block < nblock; Block++)
+    {
+      auto Offset = coordinates.begin() + pdim * 2 * Block;
+
+      auto start = std::vector<Int64>(Offset + 0 * pdim, Offset + 1 * pdim);
+      auto corner = std::vector<Int64>(Offset + 1 * pdim, Offset + 2 * pdim);
+
+      std::reverse(start.begin(), start.end());
+      std::reverse(corner.begin(), corner.end());
+
+      //corner is included
+      for (auto& val : corner)
+        val++;
+#endif
+
+      //todo other cases
+      VisusReleaseAssert(H5Sis_regular_hyperslab(file_space_id));
+
+      //note count is the number of blocks, block is the block dims
+      std::vector< hsize_t> start(pdim), stride(pdim), count(pdim), block(pdim);
+      VisusReleaseAssert(H5Sget_regular_hyperslab(file_space_id, &start[0], &stride[0], &count[0], &block[0]) == 0);
+
+      //PrintInfo("start", StringUtils::join(start));
+      //PrintInfo("stride", StringUtils::join(stride));
+      //PrintInfo("count", StringUtils::join(count));
+      //PrintInfo("block", StringUtils::join(block));
+
+      std::reverse(start.begin(), start.end());
+      std::reverse(stride.begin(), stride.end());
+      std::reverse(count.begin(), count.end());
+      std::reverse(block.begin(), block.end());
+
+      for (int D = 0; D < pdim; D++)
+      {
+        VisusReleaseAssert(count[D] >= 1);
+        VisusReleaseAssert(count[D] == 1 || (count[D] > 1 && stride[D] == block[D])); //need one continuos query
+        logic_box.p1[D] = start[D];
+        logic_box.p2[D] = start[D] + count[D] * block[D];
+      }
+
+      break;
+    }
+
+  default:
+  {
+    VisusReleaseAssert(false);
+    return -1;
+  }
+  }
+
+  auto dims = logic_box.size();
+  PrintInfo("Executing query", logic_box, "dims", dims, "mode", String(1, mode));
+
+  //I can do this just because mem_space_type==H5S_SEL_ALL TODO Extend!
+  auto heap = HeapMemory::createUnmanaged((Uint8*)buf, dtype.getByteSize(dims));
+
+  auto query = db->createBoxQuery(logic_box, mode);
+  db->beginBoxQuery(query);
+  VisusReleaseAssert(query->isRunning());
+  query->buffer = Array(dims, dtype, heap);
+  VisusReleaseAssert(db->executeBoxQuery(access, query));
+
+  return 0;
+}
+
+
+static herr_t
+openvisus_vol_dataset_write(void* dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id, hid_t plist_id, const void* buf, void** req)
+{
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_dataset_write");
+#endif
+
+  openvisus_vol_t* o = (openvisus_vol_t*)dset;
+
+#if USE_OPENVISUS_DATASET
+  SharedPtr<Dataset> db = *((SharedPtr<Dataset>*)o->under_object);
+  auto ret_value = openvisus_vol_dataset_io(db, 'w', mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
+  if (req && *req)
+    VisusReleaseAssert(false);//todo
+  return ret_value;
+#else
+
+  herr_t ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  return ret_value;
+#endif
+}
+
 
 /*-------------------------------------------------------------------------
 * Function:    openvisus_vol_dataset_read
@@ -942,18 +1233,21 @@ openvisus_vol_dataset_open(void* obj, const H5VL_loc_params_t* loc_params, const
 *-------------------------------------------------------------------------
 */
 static herr_t
-openvisus_vol_dataset_read(void* dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id,
-  hid_t plist_id, void* buf, void** req)
+openvisus_vol_dataset_read(void* dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id, hid_t plist_id, void* buf, void** req)
 {
-
-
 #if ENABLE_LOGGING
   PrintInfo("openvisus_vol_dataset_read");
 #endif
 
-
-#if 1
   openvisus_vol_t* o = (openvisus_vol_t*)dset;
+
+#if USE_OPENVISUS_DATASET
+  SharedPtr<Dataset> db = *((SharedPtr<Dataset>*)o->under_object);
+  auto ret_value = openvisus_vol_dataset_io(db, 'r', mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
+  if (req && *req)
+    VisusReleaseAssert(false);//todo
+  return ret_value;
+#else
 
   herr_t ret_value = H5VLdataset_read(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
 
@@ -966,39 +1260,6 @@ openvisus_vol_dataset_read(void* dset, hid_t mem_type_id, hid_t mem_space_id, hi
 #endif
 
 } 
-
-/*-------------------------------------------------------------------------
-* Function:    openvisus_vol_dataset_write
-*
-* Purpose:     Writes data elements from a buffer into a dataset.
-*
-* Return:      Success:    0
-*              Failure:    -1
-*
-*-------------------------------------------------------------------------
-*/
-static herr_t
-openvisus_vol_dataset_write(void* dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id,
-  hid_t plist_id, const void* buf, void** req)
-{
-
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_dataset_write");
-#endif
-
-#if 1
-  openvisus_vol_t* o = (openvisus_vol_t*)dset;
-
-  herr_t ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
-
-  /* Check for async request */
-  if (req && *req)
-    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
-
-  return ret_value;
-#endif
-} 
-
 /*-------------------------------------------------------------------------
 * Function:    openvisus_vol_dataset_get
 *
@@ -1010,15 +1271,85 @@ openvisus_vol_dataset_write(void* dset, hid_t mem_type_id, hid_t mem_space_id, h
 *-------------------------------------------------------------------------
 */
 static herr_t
-openvisus_vol_dataset_get(void* dset, H5VL_dataset_get_args_t* args, hid_t dxpl_id, void** req)
+openvisus_vol_dataset_get(void* obj, H5VL_dataset_get_args_t* args, hid_t dxpl_id, void** req)
 {
 
 #if ENABLE_LOGGING
   PrintInfo("openvisus_vol_dataset_get");
 #endif
 
-#if 1
-  openvisus_vol_t* o = (openvisus_vol_t*)dset;
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+
+#if USE_OPENVISUS_DATASET
+
+  SharedPtr<Dataset> db = *((SharedPtr<Dataset>*)o->under_object);
+  
+  switch (args->op_type)
+  {
+  case H5VL_DATASET_GET_SPACE:
+  {
+    auto pdim = db->getPointDim();
+    std::vector<hsize_t> shape(pdim);
+    for (int i = 0; i < pdim; i++)
+      shape[i] = db->getLogicBox().size()[i];
+    std::reverse(shape.begin(), shape.end());
+
+    auto dtype = db->getField().dtype;
+
+    //consider the case of (depth,height,width,nchannels) where nchannels will go to the dtype
+    auto ncomponents = dtype.ncomponents();
+    if (ncomponents > 1)
+      shape.push_back(ncomponents);
+
+    args->args.get_space.space_id = H5Screate_simple((int)pdim, &shape[0], NULL);
+    break;
+  }
+
+  case H5VL_DATASET_GET_SPACE_STATUS:
+  {
+    args->args.get_space_status.status = 0;
+    VisusReleaseAssert(false);
+    break;
+  }
+
+  case H5VL_DATASET_GET_TYPE:
+  {
+    auto field = db->getField();
+    auto single = field.dtype.get(0); //get the atomic dtype
+    args->args.get_type.type_id = H5Tcopy(ToTypeId(single));
+    break;
+  }
+
+  case H5VL_DATASET_GET_DCPL:
+  {
+    args->args.get_dcpl.dcpl_id = 0; //is this right?
+    break;
+  }
+
+  case H5VL_DATASET_GET_DAPL:
+  {
+    args->args.get_dapl.dapl_id = 0; //is this right?
+    VisusReleaseAssert(false);
+    break;
+  }
+
+  case H5VL_DATASET_GET_STORAGE_SIZE:
+  {
+    args->args.get_storage_size.storage_size = 0; //is this right?
+    VisusReleaseAssert(false);
+    break;
+  }
+
+  default:
+  {
+    VisusReleaseAssert(false);
+    break;
+  }
+  }
+
+  return 0;
+
+#else
 
   herr_t ret_value = H5VLdataset_get(o->under_object, o->under_vol_id, args, dxpl_id, req);
 
@@ -1043,14 +1374,26 @@ openvisus_vol_dataset_get(void* dset, H5VL_dataset_get_args_t* args, hid_t dxpl_
 static herr_t
 openvisus_vol_dataset_specific(void* obj, H5VL_dataset_specific_args_t* args, hid_t dxpl_id, void** req)
 {
-
-
 #if ENABLE_LOGGING
   PrintInfo("openvisus_vol_dataset_specific");
 #endif
 
-#if 1  
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
+
+#if USE_OPENVISUS_DATASET  
+
+  SharedPtr<Dataset> db = *((SharedPtr<Dataset>*)o->under_object);
+
+  // Changes the sizes of a dataset’s dimensions
+  // H5VL_DATASET_SET_EXTENT
+  // H5VL_DATASET_FLUSH
+  // H5VL_DATASET_REFRESH
+
+  //not supported
+  VisusReleaseAssert(false);
+  return -1;
+  
+#else
 
   /* Save copy of underlying VOL connector ID, in case of 'refresh' operation destroying the current object */
   hid_t under_vol_id = o->under_vol_id;
@@ -1081,9 +1424,22 @@ openvisus_vol_dataset_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl
 #if ENABLE_LOGGING
   PrintInfo("openvisus_vol_dataset_optional");
 #endif
-
-#if 1
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
+
+#if USE_OPENVISUS_DATASET
+
+  SharedPtr<Dataset> db = *((SharedPtr<Dataset>*)o->under_object);
+
+  // Changes the sizes of a dataset’s dimensions
+  // H5VL_DATASET_SET_EXTENT
+  // H5VL_DATASET_FLUSH
+  // H5VL_DATASET_REFRESH
+
+  //not supported / don't care
+  VisusReleaseAssert(false);
+  return -1;
+
+#else
   herr_t ret_value = H5VLdataset_optional(o->under_object, o->under_vol_id, args, dxpl_id, req);
 
   /* Check for async request */
@@ -1094,39 +1450,6 @@ openvisus_vol_dataset_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl
 #endif
 } 
 
-/*-------------------------------------------------------------------------
-* Function:    openvisus_vol_dataset_close
-*
-* Purpose:     Closes a dataset.
-*
-* Return:      Success:    0
-*              Failure:    -1, dataset not closed.
-*
-*-------------------------------------------------------------------------
-*/
-static herr_t
-openvisus_vol_dataset_close(void* dset, hid_t dxpl_id, void** req)
-{
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_dataset_close");
-#endif
-
-#if 1
-  openvisus_vol_t* o = (openvisus_vol_t*)dset;
-
-  herr_t ret_value = H5VLdataset_close(o->under_object, o->under_vol_id, dxpl_id, req);
-
-  /* Check for async request */
-  if (req && *req)
-    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
-
-  /* Release our wrapper, if underlying dataset was closed */
-  if (ret_value >= 0)
-    openvisus_vol_free_obj(o);
-
-  return ret_value;
-#endif 
-}
 
 /*-------------------------------------------------------------------------
 * Function:    openvisus_vol_datatype_commit
