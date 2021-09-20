@@ -1,7 +1,7 @@
 source_group("" FILES plugin.cpp plugin.h)
 add_library(openvisus_vol SHARED plugin.cpp plugin.h)
 
-target_compile_definitions(openvisus_vol PRIVATE -DENABLE_EXT_PASSTHRU_LOGGING=1)
+target_compile_definitions(openvisus_vol PRIVATE -DENABLE_LOGGING=1)
 target_include_directories(openvisus_vol PUBLIC ${HDF5_INCLUDE_DIRS})
 target_link_libraries(openvisus_vol      PUBLIC ${HDF5_LIBRARIES} VisusDb)
 

@@ -7,6 +7,8 @@
 #include <Visus/StringUtils.h>
 #include <Visus/Utils.h>
 #include <Visus/DType.h>
+#include <Visus/Dataset.h>
+#include <Visus/IdxDataset.h>
 
 #if VISUS_PYTHON
 #include <Visus/Python.h>
@@ -18,58 +20,104 @@ using namespace Visus;
 #pragma warning(disable:4996)
 #endif
 
-typedef struct
-{
-  hid_t vol_id;         // VOL ID   for under VOL 
-  void* vol_info;       // VOL info for under VOL 
-}
-PluginVOL;
 
-typedef struct  
+/*  VOL info object */
+typedef struct openvisus_vol_t
 {
-  hid_t  vol_id;       // VOL ID           for under VOL
-  void*  object;       // object           for under VOL
-}
-PluginObject;
+  hid_t under_vol_id; /* ID for underlying VOL connector */
+  void* under_object; /* Info object for underlying VOL connector */
+} openvisus_vol_t;
 
-typedef struct 
+/*VOL wrapper context */
+typedef struct openvisus_vol_wrap_ctx_t
 {
-  hid_t vol_id;         // VOL ID           for under VOL
-  void* context;       // wrapping context for under VOL 
+  hid_t under_vol_id;   /* VOL ID for under VOL */
+  void* under_wrap_ctx; /* Object wrapping context for under VOL */
 }
-PluginContext;
+openvisus_vol_wrap_ctx_t;
+
+/* PVOL connector info */
+typedef struct openvisus_vol_info_t
+{
+  hid_t under_vol_id;   /* VOL ID for under VOL */
+  void* under_vol_info; /* VOL info for under VOL */
+} 
+openvisus_vol_info_t;
 
 //predeclaration
-extern const H5VL_class_t openvisus_vol_instance;
+extern const H5VL_class_t openvisus_vol_g;
 
-//////////////////////////////////////////////////////////////////////////////
-// Create a new pass through object for an underlying object
-static PluginObject* CreatePluginObject(void* under_obj, hid_t vol_id)
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_new_obj
+*
+* Purpose:     Create a new pass through object for an underlying object
+*
+* Return:      Success:    Pointer to the new pass through object
+*              Failure:    NULL
+*
+* Programmer:  Quincey Koziol
+*              Monday, December 3, 2018
+*
+*-------------------------------------------------------------------------
+*/
+static openvisus_vol_t*
+openvisus_vol_new_obj(void* under_obj, hid_t under_vol_id)
 {
-  PluginObject* ret = (PluginObject*)calloc(1, sizeof(PluginObject));
-  ret->object = under_obj;
-  ret->vol_id = vol_id;
-  H5Iinc_ref(ret->vol_id);
-  return ret;
-}
+  openvisus_vol_t* new_obj;
 
-//////////////////////////////////////////////////////////////////////////////
-// Release a pass through object
-// Note:	Take care to preserve the current HDF5 error stack when calling HDF5 API calls.
-static herr_t FreePluginObject(PluginObject* obj)
+  new_obj = (openvisus_vol_t*)calloc(1, sizeof(openvisus_vol_t));
+  new_obj->under_object = under_obj;
+  new_obj->under_vol_id = under_vol_id;
+  H5Iinc_ref(new_obj->under_vol_id);
+
+  return new_obj;
+} 
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_free_obj
+*
+* Purpose:     Release a pass through object
+*
+* Note:	Take care to preserve the current HDF5 error stack
+*		when calling HDF5 API calls.
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+* Programmer:  Quincey Koziol
+*              Monday, December 3, 2018
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_free_obj(openvisus_vol_t* obj)
 {
-  hid_t err_id = H5Eget_current_stack();
-  H5Idec_ref(obj->vol_id);
+  hid_t err_id;
+  err_id = H5Eget_current_stack();
+  H5Idec_ref(obj->under_vol_id);
   H5Eset_current_stack(err_id);
   free(obj);
   return 0;
 }
 
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_init(hid_t vipl_id)
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_init
+*
+* Purpose:     Initialize this VOL connector, performing any necessary
+*              operations for the connector that will apply to all containers
+*              accessed with the connector.
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_init(hid_t vipl_id)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_init");
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_init");
 #endif
 
   static int argn = 1;
@@ -88,13 +136,26 @@ static herr_t my_init(hid_t vipl_id)
 #endif
 
   return 0;
-}
+} /* end openvisus_vol_init() */
 
-/////////////////////////////////////////////////////////////////////////////
-static herr_t my_term(void)
+/*---------------------------------------------------------------------------
+* Function:    openvisus_vol_term
+*
+* Purpose:     Terminate this VOL connector, performing any necessary
+*              operations for the connector that release connector-wide
+*              resources (usually created / initialized with the 'init'
+*              callback).
+*
+* Return:      Success:    0
+*              Failure:    (Can't fail)
+*
+*---------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_term(void)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_term");
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_term");
 #endif
 
   DbModule::detach();
@@ -104,435 +165,633 @@ static herr_t my_term(void)
 #endif
 
   return 0;
-}
+} /* end openvisus_vol_term() */
 
-//////////////////////////////////////////////////////////////////////////////
-static void* my_info_copy(const void* _info)
+/*---------------------------------------------------------------------------
+* Function:    openvisus_vol_info_copy
+*
+* Purpose:     Duplicate the connector's info object.
+*
+* Returns:     Success:    New connector info object
+*              Failure:    NULL
+*
+*---------------------------------------------------------------------------
+*/
+static void*
+openvisus_vol_info_copy(const void* _info)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_info_copy");
+  const openvisus_vol_info_t* info = (const openvisus_vol_info_t*)_info;
+  openvisus_vol_info_t* new_info;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_info_copy");
 #endif
 
-  const PluginVOL* info = (const PluginVOL*)_info;
+  /* Allocate new VOL info struct for the pass through connector */
+  new_info = (openvisus_vol_info_t*)calloc(1, sizeof(openvisus_vol_info_t));
 
-  // Allocate new VOL info struct for the pass through connector 
-  PluginVOL* new_info = (PluginVOL*)calloc(1, sizeof(PluginVOL));
-
-  // Increment reference count on underlying VOL ID, and copy the VOL info 
-  new_info->vol_id = info->vol_id;
-  H5Iinc_ref(new_info->vol_id);
-
-  if (info->vol_info)
-    H5VLcopy_connector_info(new_info->vol_id, &(new_info->vol_info), info->vol_info);
+  /* Increment reference count on underlying VOL ID, and copy the VOL info */
+  new_info->under_vol_id = info->under_vol_id;
+  H5Iinc_ref(new_info->under_vol_id);
+  if (info->under_vol_info)
+    H5VLcopy_connector_info(new_info->under_vol_id, &(new_info->under_vol_info), info->under_vol_info);
 
   return new_info;
-}
+} /* end openvisus_vol_info_copy() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_info_cmp(int* cmp_value, const void* _info1, const void* _info2)
+/*---------------------------------------------------------------------------
+* Function:    openvisus_vol_info_cmp
+*
+* Purpose:     Compare two of the connector's info objects, setting *cmp_value,
+*              following the same rules as strcmp().
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*---------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_info_cmp(int* cmp_value, const void* _info1, const void* _info2)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_info_cmp");
+  const openvisus_vol_info_t* info1 = (const openvisus_vol_info_t*)_info1;
+  const openvisus_vol_info_t* info2 = (const openvisus_vol_info_t*)_info2;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_info_cmp");
 #endif
 
-  const PluginVOL* info1 = (const PluginVOL*)_info1; VisusReleaseAssert(info1);
-  const PluginVOL* info2 = (const PluginVOL*)_info2; VisusReleaseAssert(info2);
+  /* Sanity checks */
+  assert(info1);
+  assert(info2);
 
-  // Initialize comparison value 
+  /* Initialize comparison value */
   *cmp_value = 0;
 
-  // Compare under VOL connector classes 
-  H5VLcmp_connector_cls(cmp_value, info1->vol_id, info2->vol_id);
+  /* Compare under VOL connector classes */
+  H5VLcmp_connector_cls(cmp_value, info1->under_vol_id, info2->under_vol_id);
   if (*cmp_value != 0)
     return 0;
 
-  // Compare under VOL connector info objects 
-  H5VLcmp_connector_info(cmp_value, info1->vol_id, info1->vol_info, info2->vol_info);
+  /* Compare under VOL connector info objects */
+  H5VLcmp_connector_info(cmp_value, info1->under_vol_id, info1->under_vol_info, info2->under_vol_info);
   if (*cmp_value != 0)
     return 0;
 
   return 0;
-}
+} /* end openvisus_vol_info_cmp() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_info_free(void* _info)
+/*---------------------------------------------------------------------------
+* Function:    openvisus_vol_info_free
+*
+* Purpose:     Release an info object for the connector.
+*
+* Note:	Take care to preserve the current HDF5 error stack
+*		when calling HDF5 API calls.
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*---------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_info_free(void* _info)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_info_free");
+  openvisus_vol_info_t* info = (openvisus_vol_info_t*)_info;
+  hid_t                     err_id;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_info_free");
 #endif
 
-  // Note:	Take care to preserve the current HDF5 error stack when calling HDF5 API calls.
+  err_id = H5Eget_current_stack();
 
-  PluginVOL* info = (PluginVOL*)_info;
-  hid_t err_id = H5Eget_current_stack();
-
-  // Release underlying VOL ID and info
-  if (info->vol_info)
-    H5VLfree_connector_info(info->vol_id, info->vol_info);
-  H5Idec_ref(info->vol_id);
+  /* Release underlying VOL ID and info */
+  if (info->under_vol_info)
+    H5VLfree_connector_info(info->under_vol_id, info->under_vol_info);
+  H5Idec_ref(info->under_vol_id);
 
   H5Eset_current_stack(err_id);
 
-  // Free pass through info object itself 
+  /* Free pass through info object itself */
   free(info);
 
   return 0;
-}
+} /* end openvisus_vol_info_free() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_info_to_str(const void* _info, char** str)
+/*---------------------------------------------------------------------------
+* Function:    openvisus_vol_info_to_str
+*
+* Purpose:     Serialize an info object for this connector into a string
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*---------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_info_to_str(const void* _info, char** str)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_info_to_str");
+  const openvisus_vol_info_t* info = (const openvisus_vol_info_t*)_info;
+  H5VL_class_value_t              under_value = (H5VL_class_value_t)-1;
+  char* under_vol_string = NULL;
+  size_t                          under_vol_str_len = 0;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_info_to_str");
 #endif
 
-  const PluginVOL* info = (const PluginVOL*)_info;
+  /* Get value and string for underlying VOL connector */
+  H5VLget_value(info->under_vol_id, &under_value);
+  H5VLconnector_info_to_str(info->under_vol_info, info->under_vol_id, &under_vol_string);
 
-  // Get value and string for underlying VOL connector 
-  H5VL_class_value_t under_value = (H5VL_class_value_t)-1;
-  H5VLget_value(info->vol_id, &under_value);
-
-  char* under_vol_string = nullptr;
-  H5VLconnector_info_to_str(info->vol_info, info->vol_id, &under_vol_string);
-
-  // Determine length of underlying VOL info string 
-  size_t under_vol_str_len = 0;
+  /* Determine length of underlying VOL info string */
   if (under_vol_string)
     under_vol_str_len = strlen(under_vol_string);
 
-  // Allocate space for our info 
+  /* Allocate space for our info */
   *str = (char*)H5allocate_memory(32 + under_vol_str_len, (hbool_t)0);
-  VisusReleaseAssert(*str);
+  assert(*str);
 
-  // Encode our info
-  // Normally we'd use snprintf() here for a little extra safety, but that
-  // call had problems on Windows until recently. So, to be as platform-independent
-  // as we can, we're using sprintf() instead.
-   
-  sprintf(*str, "under_vol=%u;under_info={%s}", (unsigned)under_value, (under_vol_string ? under_vol_string : ""));
+  /* Encode our info
+    * Normally we'd use snprintf() here for a little extra safety, but that
+    * call had problems on Windows until recently. So, to be as platform-independent
+    * as we can, we're using sprintf() instead.
+    */
+  sprintf(*str, "under_vol=%u;under_info={%s}", (unsigned)under_value,
+    (under_vol_string ? under_vol_string : ""));
 
   return 0;
-}
+} /* end openvisus_vol_info_to_str() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_info_from_str(const char* str, void** _info)
+/*---------------------------------------------------------------------------
+* Function:    openvisus_vol_str_to_info
+*
+* Purpose:     Deserialize a string into an info object for this connector.
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*---------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_str_to_info(const char* str, void** _info)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_info_from_str");
+  openvisus_vol_info_t* info;
+  unsigned                  under_vol_value;
+  const char* under_vol_info_start, * under_vol_info_end;
+  hid_t                     under_vol_id;
+  void* under_vol_info = NULL;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_str_to_info");
 #endif
 
-  // Retrieve the underlying VOL connector value and info 
-  unsigned under_vol_value;
+  /* Retrieve the underlying VOL connector value and info */
   sscanf(str, "under_vol=%u;", &under_vol_value);
-
-  hid_t vol_id = H5VLregister_connector_by_value((H5VL_class_value_t)under_vol_value, H5P_DEFAULT);
-  const char* under_vol_info_start = strchr(str, '{');
-  const char* under_vol_info_end   = strrchr(str, '}');
-  VisusReleaseAssert(under_vol_info_end > under_vol_info_start);
-
-  void* vol_info = nullptr;
-  if (under_vol_info_end != (under_vol_info_start + 1)) 
-  {
+  under_vol_id = H5VLregister_connector_by_value((H5VL_class_value_t)under_vol_value, H5P_DEFAULT);
+  under_vol_info_start = strchr(str, '{');
+  under_vol_info_end = strrchr(str, '}');
+  assert(under_vol_info_end > under_vol_info_start);
+  if (under_vol_info_end != (under_vol_info_start + 1)) {
     char* under_vol_info_str;
 
     under_vol_info_str = (char*)malloc((size_t)(under_vol_info_end - under_vol_info_start));
-    memcpy(under_vol_info_str, under_vol_info_start + 1, (size_t)((under_vol_info_end - under_vol_info_start) - 1));
+    memcpy(under_vol_info_str, under_vol_info_start + 1,
+      (size_t)((under_vol_info_end - under_vol_info_start) - 1));
     *(under_vol_info_str + (under_vol_info_end - under_vol_info_start)) = '\0';
 
-    H5VLconnector_str_to_info(under_vol_info_str, vol_id, &vol_info);
+    H5VLconnector_str_to_info(under_vol_info_str, under_vol_id, &under_vol_info);
 
     free(under_vol_info_str);
-  } 
+  } /* end else */
 
-  // Allocate new pass-through VOL connector info and set its fields 
-  PluginVOL* info = (PluginVOL*)calloc(1, sizeof(PluginVOL));
-  info->vol_id = vol_id;
-  info->vol_info = vol_info;
+  /* Allocate new openvisus_vol VOL connector info and set its fields */
+  info = (openvisus_vol_info_t*)calloc(1, sizeof(openvisus_vol_info_t));
+  info->under_vol_id = under_vol_id;
+  info->under_vol_info = under_vol_info;
 
-  // Set return value 
+  /* Set return value */
   *_info = info;
 
   return 0;
-}
+} /* end openvisus_vol_str_to_info() */
 
-//////////////////////////////////////////////////////////////////////////////
-static void* my_get_object(const void* obj)
+/*---------------------------------------------------------------------------
+* Function:    openvisus_vol_get_object
+*
+* Purpose:     Retrieve the 'data' for a VOL object.
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*---------------------------------------------------------------------------
+*/
+static void*
+openvisus_vol_get_object(const void* obj)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_get_object");
+  const openvisus_vol_t* o = (const openvisus_vol_t*)obj;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_get_object");
 #endif
 
-  const PluginObject* down = (const PluginObject*)obj;
-  return H5VLget_object(down->object, down->vol_id);
-}
+  return H5VLget_object(o->under_object, o->under_vol_id);
+} /* end openvisus_vol_get_object() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_get_wrap_ctx(const void* obj, void** context)
+/*---------------------------------------------------------------------------
+* Function:    openvisus_vol_get_wrap_ctx
+*
+* Purpose:     Retrieve a "wrapper context" for an object
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*---------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_get_wrap_ctx(const void* obj, void** wrap_ctx)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_get_wrap_ctx");
+  const openvisus_vol_t* o = (const openvisus_vol_t*)obj;
+  openvisus_vol_wrap_ctx_t* new_wrap_ctx;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_get_wrap_ctx");
 #endif
 
-  const PluginObject* down = (const PluginObject*)obj;
+  /* Allocate new VOL object wrapping context for the pass through connector */
+  new_wrap_ctx = (openvisus_vol_wrap_ctx_t*)calloc(1, sizeof(openvisus_vol_wrap_ctx_t));
 
-  // Allocate new VOL object wrapping context for the pass through connector
-  PluginContext*  down_context = (PluginContext*)calloc(1, sizeof(PluginContext));
+  /* Increment reference count on underlying VOL ID, and copy the VOL info */
+  new_wrap_ctx->under_vol_id = o->under_vol_id;
+  H5Iinc_ref(new_wrap_ctx->under_vol_id);
+  H5VLget_wrap_ctx(o->under_object, o->under_vol_id, &new_wrap_ctx->under_wrap_ctx);
 
-  // Increment reference count on underlying VOL ID, 
-  down_context->vol_id = down->vol_id;
-  H5Iinc_ref(down_context->vol_id);
-
-  // and copy the VOL info
-  H5VLget_wrap_ctx(down->object, down->vol_id, /*output*/ &down_context->context);
-
-  // Set wrap context to return 
-  *context = down_context;
+  /* Set wrap context to return */
+  *wrap_ctx = new_wrap_ctx;
 
   return 0;
-}
+} /* end openvisus_vol_get_wrap_ctx() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-static void* my_wrap_object(void* obj, H5I_type_t obj_type, void* _down_context)
+/*---------------------------------------------------------------------------
+* Function:    openvisus_vol_wrap_object
+*
+* Purpose:     Use a "wrapper context" to wrap a data object
+*
+* Return:      Success:    Pointer to wrapped object
+*              Failure:    NULL
+*
+*---------------------------------------------------------------------------
+*/
+static void*
+openvisus_vol_wrap_object(void* obj, H5I_type_t obj_type, void* _wrap_ctx)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_wrap_object");
+  openvisus_vol_wrap_ctx_t* wrap_ctx = (openvisus_vol_wrap_ctx_t*)_wrap_ctx;
+  openvisus_vol_t* new_obj;
+  void* under;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_wrap_object");
 #endif
 
-  PluginContext* down_context = (PluginContext*)_down_context;
+  /* Wrap the object with the underlying VOL */
+  under = H5VLwrap_object(obj, obj_type, wrap_ctx->under_vol_id, wrap_ctx->under_wrap_ctx);
+  if (under)
+    new_obj = openvisus_vol_new_obj(under, wrap_ctx->under_vol_id);
+  else
+    new_obj = NULL;
 
-  // Wrap the object with the underlying VOL 
-  void* under = H5VLwrap_object(obj, obj_type, down_context->vol_id, down_context->context);
-  if (!under)
-    return nullptr;
+  return new_obj;
+} /* end openvisus_vol_wrap_object() */
 
-  return CreatePluginObject(under, down_context->vol_id);
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static void* my_unwrap_object(void* obj)
+/*---------------------------------------------------------------------------
+* Function:    openvisus_vol_unwrap_object
+*
+* Purpose:     Unwrap a wrapped object, discarding the wrapper, but returning
+*		underlying object.
+*
+* Return:      Success:    Pointer to unwrapped object
+*              Failure:    NULL
+*
+*---------------------------------------------------------------------------
+*/
+static void*
+openvisus_vol_unwrap_object(void* obj)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_unwrap_object");
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  void* under;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_unwrap_object");
 #endif
 
-  PluginObject* down = (PluginObject*)obj;
+  /* Unrap the object with the underlying VOL */
+  under = H5VLunwrap_object(o->under_object, o->under_vol_id);
 
-  // Unrap the object with the underlying VOL 
-  void* under = H5VLunwrap_object(down->object, down->vol_id);
-  if (!under)
-    return nullptr;
+  if (under)
+    openvisus_vol_free_obj(o);
 
-  FreePluginObject(down);
   return under;
-}
+} /* end openvisus_vol_unwrap_object() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_free_wrap_ctx(void* _down_context)
+/*---------------------------------------------------------------------------
+* Function:    openvisus_vol_free_wrap_ctx
+*
+* Purpose:     Release a "wrapper context" for an object
+*
+* Note:	Take care to preserve the current HDF5 error stack
+*		when calling HDF5 API calls.
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*---------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_free_wrap_ctx(void* _wrap_ctx)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_free_wrap_ctx");
+  openvisus_vol_wrap_ctx_t* wrap_ctx = (openvisus_vol_wrap_ctx_t*)_wrap_ctx;
+  hid_t                         err_id;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_free_wrap_ctx");
 #endif
 
-  // Note:	Take care to preserve the current HDF5 error stack when calling HDF5 API calls.
+  err_id = H5Eget_current_stack();
 
-  PluginContext* down_context = (PluginContext*)_down_context;
-
-  hid_t err_id = H5Eget_current_stack();
-
-  // Release underlying VOL ID and wrap context 
-  if (down_context->context)
-    H5VLfree_wrap_ctx(down_context->context, down_context->vol_id);
-
-  H5Idec_ref(down_context->vol_id);
+  /* Release underlying VOL ID and wrap context */
+  if (wrap_ctx->under_wrap_ctx)
+    H5VLfree_wrap_ctx(wrap_ctx->under_wrap_ctx, wrap_ctx->under_vol_id);
+  H5Idec_ref(wrap_ctx->under_vol_id);
 
   H5Eset_current_stack(err_id);
 
-  // Free pass through wrap context object itself 
-  free(down_context);
+  /* Free pass through wrap context object itself */
+  free(wrap_ctx);
 
   return 0;
-}
+} /* end openvisus_vol_free_wrap_ctx() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-static void* my_attr_create(void* obj, const H5VL_loc_params_t* loc_params,
-  const char* name, hid_t type_id, hid_t space_id, hid_t acpl_id,
-  hid_t aapl_id, hid_t dxpl_id, void** req)
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_attr_create
+*
+* Purpose:     Creates an attribute on an object.
+*
+* Return:      Success:    Pointer to attribute object
+*              Failure:    NULL
+*
+*-------------------------------------------------------------------------
+*/
+static void*
+openvisus_vol_attr_create(void* obj, const H5VL_loc_params_t* loc_params, const char* name, hid_t type_id,
+  hid_t space_id, hid_t acpl_id, hid_t aapl_id, hid_t dxpl_id, void** req)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_attr_create");
+  openvisus_vol_t* attr;
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  void* under;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_attr_create");
 #endif
 
-  PluginObject* up = (PluginObject*)obj;
+  under = H5VLattr_create(o->under_object, loc_params, o->under_vol_id, name, type_id, space_id, acpl_id,
+    aapl_id, dxpl_id, req);
+  if (under) {
+    attr = openvisus_vol_new_obj(under, o->under_vol_id);
 
-  void* under = H5VLattr_create(up->object, loc_params, up->vol_id, name, type_id, space_id, acpl_id, aapl_id, dxpl_id, req);
-  if (!under)
-    return nullptr;
-
-  PluginObject* attr = CreatePluginObject(under, up->vol_id);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, up->vol_id);
+    /* Check for async request */
+    if (req && *req)
+      *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+  } /* end if */
+  else
+    attr = NULL;
 
   return (void*)attr;
-}
+} /* end openvisus_vol_attr_create() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-static void* my_attr_open(void* obj, const H5VL_loc_params_t* loc_params, const char* name, hid_t aapl_id, hid_t dxpl_id, void** req)
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_attr_open
+*
+* Purpose:     Opens an attribute on an object.
+*
+* Return:      Success:    Pointer to attribute object
+*              Failure:    NULL
+*
+*-------------------------------------------------------------------------
+*/
+static void*
+openvisus_vol_attr_open(void* obj, const H5VL_loc_params_t* loc_params, const char* name, hid_t aapl_id,
+  hid_t dxpl_id, void** req)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_attr_open");
+  openvisus_vol_t* attr;
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  void* under;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_attr_open");
 #endif
 
-  PluginObject* down = (PluginObject*)obj;
+  under = H5VLattr_open(o->under_object, loc_params, o->under_vol_id, name, aapl_id, dxpl_id, req);
+  if (under) {
+    attr = openvisus_vol_new_obj(under, o->under_vol_id);
 
-  void* under = H5VLattr_open(down->object, loc_params, down->vol_id, name, aapl_id, dxpl_id, req);
-  if (!under)
-    return nullptr;
-
-  PluginObject* attr = CreatePluginObject(under, down->vol_id);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
+    /* Check for async request */
+    if (req && *req)
+      *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+  } /* end if */
+  else
+    attr = NULL;
 
   return (void*)attr;
-}
+} /* end openvisus_vol_attr_open() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_attr_read(void* attr, hid_t mem_type_id, void* buf, hid_t dxpl_id, void** req)
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_attr_read
+*
+* Purpose:     Reads data from attribute.
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_attr_read(void* attr, hid_t mem_type_id, void* buf, hid_t dxpl_id, void** req)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_attr_read");
+  openvisus_vol_t* o = (openvisus_vol_t*)attr;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_attr_read");
 #endif
 
-  PluginObject* down = (PluginObject*)attr;
+  ret_value = H5VLattr_read(o->under_object, o->under_vol_id, mem_type_id, buf, dxpl_id, req);
 
-  herr_t ret_value = H5VLattr_read(down->object, down->vol_id, mem_type_id, buf, dxpl_id, req);
-
-  // Check for async request 
+  /* Check for async request */
   if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
 
   return ret_value;
-}
+} /* end openvisus_vol_attr_read() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_attr_write(void* attr, hid_t mem_type_id, const void* buf, hid_t dxpl_id, void** req)
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_attr_write
+*
+* Purpose:     Writes data to attribute.
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_attr_write(void* attr, hid_t mem_type_id, const void* buf, hid_t dxpl_id, void** req)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_attr_write");
+  openvisus_vol_t* o = (openvisus_vol_t*)attr;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_attr_write");
 #endif
 
-  PluginObject* down = (PluginObject*)attr;
+  ret_value = H5VLattr_write(o->under_object, o->under_vol_id, mem_type_id, buf, dxpl_id, req);
 
-  herr_t ret_value = H5VLattr_write(down->object, down->vol_id, mem_type_id, buf, dxpl_id, req);
-
-  // Check for async request 
+  /* Check for async request */
   if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
 
   return ret_value;
-}
+} /* end openvisus_vol_attr_write() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_attr_get(void* obj, H5VL_attr_get_args_t* args, hid_t dxpl_id, void** req)
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_attr_get
+*
+* Purpose:     Gets information about an attribute
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_attr_get(void* obj, H5VL_attr_get_args_t* args, hid_t dxpl_id, void** req)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_attr_get");
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_attr_get");
 #endif
 
-  PluginObject* down = (PluginObject*)obj;
-  herr_t ret_value = H5VLattr_get(down->object, down->vol_id, args, dxpl_id, req);
+  ret_value = H5VLattr_get(o->under_object, o->under_vol_id, args, dxpl_id, req);
 
-  // Check for async request 
+  /* Check for async request */
   if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
 
   return ret_value;
-}
+} /* end openvisus_vol_attr_get() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_attr_specific(void* obj, const H5VL_loc_params_t* loc_params, H5VL_attr_specific_args_t* args, hid_t dxpl_id, void** req)
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_attr_specific
+*
+* Purpose:     Specific operation on attribute
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_attr_specific(void* obj, const H5VL_loc_params_t* loc_params,
+  H5VL_attr_specific_args_t* args, hid_t dxpl_id, void** req)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_attr_specific");
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_attr_specific");
 #endif
 
-  PluginObject* down = (PluginObject*)obj;
+  ret_value = H5VLattr_specific(o->under_object, loc_params, o->under_vol_id, args, dxpl_id, req);
 
-  herr_t ret_value = H5VLattr_specific(down->object, loc_params, down->vol_id, args, dxpl_id, req);
-
-  // Check for async request 
+  /* Check for async request */
   if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
 
   return ret_value;
-}
+} /* end openvisus_vol_attr_specific() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_attr_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_attr_optional
+*
+* Purpose:     Perform a connector-specific operation on an attribute
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_attr_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_attr_optional");
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_attr_optional");
 #endif
 
-  PluginObject* down = (PluginObject*)obj;
-  herr_t ret_value = H5VLattr_optional(down->object, down->vol_id, args, dxpl_id, req);
+  ret_value = H5VLattr_optional(o->under_object, o->under_vol_id, args, dxpl_id, req);
 
-  // Check for async request 
+  /* Check for async request */
   if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
 
   return ret_value;
-}
+} /* end openvisus_vol_attr_optional() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_attr_close(void* attr, hid_t dxpl_id, void** req)
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_attr_close
+*
+* Purpose:     Closes an attribute.
+*
+* Return:      Success:    0
+*              Failure:    -1, attr not closed.
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_attr_close(void* attr, hid_t dxpl_id, void** req)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_attr_close");
+  openvisus_vol_t* o = (openvisus_vol_t*)attr;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_attr_close");
 #endif
 
-  PluginObject* down = (PluginObject*)attr;
+  ret_value = H5VLattr_close(o->under_object, o->under_vol_id, dxpl_id, req);
 
-  herr_t ret_value = H5VLattr_close(down->object, down->vol_id, dxpl_id, req);
-
-  // Check for async request 
+  /* Check for async request */
   if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
 
-  // Release our wrapper, if underlying attribute was closed 
+  /* Release our wrapper, if underlying attribute was closed */
   if (ret_value >= 0)
-    FreePluginObject(down);
+    openvisus_vol_free_obj(o);
 
   return ret_value;
-}
+} /* end openvisus_vol_attr_close() */
 
-//https://github.com/DataLib-ECP/vol-log-based/tree/b13778efd9e0c79135a9d7352104985408078d45
+
+
 
 //////////////////////////////////////////////////////////////////////////////
 static DType ToDType(hid_t type_id)
-{ 
-  size_t type_size = H5Tget_size(type_id);
+{
+  size_t      type_size = H5Tget_size(type_id);
   H5T_class_t type_class = H5Tget_class(type_id);
-  H5T_sign_t type_sign = H5Tget_sign(type_id);
+  H5T_sign_t   type_sign = H5Tget_sign(type_id);
 
   String ret = "";
 
@@ -552,7 +811,8 @@ static DType ToDType(hid_t type_id)
   }
   else if (type_class == H5T_FLOAT)
   {
-    switch (type_size) {
+    switch (type_size) 
+    {
     case 4: ret = "float32";
     case 8: ret = "float64";
     default: break;
@@ -565,1382 +825,2050 @@ static DType ToDType(hid_t type_id)
 
 
 //////////////////////////////////////////////////////////////////////////////
-static void* my_dataset_create(
-  void* parent_,
-  const H5VL_loc_params_t* loc_params,
-  const char* name,
-  hid_t lcpl_id,
-  hid_t type_id,
-  hid_t space_id,
-  hid_t dcpl_id,
-  hid_t dapl_id,
-  hid_t dxpl_id,
-  void** req)
+static hid_t ToTypeId(DType dtype)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_dataset_create");
-#endif
+  VisusReleaseAssert(dtype.ncomponents() == 1);
 
-  PluginObject* parent = (PluginObject*)parent_;
+  if (dtype == DTypes::INT8)  return H5T_NATIVE_CHAR;
+  if (dtype == DTypes::INT16) return H5T_NATIVE_SHORT;
+  if (dtype == DTypes::INT32) return H5T_NATIVE_INT;
+  if (dtype == DTypes::INT64) return H5T_NATIVE_LLONG;
 
-  auto dtype = ToDType(type_id);
-  
-  //shape -> dims
-  std::vector<hsize_t> dims(H5S_MAX_RANK);
-  int _ndim=H5Sget_simple_extent_dims(space_id, &dims[0], NULL);
-  dims.resize(_ndim);
-  std::reverse(dims.begin(), dims.end());
+  if (dtype == DTypes::UINT8)  return H5T_NATIVE_UCHAR;
+  if (dtype == DTypes::UINT16) return H5T_NATIVE_USHORT;
+  if (dtype == DTypes::UINT32) return H5T_NATIVE_UINT;
+  if (dtype == DTypes::UINT64) return H5T_NATIVE_ULLONG;
 
-  PrintInfo("Creating dataset","name",name,"dtype",dtype,"dims",StringUtils::join(dims));
+  if (dtype == DTypes::FLOAT32)  return H5T_NATIVE_FLOAT;
+  if (dtype == DTypes::FLOAT64)  return H5T_NATIVE_DOUBLE;
 
-  // Filters not supported
-#if 1
-  {
-    int nfilter = H5Pget_nfilters(dcpl_id);
-    for (int i = 0; i < nfilter; i++)
-    {
-      unsigned int flags = 0;
-      std::vector<unsigned int> cd_values(256); //out
-      String name(256, 0);
-      unsigned int filter_config = 0; //inout
-
-      size_t cd_number_elements = cd_values.size();
-      int name_len = (int)name.size();
-      auto filter_id = H5Pget_filter2(dcpl_id, (unsigned int)i, &flags, &cd_number_elements, &cd_values[0], name_len, &name[0], &filter_config);
-      name.resize(name_len);
-      cd_values.resize(cd_number_elements);
-
-      PrintWarning("filters not supported","name", name, "flags", flags, "#cd_values", cd_values.size(), "filter_config", filter_config);
-    }
-  }
-#endif
-
-  void* dataset = H5VLdataset_create(parent->object, loc_params, parent->vol_id, name, lcpl_id, type_id, space_id, dcpl_id, dapl_id, dxpl_id, req);
-  if (!dataset)
-    return nullptr;
-
-  PluginObject* ret = CreatePluginObject(dataset, parent->vol_id);
-
-  //todo async
-  VisusReleaseAssert(req == nullptr); 
-
-  return ret;
+  VisusReleaseAssert(false);
+  return 0;
 }
 
 
-//////////////////////////////////////////////////////////////////////////////
-static void* my_dataset_open(void* obj, const H5VL_loc_params_t* loc_params, const char* name, hid_t dapl_id, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_dataset_open");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  void* under = H5VLdataset_open(down->object, loc_params, down->vol_id, name, dapl_id, dxpl_id, req);
-  if (!under)
-    return nullptr;
-
-  PluginObject* dset = CreatePluginObject(under, down->vol_id);
-
-  VisusReleaseAssert(req == nullptr); //todo async
-
-  return (void*)dset;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_dataset_read(void* dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id, hid_t plist_id, void* buf, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_dataset_read");
-#endif
-
-  PluginObject* down = (PluginObject*)dset;
-  herr_t ret_value = H5VLdataset_read(down->object, down->vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
-
-  VisusReleaseAssert(req == nullptr); //todo async
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_dataset_write(void* dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id, hid_t plist_id, const void* buf, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_dataset_write");
-#endif
-
-  PluginObject* down = (PluginObject*)dset;
-  herr_t ret_value = H5VLdataset_write(down->object, down->vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
-
-  VisusReleaseAssert(req == nullptr); //todo async
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_dataset_get(void* dset, H5VL_dataset_get_args_t* args, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_dataset_get");
-#endif
-
-  PluginObject* down = (PluginObject*)dset;
-
-  herr_t ret_value = H5VLdataset_get(down->object, down->vol_id, args, dxpl_id, req);
-
-  VisusReleaseAssert(req == nullptr); //todo async
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_dataset_specific(void* obj, H5VL_dataset_specific_args_t* args, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_dataset_specific");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-
-  // Save copy of underlying VOL connector ID and prov helper, in case of
-  // refresh destroying the current object
-  hid_t vol_id = down->vol_id;
-
-  herr_t ret_value = H5VLdataset_specific(down->object, down->vol_id, args, dxpl_id, req);
-
-  VisusReleaseAssert(req == nullptr); //todo async
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_dataset_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_dataset_optional");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  herr_t ret_value = H5VLdataset_optional(down->object, down->vol_id, args, dxpl_id, req);
-
-  VisusReleaseAssert(req == nullptr); //todo async
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_dataset_close(void* dset, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_dataset_close");
-#endif
-
-  PluginObject* down = (PluginObject*)dset;
-  herr_t ret_value = H5VLdataset_close(down->object, down->vol_id, dxpl_id, req);
-
-  VisusReleaseAssert(req == nullptr); //todo async
-
-  // Release our wrapper, if underlying dataset was closed 
-  if (ret_value >= 0)
-    FreePluginObject(down);
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static void* my_datatype_commit(void* obj, const H5VL_loc_params_t* loc_params,
-  const char* name, hid_t type_id, hid_t lcpl_id, hid_t tcpl_id, hid_t tapl_id,
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_dataset_create
+*
+* Purpose:     Creates a dataset in a container
+*
+* Return:      Success:    Pointer to a dataset object
+*              Failure:    NULL
+*
+*-------------------------------------------------------------------------
+*/
+static void*
+openvisus_vol_dataset_create(void* obj, const H5VL_loc_params_t* loc_params, const char* name,
+  hid_t lcpl_id, hid_t type_id, hid_t space_id, hid_t dcpl_id, hid_t dapl_id,
   hid_t dxpl_id, void** req)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_datatype_commit");
+
+
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_dataset_create");
 #endif
 
-  PluginObject* down = (PluginObject*)obj;
+#if 1
 
-  void* under = H5VLdatatype_commit(down->object, loc_params, down->vol_id, name, type_id, lcpl_id, tcpl_id, tapl_id, dxpl_id, req);
-  if (!under)
-    return nullptr;
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
 
-  PluginObject* dt = CreatePluginObject(under, down->vol_id);
+  void* under = H5VLdataset_create(o->under_object, loc_params, o->under_vol_id, name, lcpl_id, type_id, space_id, dcpl_id, dapl_id, dxpl_id, req);
 
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
-
-  return (void*)dt;
-}
-
-
-/////////////////////////////////////////////////////////////////////////////
-static void* my_datatype_open(void* obj, const H5VL_loc_params_t* loc_params, const char* name, hid_t tapl_id, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_datatype_open");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  void* under = H5VLdatatype_open(down->object, loc_params, down->vol_id, name, tapl_id, dxpl_id, req);
-  if (!under)
-    return nullptr;
-
-  PluginObject* dt = CreatePluginObject(under, down->vol_id);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
-
-  return (void*)dt;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_datatype_get(void* dt, H5VL_datatype_get_args_t* args, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_datatype_get");
-#endif
-
-  PluginObject* down = (PluginObject*)dt;
-  herr_t ret_value = H5VLdatatype_get(down->object, down->vol_id, args, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_datatype_specific(void* obj, H5VL_datatype_specific_args_t* args, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_datatype_specific");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-
-  // Save copy of underlying VOL connector ID and prov helper, in case of
-  // refresh destroying the current object
-  hid_t vol_id = down->vol_id;
-
-  herr_t ret_value = H5VLdatatype_specific(down->object, down->vol_id, args, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, vol_id);
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_datatype_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_datatype_optional");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  herr_t ret_value = H5VLdatatype_optional(down->object, down->vol_id, args, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_datatype_close(void* dt, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_datatype_close");
-#endif
-
-  PluginObject* down = (PluginObject*)dt;
-  VisusReleaseAssert(down->object);
-
-  herr_t ret_value = H5VLdatatype_close(down->object, down->vol_id, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
-
-  // Release our wrapper, if underlying datatype was closed 
-  if (ret_value >= 0)
-    FreePluginObject(down);
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static void* my_file_create(const char* name, unsigned flags, hid_t fcpl_id, hid_t fapl_id, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_file_create");
-#endif
-
-  // Get copy of our VOL info from FAPL 
-  PluginVOL* info;
-  H5Pget_vol_info(fapl_id, (void**)&info);
-  if (!info)
-    return nullptr;
-
-  // Copy the File Access Property List (FAPL) 
-  hid_t under_fapl_id = H5Pcopy(fapl_id);
-
-  // Set the VOL ID and info for the underlying FAPL 
-  H5Pset_vol(under_fapl_id, info->vol_id, info->vol_info);
-
-  // Open the file with the underlying VOL connector 
-  PluginObject* file=nullptr;
-  void* under = H5VLfile_create(name, flags, fcpl_id, under_fapl_id, dxpl_id, req);
+  openvisus_vol_t* dset = nullptr;
   if (under) 
   {
-    file = CreatePluginObject(under, info->vol_id);
+    dset = openvisus_vol_new_obj(under, o->under_vol_id);
 
-    // Check for async request 
+    /* Check for async request */
     if (req && *req)
-      *req = CreatePluginObject(*req, info->vol_id);
+      *req = openvisus_vol_new_obj(*req, o->under_vol_id);
   } 
 
-  // Close underlying FAPL 
-  H5Pclose(under_fapl_id);
 
-  // Release copy of our VOL info 
-  my_info_free(info);
-
-  return (void*)file;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static void* my_file_open(const char* name, unsigned flags, hid_t fapl_id, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_file_open");
+  return (void*)dset;
 #endif
 
-  // Get copy of our VOL info from FAPL 
-  PluginVOL* info;
-  H5Pget_vol_info(fapl_id, (void**)&info); 
-  if (!info)
-    return nullptr;
+} 
 
-  // Copy the FAPL 
-  hid_t under_fapl_id = H5Pcopy(fapl_id);
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_dataset_open
+*
+* Purpose:     Opens a dataset in a container
+*
+* Return:      Success:    Pointer to a dataset object
+*              Failure:    NULL
+*
+*-------------------------------------------------------------------------
+*/
+static void*
+openvisus_vol_dataset_open(void* obj, const H5VL_loc_params_t* loc_params, const char* name,
+  hid_t dapl_id, hid_t dxpl_id, void** req)
+{
 
-  // Set the VOL ID and info for the underlying FAPL 
-  H5Pset_vol(under_fapl_id, info->vol_id, info->vol_info);
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_dataset_open");
+#endif
 
-  // Open the file with the underlying VOL connector 
-  PluginObject* file=nullptr;
-  void*  under = H5VLfile_open(name, flags, under_fapl_id, dxpl_id, req);
+#if 1
+
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+
+  void* under = H5VLdataset_open(o->under_object, loc_params, o->under_vol_id, name, dapl_id, dxpl_id, req);
+
+  openvisus_vol_t* dset = nullptr;
   if (under) {
-    file = CreatePluginObject(under, info->vol_id);
+    dset = openvisus_vol_new_obj(under, o->under_vol_id);
 
-    // Check for async request 
+    /* Check for async request */
     if (req && *req)
-      *req = CreatePluginObject(*req, info->vol_id);
-  }
-
-  // Close underlying FAPL 
-  H5Pclose(under_fapl_id);
-
-  // Release copy of our VOL info 
-  my_info_free(info);
-
-  return (void*)file;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_file_get(void* file, H5VL_file_get_args_t* args, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_file_get");
-#endif
-
-  PluginObject* down = (PluginObject*)file;
-
-  herr_t ret_value = H5VLfile_get(down->object, down->vol_id, args, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_file_specific(void* file, H5VL_file_specific_args_t* args, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_file_specific");
-#endif
-
-  PluginObject* down = (PluginObject*)file;
-  PluginObject* new_o;
-  H5VL_file_specific_args_t my_args;
-  H5VL_file_specific_args_t* new_args;
-  PluginVOL* info;
-  hid_t vol_id = -1;
-
-  // Check for 'is accessible' operation 
-  if (args->op_type == H5VL_FILE_IS_ACCESSIBLE) 
-  {
-    // Make a (shallow) copy of the arguments 
-    memcpy(&my_args, args, sizeof(my_args));
-
-    // Set up the new FAPL for the updated arguments 
-
-    // Get copy of our VOL info from FAPL 
-    H5Pget_vol_info(args->args.is_accessible.fapl_id, (void**)&info);
-
-    // Make sure we have info about the underlying VOL to be used 
-    if (!info)
-      return (-1);
-
-    // Keep the correct underlying VOL ID for later 
-    vol_id = info->vol_id;
-
-    // Copy the FAPL 
-    my_args.args.is_accessible.fapl_id = H5Pcopy(args->args.is_accessible.fapl_id);
-
-    // Set the VOL ID and info for the underlying FAPL 
-    H5Pset_vol(my_args.args.is_accessible.fapl_id, info->vol_id, info->vol_info);
-
-    // Set argument pointer to new arguments 
-    new_args = &my_args;
-
-    // Set object pointer for operation 
-    new_o = nullptr;
+      *req = openvisus_vol_new_obj(*req, o->under_vol_id);
   } 
-  // Check for 'delete' operation 
-  else if (args->op_type == H5VL_FILE_DELETE) 
-  {
-    // Make a (shallow) copy of the arguments 
-    memcpy(&my_args, args, sizeof(my_args));
 
-    // Set up the new FAPL for the updated arguments 
+  return (void*)dset;
 
-    // Get copy of our VOL info from FAPL 
-    H5Pget_vol_info(args->args.del.fapl_id, (void**)&info);
-
-    // Make sure we have info about the underlying VOL to be used 
-    if (!info)
-      return (-1);
-
-    // Keep the correct underlying VOL ID for later 
-    vol_id = info->vol_id;
-
-    // Copy the FAPL 
-    my_args.args.del.fapl_id = H5Pcopy(args->args.del.fapl_id);
-
-    // Set the VOL ID and info for the underlying FAPL 
-    H5Pset_vol(my_args.args.del.fapl_id, info->vol_id, info->vol_info);
-
-    // Set argument pointer to new arguments 
-    new_args = &my_args;
-
-    // Set object pointer for operation 
-    new_o = nullptr;
-  } 
-  else 
-  {
-    // Keep the correct underlying VOL ID for later 
-    vol_id = down->vol_id;
-
-    // Set argument pointer to current arguments 
-    new_args = args;
-
-    // Set object pointer for operation 
-    new_o = (PluginObject*)down->object;
-  } // end else 
-
-  herr_t ret_value = H5VLfile_specific(new_o, vol_id, new_args, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, vol_id);
-
-  // Check for 'is accessible' operation 
-  if (args->op_type == H5VL_FILE_IS_ACCESSIBLE) {
-    // Close underlying FAPL 
-    H5Pclose(my_args.args.is_accessible.fapl_id);
-
-    // Release copy of our VOL info 
-    my_info_free(info);
-  } // end else-if 
-  // Check for 'delete' operation 
-  else if (args->op_type == H5VL_FILE_DELETE) {
-    // Close underlying FAPL 
-    H5Pclose(my_args.args.del.fapl_id);
-
-    // Release copy of our VOL info 
-    my_info_free(info);
-  } // end else-if 
-  else if (args->op_type == H5VL_FILE_REOPEN) {
-    // Wrap reopened file struct pointer, if we reopened one 
-    if (ret_value >= 0 && args->args.reopen.file)
-      *args->args.reopen.file = CreatePluginObject(*args->args.reopen.file, down->vol_id);
-  } // end else 
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_file_optional(void* file, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_file_optional");
 #endif
 
-  PluginObject* down = (PluginObject*)file;
-  herr_t ret_value = H5VLfile_optional(down->object, down->vol_id, args, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
-
-  return ret_value;
 }
 
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_file_close(void* file, hid_t dxpl_id, void** req)
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_dataset_read
+*
+* Purpose:     Reads data elements from a dataset into a buffer.
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_dataset_read(void* dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id,
+  hid_t plist_id, void* buf, void** req)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_file_close");
+
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_dataset_read");
 #endif
 
-  PluginObject* down = (PluginObject*)file;
 
-  herr_t ret_value = H5VLfile_close(down->object, down->vol_id, dxpl_id, req);
+#if 1
+  openvisus_vol_t* o = (openvisus_vol_t*)dset;
 
-  // Check for async request 
+  herr_t ret_value = H5VLdataset_read(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
+
+  /* Check for async request */
   if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
 
-  // Release our wrapper, if underlying file was closed 
+  return ret_value;
+
+#endif
+
+} 
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_dataset_write
+*
+* Purpose:     Writes data elements from a buffer into a dataset.
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_dataset_write(void* dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id,
+  hid_t plist_id, const void* buf, void** req)
+{
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_dataset_write");
+#endif
+
+#if 1
+  openvisus_vol_t* o = (openvisus_vol_t*)dset;
+
+  herr_t ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  return ret_value;
+#endif
+} 
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_dataset_get
+*
+* Purpose:     Gets information about a dataset
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_dataset_get(void* dset, H5VL_dataset_get_args_t* args, hid_t dxpl_id, void** req)
+{
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_dataset_get");
+#endif
+
+#if 1
+  openvisus_vol_t* o = (openvisus_vol_t*)dset;
+
+  herr_t ret_value = H5VLdataset_get(o->under_object, o->under_vol_id, args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  return ret_value;
+#endif
+} 
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_dataset_specific
+*
+* Purpose:     Specific operation on a dataset
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_dataset_specific(void* obj, H5VL_dataset_specific_args_t* args, hid_t dxpl_id, void** req)
+{
+
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_dataset_specific");
+#endif
+
+#if 1  
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+
+  /* Save copy of underlying VOL connector ID, in case of 'refresh' operation destroying the current object */
+  hid_t under_vol_id = o->under_vol_id;
+
+  herr_t ret_value = H5VLdataset_specific(o->under_object, o->under_vol_id, args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, under_vol_id);
+
+  return ret_value;
+#endif
+} 
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_dataset_optional
+*
+* Purpose:     Perform a connector-specific operation on a dataset
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_dataset_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
+{
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_dataset_optional");
+#endif
+
+#if 1
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t ret_value = H5VLdataset_optional(o->under_object, o->under_vol_id, args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  return ret_value;
+#endif
+} 
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_dataset_close
+*
+* Purpose:     Closes a dataset.
+*
+* Return:      Success:    0
+*              Failure:    -1, dataset not closed.
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_dataset_close(void* dset, hid_t dxpl_id, void** req)
+{
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_dataset_close");
+#endif
+
+#if 1
+  openvisus_vol_t* o = (openvisus_vol_t*)dset;
+
+  herr_t ret_value = H5VLdataset_close(o->under_object, o->under_vol_id, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  /* Release our wrapper, if underlying dataset was closed */
   if (ret_value >= 0)
-    FreePluginObject(down);
+    openvisus_vol_free_obj(o);
 
   return ret_value;
+#endif 
 }
 
-
-//////////////////////////////////////////////////////////////////////////////
-static void* my_group_create(void* obj, const H5VL_loc_params_t* loc_params, const char* name, hid_t lcpl_id, hid_t gcpl_id, hid_t gapl_id, hid_t dxpl_id, void** req)
-{
-
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_group_create");
-#endif
-
-  PluginObject* up = (PluginObject*)obj;
-
-  void* under = H5VLgroup_create(up->object, loc_params, up->vol_id, name, lcpl_id, gcpl_id, gapl_id, dxpl_id, req);
-  if (!under)
-    return nullptr;
-
-  PluginObject* group = CreatePluginObject(under, up->vol_id);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, up->vol_id);
-
-  return (void*)group;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static void* my_group_open(void* obj, const H5VL_loc_params_t* loc_params, const char* name, hid_t gapl_id, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_group_open");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  void* under = H5VLgroup_open(down->object, loc_params, down->vol_id, name, gapl_id, dxpl_id, req);
-  if (!under)
-    return nullptr;
-
-  PluginObject* group = CreatePluginObject(under, down->vol_id);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
-
-  return (void*)group;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_group_get(void* obj, H5VL_group_get_args_t* args, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_group_get");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  herr_t ret_value = H5VLgroup_get(down->object, down->vol_id, args, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_group_specific(void* obj, H5VL_group_specific_args_t* args, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_group_specific");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  
-  // Save copy of underlying VOL connector ID and prov helper, in case of
-  // refresh destroying the current object
-  hid_t vol_id = down->vol_id;
-
-  // Unpack arguments to get at the child file pointer when mounting a file 
-  H5VL_group_specific_args_t my_args;
-  H5VL_group_specific_args_t* new_args=args;
-  if (args->op_type == H5VL_GROUP_MOUNT) {
-
-    // Make a (shallow) copy of the arguments 
-    memcpy(&my_args, args, sizeof(my_args));
-
-    // Set the object for the child file 
-    my_args.args.mount.child_file = ((PluginObject*)args->args.mount.child_file)->object;
-
-    // Point to modified arguments 
-    new_args = &my_args;
-  }
-
-  herr_t ret_value = H5VLgroup_specific(down->object, vol_id, new_args, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, vol_id);
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_group_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_group_optional");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  herr_t ret_value = H5VLgroup_optional(down->object, down->vol_id, args, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_group_close(void* grp, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_group_close");
-#endif
-
-  PluginObject* down = (PluginObject*)grp;
-  herr_t ret_value = H5VLgroup_close(down->object, down->vol_id, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
-
-  // Release our wrapper, if underlying file was closed 
-  if (ret_value >= 0)
-    FreePluginObject(down);
-
-  return ret_value;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-static herr_t my_link_create(H5VL_link_create_args_t* args, void* obj, const H5VL_loc_params_t* loc_params, hid_t lcpl_id, hid_t lapl_id, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_link_create");
-#endif
-
-  PluginObject* up = (PluginObject*)obj;
-
-  // Try to retrieve the "under" VOL id 
-  hid_t vol_id = up ? up->vol_id : -1;
-
-  // Fix up the link target object for hard link creation 
-  H5VL_link_create_args_t* new_args = args;
-  H5VL_link_create_args_t my_args;
-  if (H5VL_LINK_CREATE_HARD == args->op_type) 
-  {
-    // If it's a non-null pointer, find the 'under object' and re-set the args 
-    if (args->args.hard.curr_obj) 
-    {
-      // Make a (shallow) copy of the arguments 
-      memcpy(&my_args, args, sizeof(my_args));
-
-      // Check if we still need the "under" VOL ID 
-      if (vol_id < 0)
-        vol_id = ((PluginObject*)args->args.hard.curr_obj)->vol_id;
-
-      // Set the object for the link target 
-      my_args.args.hard.curr_obj = ((PluginObject*)args->args.hard.curr_obj)->object;
-
-      // Set argument pointer to modified parameters 
-      new_args = &my_args;
-    }
-  }
-
-  // Re-issue 'link create' call, possibly using the unwrapped pieces 
-  herr_t ret_value = H5VLlink_create(new_args, (up ? up->object : nullptr), loc_params, vol_id, lcpl_id, lapl_id, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, vol_id);
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_link_copy(
-  void* src_obj, const H5VL_loc_params_t* loc_params1,
-  void* dst_obj, const H5VL_loc_params_t* loc_params2, 
-  hid_t lcpl_id, hid_t lapl_id, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_link_copy");
-#endif
-
-  // Renames an object within an HDF5 container and copies it to a new group.  
-  // The original name SRC is unlinked from the group graph and then inserted with the new name DST (which can specify a new path for the object) as an atomic operation. 
-  // The names are interpreted relative to SRC_LOC_ID and DST_LOC_ID, which are either file IDs or group ID.
-
-  PluginObject* o_src = (PluginObject*)src_obj;
-  PluginObject* o_dst = (PluginObject*)dst_obj;
-
-  // Retrieve the "under" VOL id 
-  hid_t vol_id = o_src? o_src->vol_id : (o_dst ? o_dst->vol_id  : -1);
-  VisusReleaseAssert(vol_id > 0);
-
-  herr_t ret_value = H5VLlink_copy(
-    (o_src ? o_src->object : nullptr), 
-    loc_params1, 
-    (o_dst ? o_dst->object : nullptr), 
-    loc_params2, 
-    vol_id, 
-    lcpl_id, 
-    lapl_id, 
-    dxpl_id, 
-    req
-  );
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, vol_id);
-
-  return ret_value;
-}
-
-
-////////////////////////////////////////////////////////////////////////////// 
-static herr_t my_link_move(void* src_obj, const H5VL_loc_params_t* loc_params1, void* dst_obj, const H5VL_loc_params_t* loc_params2, hid_t lcpl_id, hid_t lapl_id, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_link_move");
-#endif
-
-  // The original name SRC is unlinked from the group graph and then inserted with the new name DST (which can specify a new path for the object) as an atomic operation. 
-  // The namesare interpreted relative to SRC_LOC_ID and DST_LOC_ID, which are either file IDs or group ID.
-
-  PluginObject* o_src = (PluginObject*)src_obj;
-  PluginObject* o_dst = (PluginObject*)dst_obj;
-
-  // Retrieve the "under" VOL id 
-  hid_t vol_id = o_src? o_src->vol_id  : (o_dst ? o_dst->vol_id  : -1); VisusReleaseAssert(vol_id > 0);
-
-  herr_t ret_value = H5VLlink_move(
-    (o_src ? o_src->object : nullptr), 
-    loc_params1, 
-    (o_dst ? o_dst->object : nullptr), 
-    loc_params2, 
-    vol_id, 
-    lcpl_id, 
-    lapl_id, 
-    dxpl_id, 
-    req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, vol_id);
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_link_get(void* obj, const H5VL_loc_params_t* loc_params, H5VL_link_get_args_t* args, hid_t dxpl_id, void** req)
-{
-  PluginObject* down = (PluginObject*)obj;
-
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_link_get");
-#endif
-
-  herr_t ret_value = H5VLlink_get(down->object, loc_params, down->vol_id, args, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
-
-  return ret_value;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_link_specific(void* obj, const H5VL_loc_params_t* loc_params, H5VL_link_specific_args_t* args, hid_t dxpl_id, void** req)
-{
-
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_link_specific");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  herr_t ret_value = H5VLlink_specific(down->object, loc_params, down->vol_id, args, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_link_optional(void* obj, const H5VL_loc_params_t* loc_params, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("LINK Optional");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-
-  herr_t ret_value = H5VLlink_optional(down->object, loc_params, down->vol_id, args, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static void* my_object_open(void* obj, const H5VL_loc_params_t* loc_params, H5I_type_t* opened_type, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_object_open");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-
-  void*  under = H5VLobject_open(down->object, loc_params, down->vol_id, opened_type, dxpl_id, req);
-  if (!under)
-    return nullptr;
-
-  PluginObject*  new_obj = CreatePluginObject(under, down->vol_id);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
-
-  return (void*)new_obj;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_object_copy(void* src_obj, const H5VL_loc_params_t* src_loc_params,
-  const char* src_name, void* dst_obj, const H5VL_loc_params_t* dst_loc_params,
-  const char* dst_name, hid_t ocpypl_id, hid_t lcpl_id, hid_t dxpl_id,
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_datatype_commit
+*
+* Purpose:     Commits a datatype inside a container.
+*
+* Return:      Success:    Pointer to datatype object
+*              Failure:    NULL
+*
+*-------------------------------------------------------------------------
+*/
+static void*
+openvisus_vol_datatype_commit(void* obj, const H5VL_loc_params_t* loc_params, const char* name,
+  hid_t type_id, hid_t lcpl_id, hid_t tcpl_id, hid_t tapl_id, hid_t dxpl_id,
   void** req)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_object_copy");
+  openvisus_vol_t* dt;
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  void* under;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_datatype_commit");
 #endif
 
-  PluginObject* o_src = (PluginObject*)src_obj;
-  PluginObject* o_dst = (PluginObject*)dst_obj;
+  under = H5VLdatatype_commit(o->under_object, loc_params, o->under_vol_id, name, type_id, lcpl_id, tcpl_id,
+    tapl_id, dxpl_id, req);
+  if (under) {
+    dt = openvisus_vol_new_obj(under, o->under_vol_id);
 
-  herr_t ret_value = H5VLobject_copy(o_src->object, src_loc_params, src_name, o_dst->object, dst_loc_params, dst_name, o_src->vol_id, ocpypl_id, lcpl_id, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, o_src->vol_id);
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_object_get(void* obj, const H5VL_loc_params_t* loc_params, H5VL_object_get_args_t* args, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_object_get");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  herr_t ret_value = H5VLobject_get(down->object, loc_params, down->vol_id, args, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
-
-  return ret_value;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_object_specific(void* obj, const H5VL_loc_params_t* loc_params,H5VL_object_specific_args_t* args, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_object_specific");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-
-  // Save copy of underlying VOL connector ID and prov helper, in case of
-  // refresh destroying the current object
-  hid_t vol_id = down->vol_id;
-
-  herr_t ret_value = H5VLobject_specific(down->object, loc_params, down->vol_id, args, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, vol_id);
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_object_optional(void* obj, const H5VL_loc_params_t* loc_params, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_object_optional");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  herr_t ret_value = H5VLobject_optional(down->object, loc_params, down->vol_id, args, dxpl_id, req);
-
-  // Check for async request 
-  if (req && *req)
-    *req = CreatePluginObject(*req, down->vol_id);
-
-  return ret_value;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-herr_t my_introspect_get_conn_cls(void* obj, H5VL_get_conn_lvl_t lvl, const H5VL_class_t** conn_cls)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_introspect_get_conn_cls");
-#endif
-  
-  if (H5VL_GET_CONN_LVL_CURR == lvl)
-  {
-    *conn_cls = &openvisus_vol_instance;
-    return 0;
-  }
+    /* Check for async request */
+    if (req && *req)
+      *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+  } /* end if */
   else
-  {
-    PluginObject* down = (PluginObject*)obj;
-    return H5VLintrospect_get_conn_cls(down->object, down->vol_id, lvl, conn_cls);
-  }
-}
+    dt = NULL;
 
+  return (void*)dt;
+} /* end openvisus_vol_datatype_commit() */
 
-//////////////////////////////////////////////////////////////////////////////
-herr_t my_introspect_get_cap_flags(const void* _info, unsigned* cap_flags)
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_datatype_open
+*
+* Purpose:     Opens a named datatype inside a container.
+*
+* Return:      Success:    Pointer to datatype object
+*              Failure:    NULL
+*
+*-------------------------------------------------------------------------
+*/
+static void*
+openvisus_vol_datatype_open(void* obj, const H5VL_loc_params_t* loc_params, const char* name,
+  hid_t tapl_id, hid_t dxpl_id, void** req)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_introspect_get_cap_flags");
+  openvisus_vol_t* dt;
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  void* under;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_datatype_open");
 #endif
 
-  const PluginVOL* info = (const PluginVOL*)_info;
-  herr_t ret_value = H5VLintrospect_get_cap_flags(info->vol_info, info->vol_id, cap_flags);
+  under = H5VLdatatype_open(o->under_object, loc_params, o->under_vol_id, name, tapl_id, dxpl_id, req);
+  if (under) {
+    dt = openvisus_vol_new_obj(under, o->under_vol_id);
+
+    /* Check for async request */
+    if (req && *req)
+      *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+  } /* end if */
+  else
+    dt = NULL;
+
+  return (void*)dt;
+} /* end openvisus_vol_datatype_open() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_datatype_get
+*
+* Purpose:     Get information about a datatype
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_datatype_get(void* dt, H5VL_datatype_get_args_t* args, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)dt;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_datatype_get");
+#endif
+
+  ret_value = H5VLdatatype_get(o->under_object, o->under_vol_id, args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_datatype_get() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_datatype_specific
+*
+* Purpose:     Specific operations for datatypes
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_datatype_specific(void* obj, H5VL_datatype_specific_args_t* args, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  hid_t                under_vol_id;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_datatype_specific");
+#endif
+
+  /* Save copy of underlying VOL connector ID, in case of
+    * 'refresh' operation destroying the current object
+    */
+  under_vol_id = o->under_vol_id;
+
+  ret_value = H5VLdatatype_specific(o->under_object, o->under_vol_id, args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_datatype_specific() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_datatype_optional
+*
+* Purpose:     Perform a connector-specific operation on a datatype
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_datatype_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_datatype_optional");
+#endif
+
+  ret_value = H5VLdatatype_optional(o->under_object, o->under_vol_id, args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_datatype_optional() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_datatype_close
+*
+* Purpose:     Closes a datatype.
+*
+* Return:      Success:    0
+*              Failure:    -1, datatype not closed.
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_datatype_close(void* dt, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)dt;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_datatype_close");
+#endif
+
+  assert(o->under_object);
+
+  ret_value = H5VLdatatype_close(o->under_object, o->under_vol_id, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  /* Release our wrapper, if underlying datatype was closed */
+  if (ret_value >= 0)
+    openvisus_vol_free_obj(o);
+
+  return ret_value;
+} /* end openvisus_vol_datatype_close() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_file_create
+*
+* Purpose:     Creates a container using this connector
+*
+* Return:      Success:    Pointer to a file object
+*              Failure:    NULL
+*
+*-------------------------------------------------------------------------
+*/
+static void*
+openvisus_vol_file_create(const char* name, unsigned flags, hid_t fcpl_id, hid_t fapl_id, hid_t dxpl_id,
+  void** req)
+{
+  openvisus_vol_info_t* info;
+  openvisus_vol_t* file;
+  hid_t                     under_fapl_id;
+  void* under;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_file_create");
+#endif
+
+  /* Get copy of our VOL info from FAPL */
+  H5Pget_vol_info(fapl_id, (void**)&info);
+
+  /* Make sure we have info about the underlying VOL to be used */
+  if (!info)
+    return NULL;
+
+  /* Copy the FAPL */
+  under_fapl_id = H5Pcopy(fapl_id);
+
+  /* Set the VOL ID and info for the underlying FAPL */
+  H5Pset_vol(under_fapl_id, info->under_vol_id, info->under_vol_info);
+
+  /* Open the file with the underlying VOL connector */
+  under = H5VLfile_create(name, flags, fcpl_id, under_fapl_id, dxpl_id, req);
+  if (under) {
+    file = openvisus_vol_new_obj(under, info->under_vol_id);
+
+    /* Check for async request */
+    if (req && *req)
+      *req = openvisus_vol_new_obj(*req, info->under_vol_id);
+  } /* end if */
+  else
+    file = NULL;
+
+  /* Close underlying FAPL */
+  H5Pclose(under_fapl_id);
+
+  /* Release copy of our VOL info */
+  openvisus_vol_info_free(info);
+
+  return (void*)file;
+} /* end openvisus_vol_file_create() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_file_open
+*
+* Purpose:     Opens a container created with this connector
+*
+* Return:      Success:    Pointer to a file object
+*              Failure:    NULL
+*
+*-------------------------------------------------------------------------
+*/
+static void*
+openvisus_vol_file_open(const char* name, unsigned flags, hid_t fapl_id, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_info_t* info;
+  openvisus_vol_t* file;
+  hid_t                     under_fapl_id;
+  void* under;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_file_open");
+#endif
+
+  /* Get copy of our VOL info from FAPL */
+  H5Pget_vol_info(fapl_id, (void**)&info);
+
+  /* Make sure we have info about the underlying VOL to be used */
+  if (!info)
+    return NULL;
+
+  /* Copy the FAPL */
+  under_fapl_id = H5Pcopy(fapl_id);
+
+  /* Set the VOL ID and info for the underlying FAPL */
+  H5Pset_vol(under_fapl_id, info->under_vol_id, info->under_vol_info);
+
+  /* Open the file with the underlying VOL connector */
+  under = H5VLfile_open(name, flags, under_fapl_id, dxpl_id, req);
+  if (under) {
+    file = openvisus_vol_new_obj(under, info->under_vol_id);
+
+    /* Check for async request */
+    if (req && *req)
+      *req = openvisus_vol_new_obj(*req, info->under_vol_id);
+  } /* end if */
+  else
+    file = NULL;
+
+  /* Close underlying FAPL */
+  H5Pclose(under_fapl_id);
+
+  /* Release copy of our VOL info */
+  openvisus_vol_info_free(info);
+
+  return (void*)file;
+} /* end openvisus_vol_file_open() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_file_get
+*
+* Purpose:     Get info about a file
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_file_get(void* file, H5VL_file_get_args_t* args, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)file;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_file_get");
+#endif
+
+  ret_value = H5VLfile_get(o->under_object, o->under_vol_id, args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_file_get() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_file_specific
+*
+* Purpose:     Specific operation on file
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_file_specific(void* file, H5VL_file_specific_args_t* args, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)file;
+  openvisus_vol_t* new_o;
+  H5VL_file_specific_args_t  my_args;
+  H5VL_file_specific_args_t* new_args;
+  openvisus_vol_info_t* info;
+  hid_t                      under_vol_id = -1;
+  herr_t                     ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_file_specific");
+#endif
+
+  if (args->op_type == H5VL_FILE_IS_ACCESSIBLE) {
+    /* Shallow copy the args */
+    memcpy(&my_args, args, sizeof(my_args));
+
+    /* Get copy of our VOL info from FAPL */
+    H5Pget_vol_info(args->args.is_accessible.fapl_id, (void**)&info);
+
+    /* Make sure we have info about the underlying VOL to be used */
+    if (!info)
+      return (-1);
+
+    /* Keep the correct underlying VOL ID for later */
+    under_vol_id = info->under_vol_id;
+
+    /* Copy the FAPL */
+    my_args.args.is_accessible.fapl_id = H5Pcopy(args->args.is_accessible.fapl_id);
+
+    /* Set the VOL ID and info for the underlying FAPL */
+    H5Pset_vol(my_args.args.is_accessible.fapl_id, info->under_vol_id, info->under_vol_info);
+
+    /* Set argument pointer to new arguments */
+    new_args = &my_args;
+
+    /* Set object pointer for operation */
+    new_o = NULL;
+  } /* end else-if */
+  else if (args->op_type == H5VL_FILE_DELETE) {
+    /* Shallow copy the args */
+    memcpy(&my_args, args, sizeof(my_args));
+
+    /* Get copy of our VOL info from FAPL */
+    H5Pget_vol_info(args->args.del.fapl_id, (void**)&info);
+
+    /* Make sure we have info about the underlying VOL to be used */
+    if (!info)
+      return (-1);
+
+    /* Keep the correct underlying VOL ID for later */
+    under_vol_id = info->under_vol_id;
+
+    /* Copy the FAPL */
+    my_args.args.del.fapl_id = H5Pcopy(args->args.del.fapl_id);
+
+    /* Set the VOL ID and info for the underlying FAPL */
+    H5Pset_vol(my_args.args.del.fapl_id, info->under_vol_id, info->under_vol_info);
+
+    /* Set argument pointer to new arguments */
+    new_args = &my_args;
+
+    /* Set object pointer for operation */
+    new_o = NULL;
+  } /* end else-if */
+  else {
+    /* Keep the correct underlying VOL ID for later */
+    under_vol_id = o->under_vol_id;
+
+    /* Set argument pointer to current arguments */
+    new_args = args;
+
+    /* Set object pointer for operation */
+    new_o = (openvisus_vol_t*)o->under_object;
+  } 
+
+  ret_value = H5VLfile_specific(new_o, under_vol_id, new_args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, under_vol_id);
+
+  if (args->op_type == H5VL_FILE_IS_ACCESSIBLE) {
+    /* Close underlying FAPL */
+    H5Pclose(my_args.args.is_accessible.fapl_id);
+
+    /* Release copy of our VOL info */
+    openvisus_vol_info_free(info);
+  } /* end else-if */
+  else if (args->op_type == H5VL_FILE_DELETE) {
+    /* Close underlying FAPL */
+    H5Pclose(my_args.args.del.fapl_id);
+
+    /* Release copy of our VOL info */
+    openvisus_vol_info_free(info);
+  } /* end else-if */
+  else if (args->op_type == H5VL_FILE_REOPEN) {
+    /* Wrap file struct pointer for 'reopen' operation, if we reopened one */
+    if (ret_value >= 0 && *args->args.reopen.file)
+      *args->args.reopen.file = openvisus_vol_new_obj(*args->args.reopen.file, under_vol_id);
+  } /* end else */
+
+  return ret_value;
+} /* end openvisus_vol_file_specific() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_file_optional
+*
+* Purpose:     Perform a connector-specific operation on a file
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_file_optional(void* file, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)file;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_file_optional");
+#endif
+
+  ret_value = H5VLfile_optional(o->under_object, o->under_vol_id, args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_file_optional() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_file_close
+*
+* Purpose:     Closes a file.
+*
+* Return:      Success:    0
+*              Failure:    -1, file not closed.
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_file_close(void* file, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)file;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_file_close");
+#endif
+
+  ret_value = H5VLfile_close(o->under_object, o->under_vol_id, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  /* Release our wrapper, if underlying file was closed */
+  if (ret_value >= 0)
+    openvisus_vol_free_obj(o);
+
+  return ret_value;
+} /* end openvisus_vol_file_close() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_group_create
+*
+* Purpose:     Creates a group inside a container
+*
+* Return:      Success:    Pointer to a group object
+*              Failure:    NULL
+*
+*-------------------------------------------------------------------------
+*/
+static void*
+openvisus_vol_group_create(void* obj, const H5VL_loc_params_t* loc_params, const char* name,
+  hid_t lcpl_id, hid_t gcpl_id, hid_t gapl_id, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* group;
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  void* under;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_group_create");
+#endif
+
+  under = H5VLgroup_create(o->under_object, loc_params, o->under_vol_id, name, lcpl_id, gcpl_id, gapl_id,
+    dxpl_id, req);
+  if (under) {
+    group = openvisus_vol_new_obj(under, o->under_vol_id);
+
+    /* Check for async request */
+    if (req && *req)
+      *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+  } /* end if */
+  else
+    group = NULL;
+
+  return (void*)group;
+} /* end openvisus_vol_group_create() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_group_open
+*
+* Purpose:     Opens a group inside a container
+*
+* Return:      Success:    Pointer to a group object
+*              Failure:    NULL
+*
+*-------------------------------------------------------------------------
+*/
+static void*
+openvisus_vol_group_open(void* obj, const H5VL_loc_params_t* loc_params, const char* name, hid_t gapl_id,
+  hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* group;
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  void* under;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_group_open");
+#endif
+
+  under = H5VLgroup_open(o->under_object, loc_params, o->under_vol_id, name, gapl_id, dxpl_id, req);
+  if (under) {
+    group = openvisus_vol_new_obj(under, o->under_vol_id);
+
+    /* Check for async request */
+    if (req && *req)
+      *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+  } /* end if */
+  else
+    group = NULL;
+
+  return (void*)group;
+} /* end openvisus_vol_group_open() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_group_get
+*
+* Purpose:     Get info about a group
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_group_get(void* obj, H5VL_group_get_args_t* args, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_group_get");
+#endif
+
+  ret_value = H5VLgroup_get(o->under_object, o->under_vol_id, args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_group_get() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_group_specific
+*
+* Purpose:     Specific operation on a group
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_group_specific(void* obj, H5VL_group_specific_args_t* args, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  hid_t                under_vol_id;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_group_specific");
+#endif
+
+  /* Save copy of underlying VOL connector ID, in case of
+    * 'refresh' operation destroying the current object
+    */
+  under_vol_id = o->under_vol_id;
+
+  /* Unpack arguments to get at the child file pointer when mounting a file */
+  if (args->op_type == H5VL_GROUP_MOUNT) {
+    H5VL_group_specific_args_t vol_cb_args; /* New group specific arg struct */
+
+    /* Set up new VOL callback arguments */
+    vol_cb_args.op_type = H5VL_GROUP_MOUNT;
+    vol_cb_args.args.mount.name = args->args.mount.name;
+    vol_cb_args.args.mount.child_file =
+      ((openvisus_vol_t*)args->args.mount.child_file)->under_object;
+    vol_cb_args.args.mount.fmpl_id = args->args.mount.fmpl_id;
+
+    /* Re-issue 'group specific' call, using the unwrapped pieces */
+    ret_value = H5VLgroup_specific(o->under_object, under_vol_id, &vol_cb_args, dxpl_id, req);
+  } /* end if */
+  else
+    ret_value = H5VLgroup_specific(o->under_object, under_vol_id, args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_group_specific() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_group_optional
+*
+* Purpose:     Perform a connector-specific operation on a group
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_group_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_group_optional");
+#endif
+
+  ret_value = H5VLgroup_optional(o->under_object, o->under_vol_id, args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_group_optional() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_group_close
+*
+* Purpose:     Closes a group.
+*
+* Return:      Success:    0
+*              Failure:    -1, group not closed.
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_group_close(void* grp, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)grp;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_group_close");
+#endif
+
+  ret_value = H5VLgroup_close(o->under_object, o->under_vol_id, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  /* Release our wrapper, if underlying file was closed */
+  if (ret_value >= 0)
+    openvisus_vol_free_obj(o);
+
+  return ret_value;
+} /* end openvisus_vol_group_close() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_link_create
+*
+* Purpose:     Creates a hard / soft / UD / external link.
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_link_create(H5VL_link_create_args_t* args, void* obj, const H5VL_loc_params_t* loc_params,
+  hid_t lcpl_id, hid_t lapl_id, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  hid_t                under_vol_id = -1;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_link_create");
+#endif
+
+  /* Try to retrieve the "under" VOL id */
+  if (o)
+    under_vol_id = o->under_vol_id;
+
+  /* Fix up the link target object for hard link creation */
+  if (H5VL_LINK_CREATE_HARD == args->op_type) {
+    void* cur_obj = args->args.hard.curr_obj;
+
+    /* If cur_obj is a non-NULL pointer, find its 'under object' and update the pointer */
+    if (cur_obj) {
+      /* Check if we still haven't set the "under" VOL ID */
+      if (under_vol_id < 0)
+        under_vol_id = ((openvisus_vol_t*)cur_obj)->under_vol_id;
+
+      /* Update the object for the link target */
+      args->args.hard.curr_obj = ((openvisus_vol_t*)cur_obj)->under_object;
+    } /* end if */
+  }     /* end if */
+
+  ret_value = H5VLlink_create(args, (o ? o->under_object : NULL), loc_params, under_vol_id, lcpl_id,
+    lapl_id, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_link_create() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_link_copy
+*
+* Purpose:     Renames an object within an HDF5 container and copies it to a new
+*              group.  The original name SRC is unlinked from the group graph
+*              and then inserted with the new name DST (which can specify a
+*              new path for the object) as an atomic operation. The names
+*              are interpreted relative to SRC_LOC_ID and
+*              DST_LOC_ID, which are either file IDs or group ID.
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_link_copy(void* src_obj, const H5VL_loc_params_t* loc_params1, void* dst_obj,
+  const H5VL_loc_params_t* loc_params2, hid_t lcpl_id, hid_t lapl_id, hid_t dxpl_id,
+  void** req)
+{
+  openvisus_vol_t* o_src = (openvisus_vol_t*)src_obj;
+  openvisus_vol_t* o_dst = (openvisus_vol_t*)dst_obj;
+  hid_t                under_vol_id = -1;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_link_copy");
+#endif
+
+  /* Retrieve the "under" VOL id */
+  if (o_src)
+    under_vol_id = o_src->under_vol_id;
+  else if (o_dst)
+    under_vol_id = o_dst->under_vol_id;
+  assert(under_vol_id > 0);
+
+  ret_value =
+    H5VLlink_copy((o_src ? o_src->under_object : NULL), loc_params1, (o_dst ? o_dst->under_object : NULL),
+      loc_params2, under_vol_id, lcpl_id, lapl_id, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_link_copy() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_link_move
+*
+* Purpose:     Moves a link within an HDF5 file to a new group.  The original
+*              name SRC is unlinked from the group graph
+*              and then inserted with the new name DST (which can specify a
+*              new path for the object) as an atomic operation. The names
+*              are interpreted relative to SRC_LOC_ID and
+*              DST_LOC_ID, which are either file IDs or group ID.
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_link_move(void* src_obj, const H5VL_loc_params_t* loc_params1, void* dst_obj,
+  const H5VL_loc_params_t* loc_params2, hid_t lcpl_id, hid_t lapl_id, hid_t dxpl_id,
+  void** req)
+{
+  openvisus_vol_t* o_src = (openvisus_vol_t*)src_obj;
+  openvisus_vol_t* o_dst = (openvisus_vol_t*)dst_obj;
+  hid_t                under_vol_id = -1;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_link_move");
+#endif
+
+  /* Retrieve the "under" VOL id */
+  if (o_src)
+    under_vol_id = o_src->under_vol_id;
+  else if (o_dst)
+    under_vol_id = o_dst->under_vol_id;
+  assert(under_vol_id > 0);
+
+  ret_value =
+    H5VLlink_move((o_src ? o_src->under_object : NULL), loc_params1, (o_dst ? o_dst->under_object : NULL),
+      loc_params2, under_vol_id, lcpl_id, lapl_id, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_link_move() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_link_get
+*
+* Purpose:     Get info about a link
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_link_get(void* obj, const H5VL_loc_params_t* loc_params, H5VL_link_get_args_t* args,
+  hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_link_get");
+#endif
+
+  ret_value = H5VLlink_get(o->under_object, loc_params, o->under_vol_id, args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_link_get() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_link_specific
+*
+* Purpose:     Specific operation on a link
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_link_specific(void* obj, const H5VL_loc_params_t* loc_params,
+  H5VL_link_specific_args_t* args, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_link_specific");
+#endif
+
+  ret_value = H5VLlink_specific(o->under_object, loc_params, o->under_vol_id, args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_link_specific() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_link_optional
+*
+* Purpose:     Perform a connector-specific operation on a link
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_link_optional(void* obj, const H5VL_loc_params_t* loc_params, H5VL_optional_args_t* args,
+  hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_link_optional");
+#endif
+
+  ret_value = H5VLlink_optional(o->under_object, loc_params, o->under_vol_id, args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_link_optional() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_object_open
+*
+* Purpose:     Opens an object inside a container.
+*
+* Return:      Success:    Pointer to object
+*              Failure:    NULL
+*
+*-------------------------------------------------------------------------
+*/
+static void*
+openvisus_vol_object_open(void* obj, const H5VL_loc_params_t* loc_params, H5I_type_t* opened_type,
+  hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* new_obj;
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  void* under;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_object_open");
+#endif
+
+  under = H5VLobject_open(o->under_object, loc_params, o->under_vol_id, opened_type, dxpl_id, req);
+  if (under) {
+    new_obj = openvisus_vol_new_obj(under, o->under_vol_id);
+
+    /* Check for async request */
+    if (req && *req)
+      *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+  } /* end if */
+  else
+    new_obj = NULL;
+
+  return (void*)new_obj;
+} /* end openvisus_vol_object_open() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_object_copy
+*
+* Purpose:     Copies an object inside a container.
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_object_copy(void* src_obj, const H5VL_loc_params_t* src_loc_params, const char* src_name,
+  void* dst_obj, const H5VL_loc_params_t* dst_loc_params, const char* dst_name,
+  hid_t ocpypl_id, hid_t lcpl_id, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o_src = (openvisus_vol_t*)src_obj;
+  openvisus_vol_t* o_dst = (openvisus_vol_t*)dst_obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_object_copy");
+#endif
+
+  ret_value =
+    H5VLobject_copy(o_src->under_object, src_loc_params, src_name, o_dst->under_object, dst_loc_params,
+      dst_name, o_src->under_vol_id, ocpypl_id, lcpl_id, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o_src->under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_object_copy() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_object_get
+*
+* Purpose:     Get info about an object
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_object_get(void* obj, const H5VL_loc_params_t* loc_params, H5VL_object_get_args_t* args,
+  hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_object_get");
+#endif
+
+  ret_value = H5VLobject_get(o->under_object, loc_params, o->under_vol_id, args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_object_get() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_object_specific
+*
+* Purpose:     Specific operation on an object
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_object_specific(void* obj, const H5VL_loc_params_t* loc_params,
+  H5VL_object_specific_args_t* args, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  hid_t                under_vol_id;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_object_specific");
+#endif
+
+  /* Save copy of underlying VOL connector ID, in case of
+    * 'refresh' operation destroying the current object
+    */
+  under_vol_id = o->under_vol_id;
+
+  ret_value = H5VLobject_specific(o->under_object, loc_params, o->under_vol_id, args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_object_specific() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_object_optional
+*
+* Purpose:     Perform a connector-specific operation for an object
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_object_optional(void* obj, const H5VL_loc_params_t* loc_params, H5VL_optional_args_t* args,
+  hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_object_optional");
+#endif
+
+  ret_value = H5VLobject_optional(o->under_object, loc_params, o->under_vol_id, args, dxpl_id, req);
+
+  /* Check for async request */
+  if (req && *req)
+    *req = openvisus_vol_new_obj(*req, o->under_vol_id);
+
+  return ret_value;
+} /* end openvisus_vol_object_optional() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_introspect_get_conn_cls
+*
+* Purpose:     Query the connector class.
+*
+* Return:      SUCCEED / FAIL
+*
+*-------------------------------------------------------------------------
+*/
+herr_t
+openvisus_vol_introspect_get_conn_cls(void* obj, H5VL_get_conn_lvl_t lvl, const H5VL_class_t** conn_cls)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_introspect_get_conn_cls");
+#endif
+
+  /* Check for querying this connector's class */
+  if (H5VL_GET_CONN_LVL_CURR == lvl) {
+    *conn_cls = &openvisus_vol_g;
+    ret_value = 0;
+  } /* end if */
+  else
+    ret_value = H5VLintrospect_get_conn_cls(o->under_object, o->under_vol_id, lvl, conn_cls);
+
+  return ret_value;
+} /* end openvisus_vol_introspect_get_conn_cls() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_introspect_get_cap_flags
+*
+* Purpose:     Query the capability flags for this connector and any
+*              underlying connector(s).
+*
+* Return:      SUCCEED / FAIL
+*
+*-------------------------------------------------------------------------
+*/
+herr_t
+openvisus_vol_introspect_get_cap_flags(const void* _info, unsigned* cap_flags)
+{
+  const openvisus_vol_info_t* info = (const openvisus_vol_info_t*)_info;
+  herr_t                          ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_introspect_get_cap_flags");
+#endif
+
+  /* Invoke the query on the underlying VOL connector */
+  ret_value = H5VLintrospect_get_cap_flags(info->under_vol_info, info->under_vol_id, cap_flags);
+
+  /* Bitwise OR our capability flags in */
+  if (ret_value >= 0)
+    *cap_flags |= openvisus_vol_g.cap_flags;
+
+  return ret_value;
+} /* end openvisus_vol_introspect_get_cap_flags() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_introspect_opt_query
+*
+* Purpose:     Query if an optional operation is supported by this connector
+*
+* Return:      SUCCEED / FAIL
+*
+*-------------------------------------------------------------------------
+*/
+herr_t
+openvisus_vol_introspect_opt_query(void* obj, H5VL_subclass_t cls, int opt_type, uint64_t* flags)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_introspect_opt_query");
+#endif
+
+  ret_value = H5VLintrospect_opt_query(o->under_object, o->under_vol_id, cls, opt_type, flags);
+
+  return ret_value;
+} /* end openvisus_vol_introspect_opt_query() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_request_wait
+*
+* Purpose:     Wait (with a timeout) for an async operation to complete
+*
+* Note:        Releases the request if the operation has completed and the
+*              connector callback succeeds
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_request_wait(void* obj, uint64_t timeout, H5VL_request_status_t* status)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_request_wait");
+#endif
+
+  ret_value = H5VLrequest_wait(o->under_object, o->under_vol_id, timeout, status);
+
+  if (ret_value >= 0 && *status != H5ES_STATUS_IN_PROGRESS)
+    openvisus_vol_free_obj(o);
+
+  return ret_value;
+} /* end openvisus_vol_request_wait() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_request_notify
+*
+* Purpose:     Registers a user callback to be invoked when an asynchronous
+*              operation completes
+*
+* Note:        Releases the request, if connector callback succeeds
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_request_notify(void* obj, H5VL_request_notify_t cb, void* ctx)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_request_notify");
+#endif
+
+  ret_value = H5VLrequest_notify(o->under_object, o->under_vol_id, cb, ctx);
 
   if (ret_value >= 0)
-    *cap_flags |= openvisus_vol_instance.cap_flags;
+    openvisus_vol_free_obj(o);
 
   return ret_value;
-}
+} /* end openvisus_vol_request_notify() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-herr_t my_introspect_opt_query(void* obj, H5VL_subclass_t cls,
-  int op_type, uint64_t* flags)
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_request_cancel
+*
+* Purpose:     Cancels an asynchronous operation
+*
+* Note:        Releases the request, if connector callback succeeds
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_request_cancel(void* obj, H5VL_request_status_t* status)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_introspect_opt_query");
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_request_cancel");
 #endif
 
-  PluginObject* down = (PluginObject*)obj;
-  herr_t ret_value = H5VLintrospect_opt_query(down->object, down->vol_id, cls, op_type, flags);
+  ret_value = H5VLrequest_cancel(o->under_object, o->under_vol_id, status);
+
+  if (ret_value >= 0)
+    openvisus_vol_free_obj(o);
+
   return ret_value;
-}
+} /* end openvisus_vol_request_cancel() */
 
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_request_wait(void* obj, uint64_t timeout, H5VL_request_status_t* status)
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_request_specific
+*
+* Purpose:     Specific operation on a request
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_request_specific(void* obj, H5VL_request_specific_args_t* args)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_request_wait");
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value = -1;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_request_specific");
 #endif
 
-  PluginObject* down = (PluginObject*)obj;
-  return H5VLrequest_wait(down->object, down->vol_id, timeout, status);
-}
+  ret_value = H5VLrequest_specific(o->under_object, o->under_vol_id, args);
 
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_request_notify(void* obj, H5VL_request_notify_t cb, void* ctx)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_request_notify");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  return H5VLrequest_notify(down->object, down->vol_id, cb, ctx);
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_request_cancel(void* obj, H5VL_request_status_t* status)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_request_cancel");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  return H5VLrequest_cancel(down->object, down->vol_id, status);
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_request_specific(void* obj, H5VL_request_specific_args_t* args)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_request_specific");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  return H5VLrequest_specific(down->object, down->vol_id, args);
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_request_optional(void* obj, H5VL_optional_args_t* args)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_request_optional");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  return H5VLrequest_optional(down->object, down->vol_id, args);
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_request_free(void* obj)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_request_free");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  herr_t ret_value = H5VLrequest_free(down->object, down->vol_id);
-  if (ret_value >= 0) FreePluginObject(down);
   return ret_value;
-}
+} /* end openvisus_vol_request_specific() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-herr_t my_blob_put(void* obj, const void* buf, size_t size, void* blob_id, void* ctx)
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_request_optional
+*
+* Purpose:     Perform a connector-specific operation for a request
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_request_optional(void* obj, H5VL_optional_args_t* args)
 {
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_blob_put");
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_request_optional");
 #endif
 
-  PluginObject* down = (PluginObject*)obj;
-  return H5VLblob_put(down->object, down->vol_id, buf, size, blob_id, ctx);
-}
+  ret_value = H5VLrequest_optional(o->under_object, o->under_vol_id, args);
 
-//////////////////////////////////////////////////////////////////////////////
-herr_t my_blob_get(void* obj, const void* blob_id, void* buf, size_t size, void* ctx)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_blob_get");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  return H5VLblob_get(down->object, down->vol_id, blob_id, buf, size, ctx);
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-herr_t my_blob_specific(void* obj, void* blob_id, H5VL_blob_specific_args_t* args)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_blob_specific");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  return H5VLblob_specific(down->object, down->vol_id, blob_id, args);
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-herr_t my_blob_optional(void* obj, void* blob_id, H5VL_optional_args_t* args)
-{
-  PluginObject* down = (PluginObject*)obj;
-
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_blob_optional");
-#endif
-
-  return H5VLblob_optional(down->object, down->vol_id, blob_id, args);
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_token_cmp(void* obj, const H5O_token_t* token1, const H5O_token_t* token2, int* cmp_value)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_token_cmp");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  return H5VLtoken_cmp(down->object, down->vol_id, token1, token2, cmp_value);
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_token_to_str(void* obj, H5I_type_t obj_type, const H5O_token_t* token, char** token_str)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_token_to_str");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  return H5VLtoken_to_str(down->object, obj_type, down->vol_id, token, token_str);
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-static herr_t my_token_from_str(void* obj, H5I_type_t obj_type, const char* token_str, H5O_token_t* token)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_token_from_str");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  return H5VLtoken_from_str(down->object, obj_type, down->vol_id, token_str, token);
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-herr_t my_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
-{
-#ifdef ENABLE_EXT_PASSTHRU_LOGGING
-  PrintInfo("my_optional");
-#endif
-
-  PluginObject* down = (PluginObject*)obj;
-  herr_t ret_value = H5VLoptional(down->object, down->vol_id, args, dxpl_id, req);
   return ret_value;
-}
+} /* end openvisus_vol_request_optional() */
 
-
-//////////////////////////////////////////////////////////////////////////////
-//see https://support.hdfgroup.org/HDF5/doc1.6/RM_H5F.html
-const H5VL_class_t openvisus_vol_instance =
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_request_free
+*
+* Purpose:     Releases a request, allowing the operation to complete without
+*              application tracking
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*-------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_request_free(void* obj)
 {
-    H5VL_VERSION,                    // VOL class struct version
-    (H5VL_class_value_t)517,         // VOL connector ID
-    "openvisus_vol",                 // name
-    0,                               // Private characteristics of the pass-through VOL connector
-    0,                               // capability flags
-    my_init,                         // initialize - Initialize this VOL connector, performing any necessary operations for the connector that will apply to all containers accessed with the connector
-    my_term,                         // terminate  - Terminate this VOL connector, performing any necessary operations for the connector that release connector-wide resources (usually created / initialized with the 'init' callback
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
 
-    // H5VL_info_class_t (DON'T THINK I NEED THIS)
-    {                                           
-        sizeof(PluginVOL),           // size   
-        my_info_copy,                // copy     - Duplicate the connector's info object  
-        my_info_cmp,                 // compare  - Compare two of the connector's info objects, setting *cmp_value, following the same rules as strcmp().
-        my_info_free,                // free     - Release an info object for the connector.
-        my_info_to_str,              // to_str   - Serialize an info object for this connector into a string
-        my_info_from_str             // from_str - Deserialize a string into an info object for this connector
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_request_free");
+#endif
+
+  ret_value = H5VLrequest_free(o->under_object, o->under_vol_id);
+
+  if (ret_value >= 0)
+    openvisus_vol_free_obj(o);
+
+  return ret_value;
+} /* end openvisus_vol_request_free() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_blob_put
+*
+* Purpose:     Handles the blob 'put' callback
+*
+* Return:      SUCCEED / FAIL
+*
+*-------------------------------------------------------------------------
+*/
+herr_t
+openvisus_vol_blob_put(void* obj, const void* buf, size_t size, void* blob_id, void* ctx)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_blob_put");
+#endif
+
+  ret_value = H5VLblob_put(o->under_object, o->under_vol_id, buf, size, blob_id, ctx);
+
+  return ret_value;
+} /* end openvisus_vol_blob_put() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_blob_get
+*
+* Purpose:     Handles the blob 'get' callback
+*
+* Return:      SUCCEED / FAIL
+*
+*-------------------------------------------------------------------------
+*/
+herr_t
+openvisus_vol_blob_get(void* obj, const void* blob_id, void* buf, size_t size, void* ctx)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_blob_get");
+#endif
+
+  ret_value = H5VLblob_get(o->under_object, o->under_vol_id, blob_id, buf, size, ctx);
+
+  return ret_value;
+} /* end openvisus_vol_blob_get() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_blob_specific
+*
+* Purpose:     Handles the blob 'specific' callback
+*
+* Return:      SUCCEED / FAIL
+*
+*-------------------------------------------------------------------------
+*/
+herr_t
+openvisus_vol_blob_specific(void* obj, void* blob_id, H5VL_blob_specific_args_t* args)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_blob_specific");
+#endif
+
+  ret_value = H5VLblob_specific(o->under_object, o->under_vol_id, blob_id, args);
+
+  return ret_value;
+} /* end openvisus_vol_blob_specific() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_blob_optional
+*
+* Purpose:     Handles the blob 'optional' callback
+*
+* Return:      SUCCEED / FAIL
+*
+*-------------------------------------------------------------------------
+*/
+herr_t
+openvisus_vol_blob_optional(void* obj, void* blob_id, H5VL_optional_args_t* args)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_blob_optional");
+#endif
+
+  ret_value = H5VLblob_optional(o->under_object, o->under_vol_id, blob_id, args);
+
+  return ret_value;
+} /* end openvisus_vol_blob_optional() */
+
+/*---------------------------------------------------------------------------
+* Function:    openvisus_vol_token_cmp
+*
+* Purpose:     Compare two of the connector's object tokens, setting
+*              *cmp_value, following the same rules as strcmp().
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*---------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_token_cmp(void* obj, const H5O_token_t* token1, const H5O_token_t* token2, int* cmp_value)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_token_cmp");
+#endif
+
+  /* Sanity checks */
+  assert(obj);
+  assert(token1);
+  assert(token2);
+  assert(cmp_value);
+
+  ret_value = H5VLtoken_cmp(o->under_object, o->under_vol_id, token1, token2, cmp_value);
+
+  return ret_value;
+} /* end openvisus_vol_token_cmp() */
+
+/*---------------------------------------------------------------------------
+* Function:    openvisus_vol_token_to_str
+*
+* Purpose:     Serialize the connector's object token into a string.
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*---------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_token_to_str(void* obj, H5I_type_t obj_type, const H5O_token_t* token, char** token_str)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_token_to_str");
+#endif
+
+  /* Sanity checks */
+  assert(obj);
+  assert(token);
+  assert(token_str);
+
+  ret_value = H5VLtoken_to_str(o->under_object, obj_type, o->under_vol_id, token, token_str);
+
+  return ret_value;
+} /* end openvisus_vol_token_to_str() */
+
+/*---------------------------------------------------------------------------
+* Function:    openvisus_vol_token_from_str
+*
+* Purpose:     Deserialize the connector's object token from a string.
+*
+* Return:      Success:    0
+*              Failure:    -1
+*
+*---------------------------------------------------------------------------
+*/
+static herr_t
+openvisus_vol_token_from_str(void* obj, H5I_type_t obj_type, const char* token_str, H5O_token_t* token)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_token_from_str");
+#endif
+
+  /* Sanity checks */
+  assert(obj);
+  assert(token);
+  assert(token_str);
+
+  ret_value = H5VLtoken_from_str(o->under_object, obj_type, o->under_vol_id, token_str, token);
+
+  return ret_value;
+} /* end openvisus_vol_token_from_str() */
+
+/*-------------------------------------------------------------------------
+* Function:    openvisus_vol_optional
+*
+* Purpose:     Handles the generic 'optional' callback
+*
+* Return:      SUCCEED / FAIL
+*
+*-------------------------------------------------------------------------
+*/
+herr_t
+openvisus_vol_optional(void* obj, H5VL_optional_args_t* args, hid_t dxpl_id, void** req)
+{
+  openvisus_vol_t* o = (openvisus_vol_t*)obj;
+  herr_t               ret_value;
+
+#if ENABLE_LOGGING
+  PrintInfo("openvisus_vol_optional");
+#endif
+
+  ret_value = H5VLoptional(o->under_object, o->under_vol_id, args, dxpl_id, req);
+
+  return ret_value;
+} /* end openvisus_vol_optional() */
+
+
+////////////////////////////////////////////////////////////////////////////
+/* Pass through VOL connector class struct */
+const H5VL_class_t openvisus_vol_g = 
+{
+  H5VL_VERSION,                            /* VOL class struct version */
+  (H5VL_class_value_t)517, /* value        */
+  "openvisus_vol",                      /* name         */
+  0,                                    /* connector version */
+  0,                                       /* capability flags */
+  openvisus_vol_init,                  /* initialize   */
+  openvisus_vol_term,                  /* terminate    */
+  {
+    /* info_cls */
+    sizeof(openvisus_vol_info_t), /* size    */
+    openvisus_vol_info_copy,      /* copy    */
+    openvisus_vol_info_cmp,       /* compare */
+    openvisus_vol_info_free,      /* free    */
+    openvisus_vol_info_to_str,    /* to_str  */
+    openvisus_vol_str_to_info     /* from_str */
+  },
+  {
+    /* wrap_cls */
+    openvisus_vol_get_object,    /* get_object   */
+    openvisus_vol_get_wrap_ctx,  /* get_wrap_ctx */
+    openvisus_vol_wrap_object,   /* wrap_object  */
+    openvisus_vol_unwrap_object, /* unwrap_object */
+    openvisus_vol_free_wrap_ctx  /* free_wrap_ctx */
+  },
+  {
+    /* attribute_cls */
+    openvisus_vol_attr_create,   /* create */
+    openvisus_vol_attr_open,     /* open */
+    openvisus_vol_attr_read,     /* read */
+    openvisus_vol_attr_write,    /* write */
+    openvisus_vol_attr_get,      /* get */
+    openvisus_vol_attr_specific, /* specific */
+    openvisus_vol_attr_optional, /* optional */
+    openvisus_vol_attr_close     /* close */
+  },
+  {
+    /* dataset_cls */
+    openvisus_vol_dataset_create,   /* create */
+    openvisus_vol_dataset_open,     /* open */
+    openvisus_vol_dataset_read,     /* read */
+    openvisus_vol_dataset_write,    /* write */
+    openvisus_vol_dataset_get,      /* get */
+    openvisus_vol_dataset_specific, /* specific */
+    openvisus_vol_dataset_optional, /* optional */
+    openvisus_vol_dataset_close     /* close */
+  },
+  {
+    /* datatype_cls */
+    openvisus_vol_datatype_commit,   /* commit */
+    openvisus_vol_datatype_open,     /* open */
+    openvisus_vol_datatype_get,      /* get_size */
+    openvisus_vol_datatype_specific, /* specific */
+    openvisus_vol_datatype_optional, /* optional */
+    openvisus_vol_datatype_close     /* close */
+  },
+  {
+    /* file_cls */
+    openvisus_vol_file_create,   /* create */
+    openvisus_vol_file_open,     /* open */
+    openvisus_vol_file_get,      /* get */
+    openvisus_vol_file_specific, /* specific */
+    openvisus_vol_file_optional, /* optional */
+    openvisus_vol_file_close     /* close */
+  },
+  {
+    /* group_cls */
+    openvisus_vol_group_create,   /* create */
+    openvisus_vol_group_open,     /* open */
+    openvisus_vol_group_get,      /* get */
+    openvisus_vol_group_specific, /* specific */
+    openvisus_vol_group_optional, /* optional */
+    openvisus_vol_group_close     /* close */
+  },
+  {
+    /* link_cls */
+    openvisus_vol_link_create,   /* create */
+    openvisus_vol_link_copy,     /* copy */
+    openvisus_vol_link_move,     /* move */
+    openvisus_vol_link_get,      /* get */
+    openvisus_vol_link_specific, /* specific */
+    openvisus_vol_link_optional  /* optional */
+  },
+  {
+    /* object_cls */
+    openvisus_vol_object_open,     /* open */
+    openvisus_vol_object_copy,     /* copy */
+    openvisus_vol_object_get,      /* get */
+    openvisus_vol_object_specific, /* specific */
+    openvisus_vol_object_optional  /* optional */
+  },
+  {
+    /* introspect_cls */
+    openvisus_vol_introspect_get_conn_cls,  /* get_conn_cls */
+    openvisus_vol_introspect_get_cap_flags, /* get_cap_flags */
+    openvisus_vol_introspect_opt_query,     /* opt_query */
     },
-
-    // H5VL_wrap_class_t (DON'T THINK I NEED THIS)
-    {                                           
-        my_get_object,               // get_object      - Retrieve the 'data' for a VOL object
-        my_get_wrap_ctx,             // get_wrap_ctx    - Retrieve a "wrapper context" for an object
-        my_wrap_object,              // wrap_object     - Use a "wrapper context" to wrap a data object
-        my_unwrap_object,            // unwrap_object   - Unwrap a wrapped object, discarding the wrapper, but returning underlying object.
-        my_free_wrap_ctx             // free_wrap_ctx   - Release a "wrapper context" for an object
-    },
-
-    // H5VL_attr_class_t (DON'T THINK I NEED THIS)
-    {                                           
-        my_attr_create,              // create     - Creates an attribute on an object
-        my_attr_open,                // open       - Opens an attribute on an object
-        my_attr_read,                // read       - Reads data from attribute
-        my_attr_write,               // write      - Writes data to attribute
-        my_attr_get,                 // get        - Gets information about an attribute
-        my_attr_specific,            // specific   - Specific operation on attribute
-        my_attr_optional,            // optional   - Perform a connector-specific operation on an attribute
-        my_attr_close                // close      - Closes an attribute
-    },
-
-    // H5VL_dataset_class_t (!!!!!!PROBABLY THIS IS *.IDX and *.PIDX!!!!!)
-    {                                           
-        my_dataset_create,           // create    - Creates a dataset in a container
-        my_dataset_open,             // open      - Opens a dataset in a container
-        my_dataset_read,             // read      - Reads data elements from a dataset into a buffer
-        my_dataset_write,            // write     - Writes data elements from a buffer into a dataset
-        my_dataset_get,              // get       - Gets information about a dataset
-        my_dataset_specific,         // specific  - Specific operation on a dataset
-        my_dataset_optional,         // optional  - Perform a connector-specific operation on a dataset
-        my_dataset_close             // close     - Closes a dataset
-    },
-
-    // H5VL_datatype_class_t (DON'T THINK I NEED THIS)
-    {                                           
-        my_datatype_commit,          // commit      - Commits a datatype inside a container
-        my_datatype_open,            // open        - Opens a named datatype inside a container.
-        my_datatype_get,             // get_size    - Get information about a datatype
-        my_datatype_specific,        // specific    - Specific operations for datatypes
-        my_datatype_optional,        // optional    - Perform a connector-specific operation on a datatype
-        my_datatype_close            // close       - Closes a datatype
-    },
-
-    // H5VL_file_class_t  (DON'T THINK I NEED THIS)
-    {                                           
-        my_file_create,              // create     - Creates a container using this connector
-        my_file_open,                // open       - Opens a container created with this connector
-        my_file_get,                 // get        - Get info about a file
-        my_file_specific,            // specific   - Specific operation on file
-        my_file_optional,            // optional   - Perform a connector-specific operation on a file
-        my_file_close                // close      - Closes a file.
-    },
-
-    // H5VL_group_class_t (DON'T THINK I NEED THIS)
-    {                                           
-        my_group_create,             // create     - Creates a group inside a container
-        my_group_open,               // open       - Opens a group inside a container
-        my_group_get,                // get        - Get info about a group
-        my_group_specific,           // specific   - Specific operation on a group
-        my_group_optional,           // optional   - Perform a connector-specific operation on a group
-        my_group_close               // close      - Closes a group.
-    },
-
-   // H5VL_link_class_t  (DON'T THINK I NEED THIS)
-    {                                           
-        my_link_create,              // create    - Creates a hard / soft / UD / external link
-        my_link_copy,                // copy      - COpy a link
-        my_link_move,                // move      - Moves a link within an HDF5 file to a new group. 
-        my_link_get,                 // get       - Get info about a link
-        my_link_specific,            // specific  - Specific operation on a link
-        my_link_optional             // optional  - Perform a connector-specific operation on a link
-    },
-
-    // H5VL_object_class_t (DON'T THINK I NEED THIS)
-    // objects include datasets, groups, and committed datatypes. 
-    {                                           
-        my_object_open,              // open       - Opens an object inside a container.
-        my_object_copy,              // copy       - Copies an object inside a container.
-        my_object_get,               // get        - Get info about an object
-        my_object_specific,          // specific   - Specific operation on an object
-        my_object_optional           // optional   - Perform a connector-specific operation for an object
-    },
-
-  // H5VL_introspect_class_t (DON'T THINK I NEED THIS)
-    {                                          
-        my_introspect_get_conn_cls,  // get_conn_cls    - Query the connector class.
-        my_introspect_get_cap_flags, // get_cap_flags   - Query the capability flags for this connector and any underlying connector(s).
-        my_introspect_opt_query,     // opt_query       - Query if an optional operation is supported by this connector
-    },
-
-    // H5VL_request_class_t (I think this is async-related, DON'T THINK I NEED THIS TODO?)
-    {                                           
-        my_request_wait,             // wait      - Wait (with a timeout) for an async operation to complete
-        my_request_notify,           // notify    - Registers a user callback to be invoked when an asynchronous operation completes
-        my_request_cancel,           // cancel    - Cancels an asynchronous operation
-        my_request_specific,         // specific  - Specific operation on a request
-        my_request_optional,         // optional  - Perform a connector-specific operation for a request
-        my_request_free              // free      - Releases a request, allowing the operation to complete without application tracking
-    },
-
-    // H5VL_blob_class_t (DON'T THINK I NEED THIS)
-    // raw binary data
-    {                                           
-        my_blob_put,                 // put       - Handles the blob 'put' callback
-        my_blob_get,                 // get       - Handles the blob 'get' callback
-        my_blob_specific,            // specific  - Handles the blob 'specific' callback
-        my_blob_optional             // optional  - Handles the blob 'optional' callback
-    },
-
-    // H5VL_token_class_t (DON'T THINK I NEED THIS)
-    /*
-      Introduced new H5O_token_t "object token" type, which represents a
-      unique and permanent identifier for referencing an HDF5 object within
-      a container; these "object tokens" are meant to replace object addresses
-    */
-    {                                           
-        my_token_cmp,                // cmp      - Compare two of the connector's object tokens, setting *cmp_value, following the same rules as strcmp()
-        my_token_to_str,             // to_str   - Serialize the connector's object token into a string.
-        my_token_from_str            // from_str - Deserialize the connector's object token from a string.
-    },
-
-    my_optional  // Catch-all - Handles the generic 'optional' callback               
+  {
+  /* request_cls */
+    openvisus_vol_request_wait,     /* wait */
+    openvisus_vol_request_notify,   /* notify */
+    openvisus_vol_request_cancel,   /* cancel */
+    openvisus_vol_request_specific, /* specific */
+    openvisus_vol_request_optional, /* optional */
+    openvisus_vol_request_free      /* free */
+  },
+  {
+  /* blob_cls */
+    openvisus_vol_blob_put,      /* put */
+    openvisus_vol_blob_get,      /* get */
+    openvisus_vol_blob_specific, /* specific */
+    openvisus_vol_blob_optional  /* optional */
+  },
+  {
+  /* token_cls */
+    openvisus_vol_token_cmp,     /* cmp */
+    openvisus_vol_token_to_str,  /* to_str */
+    openvisus_vol_token_from_str /* from_str */
+  },
+  openvisus_vol_optional /* optional */
 };
 
 
+
+//////////////////////////////////////////////////////////////////////
 extern "C" H5PL_type_t H5PLget_plugin_type(void)
-{ 
-  return H5PL_TYPE_VOL; 
+{
+  return H5PL_TYPE_VOL;
 }
 
 extern "C" const void* H5PLget_plugin_info(void)
-{ 
-  return &openvisus_vol_instance;
+{
+  return &openvisus_vol_g;
 }
 
