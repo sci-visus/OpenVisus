@@ -45,13 +45,12 @@ namespace Visus {
 
 VISUS_IMPLEMENT_SINGLETON_CLASS(NodeFactory)
 
-bool DataflowModule::bAttached = false;
+int DataflowModule::attached = 0;
 
 ///////////////////////////////////////////////////////////////////////////
 void DataflowModule::attach()
 {
-  if (bAttached)   return;
-  bAttached = true;
+  if ((++attached)>1) return;
   KernelModule::attach();
   NodeFactory::getSingleton()->allocSingleton();
   VISUS_REGISTER_NODE_CLASS(Node);
@@ -61,9 +60,8 @@ void DataflowModule::attach()
 //////////////////////////////////////////////
 void DataflowModule::detach()
 {
-  if (!bAttached) return;
+  if ((--attached)>0) return;
   NodeFactory::getSingleton()->releaseSingleton();
-  bAttached = false;
   KernelModule::detach();
 }
 

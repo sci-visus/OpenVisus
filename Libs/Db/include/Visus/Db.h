@@ -58,7 +58,7 @@ class VISUS_DB_API DbModule : public VisusModule
 {
 public:
 
-  static bool bAttached;
+  static int attached;
 
   //attach
   static void attach();

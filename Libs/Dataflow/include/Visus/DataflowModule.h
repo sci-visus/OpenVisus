@@ -57,7 +57,7 @@ class VISUS_DATAFLOW_API DataflowModule : public VisusModule
 {
 public:
 
-  static bool bAttached;
+  static int attached;
 
   //attach
   static void attach();

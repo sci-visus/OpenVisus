@@ -54,15 +54,12 @@ For support : support@visus.net
 
 namespace Visus {
 
-bool NodesModule::bAttached = false;
+int NodesModule::attached = 0;
 
   //////////////////////////////////////////////
 void NodesModule::attach()
 {
-  if (bAttached)  
-    return;
-  
-  bAttached = true;
+  if ((++attached) > 1) return;
 
   DbModule::attach();
   DataflowModule::attach();
@@ -83,8 +80,7 @@ void NodesModule::attach()
 //////////////////////////////////////////////
 void NodesModule::detach()
 {
-  if (!bAttached)  return;
-  bAttached = false;
+  if ((--attached) > 0) return;
   DbModule::detach();
   DataflowModule::detach();
 }

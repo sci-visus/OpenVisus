@@ -93,9 +93,8 @@ bool RamResource::freeMemory(Int64 reqsize)
   if (!reqsize) return true;
 
   //probably the application is shutting down
-  if (!KernelModule::bAttached)
+  if (!KernelModule::attached)
     return true;
-
 
   used_memory-=reqsize;
   return true;

@@ -86,17 +86,15 @@ void GuiCleanUpResources() {
 
 namespace Visus {
 
-bool GuiModule::bAttached = false;
+int GuiModule::attached = 0;
 
 static bool bOwnedApp = false;
 
 //////////////////////////////////////////////
 void GuiModule::attach()
 {
-  if (bAttached)  
-    return;
+  if ((++attached) > 1) return;
   
-  bAttached = true;
   GuiInitResources();
 
   //show qt resources
@@ -160,10 +158,7 @@ void GuiModule::attach()
 //////////////////////////////////////////////
 void GuiModule::detach()
 {
-  if (!bAttached)  
-    return;
-  
-  bAttached = false;
+  if ((--attached) > 0) return;
 
   IsoContourRenderNode::releaseShaders();
   KdRenderArrayNode::releaseShaders();

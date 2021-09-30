@@ -2,7 +2,7 @@
 #include <hdf5.h>
 #include <vector>
 
-
+////////////////////////////////////////////////////////////////////////////
 void __Check(bool cond, std::string file,int line)
 {
   if (bool err = cond ? false : true) {
@@ -15,21 +15,21 @@ void __Check(bool cond, std::string file,int line)
 
 #define CHECK(cond) __Check(cond,__FILE__,__LINE__)
 
+
 ////////////////////////////////////////////////////////////////////////////
-void Test1()
+void Test1(std::string filename)
 {
   const int width = 6;
   const int height = 5;
 
   // CREATE a file
-  hid_t file = H5Fcreate("testfile.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  hid_t file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // CREATE group
   hid_t group = H5Gcreate2(file, "MyGroup", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-
   // CREATE dataset with datatype and dataspace
-  std::string groupname = "IntArray";
+  std::string dataset_name = "IntArray";
 
   if (true)
   {
@@ -43,7 +43,7 @@ void Test1()
     //set little endian
     CHECK(H5Tset_order(datatype, H5T_ORDER_LE) == 0);
 
-    hid_t dataset = H5Dcreate2(group, groupname.c_str(), datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    hid_t dataset = H5Dcreate2(group, dataset_name.c_str(), datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     H5Dclose(dataset);
     H5Tclose(datatype);
     H5Sclose(dataspace);
@@ -62,7 +62,8 @@ void Test1()
   //Write ALL to dataset
   if (true)
   {
-    hid_t dataset = H5Dopen(group, groupname.c_str(), H5P_DEFAULT);
+    hid_t dataset = H5Dopen(group, dataset_name.c_str(), H5P_DEFAULT);
+    CHECK(dataset > 0);
 
     auto dataspace = H5Dget_space(dataset);
     auto rank = H5Sget_simple_extent_ndims(dataspace);
@@ -79,7 +80,7 @@ void Test1()
   //Read ALL to Dataset
   if (true)
   {
-    hid_t dataset = H5Dopen(group, groupname.c_str(), H5P_DEFAULT);
+    hid_t dataset = H5Dopen(group, dataset_name.c_str(), H5P_DEFAULT);
     std::vector<int32_t> buffer(width * height, 0);
     CHECK(H5Dread(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &buffer[0]) == 0);
     H5Dclose(dataset);
@@ -89,7 +90,7 @@ void Test1()
   //Write SEL to dataset
   // see https://support.hdfgroup.org/HDF5/Tutor/selectsimple.html
   {
-    hid_t dataset = H5Dopen(group, groupname.c_str(), H5P_DEFAULT);
+    hid_t dataset = H5Dopen(group, dataset_name.c_str(), H5P_DEFAULT);
 
     //dataset space (OUTPUT)
     const hsize_t dataset_offset[] = { 1,2 };
@@ -109,7 +110,7 @@ void Test1()
       83,84,
       93,94
     };
-    H5Dwrite(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &buffer[0]);
+    CHECK(H5Dwrite(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &buffer[0])==0);
 
     H5Dclose(dataset);
     H5Sclose(dataspace);
@@ -118,7 +119,7 @@ void Test1()
   //Read ALL to Dataset
   if (true)
   {
-    hid_t dataset = H5Dopen(group, groupname.c_str(), H5P_DEFAULT);
+    hid_t dataset = H5Dopen(group, dataset_name.c_str(), H5P_DEFAULT);
     std::vector<int32_t> buffer(width * height, 0);
     CHECK(H5Dread(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &buffer[0]) == 0);
     H5Dclose(dataset);
@@ -138,7 +139,7 @@ void Test1()
 
   //read SEL to dataset
   {
-    hid_t dataset = H5Dopen(group, groupname.c_str(), H5P_DEFAULT);
+    hid_t dataset = H5Dopen(group, dataset_name.c_str(), H5P_DEFAULT);
 
     //dataset space (input)
     const hsize_t offset[] = { 1,2 };
@@ -171,10 +172,70 @@ void Test1()
   H5Fclose(file);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////
+void Test2(std::string filename)
+{
+  //see https://github.com/mvanmoer/HDF5_examples/tree/master/orthonormalgrids/scalar
+
+  // HDF5 convention is fastest is last, this is {zdim, ydim, xdim}.
+  hsize_t W = 1024;
+  hsize_t H = 768;
+  hsize_t D = 20;
+  hsize_t dims[3] = { D , H,  W };
+
+  // arbitrary scalar data for writing.
+  std::vector<float> scalars;
+  for (int Z = 0; Z < D; Z++)
+  {
+    for (int Y = 0; Y < H; Y++)
+    {
+      for (int X = 0; X < W; X++)
+      {
+        auto x = 2 * (X / (double)(W - 1)) - 1;
+        auto y = 2 * (Y / (double)(H - 1)) - 1;
+        auto z = 2 * (Z / (double)(D - 1)) - 1;
+        scalars.push_back((float)sqrt(x*x+y*y+z*z));
+      }
+    }
+  }
+
+  CHECK(scalars.size() == W * H * D);
+
+  auto m = scalars[0], M = scalars[0];
+  for (auto it : scalars)
+  {
+    m = std::min(m, it);
+    M = std::max(M, it);
+  }
+  std::cout << "min=" << m << " max=" << M <<std::endl;
+
+  std::cout << "Calling H5Fcreate..." << std::endl;
+  hid_t file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+  std::cout << "Calling H5Screate..." << std::endl;
+  hid_t dataspace = H5Screate_simple(3, dims, NULL);
+
+  std::cout << "Calling H5Dcreate2..." << std::endl;
+  hid_t datatype = H5Tcopy(H5T_NATIVE_FLOAT);
+  hid_t dataset = H5Dcreate2(file, "scalars", datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+  std::cout << "Calling H5Dwrite..." << std::endl;
+  CHECK(H5Dwrite(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &scalars[0])==0);
+
+  H5Dclose(dataset);
+  H5Tclose(datatype);
+  H5Sclose(dataspace);
+  H5Fclose(file);
+}
+
+
 ////////////////////////////////////////////////////////////////////
 int main()
 {
-  Test1();
+  // To debug in windows see ReadMe.md
+
+  Test1("testfile1.h5");
+  Test2("testfile2.h5");
 
   std::cout<<"all done"<<std::endl;
 

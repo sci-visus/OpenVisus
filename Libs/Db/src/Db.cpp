@@ -50,15 +50,12 @@ For support : support@visus.net
 
 namespace Visus {
 
-bool DbModule::bAttached = false;
+int DbModule::attached = 0;
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 void DbModule::attach()
 {
-  if (bAttached)  
-    return;
-  
-  bAttached = true;
+  if ((++attached) > 1) return;
 
   KernelModule::attach();
 
@@ -78,8 +75,7 @@ void DbModule::attach()
 //////////////////////////////////////////////
 void DbModule::detach()
 {
-  if (!bAttached)  return;
-  bAttached = false;
+  if ((--attached) > 0) return;
   DatasetFactory::releaseSingleton();
   KernelModule::detach();
 }

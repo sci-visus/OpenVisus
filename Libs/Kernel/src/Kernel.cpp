@@ -255,15 +255,14 @@ static void InitKnownPaths()
   FileUtils::createDirectory(KnownPaths::VisusHome);
   KnownPaths::BinaryDirectory = Path(Utils::getCurrentApplicationFile()).getParent();
 }
-bool KernelModule::bAttached = false;
+
+
+int KernelModule::attached = 0;
 
 //////////////////////////////////////////////////////
 void KernelModule::attach()
 {
-  if (bAttached)
-    return;
-
-  bAttached = true;
+  if ((++attached) > 1) return;
 
   //check 64 bit file IO is enabled!
 #if __GNUC__ && !__APPLE__
@@ -397,10 +396,7 @@ void KernelModule::attach()
 //////////////////////////////////////////////
 void KernelModule::detach()
 {
-  if (!bAttached)  
-    return;
-  
-  bAttached = false;
+  if ((--attached) > 0) return;
 
   ArrayPlugins::releaseSingleton();
   Encoders::releaseSingleton();

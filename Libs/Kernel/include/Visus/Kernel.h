@@ -411,7 +411,7 @@ class VISUS_KERNEL_API KernelModule : public VisusModule
 {
 public:
 
-  static bool bAttached;
+  static int attached;
 
   //attach
   static void attach();

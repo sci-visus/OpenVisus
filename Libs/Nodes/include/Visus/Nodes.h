@@ -57,7 +57,7 @@ class VISUS_NODES_API NodesModule : public VisusModule
 {
 public:
 
-  static bool bAttached;
+  static int attached;
 
   //attach
   static void attach();

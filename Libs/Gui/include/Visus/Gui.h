@@ -66,7 +66,7 @@ class VISUS_GUI_API GuiModule : public VisusModule
 {
 public:
 
-  static bool bAttached;
+  static int attached;
 
   //attach
   static void attach();
