@@ -143,7 +143,7 @@ openvisus_vol_init(hid_t vipl_id)
 
   //checkversion
   auto v = StringUtils::split(H5_VERSION, ".");
-  VisusReleaseAssert(H5check_version(cint(v[0]), cint(v[1]), 0) == 0);
+  H5check_version(cint(v[0]), cint(v[1]), cint(v[2]));
 
 //#if ENABLE_LOGGING
   PrintInfo("openvisus_vol_init","H5_VERSION", H5_VERSION);
