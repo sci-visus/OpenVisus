@@ -91,6 +91,9 @@ public:
 
   //missing_blocks
   bool missing_blocks = false;
+
+  //allows other metadata 
+  StringMap metadata;
   
   //constructor
   IdxFile(int version_=0);

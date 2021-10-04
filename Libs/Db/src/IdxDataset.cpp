@@ -300,8 +300,6 @@ std::vector<BigInt> IdxDataset::createBlockQueriesForPointQuery(SharedPtr<PointQ
   BigInt hzaddress;
   LogicSamples block_samples;
 
-
-
   for (int N = 0, Tot = (int)query->getNumberOfPoints().innerProduct(); N < Tot; N++, SRC += pdim)
   {
     if (query->aborted()) {

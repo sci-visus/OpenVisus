@@ -756,7 +756,6 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& ar)
     //PrintInfo("  ", it.first, "volume(logic_pixels)", logic_pixels, "volume(LOGIC_PIXELS)", LOGIC_PIXELS, "ratio==logic_pixels/LOGIC_PIXELS", ratio);
   }
 
-
   //PrintInfo(this->dataset_body);
 }
 

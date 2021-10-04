@@ -50,7 +50,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-  
 ////////////////////////////////////////////////////////////////////
 String IdxFile::guessFilenameTemplate(String url)
 {
@@ -249,9 +248,6 @@ void IdxFile::validate(String url)
   //filename_template
   if (filename_template.empty())
     filename_template = guessFilenameTemplate(url);
-
-
-
 }
 
 
@@ -457,6 +453,10 @@ String IdxFile::writeToOldFormat() const
   out << "(filename_template)\n" << filename_template << "\n";
   out << "(missing_blocks)\n" << missing_blocks << "\n";
 
+  //write other medatata
+  for (auto it : this->metadata)
+    out << "(" << it.first << ")\n" << it.second<< "\n"; 
+
   return out.str();
 }
 
@@ -473,6 +473,8 @@ void IdxFile::readFromOldFormat(const String& content)
   for (int I = 0; I < (int)v.size(); I++)
   {
     String line = StringUtils::trim(v[I]);
+
+    //ignore empty strings
     if (line.empty())
       continue;
 
@@ -505,9 +507,13 @@ void IdxFile::readFromOldFormat(const String& content)
   this->version = cint(map.getValue("(version)"));
   if (!(this->version >= 1 && this->version <= 6))
     ThrowException("invalid version");
+  map.eraseValue("(version)");
 
   this->bitmask = DatasetBitmask::fromString(map.getValue("(bits)"));
+  map.eraseValue("(bits)");
+
   this->logic_box = BoxNi::parseFromOldFormatString(this->bitmask.getPointDim(), map.getValue("(box)"));
+  map.eraseValue("(box)");
 
   auto pdim = this->bitmask.getPointDim();
 
@@ -515,6 +521,7 @@ void IdxFile::readFromOldFormat(const String& content)
   {
     this->bounds = BoxNd::fromString(map.getValue("(physic_box)"));
     this->bounds.setSpaceDim(pdim + 1);
+    map.eraseValue("(physic_box)");
   }
 
   else if (map.hasValue("(logic_to_physic)"))
@@ -522,6 +529,7 @@ void IdxFile::readFromOldFormat(const String& content)
     auto logic_to_physic = Matrix::fromString(map.getValue("(logic_to_physic)"));
     this->bounds = Position(logic_to_physic, this->logic_box);
     this->bounds.setSpaceDim(pdim + 1);
+    map.eraseValue("(logic_to_physic)");
   }
   else
   {
@@ -530,19 +538,41 @@ void IdxFile::readFromOldFormat(const String& content)
 
   //parse fields
   if (map.hasValue("(fields)"))
+  {
     this->fields = parseFields(map.getValue("(fields)"));
+    map.eraseValue("(fields)");
+  }
 
-  this->bitsperblock = cint(map.getValue("(bitsperblock)"));
+  this->bitsperblock = cint(map.getValue("(bitsperblock)")); 
+  map.eraseValue("(bitsperblock)");
+
   this->blocksperfile = cint(map.getValue("(blocksperfile)"));
+  map.eraseValue("(blocksperfile)");
+
   this->filename_template = map.getValue("(filename_template)");
+  map.eraseValue("(filename_template)");
+
   this->missing_blocks = cint(map.getValue("(missing_blocks)"));
+  map.eraseValue("(missing_blocks)");
 
   if (map.hasValue("(interleave)"))
+  {
     this->block_interleaving = cint(map.getValue("(interleave)"));
+    map.eraseValue("(interleave)");
+  }
+
+  if (map.hasValue("(interleave block)"))
+  {
+    this->block_interleaving = cint(map.getValue("(interleave block)"));
+    map.eraseValue("(interleave block)");
+  }
+
 
   if (map.hasValue("(time)"))
   {
     std::vector<String> vtime = StringUtils::split(map.getValue("(time)"), " ");
+    map.eraseValue("(time)");
+
     if (vtime.size() < 2)
       ThrowException("invalid (time)");
 
@@ -590,6 +620,16 @@ void IdxFile::readFromOldFormat(const String& content)
       }
     }
   }
+
+  //read all other metadata
+  for (auto it : map)
+  {
+    auto key = it.first; 
+    auto value = it.second;
+    key = key.substr(1, key.size() - 2); //remove "(...)"
+    this->metadata.setValue(key, value);
+  }
+
 }
 
 
@@ -618,7 +658,16 @@ void IdxFile::write(Archive& ar) const
   for (auto field : fields)
     ar.writeObject("field", field);
 
+  //write timesteps
   timesteps.write(ar);
+
+  for (auto it : metadata)
+  {
+    auto key = it.first;
+    auto value = it.second;
+    ar.addChild("metadata")->write("key", key).write("value", value);
+  }
+  
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -665,7 +714,17 @@ void IdxFile::read(Archive& ar)
     this->fields.push_back(field);
   }
 
+  //read timestep
   this->timesteps.read(ar);
+
+
+  for (auto it : ar.getChilds("metadata"))
+  {
+    String key, value;
+    it->read("key", key);
+    it->read("value", value);
+    this->metadata.setValue(key, value);
+  }
 }
 
 

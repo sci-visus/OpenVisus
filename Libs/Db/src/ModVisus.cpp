@@ -473,10 +473,8 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
 
   auto body = dataset->getDatasetBody();
 
-  //backward compatible
-  bool bPreferOldIdxFormat = true;
-
-  if (dataset->getDatasetTypeName()=="IdxDataset" && bPreferOldIdxFormat)
+  //backward compatible (i.e. prefer the old format)
+  if (dataset->getDatasetTypeName()=="IdxDataset" && request.url.getParam("format")!="xml")
   {
     auto idxfile = std::dynamic_pointer_cast<IdxDataset>(dataset)->idxfile;
     String content=idxfile.writeToOldFormat();

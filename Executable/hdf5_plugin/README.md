@@ -21,8 +21,11 @@ We have tested so far:
 - [ERR] hdf5view (HDF5_PLUGIN_PATH seems to be ignored)
 - [?] Paraview. It is using the plugin but I don't have no idea how to test it
  
-```
+ 
+ 
+You can debug inside Visual Studio (and see all the messages):
 
+```
 set HDF5_PLUGIN_PATH=C:\projects\OpenVisus\build\RelWithDebInfo\OpenVisus\bin
 set HDF5_VOL_CONNECTOR=openvisus_vol under_vol=0;under_info={};
 set PATH=C:\projects\OpenVisus\build\RelWithDebInfo\OpenVisus\bin;%PATH%
