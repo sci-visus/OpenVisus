@@ -1,5 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 
+
 # /////////////////////////////////////////////////////////////////////
 macro(DetectAndSetupCompiler)
 
@@ -31,11 +32,6 @@ macro(DetectAndSetupCompiler)
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 	set(CMAKE_CXX_STANDARD              11)
 	set(CMAKE_CXX_STANDARD_REQUIRED     ON)
-
-	if (MSVC AND NOT BUILD_SHARED_LIBS)
-		# see https://cmake.org/cmake/help/v3.18/variable/CMAKE_MSVC_RUNTIME_LIBRARY.html
-		set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-	endif()
 	
 	#minimum support is Vista
 	if (MINGW)
@@ -105,6 +101,9 @@ macro(InstallOsprayDlls)
 	endif()
 endmacro()
 
+if (POLICY CMP0091)
+	cmake_policy(SET CMP0091 NEW) # windows CMAKE_MSVC_RUNTIME_LIBRARY
+endif()
 
 if(POLICY CMP0020)
   cmake_policy(SET CMP0020 NEW) # qt-related
@@ -132,8 +131,17 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # must be before PROJECT command
 SET(MSVC_INCREMENTAL_DEFAULT OFF) 
 
-PROJECT(OpenVisus) 
 
+option(VISUS_MINIMAL      "Enable VISUS_MINIMAL"   OFF)
+
+
+# this must be before project
+if (VISUS_MINIMAL)
+	MESSAGE(STATUS "Forcing static linking on MSVC")
+	SET(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
+PROJECT(OpenVisus) 
 
 # todo this default for linux too
 if (NOT APPLE AND NOT WIN32)
@@ -146,7 +154,7 @@ if(WIN2 AND EXISTS "${CMAKE_SOURCE_DIR}/ExternalLibs/ospray_win/README.txt")
 	set(VISUS_DEFAULT_OSPRAY ON)
 endif()
 
-option(VISUS_MINIMAL      "Enable VISUS_MINIMAL"   OFF)
+
 option(BUILD_SHARED_LIBS  "Build shared libraries" ON)
 option(VISUS_NET          "Enable VISUS_NET"       ON)
 option(VISUS_IMAGE        "Enable VISUS_IMAGE"     ON)
@@ -157,6 +165,7 @@ option(VISUS_SLAM         "Enable VISUS_SLAM"      ON)
 option(VISUS_OSPRAY       "Enable VISUS_OSPRAY"    ${VISUS_DEFAULT_OSPRAY})
 option(VISUS_MODVISUS     "Enable VISUS_MODVISUS"  OFF)
 option(VISUS_HDF5         "Enable VISUS_HDF5"      OFF)
+option(VISUS_WEAVING      "Enable VISUS_WEAVING"   OFF)
 
 if (VISUS_MINIMAL)
 	SET(BUILD_SHARED_LIBS OFF CACHE BOOL "disabled" FORCE)
@@ -169,6 +178,7 @@ if (VISUS_MINIMAL)
 	SET(VISUS_SLAM        OFF CACHE BOOL "disabled" FORCE)
 	SET(VISUS_OSPRAY      OFF CACHE BOOL "disabled" FORCE)
 	SET(VISUS_HDF5        OFF CACHE BOOL "disabled" FORCE)
+	SET(VISUS_WEAVING     OFF CACHE BOOL "disabled" FORCE)
 endif()
 	
 MESSAGE(STATUS "BUILD_SHARED_LIBS  ${BUILD_SHARED_LIBS}")
@@ -181,6 +191,7 @@ MESSAGE(STATUS "VISUS_MODVISUS     ${VISUS_MODVISUS}")
 MESSAGE(STATUS "VISUS_SLAM         ${VISUS_SLAM}")
 MESSAGE(STATUS "VISUS_OSPRAY       ${VISUS_OSPRAY}")
 MESSAGE(STATUS "VISUS_HDF5         ${VISUS_HDF5}")
+MESSAGE(STATUS "VISUS_WEAVING      ${VISUS_WEAVING}")
 
 # to call after the configuration 
 DetectAndSetupCompiler()
