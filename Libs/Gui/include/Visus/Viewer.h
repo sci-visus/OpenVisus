@@ -650,6 +650,9 @@ public:
   //addDataset
   DatasetNode* addDataset(String uuid, Node* parent, String url);
 
+  //loadDataset
+  SharedPtr<Dataset> loadDataset(String url);
+
   //addGLCameraNode
   GLCameraNode* addGLCamera(String uuid, Node* parent, String type = "");
 
