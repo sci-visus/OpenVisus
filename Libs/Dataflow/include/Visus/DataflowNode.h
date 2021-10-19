@@ -348,6 +348,15 @@ public:
 
 public:
 
+  //castTo
+  template <class NodeClass>
+  static NodeClass* castTo(Node* node) {
+    return dynamic_cast<NodeClass*>(node);
+  }
+
+
+public:
+
   //execute
   virtual void execute(Archive& ar) override;
 

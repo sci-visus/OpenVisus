@@ -82,7 +82,7 @@ public:
   SharedPtr<Array> alpha;
 
   //texture
-  SharedPtr<Object> texture;
+  SharedPtr<DynObject> texture;
 
   //run_time_attributes
   StringMap run_time_attributes;

@@ -67,7 +67,6 @@ PyObject* __asPythonObject() {
 %}
 }
 
-
 %include <Visus/DataflowModule.h>
 %include <Visus/DataflowMessage.h>
 %include <Visus/DataflowPort.h>

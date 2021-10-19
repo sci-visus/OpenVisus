@@ -53,6 +53,9 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(PaletteNode)
 
+  Statistics last_statistics;
+  
+
   //constructor
   PaletteNode(String default_palette="GrayOpaque");
 
@@ -72,9 +75,19 @@ public:
   //setPalette
   void setPalette(SharedPtr<Palette> value);
 
-  //areStatisticsEnabled
-  bool areStatisticsEnabled() const {
-    return isInputConnected("array");
+  //getStatisticsEnabled
+  bool getStatisticsEnabled() const {
+    return statistics_enabled;
+  }
+
+  //getLastStatistics
+  Statistics getLastStatistics() const {
+    return last_statistics;
+  }
+
+  //setStatisticsEnabled
+  void setStatisticsEnabled(bool value) {
+    setProperty("setStatisticsEnabled", this->statistics_enabled, value);
   }
 
   //processInput
@@ -102,6 +115,8 @@ public:
     return dynamic_cast<PaletteNode*>(obj);
   }
 private:
+
+  bool                statistics_enabled = false;
 
   SharedPtr<Palette>  palette;
   Slot<void()>        palette_begin_update_slot;

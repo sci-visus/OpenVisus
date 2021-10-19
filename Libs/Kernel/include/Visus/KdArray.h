@@ -79,7 +79,7 @@ public:
 
   bool                 bDisplay=false;
   Array                displaydata;
-  SharedPtr<Object>    texture;
+  SharedPtr<DynObject> texture;
 
   //default constructor
   KdArrayNode(BigInt blocknum_=0) : id(blocknum_){

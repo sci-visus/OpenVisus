@@ -153,7 +153,7 @@ public:
   SharedPtr<SingleTransferFunction> A;;
 
   //texture
-  SharedPtr<Object> texture;
+  SharedPtr<DynObject> texture;
 
   //constructor
   TransferFunction(int nsamples=256, String default_name_="") : default_name(default_name_) {

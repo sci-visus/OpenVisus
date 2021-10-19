@@ -52,5 +52,12 @@ using namespace Visus;
 %include <Visus/DatasetNode.h>
 %include <Visus/QueryNode.h>
 %include <Visus/KdQueryNode.h>
+%include <Visus/PaletteNode.h>
 
 //not exposing anything, don't know if we need it
+
+
+
+
+
+

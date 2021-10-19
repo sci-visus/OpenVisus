@@ -1,6 +1,7 @@
 %module(directors="1") VisusKernelPy
 
 %{ 
+#include <Visus/Statistics.h>
 #include <Visus/Array.h>
 #include <Visus/StringTree.h>
 #include <Visus/NetServer.h>
@@ -58,8 +59,9 @@ However, this is not the case for any C/C++ class that has been converted into a
 
 
 
+%shared_ptr(Visus::DynObject)
+
 %include <Visus/Kernel.h>
-	
 %include <Visus/StringMap.h>
 %include <Visus/HeapMemory.h>
 %include <Visus/RamResource.h>
@@ -108,8 +110,10 @@ However, this is not the case for any C/C++ class that has been converted into a
 %include <Visus/Field.h>
 	%template(VectorOfField) std::vector<Visus::Field>;
 
+%include <Visus/Statistics.h>
 %include <Visus/Array.h>
-	%template(VectorOfArray) std::vector<Visus::Array>;
+	%template(VectorOfArray)               std::vector<Visus::Array>;
+	%template(VectorOfStatisticsComponent) std::vector<Visus::StatisticsComponent>;
 
 %include <Visus/ArrayUtils.h>
 %include <Visus/ArrayPlugin.h>
