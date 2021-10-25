@@ -1309,46 +1309,42 @@ bool Viewer::open(String s_url,Node* parent)
   //get a visus.config from a remote server
   //  http://atlantis.sci.utah.edu:8080/mod_visus?action=list
   //  http://atlantis.sci.utah.edu:8080/mod_visus?action=list&cached=1
-  Url url(s_url);
-  if (url.isRemote() && url.getPath()=="/mod_visus" && url.getParam("action")=="list")
   {
-    bool cached = cbool(url.getParam("cached", "false"));
-    url.params.eraseValue("cached");
-
-    auto content=Utils::loadTextDocument(url.toString());
-    content = StringUtils::replaceAll(content, "$(protocol)", url.getProtocol());
-    content = StringUtils::replaceAll(content, "$(hostname)", url.getHostname());
-    content = StringUtils::replaceAll(content, "$(port)", cstring(url.getPort()));
-
-    auto config = StringTree::fromString(content);
-    if (!config.valid())
+    Url url(s_url);
+    if (url.isRemote() && url.getPath() == "/mod_visus" && url.getParam("action") == "list")
     {
-      QMessageBox::information(this, "Error", cstring("Failed to download",url.toString()).c_str());
-      return false;
-    }
+      bool enable_caching = cbool(url.getParam("cached", "0"));
+      url.params.eraseValue("cached");
 
-    //handle caching...
-    if (cached)
-    {
-      for (auto dataset : config.getAllChilds("dataset"))
+      auto content = Utils::loadTextDocument(url.toString());
+      content = StringUtils::replaceAll(content, "$(protocol)", url.getProtocol());
+      content = StringUtils::replaceAll(content, "$(hostname)", url.getHostname());
+      content = StringUtils::replaceAll(content, "$(port)", cstring(url.getPort()));
+
+      auto config = StringTree::fromString(content);
+      if (!config.valid())
       {
-        if (!dataset->getChild("access") && !dataset->getAttribute("name").empty())
+        QMessageBox::information(this, "Error", cstring("Failed to download", url.toString()).c_str());
+        return false;
+      }
+
+      //forward the information to the single datasets (see below)
+      if (enable_caching)
+      {
+        for (auto dataset : config.getAllChilds("dataset"))
         {
-          auto dataset_name = dataset->getAttribute("name");
-          dataset->addChild(StringTree::fromString(
-            "  <access type='multiplex'>\n"
-            "     <access type='disk'    chmod='rw' url='file://$(VisusHome)/cache/" + url.getHostname() + "/" + cstring(url.getPort()) + "/" + dataset_name + "/visus.idx'  />\n"
-            "     <access type='network' chmod='r'  compression='zip' />\n"
-            "  </access>\n"));
+          Url url=dataset->getAttribute("url");
+          url.setParam("cached", "1");
+          dataset->setAttribute("url",url.toString());
         }
       }
-    }
 
-    this->config = config;
-    Utils::saveTextDocument("temp.config", this->config.toString());
-    reloadVisusConfig();
-    QMessageBox::information(this, "Info", cstring("Loaded", url.toString(), "saved the content to temp.config").c_str());
-    return true;
+      this->config = config;
+      Utils::saveTextDocument("temp.config", this->config.toString());
+      reloadVisusConfig();
+      QMessageBox::information(this, "Info", cstring("Loaded", url.toString(), "saved the content to temp.config").c_str());
+      return true;
+    }
   }
 
   //open a *.config file and create bookmarks
@@ -1399,11 +1395,11 @@ bool Viewer::open(String s_url,Node* parent)
     }
   }
 
-  //open a dataset
+  //open a dataset give the current config
   SharedPtr<Dataset> dataset;
   try
   {
-    dataset = LoadDatasetEx(FindDatasetConfig(this->config, s_url));
+    dataset = loadDataset(s_url);
   } 
   catch(...)
   {
@@ -2089,12 +2085,58 @@ Node* Viewer::addWorld(String uuid)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+SharedPtr<Dataset> Viewer::loadDataset(String in_url)
+{
+  auto dataset_config = FindDatasetConfig(this->config, in_url);
+
+  auto ret = LoadDatasetEx(dataset_config);
+
+  // for remote dataset I can automatically enable caching
+  //http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1&cached=1
+#if 1
+  if (
+    !ret->getDatasetBody().getChild("access") &&  //no access
+    std::dynamic_pointer_cast<IdxDataset>(ret) && //is IDX
+    Url(ret->getUrl()).isRemote() &&              //is remote
+    cbool(Url(ret->getUrl()).getParam("cached"))) //I want to automatically cached it
+  {
+    Url    url  = ret->getUrl();
+    String name = url.getParam("dataset"); 
+    VisusReleaseAssert(!name.empty());
+
+    // override body and url without the client-side caching layer
+    auto body = ret->getDatasetBody();
+
+    //remove the cached from the url 
+    url.params.eraseValue("cached");
+
+    //add an access to the body
+    body.addChild(StringTree::fromString(
+      "  <access type='multiplex'>\n"
+      "     <access type='disk'    chmod='rw' url='file://$(VisusHome)/cache/" + url.getHostname() + "/" + cstring(url.getPort()) + "/" + name + "/visus.idx'  />\n"
+      "     <access type='network' chmod='r'  compression='zip' />\n"
+      "  </access>\n"));
+
+    //override the url
+    body.setAttribute("url", url.toString());
+
+    //override the body
+    ret->setDatasetBody(body);
+
+    PrintInfo("Automatically enabling caching", "url", url, "name", "name", "\n", body);
+  }
+#endif
+
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 DatasetNode* Viewer::addDataset(String uuid, Node* parent, String url)
 {
   if (!parent)
     parent = getRoot();
 
-  auto dataset = LoadDatasetEx(FindDatasetConfig(this->config, url));
+  auto dataset = loadDataset(url);
 
   if (uuid.empty())
     uuid = dataflow->guessNodeUIID("dataset");

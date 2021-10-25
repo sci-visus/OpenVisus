@@ -139,7 +139,11 @@ if True:
 	$result= SWIG_NewPointerObj(SWIG_as_voidptr(result ? new std::shared_ptr<  Visus::GLCamera >(result) : 0), SWIGTYPE_p_std__shared_ptrT_Visus__GLCamera_t, SWIG_POINTER_OWN);
 }
 
+
+%shared_ptr(Visus::GLTexture)
+
 %include <Visus/Gui.h>
+%include <Visus/GLTexture.h>
 %include <Visus/GLObject.h>
 %include <Visus/GLMesh.h>
 %include <Visus/GLObjects.h>

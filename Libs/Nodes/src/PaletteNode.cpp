@@ -137,12 +137,10 @@ bool PaletteNode::processInput()
   if (!data) 
     return false;
 
-  //not interested in statistics
-  if (!areStatisticsEnabled())
-    return false;
+  bool enable_statistics = getStatisticsEnabled() || (isInputConnected("array") && !views.empty());
 
-  //avoid computing stuff if not shown
-  if (views.empty())
+  //not interested in statistics
+  if (!enable_statistics)
     return false;
 
   addNodeJob(std::make_shared<ComputeStatsJob>(this,*data,palette));
@@ -170,6 +168,8 @@ void PaletteNode::messageHasBeenPublished(DataflowMessage msg)
   if (!statistics)
     return;
 
+  this->last_statistics = *statistics;
+
   for (auto it: this->views)
   {
     if (auto view=dynamic_cast<BasePaletteNodeView*>(it)) {
@@ -182,6 +182,7 @@ void PaletteNode::messageHasBeenPublished(DataflowMessage msg)
 void PaletteNode::write(Archive& ar) const
 {
   Node::write(ar);
+  ar.write("statistics_enabled", this->statistics_enabled);
   ar.writeObject("palette", *palette);
 }
 
@@ -190,6 +191,7 @@ void PaletteNode::write(Archive& ar) const
 void PaletteNode::read(Archive& ar)
 {
   Node::read(ar);
+  this->statistics_enabled = ar.readBool("statistics_enabled", false);
   ar.readObject("palette", *palette);
 }
 

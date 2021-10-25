@@ -279,16 +279,16 @@ inline void ThrowExceptionEx(String file, int line, Args&&... args) {
 
 ////////////////////////////////////////////////////////////
 // in case you want to store an agnostic pointer to an object
-class VISUS_KERNEL_API Object
+class VISUS_KERNEL_API DynObject
 {
 public:
 
   //constructor
-  Object() {
+  DynObject() {
   }
 
   //destructor
-  virtual ~Object() {
+  virtual ~DynObject() {
   }
 
 };

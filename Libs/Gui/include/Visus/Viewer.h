@@ -514,19 +514,19 @@ public:
 public:
 
   //glRender
-  void glRender(GLCanvas& gl);
+  virtual void glRender(GLCanvas& gl);
 
   //glRenderNodes
-  void glRenderNodes(GLCanvas& gl);
+  virtual void glRenderNodes(GLCanvas& gl);
 
   //glRenderSelection
-  void glRenderSelection(GLCanvas& gl);
+  virtual void glRenderSelection(GLCanvas& gl);
 
   //glRenderGestures
-  void glRenderGestures(GLCanvas& gl);
+  virtual void glRenderGestures(GLCanvas& gl);
 
   //glRenderLogos
-  void glRenderLogos(GLCanvas& gl);
+  virtual void glRenderLogos(GLCanvas& gl);
 
 public:
 
@@ -649,6 +649,9 @@ public:
 
   //addDataset
   DatasetNode* addDataset(String uuid, Node* parent, String url);
+
+  //loadDataset
+  SharedPtr<Dataset> loadDataset(String url);
 
   //addGLCameraNode
   GLCameraNode* addGLCamera(String uuid, Node* parent, String type = "");

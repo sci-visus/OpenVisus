@@ -168,6 +168,14 @@ public:
     return nodes;
   }
 
+  //getNodesAsVector (needed for swig)
+  std::vector<Node*> getNodesAsVector() const {
+    std::vector<Node*> ret;
+    for (auto node : getNodes())
+      ret.push_back(node);
+    return ret;
+  }
+
   //findNodeByUUID
   Node* findNodeByUUID(const String& uuid) const
   {

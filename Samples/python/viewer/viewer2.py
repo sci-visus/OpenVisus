@@ -89,23 +89,29 @@ def Main(argv):
 
 	viewer=PyViewer()
 	viewer.open("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1") 
-
-	# example of adding a PyQt5 widget to C++ Qt
-	mywidget=MyWidget()
-	viewer.addDockWidget("MyWidget",ToCppQtWidget(sip.unwrapinstance(mywidget)))
-
-	# example of adding a python node to the dataflow
 	root=viewer.getRoot()
 	world_box=viewer.getWorldBox()
+	print("world_box",world_box.toString())	
 
-	pynode=MyRenderNode()
-	pynode.glSetRenderQueue(999)
-	pynode.setBounds(Position(world_box))
-	viewer.addNode(root,pynode)
+	# example of adding a PyQt5 widget to C++ Qt
+	if False:
+		mywidget=MyWidget()
+		viewer.addDockWidget("MyWidget",ToCppQtWidget(sip.unwrapinstance(mywidget)))
 
-	# pynode will get the data from the query
-	query_node=viewer.findNodeByUUID("volume")
-	viewer.connectNodes(query_node, pynode)
+	# example of adding a python node to the dataflow
+	if False:
+		pynode=MyRenderNode()
+		pynode.glSetRenderQueue(999)
+		pynode.setBounds(Position(world_box))
+		viewer.addNode(root,pynode)
+
+		# pynode will get the data from the query
+		query_node=viewer.findNodeByUUID("volume")
+		viewer.connectNodes(query_node, pynode)
+		
+	# example of showing all palettes as HUDs on screen
+	if True:
+		viewer.render_palettes=True
 		 
 	QApplication.exec()
 	viewer=None

@@ -563,6 +563,10 @@ def Main(args):
 		from PyQt5.QtWidgets import QApplication
 		viewer=PyViewer()
 		viewer.configureFromArgs(action_args)
+
+		if "--render-palettes" in action_args:
+			viewer.render_palettes=True
+
 		QApplication.exec()
 		viewer=None
 		print("viewer done")

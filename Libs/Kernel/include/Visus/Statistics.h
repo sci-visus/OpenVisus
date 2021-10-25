@@ -44,6 +44,21 @@ For support : support@visus.net
 
 namespace Visus {
 
+  /////////////////////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API StatisticsComponent
+{
+public:
+  DType     dtype;
+  PointNi   dims;
+  Range     field_range;
+  Range     computed_range;
+  double    average = 0;
+  double    variance = 0;
+  double    standard_deviation = 0;
+  double    median = 0;
+  Histogram histogram;
+};
+
 /////////////////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API Statistics
 {
@@ -51,19 +66,7 @@ public:
 
   VISUS_CLASS(Statistics)
 
-  class Component
-  {
-  public:
-    DType     dtype;
-    PointNi   dims;
-    Range     field_range;
-    Range     computed_range;
-    double    average=0;
-    double    variance=0;
-    double    standard_deviation=0;
-    double    median=0;
-    Histogram histogram;
-  };
+  typedef StatisticsComponent Component;
 
   DType                  dtype;
   PointNi                dims;

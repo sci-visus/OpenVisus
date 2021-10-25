@@ -50,7 +50,7 @@ namespace Visus {
 class GLCanvas;
 
 ///////////////////////////////////////////////////////////////////
-class VISUS_GUI_API GLTexture : public Object
+class VISUS_GUI_API GLTexture : public DynObject
 {
 public:
 
