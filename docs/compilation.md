@@ -318,7 +318,7 @@ OpenVisus_DIR=build/Release/OpenVisus
 CXX_FLAGS=\
 	-I$(OpenVisus_DIR)/include/Db \
 	-I$(OpenVisus_DIR)/include/Kernel \
-	-DVISUS_STATIC_=1 
+	-DVISUS_STATIC_LIB=1 
 
 main: main.o
 	$(CXX) -o $@ $< -L${OpenVisus_DIR}/lib -lVisusKernel VisusDb
