@@ -81,12 +81,12 @@ private:
   StringTree               config;
   Url                      url;
   String                   compression;
-  SharedPtr<NetService>    netservice;
   bool                     reverse_filename = false;
   String                   layout;
 
-  SharedPtr<CloudStorage> cloud_storage;
-  String                  filename_template;
+  SharedPtr<NetService>    netservice;
+  SharedPtr<CloudStorage>  cloud_storage;
+  String                   filename_template;
 
 
 };

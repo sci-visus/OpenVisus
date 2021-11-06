@@ -139,9 +139,9 @@ String Utils::loadTextDocument(String s_url)
     if (auto cloud_storage = CloudStorage::createInstance(url))
     {
       auto blob_name = url.getPath();
-      auto blob = cloud_storage->getBlob(SharedPtr<NetService>(), blob_name, Aborted()).get();
-      if (blob.valid())
-        return String((char*)blob.body->c_ptr(), (size_t)blob.body->c_size());
+      auto blob = cloud_storage->getBlob(SharedPtr<NetService>(), blob_name).get();
+      if (blob && blob->valid())
+        return String((char*)blob->body->c_ptr(), (size_t)blob->body->c_size());
     }
 
     auto net_response=NetService::getNetResponse(url);

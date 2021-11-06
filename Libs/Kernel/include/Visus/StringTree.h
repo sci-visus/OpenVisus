@@ -446,12 +446,21 @@ public:
   //readText
   void readText(String& value) const;
 
+  //readTextInline
+  String readTextInline() const {
+    String value;
+    readText(value);
+    return value;
+  }
+
+
   //readText
   void readText(String name, String& value) const {
     auto child = getChild(name); 
     if (!child) return;
     child->readText(value);
   }
+
 
   //merge
   static void merge(StringTree& dst, StringTree& src) {

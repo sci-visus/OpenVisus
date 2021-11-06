@@ -69,6 +69,7 @@ public:
   Promise<NetResponse>             promise;
   NetResponse                      response;
   bool                             first_byte = false;
+  bool                             chunked = false;
 
   CURLM*                           multi_handle;
   CURL*                            handle = nullptr;
@@ -91,6 +92,74 @@ public:
   {
     if (slist != nullptr) curl_slist_free_all(slist);
     curl_easy_cleanup(handle);
+  }
+
+  //dump
+  static void dump(const char* text, FILE* stream, unsigned char* ptr, size_t size)
+  {
+    size_t i;
+    size_t c;
+    unsigned int width = 0x10;
+
+    fprintf(stream, "%s, %10.10ld bytes (0x%8.8lx)\n",
+      text, (long)size, (long)size);
+
+    for (i = 0; i < size; i += width) {
+      fprintf(stream, "%4.4lx: ", (long)i);
+
+      /* show hex to the left */
+      for (c = 0; c < width; c++) {
+        if (i + c < size)
+          fprintf(stream, "%02x ", ptr[i + c]);
+        else
+          fputs("   ", stream);
+      }
+
+      /* show data on the right */
+      for (c = 0; (c < width) && (i + c < size); c++) {
+        char x = (ptr[i + c] >= 0x20 && ptr[i + c] < 0x80) ? ptr[i + c] : '.';
+        fputc(x, stream);
+      }
+
+      fputc('\n', stream); /* newline */
+    }
+  }
+
+  //myDeepDebug
+  static  int myDeepDebug(CURL* handle, curl_infotype type, char* data, size_t size,  void* userp)
+  {
+    const char* text;
+    (void)handle; /* prevent compiler warning */
+    (void)userp;
+
+    switch (type) {
+    case CURLINFO_TEXT:
+      fprintf(stderr, "== Info: %s", data);
+    default: /* in case a new one is introduced to shock us */
+      return 0;
+
+    case CURLINFO_HEADER_OUT:
+      text = "=> Send header";
+      break;
+    case CURLINFO_DATA_OUT:
+      text = "=> Send data";
+      break;
+    case CURLINFO_SSL_DATA_OUT:
+      text = "=> Send SSL data";
+      break;
+    case CURLINFO_HEADER_IN:
+      text = "<= Recv header";
+      break;
+    case CURLINFO_DATA_IN:
+      text = "<= Recv data";
+      break;
+    case CURLINFO_SSL_DATA_IN:
+      text = "<= Recv SSL data";
+      break;
+    }
+
+    dump(text, stderr, (unsigned char*)data, size);
+    return 0;
   }
 
   //setNetRequest
@@ -117,15 +186,24 @@ public:
       curl_easy_setopt(this->handle, CURLOPT_FRESH_CONNECT, 1L);
       curl_easy_setopt(this->handle, CURLOPT_NOSIGNAL, 1L); //otherwise crash on linux
       curl_easy_setopt(this->handle, CURLOPT_TCP_NODELAY, 1L);
-      curl_easy_setopt(this->handle, CURLOPT_VERBOSE, 0L); //SET to 1L if you want to debug !
-                                                           //if you want to use TLS 1.2
-                                                           //curl_easy_setopt(this->handle, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
+
+      //if you want to use TLS 1.2
+      //curl_easy_setopt(this->handle, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
+
+      //SET to 1L if you want to debug !
+      //curl_easy_setopt(this->handle, CURLOPT_VERBOSE, 1L);
+
+      //for very very deep debug
+      //curl_easy_setopt(this->handle, CURLOPT_DEBUGFUNCTION, myDeepDebug);
 
       curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
 
       curl_easy_setopt(this->handle, CURLOPT_NOPROGRESS, 1L);
       curl_easy_setopt(this->handle, CURLOPT_HEADER, 0L);
-      curl_easy_setopt(this->handle, CURLOPT_FAILONERROR, 1L);
+
+      //WRONG! I cannot get the body for the error message
+      //curl_easy_setopt(this->handle, CURLOPT_FAILONERROR, 1L); 
+
       curl_easy_setopt(this->handle, CURLOPT_USERAGENT, "visus/libcurl");
       curl_easy_setopt(this->handle, CURLOPT_ERRORBUFFER, this->errbuf);
       curl_easy_setopt(this->handle, CURLOPT_HEADERFUNCTION, HeaderFunction);
@@ -233,28 +311,57 @@ public:
         connection->response.body->reserve(content_length, __FILE__, __LINE__);
       }
 
+     /* if (StringUtils::toLower(key) == "transfer-encoding" && StringUtils::contains(value, "hunked"))
+      {
+        PrintInfo("Chunked encoding");
+        connection->chunked = true;
+      }*/
     }
     return(nmemb*size);
   }
 
   //WriteFunction (downloading data)
-  static size_t WriteFunction(void *chunk, size_t size, size_t nmemb, CurlConnection *connection)
+  static size_t WriteFunction(void *_chunk, size_t size, size_t nmemb, CurlConnection *connection)
   {
+    char* chunk = (char*)_chunk;
+
     connection->first_byte = true;
 
     if (!connection->response.body)
       connection->response.body = std::make_shared<HeapMemory>();
 
-    size_t tot = size * nmemb;
-    NetService::global_stats()->rbytes+=tot;
+    
+    NetService::global_stats()->rbytes+= size * nmemb;
 
     Int64 oldsize = connection->response.body->c_size();
-    if (!connection->response.body->resize(oldsize + tot, __FILE__, __LINE__))
+    size_t TotIn = size * nmemb;
+
+    
+    size_t N = TotIn;
+
+    //BROKEN
+#if 0
+    if (connection->chunked)
     {
-      VisusAssert(false); return 0;
+      //it should be two bytes for chunk length, and \r\n
+      //but it seems libcurl is already doing that
+      int len=0;
+      std::istringstream iss(String(chunk, 4));
+      iss >> std::hex >> len;
+      VisusReleaseAssert(len==(TotIn -4));
+      chunk += 4;
+      N-=4;
     }
-    memcpy(connection->response.body->c_ptr() + oldsize, chunk, tot);
-    return tot;
+#endif 
+
+    if (!connection->response.body->resize(oldsize + N, __FILE__, __LINE__))
+    {
+      VisusAssert(false); 
+      return 0;
+    }
+
+    memcpy(connection->response.body->c_ptr() + oldsize, chunk, N);
+    return (size_t)(TotIn);
   }
 
   //ReadFunction (uploading data)
@@ -333,7 +440,7 @@ public:
 
       CURLMsg *msg; int msgs_left_;
       while ((msg = curl_multi_info_read(multi_handle, &msgs_left_)))
-      {
+      { 
         CurlConnection* connection = nullptr;
         curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &connection); VisusAssert(connection);
 
@@ -457,6 +564,7 @@ public:
           request->statistics.wait_msec = wait_msec;
           request->statistics.run_t1 = Time::now();
           connection->first_byte = false;
+          connection->chunked=false;
           connection->setNetRequest(*request, promise);
         }
         owner->waiting = still_waiting;

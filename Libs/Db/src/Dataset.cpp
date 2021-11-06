@@ -196,7 +196,7 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
     if (!Url(url).valid())
       ThrowException("LoadDataset", url, "failed. Not a valid url");
 
-    auto content = Utils::loadTextDocument(url);
+    String content = Utils::loadTextDocument(url);
 
     if (content.empty())
       ThrowException("empty content");
@@ -207,11 +207,20 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
     // backward compatible, old idx text format that is not xml
     if (!doc.valid())
     {
-      ar.write("typename", "IdxDataset");
+      //TODO: handle this better
+      if (StringUtils::contains(url, ".idx2"))
+      {
+        ar.write("typename", "IdxDataset2");
+        ar.write("url", url);
+      }
+      else
+      {
+        ar.write("typename", "IdxDataset");
 
-      IdxFile old_format;
-      old_format.readFromOldFormat(content);
-      ar.writeObject("idxfile", old_format);
+        IdxFile old_format;
+        old_format.readFromOldFormat(content);
+        ar.writeObject("idxfile", old_format);
+      }
     }
     else
     {
@@ -1033,7 +1042,8 @@ void Dataset::nextBoxQuery(SharedPtr<BoxQuery> query)
   auto Rbuffer = query->buffer;
   auto Rfilter_query = query->filter.query;
 
-  VisusReleaseAssert(setBoxQueryEndResolution(query, query->end_resolutions[Utils::find(query->end_resolutions, query->end_resolution) + 1]));
+  if (!setBoxQueryEndResolution(query, query->end_resolutions[Utils::find(query->end_resolutions, query->end_resolution) + 1]))
+    VisusReleaseAssert(false);
 
   //asssume no merging
   query->buffer = Array();
@@ -1360,8 +1370,6 @@ bool Dataset::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int value)
   query->logic_samples = LogicSamples(logic_box, delta);
   VisusAssert(query->logic_samples.valid());
   return true;
-
-
 }
 
 /////////////////////////////////////////////////////////////////////////

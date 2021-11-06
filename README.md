@@ -74,3 +74,34 @@ Run load-balanced `Docker Swarm` OpenVisus servers:
 See [docs/compilation.md](https://github.com/sci-visus/OpenVisus/blob/master/docs/compilation.md).
 
 
+# IDX2
+
+Make sure you have the IDX submodule (check if IDX2/directory is in Libs/).
+
+In `cmake configure` step enable VISUS_IDX2 checkbox and `Build all`.
+
+You can download a test file from here https://github.com/sci-visus/OpenVisus/releases/download/files/MIRANDA-DENSITY-.384-384-256.-Float64.raw.
+
+Create an idx2 file:
+
+```
+# under Windows
+# set PATH=%PATH%;build\RelWithDebInfo\OpenVisus\bin
+
+idx2 --encode --input MIRANDA-DENSITY-[384-384-256]-Float64.raw --accuracy 1e-16 --num_levels 2 --brick_size 64 64 64 --bricks_per_tile 512 --tiles_per_file 512 --files_per_dir 512 --out_dir tmp
+```
+
+To retrieve the data
+
+```
+idx2 --decode --input tmp/MIRANDA/DENSITY.idx2 --in_dir . --first 0 0 0 --last 383 383 255 --level 1 --mask 128 --accuracy 0.001 --out_dir tmp --out_file decode.raw
+
+# CHECK the file 
+```
+
+To test in OpenVisus viewer:
+
+```
+visusviewer tmp/MIRANDA/DENSITY.idx2
+```
+
