@@ -65,40 +65,22 @@ String CloudStorage::guessType(Url url){
   if (StringUtils::contains(hostname, "googleapis."))
     return "gcs";
 
-  //https://s3.amazonaws.com/2kbit1/visus.idx
-  if (StringUtils::contains(hostname, "s3.") && StringUtils::contains(hostname, "amazonaws."))
-    return "s3";
-
-  //https://s3.us-west-1.wasabisys.com/cat-gray/gray.id
-  if (StringUtils::contains(hostname, "s3.") && StringUtils::contains(hostname, "wasabisys."))
-    return "s3";
-
-  //https://mghp.osn.xsede.org/vpascuccibucket1/2kbit1/visus.idx
-
-  if (StringUtils::contains(hostname, "osn.") && StringUtils::contains(hostname, "xsede."))
-    return "s3";
-
-  return "";
+  return "s3"; //assume s3 by default
 }
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 SharedPtr<CloudStorage> CloudStorage::createInstance(Url url)
 {
-
   auto type = guessType(url);
 
   if (type=="azure")
     return std::make_shared<AzureCloudStorage>(url);
 
-  else if (type=="gcs")
+  if (type=="gcs")
     return std::make_shared<GoogleDriveStorage>(url);
 
-  else if (type=="s3")
-    return std::make_shared<AmazonCloudStorage>(url);
-
-  else
-    return SharedPtr<CloudStorage>();
+  return std::make_shared<AmazonCloudStorage>(url);
 }
 
 

@@ -1,6 +1,10 @@
 
 add_subdirectory(Kernel)
 
+if (VISUS_IDX2)
+	set(IDX2_BUILD_LIB 1)
+	add_subdirectory(IDX2)
+endif()
 
 add_subdirectory(Db)
 

@@ -39,6 +39,7 @@ For support : support@visus.net
 #include <Visus/Db.h>
 #include <Visus/VisusConvert.h>
 #include <Visus/RamResource.h>
+#include <Visus/CloudStorage.h>
 
 #if VISUS_PYTHON
 #include <Visus/Python.h>
@@ -46,12 +47,94 @@ For support : support@visus.net
 
 using namespace Visus;
 
+/// /////////////////////////////////////////////////////////////////
+void TestCloudStorage(String connection_string)
+{
+	auto body_small = Utils::loadBinaryDocument("datasets/cat/gray.png");
+	VisusReleaseAssert(body_small);
+
+	//to check chunked download
+	auto body_big = std::make_shared<HeapMemory>();
+	VisusReleaseAssert(body_big->resize(256 * 1024,__FILE__,__LINE__));
+	for (int I = 0; I < body_big->c_size(); I++)
+		body_big->c_ptr()[I] = (Uint8)I;
+
+	srand((unsigned int)time(0));
+
+	StringMap metadata;
+	metadata.setValue("example-metadata1", "value1");
+	metadata.setValue("example-metadata2", "value2");
+
+	auto net = std::make_shared<NetService>(1);
+	auto cloud = CloudStorage::createInstance(connection_string);
+
+	srand((int)time(0));
+	auto path = Url(connection_string).getPath();
+
+	// if it does not exist, create it (NOTE: if it exists, I don't care)
+	String bucket = StringUtils::split(path, "/")[0];
+	bool bucket_created = cloud->addBucket(net, bucket).get() ? true : false;
+
+	VisusReleaseAssert(cloud->addBlob(net, CloudStorageItem::createBlob(path + "/small.png"        , body_small, metadata)).get());
+	VisusReleaseAssert(cloud->addBlob(net, CloudStorageItem::createBlob(path + "/dir1/dir2/big.bin", body_big  , metadata)).get());
+
+	auto goodMetadata=[](StringMap a, StringMap b) {
+		for (auto it : a)
+			if (it.second!=b.getValue(it.first))
+				return false;
+		return true;
+	};
+
+	{
+		auto blob = cloud->getBlob(net, path + "/small.png").get();
+		VisusReleaseAssert(HeapMemory::equals(blob->body, body_small));
+		VisusReleaseAssert(goodMetadata(metadata, blob->metadata));
+	}
+
+	{
+		auto blob = cloud->getBlob(net, path + "/dir1/dir2/big.bin").get();
+		VisusReleaseAssert(HeapMemory::equals(blob->body, body_big));
+		VisusReleaseAssert(goodMetadata(metadata, blob->metadata));
+	}
+
+	SharedPtr<CloudStorageItem> dir;
+
+	dir = cloud->getDir(net, path).get();
+	VisusReleaseAssert(dir->childs.size() == 2 && dir->hasChild(path + "/dir1") && dir->hasChild(path + "/small.png"));
+
+	dir = cloud->getDir(net, path + "/dir1").get();
+	VisusReleaseAssert(dir->childs.size() == 1 && dir->hasChild(path + "/dir1/dir2"));
+
+	dir = cloud->getDir(net, path + "/dir1/dir2").get();
+	VisusReleaseAssert(dir->childs.size()==1 && dir->hasChild(path + "/dir1/dir2/big.bin"));
+
+	VisusReleaseAssert(cloud->deleteBlob(net, path + "/small.png", Aborted()).get());
+	VisusReleaseAssert(cloud->deleteBlob(net, path + "/dir1/dir2/big.bin", Aborted()).get());
+
+	dir = cloud->getDir(net, path).get();
+	VisusReleaseAssert(dir->childs.size() == 0);
+
+	if (bucket_created)
+		cloud->deleteBucket(net, bucket).get();
+}
+
+
 //////////////////////////////////////////////////////////////////////////////
 int main(int argn, const char* argv[])
 {
   auto T1 = Time::now();
 
   SetCommandLine(argn, argv);
+
+	if (String(argv[1])=="test-cloud-storage")
+	{
+		//create a root access key (has full rights on your AWS resources) 
+		auto connection_string= argv[2];
+		DbModule::attach();
+		TestCloudStorage(connection_string);
+		DbModule::detach();
+		return 0;
+	}
 
 #if VISUS_PYTHON
   EmbeddedPythonInit();

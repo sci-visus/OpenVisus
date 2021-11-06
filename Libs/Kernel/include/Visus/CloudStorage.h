@@ -42,42 +42,88 @@ For support : support@visus.net
 #include <Visus/Kernel.h>
 #include <Visus/NetService.h>
 
+#include <vector>
+
 namespace Visus {
 
 
-
   ////////////////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API CloudStorageBlob
+class VISUS_KERNEL_API CloudStorageItem
 {
 public:
-  SharedPtr<HeapMemory> body;
-  StringMap metadata;
-  String content_type;
 
-  //constructor
-  CloudStorageBlob(SharedPtr<HeapMemory> body_ = SharedPtr<HeapMemory>(), StringMap metadata_ = StringMap(), String content_type_ = "application/octet-stream")
-    : metadata(metadata_), body(body_), content_type(content_type_) {
+  String                 fullname;
+  StringMap              metadata;
+  bool                   is_directory = false;
+
+  //is_directory==false
+  SharedPtr<HeapMemory>  body;
+
+  //is_directory==true
+  std::vector< SharedPtr<CloudStorageItem> > childs;
+
+  //costructor
+  CloudStorageItem() {
   }
 
   //valid
   bool valid() const {
-    return body ? true : false;
+    return !fullname.empty();
   }
 
-  //operator==
-  bool operator==(const CloudStorageBlob& b) const
-  {
-    const CloudStorageBlob& a = *this;
-    return
-      (a.content_type == b.content_type) &&
-      (a.metadata == b.metadata) &&
-      ((!a.body && !b.body) || (a.body && b.body && a.body->c_size() == b.body->c_size() && memcmp(a.body->c_ptr(), b.body->c_ptr(), (size_t)a.body->c_size()) == 0));
+  //constructor
+  static SharedPtr<CloudStorageItem> createBlob(String fullname, SharedPtr<HeapMemory> body = SharedPtr<HeapMemory>(), StringMap metadata = StringMap()) {
+    auto ret = std::make_shared<CloudStorageItem>();
+    ret->fullname = fullname;
+    ret->metadata = metadata;
+    ret->is_directory = false;
+    ret->body = body;
+    return ret;
   }
 
-  //operator==
-  bool operator!=(const CloudStorageBlob& b) const {
-    return !(operator==(b));
+  //constructor
+  static SharedPtr<CloudStorageItem> createDir(String fullname, StringMap metadata = StringMap()) {
+    auto ret = std::make_shared<CloudStorageItem>();
+    ret->fullname = fullname;
+    ret->metadata = metadata;
+    ret->is_directory = true;
+    return ret;
   }
+
+  //getContentLength
+  Int64 getContentLength() const {
+    return is_directory? 0 : (body? body->c_size() : cint64(metadata.getValue("Content-Length")));
+  }
+
+  //setContentLength
+  void setContentLength(Int64 value) {
+    metadata.setValue("Content-Length", cstring(value));
+  }
+
+  //getContentType
+  String getContentType() const {
+    return is_directory? "" : metadata.getValue("Content-Type", "application/octet-stream");
+  }
+
+  //setContentType
+  void setContentType(String value) {
+    metadata.setValue("Content-Type", value);
+  }
+
+  //findChild
+  SharedPtr<CloudStorageItem> findChild(String fullname) {
+    VisusAssert(is_directory);
+    for (auto child : childs)
+      if (child->fullname == fullname)
+        return child;
+    return SharedPtr<CloudStorageItem>();
+  }
+
+  //hasChild
+  bool hasChild(String fullname) {
+    return findChild(fullname) ? true : false;
+  }
+
 
 };
 
@@ -88,14 +134,6 @@ public:
 
   VISUS_CLASS(CloudStorage)
 
-  //Typical url syntax: <host>/<container_name>/<blob_name> 
-  //where for example:
-  //  <host>      = visus.blob.core.windows.net | visus.s3.amazonaws.com
-  //  <container> = 2kbit1
-  //  <blob>      = block0001.bin
-
-
-
   //constructor
   CloudStorage(){
   }
@@ -104,17 +142,39 @@ public:
   virtual ~CloudStorage() {
   }
 
-
-
   //possible return types: empty(i.e. invalid) azure gcs s3
   static String guessType(Url url);
 
   //createInstance
   static SharedPtr<CloudStorage> createInstance(Url url);
-  
-  //getBlob
-  virtual Future<CloudStorageBlob> getBlob(SharedPtr<NetService> service, String name, Aborted aborted = Aborted()) = 0;
 
+public:
+
+  //addBucket
+  virtual Future<bool> addBucket(SharedPtr<NetService> net, String bucket, Aborted aborted = Aborted()) = 0;
+
+  //deleteBucket
+  virtual Future<bool> deleteBucket(SharedPtr<NetService> net, String bucket, Aborted aborted = Aborted())=0;
+
+public:
+
+  //getDir
+  virtual Future< SharedPtr<CloudStorageItem> > getDir(SharedPtr<NetService> net, String fullname, Aborted aborted = Aborted()) {
+    ThrowException("not implemented");
+    return Promise< SharedPtr<CloudStorageItem> >().get_future();
+  }
+
+
+public:
+
+  //addBlob
+  virtual Future<bool> addBlob(SharedPtr<NetService> net, SharedPtr<CloudStorageItem> blob, Aborted aborted = Aborted())=0;
+
+  //getBlob
+  virtual Future< SharedPtr<CloudStorageItem> > getBlob(SharedPtr<NetService> net, String name, bool head=false, Aborted aborted = Aborted()) = 0;
+
+  // deleteBlob
+  virtual Future<bool> deleteBlob(SharedPtr<NetService> net, String name, Aborted aborted = Aborted()) = 0;
 
 };
 

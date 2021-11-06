@@ -27,7 +27,7 @@ from OpenVisus import *
 idx="D:/GoogleSci/visus_dataset/2kbit1/zip/rowmajor/visus.idx"
 layout="" # row major (!)
 acl='public-read'
-container_name="2kbit1"
+bucket="2kbit1"
 
 connect_str=os.getenv('AZURE_STORAGE_CONNECTION_STRING')
 client = BlobServiceClient.from_connection_string(connect_str)
@@ -40,14 +40,14 @@ def Main():
 	
 	# cannot delete/create in <30 seconds
 	try:
-		client.create_container(container_name)
-		print("Container",container_name,"created")
+		client.create_container(bucket)
+		print("Container",bucket,"created")
 	except ResourceExistsError:
 		pass
 
 	# Upload visus.idx:
 	try:
-		client.get_blob_client(container=container_name, blob="visus.idx").upload_blob(db.getDatasetBody().toString().encode())
+		client.get_blob_client(container=bucket, blob="visus.idx").upload_blob(db.getDatasetBody().toString().encode())
 	except ResourceExistsError:
 		pass
 	
@@ -71,7 +71,7 @@ def Main():
 		filename="{time}/{field}/{block:016x}".format(time=int(time),field=field.name, block=block_id)
 
 		try:
-			client.get_blob_client(container=container_name, blob=filename).upload_blob(body)
+			client.get_blob_client(container=bucket, blob=filename).upload_blob(body)
 		except ResourceExistsError:
 			pass
 			
@@ -89,13 +89,13 @@ if __name__ == '__main__':
 """
 To open the dataset in the viewer, add this to your visus.config:
 
-<dataset name='2kbit1 on Azure' url='https://<account>.blob.core.windows.net/<container_name>/visus.idx?access_key=xxxxyyyyzzz' >
+<dataset name='2kbit1 on Azure' url='https://<account>.blob.core.windows.net/<bucket>/visus.idx?access_key=xxxxyyyyzzz' >
 	<access type="CloudStorageAccess"
 		url='https://<account>.blob.core.windows.net?access_key=xxxxyyyyzzz' 
 		chmod="r"
 		compression="zip"
 		layout=""
-		filename_template="/<container_name>/${time}/${field}/${block}"
+		filename_template="/<bucket>/${time}/${field}/${block}"
 		reverse_filename="false" 
 	/>
 </dataset>
