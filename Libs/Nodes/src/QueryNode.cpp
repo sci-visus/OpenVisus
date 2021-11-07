@@ -60,6 +60,7 @@ public:
   Position                 logic_position;
   Frustum                  logic_to_screen;
   int                      quality;
+  double                   accuracy;
   int                      progression;
 
   bool                     verbose;
@@ -78,6 +79,7 @@ public:
     this->logic_position = node->getQueryLogicPosition();
     this->logic_to_screen = node->logicToScreen();
     this->quality = node->getQuality();
+    this->accuracy = node->getAccuracy();
     this->progression = node->getProgression();
     this->verbose = node->isVerbose();
     this->pdim = dataset->getPointDim();
@@ -94,14 +96,13 @@ public:
       endh = Utils::clamp(endh + quality, minh, maxh);
 
       auto query = dataset->createPointQuery(logic_position, field, time, this->aborted);
-
       query->end_resolutions.push_back(Utils::clamp(endh - progression, minh, maxh));
       while (query->end_resolutions.back() < endh)
       {
         auto H = Utils::clamp(query->end_resolutions.back() + pdim, minh, endh);
         query->end_resolutions.push_back(H);
       }
-
+      query->accuracy = this->accuracy;
       this->point_query = query;
     }
     else
@@ -119,6 +120,8 @@ public:
         {
           auto query = dataset->createBoxQuery(logic_box, field, time, 'r', this->aborted);
           query->end_resolutions = { endh };
+          query->accuracy = accuracy;
+
           dataset->beginBoxQuery(query);
           auto size = query->field.dtype.getByteSize(query->getNumberOfSamples());
           if (QueryNode::willFitOnGpu(size)) break;
@@ -128,6 +131,7 @@ public:
       }
 
       auto query = dataset->createBoxQuery(logic_box, field, time, 'r', this->aborted);
+      query->accuracy = this->accuracy;
       query->enableFilters();
       query->incrementalPublish = [&](Array output) {
         doPublish(output, query);
@@ -323,6 +327,14 @@ void QueryNode::execute(Archive& ar)
     return;
   }
 
+  if (ar.name == "SetAccuracy")
+  {
+    double value;
+    ar.read("value", value);
+    setAccuracy(value);
+    return;
+  }
+
   if (ar.name == "SetBounds")
   {
     Matrix T; BoxNd box;
@@ -498,6 +510,7 @@ void QueryNode::write(Archive& ar) const
   ar.write("view_dependent_enabled", view_dependent_enabled);
   ar.write("progression", progression);
   ar.write("quality", quality);
+  ar.write("accuracy", accuracy);
 
   ar.writeObject("node_bounds", node_bounds);
 
@@ -514,6 +527,7 @@ void QueryNode::read(Archive& ar)
   ar.read("view_dependent_enabled", view_dependent_enabled);
   ar.read("progression", progression);
   ar.read("quality", quality);
+  ar.read("accuracy", accuracy);
 
   ar.readObject("node_bounds", node_bounds);
 

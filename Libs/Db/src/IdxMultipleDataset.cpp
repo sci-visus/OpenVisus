@@ -159,8 +159,6 @@ String IdxMultipleDataset::getInputName(String dataset_name, String fieldname)
 };
 
 
-
-
 /////////////////////////////////////////////////////////////////////////////////////
 Array IdxMultipleDataset::executeDownQuery(BoxQuery* QUERY, SharedPtr<Access> ACCESS, String dataset_name, String fieldname)
 {
@@ -207,6 +205,7 @@ Array IdxMultipleDataset::executeDownQuery(BoxQuery* QUERY, SharedPtr<Access> AC
   {
     query = dataset->createBoxQuery(query_logic_box, field, QUERY->time, 'r', QUERY->aborted);
     QUERY->down_queries[key] = query;
+    query->accuracy = QUERY->accuracy;
 
     //resolutions
     if (!QUERY->start_resolution)

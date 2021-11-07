@@ -177,7 +177,7 @@ public:
   }
 
   //fillParams
-  LogicSamples fillParams(params& P, SharedPtr<BoxQuery> query, int H,double accuracy=0.01)
+  LogicSamples fillParams(params& P, SharedPtr<BoxQuery> query, int H)
   {
     auto MaxH = getMaxResolution();
 
@@ -237,7 +237,7 @@ public:
     P.InDir = this->idx2_dir.c_str();     //keep in memory
 
     //todo
-    P.DecodeAccuracy = accuracy;
+    P.DecodeAccuracy = query->accuracy;
 
     /* swap bit 3 and 4 */
     auto Mask = P.DecodeMask;
@@ -269,6 +269,7 @@ public:
     PrintInfo("logic_box", query->logic_box);
     PrintInfo("H", H, "MaxH", MaxH, "Level", (int)P.OutputLevel, "Mask", (int)Mask);
     PrintInfo("from", Cast(from), "Dims", Cast(dims), "stride", Cast(strd));
+    PrintInfo("Accuracy", P.DecodeAccuracy);
 
 		auto logic_samples = LogicSamples(BoxNi(Cast(from), Cast(from + dims * strd)), Cast(strd));
     VisusReleaseAssert(logic_samples.logic_box.p1 == Cast(from));
@@ -519,9 +520,8 @@ public:
       addField(field);
 #endif
 
-
     setDatasetBody(ar);
-
+    setDefaultAccuracy(0.01);
   }
 
 private:

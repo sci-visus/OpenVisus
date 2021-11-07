@@ -87,6 +87,7 @@ public:
     progression;
 
     QSlider* quality=nullptr;
+    QDoubleSlider* accuracy = nullptr;
     
     // Export
     QSlider* end_resolution = nullptr;
@@ -167,6 +168,11 @@ public:
         this->model->setQuality((QueryQuality)value);
       }));
 
+      //accuracy
+      layout->addRow("Accuracy", widgets.accuracy = GuiFactory::CreateDoubleSliderWidget(model->getAccuracy(), Range(0.0, 1.0, 0.0), [this](double value) {
+        this->model->setAccuracy(value);
+        }));
+
       //access
       {
         std::map<int,String> access_options;
@@ -216,6 +222,7 @@ private:
     auto query = dataset->createBoxQuery(node->getQueryLogicPosition().toDiscreteAxisAlignedBox(), node->getField(), node->getTime(), 'r');
     query->enableFilters();
     query->setResolutionRange(0, end_resolution);
+    query->accuracy = dataset->getDefaultAccuracy();
     return query;
   }
 
@@ -369,6 +376,7 @@ private:
     }
 
     widgets.quality->setValue(model->getQuality());
+    widgets.accuracy->setValue(model->getAccuracy());
   }
 
   //modelChanged

@@ -128,6 +128,16 @@ public:
     setProperty("SetQuality", this->quality, value);
   }
 
+  //getAccuracy
+  double getAccuracy() const {
+    return accuracy;
+  }
+
+  //setQuality
+  void setAccuracy(double value) {
+    setProperty("SetAccuracy", this->accuracy, value);
+  }
+
   //getBounds
   virtual Position getBounds() override {
     return node_bounds;
@@ -207,6 +217,7 @@ private:
   int                progression = QueryGuessProgression;
   int                quality = QueryDefaultQuality;
   Position           node_bounds = Position::invalid();
+  double             accuracy = 0.0; //for idx2
 
   //run time derived properties
   Frustum            node_to_screen;

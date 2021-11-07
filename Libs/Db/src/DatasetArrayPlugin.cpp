@@ -53,6 +53,7 @@ public:
   Field         field;
   int           fromh;
   int           toh;
+  double        accuracy = 0.0;
   bool          bDisableFilters=false;
 
   //constructor
@@ -62,6 +63,7 @@ public:
     this->field          = dataset->getField();
     this->fromh          = 0; //default is max resolution
     this->toh            = dataset->getMaxResolution();
+    this->accuracy       = dataset->getDefaultAccuracy();
   }
 
   //exec
@@ -105,6 +107,10 @@ public:
       else if (args[I]=="--disable-filters")
       {
         bDisableFilters=true;
+      }
+      else if (args[I] == "--accuracy")
+      {
+        accuracy = cdouble(args[++I]);
       }
     }
 
@@ -160,6 +166,7 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
 
   auto query=dataset->createBoxQuery(args.box, args.field, args.time,'r');
   query->setResolutionRange(args.fromh, args.toh);
+  query->accuracy= args.accuracy;
 
   if (args.bDisableFilters)
   {
@@ -218,6 +225,7 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
 
   auto query=dataset->createBoxQuery(args.box, args.field, args.time,'w');
   query->setResolutionRange(args.fromh,args.toh);
+  query->accuracy = args.accuracy;
 
   dataset->beginBoxQuery(query);
 
