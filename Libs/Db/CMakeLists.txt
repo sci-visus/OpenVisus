@@ -30,7 +30,7 @@ target_compile_definitions(VisusDb  PRIVATE VISUS_BUILDING_VISUSDB=1)
 
 if (VISUS_IDX2)
 	target_compile_definitions(VisusDb PUBLIC VISUS_IDX2=1)
-	target_link_libraries(VisusDb PUBLIC VisusIdx2)
+	target_link_libraries(VisusDb PUBLIC idx2_lib)
 endif()
 
 target_include_directories(VisusDb  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
