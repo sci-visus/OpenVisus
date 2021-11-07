@@ -39,6 +39,9 @@ For support : support@visus.net
 #ifndef __VISUS_DB_IDX_DATASET2_H
 #define __VISUS_DB_IDX_DATASET2_H
 
+
+#if VISUS_IDX2
+
 #include <Visus/Db.h>
 #include <Visus/Dataset.h>
 #include <Visus/IdxFile.h>
@@ -49,10 +52,8 @@ For support : support@visus.net
 //TODO: cannot expose here
 using namespace idx2;
 
-
 namespace Visus {
 
-#if VISUS_IDX2
 
 //////////////////////////////////////////////////////////////////////
 class VISUS_DB_API IdxDiskAccess2 : public Access
@@ -539,10 +540,11 @@ private:
 
 };
 
-#endif
 
 } //namespace Visus
 
 
 #endif //__VISUS_DB_IDX_DATASET2_H
 
+
+#endif //VISUS_IDX2
