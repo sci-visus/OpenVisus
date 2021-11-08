@@ -656,6 +656,11 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
   if (!dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
 
+
+  double accuracy = request.url.hasParam("accuracy")? 
+    cdouble(request.url.getParam("accuracy")) :
+      dataset->getDefaultAccuracy();
+
   int pdim = dataset->getPointDim();
 
   String fieldname = request.url.getParam("field");
@@ -765,6 +770,11 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
   if (!dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
 
+
+  auto accuracy = request.url.hasParam("accuracy") ?
+    cdouble(request.url.getParam("accuracy")) :
+    dataset->getDefaultAccuracy();
+
   int pdim = dataset->getPointDim();
 
   String fieldname = request.url.getParam("field");
@@ -787,6 +797,7 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
 
   auto query = dataset->createPointQuery(logic_position, field, time);
   query->end_resolutions = { endh };
+  query->accuracy = accuracy;
 
   dataset->beginPointQuery(query);
 

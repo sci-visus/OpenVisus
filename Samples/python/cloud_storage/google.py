@@ -103,6 +103,9 @@ curl \
 
 refresh_token="wwwww"
 
+THis is your connection string:
+echo "https://storage.googleapis.com?client_id=${client_id}&client_secret=${client_secret}&refresh_token=${refresh_token}"
+
 To open the dataset in the viewer, add this to your visus.config:
 
 bucket_name="2kbit1"

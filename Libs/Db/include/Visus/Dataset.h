@@ -233,6 +233,16 @@ public:
     return bitmask.getMaxResolution();
   }
 
+  //getDefaultAccuracy
+  double getDefaultAccuracy() const {
+    return this->default_accuracy;
+  }
+
+  //setDefaultAccuracy
+  void setDefaultAccuracy(double value) {
+    this->default_accuracy = value;
+  }
+
   //getTotalNumberOfBlocks
   BigInt getTotalNumberOfBlocks() const {
     return (((BigInt)1) << getMaxResolution()) / (((Int64)1) << getDefaultBitsPerBlock());
@@ -522,6 +532,7 @@ protected:
   bool                    bServerMode = false;
   int                     default_bitsperblock = 0;
   bool                    missing_blocks = false;
+  double                  default_accuracy = 0.0; //for idx2
 
 };
 

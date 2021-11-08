@@ -30,8 +30,13 @@ macro(DetectAndSetupCompiler)
 	endif()
 
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-	set(CMAKE_CXX_STANDARD              11)
 	set(CMAKE_CXX_STANDARD_REQUIRED     ON)
+	
+	if (VISUS_IDX2)
+		set(CMAKE_CXX_STANDARD 17)
+	else()
+		set(CMAKE_CXX_STANDARD 11)
+	endif()
 	
 	#minimum support is Vista
 	if (MINGW)
@@ -166,6 +171,7 @@ option(VISUS_OSPRAY       "Enable VISUS_OSPRAY"    ${VISUS_DEFAULT_OSPRAY})
 option(VISUS_MODVISUS     "Enable VISUS_MODVISUS"  OFF)
 option(VISUS_HDF5         "Enable VISUS_HDF5"      OFF)
 option(VISUS_WEAVING      "Enable VISUS_WEAVING"   OFF)
+option(VISUS_IDX2         "Enable VISUS_IDX2"      OFF)
 
 if (VISUS_MINIMAL)
 	SET(BUILD_SHARED_LIBS OFF CACHE BOOL "disabled" FORCE)
@@ -179,6 +185,7 @@ if (VISUS_MINIMAL)
 	SET(VISUS_OSPRAY      OFF CACHE BOOL "disabled" FORCE)
 	SET(VISUS_HDF5        OFF CACHE BOOL "disabled" FORCE)
 	SET(VISUS_WEAVING     OFF CACHE BOOL "disabled" FORCE)
+	SET(VISUS_IDX2        OFF CACHE BOOL "disabled" FORCE)
 endif()
 	
 MESSAGE(STATUS "BUILD_SHARED_LIBS  ${BUILD_SHARED_LIBS}")
@@ -192,6 +199,7 @@ MESSAGE(STATUS "VISUS_SLAM         ${VISUS_SLAM}")
 MESSAGE(STATUS "VISUS_OSPRAY       ${VISUS_OSPRAY}")
 MESSAGE(STATUS "VISUS_HDF5         ${VISUS_HDF5}")
 MESSAGE(STATUS "VISUS_WEAVING      ${VISUS_WEAVING}")
+MESSAGE(STATUS "VISUS_IDX2         ${VISUS_IDX2}")
 
 # to call after the configuration 
 DetectAndSetupCompiler()

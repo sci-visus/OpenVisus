@@ -89,7 +89,7 @@ public:
   //in case there is time
   String time_template;
 
-  //missing_blocks
+  //missing_blocks (i.e. some fine blocks could be missing and we need first to interpolate the coarse resolutions, and the insert the fine samples if they exists)
   bool missing_blocks = false;
 
   //allows other metadata 

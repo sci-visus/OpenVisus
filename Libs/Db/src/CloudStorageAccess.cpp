@@ -100,20 +100,17 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 
   auto blob_name = Access::getFilename(query);
 
-  cloud_storage->getBlob(netservice, blob_name, query->aborted).when_ready([this, query](CloudStorageBlob blob) {
+  cloud_storage->getBlob(netservice, blob_name, /*head*/false, query->aborted).when_ready([this, query](SharedPtr<CloudStorageItem> blob) {
 
-    blob.metadata.setValue("visus-compression", this->compression);
-    blob.metadata.setValue("visus-dtype", query->field.dtype.toString());
-    blob.metadata.setValue("visus-nsamples", query->getNumberOfSamples().toString());
-    blob.metadata.setValue("visus-layout", this->layout);
+    if (!blob || !blob->valid())
+      return readFailed(query, query->aborted()? "query aborted" : "blob not valid");
 
-    if (query->aborted())
-      return readFailed(query, "query aborted");
+    blob->metadata.setValue("visus-compression", this->compression);
+    blob->metadata.setValue("visus-dtype", query->field.dtype.toString());
+    blob->metadata.setValue("visus-nsamples", query->getNumberOfSamples().toString());
+    blob->metadata.setValue("visus-layout", this->layout);
 
-    if (!blob.valid())
-      return readFailed(query, "blob not valid");
-
-    auto decoded = ArrayUtils::decodeArray(blob.metadata, blob.body);
+    auto decoded = ArrayUtils::decodeArray(blob->metadata, blob->body);
     if (!decoded.valid())
       return readFailed(query, "cannot decode array");
 

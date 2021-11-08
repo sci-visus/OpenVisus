@@ -146,7 +146,7 @@ public:
     return end_resolution;
   }
 
-  //setBoxQueryEndResolution
+  //setResolutionRange
   void setResolutionRange(int A,int B) {
     this->start_resolution = A;
     this->end_resolutions = { B };

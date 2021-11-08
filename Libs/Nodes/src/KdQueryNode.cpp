@@ -60,6 +60,7 @@ public:
   double                        time = 0;
   Frustum                       logic_to_screen;
   Position                      logic_position;
+  double                        accuracy = 0; //for idx2
 
   bool                          verbose = false;
   int                           kdquery_mode =KdQueryMode::NotSpecified;
@@ -121,6 +122,7 @@ public:
     //I use a box query to get the first data
     auto query=dataset->createBoxQuery(pow2_box, field, time,'r', this->aborted);
     query->setResolutionRange(0,end_resolution);
+    query->accuracy = this->accuracy;
     dataset->beginBoxQuery(query);
 
     if (!dataset->executeBoxQuery(access,query))
@@ -203,6 +205,7 @@ public:
 
     auto query = dataset->createBoxQuery(node->logic_box, field, time, 'r', this->aborted);
     query->setResolutionRange(0, node->resolution);
+    query->accuracy = this->accuracy;
 
     if (aborted())
       return;
@@ -319,6 +322,8 @@ public:
     {
       auto query = dataset->createBoxQuery(node->logic_box, field, time, 'r');
       query->setResolutionRange(0, node->resolution);
+      query->accuracy = accuracy;
+
       dataset->beginBoxQuery(query);
       nsamples = query->getNumberOfSamples();
       nsamples.setPointDim(3, 1);
@@ -419,6 +424,8 @@ public:
 
         auto query = dataset->createBoxQuery(node->logic_box, field, time, 'r', this->aborted);
         query->setResolutionRange(0, node->resolution);
+        query->accuracy = accuracy;
+
         dataset->beginBoxQuery(query);
         if (!query->isRunning() || !query->allocateBufferIfNeeded())
           continue;
@@ -593,6 +600,7 @@ bool KdQueryNode::processInput()
   job->maxh = dataset->getMaxResolution();
   job->pdim = dataset->getPointDim();
   job->bitmask= dataset->getBitmask();
+  job->accuracy = this->getAccuracy();
 
   //need write lock here
   {

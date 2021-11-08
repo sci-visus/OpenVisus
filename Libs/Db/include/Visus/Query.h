@@ -65,6 +65,7 @@ public:
   int          mode = 0;
   Field        field;
   double       time = 0;
+  double       accuracy = 0.0; //for idx2
   Aborted      aborted;
 
   Array        buffer;

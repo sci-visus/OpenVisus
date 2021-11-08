@@ -97,6 +97,7 @@ void MinimalDataset::writeData(MinimalAccess* access_, int x1, int y1, int z1, i
   auto access= *static_cast<SharedPtr<Access>*>(access_->pimpl);
   auto box = BoxNi(PointNi(x1, y1, z1), PointNi(x2, y2, z2));
   std::shared_ptr<BoxQuery> query = dataset->createBoxQuery(box, 'w');
+  query->accuracy = dataset->getDefaultAccuracy();
   dataset->beginBoxQuery(query);
   VisusReleaseAssert(query->isRunning());
   VisusReleaseAssert(buffer_size == query->field.dtype.getByteSize(box.size()));
@@ -112,6 +113,7 @@ void MinimalDataset::readData(MinimalAccess* access_, int x1, int y1, int z1, in
   auto access = *static_cast<SharedPtr<Access>*>(access_->pimpl);
   auto box = BoxNi(PointNi(x1, y1, z1), PointNi(x2, y2, z2));
   std::shared_ptr<BoxQuery> query = dataset->createBoxQuery(box, 'r');
+  query->accuracy = dataset->getDefaultAccuracy();
   dataset->beginBoxQuery(query);
   VisusReleaseAssert(query->isRunning());
   VisusReleaseAssert(buffer_size == query->field.dtype.getByteSize(box.size()));

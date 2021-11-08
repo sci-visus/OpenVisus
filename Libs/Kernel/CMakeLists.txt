@@ -174,7 +174,8 @@ file(GLOB Sources
 	${zfp_Sources} 
 	${zlib_Sources})
 
-add_library(VisusKernel ${Sources})
+
+add_library(VisusKernel ${VISUS_LIBRARY_TYPE} ${Sources})
 
 if (NOT BUILD_SHARED_LIBS)
 	target_compile_options(VisusKernel PUBLIC -DVISUS_STATIC_LIB=1)

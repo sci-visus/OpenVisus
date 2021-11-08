@@ -52,61 +52,135 @@ public:
   //constructor
   AzureCloudStorage(Url url)
   {
-    this->access_key = url.getParam("access_key");
-    VisusAssert(!access_key.empty());
-    this->access_key = StringUtils::base64Decode(access_key);
+    this->access_key = url.getParam("access_key"); 
 
+    //NOTE: what you copied from the azure gui is 64 encoded (in fact terminates with ==)
+    if (!this->access_key.empty())
+      this->access_key = StringUtils::base64Decode(access_key);
+
+    //https://openvisus.blob.core.windows.net/2kbit1/visus.idx?access_key=XXXXXXXX
     this->account_name = StringUtils::split(url.getHostname(),".")[0];
 
-    this->url = url.getProtocol() + "://" + url.getHostname();
+    this->protocol = url.getProtocol();
+    this->hostname= url.getHostname();
   }
 
   //destructor
   virtual ~AzureCloudStorage() {
   }
 
-  // getBlob 
-  virtual Future<CloudStorageBlob> getBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
+  //setContainer
+  virtual Future<bool> addBucket(SharedPtr<NetService> net, String bucket, Aborted aborted = Aborted()) override
   {
-    auto ret = Promise<CloudStorageBlob>().get_future();
+    VisusAssert(!StringUtils::contains(bucket, "/"));
 
-    NetRequest request(this->url.toString() + blob_name, "GET");
+    auto ret = Promise<bool>().get_future();
+
+    NetRequest request(this->protocol + "://" + this->hostname + "/" + bucket, "PUT");
     request.aborted = aborted;
+    request.url.params.setValue("restype", "container");
+    request.setContentLength(0);
+    //request.setHeader("x-ms-prop-publicaccess", "container"); IF YOU WANT PUBLIC (NOTSUR! TOCHECK)
+    signRequest(request);
 
-    if (!access_key.empty())
-      signRequest(request);
+    NetService::push(net, request).when_ready([this, ret, bucket](NetResponse response) {
+      bool bOk = response.isSuccessful();
+      ret.get_promise()->set_value(bOk);
+    });
 
-    NetService::push(service, request).when_ready([ret](NetResponse response) {
+    return ret;
+  }
 
-      if (!response.isSuccessful())
+  // deleteBucket
+  virtual Future<bool> deleteBucket(SharedPtr<NetService> net, String bucket, Aborted aborted = Aborted()) override
+  {
+    VisusAssert(!StringUtils::contains(bucket, "/"));
+    NetRequest request(this->protocol + "://" + this->hostname + "/" + bucket, "DELETE");
+    request.aborted = aborted;
+    request.url.params.setValue("restype", "container");
+    signRequest(request);
+
+    auto ret = Promise<bool>().get_future();
+
+    NetService::push(net, request).when_ready([this, bucket, ret](NetResponse response) {
+      ret.get_promise()->set_value(response.isSuccessful());
+    });
+
+    return ret;
+  }
+
+  // addBlob
+  virtual Future<bool> addBlob(SharedPtr<NetService> net, SharedPtr<CloudStorageItem> blob, Aborted aborted = Aborted()) override
+  {
+    auto ret = Promise<bool>().get_future();
+
+    NetRequest request(this->protocol + "://" + this->hostname + blob->fullname, "PUT");
+    request.aborted = aborted;
+    request.body = blob->body;
+    request.setHeader("x-ms-blob-type", "BlockBlob");
+    request.setContentLength(blob->getContentLength());
+    request.setContentType(blob->getContentType());
+
+    for (auto it : blob->metadata)
+    {
+      auto name = it.first;
+      auto value = it.second;
+
+      //name must be a C# variable name, hopefully the original metadata does not contain any '_'
+      VisusAssert(!StringUtils::contains(name, "_"));
+      if (StringUtils::contains(name, "-"))
+        name = StringUtils::replaceAll(name, "-", "_");
+
+      request.setHeader(METATATA_PREFIX + name, value);
+    }
+
+    signRequest(request);
+
+    NetService::push(net, request).when_ready([ret](NetResponse response) {
+      ret.get_promise()->set_value(response.isSuccessful());
+    });
+
+    return ret;
+  }
+
+  // getBlob 
+  virtual Future< SharedPtr<CloudStorageItem> > getBlob(SharedPtr<NetService> net, String fullname, bool head=false, Aborted aborted = Aborted()) override
+  {
+    auto ret = Promise< SharedPtr<CloudStorageItem> >().get_future();
+
+    NetRequest request(this->protocol + "://" + this->hostname + fullname, head? "HEAD" : "GET");
+    request.aborted = aborted;
+    signRequest(request);
+
+    NetService::push(net, request).when_ready([ret, this, fullname](NetResponse response) {
+
+      SharedPtr<CloudStorageItem> blob;
+
+      if (response.isSuccessful())
       {
-        ret.get_promise()->set_value(CloudStorageBlob());
-        return;
-      }
+        blob = CloudStorageItem::createBlob(fullname);
 
-      //parse metadata
-      CloudStorageBlob blob;
-      String metatata_prefix = "x-ms-meta-";
-      for (auto it = response.headers.begin(); it != response.headers.end(); it++)
-      {
-        String name = it->first;
-        if (StringUtils::startsWith(name, metatata_prefix))
+        //parse metadata
+        for (auto it = response.headers.begin(); it != response.headers.end(); it++)
         {
-          name = name.substr(metatata_prefix.length());
+          String name = it->first;
+          if (StringUtils::startsWith(name, METATATA_PREFIX))
+            name = name.substr(METATATA_PREFIX.length());
 
-          //trick: azure does not allow the "-" 
+          //see "addBlob" and problems with metadata names
           if (StringUtils::contains(name, "_"))
             name = StringUtils::replaceAll(name, "_", "-");
 
-          blob.metadata.setValue(name, it->second);
+          blob->metadata.setValue(name, it->second);
         }
+
+        blob->body = response.body;
+        blob->setContentType(response.getContentType());
+        blob->setContentLength(response.getContentLength());
+
+        if (!blob->getContentLength())
+          blob.reset();
       }
-
-      blob.body = response.body;
-
-      auto content_type = response.getContentType();
-      if (!content_type.empty())
-        blob.content_type = content_type;
 
       ret.get_promise()->set_value(blob);
     });
@@ -114,17 +188,46 @@ public:
     return ret;
   }
 
+  // deleteBlob
+  virtual Future<bool> deleteBlob(SharedPtr<NetService> net, String fullname, Aborted aborted) override
+  {
+    auto ret = Promise<bool>().get_future();
+
+    NetRequest request(this->protocol + "://" + this->hostname + fullname, "DELETE");
+    request.aborted = aborted;
+    signRequest(request);
+
+    NetService::push(net, request).when_ready([ret](NetResponse response) {
+      ret.get_promise()->set_value(response.isSuccessful());
+    });
+
+    return ret;
+  }
+
+  // getDir 
+  virtual Future< SharedPtr<CloudStorageItem> > getDir(SharedPtr<NetService> net, String fullname, Aborted aborted = Aborted()) override
+  {
+    Future< SharedPtr<CloudStorageItem> > future = Promise< SharedPtr<CloudStorageItem> >().get_future();
+    auto ret = CloudStorageItem::createDir(fullname);
+    getDir(net, future, ret, fullname, /*marker*/"", aborted);
+    return future;
+  }
+
 private:
 
-  Url    url;
+  const String METATATA_PREFIX = "x-ms-meta-";
+
+  String protocol;
+  String hostname;
   String account_name;
   String access_key;
-
-  String container;
 
   //signRequest
   void signRequest(NetRequest& request)
   {
+    if (access_key.empty())
+      return;
+
     String canonicalized_resource = "/" + this->account_name + request.url.getPath();
 
     if (!request.url.params.empty())
@@ -183,10 +286,116 @@ private:
     //and compare what azure is signing from what you are using
     //PrintInfo(signature);
 
-    signature = StringUtils::base64Encode(StringUtils::hmac_sha256(signature, this->access_key));
+    signature = StringUtils::base64Encode(StringUtils::hmac_sha256(signature, access_key));
 
     request.setHeader("Authorization", "SharedKey " + account_name + ":" + signature);
   }
+
+
+  // getDir 
+  // see https://docs.microsoft.com/en-us/rest/api/storageservices/list-blobs
+  void getDir(SharedPtr<NetService> net, Future< SharedPtr<CloudStorageItem> > future, SharedPtr<CloudStorageItem> ret, String fullname, String marker, Aborted aborted = Aborted())
+  {
+    VisusReleaseAssert(fullname[0] == '/');
+
+    fullname = StringUtils::rtrim(fullname);
+
+    auto v = StringUtils::split(fullname, "/");
+    auto bucket = v[0];
+    auto prefix = StringUtils::join(std::vector<String>(v.begin() + 1, v.end()), "/") + "/";
+
+    NetRequest request(this->protocol + "://" + this->hostname + "/" + bucket, "GET");
+    request.aborted = aborted;
+
+    //
+    request.url.setParam("restype","container");
+    request.url.setParam("comp", "list");
+
+    //not the top level of the bucket
+    if (prefix != "/")
+      request.url.setParam("prefix", prefix);
+
+    // don't go to the next level
+    request.url.setParam("delimiter", "/"); 
+
+    if (!marker.empty())
+      request.url.setParam("marker", marker);
+
+    request.aborted = aborted;
+    signRequest(request);
+
+    NetService::push(net, request).when_ready([this, net, request, future, bucket, ret, fullname, aborted](NetResponse response)
+      {
+        if (!response.isSuccessful())
+        {
+          future.get_promise()->set_value(SharedPtr<CloudStorageItem>());
+          return;
+        }
+        
+        auto body=response.getTextBody();
+
+        //I know it's crazy but I have some spurious character at the beginning
+        //it seems the NetService/curl is doing the right thing so I am using this workaround
+
+        body = body.substr(StringUtils::find(body, "<?"));
+        StringTree tree = StringTree::fromString(body);
+        //PrintInfo("***\n",body,"\n***");
+        //PrintInfo(tree.toString());
+
+        //TODO: metadata for directory? am I interested?
+
+        auto blobs = tree.getChild("Blobs");
+        if (!blobs)
+        {
+          future.get_promise()->set_value(SharedPtr<CloudStorageItem>());
+          return;
+        }
+
+        //blobs
+        for (auto it : blobs->getChilds())
+        {
+          if (it->name == "Blob")
+          {
+            auto blob = CloudStorageItem::createBlob("/" + bucket + "/" + it->getChild("Name")->readTextInline());
+
+            auto properties = it->getChild("Properties");
+
+            blob->metadata.setValue("ETag", properties->getChild("Etag" /*t , not T*/)->readTextInline());
+            blob->metadata.setValue("Creation-Time", properties->getChild("Creation-Time")->readTextInline());
+            blob->metadata.setValue("Last-Modified", properties->getChild("Last-Modified")->readTextInline());
+            blob->metadata.setValue("Content-Length", properties->getChild("Content-Length")->readTextInline());
+            blob->metadata.setValue("Content-Type", properties->getChild("Content-Type")->readTextInline());
+            ret->childs.push_back(blob);
+
+          }
+          else if (it->name == "BlobPrefix")
+          {
+            String Prefix= it->getChild("Name")->readTextInline();
+            VisusReleaseAssert(StringUtils::endsWith(Prefix, "/"));
+            Prefix = Prefix.substr(0, Prefix.size() - 1); //remove last '/'
+
+            auto item = CloudStorageItem::createDir("/" + bucket + "/" + Prefix);
+            ret->childs.push_back(item);
+          }
+        }
+
+        auto marker = StringUtils::trim(tree.getChild("NextMarker")->readTextInline());
+        if (!marker.empty())
+        {
+          getDir(net, future, ret, fullname, marker, aborted);
+        }
+        else
+        {
+          //finished
+          if (ret->childs.empty())
+            future.get_promise()->set_value(SharedPtr<CloudStorageItem>());
+          else
+            future.get_promise()->set_value(ret);
+        }
+      });
+  }
+
+
 
 };
 
