@@ -30,21 +30,26 @@ curl https://atlantis.sci.utah.edu/mod_visus?action=list
 visusviewer https://atlantis.sci.utah.edu/mod_visus?dataset=arecibo1
 ```
 
-# Run mod_visus in Docker
+# Preamble:
 
-Login to atlantis.
-
-Run the Docker OpenVisus server:
+Run in the console:
 
 ```
 cd /home/sci/scrgiorgio/atlantis-docker
 
-# important the `:shared` for the NFS mounts otherwise you will get Docker "Too many levels of symbolic links" error message
-# NOTE: -d is for `detach`
-# NOTE: --restart should cover crashes, not sure about Atlantis reboot (TOCHECK!)
-# NOTE: I am exposing either HTTP and HTTPS ports
 CONTAINER_NAME=atlantis-docker-1
-TAG=2.1.158
+
+# !!! change as needed !!!!
+# see https://hub.docker.com/r/visus/mod_visus/tags
+TAG=2.1.166
+```
+
+# Run mod_visus
+
+
+Run the Docker OpenVisus server. 
+
+```
 sudo docker stop $CONTAINER_NAME || true
 sudo docker rm   $CONTAINER_NAME || true
 sudo docker run \
@@ -57,8 +62,43 @@ sudo docker run \
     -v /usr/sci/cedmav:/usr/sci/cedmav:shared \
     -v /usr/sci/brain:/usr/sci/brain:shared   \
    --restart unless-stopped --name $CONTAINER_NAME -d visus/mod_visus:$TAG
+```
 
-# (OPTIONAL) if you want to run httpd-foreground manually
+Please note:
+- `:shared`   for the NFS mounts otherwise you will get Docker "Too many levels of symbolic links" error message
+- `-d`        is for `detach`
+- `--restart` should cover crashes, not sure about Atlantis reboot
+
+
+# Test mod_visus
+
+Using HTTP:
+
+```
+curl http://atlantis.sci.utah.edu/mod_visus?action=list
+```
+
+Using HTTPS:
+
+```
+curl https://atlantis.sci.utah.edu/mod_visus?action=list
+```
+ 
+If you need to copy some files from a container:
+
+```
+sudo docker run --name temp visus/mod_visus:$TAG /bin/true
+sudo docker cp temp:/usr/local/apache2/conf/extra/httpd-ssl.conf ./httpd-ssl.conf
+sudo docker rm temp
+sudo docker run --rm --mount type=bind,source=$PWD/httpd-ssl.conf,target=/tmp/httpd-ssl.conf ubuntu chown $UID /tmp/httpd-ssl.conf
+```
+
+
+# Debug mod_visus
+
+if you want to run httpd-foreground manually:
+
+```
 sudo docker run \
    --publish 80:80  \
    --publish 443:443 \
@@ -69,63 +109,52 @@ sudo docker run \
     -v /usr/sci/cedmav:/usr/sci/cedmav:shared \
     -v /usr/sci/brain:/usr/sci/brain:shared   \
    --rm -it visus/mod_visus:$TAG /bin/bash
+```
    
-   
-# (OPTIONAL) if you want to enter in the container
-sudo docker exec -it $CONTAINER_NAME /bin/bash
+If you want to enter in the container:
 
-# (OPTIONAL) to inspect the logs
+```
+sudo docker exec -it $CONTAINER_NAME /bin/bash
+```
+
+To inspect the logs:
+
+```
 sudo docker logs --follow $CONTAINER_NAME
 ```
 
 
-Test it from another terminal:
+# Generate/Renew CA certificates
+
+See https://letsencrypt.org/docs/integration-guide/
+
 
 ```
-# HTTP
-curl http://atlantis.sci.utah.edu/mod_visus?action=list
+# copy old certificates just to be sure
+mkdir -p certbot.backup
+cp -r certbot certbot.backup/$(date +"%m_%d_%Y")
 
+# I need port 80 and 443 to stop
+sudo docker stop $CONTAINER_NAME || true
+sudo docker rm   $CONTAINER_NAME || true
 
-# HTTPS
-curl https://atlantis.sci.utah.edu/mod_visus?action=list
-```
- 
-
-(OPTIONAL) Example for developers. If you need to copy some files from a container:
-
-```
-sudo docker run --name temp visus/mod_visus:$TAG /bin/true
-sudo docker cp temp:/usr/local/apache2/conf/extra/httpd-ssl.conf ./httpd-ssl.conf
-sudo docker rm temp
-sudo docker run --rm --mount type=bind,source=$PWD/httpd-ssl.conf,target=/tmp/httpd-ssl.conf ubuntu chown $UID /tmp/httpd-ssl.conf
-
-```
-
-# Generate new CA certificates
-
-This is what I did:
-
-```
-# generate certificates
 # see https://certbot.eff.org/docs/install.html#running-with-docker
 sudo docker run -it --rm --name certbot \
-   -v "$HOME/.certbot/etc/letsencrypt:/etc/letsencrypt" \
-   -v "$HOME/.certbot/var/lib/letsencrypt:/var/lib/letsencrypt" \
+   -v "$PWD/certbot/etc/letsencrypt:/etc/letsencrypt" \
+   -v "$PWD/certbot/var/lib/letsencrypt:/var/lib/letsencrypt" \
     -p 80:80 \
     -p 443:443 \
    certbot/certbot certonly --standalone -m scrgiorgio@gmail.com -n --agree-tos -d atlantis.sci.utah.edu 
 
 # fix file permissions
 sudo docker run\
-   -v "$HOME/.certbot/etc/letsencrypt:/etc/letsencrypt" \
-   -v "$HOME/.certbot/var/lib/letsencrypt:/var/lib/letsencrypt" \
+   -v "$PWD/certbot/etc/letsencrypt:/etc/letsencrypt" \
+   -v "$PWD/certbot/var/lib/letsencrypt:/var/lib/letsencrypt" \
    ubuntu:latest chmod a+rX -R /etc/letsencrypt
 
 ```
-TODO:
-- (DONE) does not start Apache on atlantis
-- find a way to renew (automatically?) certificates (THIS ONE EXPIRES 2021-11-17). Maybe using a docker compose? Probably with an nginx reverse proxy in front...
-- ask Ali for sudo docker-compose
-- what happens on atlantis-reboot? will openvisus Docker come up?
-- ask Ali about visus.sci.utah.edu
-- replace "it works" with real data
+
+Note than during the `Apache` run (previous section) the `$PWD/certbot` directory is mounted to the right Apache location.
+
+
+Now run OpenVisus again (see above).
