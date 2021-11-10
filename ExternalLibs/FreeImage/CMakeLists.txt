@@ -823,7 +823,11 @@ target_include_directories(FreeImage PRIVATE
 	LibJXR/common/include 
 	LibJXR/jxrgluelib)
 
-if (NOT WIN32)
+if (WIN32)
+	if (MSVC AND "${CMAKE_CXX_STANDARD}" STREQUAL "17")
+		target_compile_definitions(FreeImage PRIVATE  _HAS_AUTO_PTR_ETC=1) # C++17 needs this
+	endif()
+else()
 	target_compile_definitions(FreeImage PRIVATE  __ANSI__)
 endif()
 
