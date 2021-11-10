@@ -73,7 +73,11 @@ void TestCloudStorage(String connection_string)
 
 	// if it does not exist, create it (NOTE: if it exists, I don't care)
 	String bucket = StringUtils::split(path, "/")[0];
-	bool bucket_created = cloud->addBucket(net, bucket).get() ? true : false;
+
+
+	//on AWS and Wasabi it returns ok even if it exists, on OSN it will return CONFLICT if it exists
+	//so here I am ingnoring the errors
+	cloud->addBucket(net, bucket).get(); 
 
 	VisusReleaseAssert(cloud->addBlob(net, CloudStorageItem::createBlob(path + "/small.png"        , body_small, metadata)).get());
 	VisusReleaseAssert(cloud->addBlob(net, CloudStorageItem::createBlob(path + "/dir1/dir2/big.bin", body_big  , metadata)).get());
@@ -112,10 +116,10 @@ void TestCloudStorage(String connection_string)
 	VisusReleaseAssert(cloud->deleteBlob(net, path + "/dir1/dir2/big.bin", Aborted()).get());
 
 	dir = cloud->getDir(net, path).get();
-	VisusReleaseAssert(dir->childs.size() == 0);
+	VisusReleaseAssert(!dir);
 
-	if (bucket_created)
-		cloud->deleteBucket(net, bucket).get();
+	//too dangerous (e.g. on OSN it could exists)
+	//cloud->deleteBucket(net, bucket).get();
 }
 
 
@@ -126,7 +130,7 @@ int main(int argn, const char* argv[])
 
   SetCommandLine(argn, argv);
 
-	if (String(argv[1])=="test-cloud-storage")
+	if (String(argv[1]) == "test-cloud-storage")
 	{
 		//create a root access key (has full rights on your AWS resources) 
 		auto connection_string= argv[2];
