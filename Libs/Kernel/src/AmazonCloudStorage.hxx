@@ -319,8 +319,12 @@ private:
             VisusReleaseAssert(StringUtils::endsWith(Prefix, "/"));
             Prefix = Prefix.substr(0, Prefix.size() - 1); //remove last '/'
 
-            auto item = CloudStorageItem::createDir("/" + bucket + "/" + Prefix);
-            ret->childs.push_back(item);
+            //sometimes I am getting the parent directory
+            if (!Prefix.empty())
+            {
+              auto item = CloudStorageItem::createDir("/" + bucket + "/" + Prefix);
+              ret->childs.push_back(item);
+            }
           }
         }
 
