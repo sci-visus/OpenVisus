@@ -741,6 +741,34 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
       buffer = tf->applyToArray(buffer);
       if (!buffer.valid())
         return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "palette failed");
+
+      bool bPad = cbool(request.url.getParam("pad"));
+      if (bPad && pdim == 2 &&
+          buffer.dtype == DType::fromString("uint8[4]")) {
+
+        auto result_width_logic = query->logic_samples.logic_box.size()[0];
+        auto result_width_samples = buffer.dims[0];
+        auto width_scale = result_width_logic / result_width_samples;
+        auto padded_width = query->logic_box.size()[0] / width_scale;
+        auto padded_width_offset = (query->logic_samples.logic_box.p1[0] - query->logic_box.p1[0]) / width_scale;
+
+        auto result_height_logic = query->logic_samples.logic_box.size()[1];
+        auto result_height_samples = buffer.dims[1];
+        auto height_scale = result_height_logic / result_height_samples;
+        auto padded_height = query->logic_box.size()[1] / height_scale;
+        auto padded_height_offset = (query->logic_samples.logic_box.p1[1] - query->logic_box.p1[1]) / height_scale;
+
+        if (result_width_samples != padded_width ||
+            result_height_samples != padded_height) {
+          Array paddedBuffer(padded_width, padded_height, DType::fromString("uint8[4]"));
+          paddedBuffer.fillWithValue(0);
+          ArrayUtils::paste(paddedBuffer,
+                            PointNi{padded_width_offset, padded_height_offset},
+                            buffer);
+          buffer = paddedBuffer;
+        }
+      }
+      
     }
   }
 #endif
