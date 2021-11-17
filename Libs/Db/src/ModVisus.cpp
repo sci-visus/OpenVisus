@@ -122,23 +122,26 @@ public:
     
     // search the filesystem for the dataset
     Path homePath(KnownPaths::VisusHome);
-    Path idxPath = homePath.getChild("converted/"+name+"/visus.idx");
-    if (FileUtils::existsFile(idxPath)) {
-      PrintInfo("creating temp dataset", name, idxPath.toString());
+    Path idxPaths[2] = { homePath.getChild(name+"/visus.idx"),
+                         homePath.getChild("converted/"+name+"/visus.idx") };
+    for (int i=0; i<2; i++) {
+      if (FileUtils::existsFile(idxPaths[i])) {
+        PrintInfo("creating temp dataset", name, idxPaths[i].toString());
       
-      StringTree stree("dataset");
-      stree.write("name", name);
-      stree.write("url", "file://" + idxPath.toString());
-      stree.write("permissions", "public");
+        StringTree stree("dataset");
+        stree.write("name", name);
+        stree.write("url", "file://" + idxPaths[i].toString());
+        stree.write("permissions", "public");
 
-      try
-      {
-        auto d = LoadDatasetEx(stree);
-        temp_dataset_map[name] = { d, Time::now() };
-        return d;
-      }
-      catch(...) {
-        PrintWarning("dataset name", name, "load failed");
+        try
+        {
+          auto d = LoadDatasetEx(stree);
+          temp_dataset_map[name] = { d, Time::now() };
+          return d;
+        }
+        catch(...) {
+          PrintWarning("dataset name", name, "load failed");
+        }
       }
     }
 
