@@ -65,7 +65,10 @@ String CloudStorage::guessType(Url url){
   if (StringUtils::contains(hostname, "googleapis."))
     return "gcs";
 
-  return "s3"; //assume s3 by default
+  if (StringUtils::contains(url.getPath(), "mod_visus"))
+    return ""; //no cloud
+  else
+    return "s3"; //S3
 }
 
 
@@ -80,7 +83,10 @@ SharedPtr<CloudStorage> CloudStorage::createInstance(Url url)
   if (type=="gcs")
     return std::make_shared<GoogleDriveStorage>(url);
 
-  return std::make_shared<AmazonCloudStorage>(url);
+  if (type == "s3")
+    return std::make_shared<AmazonCloudStorage>(url);
+
+  return SharedPtr<CloudStorage>();
 }
 
 
