@@ -749,9 +749,7 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
 #endif
 
   bool bPad = cbool(request.url.getParam("pad"));
-  PrintInfo(buffer.dtype.toString());
   if (bPad && pdim == 2) {
-    PrintInfo("checking for padding");
 
     auto result_width_logic = query->logic_samples.logic_box.size()[0];
     auto result_width_samples = buffer.dims[0];
