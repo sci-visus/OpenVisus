@@ -2,13 +2,13 @@ import os,sys
 import inspect
 import tempfile
 import shutil
-from skimage.transform import resize
 
 from OpenVisus import *
 
-#in configure step I dont have numpy yet
+#in configure step I dont have numpy and skimage yet
 try:
-	import numpy 
+	import numpy
+	from skimage.transform import resize
 except:
 	pass
 
@@ -370,31 +370,31 @@ class PyDataset(object):
 			data=numpy.stack(slab,axis=0)
 			self.write(data , x=x, y=y, z=z,field=field,time=time, access=access)
 
-        #getXSlice (get a slice orthogonal to the X axis)
-        def getXSlice(self, position=None, resolution=-1,
-                      resample_output=True ): # resample_output=True  (resmaple to the full resolutiuon) # resample_output=False (resmaple to the lower resolutiuon) # resample_output=(x,y) (resmaple to the (x,y) resolutiuon)
-                """ Get a slice orthogonal to the X axis. """
-                myLogicBox = self.getLogicBox()
-                x_dim = myLogicBox[1][0]
-                y_dim = myLogicBox[1][1]
-                z_dim = myLogicBox[1][2]
+	# write
+	# IMPORTANT: usually db.write happens without write lock and syncronously (at least in python)
+	def getXSlice(db,position=None,resolution=-1):
+                logicBox = db.getLogicBox()
+                x_dim = logicBox[1][0]
+                y_dim = logicBox[1][1]
+                z_dim = logicBox[1][2]
                 normalizationFactor = 2**(-resolution)
                 if position==None:
                         position = x_dim//2
                 position = (position//normalizationFactor) *normalizationFactor # adjust to slices that exist at this level of resolution
-                data = self.read(x=[position,position+1], # One slice is a volume
-                                 y=[0,y_dim],
-                                 z=[0,z_dim],
-                                 quality=resolution*3)
-                if resample_output==True:
-                        data = resize(data, (y_dim,z_dim))
-                elif  type(resample_output) is tuple:
-                        data = resize(data, resample_output)
+                data = db.read(x=[position,position+1], # One slice is a volume
+                               y=[0,y_dim],
+                               z=[0,z_dim],
+                               quality=resolution*3)
+                (xx_dim,yy_dim,zz_dim)= data.shape
+                numpy.reshape(data, (xx_dim,yy_dim))
+                data = resize(data, (x_dim,y_dim))
                 return data
+                
 
 
 
-                                
+
+			
 
 
 
