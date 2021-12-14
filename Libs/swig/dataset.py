@@ -2,7 +2,6 @@ import os,sys
 import inspect
 import tempfile
 import shutil
-from skimage.transform import resize
 
 from OpenVisus import *
 
@@ -338,6 +337,10 @@ class PyDataset(object):
 		# I need to change the shape of the buffer, since the last component is the channel (like RGB for example)
 		buffer=Array.fromNumPy(data,bShareMem=True)
 		Assert(buffer.c_size()==data.nbytes)
+		
+		
+		from skimage.transform import resize
+		
 		buffer.resize(PointNi(dims),query.field.dtype,__file__,0)
 		
 		query.buffer=buffer
