@@ -370,26 +370,39 @@ class PyDataset(object):
 			data=numpy.stack(slab,axis=0)
 			self.write(data , x=x, y=y, z=z,field=field,time=time, access=access)
 
-	# write
-	# IMPORTANT: usually db.write happens without write lock and syncronously (at least in python)
-	def getXSlice(db,position=None,resolution=-1):
-                logicBox = db.getLogicBox()
-                x_dim = logicBox[1][0]
-                y_dim = logicBox[1][1]
-                z_dim = logicBox[1][2]
-                normalizationFactor = 2**(-resolution)
-                if position==None:
-                        position = x_dim//2
-                position = (position//normalizationFactor) *normalizationFactor # adjust to slices that exist at this level of resolution
-                data = db.read(x=[position,position+1], # One slice is a volume
-                               y=[0,y_dim],
-                               z=[0,z_dim],
-                               quality=resolution*3)
-                (xx_dim,yy_dim,zz_dim)= data.shape
-                numpy.reshape(data, (xx_dim,yy_dim))
-                data = resize(data, (x_dim,y_dim))
-                return data
-                
+	#getXSlice (get a slice orthogonal to the X axis)
+	def getXSlice(self, position=None, resolution=-1,resample_output=True): 
+		"""
+		Get a slice orthogonal to the X axis.
+		resample_output=True	(resample to the full   resolutiuon) 
+		resample_output=False (resample to the lower resolutiuon) 
+		resample_output= (x,y) (resample to a (x,y) grid) 
+		"""
+
+		myLogicBox = self.getLogicBox()
+		x_dim = myLogicBox[1][0]
+		y_dim = myLogicBox[1][1]
+		z_dim = myLogicBox[1][2]
+		normalizationFactor = 2**(-resolution)
+		
+		if position==None:
+			position = x_dim//2
+		
+		# adjust to slices that exist at this level of resolution
+		position = (position//normalizationFactor) *normalizationFactor 
+		
+		# One slice is a volume
+		data = self.read(x=[position,position+1],  y=[0,y_dim], z=[0,z_dim],quality=resolution*3)
+		data = data[:,:,0]
+
+		if resample_output==True:
+			data = resize(data, (z_dim,y_dim))
+			
+		elif	type(resample_output) is tuple:
+			data = resize(data, resample_output)
+			
+		return data
+		
 
 
 
