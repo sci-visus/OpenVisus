@@ -8,7 +8,6 @@ from OpenVisus import *
 #in configure step I dont have numpy and skimage yet
 try:
 	import numpy
-	from skimage.transform import resize
 except:
 	pass
 
@@ -394,6 +393,8 @@ class PyDataset(object):
 		# One slice is a volume
 		data = self.read(x=[position,position+1],  y=[0,y_dim], z=[0,z_dim],quality=resolution*3)
 		data = data[:,:,0]
+
+		from skimage.transform import resize
 
 		if resample_output==True:
 			data = resize(data, (z_dim,y_dim))
