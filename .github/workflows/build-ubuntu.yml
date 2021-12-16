@@ -28,10 +28,9 @@ jobs:
         python-version: ${{ matrix.python-version }} 
         architecture: 'x64'
 
-    - name: Compile OpenVisus  
+    - name: Compile OpenVisus x86_64  
       shell: bash -l {0}
       run: |
-           PLATFORM_NAME=manylinux2010_x86_64
            docker run \
              -e PYTHON_VERSION=${{ matrix.python-version }} \
              -e VISUS_GUI=${{ matrix.VISUS_GUI }} \
@@ -40,10 +39,10 @@ jobs:
              -e VISUS_MODVISUS=1 \
              -e PYPI_USERNAME=${{ secrets.PYPI_USERNAME }} \
              -e PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }} \
-             -d PLATFORM_NAME=${PLATFORM_NAME} \
+             -d PLATFORM_NAME=manylinux2010_x86_64 \
              -e DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} \
              -e DOCKER_TOKEN=${{ secrets.DOCKER_TOKEN }} \
              -v ${PWD}:${PWD}  \
              -w ${PWD} \
-             visus/${PLATFORM_NAME} \
+             visus/manylinux2010_x86_64 \
              /bin/bash -c "./scripts/build_openvisus.sh"

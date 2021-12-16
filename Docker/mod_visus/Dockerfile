@@ -8,8 +8,8 @@ RUN apt-get install --no-install-recommends -y wget unzip python3.7 python3-dev 
 	rm -rf /var/lib/apt/lists/*
 
 # install OpenVisus (change version as needed)
-ARG MODVISUS_TAG
-RUN python3 -m pip install -vvv --no-cache-dir  --upgrade OpenVisusNoGui==$MODVISUS_TAG
+ARG OPENVISUS_TAG
+RUN python3 -m pip install -vvv --no-cache-dir  --upgrade OpenVisusNoGui==$OPENVISUS_TAG
 RUN python3 -c "import os,OpenVisus;os.system('rm -Rf /home/OpenVisus');os.system('ln -s {} /home/OpenVisus'.format(os.path.dirname(OpenVisus.__file__)))"
 
 # install webviewer

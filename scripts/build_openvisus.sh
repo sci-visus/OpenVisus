@@ -51,7 +51,7 @@ fi
 if [[ "${GIT_TAG}" != "" && "${PYTHON_VERSION}" == "37" && "${DOCKER_TOKEN}" != "" && "${DOCKER_USERNAME}" != "" ]] ; then
 	pushd Docker/mod_visus
 	sleep 30 # give time pypi to get the pushed file
-	docker build --tag visus/mod_visus:$OPENVISUS_TAG --tag visus/mod_visus:latest --build-arg MODVISUS_TAG=${OPENVISUS_TAG} .
+	docker build --tag visus/mod_visus:$OPENVISUS_TAG --tag visus/mod_visus:latest --build-arg OPENVISUS_TAG=${OPENVISUS_TAG} .
 	echo ${DOCKER_USERNAME} | docker login -u=${DOCKER_TOKEN} --password-stdin
 	docker push visus/mod_visus:$OPENVISUS_TAG
 	docker push visus/mod_visus:latest

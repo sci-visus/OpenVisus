@@ -20,10 +20,9 @@ jobs:
         commit-filter: '[no-ci];[windows];[macos];[cpython]'
         commit-filter-separator: ';'
 
-    - name: Compile
+    - name: Compile OpenVisus x86_64
       shell: bash -l {0}
       run: | 
-           PLATFORM_NAME=manylinux2010_x86_64
            docker run \
              -e PYTHON_VERSION=${{ matrix.python-version }} \
              -e VISUS_GUI=0 \
@@ -32,7 +31,7 @@ jobs:
              -e ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} \
              -v ${PWD}:${PWD}  \
              -w ${PWD} \
-             visus/${PLATFORM_NAME} \
+             visus/manylinux2010_x86_64 \
              /bin/bash -c "./scripts/build_openvisus.sh"
 
 
