@@ -4,11 +4,14 @@ In this tutorial we show how to run multiple mod_visus with a ngix load balancer
 
 ![Diagram](https://github.com/sci-visus/images/blob/main/Load-balancing-docker-swarm.png?raw=true)
 
-Create a `docker-compose.yml` file with 3 mod_visus_workers. Replace $DATASETS with the directory where you have (1) OpenVisus datasets and (2) `datasets.config` file as exmplained in `docker_modvisus.md` tutorial. Also replace `$TAG` with the proper value.
+Create a `docker-compose.yml` file with 3 mod_visus_workers. Replace $DATASETS with the directory where you have 
+
+- (1) OpenVisus datasets and 
+- (2) `datasets.config` file as exmplained in `docker_modvisus.md` tutorial. Also replace `$MODVISUS_TAG` with the proper value.
 
 ```
 worker1:
-  image: visus/mod_visus:$TAG 
+  image: visus/mod_visus:$MODVISUS_TAG 
   restart: unless-stopped
   volumes:
   - $DATASETS:/datasets
@@ -16,7 +19,7 @@ worker1:
   - "8080:80"
 
 worker2:
-  image: visus/mod_visus:$TAG
+  image: visus/mod_visus:$MODVISUS_TAG
   restart: unless-stopped
   volumes:
   - $DATASETS:/datasets
@@ -24,7 +27,7 @@ worker2:
   - "8080:80"
 
 worker3:
-  image: visus/mod_visus:$TAG
+  image: visus/mod_visus:$MODVISUS_TAG
   restart: unless-stopped
   volumes:
   - $DATASETS:/datasets

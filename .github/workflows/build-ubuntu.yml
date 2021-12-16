@@ -1,0 +1,97 @@
+name: build-ubuntu
+on: [push]
+jobs:
+
+  Build:
+    runs-on: "ubuntu-latest"
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.6', '3.7', '3.8', '3.9'] 
+        VISUS_GUI: ['1', '0']
+     
+    steps:
+    - name: git clone OpenVisus
+      uses: actions/checkout@v2
+
+    - name: Install CPython 
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }} 
+        architecture: 'x64'
+
+    - name: Compile OpenVisus  
+      shell: bash -l {0}
+      run: |
+           set -x
+           which python
+      
+           # *** INSTALL GLU ***
+           if [[ "${{ matrix.VISUS_GUI }}" == "1" ]] ; then 
+             sudo apt-get update 
+             sudo apt-get install libglu1-mesa-dev 1>/dev/null
+           fi
+      
+           docker run \
+             -e PYTHON_VERSION=${{ matrix.python-version }} \
+             -e VISUS_GUI=${{ matrix.VISUS_GUI }} \
+             -e VISUS_SLAM=${{ matrix.VISUS_GUI }} \
+             -e Qt5_DIR=/opt/qt512 \
+             -e VISUS_MODVISUS=1 \
+             -v ${PWD}:${PWD}  \
+             -w ${PWD} visus/portable-linux-binaries \
+             /bin/bash -c "./scripts/build_linux.sh"
+           sudo chown -R root:root  build
+           sudo chmod -R a+rwx      build
+           
+    - name: Test 
+      shell: bash -l {0}
+      run: |
+           set -x
+           cd build/Release/OpenVisus
+           export PYTHONPATH=../
+           ${pythonLocation}/python  -m OpenVisus configure  || true  # segmentation fault problem on linux
+           ${pythonLocation}/python  -m OpenVisus test
+           if [[ "${{ matrix.VISUS_GUI }}" == "1" ]] ; then 
+             ${pythonLocation}/python  -m OpenVisus test-gui 
+           fi
+           
+    - name: Create wheel
+      shell: bash -l {0}
+      run: |
+           set -x
+           ${pythonLocation}/python -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
+           cd build/Release/OpenVisus
+           Version=${{ matrix.python-version }}
+           ${pythonLocation}/python setup.py -q bdist_wheel --python-tag=cp${Version:0:1}${Version:2:1} --plat-name==manylinux2010_x86_64
+             
+           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
+           echo "GIT_TAG=$GIT_TAG"
+           if [[ "${GIT_TAG}" != "" ]] ; then
+             echo "GIT_TAG $GIT_TAG"
+             ${pythonLocation}/python -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --skip-existing  "dist/*.whl" 
+           fi
+           
+    - name: Docker 
+      shell: bash -l {0}
+      run: |
+           set -x           
+           MODVISUS_TAG=`${pythonLocation}/python Libs/swig/setup.py print-tag`
+           echo "MODVISUS_TAG=${MODVISUS_TAG}" 
+           
+           cd Docker/mod_visus
+           echo ${{ secrets.DOCKER_TOKEN }} | docker login -u=${{ secrets.DOCKER_USERNAME }} --password-stdin
+           
+           # give time pypi to get the pushed file
+           sleep 30 
+           docker build --tag visus/mod_visus:$MODVISUS_TAG --tag visus/mod_visus:latest --build-arg MODVISUS_TAG=$MODVISUS_TAG .
+           
+           # for python version see Docker file (it's 3.7 on http:2.4 / debian:buster-slim)
+           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
+           echo "GIT_TAG $GIT_TAG"
+           if [[ "${GIT_TAG}" != "" && "${Version}" == "3.7" ]] ; then
+             echo "Uploading  visus/mod_visus:$MODVISUS_TAG to Docker"
+             docker push visus/mod_visus:$MODVISUS_TAG
+             docker push visus/mod_visus:latest
+           fi
+

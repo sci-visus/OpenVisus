@@ -146,9 +146,9 @@ sudo docker run \
 
 ```
 cd Docker/mod_visus/httpd
-TAG=YOUR_TAG_HERE
-sudo docker build --tag visus/mod_visus:$TAG  --build-arg TAG=$TAG .
-sudo docker push visus/mod_visus:$TAG
+MODVISUS_TAG=YOUR_TAG_HERE
+sudo docker build --tag visus/mod_visus:$MODVISUS_TAG  --build-arg TAG=$MODVISUS_TAG .
+sudo docker push visus/mod_visus:$MODVISUS_TAG
 ```
 
 # (OPTIONAL) Inspect the logs
@@ -266,7 +266,7 @@ RUN usermod -a -G <group-name-1>,<group-name-2> daemon
 Build the image:
 
 ```
-sudo docker build --tag visus/my_mod_visus:$TAG .
+sudo docker build --tag visus/my_mod_visus:$MODVISUS_TAG .
 ```
 
 Another way (**not tested**) is to directly add the groups to `daemon` user by command line:
