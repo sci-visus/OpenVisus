@@ -23,8 +23,9 @@ jobs:
     - name: Compile OpenVisus x86_64
       shell: bash -l {0}
       run: | 
+           PYTHON_VERSION=${{ python-version }}
            docker run \
-             -e PYTHON_VERSION=${{ matrix.python-version }} \
+             -e Python_EXECUTABLE=python \
              -e VISUS_GUI=0 \
              -e VISUS_SLAM=0 \
              -e VISUS_MODVISUS=0 \
@@ -32,6 +33,6 @@ jobs:
              -v ${PWD}:${PWD}  \
              -w ${PWD} \
              visus/manylinux2010_x86_64 \
-             /bin/bash -c "./scripts/build_openvisus.sh"
+             /bin/bash -c "source ~./bashrc && conda activate python-${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} && ./scripts/build_openvisus.sh && conda deactivate"
 
 

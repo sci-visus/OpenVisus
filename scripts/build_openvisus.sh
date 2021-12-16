@@ -7,7 +7,7 @@ BUILD_DIR=${BUILD_DIR:-$(pwd)/build}
 VISUS_GUI=${VISUS_GUI:-1}
 VISUS_MODVISUS=${VISUS_MODVISUS:-1}
 VISUS_SLAM=${VISUS_SLAM:-1}
-Python_EXECUTABLE=$(which python${PYTHON_VERSION})
+Python_EXECUTABLE=${Python_EXECUTABLE:-python} 
 
 GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
 OPENVISUS_TAG=`${Python_EXECUTABLE} Libs/swig/setup.py print-tag`
