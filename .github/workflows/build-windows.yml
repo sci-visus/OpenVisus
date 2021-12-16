@@ -7,13 +7,21 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9'] 
+        python-version: ['3.6', '3.7', '3.8', '3.9'] 
         VISUS_GUI: ['1', '0']
      
     steps:
     
     - name: git clone OpenVisus
       uses: actions/checkout@v2
+      
+    - name: filter CI
+      uses: mstachniuk/ci-skip@v1
+      with:
+        fail-fast: true
+        exit-code: 0
+        commit-filter: '[no-ci];[macos];[linux];[conda]'
+        commit-filter-separator: ';'
 
     - name: git clone opsray 
       if: matrix.VISUS_GUI == '1'
@@ -29,7 +37,9 @@ jobs:
 
     - name: Install Swig 
       shell: bash -l {0}
-      run: curl -L --insecure https://cfhcable.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O  && unzip swigwin-4.0.2.zip # problems with choco
+      run: |
+           curl -L --insecure https://cfhcable.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O
+           unzip swigwin-4.0.2.zip # problems with choco 
 
     - name: Install CPython 
       uses: actions/setup-python@v2

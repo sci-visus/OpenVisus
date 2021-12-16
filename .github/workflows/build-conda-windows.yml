@@ -10,7 +10,15 @@ jobs:
     steps:
     
     - name: git clone OpenVisus
-      uses: actions/checkout@v2    
+      uses: actions/checkout@v2  
+      
+    - name: filter CI
+      uses: mstachniuk/ci-skip@v1
+      with:
+        fail-fast: true
+        exit-code: 0
+        commit-filter: '[no-ci];[macos];[linux];[cpython]'
+        commit-filter-separator: ';'
 
     - name: git clone opsray 
       uses: nick-invision/retry@v1

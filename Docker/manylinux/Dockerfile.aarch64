@@ -1,0 +1,55 @@
+FROM quay.io/pypa/manylinux2014_aarch64
+
+ENV LC_ALL en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US.UTF-8
+ENV ARCHITECTURE aarch64
+
+WORKDIR /tmp
+
+RUN yum -y install xz zlib zlib-devel libffi-devel xz
+
+COPY install_openssh.sh ./
+RUN ./install_openssh.sh
+
+# install cpython (manylinux's pythons don't contain python shared library, see https://github.com/pypa/manylinux/issues/255)
+COPY install_cpython.sh ./
+RUN ./install_cpython.sh 3.6.10
+RUN ./install_cpython.sh 3.7.7
+RUN ./install_cpython.sh 3.8.2
+RUN ./install_cpython.sh 3.9.1
+
+COPY install_conda.sh ./
+RUN ./install_conda.sh
+
+COPY install_conda_python.sh ./
+RUN ./install_conda_python.sh 3.6
+RUN ./install_conda_python.sh 3.7
+RUN ./install_conda_python.sh 3.8
+RUN ./install_conda_python.sh 3.9
+
+COPY install_httpd.sh ./
+RUN ./install_httpd.sh
+
+# gui part
+RUN yum install -y libX11-devel libx11-xcb-devel libXrender-devel libXau-devel libXext-devel \
+  mesa-libGL-devel mesa-libGLU-devel fontconfig fontconfig-devel freetype freetype-devel
+
+COPY install_qt5.sh ./
+RUN ./install_qt5.sh 3.6
+RUN ./install_qt5.sh 3.7
+RUN ./install_qt5.sh 3.8
+RUN ./install_qt5.sh 3.9
+
+
+
+
+
+
+
+
+
+
+
+
+

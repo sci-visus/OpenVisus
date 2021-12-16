@@ -6,72 +6,33 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9'] 
+        python-version: ['3.6', '3.7', '3.8', '3.9'] 
     steps:
     
     - name: git clone OpenVisus
-      uses: actions/checkout@v2    
-
-    - name: Install Miniconda 
-      uses: conda-incubator/setup-miniconda@v2
-      continue-on-error: true # if fails the cleaning process
+      uses: actions/checkout@v2
+      
+    - name: filter CI
+      uses: mstachniuk/ci-skip@v1
       with:
-        miniconda-version: 'latest'
-        python-version: ${{ matrix.python-version }}
-        activate-environment: tmp
-        auto-update-conda: false
-        channels: conda-forge,defaults
-
-    - name: Configure Miniconda 
-      shell: bash -l {0}
-      run: |
-           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
-           conda install conda                                                             1>/dev/null
-
-    - name: Install CMake 
-      shell: bash -l {0}    
-      run: conda install -c conda-forge cmake
+        fail-fast: true
+        exit-code: 0
+        commit-filter: '[no-ci];[windows];[macos];[cpython]'
+        commit-filter-separator: ';'
 
     - name: Compile
       shell: bash -l {0}
-      run: |
-           # i can use the pyqt one, but I would need to share the directory to docker, for simplicity I'm not doing it
+      run: | 
+           PLATFORM_NAME=manylinux2010_x86_64
            docker run \
              -e PYTHON_VERSION=${{ matrix.python-version }} \
-             -e Qt5_DIR=/opt/qt512 -v ${PWD}:${PWD}  \
-             -w ${PWD} visus/portable-linux-binaries \
-             /bin/bash -c "./scripts/build_linux.sh"
-           
-           sudo chown -R root:root  build
-           sudo chmod -R a+rwx      build
+             -e VISUS_GUI=0 \
+             -e VISUS_SLAM=0 \
+             -e VISUS_MODVISUS=0 \
+             -e ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} \
+             -v ${PWD}:${PWD}  \
+             -w ${PWD} \
+             visus/${PLATFORM_NAME} \
+             /bin/bash -c "./scripts/build_openvisus.sh"
 
-    - name: Test  
-      shell: bash -l {0}
-      run: |
-           set -e  # stop or error
-           set -x  # very verbose
-           which python
-           cd build/Release/OpenVisus
-           export PYTHONPATH=../
-           python -m OpenVisus configure  || true  # segmentation fault problem
-           python -m OpenVisus test
-           python -m OpenVisus test-gui
 
-    - name: Conda distribution
-      shell: bash -l {0}   
-      run: |
-           set -e  # stop or error
-           set -x  # very verbose
-           cd build/Release/OpenVisus
-           conda install --yes anaconda-client  1>/dev/null  || true
-           conda install --yes conda-build      1>/dev/null  || true
-           conda install --yes wheel            1>/dev/null  || true
-           rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
-           python setup.py -q bdist_conda 1>/dev/null
-           CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1)       
-           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-           echo "GIT_TAG=$GIT_TAG"
-           if [[ "${GIT_TAG}" != ""  ]] ; then
-             export PATH=$HOME/anaconda3/bin:$PATH
-             anaconda --verbose --show-traceback  -t ${{ secrets.ANACONDA_TOKEN }}   upload "${CONDA_FILENAME}"
-           fi

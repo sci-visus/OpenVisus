@@ -3,19 +3,25 @@ on: [push]
 jobs:
 
   Build:
-
     runs-on: "macos-latest"
     strategy:
       fail-fast: false  
       matrix:
         python-version: [ '3.6', '3.7', '3.8', '3.9'] 
-        os: []
         VISUS_GUI: ['1', '0']
      
     steps:
     
     - name: git clone OpenVisus
       uses: actions/checkout@v2
+      
+    - name: filter CI
+      uses: mstachniuk/ci-skip@v1
+      with:
+        fail-fast: true
+        exit-code: 0
+        commit-filter: '[no-ci];[windows];[linux];[conda]'
+        commit-filter-separator: ';'
     
     - name: Install CMake 
       uses: lukka/get-cmake@latest

@@ -147,7 +147,7 @@ file(GLOB OtherSources
 	${CMAKE_SOURCE_DIR}/Executable/viewer/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/Executable/visus/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/Libs/CMakeLists.txt
-	${CMAKE_SOURCE_DIR}/Scripts/build_linux.sh
+	${CMAKE_SOURCE_DIR}/Scripts/build_openvisus.sh
 	${CMAKE_SOURCE_DIR}/*.ipynb 
 	${CMAKE_SOURCE_DIR}/Samples/jupyter/*.ipynb 
 	${CMAKE_SOURCE_DIR}/Samples/python/*.py 
