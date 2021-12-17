@@ -9,7 +9,6 @@ jobs:
       matrix:
         python-version: ['3.6', '3.7', '3.8', '3.9'] 
         VISUS_GUI: ['1', '0']
-     
     steps:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
@@ -54,7 +53,6 @@ jobs:
       matrix:
         python-version: ['3.6', '3.7', '3.8', '3.9'] 
     steps:
-    
     - name: git clone OpenVisus
       uses: actions/checkout@v2
       
@@ -69,7 +67,7 @@ jobs:
     - name: Compile OpenVisus x86_64
       shell: bash -l {0}
       run: | 
-           PYTHON_VERSION=${{ python-version }}
+           PYTHON_VERSION=${{ matrix.python-version }}
            docker run \
              -e Python_EXECUTABLE=python \
              -e VISUS_GUI=0 \
