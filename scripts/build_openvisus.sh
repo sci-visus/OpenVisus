@@ -39,10 +39,10 @@ if [[ "${VISUS_GUI}" == "1" ]] ; then
 fi
 
 # create the wheel and upload
-if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}"!="" && "${PYPI_PASSWORD}"!="" && "${PLATFORM_NAME}"!="" ]] ; then
+if [[ "${GIT_TAG}" != "" && "${PYPI_USERNAME}"!="" && "${PYPI_PASSWORD}"!="" && "${PYPI_PLATFORM_NAME}"!="" ]] ; then
 	pushd build/Release/OpenVisus
 	${Python_EXECUTABLE} -m pip install -q setuptools wheel twine
-	${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION} --plat-name==${PLATFORM_NAME}
+	${Python_EXECUTABLE} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION} --plat-name==${PYPI_PLATFORM_NAME}
 	${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
 	popd
 fi

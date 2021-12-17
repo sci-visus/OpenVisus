@@ -2,7 +2,7 @@ name: build-ubuntu
 on: [push]
 jobs:
 
-  Build:
+  build-on-cpython:
     runs-on: "ubuntu-latest"
     strategy:
       fail-fast: false
@@ -39,10 +39,44 @@ jobs:
              -e VISUS_MODVISUS=1 \
              -e PYPI_USERNAME=${{ secrets.PYPI_USERNAME }} \
              -e PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }} \
-             -d PLATFORM_NAME=manylinux2010_x86_64 \
+             -e PYPI_PLATFORM_NAME=manylinux2010_x86_64 \
              -e DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} \
              -e DOCKER_TOKEN=${{ secrets.DOCKER_TOKEN }} \
              -v ${PWD}:${PWD}  \
              -w ${PWD} \
              visus/manylinux2010_x86_64 \
              /bin/bash -c "./scripts/build_openvisus.sh"
+
+  build-on-conda:
+    runs-on: "ubuntu-latest"
+    strategy:
+      fail-fast: false  
+      matrix:
+        python-version: ['3.6', '3.7', '3.8', '3.9'] 
+    steps:
+    
+    - name: git clone OpenVisus
+      uses: actions/checkout@v2
+      
+    - name: filter CI
+      uses: mstachniuk/ci-skip@v1
+      with:
+        fail-fast: true
+        exit-code: 0
+        commit-filter: '[no-ci];[windows];[macos];[cpython]'
+        commit-filter-separator: ';'
+
+    - name: Compile OpenVisus x86_64
+      shell: bash -l {0}
+      run: | 
+           PYTHON_VERSION=${{ python-version }}
+           docker run \
+             -e Python_EXECUTABLE=python \
+             -e VISUS_GUI=0 \
+             -e VISUS_SLAM=0 \
+             -e VISUS_MODVISUS=0 \
+             -e ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} \
+             -v ${PWD}:${PWD}  \
+             -w ${PWD} \
+             visus/manylinux2010_x86_64 \
+             /bin/bash -c "source ~./bashrc && conda activate python-${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} && ./scripts/build_openvisus.sh && conda deactivate"
