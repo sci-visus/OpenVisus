@@ -11,7 +11,7 @@ Python_EXECUTABLE=${Python_EXECUTABLE:-python}
 
 GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
 OPENVISUS_TAG=`${Python_EXECUTABLE} Libs/swig/setup.py print-tag`
-PYTHON_VERSION=${"import sys;print(f'{sys.version_info.major}{sys.version_info.minor}')"}
+PYTHON_VERSION=`${Python_EXECUTABLE} -c "import sys;print(f'{sys.version_info.major}{sys.version_info.minor}')"`
 
 mkdir -p ${BUILD_DIR}
 cd ${BUILD_DIR} 

@@ -5,6 +5,7 @@ jobs:
   build-on-cpython:
     runs-on: "ubuntu-latest"
     strategy:
+      fail-fast: false  
       matrix:
         python-version: ['3.6', '3.7', '3.8', '3.9'] 
         VISUS_GUI: ['1', '0']
@@ -44,11 +45,12 @@ jobs:
              -v ${PWD}:${PWD}  \
              -w ${PWD} \
              visus/manylinux \
-             bash -c "chmod a+x build_openvisus.sh && scripts/build_openvisus.sh"
+             bash -c "chmod a+x scripts/build_openvisus.sh && scripts/build_openvisus.sh"
 
   build-on-conda:
     runs-on: "ubuntu-latest"
     strategy:
+      fail-fast: false  
       matrix:
         python-version: ['3.6', '3.7', '3.8', '3.9'] 
     steps:
