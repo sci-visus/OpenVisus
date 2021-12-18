@@ -30,7 +30,7 @@ jobs:
     - name: Compile OpenVisus x86_64  
       shell: bash -l {0}
       run: |
-           chmod a+x build_openvisus.sh
+           
            docker run \
              -e Python_EXECUTABLE=python${{ matrix.python-version }} \
              -e VISUS_GUI=${{ matrix.VISUS_GUI }} \
@@ -45,7 +45,7 @@ jobs:
              -v ${PWD}:${PWD}  \
              -w ${PWD} \
              visus/manylinux \
-             scripts/build_openvisus.sh
+             bash -c "chmod a+x build_openvisus.sh && scripts/build_openvisus.sh"
 
   build-on-conda:
     runs-on: "ubuntu-latest"
@@ -78,4 +78,4 @@ jobs:
              -v ${PWD}:${PWD}  \
              -w ${PWD} \
              visus/manylinux \
-             /bin/bash -c "source ~./bashrc && conda activate python-${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} && ./scripts/build_openvisus.sh && conda deactivate"
+             /bin/bash -c "source ~./bashrc && conda activate python-${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} && chmod a+x ./scripts/build_openvisus.sh && ./scripts/build_openvisus.sh && conda deactivate"
