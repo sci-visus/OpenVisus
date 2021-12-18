@@ -11,3 +11,7 @@ docker buildx build --platform linux/amd64 -t visus/manylinux:1.0 -t visus/manyl
 
 docker buildx build --platform linux/arm64 -t visus/manylinux:1.0 -t visus/manylinux:latest --progress=plain -f Dockerfile.aarch64 ./ --push
 ```
+
+
+
+docker run --platform linux/arm64 -it --rm quay.io/pypa/manylinux2014_aarch64 bash
