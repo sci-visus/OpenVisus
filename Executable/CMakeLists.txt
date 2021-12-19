@@ -1,5 +1,7 @@
 
-add_subdirectory(visus)
+if (VISUS_CLI)
+	add_subdirectory(visus)
+endif()
 
 if (VISUS_GUI)
   add_subdirectory(viewer)
