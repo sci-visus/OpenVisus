@@ -14,10 +14,10 @@ RUN ./install_openssh.sh
 
 # install cpython (manylinux's pythons don't contain python shared library, see https://github.com/pypa/manylinux/issues/255)
 COPY install_cpython.sh ./
-RUN ./install_cpython.sh 3.6.10
-RUN ./install_cpython.sh 3.7.7
-RUN ./install_cpython.sh 3.8.2
-RUN ./install_cpython.sh 3.9.1
+RUN ./install_cpython.sh 3.6.15
+RUN ./install_cpython.sh 3.7.12
+RUN ./install_cpython.sh 3.8.12
+RUN ./install_cpython.sh 3.9.9
 
 COPY install_conda.sh ./
 RUN ./install_conda.sh

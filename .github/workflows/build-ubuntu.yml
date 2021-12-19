@@ -31,7 +31,7 @@ jobs:
       shell: bash -l {0}
       run: |
            docker run \
-             -e Python_EXECUTABLE=`which python${{ matrix.python-version }}` \
+             -e Python_EXECUTABLE=python${{ matrix.python-version }} \
              -e VISUS_GUI=${{ matrix.VISUS_GUI }} \
              -e VISUS_SLAM=${{ matrix.VISUS_GUI }} \
              -e Qt5_DIR=/opt/qt512 \
