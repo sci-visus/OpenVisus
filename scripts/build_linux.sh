@@ -6,6 +6,8 @@ set -x
 # settings
 BUILD_DIR=${BUILD_DIR:-$(pwd)/build}
 VISUS_GUI=${VISUS_GUI:-1}
+VISUS_NET=${VISUS_NET:-1}
+VISUS_IMAGE=${VISUS_IMAGE:-1}
 VISUS_MODVISUS=${VISUS_MODVISUS:-1}
 VISUS_SLAM=${VISUS_SLAM:-1}
 Python_EXECUTABLE=${Python_EXECUTABLE:-python3} 
@@ -22,6 +24,8 @@ cmake \
 	-DVISUS_GUI=${VISUS_GUI} \
 	-DVISUS_MODVISUS=${VISUS_MODVISUS} \
 	-DVISUS_SLAM=${VISUS_SLAM} \
+	-DVISUS_NET=${VISUS_NET} \
+	-DVISUS_IMAGE=${VISUS_IMAGE} \
 	../
 cmake --build ./ --target all     --config Release --parallel 4
 cmake --build ./ --target install --config Release
