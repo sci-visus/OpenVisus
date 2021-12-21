@@ -1,5 +1,4 @@
 
-
 set(Sources
 	FreeImage/BitmapAccess.cpp
 	FreeImage/ColorLookup.cpp
@@ -832,6 +831,8 @@ else()
 endif()
 
 target_compile_definitions(FreeImage PRIVATE  LIBRAW_LIBRARY_BUILD)
+target_compile_definitions(FreeImage PRIVATE  DPNG_ARM_NEON_OPT=0)
+
 
 
 set_target_properties(FreeImage PROPERTIES FOLDER "ExternalLibs/VISUS_IMAGE")

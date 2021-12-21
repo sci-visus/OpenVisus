@@ -27,6 +27,9 @@ macro(DetectAndSetupCompiler)
 		else()
 			MESSAGE(STATUS "Detected GNU on unix (C++ __GNUC__)")
 		endif()
+	
+		message(STATUS "CMAKE_SYSTEM_PROCESSOR ${CMAKE_SYSTEM_PROCESSOR}")
+	
 	endif()
 
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON)

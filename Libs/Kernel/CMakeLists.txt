@@ -1,4 +1,5 @@
 
+
 source_group("" FILES
 	include/Visus/Kernel.h src/Kernel.cpp src/Kernel.mm
 	include/Visus/Python.h
@@ -221,6 +222,11 @@ endif()
 
 target_compile_definitions(VisusKernel  PRIVATE VISUS_BUILDING_VISUSKERNEL=1)
 target_include_directories(VisusKernel  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+
+# problem on AARCH64
+if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64") 
+	target_compile_options(VisusKernel  PRIVATE -Wno-narrowing)
+endif()
 
 # -DGIT_REVISION
 find_package(Git)
