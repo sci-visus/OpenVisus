@@ -1,0 +1,118 @@
+name: build-windows
+on: [push]
+jobs:
+  pypi:
+    runs-on: "ubuntu-latest"
+    strategy:
+      fail-fast: false  
+      matrix:
+        python-version: [ '3.6', '3.7', '3.8', '3.9', '3.10'] 
+    steps:
+    - 
+      name: git clone OpenVisus
+      uses: actions/checkout@v2
+    - 
+      name: Run docker   
+      uses: addnab/docker-run-action@v3
+      with:
+        image: nsdf/manylinux2014_aarch64:latest
+        options: >
+           -v ${{ github.workspace }}:/home/OpenVisus 
+           -w /home/OpenVisus 
+           -e PYTHON_VERSION=${{ matrix.python-version }} 
+           -e PYPI_USERNAME=${{ secrets.PYPI_USERNAME }} 
+           -e PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }} 
+           -e ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }}
+        run: |
+           # docker run --rm --platform=aarch64 -it -v $PWD:/home/OpenVisus -w /home/OpenVisus nsdf/manylinux2014:latest bash
+           set -e
+           set -x
+           
+           # build OpenVisus
+           alias python3=`which python${PYTHON_VERSION}`
+           mkdir -p build_docker_cpython
+           cd build_docker_cpython
+           cmake -DPython_EXECUTABLE=`which python${PYTHON_VERSION}` -DVISUS_GUI=0 -DVISUS_MODVISUS=0 -DVISUS_SLAM=0 ../
+           cmake --build ./ --target all     --config Release --parallel 4
+           cmake --build ./ --target install --config Release
+           
+           # configure  and test
+           export PYTHONPATH=$PWD/Release
+           python3 -m OpenVisus configure || python3 -m OpenVisus configure  # segmentation fault problem at the first try
+           python3  -m OpenVisus test 
+           unset PYTHONPATH
+
+           # create pip package
+           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
+           if [[ "${GIT_TAG}" != "" ]] ; then
+             python3 -m pip install setuptools wheel twine 
+             pushd Release/OpenVisus
+             python3 setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=manylinux2014_$(uname -m)
+             WHEEL_FILENAME=`find dist -iname "*.whl"  | head -n 1`
+             python3 -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing "${WHEEL_FILENAME}"
+             popd
+           fi
+           
+  conda:
+    runs-on: "ubuntu-latest"
+    strategy:
+      fail-fast: false  
+      matrix:
+        python-version: [ '3.6', '3.7', '3.8', '3.9', '3.10'] 
+    steps:
+    - 
+      name: git clone OpenVisus
+      uses: actions/checkout@v2
+    - 
+      name: Set up QEMU
+      uses: docker/setup-qemu-action@master
+      with:
+        platforms: all
+      name: Run docker
+      uses: addnab/docker-run-action@v3
+      with:
+        image: condaforge/mambaforge:latest
+        options: >
+           --platform=aarch64
+           -v ${{ github.workspace }}:/home/OpenVisus 
+           -w /home/OpenVisus 
+           -e PYTHON_VERSION=${{ matrix.python-version }}
+           -e ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }}
+        run: |
+           # docker run --rm --platform=aarch64 -it -v $PWD:/home/OpenVisus -w /home/OpenVisus -e PYTHON_VERSION=3.8 condaforge/mambaforge:latest bash
+           set -e
+           set -x
+
+           mamba create --name my-python  -y -c conda-forge python=${PYTHON_VERSION} numpy anaconda-client conda-build wheel gcc_linux-64 gxx_linux-64 make cmake swig
+           conda activate my-python
+
+           # build OpenVisus
+           mkdir -p build_docker_conda
+           cd build_docker_conda
+           cmake \
+              -DPython_EXECUTABLE=`which python` \
+              -DVISUS_GUI=0 -DVISUS_MODVISUS=0 \
+              -DVISUS_SLAM=0 \
+              -DCMAKE_PREFIX_PATH=${CONDA_PREFIX} \
+              -DCMAKE_INSTALL_PREFIX=${CONDA_PREFIX} \
+               ../
+           make -j
+           make install
+           
+           # configure  and test
+           conda develop ${PWD}/Release
+           python -m OpenVisus configure || python -m OpenVisus configure  # segmentation fault problem at the first try
+           python -m OpenVisus test   # FAILS: ImportError: /lib64/libstdc++.so.6: version `GLIBCXX_3.4.21' not found (required by /root/miniforge3/envs/my-python/lib/python3.8/site-packages/PIL/../../.././libLerc.so)
+           conda develop ${PWD}/Release --uninstall
+           
+           # create conda package
+           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
+           if [[ "${GIT_TAG}" != ""  ]] ; then
+             # if cannot find bdist_conda command do this
+             # cp -f $CONDA_PREFIX/lib/python${PYTHON_VERSION}/distutils/command/bdist_conda* $CONDA_PREFIX/lib/python3.8/site-packages/setuptools/_distutils/command/
+             pushd Release/OpenVisus
+             python setup.py -q bdist_conda 1>/dev/null
+             CONDA_FILENAME=`find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1`
+             ${HOME}/anaconda3/bin/anaconda --verbose --show-traceback -t ${ANACONDA_TOKEN} upload "${CONDA_FILENAME}"
+             popd
+           fi
