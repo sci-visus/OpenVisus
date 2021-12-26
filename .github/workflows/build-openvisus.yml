@@ -234,7 +234,7 @@ jobs:
       run: |
            set -e
            set -x
-           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e VISUS_GUI=1 -e VISUS_SLAM=1 -e Qt5_DIR=/opt/qt512 -e VISUS_MODVISUS=1 -v ${PWD}:${PWD} -w ${PWD} visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
+           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -v ${PWD}:${PWD} -w ${PWD} visus/portable-linux-binaries_x86_64:2.0 /bin/bash -c "./scripts/build_linux.sh"
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
 
@@ -548,7 +548,7 @@ jobs:
            set -e
            set -x
            # i can use the pyqt one, but I would need to share the directory to docker, for simplicity I'm not doing it
-           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=/opt/qt512 -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries /bin/bash -c "./scripts/build_linux.sh"
+           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries_x86_64:2.0 /bin/bash -c "./scripts/build_linux.sh"
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
 
