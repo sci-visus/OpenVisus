@@ -607,3 +607,52 @@ jobs:
            DistribToConda
            rm -Rf QT_VERSION $(find . -iname "*VisusGui*")
            DistribToConda
+
+
+  # ///////////////////////////////////////////////////////////////////
+  build-arm64:
+    runs-on: "ubuntu-latest"
+    strategy:
+      fail-fast: false  
+      matrix:
+        python-version: [ '3.6', '3.7', '3.8', '3.9', '3.10'] 
+    steps:
+    
+    # ____________________________________________ 
+    - name: build nogui on arm64
+      shell: bash -l {0}
+      run: |
+           set -e
+           set -x
+           
+           # install packages
+           sudo apt-get install -y qemu binfmt-support qemu-user-static # Install the qemu packages 1>/dev/null
+           
+           # This step will execute the registering scripts
+           docker run --rm --privileged multiarch/qemu-user-static --reset -p yes 
+           
+           # check is arm64
+           docker run --rm -t arm64v8/ubuntu uname -m 
+      
+           PYTHON_VERSION=${{ matrix.python-version }}
+           PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }}
+           ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }}
+           docker run --rm \
+            --platform linux/arm64 \
+            -v $PWD:/home/OpenVisus \
+            -w /home/OpenVisus \
+            -e PYTHON_VERSION=$PYTHON_VERSION \
+            -e PYPI_PASSWORD=$PYPI_PASSWORD \
+            -e ANACONDA_TOKEN=$ANACONDA_TOKEN  \
+            nsdf/manylinux2014_aarch64:latest \
+            bash scripts/build_linux.arm64.sh
+
+
+
+
+# to run:
+# 
+# 
+# 
+# 
+
