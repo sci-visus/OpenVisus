@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9', '3.10'] 
+        python-version: [ '3.6', '3.7', '3.8', '3.9']  #  REMOVED '3.10' since PyQt5 it's not yet available for windows
     steps:
     
     # ____________________________________________ 
@@ -43,6 +43,7 @@ jobs:
     # ____________________________________________ 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
+
       with:
         version: '5.12.8'
         arch: 'win64_msvc2017_64'
@@ -380,16 +381,17 @@ jobs:
            export PATH=$HOME/anaconda3/bin:$PATH
            
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-           # C:\Miniconda3\envs\tmp-> /mnt/c/Miniconda3/envs/tmp
-           CONDA_PREFIX_WSL=/mnt/c/Miniconda3/envs/tmp
+           
+           echo $CONDA_PREFIX
            
            cd build/Release/OpenVisus
            
            function DistribToConda() {
-             rm -Rf $(find ${CONDA_PREFIX_WSL} -iname "openvisus*.tar.bz2")  || true
+             rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
              
              # fix problem of bdist_conda command not found (scrgiorgio: I TRIED EVERYTHING! just crazy)
-             pushd ${CONDA_PREFIX_WSL}/lib/python${{ matrix.python-version }}
+             pushd ${CONDA_PREFIX}/lib/python${{ matrix.python-version }}
+             find .
              cp -f distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py
              popd             
              
@@ -556,7 +558,7 @@ jobs:
            set -e
            set -x
            # i can use the pyqt one, but I would need to share the directory to docker, for simplicity I'm not doing it
-           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries_x86_64:2.0 /bin/bash -c "./scripts/build_linux.sh"
+           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries_x86_64:2.0 -e Qt5_DIR=/opt/qt512 /bin/bash -c "./scripts/build_linux.sh"
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
 
@@ -609,6 +611,9 @@ jobs:
            DistribToConda
 
 
+
+
+
   # ///////////////////////////////////////////////////////////////////
   build-arm64:
     runs-on: "ubuntu-latest"
@@ -617,6 +622,10 @@ jobs:
       matrix:
         python-version: [ '3.6', '3.7', '3.8', '3.9', '3.10'] 
     steps:
+    
+    # ____________________________________________ 
+    - name: git clone OpenVisus
+      uses: actions/checkout@v2
     
     # ____________________________________________ 
     - name: build nogui on arm64
@@ -647,12 +656,4 @@ jobs:
             nsdf/manylinux2014_aarch64:latest \
             bash scripts/build_linux.arm64.sh
 
-
-
-
-# to run:
-# 
-# 
-# 
-# 
 
