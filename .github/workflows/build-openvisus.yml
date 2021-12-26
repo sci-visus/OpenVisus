@@ -88,7 +88,7 @@ jobs:
            
            cd  build/Release/OpenVisus
            
-           funtion DistribToPip() {
+           function DistribToPip() {
              rm -Rf ./dist
              ${pythonLocation}/python setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=win_amd64
              if [[ "${GIT_TAG}" != "" ]] ; then
@@ -380,14 +380,25 @@ jobs:
            export PATH=$HOME/anaconda3/bin:$PATH
            
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
+           # C:\Miniconda3\envs\tmp-> /mnt/c/Miniconda3/envs/tmp
+           CONDA_PREFIX_WSL=/mnt/c/Miniconda3/envs/tmp
            
            cd build/Release/OpenVisus
            
            function DistribToConda() {
-             rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
+             rm -Rf $(find ${CONDA_PREFIX_WSL} -iname "openvisus*.tar.bz2")  || true
+             
+             # fix problem of bdist_conda command not found (scrgiorgio: I TRIED EVERYTHING! just crazy)
+             pushd ${CONDA_PREFIX_WSL}/lib/python${{ matrix.python-version }}
+             cp -f distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py
+             popd             
+             
              python setup.py -q bdist_conda 1>/dev/null
+             
+             CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1)  
+             
              if [[ "${GIT_TAG}" != ""  ]] ; then
-               anaconda --verbose --show-traceback  -t ${{ secrets.ANACONDA_TOKEN }}   upload `find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1`
+               anaconda --verbose --show-traceback  -t ${{ secrets.ANACONDA_TOKEN }}   upload ${CONDA_FILENAME}
              fi
            }
            
@@ -488,9 +499,8 @@ jobs:
              
              # fix problem of bdist_conda command not found (scrgiorgio: I TRIED EVERYTHING! just crazy)
              pushd ${CONDA_PREFIX}/lib/python${{ matrix.python-version }}
-             find .
-             cp -n distutils/command/bdist_conda* site-packages/setuptools/_distutils/command/
-             popd             
+             cp -f distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py
+             popd
              
              python setup.py -q bdist_conda 1>/dev/null
              if [[ "${GIT_TAG}" != ""  ]] ; then
