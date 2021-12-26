@@ -1,12 +1,12 @@
 FROM httpd:2.4
 
 RUN apt-get update --no-install-recommends
-RUN apt-get install --no-install-recommends -y wget unzip python3.7 python3-dev libpython3.7 python3-pip python3-numpy && \
+RUN apt-get install --no-install-recommends -y wget unzip python3 python3-dev libpython3.9 python3-pip python3-numpy && \
 	python3 -m pip install --no-cache-dir --upgrade pip && \
 	python3 -m pip install --no-cache-dir --upgrade numpy && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
-
+do
 # install OpenVisus (change version as needed)
 ARG TAG
 RUN python3 -m pip install -vvv --no-cache-dir  --upgrade OpenVisusNoGui==$TAG
