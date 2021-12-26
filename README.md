@@ -3,7 +3,7 @@
 ![GitHub Actions](https://github.com/sci-visus/OpenVisus/workflows/BuildOpenVisus/badge.svg)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/sci-visus/OpenVisus/master?filepath=Samples%2Fjupyter)
 
- 
+      
  
 # Mission
 
@@ -103,5 +103,5 @@ To test in OpenVisus viewer:
 
 ```
 visusviewer tmp/MIRANDA/DENSITY.idx2
-```
+``` 
 
