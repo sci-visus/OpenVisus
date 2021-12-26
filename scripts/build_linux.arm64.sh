@@ -11,14 +11,14 @@ set -e
 set -x
 
 PYTHON_VERSION=${PYTHON_VERSION:-3.8}
-PYPI_USERNAME=${PYPI_USERNAME:-}
-PYPI_PASSWORD=${PYPI_PASSWORD:-scrgiorgio}
+PYPI_USERNAME=${PYPI_USERNAME:-scrgiorgio}
+PYPI_PASSWORD=${PYPI_PASSWORD:-}
 ANACONDA_TOKEN=${ANACONDA_TOKEN:-}
 BUILD_DIR=${BUILD_DIR:-build_arm64_$PYTHON_VERSION}
 PY=/usr/local/bin/python${PYTHON_VERSION}
 
 # since I am manually producing the binaries, I should use the last git tag
-GIT_TAG=`$PY ../Libs/swig/setup.py print-tag`
+GIT_TAG=`$PY Libs/swig/setup.py print-tag`
 
 uname -m
 
@@ -29,7 +29,7 @@ make -j
 make install
 
 # configure and test openvisus
-if [[ '1' ==  '1']] ; then
+if [[ '1' ==  '1' ]] ; then
   export PYTHONPATH=$PWD/Release
   $PY -m OpenVisus configure || true  # segmentation fault problem on linux
   $PY -m OpenVisus test
@@ -38,7 +38,7 @@ if [[ '1' ==  '1']] ; then
 fi
 
 # upload wheel
-if [[ '1' ==  '1']] ; then
+if [[ '1' ==  '1' ]] ; then
   pushd ./Release/OpenVisus
   $PY -m pip install setuptools wheel twine 1>/dev/null 
   $PY setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=manylinux2014_aarch64
@@ -49,7 +49,7 @@ if [[ '1' ==  '1']] ; then
 fi
 
 # install miniconda
-if [[ '1' ==  '1']] ; then
+if [[ '1' ==  '1' ]] ; then
   curl -L -O https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-aarch64.sh
   bash Miniforge3-Linux-aarch64.sh -b
   export PATH=~/miniforge3/bin:$PATH
@@ -58,7 +58,7 @@ if [[ '1' ==  '1']] ; then
 fi
 
 # create conda environment
-if [[ '1' ==  '1']] ; then
+if [[ '1' ==  '1' ]] ; then
   conda create -n myenv python=${PYTHON_VERSION} numpy conda anaconda-client conda-build wheel setuptools
   conda activate myenv
 
@@ -69,7 +69,7 @@ if [[ '1' ==  '1']] ; then
 fi
 
 # configure and test openvisus
-if [[ '1' ==  '1']] ; then
+if [[ '1' ==  '1' ]] ; then
   conda develop $PWD/Release
   python -m OpenVisus configure
   python -m OpenVisus test
@@ -86,6 +86,7 @@ fi
 popd
 
 # finish
-if [[ '1' ==  '1']] ; then
+if [[ '1' ==  '1' ]] ; then
   conda deactivate
 fi
+
