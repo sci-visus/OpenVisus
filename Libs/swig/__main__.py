@@ -163,10 +163,10 @@ def Configure(bUserInstall=False):
 
 			# scrgiorgio: Timos says this can fail but then the viewer works anyway
 			if not (WIN32 or APPLE):
-  			try:
-  				conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'libglu')
-  			except:
-  				pass
+			try:
+				conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'libglu')
+			except:
+				pass
 
 		else:
 			cmd=[sys.executable,"-m", "pip", "install"] + (["--user"] if bUserInstall else []) + ["PyQt5~={}.{}.0".format(qt_major,qt_minor)]
