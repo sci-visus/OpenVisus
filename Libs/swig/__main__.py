@@ -107,7 +107,7 @@ def Configure(bUserInstall=False):
 	if is_conda:
 
 		import conda.cli 
-		conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'numpy', "pillow")
+		conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'numpy')
 
 		# for some unknown reason I get: RuntimeError: module compiled against API version 0xc but this version of numpy is 0xa
 		# scrgiorgio: I don't care if it fails
@@ -118,7 +118,7 @@ def Configure(bUserInstall=False):
 
 
 	else:
-		ExecuteCommand([sys.executable,"-m", "pip", "install", "--upgrade"] + (["--user"] if bUserInstall else [] ) + ["numpy", "pillow"],check_result=True)
+		ExecuteCommand([sys.executable,"-m", "pip", "install", "--upgrade"] + (["--user"] if bUserInstall else [] ) + ["numpy"],check_result=True)
 
 
 
@@ -530,15 +530,22 @@ def Main(args):
 	if action=="test":
 		os.chdir(this_dir)
 		ExecuteCommand([sys.executable, "Samples/python/array.py"],check_result=True) 
-
 		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow1.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow2.py"],check_result=True) 
-
 		ExecuteCommand([sys.executable, "Samples/python/idx/read.py"],check_result=True) 
-		ExecuteCommand([sys.executable, "Samples/python/idx/convert.py"],check_result=True) 
-		# ExecuteCommand([sys.executable, "Samples/python/idx/speed.py"],check_result=True) 
-		
-		ExecuteCommand([sys.executable, "Samples/python/wavelets/filters.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "-m","OpenVisus","server","--dataset","./datasets/cat/rgb.idx","--port","10000","--exit"],check_result=True) 
+		sys.exit(0)
+
+	# test-full
+	if action=="test-full":
+		os.chdir(this_dir)
+		ExecuteCommand([sys.executable, "Samples/python/array.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow1.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow2.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/idx/read.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/idx/convert.py"],check_result=True)  # this needs pillow (import PIL)
+		ExecuteCommand([sys.executable, "Samples/python/wavelets/filters.py"],check_result=True) # this needs pillow (import PIL) 
+		ExecuteCommand([sys.executable, "Samples/python/idx/speed.py"],check_result=True) # this is very slow
 		ExecuteCommand([sys.executable, "-m","OpenVisus","server","--dataset","./datasets/cat/rgb.idx","--port","10000","--exit"],check_result=True) 
 		sys.exit(0)
 
@@ -549,8 +556,9 @@ def Main(args):
 
 	# this is just to test run-time linking of shared libraries
 	if action=="test-gui":
-		from OpenVisus.VisusGuiPy import GuiModule
-		print("test-gui ok")
+		if os.path.isfile(os.path.join(this_dir,"QT_VERSION")): 
+			from OpenVisus.VisusGuiPy import GuiModule
+			print("test-gui ok")
 		sys.exit(0)
 		
 	# example -m OpenVisus test-network-speed  --nconnections 1 --nrequests 100 --url "http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled" 

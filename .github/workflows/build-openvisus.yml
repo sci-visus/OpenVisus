@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9'] 
+        python-version: [ '3.6', '3.7', '3.8', '3.9', '3.10'] 
     steps:
     
     # ____________________________________________ 
@@ -107,7 +107,7 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9'] 
+        python-version: [ '3.6', '3.7', '3.8', '3.9', '3.10'] 
     steps:
     
     # ____________________________________________ 
@@ -205,7 +205,7 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9']
+        python-version: [ '3.6', '3.7', '3.8', '3.9', '3.10']
     steps:
     
     # ____________________________________________ 
@@ -488,6 +488,12 @@ jobs:
            
            function DistribToConda() {
              rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
+             
+             # fix problem of bdist_conda command not found (scrgiorgio: I TRIED EVERYTHING! just crazy)
+             pushd ${CONDA_PREFIX}/lib/python${{ matrix.python-version }}
+             cp -n distutils/command/bdist_conda* site-packages/setuptools/_distutils/command/
+             popd             
+             
              python setup.py -q bdist_conda 1>/dev/null
              if [[ "${GIT_TAG}" != ""  ]] ; then
                anaconda --verbose --show-traceback  -t ${{ secrets.ANACONDA_TOKEN }}   upload `find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1`
@@ -577,7 +583,13 @@ jobs:
            cd build/Release/OpenVisus
            
            function DistribToConda() {
-           rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
+             rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
+             
+             # fix problem of bdist_conda command not found (scrgiorgio: I TRIED EVERYTHING! just crazy)
+             pushd ${CONDA_PREFIX}/lib/python${{ matrix.python-version }}
+             cp -n distutils/command/bdist_conda* site-packages/setuptools/_distutils/command/
+             popd
+             
              python setup.py -q bdist_conda 1>/dev/null
              if [[ "${GIT_TAG}" != ""  ]] ; then
                anaconda --verbose --show-traceback  -t ${{ secrets.ANACONDA_TOKEN }}   upload `find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1`
