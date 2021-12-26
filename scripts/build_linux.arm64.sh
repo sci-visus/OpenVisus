@@ -4,7 +4,7 @@
 # PYTHON_VERSION=3.8
 # PYPI_PASSWORD=XXXX
 # ANACONDA_TOKEN=YYYY
-# sudo docker run --rm --platform linux/arm64 -v $PWD:/home/OpenVisus -w /home/OpenVisus -e PYTHON_VERSION=$PYTHON_VERSION -e PYPI_PASSWORD=$PYPI_PASSWORD -e ANACONDA_TOKEN=$ANACONDA_TOKEN  nsdf/manylinux2014_aarch64:latest bash scripts/build_ubuntu_arm64.sh
+# sudo docker run --rm --platform linux/arm64 -v $PWD:/home/OpenVisus -w /home/OpenVisus -e PYTHON_VERSION=$PYTHON_VERSION -e PYPI_PASSWORD=$PYPI_PASSWORD -e ANACONDA_TOKEN=$ANACONDA_TOKEN  nsdf/manylinux2014_aarch64:latest bash scripts/build_linux.arm64.sh
 
 
 set -e
@@ -14,13 +14,13 @@ PYTHON_VERSION=${PYTHON_VERSION:-3.8}
 PYPI_USERNAME=${PYPI_USERNAME:-}
 PYPI_PASSWORD=${PYPI_PASSWORD:-scrgiorgio}
 ANACONDA_TOKEN=${ANACONDA_TOKEN:-}
-BUILD_DIR=${BUILD_DIR:-build_arm64}
+BUILD_DIR=${BUILD_DIR:-build_arm64_$PYTHON_VERSION}
+PY=/usr/local/bin/python${PYTHON_VERSION}
 
 # since I am manually producing the binaries, I should use the last git tag
-GIT_TAG=$(python3 ../Libs/swig/setup.py print-tag)
+GIT_TAG=`$PY ../Libs/swig/setup.py print-tag`
 
 uname -m
-alias python3=/usr/local/bin/python${PYTHON_VERSION}
 
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
@@ -31,19 +31,19 @@ make install
 # configure and test openvisus
 if [[ '1' ==  '1']] ; then
   export PYTHONPATH=$PWD/Release
-  python3 -m OpenVisus configure || true  # segmentation fault problem on linux
-  python3 -m OpenVisus test
-  python3 -m OpenVisus test-gui 
+  $PY -m OpenVisus configure || true  # segmentation fault problem on linux
+  $PY -m OpenVisus test
+  $PY -m OpenVisus test-gui 
   unset PYTHONPATH
 fi
 
 # upload wheel
 if [[ '1' ==  '1']] ; then
   pushd ./Release/OpenVisus
-  python3 -m pip install setuptools wheel twine 1>/dev/null 
-  python3 setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=manylinux2014_aarch64
+  $PY -m pip install setuptools wheel twine 1>/dev/null 
+  $PY setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=manylinux2014_aarch64
   if [[ '${GIT_TAG}' != '' && '${PYPI_USERNAME}' != '' && '${PYPI_PASSWORD}' != '' ]] ; then
-    python3 -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD}  --skip-existing  'dist/*.whl'
+    $PY -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD}  --skip-existing  'dist/*.whl'
   fi
   popd
 fi

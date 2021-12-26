@@ -51,7 +51,7 @@ jobs:
         setup-python: 'false' 
         
     # ____________________________________________ 
-    - name: Compile  
+    - name: Compile cpython
       shell: bash -l {0}
       run: |
            set -e
@@ -63,7 +63,7 @@ jobs:
            cmake --build . --target install   --config Release
 
     # ____________________________________________ 
-    - name: Test  
+    - name: Test cpython
       shell: bash -l {0}
       run: |
            set -e
@@ -76,7 +76,7 @@ jobs:
            ${pythonLocation}/python  -m OpenVisus test-gui
 
     # ____________________________________________
-    - name: Distrib 
+    - name: Distrib cpython
       shell: bash -l {0}
       run: |
            set -e
@@ -150,7 +150,7 @@ jobs:
         setup-python: 'false'
 
     # ____________________________________________ 
-    - name: Compile 
+    - name: Compile cpython
       shell: bash -l {0}
       run: |
            set -e
@@ -162,7 +162,7 @@ jobs:
            cmake --build ./ --target install   --config Release 
            
     # ____________________________________________ 
-    - name: Test  
+    - name: Test cpython
       shell: bash -l {0}
       run: |
            set -e
@@ -175,7 +175,7 @@ jobs:
            ${pythonLocation}/python  -m OpenVisus test-gui 
 
     # ____________________________________________ 
-    - name: Distrib 
+    - name: Distrib cpython
       shell: bash -l {0}
       run: |
            set -e
@@ -229,7 +229,7 @@ jobs:
           sudo apt-get install libglu1-mesa-dev 1>/dev/null
 
     # ____________________________________________ 
-    - name: Compile 
+    - name: Compile cpython
       shell: bash -l {0}
       run: |
            set -e
@@ -239,7 +239,7 @@ jobs:
            sudo chmod -R a+rwx      build
 
     # ____________________________________________ 
-    - name: Test  
+    - name: Test cpython
       shell: bash -l {0}
       run: |
            set -e
@@ -252,7 +252,7 @@ jobs:
            ${pythonLocation}/python  -m OpenVisus test-gui 
 
     # ____________________________________________ 
-    - name: Distrib 
+    - name: Distrib cpython
       shell: bash -l {0}
       run: |
            set -e
@@ -280,21 +280,18 @@ jobs:
            
     # ____________________________________________ 
     # for python version see Docker file (it's 3.9 now)
-    - name: mod_visus
+    - name: Docker modvisus cpython
       if: matrix.python-version=='3.9' 
       shell: bash -l {0}
       run: |
            set -e
            set -x
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-           
-           echo ${{ secrets.DOCKER_TOKEN }} | docker login -u=${{ secrets.DOCKER_USERNAME }} --password-stdin
-           
-           sleep 30 # give time pypi to get the pushed file
-           
-           cd Docker/mod_visus
-           docker build --tag visus/mod_visus:$GIT_TAG --tag visus/mod_visus:latest --build-arg TAG=$GIT_TAG .
            if [[ "${GIT_TAG}" != "" ]] ; then
+             echo ${{ secrets.DOCKER_TOKEN }} | docker login -u=${{ secrets.DOCKER_USERNAME }} --password-stdin
+             sleep 30 # give time pypi to get the pushed file
+             cd Docker/mod_visus
+             docker build --tag visus/mod_visus:$GIT_TAG --tag visus/mod_visus:latest --build-arg TAG=$GIT_TAG .
              docker push visus/mod_visus:$GIT_TAG
              docker push visus/mod_visus:latest
            fi
@@ -346,7 +343,7 @@ jobs:
            conda install -y pyqt=5.9  # -c conda-forge -y pyqt=5.12 (they rename DLLS, like Qt5Core.dll->Qt5Core_conda.dll))
 
     # ____________________________________________ 
-    - name: Compile 
+    - name: Compile conda
       shell: bash -l {0}
       run: |
            set -e
@@ -358,7 +355,7 @@ jobs:
            cmake --build . --target install   --config Release
 
     # ____________________________________________ 
-    - name: Test  
+    - name: Test conda
       shell: bash -l {0}
       run: |
            set -e 
@@ -371,7 +368,7 @@ jobs:
            python -m OpenVisus test-gui
 
     # ____________________________________________ 
-    - name: Distrib 
+    - name: Distrib conda
       shell: bash -l {0}   
       run: |
            set -e  
@@ -446,7 +443,7 @@ jobs:
            conda install -c conda-forge -y pyqt=5.12
 
     # ____________________________________________ 
-    - name: Compile 
+    - name: Compile conda
       shell: bash -l {0}
       run: |
            set -e
@@ -458,7 +455,7 @@ jobs:
            cmake --build ./ --target install   --config Release 
 
     # ____________________________________________ 
-    - name: Test  
+    - name: Test conda
       shell: bash -l {0}
       run: |
            set -e
@@ -471,7 +468,7 @@ jobs:
            python -m OpenVisus test-gui
 
     # ____________________________________________ 
-    - name: Distrib 
+    - name: Distrib conda
       shell: bash -l {0}   
       run: |
            set -e
@@ -491,6 +488,7 @@ jobs:
              
              # fix problem of bdist_conda command not found (scrgiorgio: I TRIED EVERYTHING! just crazy)
              pushd ${CONDA_PREFIX}/lib/python${{ matrix.python-version }}
+             find .
              cp -n distutils/command/bdist_conda* site-packages/setuptools/_distutils/command/
              popd             
              
@@ -542,7 +540,7 @@ jobs:
            conda install -c conda-forge cmake
 
     # ____________________________________________
-    - name: Compile  
+    - name: Compile conda
       shell: bash -l {0}
       run: |
            set -e
@@ -553,7 +551,7 @@ jobs:
            sudo chmod -R a+rwx      build
 
     # ____________________________________________ 
-    - name: Test
+    - name: Test conda
       shell: bash -l {0}
       run: |
            set -e
@@ -566,7 +564,7 @@ jobs:
            python -m OpenVisus test-gui
 
     # ____________________________________________ 
-    - name: Distrib 
+    - name: Distrib conda
       shell: bash -l {0}
       run: |
            set -e
