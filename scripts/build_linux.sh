@@ -6,7 +6,7 @@ BUILD_DIR=${BUILD_DIR:-$(pwd)/build}
 VISUS_GUI=${VISUS_GUI:-1}
 VISUS_MODVISUS=${VISUS_MODVISUS:-1}
 VISUS_SLAM=${VISUS_SLAM:-1}
-Qt5_DIR==${Qt5_DIR:-/opt/qt512}
+Qt5_DIR=${Qt5_DIR:-/opt/qt512}
 
 Python_EXECUTABLE=$(which python${PYTHON_VERSION})
 mkdir -p ${BUILD_DIR}
