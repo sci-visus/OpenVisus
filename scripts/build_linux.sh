@@ -16,7 +16,7 @@ cmake \
 	-DQt5_DIR=${Qt5_DIR} \
 	-DVISUS_GUI=${VISUS_GUI} \
 	-DVISUS_MODVISUS=${VISUS_MODVISUS} \
-	-DVISUS_SLAM=${VISUS_SLAM} 
+	-DVISUS_SLAM=${VISUS_SLAM} \
 	../
 	
 cmake --build ./ --target all     --config Release --parallel 4
