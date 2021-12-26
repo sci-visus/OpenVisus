@@ -161,11 +161,11 @@ def Configure(bUserInstall=False):
 			else:
 				conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', "pyqt={}.{}".format(qt_major,qt_minor))
 
-			# scrgiorgio: Timos says this can fail but then the viewer works anyway
-			try:
-				conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'libglu')
-			except:
-				pass
+			# don't think this is necessary
+			# try:
+			#	conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'libglu')
+			#except:
+			#	pass
 
 		# do I need PyQtWebEngine for conda? considers Qt is 5.9 (very old)
 		# it has webengine and sip included
@@ -182,15 +182,8 @@ def Configure(bUserInstall=False):
 
 		# this should cover the case where I just installed PyQt5
 		PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip()
+		print("PyQt5_HOME=",PyQt5_HOME)
 		
-		# this has been disabled, problems under Linux with QT_VERSION_STR
-		if False:
-			found_QT_VERSION=GetCommandOutput([sys.executable,"-c","from PyQt5 import Qt; print(vars(Qt)['QT_VERSION_STR'])"]).strip().split(".")
-			print("Linking','PyQt5_HOME",PyQt5_HOME, 'found_QT_VERSION',found_QT_VERSION)
-	
-			if found_QT_VERSION[0]!=qt_major or found_QT_VERSION[1]!=qt_minor:
-				raise Exception("There is a problem with getting the right Qt5 version. Please try 'export PYTHONNOUSERSITE=True' needed({}.{}) found({}.{})".format(qt_major,qt_minor,found_QT_VERSION[0],found_QT_VERSION[1],))
-	
 		if not os.path.isdir(PyQt5_HOME):
 			print("Error directory does not exists")
 			raise Exception("internal error")

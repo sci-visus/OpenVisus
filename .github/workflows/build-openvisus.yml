@@ -64,6 +64,17 @@ jobs:
            cmake --build . --target install   --config Release
 
     # ____________________________________________ 
+    - name: Configure cpython
+      shell: bash -l {0}
+      run: |
+           set -e
+           set -x
+           which python
+           cd build/Release/OpenVisus
+           export PYTHONPATH=../
+           ${pythonLocation}/python  -m OpenVisus configure  
+
+    # ____________________________________________ 
     - name: Test cpython
       shell: bash -l {0}
       run: |
@@ -72,7 +83,6 @@ jobs:
            which python
            cd build/Release/OpenVisus
            export PYTHONPATH=../
-           ${pythonLocation}/python  -m OpenVisus configure  || true  # segmentation fault problem on linux
            ${pythonLocation}/python  -m OpenVisus test
            ${pythonLocation}/python  -m OpenVisus test-gui
 
@@ -161,6 +171,17 @@ jobs:
            cmake -GXcode  -DVISUS_GUI=1 -DVISUS_SLAM=1  -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" -DCMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX10.9.sdk" -DPython_EXECUTABLE=${pythonLocation}/python ../
            cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
            cmake --build ./ --target install   --config Release 
+       
+    # ____________________________________________ 
+    - name: Configure cpython
+      shell: bash -l {0}
+      run: |
+           set -e
+           set -x
+           which python
+           cd build/Release/OpenVisus
+           export PYTHONPATH=../
+           ${pythonLocation}/python  -m OpenVisus configure  
            
     # ____________________________________________ 
     - name: Test cpython
@@ -171,7 +192,6 @@ jobs:
            which python
            cd build/Release/OpenVisus
            export PYTHONPATH=../
-           ${pythonLocation}/python  -m OpenVisus configure  || true  # segmentation fault problem on linux
            ${pythonLocation}/python  -m OpenVisus test
            ${pythonLocation}/python  -m OpenVisus test-gui 
 
@@ -239,6 +259,18 @@ jobs:
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
 
+
+    # ____________________________________________ 
+    - name: Configure cpython
+      shell: bash -l {0}
+      run: |
+           set -e
+           set -x
+           which python
+           cd build/Release/OpenVisus
+           export PYTHONPATH=../
+           ${pythonLocation}/python  -m OpenVisus configure  || true  # segmentation fault problem on linux
+
     # ____________________________________________ 
     - name: Test cpython
       shell: bash -l {0}
@@ -248,7 +280,6 @@ jobs:
            which python
            cd build/Release/OpenVisus
            export PYTHONPATH=../
-           ${pythonLocation}/python  -m OpenVisus configure  || true  # segmentation fault problem on linux
            ${pythonLocation}/python  -m OpenVisus test
            ${pythonLocation}/python  -m OpenVisus test-gui 
 
@@ -356,7 +387,7 @@ jobs:
            cmake --build . --target install   --config Release
 
     # ____________________________________________ 
-    - name: Test conda
+    - name: Configure conda
       shell: bash -l {0}
       run: |
            set -e 
@@ -365,6 +396,16 @@ jobs:
            cd build/Release/OpenVisus
            export PYTHONPATH=../
            python -m OpenVisus configure  || true  # segmentation fault problem on linux
+
+    # ____________________________________________ 
+    - name: Test conda
+      shell: bash -l {0}
+      run: |
+           set -e 
+           set -x 
+           which python
+           cd build/Release/OpenVisus
+           export PYTHONPATH=../
            python -m OpenVisus test
            python -m OpenVisus test-gui
 
@@ -372,13 +413,13 @@ jobs:
     - name: Distrib conda
       shell: bash -l {0}   
       run: |
-           set -e  
-           set -x 
-           
            conda install --yes anaconda-client  1>/dev/null  || true
            conda install --yes conda-build      1>/dev/null  || true
            conda install --yes wheel            1>/dev/null  || true
            export PATH=$HOME/anaconda3/bin:$PATH
+           
+           set -e  
+           set -x 
            
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            
@@ -390,10 +431,10 @@ jobs:
              rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
              
              # fix problem of bdist_conda command not found (scrgiorgio: I TRIED EVERYTHING! just crazy)
-             pushd ${CONDA_PREFIX}/lib/python${{ matrix.python-version }}
-             find .
-             cp -f distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py
-             popd             
+             pwd
+             echo ${CONDA_PREFIX}
+             find ${CONDA_PREFIX}/lib/python${{ matrix.python-version }}
+             cp -f ${CONDA_PREFIX}/lib/python${{ matrix.python-version }}/distutils/command/bdist_conda.py ${CONDA_PREFIX}/lib/python${{ matrix.python-version }}/site-packages/setuptools/_distutils/command/bdist_conda.py         
              
              python setup.py -q bdist_conda 1>/dev/null
              
@@ -468,7 +509,7 @@ jobs:
            cmake --build ./ --target install   --config Release 
 
     # ____________________________________________ 
-    - name: Test conda
+    - name: Configure conda
       shell: bash -l {0}
       run: |
            set -e
@@ -477,6 +518,16 @@ jobs:
            cd build/Release/OpenVisus
            export PYTHONPATH=../
            python -m OpenVisus configure  || true  # segmentation fault problem on linux
+
+    # ____________________________________________ 
+    - name: Test conda
+      shell: bash -l {0}
+      run: |
+           set -e
+           set -x
+           which python
+           cd build/Release/OpenVisus
+           export PYTHONPATH=../
            python -m OpenVisus test
            python -m OpenVisus test-gui
 
@@ -484,13 +535,13 @@ jobs:
     - name: Distrib conda
       shell: bash -l {0}   
       run: |
-           set -e
-           set -x
-           
            conda install --yes anaconda-client  1>/dev/null  || true
            conda install --yes conda-build      1>/dev/null  || true
            conda install --yes wheel            1>/dev/null  || true
            export PATH=$HOME/anaconda3/bin:$PATH
+
+           set -e
+           set -x
            
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            
@@ -558,9 +609,20 @@ jobs:
            set -e
            set -x
            # i can use the pyqt one, but I would need to share the directory to docker, for simplicity I'm not doing it
-           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries_x86_64:2.0 -e Qt5_DIR=/opt/qt512 /bin/bash -c "./scripts/build_linux.sh"
+           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=/opt/qt512 -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries_x86_64:2.0 /bin/bash -c "./scripts/build_linux.sh"
            sudo chown -R root:root  build
            sudo chmod -R a+rwx      build
+
+    # ____________________________________________ 
+    - name: Configure conda
+      shell: bash -l {0}
+      run: |
+           set -e
+           set -x
+           which python
+           cd build/Release/OpenVisus
+           export PYTHONPATH=../
+           python -m OpenVisus configure  || true  # segmentation fault problem on linux
 
     # ____________________________________________ 
     - name: Test conda
@@ -571,7 +633,6 @@ jobs:
            which python
            cd build/Release/OpenVisus
            export PYTHONPATH=../
-           python -m OpenVisus configure  || true  # segmentation fault problem on linux
            python -m OpenVisus test
            python -m OpenVisus test-gui
 
@@ -579,14 +640,14 @@ jobs:
     - name: Distrib conda
       shell: bash -l {0}
       run: |
-           set -e
-           set -x
-           
            conda install --yes anaconda-client  1>/dev/null  || true
            conda install --yes conda-build      1>/dev/null  || true
            conda install --yes wheel            1>/dev/null  || true
            
            export PATH=$HOME/anaconda3/bin:$PATH
+           
+           set -e
+           set -x           
            
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
            
