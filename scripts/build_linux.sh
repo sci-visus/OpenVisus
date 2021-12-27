@@ -38,7 +38,12 @@ fi
 
 # *** cpython ***
 PYTHON=`which python${PYTHON_VERSION}`
-BuildOpenVisusUbuntu -DPython_EXECUTABLE=$PYTHON -DQt5_DIR=$Qt5_DIR -DVISUS_GUI=$VISUS_GUI -DVISUS_MODVISUS=$VISUS_MODVISUS -DVISUS_SLAM=$VISUS_SLAM
+
+mkdir -p ${BUILD_DIR} 
+cd ${BUILD_DIR}
+cmake -DPython_EXECUTABLE=$PYTHON -DQt5_DIR=$Qt5_DIR -DVISUS_GUI=$VISUS_GUI -DVISUS_MODVISUS=$VISUS_MODVISUS -DVISUS_SLAM=$VISUS_SLAM ../
+make -j 
+make install
 
 pushd Release/OpenVisus
 ConfigureAndTestCPython 

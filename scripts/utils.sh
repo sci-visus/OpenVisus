@@ -1,24 +1,6 @@
 #!/bin/bash
 
 # ///////////////////////////////////////////////
-function BuildOpenVisus() {
-	mkdir -p ${BUILD_DIR} 
-	cd ${BUILD_DIR}
-	cmake $@ ../
-	cmake --build . --target ALL_BUILD --config Release --parallel 4
-	cmake --build . --target install	 --config Release
-}
-
-# ///////////////////////////////////////////////
-function BuildOpenVisusUbuntu() {
-	mkdir -p ${BUILD_DIR} 
-	cd ${BUILD_DIR}
-	cmake $@ ../
-	make -j 
-	make install
-}
-
-# ///////////////////////////////////////////////
 function CreateNonGuiVersion() {
 	mkdir -p Release.nogui
 	cp -R	Release/OpenVisus Release.nogui/OpenVisus

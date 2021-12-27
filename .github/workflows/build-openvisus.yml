@@ -61,7 +61,12 @@ jobs:
             PIP_PLATFORM=win_amd64
             BUILD_DIR=build
 
-            BuildOpenVisus -G 'Visual Studio 16 2019' -A 'x64' -DQt5_DIR=${Qt5_Dir}/lib/cmake/Qt5 -DPython_EXECUTABLE=${PYTHON} -DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe
+            mkdir -p ${BUILD_DIR} 
+            cd ${BUILD_DIR}
+            cmake -G "Visual Studio 16 2019' -A 'x64' -DQt5_DIR=${Qt5_Dir}/lib/cmake/Qt5 -DPython_EXECUTABLE=${PYTHON} -DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe ../
+            cmake --build . --target ALL_BUILD --config Release --parallel 4
+            cmake --build . --target install	 --config Release            
+
             CreateNonGuiVersion
 
             pushd Release/OpenVisus
@@ -132,7 +137,12 @@ jobs:
               PYTHON=`which python`
               BUILD_DIR=build        
 
-              BuildOpenVisus -G 'Visual Studio 16 2019' -A 'x64' -DQt5_DIR=${CONDA_PREFIX}/Library/lib/cmake/Qt5 -DPython_EXECUTABLE=${PYTHON} -DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe
+              mkdir -p ${BUILD_DIR} 
+              cd ${BUILD_DIR}
+              cmake -G 'Visual Studio 16 2019' -A 'x64' -DQt5_DIR=${CONDA_PREFIX}/Library/lib/cmake/Qt5 -DPython_EXECUTABLE=${PYTHON} -DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe ../
+              cmake --build . --target ALL_BUILD --config Release --parallel 4
+              cmake --build . --target install	 --config Release                
+
               CreateNonGuiVersion
 
               pushd Release/OpenVisus
@@ -204,7 +214,12 @@ jobs:
             PIP_PLATFORM=macosx_10_9_x86_64         
             BUILD_DIR=build   
 
-            BuildOpenVisus -GXcode -DQt5_DIR=${Qt5_Dir}/lib/cmake/Qt5 -DCMAKE_OSX_SYSROOT=/tmp/MacOSX-SDKs/MacOSX10.9.sdk -DPython_EXECUTABLE=${PYTHON}
+            mkdir -p ${BUILD_DIR} 
+            cd ${BUILD_DIR}
+            cmake -GXcode -DQt5_DIR=${Qt5_Dir}/lib/cmake/Qt5 -DCMAKE_OSX_SYSROOT=/tmp/MacOSX-SDKs/MacOSX10.9.sdk -DPython_EXECUTABLE=${PYTHON} ../
+            cmake --build . --target ALL_BUILD --config Release --parallel 4
+            cmake --build . --target install	 --config Release       
+
             CreateNonGuiVersion
 
             pushd Release/OpenVisus
@@ -266,7 +281,12 @@ jobs:
               PYTHON=`which python`
               BUILD_DIR=build               
 
-              BuildOpenVisus -GXcode -DQt5_DIR=${CONDA_PREFIX}/lib/cmake/Qt5 -DCMAKE_OSX_SYSROOT=/tmp/MacOSX-SDKs/MacOSX10.9.sdk -DPython_EXECUTABLE=${PYTHON}
+              mkdir -p ${BUILD_DIR} 
+              cd ${BUILD_DIR}
+              cmake  -GXcode -DQt5_DIR=${CONDA_PREFIX}/lib/cmake/Qt5 -DCMAKE_OSX_SYSROOT=/tmp/MacOSX-SDKs/MacOSX10.9.sdk -DPython_EXECUTABLE=${PYTHON} ../
+              cmake --build . --target ALL_BUILD --config Release --parallel 4
+              cmake --build . --target install	 --config Release     
+
               CreateNonGuiVersion
 
               pushd Release/OpenVisus
@@ -299,6 +319,8 @@ jobs:
         PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_TOKEN: ${{ matrix.python-version }}
       run: |
           # this will generate all AMD64 configurations (cpython gui/nogui; conda gui/nogui)
           docker run --rm -v ${PWD}:/home/OpenVisus -w /home/OpenVisus \
@@ -308,15 +330,7 @@ jobs:
             -e ANACONDA_TOKEN=$ANACONDA_TOKEN \
             visus/portable-linux-binaries_x86_64:4.1 bash scripts/build_linux.sh
 
-    - name: Deploy mod_visus
-      shell: bash -l {0}
-      env:
-        PYTHON_VERSION: ${{ matrix.python-version }}
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        DOCKER_TOKEN: ${{ matrix.python-version }}
-      run: |
-          set -e
-          set -x
+          # deploy modvisus
           GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
           if [[ "$GIT_TAG" != "" &&  "${PYTHON_VERSION}" == "3.9" ]] ; then
             sleep 30 # give time for pip package to be ready
