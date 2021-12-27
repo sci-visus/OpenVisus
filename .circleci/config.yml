@@ -1,0 +1,41 @@
+version: 2.1
+commands:
+  setup:
+    steps:
+      - checkout
+      - run:
+          name: Setup buildx and qemu
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y qemu-user-static
+            sudo apt-get install -y binfmt-support
+      - run:
+          name: Check versions
+          command: |
+            qemu-aarch64-static --version
+            update-binfmts --version 
+      - run:
+          name: Create builder
+          command: |
+            export DOCKER_CLI_EXPERIMENTAL=enabled
+            docker buildx create --name arm-builder
+            docker buildx use arm-builder
+            docker buildx inspect --bootstrap
+jobs:
+  build:
+    machine:
+      # this is ubuntu 20.04
+      image: 'ubuntu-2004:202010-01' 
+    steps:
+      - setup
+      - run:
+          name: Build ARM docker
+          command: | 
+            export DOCKER_CLI_EXPERIMENTAL=enabled 
+            # docker buildx build --platform linux/arm64 --load -t arm-image .
+            docker run --rm --platform linux/arm64 bash -c "uname -m"
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
