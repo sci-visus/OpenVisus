@@ -16,142 +16,61 @@ docker run --rm -it \
 set -e  # stop or error
 set -x  # very verbose
 
+source $(dirname "$0")/utils.sh
+
 BUILD_DIR=${BUILD_DIR:-build_docker}
 VISUS_GUI=${VISUS_GUI:-1}
 VISUS_SLAM=${VISUS_SLAM:-1}
 VISUS_MODVISUS=${VISUS_MODVISUS:-1}
+Qt5_DIR=${Qt5_DIR:-/opt/qt512}
 
-# //////////////////////////////////////////////////////////////
-function BuildOpenVisus() {
-	mkdir -p ${BUILD_DIR} 
-	cd ${BUILD_DIR} 	
-	cmake -DPython_EXECUTABLE="${PYTHON}" -DQt5_DIR=/opt/qt512 -DVISUS_GUI=${VISUS_GUI} -DVISUS_MODVISUS=${VISUS_MODVISUS} -DVISUS_SLAM=${VISUS_SLAM} ../
-	make -j
-	make install
-	touch ~steps.BuildOpenVisus
-}
+GIT_TAG=${GIT_TAG:-`git describe --tags --exact-match 2>/dev/null || true`}
 
-# //////////////////////////////////////////////////////////////
-function CreateNonGuiVersion() {
-	mkdir -p Release.nogui
-	cp -R  Release/OpenVisus Release.nogui/OpenVisus
-	rm -Rf Release.nogui/OpenVisus/QT_VERSION $(find Release.nogui/OpenVisus -iname "*VisusGui*")
-}
+# *** cpython ***
+PYTHON=`which python${PYTHON_VERSION}`
+ARCHITECTURE=`uname -m`
+if [[ "${ARCHITECTURE}" == "x86_64" ]] ; then
+	PIP_PLATFORM=manylinux2010_${ARCHITECTURE}
+elif [[ "${ARCHITECTURE}" == "aarch64" ]] ; then
+	PIP_PLATFORM=manylinux2014_${ARCHITECTURE}
+else
+	echo "unknown architecture [${ARCHITECTURE}]"
+	exit -1
+fi	
 
-# //////////////////////////////////////////////////////////////
-function ConfigureAndTestCPython() {
-	export PYTHONPATH=$PWD/..
-	${PYTHON} -m OpenVisus configure || true  # segmentation fault problem
-	${PYTHON} -m OpenVisus test
-	${PYTHON} -m OpenVisus test-gui  || true # this can fail because OS is not able to run pyqt
-	unset PYTHONPATH
-}
+BuildOpenVisusUbuntu
 
-# //////////////////////////////////////////////////////////////
-function DistribToPip() {
-	rm -Rf ./dist
-	${PYTHON} -m pip install setuptools wheel twine 1>/dev/null
-	${PYTHON} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=$PIP_PLATFORM	
-	if [[ "$GIT_TAG" != "" && "$PYPI_USERNAME" != "" && "$PYPI_PASSWORD" != ""  ]] ; then
-		${PYTHON} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
-	fi
-}
+pushd Release/OpenVisus
+ConfigureAndTestCPython 
+DistribToPip
+popd
 
-# //////////////////////////////////////////////////////////////
-function InstallConda() {
-	if [[ ! -d ~/miniforge3 ]]; then
-		pushd ~
-		curl -L -O https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-aarch64.sh
-		bash Miniforge3-Linux-aarch64.sh -b
-		rm -f Miniforge3-Linux-aarch64.sh
-		popd
-	fi
-}
+if [[ "$VISUS_GUI" == "1" ]]; then
+	CreateNonGuiVersion
 
-# //////////////////////////////////////////////////////////////
-function ActivateConda() {
-	source ~/miniforge3/etc/profile.d/conda.sh
-	conda config --set always_yes yes --set anaconda_upload no
-	conda create --name my-env python=${PYTHON_VERSION} numpy conda anaconda-client conda-build wheel setuptools
-	conda activate my-env
-
-	# fix problem of bdist_conda command not found (I TRIED EVERYTHING! just crazy)
-	pushd ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}
-	cp -n distutils/command/bdist_conda* site-packages/setuptools/_distutils/command/
-	popd
-}
-
-# //////////////////////////////////////////////////////////////
-function ConfigureAndTestConda() {
-	conda develop $PWD/..
-	$PYTHON -m OpenVisus configure || true  # segmentation fault problem
-	$PYTHON -m OpenVisus test
-	$PYTHON -m OpenVisus test-gui  || true  # this can fail because the OS is not able to run pyqt for example
-	conda develop $PWD/.. uninstall
-}
-
-# //////////////////////////////////////////////////////////////
-function DistribToConda() {
-	rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
-	$PYTHON setup.py -q bdist_conda 1>/dev/null
-	if [[ "$GIT_TAG" != "" && "$ANACONDA_TOKEN" != "" ]] ; then
-		anaconda --verbose --show-traceback  -t ${ANACONDA_TOKEN}   upload `find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1`
-	fi
-}
-
-# //////////////////////////////////////////////////////////////
-function Main() {
-
-	# *** cpython ***
-	PYTHON=`which python${PYTHON_VERSION}`
-	GIT_TAG=${GIT_TAG:-`git describe --tags --exact-match 2>/dev/null || true`}
-
-	ARCHITECTURE=`uname -m`
-	if [[ "${ARCHITECTURE}" == "x86_64" ]] ; then
-		PIP_PLATFORM=manylinux2010_${ARCHITECTURE}
-	elif [[ "${ARCHITECTURE}" == "aarch64" ]] ; then
-		PIP_PLATFORM=manylinux2014_${ARCHITECTURE}
-	else
-		echo "unknown architecture [${ARCHITECTURE}]"
-		exit -1
-	fi	
-
-	BuildOpenVisus
-	
-	pushd Release/OpenVisus
+	pushd Release.nogui/OpenVisus 
 	ConfigureAndTestCPython 
-	DistribToPip
+	DistribToPip 
 	popd
+fi
 
-	if [[ "$VISUS_GUI" == "1" ]]; then
-		CreateNonGuiVersion
+# *** conda ***
+InstallCondaUbuntu
+ActivateConda
+PYTHON=`which python`
 
-		pushd Release.nogui/OpenVisus 
-		ConfigureAndTestCPython 
-		DistribToPip 
-		popd
-	fi
+pushd Release/OpenVisus 
+ConfigureAndTestConda 
+DistribToConda 
+popd
 
-	# *** conda ***
-	InstallConda
-	ActivateConda
-	PYTHON=`which python`
-
-	pushd Release/OpenVisus 
-	ConfigureAndTestConda 
-	DistribToConda 
+if [[ "$VISUS_GUI" == "1" ]]; then
+	pushd Release.nogui/OpenVisus
+	ConfigureAndTestConda
+	DistribToConda
 	popd
+fi
 
-	if [[ "$VISUS_GUI" == "1" ]]; then
-		pushd Release.nogui/OpenVisus
-		ConfigureAndTestConda
-		DistribToConda
-		popd
-	fi
-
-	echo "All done"
-}
-
-Main
+echo "All done"
 
 
