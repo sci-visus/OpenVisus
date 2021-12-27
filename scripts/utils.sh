@@ -1,45 +1,13 @@
 #!/bin/bash
 
 # ///////////////////////////////////////////////
-function BuildOpenVisusWindows() {
-	mkdir -p build 
-	cd build
-	cmake -G "Visual Studio 16 2019" -A "x64" \
-		-DQt5_DIR=${Qt5_DIR} \
-		-DPython_EXECUTABLE=${PYTHON}	\
-		-DSWIG_EXECUTABLE=${SWIG_EXECUTABLE} \
-		../
+function BuildOpenVisus() {
+	mkdir -p ${BUILD_DIR} 
+	cd ${BUILD_DIR}
+	cmake $CMAKE_OPTIONS ../
 	cmake --build . --target ALL_BUILD --config Release --parallel 4
 	cmake --build . --target install	 --config Release
 }
-
-# ///////////////////////////////////////////////
-function BuildOpenVisusMacOs() {
-	mkdir -p build 
-	cd build
-	cmake -GXcode	\
-		-DQt5_DIR=$Qt5_DIR \
-		-DCMAKE_OSX_SYSROOT=$CMAKE_OSX_SYSROOT \
-		-DPython_EXECUTABLE=${PYTHON} \
-		../
-	cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
-	cmake --build ./ --target install   --config Release 
-} 
-
-# //////////////////////////////////////////////////////////////
-function BuildOpenVisusUbuntu() {
-	mkdir -p ${BUILD_DIR} 
-	cd ${BUILD_DIR} 	
-	cmake \
-		-DPython_EXECUTABLE="${PYTHON}" \
-		-DQt5_DIR=$Qt5_DIR -DVISUS_GUI=${VISUS_GUI} \
-		-DVISUS_MODVISUS=${VISUS_MODVISUS} \
-		-DVISUS_SLAM=${VISUS_SLAM} \
-		../
-	make -j
-	make install
-}
-
 
 # ///////////////////////////////////////////////
 function CreateNonGuiVersion() {

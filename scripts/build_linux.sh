@@ -18,16 +18,14 @@ set -x  # very verbose
 
 source $(dirname "$0")/utils.sh
 
+GIT_TAG=${GIT_TAG:-`git describe --tags --exact-match 2>/dev/null || true`}
+
 BUILD_DIR=${BUILD_DIR:-build_docker}
 VISUS_GUI=${VISUS_GUI:-1}
 VISUS_SLAM=${VISUS_SLAM:-1}
 VISUS_MODVISUS=${VISUS_MODVISUS:-1}
 Qt5_DIR=${Qt5_DIR:-/opt/qt512}
 
-GIT_TAG=${GIT_TAG:-`git describe --tags --exact-match 2>/dev/null || true`}
-
-# *** cpython ***
-PYTHON=`which python${PYTHON_VERSION}`
 ARCHITECTURE=`uname -m`
 if [[ "${ARCHITECTURE}" == "x86_64" ]] ; then
 	PIP_PLATFORM=manylinux2010_${ARCHITECTURE}
@@ -38,7 +36,10 @@ else
 	exit -1
 fi	
 
-BuildOpenVisusUbuntu
+# *** cpython ***
+PYTHON=`which python${PYTHON_VERSION}`
+CMAKE_OPTIONS=-DPython_EXECUTABLE=$PYTHON -DQt5_DIR=$Qt5_DIR -DVISUS_GUI=$VISUS_GUI -DVISUS_MODVISUS=$VISUS_MODVISUS -DVISUS_SLAM=$VISUS_SLAM
+BuildOpenVisus
 
 pushd Release/OpenVisus
 ConfigureAndTestCPython 
@@ -70,7 +71,5 @@ if [[ "$VISUS_GUI" == "1" ]]; then
 	DistribToConda
 	popd
 fi
-
-echo "All done"
 
 
