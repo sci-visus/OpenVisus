@@ -2,7 +2,7 @@ version: 2.1
 commands:
 
 jobs:
-  build:
+  build-openvisus:
     machine:
       image: << parameters.os >>    
     steps:
@@ -39,7 +39,7 @@ workflows:
   version: 2
   build:
     jobs:
-      - build:
+      - build-openvisus:
           matrix:
             parameters:
               python-version: ['3.7', '3.8', '3.9' ,'3.10']
