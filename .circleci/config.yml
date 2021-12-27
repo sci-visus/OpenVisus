@@ -16,7 +16,7 @@ jobs:
           command: |
                     set -e
                     set -x
-                    
+
                     # this will generate all ARM configurations (cpython nogui; conda nogui)
                     PYTHON_VERSION=<< parameters.python-version >>
                     docker run --rm -v ${PWD}:/home/OpenVisus -w /home/OpenVisus \
@@ -28,14 +28,15 @@ jobs:
                       nsdf/manylinux2014_aarch64:latest bash scripts/build_linux.sh       
 
                     # deploy modvisus
+                    IMAGE_NAME=visus/mod_visus_aarch64
                     GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
                     if [[ "$GIT_TAG" !="" &&  "$PYTHON_VERSION" == "3.9" ]] ; then
                       sleep 30 # give time for pip package to be ready
                       pushd  Docker/mod_visus
-                      docker build --tag visus/mod_visus_aarch64:$GIT_TAG --tag visus/mod_visus_aarch64:latest --build-arg TAG=$GIT_TAG .
+                      docker build --tag $IMAGE_NAME:$GIT_TAG --tag $IMAGE_NAME:latest --build-arg TAG=$GIT_TAG .
                       echo ${DOCKER_TOKEN} | docker login -u=${DOCKER_USERNAME} --password-stdin
-                      docker push visus/visus/mod_visus_aarch64:$GIT_TAG
-                      docker push visus/visus/mod_visus_aarch64:latest
+                      docker push visus/$IMAGE_NAME:$GIT_TAG
+                      docker push visus/$IMAGE_NAME:latest
                       popd
                     fi  
           

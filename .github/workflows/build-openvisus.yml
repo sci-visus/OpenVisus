@@ -334,14 +334,15 @@ jobs:
             visus/portable-linux-binaries_x86_64:4.1 bash scripts/build_linux.sh
 
           # deploy modvisus
+          IMAGE_NAME=visus/mod_visus
           GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
           if [[ "$GIT_TAG" != "" &&  "${PYTHON_VERSION}" == "3.9" ]] ; then
             sleep 30 # give time for pip package to be ready
             pushd  Docker/mod_visus
-            docker build --tag visus/mod_visus:$GIT_TAG --tag visus/mod_visus:latest --build-arg TAG=$GIT_TAG .
+            docker build --tag IMAGE_NAME:$GIT_TAG --tag IMAGE_NAME:latest --build-arg TAG=$GIT_TAG .
             echo ${DOCKER_TOKEN} | docker login -u=${DOCKER_USERNAME} --password-stdin
-            docker push visus/mod_visus:$GIT_TAG
-            docker push visus/mod_visus:latest
+            docker push IMAGE_NAME:$GIT_TAG
+            docker push IMAGE_NAME:latest
             popd
           fi
 
