@@ -4,9 +4,18 @@
 function BuildOpenVisus() {
 	mkdir -p ${BUILD_DIR} 
 	cd ${BUILD_DIR}
-	cmake $CMAKE_OPTIONS ../
+	cmake $@ ../
 	cmake --build . --target ALL_BUILD --config Release --parallel 4
 	cmake --build . --target install	 --config Release
+}
+
+# ///////////////////////////////////////////////
+function BuildOpenVisusUbuntu() {
+	mkdir -p ${BUILD_DIR} 
+	cd ${BUILD_DIR}
+	cmake $@ ../
+	make -j 
+	make install
 }
 
 # ///////////////////////////////////////////////
@@ -61,11 +70,11 @@ function ConfigureAndTestConda() {
 	conda develop $PWD/.. uninstall
 }
 
-
 # //////////////////////////////////////////////////////////////
 function DistribToConda() {
 	rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")	|| true
 	
+	# fixing problem of bdist_conda unknown command
 	cp -f \
 		${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/distutils/command/bdist_conda.py \
 		${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/site-packages/setuptools/_distutils/command/bdist_conda.py	

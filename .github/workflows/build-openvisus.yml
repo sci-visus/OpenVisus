@@ -61,8 +61,7 @@ jobs:
             PIP_PLATFORM=win_amd64
             BUILD_DIR=build
 
-            CMAKE_OPTIONS="-G "Visual Studio 16 2019" -A "x64" -DQt5_DIR=${Qt5_Dir}/lib/cmake/Qt5 -DPython_EXECUTABLE=${PYTHON} -DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe"
-            BuildOpenVisusWindows
+            BuildOpenVisus -G 'Visual Studio 16 2019' -A 'x64' -DQt5_DIR=${Qt5_Dir}/lib/cmake/Qt5 -DPython_EXECUTABLE=${PYTHON} -DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe
             CreateNonGuiVersion
 
             pushd Release/OpenVisus
@@ -133,8 +132,7 @@ jobs:
               PYTHON=`which python`
               BUILD_DIR=build        
 
-              CMAKE_OPTIONS="-G "Visual Studio 16 2019" -A "x64" -DQt5_DIR=${CONDA_PREFIX}/Library/lib/cmake/Qt5 -DPython_EXECUTABLE=${PYTHON} -DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe"
-              BuildOpenVisusWindows
+              BuildOpenVisus -G 'Visual Studio 16 2019' -A 'x64' -DQt5_DIR=${CONDA_PREFIX}/Library/lib/cmake/Qt5 -DPython_EXECUTABLE=${PYTHON} -DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe
               CreateNonGuiVersion
 
               pushd Release/OpenVisus
@@ -206,8 +204,7 @@ jobs:
             PIP_PLATFORM=macosx_10_9_x86_64         
             BUILD_DIR=build   
 
-            CMAKE_OPTIONS="-GXcode -DQt5_DIR=${Qt5_Dir}/lib/cmake/Qt5 -DCMAKE_OSX_SYSROOT=/tmp/MacOSX-SDKs/MacOSX10.9.sdk -DPython_EXECUTABLE=${PYTHON}"
-            BuildOpenVisusMacOs
+            BuildOpenVisus -GXcode -DQt5_DIR=${Qt5_Dir}/lib/cmake/Qt5 -DCMAKE_OSX_SYSROOT=/tmp/MacOSX-SDKs/MacOSX10.9.sdk -DPython_EXECUTABLE=${PYTHON}
             CreateNonGuiVersion
 
             pushd Release/OpenVisus
@@ -269,8 +266,7 @@ jobs:
               PYTHON=`which python`
               BUILD_DIR=build               
 
-              CMAKE_OPTIONS="-GXcode -DQt5_DIR=${CONDA_PREFIX}/lib/cmake/Qt5 -DCMAKE_OSX_SYSROOT=/tmp/MacOSX-SDKs/MacOSX10.9.sdk -DPython_EXECUTABLE=${PYTHON}"
-              BuildOpenVisusMacos
+              BuildOpenVisus -GXcode -DQt5_DIR=${CONDA_PREFIX}/lib/cmake/Qt5 -DCMAKE_OSX_SYSROOT=/tmp/MacOSX-SDKs/MacOSX10.9.sdk -DPython_EXECUTABLE=${PYTHON}
               CreateNonGuiVersion
 
               pushd Release/OpenVisus
