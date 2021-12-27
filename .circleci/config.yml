@@ -4,11 +4,14 @@ commands:
 jobs:
   build-openvisus:
     machine:
-      image: << parameters.os >>    
+      image: 'ubuntu-2004:202010-01'    
     steps:
       - checkout
       - run:
           name: Build OpenVisus
+          parameters:
+            python-version:
+              type: string          
           command: | 
             set -e
             set -x          
@@ -42,8 +45,7 @@ workflows:
       - build-openvisus:
           matrix:
             parameters:
-              python-version: ['3.7', '3.8', '3.9' ,'3.10']
-              os: ['ubuntu-2004:202010-01'] # this is ubuntu 20.04
+              python-version: ['3.7', '3.8', '3.9' ,'3.10' ]
 
            
 
