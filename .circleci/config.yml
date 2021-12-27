@@ -3,7 +3,7 @@ jobs:
   build-openvisus-arm64:
     machine:
       image: ubuntu-2004:202101-01
-    resource_class: arm.medium
+    resource_class: arm.large # see https://circleci.com/docs/2.0/arm-resources/, seems to have problems with medium
     parameters:
       python-version:
         type: string       
@@ -13,18 +13,29 @@ jobs:
           name: Build OpenVisus cpython
           no_output_timeout: 50m
           command: |
-            # this will generate all ARM configurations (cpython nogui; conda nogui)
-            PYTHON_VERSION=<< parameters.python-version >>
-            docker run --rm -v ${PWD}:/home/OpenVisus -w /home/OpenVisus \
-              -e BUILD_DIR=build_docker \
-              -e VISUS_GUI=0 -e VISUS_SLAM=0 -e VISUS_MODVISUS=0 \
-              -e PYTHON_VERSION=$PYTHON_VERSION \
-              -e PYPI_USERNAME=${PYPI_USERNAME} -e PYPI_PASSWORD=${PYPI_PASSWORD} \
-              -e DOCKER_USERNAME=${DOCKER_USERNAME} -e DOCKER_TOKEN=${DOCKER_TOKEN} \
-              -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
-              nsdf/manylinux2014_aarch64:latest bash scripts/build_linux.sh               
-
-              
+                  # this will generate all ARM configurations (cpython nogui; conda nogui)
+                  PYTHON_VERSION=<< parameters.python-version >>
+                  docker run --rm -v ${PWD}:/home/OpenVisus -w /home/OpenVisus \
+                    -e BUILD_DIR=build_docker \
+                    -e VISUS_GUI=0 -e VISUS_SLAM=0 -e VISUS_MODVISUS=0 \
+                    -e PYTHON_VERSION=$PYTHON_VERSION \
+                    -e PYPI_USERNAME=${PYPI_USERNAME} -e PYPI_PASSWORD=${PYPI_PASSWORD} \
+                    -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
+                    nsdf/manylinux2014_aarch64:latest bash scripts/build_linux.sh       
+      - run:
+          name: Build and deploy modvisus
+          command: |
+                GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
+                if [[ "$GIT_TAG" !="" &&  "$PYTHON_VERSION" == "3.9" ]] ; then
+                  sleep 30 # give time for pip package to be ready
+                  pushd  Docker/mod_visus
+                  docker build --tag visus/mod_visus_aarch64:$GIT_TAG --tag visus/mod_visus_aarch64:latest --build-arg TAG=$GIT_TAG .
+                  echo $DOCKER_TOKEN} | docker login -u=${DOCKER_USERNAME} --password-stdin
+                  docker push visus/visus/mod_visus_aarch64:$GIT_TAG
+                  docker push visus/visus/mod_visus_aarch64:latest
+                  popd
+                fi  
+          
 workflows:
   version: 2
   build-and-deploy:

@@ -6,7 +6,6 @@ docker run --rm -it \
    -e PYTHON_VERSION=3.8 \
    -e VISUS_GUI=1 -e VISUS_SLAM=1 -e VISUS_MODVISUS=1
    -e PYPI_USERNAME=scrgiorgio -e PYPI_PASSWORD=XXXX \
-   -e DOCKER_USERNAME=scrgiorgio -e DOCKER_TOKEN=YYYY \
    -e ANACONDA_TOKEN=ZZZZ \
    -v $PWD:/home/OpenVisus -w /home/OpenVisus \
    visus/portable-linux-binaries_x86_64:4.1 bash
@@ -75,20 +74,6 @@ function DistribToPip() {
 }
 
 # //////////////////////////////////////////////////////////////
-function BuildAndDeployModVisus() {
-	if [[ "${PYTHON_VERSION}" == "3.9" && "${VISUS_MODVISUS}" == "1" && "${DOCKER_USERNAME}" != "" && "${DOCKER_TOKEN}" != "" ]] ; then
-		# see https://github.com/sci-visus/OpenVisus/blob/master/Docker/mod_visus/Dockerfile
-		echo ${DOCKER_TOKEN} | docker login -u=${DOCKER_USERNAME} --password-stdin
-		sleep 30 # give time pypi to get the pushed file
-		pushd ../Docker/mod_visus
-		docker build --tag visus/mod_visus:$GIT_TAG --tag visus/mod_visus:latest --build-arg TAG=$GIT_TAG .
-		docker push visus/mod_visus:$GIT_TAG
-		docker push visus/mod_visus:latest
-		popd
-	fi
-}
-
-# //////////////////////////////////////////////////////////////
 function InstallConda() {
 	if [[ ! -d ~/miniforge3 ]]; then
 		pushd ~
@@ -143,8 +128,6 @@ function Main() {
 	ConfigureAndTestCPython 
 	DistribToPip
 	popd
-	
-	BuildAndDeployModVisus
 
 	if [[ "$VISUS_GUI" == "1" ]]; then
 		CreateNonGuiVersion
