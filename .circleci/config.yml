@@ -4,22 +4,17 @@ commands:
 jobs:
   build:
     machine:
-      # this is ubuntu 20.04
-      image: 'ubuntu-2004:202010-01' 
-    matrix:
-      parameters:
-        python-version: ['3.7', '3.8', '3.9' ,'3.10' ]
+      image: << parameters.os >>    
     steps:
       - checkout
       - run:
-          name: Build OpenVisus on arm64
+          name: Build OpenVisus
           command: | 
-
             set -e
             set -x          
 
             # Setup buildx and qemu
-            sudo apt-get update
+            sudo apt-get update  -qq
             sudo apt-get install -qq -y qemu-user-static
             sudo apt-get install -qq -y binfmt-support
 
@@ -33,15 +28,22 @@ jobs:
             # docker buildx use my-builder
             # docker buildx inspect --bootstrap       
 
-            PYTHON_VERSION=<< matrix.python-version >>    
+            PYTHON_VERSION=<< parameters.python-version >>    
 
             sudo docker run --rm --platform linux/arm64 \
               -v $PWD:/home/OpenVisus -w /home/OpenVisus \
               -e PYTHON_VERSION=${PYTHON_VERSION} -e PYPI_PASSWORD=${PYPI_PASSWORD} -e ANACONDA_TOKEN=${ANACONDA_TOKEN}  \
               nsdf/manylinux2014_aarch64:latest bash scripts/build_linux.arm64.sh            
 
-
-           
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build:
+          matrix:
+            parameters:
+              python-version: ['3.7', '3.8', '3.9' ,'3.10']
+              os: ['ubuntu-2004:202010-01'] # this is ubuntu 20.04
 
            
 
