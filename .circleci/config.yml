@@ -5,13 +5,13 @@ jobs:
   build-openvisus:
     machine:
       image: 'ubuntu-2004:202010-01'    
+    parameters:
+      python-version:
+        type: string        
     steps:
       - checkout
       - run:
           name: Build OpenVisus
-          parameters:
-            python-version:
-              type: string          
           command: | 
             set -e
             set -x          
