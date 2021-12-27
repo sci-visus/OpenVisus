@@ -6,7 +6,8 @@ jobs:
     resource_class: arm.large  # see https://circleci.com/docs/2.0/arm-resources/, seems to have problems with medium
     parameters:
       python-version:
-        type: string       
+        type: string 
+    parallelism: 1 # I don't think I can execute all the jobs in parallel      
     steps:
       - checkout
       - run:
