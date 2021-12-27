@@ -48,16 +48,13 @@ jobs:
             set -e
             set -x
 
-            GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
-            CPYTHON=${pythonLocation}/python
-
             # ///////////////////////////////////////////////
             function BuildOpenVisus() {
               mkdir -p build 
               cd build              
               cmake -G "Visual Studio 16 2019" -A "x64" \
                 -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" \
-                -DPython_EXECUTABLE=${CPYTHON}.exe  \
+                -DPython_EXECUTABLE=${PYTHON}.exe  \
                 -DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe \
                 ../
               cmake --build . --target ALL_BUILD --config Release --parallel 4
@@ -74,19 +71,19 @@ jobs:
             # ///////////////////////////////////////////////
             function ConfigureAndTestCPython() {
               export PYTHONPATH=../
-              $CPYTHON  -m OpenVisus configure 
-              $CPYTHON  -m OpenVisus test
-              $CPYTHON  -m OpenVisus test-gui
+              $PYTHON  -m OpenVisus configure 
+              $PYTHON  -m OpenVisus test
+              $PYTHON  -m OpenVisus test-gui
               unset PYTHONPATH
             }
 
             # ///////////////////////////////////////////////
             function DistribToPip() {
               rm -Rf ./dist
-              $CPYTHON -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
-              $CPYTHON setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=$PIP_PLATFORM
+              $PYTHON -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
+              $PYTHON setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=$PIP_PLATFORM
               if [[ "${GIT_TAG}" != "" ]] ; then
-                $CPYTHON -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
+                $PYTHON -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
               fi
             }
 
@@ -99,6 +96,9 @@ jobs:
 
               # install ospray
               git clone https://github.com/sci-visus/ospray_win.git ExternalLibs/ospray_win
+
+              GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
+              PYTHON=${pythonLocation}/python
 
               BuildOpenVisus
               CreateNonGuiVersion
@@ -155,16 +155,13 @@ jobs:
               set -e
               set -x
 
-              GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
-              DPYTHON=`which python`
-
               # ///////////////////////////////////////////////
               function BuildOpenVisus() {
                 mkdir -p build 
                 cd build        
                 cmake -G "Visual Studio 16 2019" -A "x64" \
                   -DQt5_DIR="${CONDA_PREFIX}/Library/lib/cmake/Qt5" \
-                  -DPython_EXECUTABLE=$DPYTHON  \
+                  -DPython_EXECUTABLE=$PYTHON  \
                   -DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe \
                   ../
                 cmake --build . --target ALL_BUILD --config Release --parallel 4
@@ -181,16 +178,16 @@ jobs:
               # //////////////////////////////////////////////////////////////
               function ConfigureAndTestConda() {
                 conda develop $PWD/..
-                $DPYTHON -m OpenVisus configure 
-                $DPYTHON -m OpenVisus test
-                $DPYTHON -m OpenVisus test-gui  
+                $PYTHON -m OpenVisus configure 
+                $PYTHON -m OpenVisus test
+                $PYTHON -m OpenVisus test-gui  
                 conda develop $PWD/.. uninstall
               }
 
               # //////////////////////////////////////////////////////////////
               function DistribToConda() {
                 rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
-                $DPYTHON -v setup.py -q bdist_conda 1>/dev/null
+                $PYTHON -v setup.py -q bdist_conda 1>/dev/null
                 CONDA_FILENAME=`find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1` 
                 if [[ "${GIT_TAG}" != ""  ]] ; then
                   anaconda --verbose --show-traceback  -t ${ANACONDA_TOKEN}   upload ${CONDA_FILENAME}
@@ -210,6 +207,9 @@ jobs:
                 # configure conda
                 conda config --set always_yes yes --set changeps1 no --set anaconda_upload no             1>/dev/null
                 conda install -c conda-forge -y conda cmake pyqt=5.12  anaconda-client  conda-build wheel 1>/dev/null
+
+                GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
+                PYTHON=`which python`
 
                 BuildOpenVisus
                 CreateNonGuiVersion
@@ -271,8 +271,6 @@ jobs:
             set -e
             set -x
 
-            CPYTHON=${pythonLocation}/python
-
             # ///////////////////////////////////////////////
             function BuildOpenVisus() {
               mkdir -p build 
@@ -280,7 +278,7 @@ jobs:
               cmake -GXcode  \
                 -DQt5_DIR="${Qt5_Dir}/lib/cmake/Qt5" \
                 -DCMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX10.9.sdk" \
-                -DPython_EXECUTABLE=${CPYTHON} \
+                -DPython_EXECUTABLE=${PYTHON} \
                 ../
               cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
               cmake --build ./ --target install   --config Release 
@@ -296,19 +294,19 @@ jobs:
             # ///////////////////////////////////////////////
             function ConfigureAndTestCPython() {
               export PYTHONPATH=$PWD/..
-              ${CPYTHON} -m OpenVisus configure 
-              ${CPYTHON} -m OpenVisus test
-              ${CPYTHON} -m OpenVisus test-gui
+              ${PYTHON} -m OpenVisus configure 
+              ${PYTHON} -m OpenVisus test
+              ${PYTHON} -m OpenVisus test-gui
               unset PYTHONPATH
             }  
 
             # ///////////////////////////////////////////////
             function DistribToPip() {
               rm -Rf ./dist
-              ${CPYTHON} -m pip install setuptools wheel twine 1>/dev/null
-              ${CPYTHON} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=$PIP_PLATFORM
+              ${PYTHON} -m pip install setuptools wheel twine 1>/dev/null
+              ${PYTHON} setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=$PIP_PLATFORM
               if [[ "$GIT_TAG" != "" && "$PYPI_USERNAME" != "" && "$PYPI_PASSWORD" != ""  ]] ; then
-                ${CPYTHON} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
+                ${PYTHON} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing  "dist/*.whl" 
               fi
             }                      
 
@@ -323,6 +321,9 @@ jobs:
 
               # install preconditions
               brew install swig cmake              
+
+              GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
+              PYTHON=${pythonLocation}/python
 
               BuildOpenVisus
               CreateNonGuiVersion
@@ -372,9 +373,6 @@ jobs:
               set -e
               set -x 
 
-              GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
-              DPYTHON=`which python` 
-
               # ///////////////////////////////////////////////
               function BuildOpenVisus() {
                 mkdir -p build 
@@ -382,7 +380,7 @@ jobs:
                 cmake -GXcode  \
                   -DQt5_DIR="${CONDA_PREFIX}/lib/cmake/Qt5" \
                   -DCMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX10.9.sdk" \
-                  -DPython_EXECUTABLE=${DPYTHON} \
+                  -DPython_EXECUTABLE=${PYTHON} \
                   ../
                 cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
                 cmake --build ./ --target install   --config Release 
@@ -399,9 +397,9 @@ jobs:
               # //////////////////////////////////////////////////////////////
               function ConfigureAndTestConda() {
                 conda develop $PWD/..
-                $DPYTHON -m OpenVisus configure 
-                $DPYTHON -m OpenVisus test
-                $DPYTHON -m OpenVisus test-gui  
+                $PYTHON -m OpenVisus configure 
+                $PYTHON -m OpenVisus test
+                $PYTHON -m OpenVisus test-gui  
                 conda develop $PWD/.. uninstall
               }
 
@@ -410,7 +408,7 @@ jobs:
                 rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
                 # fix problem of bdist_conda command not found
                 cp -f ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/distutils/command/bdist_conda.py ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/site-packages/setuptools/_distutils/command/bdist_conda.py
-                $DPYTHON setup.py -q bdist_conda 1>/dev/null
+                $PYTHON setup.py -q bdist_conda 1>/dev/null
                 if [[ "${GIT_TAG}" != ""  ]] ; then
                   anaconda --verbose --show-traceback  -t ${ANACONDA_TOKEN}   upload `find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1`
                 fi
@@ -431,6 +429,9 @@ jobs:
 
                 # install preconditions
                 brew install swig cmake    
+
+                GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
+                PYTHON=`which python` 
 
                 BuildOpenVisus
                 CreateNonGuiVersion
