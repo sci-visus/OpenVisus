@@ -11,9 +11,12 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Build OpenVisus cpython
+          name: Build OpenVisus
           no_output_timeout: 50m
           command: |
+                    set -e
+                    set -x
+                    
                     # this will generate all ARM configurations (cpython nogui; conda nogui)
                     PYTHON_VERSION=<< parameters.python-version >>
                     docker run --rm -v ${PWD}:/home/OpenVisus -w /home/OpenVisus \
@@ -30,7 +33,7 @@ jobs:
                       sleep 30 # give time for pip package to be ready
                       pushd  Docker/mod_visus
                       docker build --tag visus/mod_visus_aarch64:$GIT_TAG --tag visus/mod_visus_aarch64:latest --build-arg TAG=$GIT_TAG .
-                      echo $DOCKER_TOKEN} | docker login -u=${DOCKER_USERNAME} --password-stdin
+                      echo ${DOCKER_TOKEN} | docker login -u=${DOCKER_USERNAME} --password-stdin
                       docker push visus/visus/mod_visus_aarch64:$GIT_TAG
                       docker push visus/visus/mod_visus_aarch64:latest
                       popd

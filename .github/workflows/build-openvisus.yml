@@ -322,6 +322,9 @@ jobs:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         DOCKER_TOKEN: ${{ matrix.python-version }}
       run: |
+          set -e
+          set -x
+
           # this will generate all AMD64 configurations (cpython gui/nogui; conda gui/nogui)
           docker run --rm -v ${PWD}:/home/OpenVisus -w /home/OpenVisus \
             -e BUILD_DIR=build_docker \
