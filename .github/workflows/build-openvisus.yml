@@ -433,7 +433,8 @@ jobs:
              # fix problem of bdist_conda command not found (scrgiorgio: I TRIED EVERYTHING! just crazy)
              pwd
              echo ${CONDA_PREFIX}
-             find ${CONDA_PREFIX}/lib/python${{ matrix.python-version }}
+             cd ${CONDA_PREFIX} || true
+             find ${CONDA_PREFIX}/lib/python${{ matrix.python-version }} -iname "*" || true
              cp -f ${CONDA_PREFIX}/lib/python${{ matrix.python-version }}/distutils/command/bdist_conda.py ${CONDA_PREFIX}/lib/python${{ matrix.python-version }}/site-packages/setuptools/_distutils/command/bdist_conda.py         
              
              python setup.py -q bdist_conda 1>/dev/null
