@@ -1,41 +1,49 @@
 version: 2.1
 commands:
-  setup:
-    steps:
-      - checkout
-      - run:
-          name: Setup buildx and qemu
-          command: |
-            sudo apt-get update
-            sudo apt-get install -y qemu-user-static
-            sudo apt-get install -y binfmt-support
-      - run:
-          name: Check versions
-          command: |
-            qemu-aarch64-static --version
-            update-binfmts --version 
-      - run:
-          name: Create builder
-          command: |
-            export DOCKER_CLI_EXPERIMENTAL=enabled
-            docker buildx create --name arm-builder
-            docker buildx use arm-builder
-            docker buildx inspect --bootstrap
+
 jobs:
   build:
     machine:
       # this is ubuntu 20.04
       image: 'ubuntu-2004:202010-01' 
+    matrix:
+      parameters:
+        python-version: ['3.7', '3.8', '3.9' ,'3.10' ]
     steps:
-      - setup
+      - checkout
       - run:
-          name: Build ARM docker
+          name: Build OpenVisus on arm64
           command: | 
-            export DOCKER_CLI_EXPERIMENTAL=enabled 
-            # docker buildx build --platform linux/arm64 --load -t arm-image .
-            docker run --rm --platform linux/arm64 bash -c "uname -m"
-workflows:
-  version: 2
-  build:
-    jobs:
-      - build
+
+            set -e
+            set -x          
+
+            # Setup buildx and qemu
+            sudo apt-get update
+            sudo apt-get install -qq -y qemu-user-static
+            sudo apt-get install -qq -y binfmt-support
+
+            # check version
+            qemu-aarch64-static --version
+            update-binfmts --version 
+
+            # create buikder hyst ub case
+            export DOCKER_CLI_EXPERIMENTAL=1
+            # docker buildx create --name my-builder
+            # docker buildx use my-builder
+            # docker buildx inspect --bootstrap       
+
+            PYTHON_VERSION=<< matrix.python-version >>    
+
+            sudo docker run --rm --platform linux/arm64 \
+              -v $PWD:/home/OpenVisus -w /home/OpenVisus \
+              -e PYTHON_VERSION=${PYTHON_VERSION} -e PYPI_PASSWORD=${PYPI_PASSWORD} -e ANACONDA_TOKEN=${ANACONDA_TOKEN}  \
+              nsdf/manylinux2014_aarch64:latest bash scripts/build_linux.arm64.sh            
+
+
+           
+
+           
+
+      
+
