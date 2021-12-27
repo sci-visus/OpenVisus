@@ -1,51 +1,36 @@
 version: 2.1
-commands:
-
 jobs:
   build-openvisus:
     machine:
-      image: 'ubuntu-2004:202010-01'    
+      image: ubuntu-2004:202101-01
+    resource_class: arm.medium
     parameters:
       python-version:
-        type: string        
+        type: string       
     steps:
       - checkout
       - run:
           name: Build OpenVisus
-          command: | 
+          command: |
             set -e
-            set -x          
-
-            # Setup buildx and qemu
-            sudo apt-get update  -qq
-            sudo apt-get install -qq -y qemu-user-static
-            sudo apt-get install -qq -y binfmt-support
-
-            # check version
-            qemu-aarch64-static --version
-            update-binfmts --version 
-
-            # create buikder hyst ub case
-            export DOCKER_CLI_EXPERIMENTAL=1
-            # docker buildx create --name my-builder
-            # docker buildx use my-builder
-            # docker buildx inspect --bootstrap       
-
-            PYTHON_VERSION=<< parameters.python-version >>    
-
-            sudo docker run --rm --platform linux/arm64 \
+            set -x    
+            echo $PWD      
+            PYTHON_VERSION=<< parameters.python-version >>
+            sudo docker run --rm \
               -v $PWD:/home/OpenVisus -w /home/OpenVisus \
               -e PYTHON_VERSION=${PYTHON_VERSION} -e PYPI_PASSWORD=${PYPI_PASSWORD} -e ANACONDA_TOKEN=${ANACONDA_TOKEN}  \
-              nsdf/manylinux2014_aarch64:latest bash scripts/build_linux.arm64.sh            
-
+              nsdf/manylinux2014_aarch64:latest bash scripts/build_linux.arm64.sh   
 workflows:
   version: 2
-  build:
+  build-and-deploy:
     jobs:
-      - build-openvisus:
+      - build-openvisus
           matrix:
             parameters:
               python-version: ['3.7', '3.8', '3.9' ,'3.10' ]
+
+
+
 
            
 
