@@ -118,7 +118,8 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9', '3.10'] 
+        # 3.6 disabled since "Error: Version 3.6 with arch x64 not found "
+        python-version: [ '3.7', '3.8', '3.9', '3.10']  
     steps:
     
     # ____________________________________________ 
@@ -226,7 +227,8 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9', '3.10']
+        # '3.6' disabled SyntaxError: future feature annotations is not defined
+        python-version: [ '3.7', '3.8', '3.9', '3.10']
     steps:
     
     # ____________________________________________ 
@@ -431,16 +433,17 @@ jobs:
              rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
              
              # fix problem of bdist_conda command not found (scrgiorgio: I TRIED EVERYTHING! just crazy)
-             pwd
-             echo ${CONDA_PREFIX}
-             cd ${CONDA_PREFIX} || true
-             find ${CONDA_PREFIX}/lib/python${{ matrix.python-version }} -iname "*" || true
-             cp -f ${CONDA_PREFIX}/lib/python${{ matrix.python-version }}/distutils/command/bdist_conda.py ${CONDA_PREFIX}/lib/python${{ matrix.python-version }}/site-packages/setuptools/_distutils/command/bdist_conda.py         
-             
+             # DO NOT TOUCH ANYTHING problems with slashes (/ \\)
+             pushd ${CONDA_PREFIX} 
+             pushd lib/python${{ matrix.python-version }}
+             ls  || true
+             find . -iname "*" || true
+             cp -f ./distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py         
+             popd
+             popd
+
              python setup.py -q bdist_conda 1>/dev/null
-             
-             CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1)  
-             
+             CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1) 
              if [[ "${GIT_TAG}" != ""  ]] ; then
                anaconda --verbose --show-traceback  -t ${{ secrets.ANACONDA_TOKEN }}   upload ${CONDA_FILENAME}
              fi
@@ -457,7 +460,8 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9'] 
+        # '3.6' disabled, giving this error: SyntaxError: future feature annotations is not defined
+        python-version: [ '3.7', '3.8', '3.9']  
     steps:
     
     # ____________________________________________ 

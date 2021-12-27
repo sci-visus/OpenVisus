@@ -157,11 +157,11 @@ def Configure(bUserInstall=False):
 			
 			if WIN32:
 				# cannot use conda-forge version because they rename DLLS (like Qt5Core.dll->Qt5Core_conda.dll)
-				conda.cli.main('conda', 'install', '-y',                      "pyqt={}.{}".format(qt_major,qt_minor)) 
+				conda.cli.main('conda', 'install', '-y', '--quiet',                      "pyqt={}.{}".format(qt_major,qt_minor)) 
 			elif APPLE:
-				conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', "pyqt={}.{}".format(qt_major,qt_minor))
+				conda.cli.main('conda', 'install', '-y', '--quiet', '-c', 'conda-forge', "pyqt={}.{}".format(qt_major,qt_minor))
 			else:
-				conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', "pyqt={}.{}".format(qt_major,qt_minor),"libglu")
+				conda.cli.main('conda', 'install', '-y', '--quiet', '-c', 'conda-forge', "pyqt={}.{}".format(qt_major,qt_minor),"libglu")
 
 		else:
 			cmd=[sys.executable,"-m", "pip", "install"] + (["--user"] if bUserInstall else []) + ["PyQt5~={}.{}.0".format(qt_major,qt_minor)]
