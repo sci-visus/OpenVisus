@@ -1,7 +1,8 @@
-# IMAGE_NAME=visus/portable-linux-binaries_x86_64:2.0
-# sudo docker build --tag $IMAGE_NAME --progress=plain .
 # sudo docker login -u scrgiorgio
-# sudo docker push $IMAGE_NAME
+# TAG=4.1
+# sudo docker build --tag visus/portable-linux-binaries_x86_64:$TAG --tag visus/portable-linux-binaries_x86_64:latest --progress=plain .
+# sudo docker push visus/portable-linux-binaries_x86_64:$TAG
+# sudo docker push visus/portable-linux-binaries_x86_64:latest
 
 FROM nsdf/manylinux2010_x86_64:latest
 
@@ -29,6 +30,15 @@ RUN yum -y install xz \
 COPY qt512.sh .
 RUN bash qt512.sh 
 
-
+# install conda
+RUN \
+  curl -L -O https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh && \
+  bash Miniforge3-Linux-x86_64.sh -b && \
+  rm -f Miniforge3-Linux-x86_64.sh && \
+  ~/miniforge3/bin/conda config --set always_yes yes --set anaconda_upload no && \
+  ~/miniforge3/bin/conda install -c conda-forge conda cmake swig anaconda-client conda-build wheel
+  
+RUN yum install -y mesa-libGLU yum install -y mesa-libGLU-devel
+  
 
 

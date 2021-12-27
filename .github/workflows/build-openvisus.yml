@@ -221,115 +221,6 @@ jobs:
            rm -Rf QT_VERSION $(find . -iname "*VisusGui*")
            DistribToPip
 
-  # ///////////////////////////////////////////////////////////////////
-  cpython-ubuntu:
-    runs-on: "ubuntu-latest"
-    strategy:
-      fail-fast: false  
-      matrix:
-        # '3.6' disabled SyntaxError: future feature annotations is not defined
-        python-version: [ '3.7', '3.8', '3.9', '3.10']
-    steps:
-    
-    # ____________________________________________ 
-    - name: git clone OpenVisus
-      uses: actions/checkout@v2
-
-    # ____________________________________________ 
-    - name: Install CPython 
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }} 
-        architecture: 'x64'
-
-    # ____________________________________________
-    - name: Install glu  
-      shell: bash -l {0}
-      run: |
-          set -e
-          set -x      
-          sudo apt-get update 1>/dev/null
-          sudo apt-get install libglu1-mesa-dev 1>/dev/null
-
-    # ____________________________________________ 
-    - name: Compile cpython
-      shell: bash -l {0}
-      run: |
-           set -e
-           set -x
-           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -v ${PWD}:${PWD} -w ${PWD} visus/portable-linux-binaries_x86_64:2.0 /bin/bash -c "./scripts/build_linux.sh"
-           sudo chown -R root:root  build
-           sudo chmod -R a+rwx      build
-
-
-    # ____________________________________________ 
-    - name: Configure cpython
-      shell: bash -l {0}
-      run: |
-           set -e
-           set -x
-           which python
-           cd build/Release/OpenVisus
-           export PYTHONPATH=../
-           ${pythonLocation}/python  -m OpenVisus configure  || true  # segmentation fault problem on linux
-
-    # ____________________________________________ 
-    - name: Test cpython
-      shell: bash -l {0}
-      run: |
-           set -e
-           set -x
-           which python
-           cd build/Release/OpenVisus
-           export PYTHONPATH=../
-           ${pythonLocation}/python  -m OpenVisus test
-           ${pythonLocation}/python  -m OpenVisus test-gui 
-
-    # ____________________________________________ 
-    - name: Distrib cpython
-      shell: bash -l {0}
-      run: |
-           set -e
-           set -x
-      
-           ${pythonLocation}/python -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
-           PYTHON_VERSION=${{ matrix.python-version }}
-           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)   
-           
-           cd build/Release/OpenVisus
-           
-           function DistribToPip() {
-            rm -Rf ./dist
-             ${pythonLocation}/python setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=manylinux2010_x86_64
-             if [[ "${GIT_TAG}" != "" ]] ; then
-               ${pythonLocation}/python -m twine upload --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --skip-existing  "dist/*.whl" 
-             fi
-           }
-           
-           DistribToPip
-           rm -Rf QT_VERSION $(find . -iname "*VisusGui*")
-           DistribToPip
-           
-           
-           
-    # ____________________________________________ 
-    # for python version see Docker file (it's 3.9 now)
-    - name: Docker modvisus cpython
-      if: matrix.python-version=='3.9' 
-      shell: bash -l {0}
-      run: |
-           set -e
-           set -x
-           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-           if [[ "${GIT_TAG}" != "" ]] ; then
-             echo ${{ secrets.DOCKER_TOKEN }} | docker login -u=${{ secrets.DOCKER_USERNAME }} --password-stdin
-             sleep 30 # give time pypi to get the pushed file
-             cd Docker/mod_visus
-             docker build --tag visus/mod_visus:$GIT_TAG --tag visus/mod_visus:latest --build-arg TAG=$GIT_TAG .
-             docker push visus/mod_visus:$GIT_TAG
-             docker push visus/mod_visus:latest
-           fi
-
 
   # ///////////////////////////////////////////////////////////////////
   conda-windows:
@@ -424,8 +315,6 @@ jobs:
            set -x 
            
            GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-           
-           echo $CONDA_PREFIX
            
            cd build/Release/OpenVisus
            
@@ -570,159 +459,39 @@ jobs:
            rm -Rf QT_VERSION $(find . -iname "*VisusGui*")
            DistribToConda
 
-  # ///////////////////////////////////////////////////////////////////
-  conda-ubuntu:
-    runs-on: "ubuntu-latest"
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9'] 
-    steps:
-    
-    # ____________________________________________ 
-    - name: git clone OpenVisus
-      uses: actions/checkout@v2    
-
-    # ____________________________________________ 
-    - name: Install Miniconda 
-      uses: conda-incubator/setup-miniconda@v2
-      continue-on-error: true # if fails the cleaning process
-      with:
-        miniconda-version: 'latest'
-        python-version: ${{ matrix.python-version }}
-        activate-environment: tmp
-        auto-update-conda: false
-        channels: conda-forge,defaults
-
-    # ____________________________________________ 
-    - name: Configure Miniconda 
-      shell: bash -l {0}
-      run: |
-           conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
-           conda install conda                                                             1>/dev/null
-
-    # ____________________________________________
-    - name: Install CMake 
-      shell: bash -l {0}    
-      run: |
-           conda install -c conda-forge cmake
-
-    # ____________________________________________
-    - name: Compile conda
-      shell: bash -l {0}
-      run: |
-           set -e
-           set -x
-           # i can use the pyqt one, but I would need to share the directory to docker, for simplicity I'm not doing it
-           docker run -e PYTHON_VERSION=${{ matrix.python-version }} -e Qt5_DIR=/opt/qt512 -v ${PWD}:${PWD}  -w ${PWD} visus/portable-linux-binaries_x86_64:2.0 /bin/bash -c "./scripts/build_linux.sh"
-           sudo chown -R root:root  build
-           sudo chmod -R a+rwx      build
-
-    # ____________________________________________ 
-    - name: Configure conda
-      shell: bash -l {0}
-      run: |
-           set -e
-           set -x
-           which python
-           cd build/Release/OpenVisus
-           export PYTHONPATH=../
-           python -m OpenVisus configure  || true  # segmentation fault problem on linux
-
-    # ____________________________________________ 
-    - name: Test conda
-      shell: bash -l {0}
-      run: |
-           set -e
-           set -x
-           which python
-           cd build/Release/OpenVisus
-           export PYTHONPATH=../
-           python -m OpenVisus test
-           python -m OpenVisus test-gui
-
-    # ____________________________________________ 
-    - name: Distrib conda
-      shell: bash -l {0}
-      run: |
-           conda install --yes anaconda-client  1>/dev/null  || true
-           conda install --yes conda-build      1>/dev/null  || true
-           conda install --yes wheel            1>/dev/null  || true
-           
-           export PATH=$HOME/anaconda3/bin:$PATH
-           
-           set -e
-           set -x           
-           
-           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true)
-           
-           cd build/Release/OpenVisus
-           
-           function DistribToConda() {
-             rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
-             
-             # fix problem of bdist_conda command not found (scrgiorgio: I TRIED EVERYTHING! just crazy)
-             pushd ${CONDA_PREFIX}/lib/python${{ matrix.python-version }}
-             cp -n distutils/command/bdist_conda* site-packages/setuptools/_distutils/command/
-             popd
-             
-             python setup.py -q bdist_conda 1>/dev/null
-             if [[ "${GIT_TAG}" != ""  ]] ; then
-               anaconda --verbose --show-traceback  -t ${{ secrets.ANACONDA_TOKEN }}   upload `find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1`
-             fi
-           }
-           
-           DistribToConda
-           rm -Rf QT_VERSION $(find . -iname "*VisusGui*")
-           DistribToConda
-
-
 
 
 
   # ///////////////////////////////////////////////////////////////////
-  build-arm64:
+  cpython-conda-ubuntu:
     runs-on: "ubuntu-latest"
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9', '3.10'] 
+        # '3.6' disabled SyntaxError: future feature annotations is not defined
+        python-version: [ '3.7', '3.8', '3.9', '3.10' ]
     steps:
-    
-    # ____________________________________________ 
     - name: git clone OpenVisus
       uses: actions/checkout@v2
-      
-    # ____________________________________________  (see https://github.com/dbhi/qus)
-    - name: setup qus
-      uses: dbhi/qus/action@main
-    
-    # ____________________________________________ 
-    - name: build nogui on arm64
+
+    - name: Compile cpython
       shell: bash -l {0}
       run: |
-           set -e
-           set -x
-           
-           # see https://github.com/dbhi/qus
-           # sudo apt-get install -y qemu binfmt-support qemu-user-static # Install the qemu packages 1>/dev/null
-           # This step will execute the registering scripts
-           # docker run --rm --privileged aptman/qus -s -- -p
-           
-           # check is arm64
-           docker run --rm -t arm64v8/ubuntu uname -m 
-      
-           PYTHON_VERSION=${{ matrix.python-version }}
-           PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }}
-           ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }}
-           docker run --rm \
-            --platform linux/arm64 \
-            -v $PWD:/home/OpenVisus \
-            -w /home/OpenVisus \
-            -e PYTHON_VERSION=$PYTHON_VERSION \
-            -e PYPI_PASSWORD=$PYPI_PASSWORD \
-            -e ANACONDA_TOKEN=$ANACONDA_TOKEN  \
-            nsdf/manylinux2014_aarch64:latest \
-            bash scripts/build_linux.arm64.sh
+          # this will generate all AMD64 configurations (cpython gui/nogui; conda gui/nogui)
+          docker run --rm -v ${PWD}:/home/OpenVisus -w /home/OpenVisus \
+            -e BUILD_DIR=build_docker \
+            -e VISUS_GUI=1 -e VISUS_SLAM=1 -e VISUS_MODVISUS=1 \
+            -e PYTHON_VERSION=${{ matrix.python-version }} \
+            -e PYPI_USERNAME=${{ secrets.PYPI_USERNAME }} -e PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }} \
+            -e DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} -e DOCKER_TOKEN=${{ secrets.DOCKER_TOKEN }} \
+            -e ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }} \
+            visus/portable-linux-binaries_x86_64:4.1 bash scripts/build_linux.sh
+
+
+
+
+
+
+
 
 
