@@ -3,7 +3,7 @@ on: [push]
 jobs:
 
   # ///////////////////////////////////////////////////////////////////
-  windows-cpython:
+  build-openvisus-windows-cpython:
     runs-on: "windows-latest"
     strategy:
       fail-fast: false  
@@ -43,13 +43,13 @@ jobs:
         PYTHON_VERSION: ${{ matrix.python-version }} 
         PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        PIP_PLATFORM: win_amd64
       run: |
             set -e
             set -x
 
             GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
             CPYTHON=${pythonLocation}/python
-            PIP_PLATFORM=win_amd64
 
             # ///////////////////////////////////////////////
             function BuildOpenVisus() {
@@ -118,7 +118,7 @@ jobs:
 
 
   # ///////////////////////////////////////////////////////////////////
-  windows-conda:
+  build-openvisus-windows-conda:
     runs-on: "windows-latest"
     strategy:
       fail-fast: false  
@@ -229,7 +229,7 @@ jobs:
 
 
   # ///////////////////////////////////////////////////////////////////
-  macos-cpython:
+  build-openvisus-macos-cpython:
     runs-on: "macos-latest"
     strategy:
       fail-fast: false  
@@ -342,7 +342,7 @@ jobs:
 
 
   # ///////////////////////////////////////////////////////////////////
-  macos-conda:
+  build-openvisus-macos-conda:
     runs-on: "macos-latest"
     strategy:
       fail-fast: false  
@@ -423,7 +423,14 @@ jobs:
                 conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
                 conda install --yes -c conda-forge conda anaconda-client conda-build wheel pyqt=5.12  1>/dev/null
 
-                brew install swig cmake
+                # install SDK
+                pushd /tmp 
+                rm -Rf MacOSX-SDKs 
+                git clone https://github.com/phracker/MacOSX-SDKs.git
+                popd
+
+                # install preconditions
+                brew install swig cmake    
 
                 BuildOpenVisus
                 CreateNonGuiVersion
@@ -443,7 +450,7 @@ jobs:
 
 
   # ///////////////////////////////////////////////////////////////////
-  cpython-conda-ubuntu:
+  build-openvisus-ubuntu:
     runs-on: "ubuntu-latest"
     strategy:
       fail-fast: false  

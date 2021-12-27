@@ -3,7 +3,7 @@ jobs:
   build-openvisus-arm64:
     machine:
       image: ubuntu-2004:202101-01
-    resource_class: arm.large # see https://circleci.com/docs/2.0/arm-resources/, seems to have problems with medium
+    resource_class: arm.medium # see https://circleci.com/docs/2.0/arm-resources/, seems to have problems with medium
     parameters:
       python-version:
         type: string       
