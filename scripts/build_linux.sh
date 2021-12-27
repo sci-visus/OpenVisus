@@ -22,7 +22,7 @@ VISUS_SLAM=${VISUS_SLAM:-1}
 VISUS_MODVISUS=${VISUS_MODVISUS:-1}
 
 ARCHITECTURE=`uname -m`
-GIT_TAG=${GIT_TAG:-`git describe --tags --exact-match 2>/dev/null || true` }
+GIT_TAG=${GIT_TAG:-`git describe --tags --exact-match 2>/dev/null || true`}
 if [[ "${ARCHITECTURE}" == "x86_64" ]] ; then
 	PIP_PLATFORM=manylinux2010_${ARCHITECTURE}
 elif [[ "${ARCHITECTURE}" == "aarch64" ]] ; then
@@ -116,7 +116,6 @@ function DistribToConda() {
 		anaconda --verbose --show-traceback  -t ${ANACONDA_TOKEN}   upload `find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1`
 	fi
 }
-
 
 # //////////////////////////////////////////////////////////////
 function Main() {

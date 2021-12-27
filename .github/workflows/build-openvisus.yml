@@ -3,12 +3,12 @@ on: [push]
 jobs:
 
   # ///////////////////////////////////////////////////////////////////
-  build-openvisus-windows:
+  windows-cpython:
     runs-on: "windows-latest"
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9']  #  REMOVED '3.10' since PyQt5 it's not yet available for windows
+        python-version: [ '3.6', '3.7', '3.8', '3.9' ]  #  REMOVED '3.10' since PyQt5 it's not yet available for windows
     steps:
     
     # ____________________________________________ 
@@ -116,6 +116,24 @@ jobs:
 
             Main
 
+
+  # ///////////////////////////////////////////////////////////////////
+  windows-conda:
+    runs-on: "windows-latest"
+    strategy:
+      fail-fast: false  
+      matrix:
+        python-version: [ '3.6', '3.7', '3.8', '3.9']  #  REMOVED '3.10' since PyQt5 it's not yet available for windows
+    steps:
+    
+    # ____________________________________________ 
+    - name: git clone OpenVisus
+      uses: actions/checkout@v2
+
+    # ____________________________________________ 
+    - name: Install CMake 
+      uses: lukka/get-cmake@latest
+
     # ____________________________________________
     - name: Install Miniconda 
       uses: conda-incubator/setup-miniconda@v2
@@ -140,8 +158,26 @@ jobs:
               GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
               DPYTHON=`which python`
 
-              cd build
-            
+              # ///////////////////////////////////////////////
+              function BuildOpenVisus() {
+                mkdir -p build 
+                cd build        
+                cmake -G "Visual Studio 16 2019" -A "x64" \
+                  -DQt5_DIR="${CONDA_PREFIX}/Library/lib/cmake/Qt5" \
+                  -DPython_EXECUTABLE=$DPYTHON  \
+                  -DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe \
+                  ../
+                cmake --build . --target ALL_BUILD --config Release --parallel 4
+                cmake --build . --target install   --config Release
+              }
+
+              # ///////////////////////////////////////////////
+              function CreateNonGuiVersion() {
+                mkdir -p Release.nogui
+                cp -R  Release/OpenVisus Release.nogui/OpenVisus
+                rm -Rf Release.nogui/OpenVisus/QT_VERSION $(find Release.nogui/OpenVisus -iname "*VisusGui*")
+              }
+
               # //////////////////////////////////////////////////////////////
               function ConfigureAndTestConda() {
                 conda develop $PWD/..
@@ -164,9 +200,19 @@ jobs:
               # ////////////////////////////////////////////////////////////
               function Main() {
 
+                # install swig
+                curl -L --insecure https://cfhcable.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O 
+                unzip swigwin-4.0.2.zip
+
+                # install ospray
+                git clone https://github.com/sci-visus/ospray_win.git ExternalLibs/ospray_win
+
                 # configure conda
                 conda config --set always_yes yes --set changeps1 no --set anaconda_upload no             1>/dev/null
                 conda install -c conda-forge -y conda cmake pyqt=5.12  anaconda-client  conda-build wheel 1>/dev/null
+
+                BuildOpenVisus
+                CreateNonGuiVersion
 
                 pushd Release/OpenVisus
                 ConfigureAndTestConda
@@ -183,7 +229,7 @@ jobs:
 
 
   # ///////////////////////////////////////////////////////////////////
-  build-openvisus-macos:
+  macos-cpython:
     runs-on: "macos-latest"
     strategy:
       fail-fast: false  
@@ -218,14 +264,14 @@ jobs:
       env:
         PYTHON_VERSION: ${{ matrix.python-version }} 
         PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}    
+        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}  
+        PIP_PLATFORM: macosx_10_9_x86_64
       shell: bash -l {0}
       run: |
             set -e
             set -x
 
             CPYTHON=${pythonLocation}/python
-            PIP_PLATFORM=macosx_10_9_x86_64
 
             # ///////////////////////////////////////////////
             function BuildOpenVisus() {
@@ -269,14 +315,14 @@ jobs:
             # ///////////////////////////////////////////////
             function Main() {
 
-              # install preconditions
-              brew install swig cmake
-
               # install SDK
               pushd /tmp 
               rm -Rf MacOSX-SDKs 
               git clone https://github.com/phracker/MacOSX-SDKs.git
               popd
+
+              # install preconditions
+              brew install swig cmake              
 
               BuildOpenVisus
               CreateNonGuiVersion
@@ -294,6 +340,19 @@ jobs:
 
             Main
 
+
+  # ///////////////////////////////////////////////////////////////////
+  macos-conda:
+    runs-on: "macos-latest"
+    strategy:
+      fail-fast: false  
+      matrix:
+        python-version: [ '3.7', '3.8', '3.9', '3.10']  
+    steps:
+    
+    - name: git clone OpenVisus
+      uses: actions/checkout@v2
+     
     - name: Install Miniconda 
       uses: conda-incubator/setup-miniconda@v2
       continue-on-error: true # if fails the cleaning process
@@ -316,7 +375,26 @@ jobs:
               GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
               DPYTHON=`which python` 
 
-              cd build
+              # ///////////////////////////////////////////////
+              function BuildOpenVisus() {
+                mkdir -p build 
+                cd build              
+                cmake -GXcode  \
+                  -DQt5_DIR="${CONDA_PREFIX}/lib/cmake/Qt5" \
+                  -DCMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX10.9.sdk" \
+                  -DPython_EXECUTABLE=${DPYTHON} \
+                  ../
+                cmake --build ./ --target ALL_BUILD --config Release --parallel 4 
+                cmake --build ./ --target install   --config Release 
+              } 
+
+              # ///////////////////////////////////////////////
+              function CreateNonGuiVersion() {
+                mkdir -p Release.nogui
+                cp -R  Release/OpenVisus Release.nogui/OpenVisus
+                rm -Rf Release.nogui/OpenVisus/QT_VERSION $(find Release.nogui/OpenVisus -iname "*VisusGui*")
+              }
+
 
               # //////////////////////////////////////////////////////////////
               function ConfigureAndTestConda() {
@@ -331,9 +409,7 @@ jobs:
               function DistribToConda() {
                 rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true
                 # fix problem of bdist_conda command not found
-                pushd ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}
-                cp -f distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py
-                popd
+                cp -f ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/distutils/command/bdist_conda.py ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/site-packages/setuptools/_distutils/command/bdist_conda.py
                 $DPYTHON setup.py -q bdist_conda 1>/dev/null
                 if [[ "${GIT_TAG}" != ""  ]] ; then
                   anaconda --verbose --show-traceback  -t ${ANACONDA_TOKEN}   upload `find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"  | head -n 1`
@@ -346,6 +422,11 @@ jobs:
                 # configure conda
                 conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
                 conda install --yes -c conda-forge conda anaconda-client conda-build wheel pyqt=5.12  1>/dev/null
+
+                brew install swig cmake
+
+                BuildOpenVisus
+                CreateNonGuiVersion
 
                 pushd Release/OpenVisus
                 ConfigureAndTestConda  
