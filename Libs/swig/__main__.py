@@ -162,7 +162,6 @@ def Configure(bUserInstall=False):
 				conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', "pyqt={}.{}".format(qt_major,qt_minor))
 
 			# scrgiorgio: Timos says this can fail but then the viewer works anyway
-			if not (WIN32 or APPLE):
   			try:
   				conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'libglu')
   			except:
