@@ -158,15 +158,10 @@ def Configure(bUserInstall=False):
 			if WIN32:
 				# cannot use conda-forge version because they rename DLLS (like Qt5Core.dll->Qt5Core_conda.dll)
 				conda.cli.main('conda', 'install', '-y',                      "pyqt={}.{}".format(qt_major,qt_minor)) 
-			else:
+			elif APPLE:
 				conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', "pyqt={}.{}".format(qt_major,qt_minor))
-
-			# scrgiorgio: Timos says this can fail but then the viewer works anyway
-			if not (WIN32 or APPLE):
-			try:
-				conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'libglu')
-			except:
-				pass
+			else:
+				conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', "pyqt={}.{}".format(qt_major,qt_minor),"libglu")
 
 		else:
 			cmd=[sys.executable,"-m", "pip", "install"] + (["--user"] if bUserInstall else []) + ["PyQt5~={}.{}.0".format(qt_major,qt_minor)]
