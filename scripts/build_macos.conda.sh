@@ -1,9 +1,9 @@
-!#/bin/bash
+#!/bin/bash
 
 set -e
 set -x 
 
-source $(dirname "$0")/utils.sh 
+source scripts/utils.sh 
 
 # configure conda
 conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null

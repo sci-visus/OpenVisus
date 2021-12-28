@@ -3,7 +3,7 @@
 set -e
 set -x
 
-source $(dirname "$0")/utils.sh
+source scripts/utils.sh
 
 # install SDK
 pushd /tmp 

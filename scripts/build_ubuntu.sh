@@ -49,7 +49,7 @@ else
   
   # compile inside docker
   
-  source $(dirname "$0")/utils.sh
+  source scripts/utils.sh
 
   ARCHITECTURE=`uname -m`
   PIP_PLATFORM=unknown

@@ -3,7 +3,7 @@
 set -e
 set -x
 
-source $(dirname "$0")/utils.sh
+source scripts/utils.sh
 
 # install swig
 curl -L --insecure https://cfhcable.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O 
