@@ -22,13 +22,22 @@ BUILD_DIR=build
 
 mkdir -p ${BUILD_DIR} 
 cd ${BUILD_DIR}
-cmake -G "Visual Studio 16 2019" -A x64 -DQt5_DIR=${CONDA_PREFIX}/Library/lib/cmake/Qt5 -DPython_EXECUTABLE=${PYTHON} -DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe ../
+cmake -G "Visual Studio 16 2019" -A x64 -DQt5_DIR=${CONDA_PREFIX}/Library/lib/cmake/Qt5 -DPython_EXECUTABLE=${PYTHON} -DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe ../ \
+    -DVISUS_GUI=0 -DVISUS_SLAM=0 # !!!REMOVE !!!!
 cmake --build . --target ALL_BUILD --config Release --parallel 4
 cmake --build . --target install	 --config Release
 
 CreateNonGuiVersion
 
-
+# ////////////////////////////////////////////////////////////// !!!REMOVE !!!!
+function DistribToConda() {
+    rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true 
+    $PYTHON -v setup.py  bdist_conda
+    CONDA_FILENAME=`find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"    | head -n 1` 
+    if [[ "${GIT_TAG}" != ""    ]] ; then
+        anaconda --verbose --show-traceback -t ${ANACONDA_TOKEN}     upload ${CONDA_FILENAME}
+    fi
+}       
 
 pushd Release/OpenVisus
 ConfigureAndTestConda
