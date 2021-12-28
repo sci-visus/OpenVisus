@@ -22,7 +22,7 @@ DOCKER_USERNAME=${DOCKER_USERNAME:-}
 PULL_IMAGE=${PULL_IMAGE:-visus/portable-linux-binaries_x86_64:4.1}
 PUSH_IMAGE=${PUSH_IMAGE:-visus/mod_visus}
 
-if [[ "${INSIDE_DOCKER}" == "0" ]] ; then
+if [[ "${INSIDE_DOCKER}" == "" ]] ; then
  
   # run docker
   docker run --rm -v ${PWD}:/home/OpenVisus -w /home/OpenVisus \
