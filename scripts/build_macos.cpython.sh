@@ -21,7 +21,14 @@ BUILD_DIR=build
 
 mkdir -p ${BUILD_DIR} 
 cd ${BUILD_DIR}
-cmake -GXcode -DQt5_DIR=${Qt5_Dir}/lib/cmake/Qt5 -DCMAKE_OSX_SYSROOT=/tmp/MacOSX-SDKs/MacOSX10.9.sdk -DPython_EXECUTABLE=${PYTHON} ../
+
+cmake \
+	-GXcode \
+	-DQt5_DIR=${Qt5_Dir}/lib/cmake/Qt5 \
+	-DCMAKE_OSX_SYSROOT=/tmp/MacOSX-SDKs/MacOSX10.9.sdk \
+	-DPython_EXECUTABLE=${PYTHON} \
+	../
+
 cmake --build . --target ALL_BUILD --config Release --parallel 4
 cmake --build . --target install	 --config Release
 

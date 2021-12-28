@@ -25,7 +25,11 @@ PIP_PLATFORM=unknown
 if [[ "${ARCHITECTURE}" ==  "x86_64" ]] ; then PIP_PLATFORM=manylinux2010_${ARCHITECTURE} ; fi
 if [[ "${ARCHITECTURE}" == "aarch64" ]] ; then PIP_PLATFORM=manylinux2014_${ARCHITECTURE} ; fi
 
-# *** cpython ***
+
+# ***********************************************************
+# ***                        cpython                      ***
+# ***********************************************************
+
 PYTHON=`which python${PYTHON_VERSION}`
 
 mkdir -p ${BUILD_DIR} 
@@ -40,32 +44,36 @@ DistribToPip
 popd
 
 if [[ "${VISUS_GUI}" == "1" ]]; then
-CreateNonGuiVersion
-pushd Release.nogui/OpenVisus 
-ConfigureAndTestCPython 
-DistribToPip 
-popd
+	CreateNonGuiVersion
+	pushd Release.nogui/OpenVisus 
+	ConfigureAndTestCPython 
+	DistribToPip 
+	popd
 fi
 
-# *** conda ***
+# ***********************************************************
+# ***                    conda                            ***
+# ***********************************************************
+
 InstallCondaUbuntu || true # can exist
 ActivateConda
 PYTHON=`which python`
 
 # # fix for bdist_conda problem
-cp -n \
-	${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/distutils/command/bdist_conda.py \
-	${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/site-packages/setuptools/_distutils/command/bdist_conda.py
+#cp -n \
+#	${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/distutils/command/bdist_conda.py \
+#	${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/site-packages/setuptools/_distutils/command/bdist_conda.py
+# DistribToConda
 
 pushd Release/OpenVisus 
 ConfigureAndTestConda 
-DistribToConda 
+DistribToConda-CondaBuild
 popd
 
 if [[ "${VISUS_GUI}" == "1" ]]; then
-pushd Release.nogui/OpenVisus
-ConfigureAndTestConda
-DistribToConda
+	pushd Release.nogui/OpenVisus
+	ConfigureAndTestConda
+	DistribToConda-CondaBuild
 popd
 fi
 
