@@ -17,6 +17,7 @@ jobs:
     - name: Install CMake 
       uses: lukka/get-cmake@latest
 
+    # choco install python --version 3.8.0
     - name: Install CPython 
       uses: actions/setup-python@v2
       with:
@@ -38,7 +39,8 @@ jobs:
         PYTHON_VERSION: ${{ matrix.python-version }}
         PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: source ./scripts/build_windows.cpython.sh
+      run: |
+           source ./scripts/build_windows.cpython.sh
             
   # ///////////////////////////////////////////////////////////////////
   build-openvisus-windows-conda:
@@ -70,7 +72,8 @@ jobs:
       env: 
         PYTHON_VERSION: ${{ matrix.python-version }}
         ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
-      run: source scripts/build_windows.conda.sh
+      run: |
+           source scripts/build_windows.conda.sh
 
   # ///////////////////////////////////////////////////////////////////
   build-openvisus-macos-cpython:
@@ -85,7 +88,7 @@ jobs:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
      
-    # choco install python -y  --version=3.7.0 --no-progress   --params "/InstallDir:C:/python3.7 --side-by-side
+    # brew install python@3.7
     - name: Install CPython 
       uses: actions/setup-python@v2
       with:
@@ -111,7 +114,8 @@ jobs:
         PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       shell: bash
-      run: source scripts/build_macos.cpython.sh
+      run: |
+           source scripts/build_macos.cpython.sh
             
   # ///////////////////////////////////////////////////////////////////
   build-openvisus-macos-conda:
@@ -140,7 +144,8 @@ jobs:
         PYTHON_VERSION: ${{ matrix.python-version }}
         ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       shell: bash -l {0}
-      run: source scripts/build_macos.conda.sh
+      run: |
+           source scripts/build_macos.conda.sh
 
   # ///////////////////////////////////////////////////////////////////
   build-openvisus-ubuntu:
@@ -168,7 +173,8 @@ jobs:
         DOCKER_TOKEN: ${{ matrix.python-version }}
         PULL_IMAGE: visus/portable-linux-binaries_x86_64:4.1
         PUSH_IMAGE: visus/mod_visus
-      run: source scripts/build_ubuntu.sh
+      run: |
+           source scripts/build_ubuntu.sh
 
 
 

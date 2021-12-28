@@ -1,17 +1,38 @@
 version: 2.1
 jobs:
+
   build-openvisus-arm64:
     machine:
       image: ubuntu-2004:202101-01
     resource_class: arm.large  # see https://circleci.com/docs/2.0/arm-resources/, seems to have problems with medium
     parameters:
       python-version:
-        type: string 
-    parallelism: 1 # I don't think I can execute all the jobs in parallel      
+        type: string      
     steps:
       - checkout
       - run:
-          name: Build OpenVisus
+          name: Build OpenVisus Arm64
+          no_output_timeout: 50m
+          environment:
+            PYTHON_VERSION: << parameters.python-version >>
+            VISUS_GUI: 1
+            VISUS_SLAM: 1
+            VISUS_MODVISUS: 1 
+            PULL_IMAGE: visus/portable-linux-binaries_x86_64:4.1
+            PUSH_IMAGE: visus/mod_visus
+          command: |
+                   source scripts/build_ubuntu.sh
+
+  build-openvisus-amd64:
+    machine:
+      image: ubuntu-2004:202111-01
+    parameters:
+      python-version:
+        type: string     
+    steps:
+      - checkout
+      - run:
+          name: Build OpenVisus Amd64
           no_output_timeout: 50m
           environment:
             PYTHON_VERSION: << parameters.python-version >>
@@ -20,14 +41,20 @@ jobs:
             VISUS_MODVISUS: 0 
             PULL_IMAGE: nsdf/manylinux2014_aarch64:latest
             PUSH_IMAGE: visus/mod_visus_aarch64
-          command: source scripts/build_ubuntu.sh
-          
+          command: |
+                   source scripts/build_ubuntu.sh
+   
 workflows:
   version: 2
   build-and-deploy:
     jobs:
+
       - build-openvisus-arm64:
           matrix:
             parameters:
               python-version: ['3.7', '3.8', '3.9' ,'3.10' ]
 
+      - build-openvisus-arm64:
+          matrix:
+            parameters:
+              python-version: ['3.7', '3.8', '3.9' ,'3.10' ]

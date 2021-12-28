@@ -28,11 +28,14 @@ function DistribToPip() {
 
 # //////////////////////////////////////////////////////////////
 function InstallCondaUbuntu() {
-	pushd ~
-	curl -L -O https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-$ARCHITECTURE.sh
-	bash Miniforge3-Linux-$ARCHITECTURE.sh -b
-	rm -f Miniforge3-Linux-$ARCHITECTURE.sh
-	popd
+	if [[ ! -d "~/miniforge3" ]]; then 
+		pushd ~
+		curl -L -O https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-$ARCHITECTURE.sh
+		bash Miniforge3-Linux-$ARCHITECTURE.sh -b
+		rm -f Miniforge3-Linux-$ARCHITECTURE.sh
+		popd
+	
+	fi
 }
 
 # //////////////////////////////////////////////////////////////
