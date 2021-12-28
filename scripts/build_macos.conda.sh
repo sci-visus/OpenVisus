@@ -3,16 +3,13 @@
 set -e
 set -x 
 
-source scripts/build_utils.sh 
+source scripts/build_utils.sh
 
 # configure conda
 conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
 conda install --yes -c conda-forge conda anaconda-client conda-build wheel pyqt=5.12  1>/dev/null
 
-# for for `bdist_conda` problem
-cp -n \
-  ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/distutils/command/bdist_conda.py \
-  ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/site-packages/setuptools/_distutils/command/bdist_conda.py              
+
 
 # install SDK
 pushd /tmp 
@@ -34,6 +31,11 @@ cmake --build . --target ALL_BUILD --config Release --parallel 4
 cmake --build . --target install	 --config Release     
 
 CreateNonGuiVersion
+
+# for for `bdist_conda` problem
+cp -n \
+  ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/distutils/command/bdist_conda.py \
+  ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/site-packages/setuptools/_distutils/command/bdist_conda.py
 
 pushd Release/OpenVisus
 ConfigureAndTestConda  
