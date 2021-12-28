@@ -56,6 +56,7 @@ function ConfigureAndTestConda() {
 }
 
 
+
 # ////////////////////////////////////////////////////////////// 
 # since bdist_conda is broken, I am switching to conda build
 # do just `conda build .`
@@ -88,12 +89,13 @@ EOF
 function DistribToConda-CondaBuild() {
 
     # scrgiorgio: don't ask me why I have to do this to avoid errors! 
-    rm -Rf ${CONDA_ROOT}/conda-bld $(find ${CONDA_PREFIX} -iname "*openvisus*)  || true 
+    rm -Rf $(find ${CONDA_ROOT} -iname "*conda-bld*")  || true
+    rm -Rf $(find ${CONDA_ROOT} -iname "*openvisus*")  || true 
 
     CreateCondaMetaFile
     conda build .
-    CONDA_FILENAME=`find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"    | head -n 1` 
-    if [[ "${GIT_TAG}" != ""    ]] ; then
+    CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"    | head -n 1) 
+    if [[ "${GIT_TAG}" != "" ]] ; then
         anaconda --verbose --show-traceback -t ${ANACONDA_TOKEN} upload ${CONDA_FILENAME}
     fi
 }
@@ -102,9 +104,9 @@ function DistribToConda-CondaBuild() {
 
 # //////////////////////////////////////////////////////////////
 function DistribToConda() {
-   rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")   || true
+   rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2") || true
    $PYTHON setup.py -q bdist_conda 1>/dev/null
-   CONDA_FILENAME=`find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2" | head -n 1` 
+   CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2" | head -n 1)
    if [[ "${GIT_TAG}" != "" ]] ; then
       anaconda --verbose --show-traceback -t ${ANACONDA_TOKEN} upload ${CONDA_FILENAME}
    fi
