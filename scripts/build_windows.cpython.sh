@@ -26,7 +26,7 @@ cmake \
 	-A x64 \
 	-DQt5_DIR=${Qt5_Dir}/lib/cmake/Qt5 \
 	-DPython_EXECUTABLE=${PYTHON} \
-	-DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe 
+	-DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe \
 	../
 
 cmake --build . --target ALL_BUILD --config Release --parallel 4

@@ -86,8 +86,10 @@ EOF
 
 # ////////////////////////////////////////////////////////////// 
 function DistribToConda-CondaBuild() {
-    rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")  || true 
-    rm -Rf ${CONDA_ROOT}/conda-bld # scrgiorgio: don't ask me why I have to do this to avoid errors! 
+	
+    # scrgiorgio: don't ask me why I have to do this to avoid errors! 
+    rm -Rf ${CONDA_ROOT}/conda-bld $(find ${CONDA_PREFIX} -iname "*openvisus*)  || true 
+
     CreateCondaMetaFile
     conda build .
     CONDA_FILENAME=`find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"    | head -n 1` 

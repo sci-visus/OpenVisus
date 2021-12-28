@@ -26,31 +26,23 @@ BUILD_DIR=build
 
 mkdir -p ${BUILD_DIR} 
 cd ${BUILD_DIR}
-
-cmake  \
-  -GXcode \
-  -DQt5_DIR=${CONDA_PREFIX}/lib/cmake/Qt5 \
-  -DCMAKE_OSX_SYSROOT=/tmp/MacOSX-SDKs/MacOSX10.9.sdk \
-  -DPython_EXECUTABLE=${PYTHON} \
-  ../
-
+cmake  -GXcode -DQt5_DIR=${CONDA_PREFIX}/lib/cmake/Qt5 -DCMAKE_OSX_SYSROOT=/tmp/MacOSX-SDKs/MacOSX10.9.sdk -DPython_EXECUTABLE=${PYTHON} ../
 cmake --build . --target ALL_BUILD --config Release --parallel 4
 cmake --build . --target install	 --config Release     
 
 CreateNonGuiVersion
 
 # for for `bdist_conda` problem
-#cp -n \
-#  ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/distutils/command/bdist_conda.py \
-#  ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/site-packages/setuptools/_distutils/command/bdist_conda.py
-# DistribToConda
+cp -n \
+  ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/distutils/command/bdist_conda.py \
+  ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/site-packages/setuptools/_distutils/command/bdist_conda.py
 
 pushd Release/OpenVisus
 ConfigureAndTestConda  
-DistribToConda-CondaBuild
+DistribToConda  
 popd
 
 pushd Release.nogui/OpenVisus
 ConfigureAndTestConda
-DistribToConda-CondaBuild
+DistribToConda
 popd
