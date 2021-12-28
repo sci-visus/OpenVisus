@@ -79,8 +79,6 @@ jobs:
             DistribToPip
             popd 
 
-            Main
-
 
   # ///////////////////////////////////////////////////////////////////
   build-openvisus-windows-conda:
@@ -285,7 +283,7 @@ jobs:
               popd
 
               # install preconditions
-              brew install swig cmake    
+              brew install swig cmake && source scripts/utils.sh 
 
               GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
               PYTHON=`which python`

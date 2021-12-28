@@ -60,7 +60,7 @@ if [[ "$VISUS_GUI" == "1" ]]; then
 fi
 
 # *** conda ***
-InstallCondaUbuntu
+InstallCondaUbuntu || true # can exist
 ActivateConda
 PYTHON=`which python`
 

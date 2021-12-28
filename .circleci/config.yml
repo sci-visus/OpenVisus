@@ -30,7 +30,7 @@ jobs:
                     # deploy modvisus
                     IMAGE_NAME=visus/mod_visus_aarch64
                     GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
-                    if [[ "$GIT_TAG" !="" &&  "$PYTHON_VERSION" == "3.9" ]] ; then
+                    if [[ "$GIT_TAG" != "" &&  "$PYTHON_VERSION" == "3.9" ]] ; then
                       sleep 30 # give time for pip package to be ready
                       pushd  Docker/mod_visus
                       docker build --tag $IMAGE_NAME:$GIT_TAG --tag $IMAGE_NAME:latest --build-arg TAG=$GIT_TAG .
