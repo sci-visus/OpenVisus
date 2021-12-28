@@ -32,7 +32,7 @@ if [[ "${INSIDE_DOCKER}" == "" ]] ; then
     -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
     -e VISUS_GUI=${VISUS_GUI} -e VISUS_SLAM=${VISUS_SLAM} -e VISUS_MODVISUS=${VISUS_MODVISUS} \
     -e INSIDE_DOCKER=1 \
-    ${PULL_IMAGE} bash scripts/build_linux.sh
+    ${PULL_IMAGE} bash scripts/build_ubuntu.sh
 
   # modvisus
   if [[ "${GIT_TAG}" != "" &&  "${PYTHON_VERSION}" == "3.9" ]] ; then
