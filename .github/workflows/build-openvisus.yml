@@ -38,7 +38,7 @@ jobs:
         PYTHON_VERSION: ${{ matrix.python-version }} 
         PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: bash ./scripts/build_windows.cpython.sh
+      run: source ./scripts/build_windows.cpython.sh
             
   # ///////////////////////////////////////////////////////////////////
   build-openvisus-windows-conda:
@@ -70,7 +70,7 @@ jobs:
       env: 
         PYTHON_VERSION: ${{ matrix.python-version }} 
         ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }} 
-      run: bash scripts/build_windows.conda.sh
+      run: source scripts/build_windows.conda.sh
 
   # ///////////////////////////////////////////////////////////////////
   build-openvisus-macos-cpython:
@@ -106,7 +106,7 @@ jobs:
         PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}  
       shell: bash -l {0}
-      run: bash scripts/build_macos.cpython.sh
+      run: source scripts/build_macos.cpython.sh
             
   # ///////////////////////////////////////////////////////////////////
   build-openvisus-macos-conda:
@@ -135,7 +135,7 @@ jobs:
         PYTHON_VERSION: ${{ matrix.python-version }} 
         ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}  
       shell: bash -l {0}
-      run: bash scripts/build_macos.conda.sh
+      run: source scripts/build_macos.conda.sh
 
   # ///////////////////////////////////////////////////////////////////
   build-openvisus-ubuntu:
@@ -163,7 +163,7 @@ jobs:
         DOCKER_TOKEN: ${{ matrix.python-version }}
         PULL_IMAGE: visus/portable-linux-binaries_x86_64:4.1
         PUSH_IMAGE: visus/mod_visus
-      run: bash scripts/build_ubuntu.sh
+      run: source scripts/build_ubuntu.sh
 
 
 

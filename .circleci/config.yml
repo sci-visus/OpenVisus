@@ -20,7 +20,7 @@ jobs:
             VISUS_MODVISUS: 0 
             PULL_IMAGE: nsdf/manylinux2014_aarch64:latest
             PUSH_IMAGE: visus/mod_visus_aarch64
-          command: bash scripts/build_ubuntu.sh
+          command: source scripts/build_ubuntu.sh
           
 workflows:
   version: 2
