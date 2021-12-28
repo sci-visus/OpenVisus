@@ -55,7 +55,7 @@ function ConfigureAndTestConda() {
 # //////////////////////////////////////////////////////////////
 function DistribToConda() {
 	rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")	|| true	
-	$PYTHON -v setup.py -q bdist_conda 1>/dev/null
+	$PYTHON setup.py -q bdist_conda 1>/dev/null
 	CONDA_FILENAME=`find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"	| head -n 1` 
 	if [[ "${GIT_TAG}" != ""	]] ; then
 		anaconda --verbose --show-traceback	-t ${ANACONDA_TOKEN}	 upload ${CONDA_FILENAME}
