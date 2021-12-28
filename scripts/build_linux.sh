@@ -64,6 +64,11 @@ InstallCondaUbuntu
 ActivateConda
 PYTHON=`which python`
 
+# # fix for bdist_conda problem
+cp -n \
+	${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/distutils/command/bdist_conda.py \
+	${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/site-packages/setuptools/_distutils/command/bdist_conda.py
+
 pushd Release/OpenVisus 
 ConfigureAndTestConda 
 DistribToConda 

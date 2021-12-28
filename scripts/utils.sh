@@ -54,13 +54,7 @@ function ConfigureAndTestConda() {
 
 # //////////////////////////////////////////////////////////////
 function DistribToConda() {
-	rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")	|| true
-	
-	# fixing problem of bdist_conda unknown command
-	cp -f \
-		${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/distutils/command/bdist_conda.py \
-		${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/site-packages/setuptools/_distutils/command/bdist_conda.py	
-	
+	rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2")	|| true	
 	$PYTHON -v setup.py -q bdist_conda 1>/dev/null
 	CONDA_FILENAME=`find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2"	| head -n 1` 
 	if [[ "${GIT_TAG}" != ""	]] ; then

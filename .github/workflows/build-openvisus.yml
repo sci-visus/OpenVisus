@@ -133,6 +133,11 @@ jobs:
               conda config --set always_yes yes --set changeps1 no --set anaconda_upload no             1>/dev/null
               conda install -c conda-forge -y conda cmake pyqt=5.12  anaconda-client  conda-build wheel 1>/dev/null
 
+              # fix for bdist_conda problem
+              cp -n \
+                $CONDA_PREFIX/Lib/distutils/command/bdist_conda.py \
+                $CONDA_PREFIX/Lib/site-packages/setuptools/bdist_conda.py
+
               GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
               PYTHON=`which python`
               BUILD_DIR=build        
@@ -267,6 +272,11 @@ jobs:
               # configure conda
               conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
               conda install --yes -c conda-forge conda anaconda-client conda-build wheel pyqt=5.12  1>/dev/null
+
+              # for for `bdist_conda` problem
+              cp -n \
+                ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/distutils/command/bdist_conda.py \
+                ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/site-packages/setuptools/_distutils/command/bdist_conda.py              
 
               # install SDK
               pushd /tmp 
