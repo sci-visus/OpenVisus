@@ -102,9 +102,9 @@ jobs:
 
     - name: Compile cpython
       env:
-        PYTHON_VERSION: ${{ matrix.python-version }} 
+        PYTHON_VERSION: ${{ matrix.python-version }}
         PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}  
+        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       shell: bash -l {0}
       run: source scripts/build_macos.cpython.sh
             
@@ -132,8 +132,8 @@ jobs:
 
     - name: Build (conda)
       env:
-        PYTHON_VERSION: ${{ matrix.python-version }} 
-        ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}  
+        PYTHON_VERSION: ${{ matrix.python-version }}
+        ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       shell: bash -l {0}
       run: source scripts/build_macos.conda.sh
 
