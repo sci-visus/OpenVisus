@@ -273,7 +273,7 @@ jobs:
               popd
 
               # install preconditions
-              brew install swig cmak && source scripts/utils.sh 
+              brew install swig cmake && source scripts/utils.sh 
 
               GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
               PYTHON=`which python`
