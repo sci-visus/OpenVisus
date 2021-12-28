@@ -16,11 +16,18 @@ unzip swigwin-4.0.2.zip
 conda config --set always_yes yes --set changeps1 no --set anaconda_upload no             1>/dev/null
 conda install -c conda-forge -y conda cmake pyqt=5.12  anaconda-client  conda-build wheel 1>/dev/null
 
-find $(wslpath -u $CONDA_PREFIX)
+# debug part
+echo "DEBUG PART///////////////////////////////////////////"
+which bash
+which conda
+env
+ls $CONDA_PREFIX   || true
+find $CONDA_PREFIX || true
 
 cp -n \
-    $(wslpath -u $CONDA_PREFIX)/Lib/distutils/command/bdist_conda.py \
-    $(wslpath -u $CONDA_PREFIX)/Lib/site-packages/setuptools/bdist_conda.py
+    $CONDA_PREFIX/Lib/distutils/command/bdist_conda.py \
+    $CONDA_PREFIX/Lib/site-packages/setuptools/bdist_conda.py
+echo "DEBUG PART///////////////////////////////////////////"
 
 GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
 PYTHON=`which python`

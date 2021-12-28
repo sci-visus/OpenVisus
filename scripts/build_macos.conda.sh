@@ -3,7 +3,7 @@
 set -e
 set -x 
 
-source scripts/utils.sh 
+source scripts/build_utils.sh 
 
 # configure conda
 conda config --set always_yes yes --set changeps1 no --set anaconda_upload no   1>/dev/null
