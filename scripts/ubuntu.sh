@@ -31,7 +31,7 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
     -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
     -e VISUS_GUI=${VISUS_GUI} -e VISUS_SLAM=${VISUS_SLAM} -e VISUS_MODVISUS=${VISUS_MODVISUS} \
     -e INSIDE_DOCKER=1 \
-    ${DOCKER_IMAGE} bash scripts/linux.sh
+    ${DOCKER_IMAGE} bash scripts/ubuntu.sh
 
   # modvisus
   if [[ "${GIT_TAG}" != "" &&  "${PYTHON_VERSION}" == "3.9" ]] ; then
