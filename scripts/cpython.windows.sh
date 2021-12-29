@@ -28,7 +28,7 @@ function InstallCMake() {
 	mkdir -p /temp
 	pushd /tmp
 	curl -L https://github.com/Kitware/CMake/releases/download/v3.22.1/cmake-3.22.1-windows-x86_64.zip -O
-	unzip cmake-3.22.1-windows-x86_64.zip 1>/dev/null
+	unzip -q cmake-3.22.1-windows-x86_64.zip 1>/dev/null
 	export PATH=$PATH:$PWD/cmake-3.22.1-windows-x86_64/bin
 	popd
 }
@@ -81,8 +81,8 @@ function DistribToPip() {
 if [[ "1" == "1" ]]; then
 	InstallSwig
 	InstallCMake
-	InstallPython
-
+	#InstallPython
+	PYTHON=$(which python)
 	if [[ "$VISUS_GUI" == "1" ]]; then
 		# InstallOspray
 		InstallQt5

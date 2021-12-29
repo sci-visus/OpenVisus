@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ev 
+set -ex 
 
 BUILD_DIR=${BUILD_DIR:-build_macos}
 PYTHON_VERSION=${PYTHON_VERSION:-3.8}
@@ -59,8 +59,9 @@ function DistribToPip() {
 # install preconditions
 if [[ "1" == "1" ]]; then
 	InstallSDK
-	brew install swig cmake python@${PYTHON_VERSION}
-	PYTHON=$(which python3)
+	brew install swig cmake 
+	# brew install python@${PYTHON_VERSION}
+	PYTHON=$(which python)
 	$PYTHON --version
 	if [[ "$VISUS_GUI" == "1" ]]; then 
 		InstallQt5
