@@ -1,7 +1,6 @@
 #!/bin/bash
 
-set -e
-set -v # verbose (or use -x) 
+set -ex
 
 PYTHON_VERSION=${PYTHON_VERSION:-3.8}
 PYQT_VERSION=${PYQT_VERSION:-5.12}
@@ -86,7 +85,7 @@ if [[ "1" == "1" ]]; then
 fi
 
 # for for `bdist_conda` problem
-pushd ${setuptoolsCONDA_HOME}/Lib
+pushd ${CONDA_HOME}/Lib
 cp -n distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py
 popd
 
