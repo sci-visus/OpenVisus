@@ -86,8 +86,8 @@ fi
 
 # for for `bdist_conda` problem
 if [[ "1" == "1" ]]; then
-    find ${CONDA_HOME}
-    pushd ${CONDA_HOME}/Lib
+    find ${CONDA_PREFIX} # REMOVE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    pushd ${CONDA_PREFIX}/Lib
     cp -n distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py || true # just le'ts hope it will work anyway
     popd
 fi
