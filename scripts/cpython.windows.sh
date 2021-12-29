@@ -18,7 +18,7 @@ function InstallSwig() {
 	mkdir -p /tmp
 	pushd /tmp
 	curl -L --insecure https://cfhcable.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O 
-	unzip swigwin-4.0.2.zip
+	unzip -q swigwin-4.0.2.zip
 	SWIG_EXECUTABLE=$PWD/swigwin-4.0.2/swig.exe
 	popd
 }
@@ -35,7 +35,7 @@ function InstallCMake() {
 
 # ///////////////////////////////////////////////
 function InstallPython() {
-	choco install python3 --version=${PYTHON_VERSION} --yes --no-progress --params  --debug --verbose --force "/InstallDir:C:/tmp/python${PYTHON_VERSION}"
+	choco install python3 --version=${PYTHON_VERSION} --yes --no-progress --debug --verbose --force --params "/InstallDir:C:/tmp/python${PYTHON_VERSION}"
 	PYTHON=/c/tmp/python${PYTHON_VERSION}/python.exe
 }
 

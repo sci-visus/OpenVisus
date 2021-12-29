@@ -14,8 +14,7 @@ jobs:
       - run:
           name: Build openvisus
           command: |
-                   set -e
-                   set -v
+                   set -ex
                    export PYTHON_VERSION=<< parameters.python-version >>
                    export VISUS_GUI=0
                    export VISUS_SLAM=0

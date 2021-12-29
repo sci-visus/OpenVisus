@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ev
+set -ex
 
 BUILD_DIR=${BUILD_DIR:-build_docker}
 VISUS_GUI=${VISUS_GUI:-1}
