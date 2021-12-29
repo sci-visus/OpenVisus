@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ev
+set -ex
 
 BUILD_DIR=${BUILD_DIR:-build_windows}
 PYTHON_VERSION=${PYTHON_VERSION:-3.8}
@@ -35,7 +35,7 @@ function InstallCMake() {
 
 # ///////////////////////////////////////////////
 function InstallPython() {
-	choco install python3 --version=${PYTHON_VERSION} --yes --no-progress --debug --verbose --force --params "/InstallDir:C:/tmp/python${PYTHON_VERSION}"
+	choco install python3 --version=${PYTHON_VERSION} --yes --no-progress --debug --verbose --force # --params "/InstallDir:C:/tmp/python${PYTHON_VERSION}"
 	PYTHON=/c/tmp/python${PYTHON_VERSION}/python.exe
 }
 
