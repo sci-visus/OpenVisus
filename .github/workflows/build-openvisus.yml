@@ -1,14 +1,14 @@
 name: build-openvisus
 on: [push]
 jobs:
-  build:
+  build-1:
     runs-on: ${{ matrix.os }}-latest
     strategy:
       fail-fast: false  
       matrix:
         python-version: [ '3.7', '3.8', '3.9' , '3.10' ]
-        os: [ "windows" , "macos"]
         type: [ "cpython" , "conda" ]
+        os: [ "windows" , "macos" ]
     steps:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
@@ -20,7 +20,7 @@ jobs:
            export PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }}
            export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }}
            source ./scripts/${{ matrix.type }}.${{ matrix.os }}.sh
-  build:
+  build-2:
     runs-on: ${{ matrix.os }}-latest
     strategy:
       fail-fast: false  
