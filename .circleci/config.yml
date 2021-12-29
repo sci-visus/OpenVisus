@@ -20,6 +20,11 @@ jobs:
                    export VISUS_MODVISUS=0 
                    export DOCKER_IMAGE=nsdf/manylinux2014_aarch64:latest
                    export DOCKER_MODVISUS_IMAGE=visus/mod_visus_aarch64
+                   # ANACONDA_TOKEN
+                   # DOCKER_TOKEN
+                   # DOCKER_USERNAME
+                   # PYPI_PASSWORD
+                   # PYPI_USERNAME
                    source scripts/ubuntu.sh
 workflows:
   version: 2

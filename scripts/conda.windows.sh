@@ -14,7 +14,7 @@ GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
 
 # ///////////////////////////////////////////////
 function InstallConda() {
-    choco install --accept-license --yes miniconda3
+    choco install --accept-license --yes --force miniconda3 
     CONDA_HOME=/c/tools/miniconda3
     echo "source ${CONDA_HOME}/etc/profile.d/conda.sh" >> ~/.bashrc
 }

@@ -18,6 +18,7 @@ GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
 function InstallQt5() {	
 	$PYTHON -m pip install aqtinstall
 	$PYTHON -m aqt install-qt --outputdir /tmp/Qt mac desktop 5.12.0 clang_64
+	find /tmp/Qt/5.12.0
 	Qt5_Dir=/tmp/Qt/5.12.0/clang_64/lib/cmake/Qt5
 }
 
@@ -61,6 +62,7 @@ if [[ "1" == "1" ]]; then
 	InstallSDK
 	brew install swig cmake python@${PYTHON_VERSION}
 	PYTHON=$(which python3)
+	$PYTHON --version
 	if [[ "$VISUS_GUI" == "1" ]]; then 
 		InstallQt5
 	fi

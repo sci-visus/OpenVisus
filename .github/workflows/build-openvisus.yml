@@ -1,7 +1,7 @@
 name: build-openvisus
 on: [push]
 jobs:
-  build-openvisus-windows-cpython:
+  build:
     runs-on: ${{ matrix.os }}-latest
     strategy:
       fail-fast: false  
@@ -20,7 +20,7 @@ jobs:
            export PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }}
            export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }}
            source ./scripts/${{ matrix.type }}.${{ matrix.os }}.sh
-  build-openvisus-ubuntu:
+  build:
     runs-on: ${{ matrix.os }}-latest
     strategy:
       fail-fast: false  

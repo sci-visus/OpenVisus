@@ -36,8 +36,8 @@ function InstallCMake() {
 
 # ///////////////////////////////////////////////
 function InstallPython() {
-	choco install python3 --version=${PYTHON_VERSION} --yes --no-progress --pre
-	PYTHON=/c/Python${PYTHON_VERSION//./}/python.exe
+	choco install python3 --version=${PYTHON_VERSION} --yes --no-progress --params --force "/InstallDir:C:/tmp/python${PYTHON_VERSION}"
+	PYTHON=/c/tmp/python${PYTHON_VERSION}/python.exe
 }
 
 # ///////////////////////////////////////////////
@@ -84,7 +84,7 @@ if [[ "1" == "1" ]]; then
 	InstallSwig
 	InstallCMake
 	InstallPython
-	
+
 	if [[ "$VISUS_GUI" == "1" ]]; then
 		# InstallOspray
 		InstallQt5
