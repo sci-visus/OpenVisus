@@ -3,11 +3,6 @@
 set -e
 set -x
 
-GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
-
-# /////////////////////////////////////////////
-# arguments
-
 BUILD_DIR=${BUILD_DIR:-build_docker}
 VISUS_GUI=${VISUS_GUI:-1}
 VISUS_SLAM=${VISUS_SLAM:-1}
@@ -17,6 +12,8 @@ Qt5_DIR=${Qt5_DIR:-/opt/qt512}
 PYPI_USERNAME=${PYPI_USERNAME:-}
 PYPI_PASSWORD=${PYPI_PASSWORD:-}
 ANACONDA_TOKEN=${ANACONDA_TOKEN:-}
+
+GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
 
 
 # //////////////////////////////////////////////////////////////
@@ -84,19 +81,26 @@ function DistribToConda() {
 
 # /////////////////////////////////////////////////////////////////////////
 # *** cpython ***
+# /////////////////////////////////////////////////////////////////////////
 
 PYTHON=`which python${PYTHON_VERSION}`
 
-ARCHITECTURE=`uname -m`
-PIP_PLATFORM=unknown
-if [[ "${ARCHITECTURE}" ==  "x86_64" ]] ; then PIP_PLATFORM=manylinux2010_${ARCHITECTURE} ; fi
-if [[ "${ARCHITECTURE}" == "aarch64" ]] ; then PIP_PLATFORM=manylinux2014_${ARCHITECTURE} ; fi
+# detect architecture
+if [[ "1" == "1" ]]; then
+	ARCHITECTURE=`uname -m`
+	PIP_PLATFORM=unknown
+	if [[ "${ARCHITECTURE}" ==  "x86_64" ]] ; then PIP_PLATFORM=manylinux2010_${ARCHITECTURE} ; fi
+	if [[ "${ARCHITECTURE}" == "aarch64" ]] ; then PIP_PLATFORM=manylinux2014_${ARCHITECTURE} ; fi
+fi
 
-mkdir -p ${BUILD_DIR} 
-cd ${BUILD_DIR}
-cmake -DPython_EXECUTABLE=${PYTHON} -DQt5_DIR=${Qt5_DIR} -DVISUS_GUI=${VISUS_GUI} -DVISUS_MODVISUS=${VISUS_MODVISUS} -DVISUS_SLAM=${VISUS_SLAM} ../
-make -j 
-make install
+# compile OpenVisus
+if [[ "1" == "1" ]]; then
+	mkdir -p ${BUILD_DIR} 
+	cd ${BUILD_DIR}
+	cmake -DPython_EXECUTABLE=${PYTHON} -DQt5_DIR=${Qt5_DIR} -DVISUS_GUI=${VISUS_GUI} -DVISUS_MODVISUS=${VISUS_MODVISUS} -DVISUS_SLAM=${VISUS_SLAM} ../
+	make -j 
+	make install
+fi
 
 if [[ "1" == "1" ]]; then
 	pushd Release/OpenVisus
@@ -115,19 +119,24 @@ fi
 
 # /////////////////////////////////////////////////////////////////////////
 # *** conda ***
+# /////////////////////////////////////////////////////////////////////////
 
-# avoid conflicts with pip packages installed using --user
-export PYTHONNOUSERSITE=True 
 
-InstallConda 
-ActivateConda
-PYTHON=`which python`
+# install conda
+if [[ "1" == "1" ]]; then
+	# avoid conflicts with pip packages installed using --user
+	export PYTHONNOUSERSITE=True 
+	InstallConda 
+	ActivateConda
+	PYTHON=`which python`
+fi
 
-# for for `bdist_conda` problem
-pushd ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}
-cp -n distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py
-popd
-
+# fix `bdist_conda` problem
+if [[ "1" == "1" ]]; then
+	pushd ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}
+	cp -n distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py
+	popd
+fi
 
 if [[ "1" == "1" ]]; then
 	pushd Release/OpenVisus 

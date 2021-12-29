@@ -3,6 +3,50 @@
 set -e
 set -x
 
+BUILD_DIR=${BUILD_DIR:-build_windows}
+PYTHON=${PYTHON:-python}
+PYTHON_VERSION=${PYTHON_VERSION:-3.8}
+VISUS_GUI=${VISUS_GUI:-1}
+VISUS_SLAM=${VISUS_SLAM:-1}
+VISUS_MODVISUS=${VISUS_MODVISUS:-0}
+PYPI_USERNAME=${PYPI_USERNAME:-}
+PYPI_PASSWORD=${PYPI_PASSWORD:-}
+PIP_PLATFORM=win_amd64
+
+GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
+
+# ///////////////////////////////////////////////
+function InstallSwig() {
+	mkdir -p /tmp
+	pushd /tmp
+	curl -L --insecure https://cfhcable.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O 
+	unzip swigwin-4.0.2.zip
+	SWIG_EXECUTABLE=$PWD/swigwin-4.0.2/swig.exe
+	popd
+}
+
+# ///////////////////////////////////////////////
+function InstallCMake() {
+	mkdir -p /temp
+	pushd /tmp
+	curl -L https://github.com/Kitware/CMake/releases/download/v3.22.1/cmake-3.22.1-windows-x86_64.zip -O
+	unzip cmake-3.22.1-windows-x86_64.zip 1>/dev/null
+	export PATH=$PATH:$PWD/cmake-3.22.1-windows-x86_64/bin
+	popd
+}
+
+# ///////////////////////////////////////////////
+function InstallQt5() {	
+	python -m aqt install-qt --outputdir c:/Qt windows desktop 5.12.0 win64_msvc2017_64
+	Qt5_Dir=C:/Qt/5.12.0/msvc2017_64/lib/cmake/Qt5
+}
+
+# ///////////////////////////////////////////////
+function InstallOspray() {
+	git clone https://github.com/sci-visus/ospray_win.git ExternalLibs/ospray_win
+}
+
+
 # ///////////////////////////////////////////////
 function CreateNonGuiVersion() {
    mkdir -p Release.nogui
@@ -29,43 +73,44 @@ function DistribToPip() {
    fi
 }
 
+# install prerequisites
+if [[ "1" == "1" ]]; then
+	InstallSwig
+	if [[ "$VISUS_GUI" == "1" ]]; then
+		# InstallOspray DISABLED: are we still using ospray?
+		InstallQt5
+	fi
+fi
 
-# install swig
-curl -L --insecure https://cfhcable.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O 
-unzip swigwin-4.0.2.zip
+# compile openvisus
+if [[ "1" == "1" ]]; then
+	mkdir -p ${BUILD_DIR} 
+	cd ${BUILD_DIR}
+	cmake \
+		-G "Visual Studio 16 2019" \
+		-A x64 \
+		-DQt5_DIR=${Qt5_Dir} \
+		-DPython_EXECUTABLE=${PYTHON} \
+		-DSWIG_EXECUTABLE=$SWIG_EXECUTABLE \
+		-DVISUS_GUI=$VISUS_GUI \
+		-DVISUS_SLAM=$VISUS_SLAM \
+		-DVISUS_MODVISUS=$VISUS_MODVISUS \
+		../
+	cmake --build . --target ALL_BUILD --config Release --parallel 4
+	cmake --build . --target install   --config Release
+fi
 
-# (DISABLED, are we still using ospray???)
-# install ospray
-# git clone https://github.com/sci-visus/ospray_win.git ExternalLibs/ospray_win
+if [[ "1" == "1" ]]; then
+	pushd Release/OpenVisus
+	ConfigureAndTestCPython
+	DistribToPip
+	popd
+fi
 
-GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
-PYTHON=${pythonLocation}/python
-PIP_PLATFORM=win_amd64
-BUILD_DIR=build
-
-mkdir -p ${BUILD_DIR} 
-cd ${BUILD_DIR}
-
-cmake \
-	-G "Visual Studio 16 2019" \
-	-A x64 \
-	-DQt5_DIR=${Qt5_Dir}/lib/cmake/Qt5 \
-	-DPython_EXECUTABLE=${PYTHON} \
-	-DSWIG_EXECUTABLE=../swigwin-4.0.2/swig.exe \
-	../
-
-cmake --build . --target ALL_BUILD --config Release --parallel 4
-cmake --build . --target install   --config Release
-
-CreateNonGuiVersion
-
-pushd Release/OpenVisus
-ConfigureAndTestCPython
-DistribToPip
-popd
-
-pushd Release.nogui/OpenVisus
-ConfigureAndTestCPython
-DistribToPip
-popd 
-
+if [[ "$VISUS_GUI" == "1" ]]; then
+	CreateNonGuiVersion
+	pushd Release.nogui/OpenVisus
+	ConfigureAndTestCPython
+	DistribToPip
+	popd 
+fi

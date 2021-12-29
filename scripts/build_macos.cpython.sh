@@ -3,6 +3,32 @@
 set -e
 set -x
 
+BUILD_DIR=${BUILD_DIR:-build_macos}
+PYTHON_VERSION=${PYTHON_VERSION:-3.8}
+VISUS_GUI=${VISUS_GUI:-1}
+VISUS_SLAM=${VISUS_SLAM:-1}
+VISUS_MODVISUS=${VISUS_MODVISUS:-0}
+PYPI_USERNAME=${PYPI_USERNAME:-}
+PYPI_PASSWORD=${PYPI_PASSWORD:-}
+PIP_PLATFORM=macosx_10_9_x86_64
+
+GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
+
+# ///////////////////////////////////////////////
+function InstallQt5() {	
+	python -m aqt install-qt --outputdir /tmp/Qt mac desktop 5.12.0 clang_64
+	Qt5_Dir=/tmp/Qt/5.12.0/msvc2017_64/lib/cmake/Qt5
+}
+
+# ///////////////////////////////////////////////
+function InstallSDK() {
+	pushd /tmp 
+	rm -Rf MacOSX-SDKs 
+	git clone https://github.com/phracker/MacOSX-SDKs.git
+	export CMAKE_OSX_SYSROOT=$PWD/MacOSX-SDKs/MacOSX10.9.sdk
+	popd
+}
+
 # ///////////////////////////////////////////////
 function CreateNonGuiVersion() {
    mkdir -p Release.nogui
@@ -29,41 +55,43 @@ function DistribToPip() {
    fi
 }
 
-# install SDK
-pushd /tmp 
-rm -Rf MacOSX-SDKs 
-git clone https://github.com/phracker/MacOSX-SDKs.git
-popd
-
 # install preconditions
 brew install swig cmake
+InstallSDK
 
-GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
-PYTHON=${pythonLocation}/python
-PIP_PLATFORM=macosx_10_9_x86_64
-BUILD_DIR=build   
+iif [[ "$VISUS_GUI" == "1" ]]; then 
+	InstallQt5
+fi
 
-mkdir -p ${BUILD_DIR} 
-cd ${BUILD_DIR}
+# compile openvisus
+if [[ "1" == "1" ]]; then
+	mkdir -p ${BUILD_DIR} 
+	cd ${BUILD_DIR}
+	cmake \
+		-GXcode \
+		-DQt5_DIR=${Qt5_Dir}/lib/cmake/Qt5 \
+		-DCMAKE_OSX_SYSROOT=$CMAKE_OSX_SYSROOT \
+		-DPython_EXECUTABLE=${PYTHON} \
+		-DVISUS_GUI=$VISUS_GUI \
+		-DVISUS_SLAM=$VISUS_SLAM \
+		-DVISUS_MODVISUS=$VISUS_MODVISUS \
+		../
+	cmake --build . --target ALL_BUILD --config Release --parallel 4
+	cmake --build . --target install   --config Release
+fi
 
-cmake \
-	-GXcode \
-	-DQt5_DIR=${Qt5_Dir}/lib/cmake/Qt5 \
-	-DCMAKE_OSX_SYSROOT=/tmp/MacOSX-SDKs/MacOSX10.9.sdk \
-	-DPython_EXECUTABLE=${PYTHON} \
-	../
 
-cmake --build . --target ALL_BUILD --config Release --parallel 4
-cmake --build . --target install	 --config Release
+if [[ "1" == "1" ]]; then
+	pushd Release/OpenVisus
+	ConfigureAndTestCPython
+	DistribToPip
+	popd
+fi
 
-CreateNonGuiVersion
-
-pushd Release/OpenVisus
-ConfigureAndTestCPython
-DistribToPip
-popd
-
-pushd Release.nogui/OpenVisus
-ConfigureAndTestCPython
-DistribToPip
-popd 
+if [[ "$VISUS_GUI" == "1" ]]; then
+	CreateNonGuiVersion
+	pushd Release.nogui/OpenVisus
+	ConfigureAndTestCPython
+	DistribToPip
+	popd 
+fi

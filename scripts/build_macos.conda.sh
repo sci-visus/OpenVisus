@@ -66,13 +66,16 @@ function DistribToConda() {
    fi
 }
 
+# install prerequisistes
 InstallSDK
 
-# avoid conflicts with pip packages installed using --user
-export PYTHONNOUSERSITE=True 
-InstallConda
-ActivateConda
-PYTHON=`which python`
+# install conda
+if [[ "1" == "1" ]]; then
+  export PYTHONNOUSERSITE=True  # avoid conflicts with pip packages installed using --user
+  InstallConda
+  ActivateConda
+  PYTHON=`which python`
+fi
 
 # compile openvisus
 if [[ "1" == "1" ]]; then

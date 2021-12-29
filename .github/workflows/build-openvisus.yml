@@ -9,7 +9,7 @@ jobs:
       fail-fast: false  
       matrix:
         #  REMOVED '3.10' since PyQt5 it's not yet available for windows
-        python-version: [ '3.6', '3.7', '3.8', '3.9' ]  
+        python-version: [ '3.7', '3.8', '3.9' ]  
     steps:
     
     - name: git clone OpenVisus
@@ -24,15 +24,6 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }} 
         architecture: 'x64'
-
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v2
-      with:
-        version: '5.12.8'
-        arch: 'win64_msvc2017_64'
-        install-deps: 'true'
-        dir: C:\
-        setup-python: 'false' 
         
     - name: Compile (cpython)
       shell: bash
@@ -41,6 +32,7 @@ jobs:
         PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
+           export PYTHON=${pythonLocation}/python
            source ./scripts/build_windows.cpython.sh
             
   # ///////////////////////////////////////////////////////////////////
@@ -49,7 +41,7 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        #  REMOVED '3.10' since PyQt5 it's not yet available for windows
+        # REMOVED '3.10' since PyQt5 it's not yet available for windows
         # REMOVED 3.6 sice SyntaxError: future feature annotations is not defined
         python-version: [ '3.7', '3.8', '3.9' ] 
     steps:
@@ -78,25 +70,11 @@ jobs:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
      
-    # brew install python@3.7
     - name: Install CPython 
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }} 
         architecture: 'x64'
-
-    # I can do also
-    # python -m pip install aqtinstall
-    # python -m aqt install-qt windows desktop 5.12.0 win64_msvc2017_64
-    # C:\projects\OpenVisus\5.12.0\msvc2017_64\bin\qmake.exe
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v2
-      with:
-        version: '5.12.8'
-        target: 'desktop'
-        install-deps: 'true'
-        dir: /tmp
-        setup-python: 'false'
 
     - name: Compile cpython
       env:
@@ -105,6 +83,7 @@ jobs:
         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       shell: bash
       run: |
+           export PYTHON=${pythonLocation}/python
            source scripts/build_macos.cpython.sh
             
   # ///////////////////////////////////////////////////////////////////

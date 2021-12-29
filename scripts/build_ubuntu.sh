@@ -3,11 +3,6 @@
 set -e
 set -x
 
-GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
-
-# /////////////////////////////////////////////
-# arguments
-
 BUILD_DIR=${BUILD_DIR:-build_docker}
 VISUS_GUI=${VISUS_GUI:-1}
 VISUS_SLAM=${VISUS_SLAM:-1}
@@ -21,6 +16,8 @@ DOCKER_TOKEN=${DOCKER_TOKEN:-}
 DOCKER_USERNAME=${DOCKER_USERNAME:-}
 PULL_IMAGE=${PULL_IMAGE:-visus/portable-linux-binaries_x86_64:4.1}
 PUSH_IMAGE=${PUSH_IMAGE:-visus/mod_visus}
+
+GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
 
 # run docker
 docker run --rm -v ${PWD}:/home/OpenVisus -w /home/OpenVisus \

@@ -55,14 +55,17 @@ function DistribToConda() {
    fi
 }
 
+# install prerequisites
 # (DISABLED) install ospray
 # git clone https://github.com/sci-visus/ospray_win.git ExternalLibs/ospray_win
 
-# avoid conflicts with pip packages installed using --user
-export PYTHONNOUSERSITE=True 
-InstallConda
-ActivateConda
-PYTHON=`which python`
+# install conda
+if [[ "1" == "1" ]]; then
+    export PYTHONNOUSERSITE=True  # avoid conflicts with pip packages installed using --user
+    InstallConda
+    ActivateConda
+    PYTHON=`which python`
+fi
 
 
 # compile openvisus
