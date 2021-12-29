@@ -10,6 +10,7 @@ VISUS_MODVISUS=${VISUS_MODVISUS:-0}
 PYPI_USERNAME=${PYPI_USERNAME:-}
 PYPI_PASSWORD=${PYPI_PASSWORD:-}
 PIP_PLATFORM=win_amd64
+PYQT_VER
 
 GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
 
@@ -42,8 +43,15 @@ function InstallPython() {
 # ///////////////////////////////////////////////
 function InstallQt5() {	
 	$PYTHON -m pip install aqtinstall
-	$PYTHON -m aqt install-qt --outputdir c:/Qt windows desktop 5.12.0 win64_msvc2017_64
-	Qt5_Dir=C:/Qt/5.12.0/msvc2017_64/lib/cmake/Qt5
+	if [[ "$PYTHON_VERSION" == "3.10" ]] ; then
+		VERSION=5.15.0
+		ARCH=msvc2019_64
+	else
+		VERSION=5.12.0
+		ARCH=msvc2017_64
+	fi
+	$PYTHON -m aqt install-qt --outputdir c:/Qt windows desktop ${VERSION} win64_${ARCH}
+	Qt5_Dir=C:/Qt/${VERSION}/${ARCH}/lib/cmake/Qt5
 }
 
 # ///////////////////////////////////////////////
@@ -121,3 +129,5 @@ if [[ "$VISUS_GUI" == "1" ]]; then
 	DistribToPip
 	popd 
 fi
+
+echo "All done"

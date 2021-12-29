@@ -113,3 +113,5 @@ if [[ "$VISUS_GUI" == "1" ]]; then
   DistribToConda
   popd
 fi
+
+echo "All done"

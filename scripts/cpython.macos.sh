@@ -100,3 +100,5 @@ if [[ "$VISUS_GUI" == "1" ]]; then
 	popd 
 fi
 
+
+echo "All done"

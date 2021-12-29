@@ -85,9 +85,12 @@ if [[ "1" == "1" ]]; then
 fi
 
 # for for `bdist_conda` problem
-pushd ${CONDA_HOME}/Lib
-cp -n distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py
-popd
+if [[ "1" == "1" ]]; then
+    find ${CONDA_HOME}
+    pushd ${CONDA_HOME}/Lib
+    cp -n distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py || true # just le'ts hope it will work anyway
+    popd
+fi
 
 if [[ "1" == "1" ]]; then
     pushd Release/OpenVisus
@@ -104,3 +107,5 @@ if [[ "${VISUS_GUI}" == "1" ]]; then
     popd
 fi
 
+
+echo "All done"
