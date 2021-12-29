@@ -10,7 +10,6 @@ VISUS_MODVISUS=${VISUS_MODVISUS:-0}
 PYPI_USERNAME=${PYPI_USERNAME:-}
 PYPI_PASSWORD=${PYPI_PASSWORD:-}
 PIP_PLATFORM=win_amd64
-PYQT_VER
 
 GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
 
