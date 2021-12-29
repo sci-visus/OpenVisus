@@ -43,7 +43,6 @@ jobs:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
     - name: Compile cpython
-      env:
       shell: bash
       run: |
            export PYTHON_VERSION=${{ matrix.python-version }}
