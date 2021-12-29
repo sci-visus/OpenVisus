@@ -28,7 +28,7 @@ jobs:
     resource_class: arm.large  # see https://circleci.com/pricing/#compute-options-table
     parameters:
       python-version:
-        type: string      
+        type: string
     steps:
       - checkout
       - run:
@@ -41,7 +41,7 @@ jobs:
             PULL_IMAGE: nsdf/manylinux2014_aarch64:latest
             PUSH_IMAGE: visus/mod_visus_aarch64
           command: |
-                   source scripts/build_ubuntu.sh
+                   source scripts/linux.sh
 
 workflows:
   version: 2

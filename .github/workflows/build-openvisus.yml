@@ -15,10 +15,6 @@ jobs:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
 
-    - name: Install CMake 
-      uses: lukka/get-cmake@latest
-
-    # choco install python --version 3.8.0
     - name: Install CPython 
       uses: actions/setup-python@v2
       with:
@@ -33,7 +29,7 @@ jobs:
         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
            export PYTHON=${pythonLocation}/python
-           source ./scripts/build_windows.cpython.sh
+           source ./scripts/cpython.windows.sh
             
   # ///////////////////////////////////////////////////////////////////
   build-openvisus-windows-conda:
@@ -55,7 +51,7 @@ jobs:
         PYTHON_VERSION: ${{ matrix.python-version }}
         ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       run: |
-           source scripts/build_windows.conda.sh
+           source scripts/conda.windows.sh
 
   # ///////////////////////////////////////////////////////////////////
   build-openvisus-macos-cpython:
@@ -84,7 +80,7 @@ jobs:
       shell: bash
       run: |
            export PYTHON=${pythonLocation}/python
-           source scripts/build_macos.cpython.sh
+           source scripts/cpython.windows.sh
             
   # ///////////////////////////////////////////////////////////////////
   build-openvisus-macos-conda:
@@ -104,7 +100,7 @@ jobs:
         ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       shell: bash -l {0}
       run: |
-           source scripts/build_macos.conda.sh
+           source scripts/conda.macos.sh
 
   # ///////////////////////////////////////////////////////////////////
   build-openvisus-ubuntu:
@@ -133,7 +129,7 @@ jobs:
         PULL_IMAGE: visus/portable-linux-binaries_x86_64:4.1
         PUSH_IMAGE: visus/mod_visus
       run: |
-           source scripts/build_ubuntu.sh
+           source scripts/linux.sh
 
 
 
