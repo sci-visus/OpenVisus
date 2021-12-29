@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e
-set -x
+set -v # verbose (or use -x) 
 
 PYTHON_VERSION=${PYTHON_VERSION:-3.8}
 PYQT_VERSION=${PYQT_VERSION:-5.12}
@@ -35,7 +35,7 @@ function ActivateConda() {
 function InstallSDK() {
   pushd /tmp 
   rm -Rf MacOSX-SDKs 
-  git clone https://github.com/phracker/MacOSX-SDKs.git  1>/dev/null
+  git clone https://github.com/phracker/MacOSX-SDKs.git  --quiet
   popd 
   export CMAKE_OSX_SYSROOT=/tmp/MacOSX-SDKs/MacOSX10.9.sdk
 }

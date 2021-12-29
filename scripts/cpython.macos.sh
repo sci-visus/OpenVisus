@@ -1,7 +1,6 @@
 #!/bin/bash
 
-set -e
-set -x
+set -ev 
 
 BUILD_DIR=${BUILD_DIR:-build_macos}
 PYTHON_VERSION=${PYTHON_VERSION:-3.8}
@@ -74,7 +73,7 @@ if [[ "1" == "1" ]]; then
 	cd ${BUILD_DIR}
 	cmake \
 		-GXcode \
-		-DQt5_DIR=${Qt5_Dir}/lib/cmake/Qt5 \
+		-DQt5_DIR=${Qt5_Dir} \
 		-DCMAKE_OSX_SYSROOT=$CMAKE_OSX_SYSROOT \
 		-DPython_EXECUTABLE=${PYTHON} \
 		-DVISUS_GUI=$VISUS_GUI \

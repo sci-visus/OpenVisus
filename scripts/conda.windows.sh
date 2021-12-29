@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e
-set -x
+set -v # verbose (or use -x) 
 
 PYTHON_VERSION=${PYTHON_VERSION:-3.8}
 PYQT_VERSION=${PYQT_VERSION:-5.12}

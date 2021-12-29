@@ -6,15 +6,16 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.7', '3.8', '3.9' , '3.10' ]
         type: [ "cpython" , "conda" ]
         os: [ "windows" , "macos" ]
+        python-version: [ '3.7', '3.8', '3.9' , '3.10' ]
     steps:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
     - name: Compile (cpython)
       shell: bash
       run: |
+           set -ev
            export PYTHON_VERSION=${{ matrix.python-version }}
            export PYPI_USERNAME=${{ secrets.PYPI_USERNAME }}
            export PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }}
@@ -25,14 +26,15 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.7', '3.8', '3.9', '3.10' ]
         os: ["ubuntu" ]
+        python-version: [ '3.7', '3.8', '3.9', '3.10' ]
     steps:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
     - name: Compile cpython
       shell: bash
       run: |
+           set -ev
            export PYTHON_VERSION=${{ matrix.python-version }}
            export PYPI_USERNAME=${{ secrets.PYPI_USERNAME }}
            export PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }}
