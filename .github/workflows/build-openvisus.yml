@@ -57,19 +57,6 @@ jobs:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
 
-    - name: Install CMake 
-      uses: lukka/get-cmake@latest
-
-    - name: Install Miniconda 
-      uses: conda-incubator/setup-miniconda@v2
-      continue-on-error: true # if fails the cleaning process
-      with:
-        miniconda-version: 'latest'
-        python-version: ${{ matrix.python-version }}
-        activate-environment: my-env
-        auto-update-conda: false
-        channels: conda-forge,defaults
-
     - name: Compile (conda)
       shell: bash -l {0}
       env: 
@@ -131,16 +118,6 @@ jobs:
     
     - name: git clone OpenVisus
       uses: actions/checkout@v2
-     
-    - name: Install Miniconda 
-      uses: conda-incubator/setup-miniconda@v2
-      continue-on-error: true # if fails the cleaning process
-      with:
-        miniconda-version: 'latest'
-        python-version: ${{ matrix.python-version }}
-        activate-environment: my-env
-        auto-update-conda: false
-        channels: conda-forge,defaults
 
     - name: Build (conda)
       env:
