@@ -121,13 +121,12 @@ export PYTHONNOUSERSITE=True
 
 InstallConda 
 ActivateConda
-
 PYTHON=`which python`
 
-# # fix for bdist_conda problem
-#cp -n \
-#	${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/distutils/command/bdist_conda.py \
-#	${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/site-packages/setuptools/_distutils/command/bdist_conda.py
+# for for `bdist_conda` problem
+pushd ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}
+cp -n distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py
+popd
 
 
 if [[ "1" == "1" ]]; then

@@ -10,11 +10,13 @@ VISUS_SLAM=${VISUS_SLAM:-1}
 VISUS_MODVISUS=${VISUS_MODVISUS:-0}
 ANACONDA_TOKEN=${ANACONDA_TOKEN:-}
 
+GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
+
 # ///////////////////////////////////////////////
 function InstallConda() {
     choco install --accept-license --yes miniconda3
-    MINICONDA_HOME=/c/tools/miniconda3
-    echo "source ${MINICONDA_HOME}/etc/profile.d/conda.sh" >> ~/.bashrc
+    CONDA_HOME=/c/tools/miniconda3
+    echo "source ${CONDA_HOME}/etc/profile.d/conda.sh" >> ~/.bashrc
 }
 
 # ///////////////////////////////////////////////
@@ -53,33 +55,37 @@ function DistribToConda() {
    fi
 }
 
-# avoid conflicts with pip packages installed using --user
-export PYTHONNOUSERSITE=True 
-
-InstallConda
-ActivateConda
-
 # (DISABLED) install ospray
 # git clone https://github.com/sci-visus/ospray_win.git ExternalLibs/ospray_win
 
-GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
+# avoid conflicts with pip packages installed using --user
+export PYTHONNOUSERSITE=True 
+InstallConda
+ActivateConda
 PYTHON=`which python`
-BUILD_DIR=build_windows_conda
 
-mkdir -p ${BUILD_DIR} 
-cd ${BUILD_DIR}
 
-cmake -G "Visual Studio 16 2019" -A x64 \
-    -DQt5_DIR=${CONDA_PREFIX}/Library/lib/cmake/Qt5 \
-    -DSWIG_EXECUTABLE=$(which swig) \
-    -DPython_EXECUTABLE=${PYTHON} \
-    -DVISUS_GUI=${VISUS_GUI} \
-    -DVISUS_SLAM=${VISUS_SLAM} \
-    -DVISUS_MODVISUS=${VISUS_MODVISUS} \
-    ../ 
+# compile openvisus
+if [[ "1" == "1" ]]; then
+    BUILD_DIR=build_windows_conda
+    mkdir -p ${BUILD_DIR} 
+    cd ${BUILD_DIR}
+    cmake -G "Visual Studio 16 2019" -A x64 \
+        -DQt5_DIR=${CONDA_PREFIX}/Library/lib/cmake/Qt5 \
+        -DSWIG_EXECUTABLE=$(which swig) \
+        -DPython_EXECUTABLE=${PYTHON} \
+        -DVISUS_GUI=${VISUS_GUI} \
+        -DVISUS_SLAM=${VISUS_SLAM} \
+        -DVISUS_MODVISUS=${VISUS_MODVISUS} \
+        ../ 
+    cmake --build . --target ALL_BUILD --config Release --parallel 8
+    cmake --build . --target install   --config Release
+fi
 
-cmake --build . --target ALL_BUILD --config Release --parallel 8
-cmake --build . --target install   --config Release
+# for for `bdist_conda` problem
+pushd ${setuptoolsCONDA_HOME}/Lib
+cp -n distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py
+popd
 
 if [[ "1" == "1" ]]; then
     pushd Release/OpenVisus

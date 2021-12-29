@@ -1,4 +1,14 @@
+
 import os,sys,shutil,setuptools
+
+# this is for conda
+# see https://docs.conda.io/projects/conda-build/en/latest/user-guide/recipes/build-without-recipe.html
+# If you use Setuptools, you must first import Setuptools and then import distutils.command.bdist_conda, because Setuptools monkey patches distutils.dist.Distribution.
+
+try:
+	import distutils.command.bdist_conda
+except:
+	pass
 
 PROJECT_VERSION="2.1.184"
 
