@@ -53,6 +53,9 @@ function DistribToConda() {
    fi
 }
 
+# avoid conflicts with pip packages installed using --user
+export PYTHONNOUSERSITE=True 
+
 InstallConda
 ActivateConda
 
@@ -92,5 +95,4 @@ if [[ "${VISUS_GUI}" == "1" ]]; then
     DistribToConda 
     popd
 fi
-
 

@@ -21,14 +21,11 @@ ANACONDA_TOKEN=${ANACONDA_TOKEN:-}
 
 # //////////////////////////////////////////////////////////////
 function InstallConda() {
-   if [[ ! -d "~/miniforge3" ]]; then 
-      pushd ~
-      curl -L -O https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-$ARCHITECTURE.sh
-      bash Miniforge3-Linux-$ARCHITECTURE.sh -b # silent
-      rm -f Miniforge3-Linux-$ARCHITECTURE.sh
-      popd
-   
-   fi
+  pushd ~
+  curl -L -O https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-$ARCHITECTURE.sh
+  bash Miniforge3-Linux-$ARCHITECTURE.sh -b || true # maybe it's already installed?
+  rm -f Miniforge3-Linux-$ARCHITECTURE.sh
+  popd
 }
 
 # //////////////////////////////////////////////////////////////
@@ -119,7 +116,10 @@ fi
 # /////////////////////////////////////////////////////////////////////////
 # *** conda ***
 
-InstallConda
+# avoid conflicts with pip packages installed using --user
+export PYTHONNOUSERSITE=True 
+
+InstallConda 
 ActivateConda
 
 PYTHON=`which python`

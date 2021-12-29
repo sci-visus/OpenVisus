@@ -56,6 +56,9 @@ function DistribToConda() {
    fi
 }
 
+# avoid conflicts with pip packages installed using --user
+export PYTHONNOUSERSITE=True 
+
 InstallConda
 ActivateConda
 InstallSDK
