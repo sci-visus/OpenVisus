@@ -57,9 +57,9 @@ function DistribToPip() {
 }
 
 # install preconditions
-brew install swig cmake
 InstallSDK
-
+brew install swig cmake python@${PYTHON_VERSION}
+PYTHON=$(which python3)
 if [[ "$VISUS_GUI" == "1" ]]; then 
 	InstallQt5
 fi
@@ -80,7 +80,6 @@ if [[ "1" == "1" ]]; then
 	cmake --build . --target ALL_BUILD --config Release --parallel 4
 	cmake --build . --target install   --config Release
 fi
-
 
 if [[ "1" == "1" ]]; then
 	pushd Release/OpenVisus

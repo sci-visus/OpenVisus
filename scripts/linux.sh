@@ -22,7 +22,7 @@ PUSH_IMAGE=${PUSH_IMAGE:-visus/mod_visus}
 GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
 
 # needs to run using docker
-if [[ "$PULL_IMAGE" != "" ]]
+if [[ "$PULL_IMAGE" != "" ]] ; then
 
   # run docker
   docker run --rm -v ${PWD}:/home/OpenVisus -w /home/OpenVisus \
@@ -45,6 +45,7 @@ if [[ "$PULL_IMAGE" != "" ]]
     popd
   fi
 
+  echo "All done"
   exit 0
 
 fi
@@ -155,7 +156,6 @@ fi
 # *** conda ***
 # /////////////////////////////////////////////////////////////////////////
 
-
 # install conda
 if [[ "1" == "1" ]]; then
   # avoid conflicts with pip packages installed using --user
@@ -185,6 +185,8 @@ if [[ "${VISUS_GUI}" == "1" ]]; then
   DistribToConda
   popd
 fi
+
+echo "All done"
 
 
 

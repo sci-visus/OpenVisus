@@ -4,7 +4,6 @@ set -e
 set -x
 
 BUILD_DIR=${BUILD_DIR:-build_windows}
-PYTHON=${PYTHON:-python}
 PYTHON_VERSION=${PYTHON_VERSION:-3.8}
 VISUS_GUI=${VISUS_GUI:-1}
 VISUS_SLAM=${VISUS_SLAM:-1}
@@ -33,6 +32,12 @@ function InstallCMake() {
 	unzip cmake-3.22.1-windows-x86_64.zip 1>/dev/null
 	export PATH=$PATH:$PWD/cmake-3.22.1-windows-x86_64/bin
 	popd
+}
+
+# ///////////////////////////////////////////////
+function InstallPython() {
+	choco install python3 --version=${PYTHON_VERSION} --yes --no-progress --pre
+	PYTHON=/c/Python${PYTHON_VERSION//./}/python.exe
 }
 
 # ///////////////////////////////////////////////
@@ -77,8 +82,11 @@ function DistribToPip() {
 # install prerequisites
 if [[ "1" == "1" ]]; then
 	InstallSwig
+	InstallCMake
+	InstallPython
+	
 	if [[ "$VISUS_GUI" == "1" ]]; then
-		# InstallOspray DISABLED: are we still using ospray?
+		# InstallOspray
 		InstallQt5
 	fi
 fi

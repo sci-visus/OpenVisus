@@ -1,134 +1,90 @@
 name: build-openvisus
 on: [push]
 jobs:
-
-  # ///////////////////////////////////////////////////////////////////
   build-openvisus-windows-cpython:
     runs-on: "windows-latest"
     strategy:
       fail-fast: false  
       matrix:
-        #  REMOVED '3.10' since PyQt5 it's not yet available for windows
         python-version: [ '3.7', '3.8', '3.9' ]  
     steps:
-    
     - name: git clone OpenVisus
       uses: actions/checkout@v2
-
-    - name: Install CPython 
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }} 
-        architecture: 'x64'
-        
     - name: Compile (cpython)
       shell: bash
-      env: 
-        PYTHON_VERSION: ${{ matrix.python-version }}
-        PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
+           export PYTHON_VERSION=${{ matrix.python-version }}
+           export PYPI_USERNAME=${{ secrets.PYPI_USERNAME }}
+           export PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }}
            export PYTHON=${pythonLocation}/python
            source ./scripts/cpython.windows.sh
-            
-  # ///////////////////////////////////////////////////////////////////
   build-openvisus-windows-conda:
     runs-on: "windows-latest"
     strategy:
       fail-fast: false  
       matrix:
-        # REMOVED '3.10' since PyQt5 it's not yet available for windows
-        # REMOVED 3.6 sice SyntaxError: future feature annotations is not defined
         python-version: [ '3.7', '3.8', '3.9' ] 
     steps:
-    
     - name: git clone OpenVisus
       uses: actions/checkout@v2
-
     - name: Compile (conda)
-      shell: bash -l {0}
-      env: 
-        PYTHON_VERSION: ${{ matrix.python-version }}
-        ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+      shell: bash 
       run: |
+           export PYTHON_VERSION=${{ matrix.python-version }}
+           export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }}
            source scripts/conda.windows.sh
-
-  # ///////////////////////////////////////////////////////////////////
   build-openvisus-macos-cpython:
     runs-on: "macos-latest"
     strategy:
       fail-fast: false  
       matrix:
-        # 3.6 disabled since "Error: Version 3.6 with arch x64 not found "
         python-version: [ '3.7', '3.8', '3.9', '3.10']  
     steps:
-    
     - name: git clone OpenVisus
       uses: actions/checkout@v2
-     
-    - name: Install CPython 
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }} 
-        architecture: 'x64'
-
     - name: Compile cpython
       env:
-        PYTHON_VERSION: ${{ matrix.python-version }}
-        PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       shell: bash
       run: |
-           export PYTHON=${pythonLocation}/python
+           export PYTHON_VERSION=${{ matrix.python-version }}
+           export PYPI_USERNAME=${{ secrets.PYPI_USERNAME }}
+           export PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }}
            source scripts/cpython.windows.sh
-            
-  # ///////////////////////////////////////////////////////////////////
   build-openvisus-macos-conda:
     runs-on: "macos-latest"
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.7', '3.8', '3.9', '3.10']  
+        python-version: [ '3.7', '3.8', '3.9', '3.10']
     steps:
-    
     - name: git clone OpenVisus
       uses: actions/checkout@v2
-
     - name: Build (conda)
-      env:
-        PYTHON_VERSION: ${{ matrix.python-version }}
-        ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
-      shell: bash -l {0}
+      shell: bash
       run: |
+           export PYTHON_VERSION=${{ matrix.python-version }}
+           export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }}
            source scripts/conda.macos.sh
-
-  # ///////////////////////////////////////////////////////////////////
   build-openvisus-ubuntu:
     runs-on: "ubuntu-latest"
     strategy:
       fail-fast: false  
       matrix:
-        # '3.6' disabled SyntaxError: future feature annotations is not defined
         python-version: [ '3.7', '3.8', '3.9', '3.10' ]
     steps:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
-
     - name: Compile cpython
       shell: bash
-      env:
-        VISUS_GUI: 1
-        VISUS_SLAM: 1
-        VISUS_MODVISUS: 1
-        PYTHON_VERSION: ${{ matrix.python-version }}
-        PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        DOCKER_TOKEN: ${{ matrix.python-version }}
-        PULL_IMAGE: visus/portable-linux-binaries_x86_64:4.1
-        PUSH_IMAGE: visus/mod_visus
       run: |
+           export PYTHON_VERSION=${{ matrix.python-version }}
+           export PYPI_USERNAME=${{ secrets.PYPI_USERNAME }}
+           export PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }}
+           export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }}
+           export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+           export DOCKER_TOKEN=${{ matrix.python-version }}
+           export PULL_IMAGE=visus/portable-linux-binaries_x86_64:4.1
+           export PUSH_IMAGE=visus/mod_visus
            source scripts/linux.sh
 
 
