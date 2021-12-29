@@ -1,27 +1,24 @@
 version: 2.1
 jobs:
-
-  # build-openvisus-amd64:
-  #   machine:
-  #     image: ubuntu-2004:202111-01
-  #   resource_class: large # see https://circleci.com/pricing/#compute-options-table
-  #   parameters:
-  #     python-version:
-  #       type: string     
-  #   steps:
-  #     - checkout
-  #     - run:
-  #         name: Build openvisus
-  #         environment:
-  #           PYTHON_VERSION: << parameters.python-version >>
-  #           VISUS_GUI: 1
-  #           VISUS_SLAM: 1
-  #           VISUS_MODVISUS: 1 
-  #           PULL_IMAGE: visus/portable-linux-binaries_x86_64:4.1
-  #           PUSH_IMAGE: visus/mod_visus
-  #         command: |
-  #                  source scripts/build_ubuntu.sh  
-
+  build-openvisus-amd64:
+    machine:
+      image: ubuntu-2004:202111-01
+    resource_class: large # see https://circleci.com/pricing/#compute-options-table
+    parameters:
+      python-version:
+        type: string     
+    steps:
+      - checkout
+      - run:
+          name: Build openvisus
+          command: |
+                   export PYTHON_VERSION=<< parameters.python-version >>
+                   export VISUS_GUI=1
+                   export VISUS_SLAM=1
+                   export VISUS_MODVISUS=1 
+                   export PULL_IMAGE=visus/portable-linux-binaries_x86_64:4.1
+                   export DOCKER_MODVISUS_IMAGE=visus/mod_visus
+                   source scripts/linux.sh
   build-openvisus-arm64:
     machine:
       image: ubuntu-2004:202101-01
@@ -33,26 +30,22 @@ jobs:
       - checkout
       - run:
           name: Build openvisus
-          environment:
-            PYTHON_VERSION: << parameters.python-version >>
-            VISUS_GUI: 0
-            VISUS_SLAM: 0
-            VISUS_MODVISUS: 0 
-            PULL_IMAGE: nsdf/manylinux2014_aarch64:latest
-            PUSH_IMAGE: visus/mod_visus_aarch64
           command: |
+                   export PYTHON_VERSION=<< parameters.python-version >>
+                   Vexport ISUS_GUI=0
+                   export VISUS_SLAM=0
+                   export VISUS_MODVISUS=0 
+                   export DOCKER_IMAGE=nsdf/manylinux2014_aarch64:latest
+                   export DOCKER_MODVISUS_IMAGE=visus/mod_visus_aarch64
                    source scripts/linux.sh
-
 workflows:
   version: 2
   build-and-deploy:
     jobs:
-
       # - build-openvisus-amd64:
       #     matrix:
       #       parameters:
       #         python-version: ['3.7', '3.8', '3.9' ,'3.10' ]
-
       - build-openvisus-arm64:
           matrix:
             parameters:

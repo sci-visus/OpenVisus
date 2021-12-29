@@ -57,11 +57,13 @@ function DistribToPip() {
 }
 
 # install preconditions
-InstallSDK
-brew install swig cmake python@${PYTHON_VERSION}
-PYTHON=$(which python3)
-if [[ "$VISUS_GUI" == "1" ]]; then 
-	InstallQt5
+if [[ "1" == "1" ]]; then
+	InstallSDK
+	brew install swig cmake python@${PYTHON_VERSION}
+	PYTHON=$(which python3)
+	if [[ "$VISUS_GUI" == "1" ]]; then 
+		InstallQt5
+	fi
 fi
 
 # compile openvisus

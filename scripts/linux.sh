@@ -15,14 +15,13 @@ ANACONDA_TOKEN=${ANACONDA_TOKEN:-}
 
 DOCKER_TOKEN=${DOCKER_TOKEN:-}
 DOCKER_USERNAME=${DOCKER_USERNAME:-}
-
-PULL_IMAGE=${PULL_IMAGE:-visus/portable-linux-binaries_x86_64:4.1}
-PUSH_IMAGE=${PUSH_IMAGE:-visus/mod_visus}
+DOCKER_IMAGE=${DOCKER_IMAGE:-}
+DOCKER_MODVISUS_IMAGE=${DOCKER_MODVISUS_IMAGE:-}
 
 GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
 
 # needs to run using docker
-if [[ "$PULL_IMAGE" != "" ]] ; then
+if [[ "$DOCKER_IMAGE" != "" ]] ; then
 
   # run docker
   docker run --rm -v ${PWD}:/home/OpenVisus -w /home/OpenVisus \
@@ -32,16 +31,16 @@ if [[ "$PULL_IMAGE" != "" ]] ; then
     -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
     -e VISUS_GUI=${VISUS_GUI} -e VISUS_SLAM=${VISUS_SLAM} -e VISUS_MODVISUS=${VISUS_MODVISUS} \
     -e INSIDE_DOCKER=1 \
-    ${PULL_IMAGE} bash scripts/linux.sh
+    ${DOCKER_IMAGE} bash scripts/linux.sh
 
   # modvisus
   if [[ "${GIT_TAG}" != "" &&  "${PYTHON_VERSION}" == "3.9" ]] ; then
     sleep 30 # give time for pip package to be ready
     pushd  Docker/mod_visus
-    docker build --tag PUSH_IMAGE:${GIT_TAG} --tag PUSH_IMAGE:latest --build-arg TAG=${GIT_TAG} .
+    docker build --tag $DOCKER_MODVISUS_IMAGE:${GIT_TAG} --tag $DOCKER_MODVISUS_IMAGE:latest --build-arg TAG=${GIT_TAG} .
     echo ${DOCKER_TOKEN} | docker login -u=${DOCKER_USERNAME} --password-stdin
-    docker push PUSH_IMAGE:${GIT_TAG}
-    docker push PUSH_IMAGE:latest
+    docker push $DOCKER_MODVISUS_IMAGE:${GIT_TAG}
+    docker push $DOCKER_MODVISUS_IMAGE:latest
     popd
   fi
 

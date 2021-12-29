@@ -2,11 +2,13 @@ name: build-openvisus
 on: [push]
 jobs:
   build-openvisus-windows-cpython:
-    runs-on: "windows-latest"
+    runs-on: matrix.os
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.7', '3.8', '3.9' ]  
+        python-version: [ '3.7', '3.8', '3.9' , '3.10' ]
+        os: [ "windows-latest" , "macos-latest"]
+        type: [ "cpython" , "conda" ]
     steps:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
@@ -16,54 +18,9 @@ jobs:
            export PYTHON_VERSION=${{ matrix.python-version }}
            export PYPI_USERNAME=${{ secrets.PYPI_USERNAME }}
            export PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }}
-           export PYTHON=${pythonLocation}/python
-           source ./scripts/cpython.windows.sh
-  build-openvisus-windows-conda:
-    runs-on: "windows-latest"
-    strategy:
-      fail-fast: false  
-      matrix:
-        python-version: [ '3.7', '3.8', '3.9' ] 
-    steps:
-    - name: git clone OpenVisus
-      uses: actions/checkout@v2
-    - name: Compile (conda)
-      shell: bash 
-      run: |
-           export PYTHON_VERSION=${{ matrix.python-version }}
            export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }}
-           source scripts/conda.windows.sh
-  build-openvisus-macos-cpython:
-    runs-on: "macos-latest"
-    strategy:
-      fail-fast: false  
-      matrix:
-        python-version: [ '3.7', '3.8', '3.9', '3.10']  
-    steps:
-    - name: git clone OpenVisus
-      uses: actions/checkout@v2
-    - name: Compile cpython
-      shell: bash
-      run: |
-           export PYTHON_VERSION=${{ matrix.python-version }}
-           export PYPI_USERNAME=${{ secrets.PYPI_USERNAME }}
-           export PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }}
-           source scripts/cpython.windows.sh
-  build-openvisus-macos-conda:
-    runs-on: "macos-latest"
-    strategy:
-      fail-fast: false  
-      matrix:
-        python-version: [ '3.7', '3.8', '3.9', '3.10']
-    steps:
-    - name: git clone OpenVisus
-      uses: actions/checkout@v2
-    - name: Build (conda)
-      shell: bash
-      run: |
-           export PYTHON_VERSION=${{ matrix.python-version }}
-           export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }}
-           source scripts/conda.macos.sh
+           OS=${{ matrix.os }}
+           source ./scripts/${{ matrix.type }}.${OS//-latest/}.sh
   build-openvisus-ubuntu:
     runs-on: "ubuntu-latest"
     strategy:
@@ -80,10 +37,11 @@ jobs:
            export PYPI_USERNAME=${{ secrets.PYPI_USERNAME }}
            export PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }}
            export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }}
+
            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
            export DOCKER_TOKEN=${{ matrix.python-version }}
-           export PULL_IMAGE=visus/portable-linux-binaries_x86_64:4.1
-           export PUSH_IMAGE=visus/mod_visus
+           export DOCKER_IMAGE=visus/portable-linux-binaries_x86_64:4.1
+           export DOCKER_MODVISUS_IMAGE=visus/mod_visus
            source scripts/linux.sh
 
 
