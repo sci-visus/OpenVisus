@@ -32,9 +32,9 @@ workflows:
   build-and-deploy:
     jobs:
       - build-openvisus-arm64:
-          filters: # for all branches and all tags (see https://circleci.com/docs/2.0/workflows/#executing-workflows-for-a-git-tag)
-            tags:
-              only: /.*/ 
+          # filters: # for all branches and all tags (see https://circleci.com/docs/2.0/workflows/#executing-workflows-for-a-git-tag)
+          #  tags:
+          #    only: /.*/ 
           matrix:
             parameters:
               python-version: ['3.7', '3.8', '3.9' ,'3.10' ]

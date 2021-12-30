@@ -114,4 +114,4 @@ if [[ "$VISUS_GUI" == "1" ]]; then
   popd
 fi
 
-echo "All done"
+echo "All done macos conda $PYTHON_VERSION} "

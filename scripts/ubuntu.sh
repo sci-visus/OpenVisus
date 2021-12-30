@@ -43,7 +43,7 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
     popd
   fi
 
-  echo "All done"
+  echo "All done ubuntu $PYTHON_VERSION} "
   exit 0
 
 fi
@@ -184,7 +184,7 @@ if [[ "${VISUS_GUI}" == "1" ]]; then
   popd
 fi
 
-echo "All done"
+echo "All done ubuntu $PYTHON_VERSION} (in docker) "
 
 
 

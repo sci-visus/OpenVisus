@@ -108,4 +108,4 @@ if [[ "${VISUS_GUI}" == "1" ]]; then
 fi
 
 
-echo "All done"
+echo "All done windows conda $PYTHON_VERSION} "

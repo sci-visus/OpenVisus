@@ -6,7 +6,7 @@ RUN apt-get install --no-install-recommends -y wget unzip python3 python3-dev li
 	python3 -m pip install --no-cache-dir --upgrade numpy && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
-do
+
 # install OpenVisus (change version as needed)
 ARG TAG
 RUN python3 -m pip install -vvv --no-cache-dir  --upgrade OpenVisusNoGui==$TAG

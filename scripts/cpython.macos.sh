@@ -101,4 +101,4 @@ if [[ "$VISUS_GUI" == "1" ]]; then
 fi
 
 
-echo "All done"
+echo "All done macos cpythyon $PYTHON_VERSION} "
