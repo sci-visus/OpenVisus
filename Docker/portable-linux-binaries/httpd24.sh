@@ -24,7 +24,7 @@ popd
 rm -Rf expat*
 
 # pcre
-DownloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz" 
+DownloadFile "http://ftp.cs.stanford.edu/pub/exim/pcre/pcre-8.42.tar.gz" 
 tar xzf pcre*.tar.gz 
 pushd pcre* 
 ./configure 

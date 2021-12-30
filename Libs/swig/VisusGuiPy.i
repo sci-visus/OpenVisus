@@ -61,29 +61,19 @@ if True:
 	# see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
 	is_conda = os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history'))
 
-	if WIN32:
-
-		if os.path.isdir(os.path.join(os.path.dirname(PyQt5.__file__),"Qt")):
-			AddSysPath(os.path.join(os.path.dirname(PyQt5.__file__),"Qt/bin"))
-			os.environ["QT_PLUGIN_PATH"]= os.path.join(os.path.join(os.path.dirname(PyQt5.__file__),"Qt/plugins"))
-			print("QT_PLUGIN_PATH",os.environ["QT_PLUGIN_PATH"])
-		else:
-			print("Cannot find Qt5 directory, OpenVisus GUI is probably going to crash")
-
+	if os.path.isdir(os.path.join(os.path.dirname(PyQt5.__file__),"Qt/plugins")):
+		os.environ["QT_PLUGIN_PATH"]= os.path.join(os.path.dirname(PyQt5.__file__),"Qt/plugins")
+		
+	elif is_conda and os.path.isdir(os.path.join(os.environ['CONDA_PREFIX'],"Library/plugins")):
+		os.environ["QT_PLUGIN_PATH"]= os.path.join(os.environ['CONDA_PREFIX'],"Library/plugins")
+		
+	elif is_conda and os.path.join(os.environ['CONDA_PREFIX'],"plugins"):
+		os.environ["QT_PLUGIN_PATH"]= os.path.join(os.environ['CONDA_PREFIX'],"plugins")
 	else:
+		print("Cannot find Qt5 plugins directory, OpenVisus GUI is probably going to crash")
 
-		if os.path.isdir(os.path.join(os.path.dirname(PyQt5.__file__),"Qt/plugins")):
-			os.environ["QT_PLUGIN_PATH"]= os.path.join(os.path.dirname(PyQt5.__file__),"Qt/plugins")
-		
-		elif is_conda and os.path.isdir(os.path.join(os.environ['CONDA_PREFIX'],"Library/plugins")):
-			os.environ["QT_PLUGIN_PATH"]= os.path.join(os.environ['CONDA_PREFIX'],"Library/plugins")
-		
-		elif is_conda and os.path.join(os.environ['CONDA_PREFIX'],"plugins"):
-			os.environ["QT_PLUGIN_PATH"]= os.path.join(os.environ['CONDA_PREFIX'],"plugins")
-		else:
-			print("Cannot find Qt5 plugins directory, OpenVisus GUI is probably going to crash")
+	print("QT_PLUGIN_PATH",os.environ["QT_PLUGIN_PATH"])
 
-		print("QT_PLUGIN_PATH",os.environ["QT_PLUGIN_PATH"])
 # ///////////////////////////////////////////////////////////
 %}
 
