@@ -24,31 +24,30 @@ matrix:
   fast_finish: false
   include:
 
-    -os : osx
-     osx_image: xcode13.1 # see https://docs.travis-ci.com/user/reference/osx/#macos-version
-     compiler: clang
-     script: |
+    - os : osx
+      osx_image: xcode13.1 # see https://docs.travis-ci.com/user/reference/osx/#macos-version
+      compiler: clang
+      script: |
         set -ex
         uname -a
         echo $PYTHON_VERSION
         
-    -os: windows
-     script: |
+    - os: windows
+      script: |
         set -ex
         uname -a
         echo $PYTHON_VERSION    
 
-    -os: linux
-     dist: focal
-     sudo: required
-     services:
-      - docker   
-     script: |
+    - os: linux
+      dist: focal
+      sudo: required
+      services:
+       - docker   
+      script: |
         set -ex
         uname -a
         echo $PYTHON_VERSION         
   
-
 
 
 
