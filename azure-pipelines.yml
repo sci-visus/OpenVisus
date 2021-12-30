@@ -1,0 +1,32 @@
+
+trigger:
+  branches:
+    include:
+    - '*'
+  tags:
+    include:
+    - '*'
+
+jobs:
+  
+   - job: macos_job
+     pool:
+       vmImage: 'macOS-latest'
+     steps:
+     - bash: |
+         echo "macos-job"
+
+   - job: linux_job
+     pool:
+       vmImage: 'ubuntu-latest'
+     steps:
+     - bash: |
+           echo "ubuntu job"
+      
+   - job: windows_job
+     pool:
+       vmImage: 'windows-latest'
+     steps:
+     - bash: |
+           echo "windows job"      
+                                     

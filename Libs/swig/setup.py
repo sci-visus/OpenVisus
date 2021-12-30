@@ -1,6 +1,12 @@
+
 import os,sys,shutil,setuptools
 
-PROJECT_VERSION="2.1.185"
+try:
+	import distutils.command.bdist_conda
+except:
+	pass
+
+PROJECT_VERSION="2.1.188"
 
 this_dir=os.path.dirname(os.path.abspath(__file__))
 

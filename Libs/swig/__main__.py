@@ -8,6 +8,12 @@ if len(sys.argv)>=2 and sys.argv[1]=="dirname":
 
 from OpenVisus import *
 
+# for conda
+try:
+	import conda.cli 
+except:
+	pass
+
 """
 Linux:
 	readelf -d bin/visus
@@ -22,6 +28,7 @@ OSX:
 
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
+LINUX=not (WIN32 or APPLE)
 
 # /////////////////////////////////////////////////////////////////////////
 def ReadTextFile(filename):
@@ -98,121 +105,46 @@ def ShowDeps(all_bins):
 # ////////////////////////////////////////////////
 def Configure(bUserInstall=False):
 	
-	# see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
-	is_conda = os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history'))
+	IS_CONDA = os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history')) # see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
+	IS_CPYTHON = not IS_CONDA
+	CONDA_PREFIX=os.environ['CONDA_PREFIX'] if IS_CONDA else ""		
+	VISUS_GUI=os.path.isfile("QT_VERSION")
+	QT_VERSION=ReadTextFile("QT_VERSION") if VISUS_GUI else ""
+	QT_MAJOR_VERSION,QT_MINOR_VERSION=QT_VERSION.split('.')[0:2] if VISUS_GUI else ("","")
+	
+	print("sys.executable",sys.executable,"VISUS_GUI",VISUS_GUI, "QT_VERSION", QT_VERSION, "IS_CONDA", IS_CONDA, "CONDA_PREFIX",CONDA_PREFIX)
 
-	# NOTE: I'm installing packages here because I have problems specifying them in setup.py. Worth to give another try?
-	print("sys.executable",sys.executable, "is_conda",is_conda)
+	PACKAGES=['numpy']
+	PACKAGES+=["pyqt={}.{}".format(QT_MAJOR_VERSION,QT_MINOR_VERSION)] if VISUS_GUI and IS_CONDA else []
+	PACKAGES+=["PyQt5~={}.{}.0".format(QT_MAJOR_VERSION,QT_MINOR_VERSION),"PyQtWebEngine", "PyQt5-sip"] if VISUS_GUI and IS_CPYTHON else []
+	PACKAGES+=["libglu"] if VISUS_GUI and IS_CONDA and LINUX else []	
 
-	if is_conda:
-
-		import conda.cli 
-		conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'numpy', "pillow")
-
-		# for some unknown reason I get: RuntimeError: module compiled against API version 0xc but this version of numpy is 0xa
-		# scrgiorgio: I don't care if it fails
-		try:
-			conda.cli.main('conda', 'update', '-y', 'numpy') 
-		except:
-			pass
-
-
+	if IS_CONDA:
+		cmd=['conda', 'install', '-y', '-c', 'conda-forge'] + PACKAGES
+		conda.cli.main(*cmd)
 	else:
-		ExecuteCommand([sys.executable,"-m", "pip", "install", "--upgrade"] + (["--user"] if bUserInstall else [] ) + ["numpy", "pillow"],check_result=True)
-
-
-
-	QT_VERSION, QT_LIB_DIR="",""
-	if os.path.isfile("QT_VERSION"):
-
-		"""
-		python -m pip install johnnydep
-
-		johnnydep PyQt5~=5.14.0	-> PyQt5-sip<13,>=12.7
-		johnnydep PyQt5~=5.13.0	-> PyQt5_sip<13,>=4.19.19
-		johnnydep PyQt5~=5.12.0 -> PyQt5_sip<13,>=4.19.14
-		johnnydep PyQt5~=5.11.0 -> empty
-		johnnydep PyQt5~=5.10.0 -> empty
-		johnnydep PyQt5~=5.9.0  -> empty
-
-		johnnydep PyQtWebEngine~=5.14.0 -> PyQt5>=5.14 
-		johnnydep PyQtWebEngine~=5.13.0 -> PyQt5>=5.13
-		johnnydep PyQtWebEngine~=5.12.0 -> PyQt5>=5.12
-		johnnydep PyQtWebEngine~=5.11.0 -> does not exist
-		johnnydep PyQtWebEngine~=5.10.0 -> does not exist
-		johnnydep PyQtWebEngine~=5.19.0 -> does not exist
-
-		johnnydep PyQt5-sip~=12.7.0 -> empty
-		"""
-
-		QT_VERSION=ReadTextFile("QT_VERSION")
-		print("Installing PyQt5...",QT_VERSION)
-		qt_major,qt_minor=QT_VERSION.split('.')[0:2]
-
-		if is_conda:
-
-			cmd=['conda', 'install', '-y', '-c', 'conda-forge']
-			if WIN32 or APPLE: cmd+=["opencv"] # on linux tries to compile opencv from scratch
-			conda.cli.main(*cmd)
-			
-			if WIN32:
-				# cannot use conda-forge version because they rename DLLS (like Qt5Core.dll->Qt5Core_conda.dll)
-				conda.cli.main('conda', 'install', '-y',                      "pyqt={}.{}".format(qt_major,qt_minor)) 
-			else:
-				conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', "pyqt={}.{}".format(qt_major,qt_minor))
-
-			# scrgiorgio: Timos says this can fail but then the viewer works anyway
-			try:
-				conda.cli.main('conda', 'install', '-y', '-c', 'conda-forge', 'libglu')
-			except:
-				pass
-
-		# do I need PyQtWebEngine for conda? considers Qt is 5.9 (very old)
-		# it has webengine and sip included
-
-		else:
-			cmd=[sys.executable,"-m", "pip", "install"] + (["--user"] if bUserInstall else []) + ["PyQt5~={}.{}.0".format(qt_major,qt_minor)]
-			if WIN32 or APPLE: cmd+=["opencv-python"] # on linux tries to compile opencv from scratch
-
-			if int(qt_major)==5 and int(qt_minor)>=12:
-				cmd+=["PyQtWebEngine~={}.{}.0".format(qt_major,qt_minor)]
-				cmd+=["PyQt5-sip<13,>=12.7"] 
-
-			ExecuteCommand(cmd,check_result=True)
-
-		# this should cover the case where I just installed PyQt5
-		PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip()
+		cmd=[sys.executable,"-m", "pip", "install", "--upgrade"]
+		if bUserInstall: cmd.append("--user")
+		cmd+=PACKAGES
+		ExecuteCommand(cmd,check_result=True)
 		
-		# this has been disabled, problems under Linux with QT_VERSION_STR
-		if False:
-			found_QT_VERSION=GetCommandOutput([sys.executable,"-c","from PyQt5 import Qt; print(vars(Qt)['QT_VERSION_STR'])"]).strip().split(".")
-			print("Linking','PyQt5_HOME",PyQt5_HOME, 'found_QT_VERSION',found_QT_VERSION)
-	
-			if found_QT_VERSION[0]!=qt_major or found_QT_VERSION[1]!=qt_minor:
-				raise Exception("There is a problem with getting the right Qt5 version. Please try 'export PYTHONNOUSERSITE=True' needed({}.{}) found({}.{})".format(qt_major,qt_minor,found_QT_VERSION[0],found_QT_VERSION[1],))
-	
-		if not os.path.isdir(PyQt5_HOME):
-			print("Error directory does not exists")
-			raise Exception("internal error")
-
-		if is_conda:
-			CONDA_PREFIX=os.environ['CONDA_PREFIX']
-			print("CONDA_PREFIX",CONDA_PREFIX)
-			QT_LIB_DIR="{}/lib".format(CONDA_PREFIX)
-		else:
-			QT_LIB_DIR=os.path.join(PyQt5_HOME,'Qt/lib')
-
-		if not WIN32:
-			print("QT_LIB_DIR",QT_LIB_DIR)
-			Assert(os.path.isdir(QT_LIB_DIR))
-
+	# *** fix rpath ****
 	# on windows it's enough to use sys.path (see *.i %pythonbegin section)
 	# i don't have any RPATH way of modifying DLLs
 	if WIN32:
-		pass
+		return
 
-	elif APPLE:
+	# find Qt5 directory
+	QT_LIB_DIR=""
+	if VISUS_GUI:
+		PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip() # this should cover the case where I just installed PyQt5
+		print("PyQt5_HOME",PyQt5_HOME)
+		Assert(os.path.isdir(PyQt5_HOME))
+		QT_LIB_DIR="{}/lib".format(CONDA_PREFIX) if IS_CONDA else os.path.join(PyQt5_HOME,'Qt/lib')
+		print("QT_LIB_DIR",QT_LIB_DIR)
+		Assert(os.path.isdir(QT_LIB_DIR))
 
+	if APPLE:
 		dylibs=glob.glob("bin/*.dylib")
 		so=glob.glob("*.so")
 		apps=["%s/Contents/MacOS/%s"   % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("bin/*.app")]
@@ -220,40 +152,35 @@ def Configure(bUserInstall=False):
 			
 		# remove any reference to absolute Qt (it happens with brew which has absolute path), make it relocable with rpath as is in PyQt5
 		for filename in all_bins:
-			
 			print("# FIXING",filename)
-			
 			if QT_VERSION:
-
 				# example .../libQt5*.dylib -> @rpath/libQt5*.dylib
-				if is_conda:
+				if IS_CONDA:
 					for Old in GetCommandOutput("otool -L %s | grep '.*/libQt5.*\.dylib' | awk '{print $1;}'" % filename, shell=True).splitlines():
 						New="@rpath/libQt5" + Old.split("libQt5", 1)[1]
 						ExecuteCommand(["install_name_tool","-change", Old, New, filename])
-				
 				# eample ../Qt*.framework -> @rpath/Qt*.framework
 				else:
 					for Old in GetCommandOutput("otool -L %s | grep '.*/Qt.*\.framework' | awk '{print $1;}'" % filename, shell=True).splitlines():
 						New="@rpath/Qt" + Old.split("/Qt", 1)[1]
 						ExecuteCommand(["install_name_tool","-change", Old, New, filename])	
-				
 			rpath=""
 			rpath+="@loader_path/"
 			rpath+=":@loader_path/../../../" if filename in apps else ":@loader_path/bin"
-			rpath+=":" + QT_LIB_DIR if QT_LIB_DIR else ""
+			rpath+=":" + QT_LIB_DIR if VISUS_GUI else ""
 			SetRPath(filename, rpath)
-	
 		ShowDeps(all_bins)
+		return
 				
-	else:
-			
+	if LINUX:
 		for filename in glob.glob("*.so") + glob.glob("bin/*.so") + ["bin/visus","bin/visusviewer"]:
 			if not os.path.isfile(filename): continue
 			rpath=""
 			rpath+="$ORIGIN"
 			rpath+=":$ORIGIN/bin"
-			rpath+=":" + QT_LIB_DIR if QT_LIB_DIR else ""
+			rpath+=":" + QT_LIB_DIR if VISUS_GUI else ""
 			SetRPath(filename,rpath)
+		return
 
 # ////////////////////////////////////////////////
 def TestNetworkSpeed(args):
@@ -494,6 +421,7 @@ def Main(args):
 		os.chdir(this_dir)
 		Configure(bUserInstall="--user" in action_args)
 		print(action,"done")
+		print("WARNING", "if you get errors like:  module compiled against API version 0xc but this version of numpy is 0xa, then execute","conda update -y numpy")
 		sys.exit(0)
 
 	#example -m OpenVisus fix-range --dataset "D:\GoogleSci\visus_dataset\cat256\visus0.idx" 
@@ -530,15 +458,22 @@ def Main(args):
 	if action=="test":
 		os.chdir(this_dir)
 		ExecuteCommand([sys.executable, "Samples/python/array.py"],check_result=True) 
-
 		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow1.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow2.py"],check_result=True) 
-
 		ExecuteCommand([sys.executable, "Samples/python/idx/read.py"],check_result=True) 
-		ExecuteCommand([sys.executable, "Samples/python/idx/convert.py"],check_result=True) 
-		# ExecuteCommand([sys.executable, "Samples/python/idx/speed.py"],check_result=True) 
-		
-		ExecuteCommand([sys.executable, "Samples/python/wavelets/filters.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "-m","OpenVisus","server","--dataset","./datasets/cat/rgb.idx","--port","10000","--exit"],check_result=True) 
+		sys.exit(0)
+
+	# test-full
+	if action=="test-full":
+		os.chdir(this_dir)
+		ExecuteCommand([sys.executable, "Samples/python/array.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow1.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow2.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/idx/read.py"],check_result=True) 
+		ExecuteCommand([sys.executable, "Samples/python/idx/convert.py"],check_result=True)  # this needs pillow (import PIL)
+		ExecuteCommand([sys.executable, "Samples/python/wavelets/filters.py"],check_result=True) # this needs pillow (import PIL) 
+		ExecuteCommand([sys.executable, "Samples/python/idx/speed.py"],check_result=True) # this is very slow
 		ExecuteCommand([sys.executable, "-m","OpenVisus","server","--dataset","./datasets/cat/rgb.idx","--port","10000","--exit"],check_result=True) 
 		sys.exit(0)
 
@@ -549,8 +484,11 @@ def Main(args):
 
 	# this is just to test run-time linking of shared libraries
 	if action=="test-gui":
-		from OpenVisus.VisusGuiPy import GuiModule
-		print("test-gui ok")
+		if os.path.isfile(os.path.join(this_dir,"QT_VERSION")): 
+			from OpenVisus.VisusGuiPy import GuiModule
+			print("test-gui ok")
+		else:
+			print("Skipping test-gui since it is a non-gui distribution")
 		sys.exit(0)
 		
 	# example -m OpenVisus test-network-speed  --nconnections 1 --nrequests 100 --url "http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled" 
