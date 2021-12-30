@@ -2,6 +2,10 @@
 git:
   submodules: false
 
+branches:
+  only:
+  - /.*/
+
 notifications:
   email:
     recipients:
