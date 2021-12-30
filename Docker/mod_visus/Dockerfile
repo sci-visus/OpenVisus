@@ -1,16 +1,18 @@
 FROM httpd:2.4
 
+ARG PYTHON_VERSION=3.9
+
 RUN apt-get update --no-install-recommends
-RUN apt-get install --no-install-recommends -y wget unzip python3 python3-dev libpython3.9 python3-pip python3-numpy && \
-	python3 -m pip install --no-cache-dir --upgrade pip && \
-	python3 -m pip install --no-cache-dir --upgrade numpy && \
+RUN apt-get install --no-install-recommends -y wget unzip python${PYTHON_VERSION} python${PYTHON_VERSION}-dev libpython${PYTHON_VERSION} python3-pip python${PYTHON_VERSION}-numpy && \
+	python${PYTHON_VERSION} -m pip install --no-cache-dir --upgrade pip && \
+	python${PYTHON_VERSION} -m pip install --no-cache-dir --upgrade numpy && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
 # install OpenVisus (change version as needed)
 ARG TAG
-RUN python3 -m pip install -vvv --no-cache-dir  --upgrade OpenVisusNoGui==$TAG
-RUN python3 -c "import os,OpenVisus;os.system('rm -Rf /home/OpenVisus');os.system('ln -s {} /home/OpenVisus'.format(os.path.dirname(OpenVisus.__file__)))"
+RUN python${PYTHON_VERSION} -m pip install -vvv --no-cache-dir  --upgrade OpenVisusNoGui==$TAG
+RUN python${PYTHON_VERSION} -c "import os,OpenVisus;os.system('rm -Rf /home/OpenVisus');os.system('ln -s {} /home/OpenVisus'.format(os.path.dirname(OpenVisus.__file__)))"
 
 # install webviewer
 RUN wget https://github.com/sci-visus/OpenVisusJS/archive/refs/heads/master.zip && \
