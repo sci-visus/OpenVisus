@@ -155,7 +155,7 @@ private:
   int                          min_wait_time = 10;
   int                          max_connections_per_sec = 0;
   int                          connect_timeout = 10; //in seconds (explanation in CONNECTTIMEOUT)
-  int                          verbose = 1;
+  int                          verbose = 0;
 
   CriticalSection              waiting_lock;
   Waiting                      waiting;
