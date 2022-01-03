@@ -13,6 +13,10 @@ if (VISUS_PYTHON)
 	target_compile_definitions(visusviewer PUBLIC VISUS_PYTHON=1)
 	if (WIN32)
 		target_include_directories(visusviewer PUBLIC ${Python_INCLUDE_DIRS})
+		# I know this sounds crazy, but if I don;t link both python3 and python3<N> I am having problems with `import PyQ5.QtGui`
+		# linking both seems to solve the problem
+		# example: C:/Python38/libs/python38.lib -> C:/Python38/libs/python3.lib
+		target_link_libraries(visusviewer      PUBLIC ${Python_LIBRARY_RELEASE}/../python3.lib)
 		target_link_libraries(visusviewer      PUBLIC ${Python_LIBRARY_RELEASE})
 	else()
 		target_link_libraries(visusviewer PUBLIC Python::Python) # Python library for Python embedding
