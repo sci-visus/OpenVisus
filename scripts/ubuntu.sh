@@ -32,25 +32,31 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
     -e INSIDE_DOCKER=1 \
     ${DOCKER_IMAGE} bash scripts/ubuntu.sh
 
-  function BuildAndPushDockerImage() {
+  if [[ "${GIT_TAG}" != "" ] ; then
+
+    # give time to 'receive' the wheel and the conda package
+    sleep 30
+    
     ARCH=$(uname -m)
-    pushd $1
-    IMAGE=$2_$ARCH
-    docker build --tag $IMAGE:${GIT_TAG} --tag $IMAGE:latest --build-arg TAG=${GIT_TAG} --progress=plain ./  
-    echo ${DOCKER_TOKEN} | docker login -u=${DOCKER_USERNAME} --password-stdin
-    docker push $IMAGE:${GIT_TAG}
-    docker push $IMAGE:latest
-    popd
-  }
 
-  # modvisus
-  if [[ "${GIT_TAG}" != "" &&  "${PYTHON_VERSION}" == "3.9" ]] ; then
-    BuildAndPushDockerImage Docker/mod_visus visus/mod_visus
-  fi
+    function BuildAndPushDockerImage() {
+      pushd $1
+      IMAGE=$2
+      docker build --tag $IMAGE:${GIT_TAG} --tag $IMAGE:latest --build-arg TAG=${GIT_TAG} --progress=plain ./  
+      echo ${DOCKER_TOKEN} | docker login -u=${DOCKER_USERNAME} --password-stdin
+      docker push $IMAGE:${GIT_TAG}
+      docker push $IMAGE:latest
+      popd
+    }    
 
-  # jupyter
-  if [[ "${GIT_TAG}" != "" &&  "${PYTHON_VERSION}" == "3.9" ]] ; then
-    BuildAndPushDockerImage Docker/jupyter visus/scipy-notebook
+    # modvisus (right now based on python 3.9, change as needed)
+    if [[ "${PYTHON_VERSION}" == "3.9" ]] ; then
+      BuildAndPushDockerImage Docker/mod_visus visus/mod_visus_$ARCH
+    fi
+
+    # jupyter
+    BuildAndPushDockerImage Docker/jupyter visus/scipy-notebook_$ARCH
+
   fi
 
   echo "All done ubuntu $PYTHON_VERSION} "

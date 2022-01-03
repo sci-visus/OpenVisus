@@ -163,24 +163,24 @@ public:
 
 
 ////////////////////////////////////////////////////////////////////////////////////
-StringTree* FindDatasetConfig(StringTree ar, String url)
+StringTree FindDatasetConfig(StringTree ar, String url)
 {
   auto all_datasets = ar.getAllChilds("dataset");
   for (auto it : all_datasets)
   {
     if (it->readString("name") == url) {
       VisusAssert(it->hasAttribute("url"));
-      return it;
+      return *it;
     }
   }
 
   for (auto it : all_datasets)
   {
     if (it->readString("url") == url)
-      return it;
+      return *it;
   }
 
-  return nullptr;
+  return StringTree();
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -252,14 +252,14 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
 SharedPtr<Dataset> LoadDataset(String url)
 {
   if (auto it = FindDatasetConfig(*DbModule::getModuleConfig(), url))
-    return LoadDatasetEx(*it);
+    return LoadDatasetEx(it);
 
   Url parsed(url);
 
   //special case for cached dataset
   //Example:
   //   http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1&cached=1
-  //   https://mghp.osn.xsede.org/vpascuccibucket1/visus-server-foam/visus.idx?compression=zip&layout=hzorder
+  //   https://mghp.osn.xsede.org/vpascuccibucket1/visus-server-foam/visus.idx?compression=zip&layout=hzorder&cached=1
   if (parsed.isRemote() && cbool(parsed.getParam("cached")))
   {
     PrintInfo();
@@ -283,7 +283,7 @@ SharedPtr<Dataset> LoadDataset(String url)
       //add a default access
       ar.addChild(StringTree::fromString(
         "  <access type='multiplex'>\n"
-        "     <access type='disk'               chmod='rw' url='file://$(VisusHome)/cache/" + parsed.getHostname() + "/" + parsed.getPath() + "/visus.idx'  />\n"
+        "     <access type='disk'               chmod='rw' url='file://$(VisusHome)/cache/" + parsed.getHostname() + parsed.getPath() + "'  />\n"
         "     <access type='CloudStorageAccess' chmod='r'  compression='zip' />\n"
         "  </access>\n"));
     }

@@ -1387,7 +1387,7 @@ bool Viewer::open(String s_url,Node* parent)
       PrintInfo("worldbox",getWorldBox().toString());
 
       PrintInfo("open", s_url, "done");
-
+       
       if (widgets.treeview)
         widgets.treeview->expandAll();
       refreshActions();
@@ -2088,9 +2088,9 @@ Node* Viewer::addWorld(String uuid)
 SharedPtr<Dataset> Viewer::loadDataset(String url)
 {
   if (auto it = FindDatasetConfig(this->config, url))
-    return LoadDatasetEx(*it);
+    return LoadDatasetEx(it);
   else
-    LoadDataset(url);
+    return LoadDataset(url);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
