@@ -2085,49 +2085,12 @@ Node* Viewer::addWorld(String uuid)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-SharedPtr<Dataset> Viewer::loadDataset(String in_url)
+SharedPtr<Dataset> Viewer::loadDataset(String url)
 {
-  auto dataset_config = FindDatasetConfig(this->config, in_url);
-
-  auto ret = LoadDatasetEx(dataset_config);
-
-  // for remote dataset I can automatically enable caching
-  //http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1&cached=1
-#if 1
-  if (
-    !ret->getDatasetBody().getChild("access") &&  //no access
-    std::dynamic_pointer_cast<IdxDataset>(ret) && //is IDX
-    Url(ret->getUrl()).isRemote() &&              //is remote
-    cbool(Url(ret->getUrl()).getParam("cached"))) //I want to automatically cached it
-  {
-    Url    url  = ret->getUrl();
-    String name = url.getParam("dataset"); 
-    VisusReleaseAssert(!name.empty());
-
-    // override body and url without the client-side caching layer
-    auto body = ret->getDatasetBody();
-
-    //remove the cached from the url 
-    url.params.eraseValue("cached");
-
-    //add an access to the body
-    body.addChild(StringTree::fromString(
-      "  <access type='multiplex'>\n"
-      "     <access type='disk'    chmod='rw' url='file://$(VisusHome)/cache/" + url.getHostname() + "/" + cstring(url.getPort()) + "/" + name + "/visus.idx'  />\n"
-      "     <access type='network' chmod='r'  compression='zip' />\n"
-      "  </access>\n"));
-
-    //override the url
-    body.setAttribute("url", url.toString());
-
-    //override the body
-    ret->setDatasetBody(body);
-
-    PrintInfo("Automatically enabling caching", "url", url, "name", "name", "\n", body);
-  }
-#endif
-
-  return ret;
+  if (auto it = FindDatasetConfig(this->config, url))
+    return LoadDatasetEx(*it);
+  else
+    LoadDataset(url);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

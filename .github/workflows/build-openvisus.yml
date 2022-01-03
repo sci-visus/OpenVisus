@@ -47,7 +47,6 @@ jobs:
            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
            export DOCKER_TOKEN=${{ matrix.python-version }}
            export DOCKER_IMAGE=visus/portable-linux-binaries_x86_64:4.1
-           export DOCKER_MODVISUS_IMAGE=visus/mod_visus
            source scripts/${{ matrix.os }}.sh
 
 

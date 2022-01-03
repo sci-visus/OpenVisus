@@ -564,7 +564,7 @@ private:
 
 };
 
-VISUS_DB_API StringTree FindDatasetConfig(StringTree ar, String url);
+VISUS_DB_API StringTree* FindDatasetConfig(StringTree ar, String url);
 
 //LoadDatasetEx
 VISUS_DB_API SharedPtr<Dataset> LoadDatasetEx(StringTree ar);

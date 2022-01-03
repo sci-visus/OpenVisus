@@ -22,7 +22,7 @@ GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
 # needs to run using docker
 if [[ "$DOCKER_IMAGE" != "" ]] ; then
 
-  # run docker
+  # run docker to compile portable OpenVisus
   docker run --rm -v ${PWD}:/home/OpenVisus -w /home/OpenVisus \
     -e BUILD_DIR=build_docker \
     -e PYTHON_VERSION=${PYTHON_VERSION} \
@@ -32,15 +32,25 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
     -e INSIDE_DOCKER=1 \
     ${DOCKER_IMAGE} bash scripts/ubuntu.sh
 
+  function BuildAndPushDockerImage() {
+    ARCH=$(uname -m)
+    pushd $1
+    IMAGE=$2_$ARCH
+    docker build --tag $IMAGE:${GIT_TAG} --tag $IMAGE:latest --build-arg TAG=${GIT_TAG} --progress=plain ./  
+    echo ${DOCKER_TOKEN} | docker login -u=${DOCKER_USERNAME} --password-stdin
+    docker push $IMAGE:${GIT_TAG}
+    docker push $IMAGE:latest
+    popd
+  }
+
   # modvisus
   if [[ "${GIT_TAG}" != "" &&  "${PYTHON_VERSION}" == "3.9" ]] ; then
-    sleep 30 # give time for pip package to be ready
-    pushd  Docker/mod_visus
-    docker build --tag $DOCKER_MODVISUS_IMAGE:${GIT_TAG} --tag $DOCKER_MODVISUS_IMAGE:latest --build-arg TAG=${GIT_TAG} .
-    echo ${DOCKER_TOKEN} | docker login -u=${DOCKER_USERNAME} --password-stdin
-    docker push $DOCKER_MODVISUS_IMAGE:${GIT_TAG}
-    docker push $DOCKER_MODVISUS_IMAGE:latest
-    popd
+    BuildAndPushDockerImage Docker/mod_visus visus/mod_visus
+  fi
+
+  # jupyter
+  if [[ "${GIT_TAG}" != "" &&  "${PYTHON_VERSION}" == "3.9" ]] ; then
+    BuildAndPushDockerImage Docker/jupyter visus/scipy-notebook
   fi
 
   echo "All done ubuntu $PYTHON_VERSION} "
