@@ -266,9 +266,8 @@ SharedPtr<Dataset> LoadDataset(String url)
 
     //remove the cached from the url 
     parsed.params.eraseValue("cached");
-    url = parsed.toString();
 
-    StringTree ar("dataset", "url", url);
+    StringTree ar("dataset", "url", parsed.toString());
 
     if (StringUtils::contains(url, "mod_visus"))
     {
