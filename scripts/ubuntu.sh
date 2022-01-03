@@ -32,7 +32,7 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
     -e INSIDE_DOCKER=1 \
     ${DOCKER_IMAGE} bash scripts/ubuntu.sh
 
-  if [[ "${GIT_TAG}" != "" ] ; then
+  if [[ "${GIT_TAG}" != "" ]] ; then
 
     # give time to 'receive' the wheel and the conda package
     sleep 30
