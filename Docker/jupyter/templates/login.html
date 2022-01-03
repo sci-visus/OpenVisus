@@ -1,0 +1,199 @@
+{% extends "page.html" %}
+
+{% block login_widget %}
+{% endblock %}
+
+{% block main %}
+
+{% block login %}
+<div id="login-main" class="container">
+{% if custom_html %}
+{{ custom_html }}
+{% elif login_service %}
+
+<div class="service-login">
+  <a class='btn btn-jupyter btn-lg' href='{{login_url}}'>
+    Sign in with {{login_service}}
+  </a>
+</div>
+{% else %}
+
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+* {
+    box-sizing: border-box;
+}
+.row::after {
+    content: "";
+    clear: both;
+    display: table;
+}
+[class*="col-"] {
+    float: left;
+    padding: 15px;
+}
+.col-1 {width: 8.33%;}
+.col-2 {width: 16.66%;}
+.col-3 {width: 25%;}
+.col-4 {width: 33.33%;}
+.col-5 {width: 41.66%;}
+.col-6 {width: 50%;}
+.col-7 {width: 58.33%;}
+.col-8 {width: 66.66%;}
+.col-9 {width: 75%;}
+.col-10 {width: 83.33%;}
+.col-11 {width: 91.66%;}
+.col-12 {width: 100%;}
+html {
+    font-family: "Lucida Sans", sans-serif;
+}
+.header {
+    background-color: #505080;
+    color: #ffffff;
+    padding: 15px;
+}
+.menu ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+.menu li {
+    padding: 8px;
+    margin-bottom: 7px;
+    background-color: #33b5e5;
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+}
+.menu li:hover {
+    background-color: #0099cc;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Jupyter @ NSDF</h1>
+</div>
+
+<div class="row">
+
+<div class="col-3"> <!-- login cell -->
+<form action="{{login_url}}?next={{next}}" method="post" role="form">
+  <div class="auth-form-header">
+    Sign in
+  </div>
+  <div class='auth-form-body'>
+
+    <p id='insecure-login-warning' class='hidden'>
+    Warning: JupyterHub seems to be served over an unsecured HTTP connection.
+    We strongly recommend enabling HTTPS for JupyterHub.
+    </p>
+    
+    
+
+    {% if login_error %}
+    <p class="login_error">
+      {{login_error}}
+    </p>
+    {% endif %}
+    <label for="username_input">Username:</label>
+    <input
+      id="username_input"
+      type="username"
+      autocapitalize="off"
+      autocorrect="off"
+      class="form-control"
+      name="username"
+      val="{{username}}"
+      tabindex="1"
+      autofocus="autofocus"
+    />
+    <label for='password_input'>Password:</label>
+    <input
+      type="password"
+      class="form-control"
+      name="password"
+      id="password_input"
+      tabindex="2"
+    />
+
+    <input
+      type="submit"
+      id="login_submit"
+      class='btn btn-jupyter'
+      value='Sign In'
+      tabindex="3"
+    />
+  </div>
+</form>
+</div> <!-- cell -->
+
+
+<table>
+<tr>
+  <td>
+    <a href="http://nationalsciencedatafabric.org//"><img src="http://nsdf.sci.utah.edu/images/images/NSDF.png" width="400"/></a>
+  </td>
+
+</tr>
+</table>
+
+<div class="col-9">
+  <H2>Welcome to NSDF Jupyter</H2>
+
+  <p>To login into Jupyter, enter the username and password provided to
+  you by your instructor in the fields on the left. 
+
+  <H3>Useful Links</H3>
+
+  <ul>
+    <li><a href="/services/public/dblank/Jupyter%20Notebook%20Users%20Manual.ipynb">Jupyter Notebook Users Manual</a></li>
+    <li><a href="http://nationalsciencedatafabric.org/">NSDF homepage</a></li>
+  </ul>
+
+  <h3>News</h3>
+
+  <ul>
+    <li>Working in progress.</li>
+  </ul>
+  
+  <H3>Courses using Jupyter</H3>
+  
+  <ul>
+    <li><b>2017-2018</b></li>
+      <ul>
+      <li><a href="/services/public/dblank/CS110%20Intro%20to%20Computing/2017-Fall/Syllabus.ipynb">Todo...</a></li>
+      <li><a href="/services/public/dblank/CS240%20Computer%20Organization/2017-Fall/Syllabus.ipynb">Todo...7</a></li>
+      </ul>
+  
+    
+  </ul>
+
+  
+
+  
+</div>
+
+</div> <!-- row -->
+{% endif %}
+</div>
+{% endblock login %}
+
+{% endblock %}
+
+{% block script %}
+{{super()}}
+
+<script>
+if (window.location.protocol === "http:") {
+  // unhide http warning
+  var warning = document.getElementById('insecure-login-warning');
+  warning.className = warning.className.replace(/\bhidden\b/, '');
+}
+</script>
+
+{% endblock %}
