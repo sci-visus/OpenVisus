@@ -35,7 +35,7 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
   if [[ "${GIT_TAG}" != "" ]] ; then
 
     # give time to 'receive' the wheel and the conda package
-    sleep 30
+    sleep 60
     
     ARCH=$(uname -m)
 
@@ -102,7 +102,8 @@ function ConfigureAndTestCPython() {
 function DistribToPip() {
    rm -Rf ./dist
    $PYTHON -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
-   $PYTHON setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=$PIP_PLATFORM
+   PYTHON_TAG=cp$(echo $PYTHON_VERSION | awk -F'.' '{print $1 $2}')
+   $PYTHON setup.py -q bdist_wheel --python-tag=$PYTHON_TAG --plat-name=$PIP_PLATFORM
    if [[ "${GIT_TAG}" != "" ]] ; then
       $PYTHON -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing   "dist/*.whl" 
    fi
@@ -123,7 +124,7 @@ function DistribToConda() {
    $PYTHON setup.py -q bdist_conda 1>/dev/null
    CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2" | head -n 1)
    if [[ "${GIT_TAG}" != "" ]] ; then
-      anaconda --verbose --show-traceback -t ${ANACONDA_TOKEN} upload ${CONDA_FILENAME}
+      anaconda --verbose --show-traceback -t ${ANACONDA_TOKEN} upload ${CONDA_FILENAME} --no-progress
    fi
 }
 
