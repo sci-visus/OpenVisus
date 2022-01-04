@@ -3,7 +3,7 @@ on: [push]
 
 env:
   PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
-  PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+  PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
   ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
   DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}

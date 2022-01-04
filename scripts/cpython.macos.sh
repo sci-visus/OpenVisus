@@ -8,7 +8,7 @@ VISUS_GUI=${VISUS_GUI:-1}
 VISUS_SLAM=${VISUS_SLAM:-1}
 VISUS_MODVISUS=${VISUS_MODVISUS:-0}
 PYPI_USERNAME=${PYPI_USERNAME:-}
-PYPI_PASSWORD=${PYPI_PASSWORD:-}
+PYPI_TOKEN=${PYPI_TOKEN:-}
 PIP_PLATFORM=macosx_10_9_x86_64
 
 GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
@@ -52,7 +52,7 @@ function DistribToPip() {
    $PYTHON -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
    $PYTHON setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=$PIP_PLATFORM
    if [[ "${GIT_TAG}" != "" ]] ; then
-      $PYTHON -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing   "dist/*.whl" 
+      $PYTHON -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_TOKEN} --skip-existing   "dist/*.whl" 
    fi
 }
 

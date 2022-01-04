@@ -9,7 +9,7 @@ VISUS_MODVISUS=${VISUS_MODVISUS:-1}
 PYTHON_VERSION=${PYTHON_VERSION:-3.8}
 Qt5_DIR=${Qt5_DIR:-/opt/qt512}
 PYPI_USERNAME=${PYPI_USERNAME:-}
-PYPI_PASSWORD=${PYPI_PASSWORD:-}
+PYPI_TOKEN=${PYPI_TOKEN:-}
 ANACONDA_TOKEN=${ANACONDA_TOKEN:-}
 
 DOCKER_TOKEN=${DOCKER_TOKEN:-}
@@ -26,7 +26,7 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
   docker run --rm -v ${PWD}:/home/OpenVisus -w /home/OpenVisus \
     -e BUILD_DIR=build_docker \
     -e PYTHON_VERSION=${PYTHON_VERSION} \
-    -e PYPI_USERNAME=${PYPI_USERNAME} -e PYPI_PASSWORD=${PYPI_PASSWORD} \
+    -e PYPI_USERNAME=${PYPI_USERNAME} -e PYPI_TOKEN=${PYPI_TOKEN} \
     -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
     -e VISUS_GUI=${VISUS_GUI} -e VISUS_SLAM=${VISUS_SLAM} -e VISUS_MODVISUS=${VISUS_MODVISUS} \
     -e INSIDE_DOCKER=1 \
@@ -105,7 +105,7 @@ function DistribToPip() {
    PYTHON_TAG=cp$(echo $PYTHON_VERSION | awk -F'.' '{print $1 $2}')
    $PYTHON setup.py -q bdist_wheel --python-tag=$PYTHON_TAG --plat-name=$PIP_PLATFORM
    if [[ "${GIT_TAG}" != "" ]] ; then
-      $PYTHON -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing   "dist/*.whl" 
+      $PYTHON -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_TOKEN} --skip-existing   "dist/*.whl" 
    fi
 }
 
