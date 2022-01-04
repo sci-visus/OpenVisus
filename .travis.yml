@@ -16,7 +16,7 @@ notifications:
 
 env:
   global:
-    - TEST=aaa
+    - TEST_VALUE=aaa
 
 # see https://stackoverflow.com/questions/46575415/can-i-multiply-options-in-matrix-include-with-the-env-option
 matrix:
@@ -30,14 +30,14 @@ matrix:
       script: |
         set -ex
         uname -a
-        echo $PYTHON_VERSION BOGUS_VALUE=$BOGUS_VALUE EST=$TEST
+        env
         
     - os: windows
       env: PYTHON_VERSION=3.7 BOGUS_VALUE='bla'
       script: |
         set -ex
         uname -a
-        echo $PYTHON_VERSION BOGUS_VALUE=$BOGUS_VALUE EST=$TEST
+        env
 
     - os: linux
       dist: focal
@@ -48,7 +48,7 @@ matrix:
       script: |
         set -ex
         uname -a
-        echo $PYTHON_VERSION BOGUS_VALUE=$BOGUS_VALUE EST=$TEST
+        env
   
 
 
