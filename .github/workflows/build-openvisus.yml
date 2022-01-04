@@ -6,9 +6,10 @@ env:
   PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
   ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-  DOCKER_TOKEN: ${{ matrix.python-version }}
+  DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
 
 jobs:
+
   build-windows-macos:
     runs-on: ${{ matrix.os }}-latest
     strategy:
