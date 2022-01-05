@@ -1,5 +1,8 @@
 FROM httpd:2.4
 
+# make sure the architecture is right
+RUN uname -m
+
 ARG PYTHON_VERSION=3.9
 
 RUN apt-get update --no-install-recommends
