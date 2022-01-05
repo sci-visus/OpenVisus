@@ -55,7 +55,9 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
     fi
 
     # jupyter
-    BuildAndPushDockerImage Docker/jupyter visus/scipy-notebook_$ARCH
+    if [[ "${PYTHON_VERSION}" == "3.9" ]] ; then
+    	BuildAndPushDockerImage Docker/jupyter visus/scipy-notebook_$ARCH
+    fi
 
   fi
 
