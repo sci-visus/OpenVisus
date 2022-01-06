@@ -1,7 +1,16 @@
 name: build-openvisus
 on: [push]
+
+env:
+  PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
+  PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+  ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+  DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+
 jobs:
-  Build1:
+
+  build-windows-macos:
     runs-on: ${{ matrix.os }}-latest
     strategy:
       fail-fast: false  
@@ -22,11 +31,9 @@ jobs:
       run: |
            set -ex
            export PYTHON_VERSION=${{ matrix.python-version }}
-           export PYPI_USERNAME=${{ secrets.PYPI_USERNAME }}
-           export PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }}
-           export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }}
            source ./scripts/${{ matrix.type }}.${{ matrix.os }}.sh
-  Build2:
+      
+  build-ubuntu:
     runs-on: ${{ matrix.os }}-latest
     strategy:
       fail-fast: false  
@@ -41,13 +48,7 @@ jobs:
       run: |
            set -ex
            export PYTHON_VERSION=${{ matrix.python-version }}
-           export PYPI_USERNAME=${{ secrets.PYPI_USERNAME }}
-           export PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD }}
-           export ANACONDA_TOKEN=${{ secrets.ANACONDA_TOKEN }}
-           export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-           export DOCKER_TOKEN=${{ matrix.python-version }}
            export DOCKER_IMAGE=visus/portable-linux-binaries_x86_64:4.1
-           export DOCKER_MODVISUS_IMAGE=visus/mod_visus
            source scripts/${{ matrix.os }}.sh
 
 

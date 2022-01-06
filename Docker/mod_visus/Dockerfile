@@ -1,5 +1,8 @@
 FROM httpd:2.4
 
+# make sure the architecture is right
+RUN uname -m
+
 ARG PYTHON_VERSION=3.9
 
 RUN apt-get update --no-install-recommends
@@ -11,7 +14,8 @@ RUN apt-get install --no-install-recommends -y wget unzip python${PYTHON_VERSION
 
 # install OpenVisus (change version as needed)
 ARG TAG
-RUN python${PYTHON_VERSION} -m pip install -vvv --no-cache-dir  --upgrade OpenVisusNoGui==$TAG
+RUN echo "install OpenVisus PYTHON_VERSION=${PYTHON_VERSION} TAG={$TAG}"
+RUN python${PYTHON_VERSION} -m pip install --no-cache-dir  --upgrade OpenVisusNoGui==$TAG
 RUN python${PYTHON_VERSION} -c "import os,OpenVisus;os.system('rm -Rf /home/OpenVisus');os.system('ln -s {} /home/OpenVisus'.format(os.path.dirname(OpenVisus.__file__)))"
 
 # install webviewer

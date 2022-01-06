@@ -15,40 +15,40 @@ notifications:
     on_failure: always 
 
 env:
-  matrix:
-  - PYTHON_VERSION: 3.7   BOGUS_VALUE='bla'
-  - PYTHON_VERSION: 3.8   BOGUS_VALUE='bla'
-  - PYTHON_VERSION: 3.9   BOGUS_VALUE='bla'
-  - PYTHON_VERSION: 3.10  BOGUS_VALUE='bla'
+  global:
+    - TEST_VALUE=aaa
 
+# see https://stackoverflow.com/questions/46575415/can-i-multiply-options-in-matrix-include-with-the-env-option
 matrix:
   fast_finish: false
   include:
 
     - os: osx
       osx_image: xcode13.1 # see https://docs.travis-ci.com/user/reference/osx/#macos-version
-      
       compiler: clang
+      env: PYTHON_VERSION=3.7 BOGUS_VALUE='bla' 
       script: |
         set -ex
         uname -a
-        echo $PYTHON_VERSION
+        env
         
     - os: windows
+      env: PYTHON_VERSION=3.7 BOGUS_VALUE='bla'
       script: |
         set -ex
         uname -a
-        echo $PYTHON_VERSION    
+        env
 
     - os: linux
       dist: focal
       sudo: required
       services:
        - docker   
+      env: PYTHON_VERSION=3.7 BOGUS_VALUE='bla'
       script: |
         set -ex
         uname -a
-        echo $PYTHON_VERSION         
+        env
   
 
 

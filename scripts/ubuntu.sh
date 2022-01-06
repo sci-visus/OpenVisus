@@ -9,7 +9,7 @@ VISUS_MODVISUS=${VISUS_MODVISUS:-1}
 PYTHON_VERSION=${PYTHON_VERSION:-3.8}
 Qt5_DIR=${Qt5_DIR:-/opt/qt512}
 PYPI_USERNAME=${PYPI_USERNAME:-}
-PYPI_PASSWORD=${PYPI_PASSWORD:-}
+PYPI_TOKEN=${PYPI_TOKEN:-}
 ANACONDA_TOKEN=${ANACONDA_TOKEN:-}
 
 DOCKER_TOKEN=${DOCKER_TOKEN:-}
@@ -22,25 +22,43 @@ GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
 # needs to run using docker
 if [[ "$DOCKER_IMAGE" != "" ]] ; then
 
-  # run docker
+  # run docker to compile portable OpenVisus
   docker run --rm -v ${PWD}:/home/OpenVisus -w /home/OpenVisus \
     -e BUILD_DIR=build_docker \
     -e PYTHON_VERSION=${PYTHON_VERSION} \
-    -e PYPI_USERNAME=${PYPI_USERNAME} -e PYPI_PASSWORD=${PYPI_PASSWORD} \
+    -e PYPI_USERNAME=${PYPI_USERNAME} -e PYPI_TOKEN=${PYPI_TOKEN} \
     -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
     -e VISUS_GUI=${VISUS_GUI} -e VISUS_SLAM=${VISUS_SLAM} -e VISUS_MODVISUS=${VISUS_MODVISUS} \
     -e INSIDE_DOCKER=1 \
     ${DOCKER_IMAGE} bash scripts/ubuntu.sh
 
-  # modvisus
-  if [[ "${GIT_TAG}" != "" &&  "${PYTHON_VERSION}" == "3.9" ]] ; then
-    sleep 30 # give time for pip package to be ready
-    pushd  Docker/mod_visus
-    docker build --tag $DOCKER_MODVISUS_IMAGE:${GIT_TAG} --tag $DOCKER_MODVISUS_IMAGE:latest --build-arg TAG=${GIT_TAG} .
-    echo ${DOCKER_TOKEN} | docker login -u=${DOCKER_USERNAME} --password-stdin
-    docker push $DOCKER_MODVISUS_IMAGE:${GIT_TAG}
-    docker push $DOCKER_MODVISUS_IMAGE:latest
-    popd
+  if [[ "${GIT_TAG}" != "" ]] ; then
+
+    # give time to 'receive' the wheel and the conda package
+    sleep 60
+    
+    ARCH=$(uname -m)
+
+    function BuildAndPushDockerImage() {
+      pushd $1
+      IMAGE=$2
+      docker build --tag $IMAGE:${GIT_TAG} --tag $IMAGE:latest --build-arg TAG=${GIT_TAG} --progress=plain ./  
+      echo ${DOCKER_TOKEN} | docker login -u=${DOCKER_USERNAME} --password-stdin
+      docker push $IMAGE:${GIT_TAG}
+      docker push $IMAGE:latest
+      popd
+    }    
+
+    # modvisus (right now based on python 3.9, change as needed)
+    if [[ "${PYTHON_VERSION}" == "3.9" ]] ; then
+      BuildAndPushDockerImage Docker/mod_visus visus/mod_visus_$ARCH
+    fi
+
+    # jupyter
+    if [[ "${PYTHON_VERSION}" == "3.9" ]] ; then
+    	BuildAndPushDockerImage Docker/jupyter visus/scipy-notebook_$ARCH
+    fi
+
   fi
 
   echo "All done ubuntu $PYTHON_VERSION} "
@@ -86,9 +104,10 @@ function ConfigureAndTestCPython() {
 function DistribToPip() {
    rm -Rf ./dist
    $PYTHON -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
-   $PYTHON setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=$PIP_PLATFORM
+   PYTHON_TAG=cp$(echo $PYTHON_VERSION | awk -F'.' '{print $1 $2}')
+   $PYTHON setup.py -q bdist_wheel --python-tag=$PYTHON_TAG --plat-name=$PIP_PLATFORM
    if [[ "${GIT_TAG}" != "" ]] ; then
-      $PYTHON -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} --skip-existing   "dist/*.whl" 
+      $PYTHON -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_TOKEN} --skip-existing   "dist/*.whl" 
    fi
 }
 
@@ -107,7 +126,7 @@ function DistribToConda() {
    $PYTHON setup.py -q bdist_conda 1>/dev/null
    CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2" | head -n 1)
    if [[ "${GIT_TAG}" != "" ]] ; then
-      anaconda --verbose --show-traceback -t ${ANACONDA_TOKEN} upload ${CONDA_FILENAME}
+      anaconda --verbose --show-traceback -t ${ANACONDA_TOKEN} upload ${CONDA_FILENAME} --no-progress 
    fi
 }
 
