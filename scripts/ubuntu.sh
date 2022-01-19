@@ -35,7 +35,7 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
   if [[ "${GIT_TAG}" != "" ]] ; then
 
     # give time to 'receive' the wheel and the conda package
-    sleep 60
+    sleep 90
     
     ARCH=$(uname -m)
 
