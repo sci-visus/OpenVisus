@@ -98,6 +98,9 @@ public:
   //constructor
   IdxFile(int version_=0);
 
+  //createNewOne
+  IdxFile createNewOne(String filename) const;
+
   //load
   void load(String url,String& TypeName);
 

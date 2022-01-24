@@ -132,6 +132,11 @@ public:
     setStatus(QueryFailed);
   }
 
+  //waitDone
+  void waitDone() {
+    this->done.get();
+  }
+
 
 };
 

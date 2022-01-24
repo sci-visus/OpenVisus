@@ -77,6 +77,7 @@ ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_)
     }
   }
 
+
   bool disable_async = dataset->isServerMode() || config.readBool("disable_async", false);
   if (!disable_async)
   {
@@ -137,6 +138,7 @@ void ModVisusAccess::flushBatch()
   }
 
   //backward compatible (send address range)
+#if 0
   {
     std::vector<String> from, to;
     for (auto query : batch)
@@ -148,6 +150,7 @@ void ModVisusAccess::flushBatch()
     URL.setParam("from", StringUtils::join(from));
     URL.setParam("to"  , StringUtils::join(to));
   }
+#endif
 
   auto REQUEST=NetRequest(URL);
   REQUEST.aborted=batch[0]->aborted;

@@ -80,7 +80,7 @@ if (TARGET VisusKernel)
 endif()
 
 if (TARGET VisusDb)
-	AddSwigLibrary(VisusDb dataset.py PyMultipleDataset.h)
+	AddSwigLibrary(VisusDb dataset.py copy_blocks.py PyMultipleDataset.h)
 endif()
 
 if (TARGET VisusDataflow)

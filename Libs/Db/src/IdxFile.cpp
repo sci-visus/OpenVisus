@@ -250,6 +250,22 @@ void IdxFile::validate(String url)
     filename_template = guessFilenameTemplate(url);
 }
 
+//////////////////////////////////////////////////////////////////////////////
+IdxFile IdxFile::createNewOne(String filename) const
+{
+  VisusReleaseAssert(!FileUtils::existsFile(filename));
+  IdxFile ret = *this;
+  ret.version = 6;
+  ret.block_interleaving = 0;
+  ret.filename_template = ret.guessFilenameTemplate(filename);
+
+  //store in row major
+  for (auto& field : ret.fields)
+    field.default_layout = "";
+
+  ret.save(filename);
+  return ret;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 std::vector<Field> IdxFile::parseFields(String fields_content)

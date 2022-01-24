@@ -587,6 +587,7 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
     for (auto it : StringUtils::split(request.url.getParam("block", "0")))
       blocks.push_back(cbigint(it));
   }
+  //backward compatible
   else if (request.url.hasParam("from"))
   {
     for (auto it : StringUtils::split(request.url.getParam("from", "0")))

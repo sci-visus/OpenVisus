@@ -310,6 +310,7 @@ def CopyDataset(args):
 	src_access=src.createAccessForBlockQuery(StringTree.fromString(args.src_access))
 	dst_access=dst.createAccessForBlockQuery(StringTree.fromString(args.dst_access))
 
+	# BROKEN!
 	Dataset.copyDataset(
 		dst, src_access, dst_field, dst_time,
 		src, dst_access, src_field, src_time)
@@ -434,8 +435,14 @@ def Main(args):
 		RunServer(action_args)
 		sys.exit(0)
 
-	if action=="copy-dataset":
-		CopyDataset(action_args)
+	#if action=="copy-dataset":
+	#	CopyDataset(action_args)
+	#	sys.exit(0)
+
+	# 	-m OpenVisus copy-blocks  --src http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1 --dst D:/tmp/visus.idx   --num-threads 4 --num-read-per-request 256 [--verbose] [--field fieldname]  [--time timestep]
+	if action=="copy-blocks":
+		from OpenVisus.copy_blocks import CopyBlocks
+		CopyBlocks.Main(action_args)
 		sys.exit(0)
 
 	# -m OpenVisus compress-dataset --dataset "D:\GoogleSci\visus_dataset\cat256\visus0.idx" --compression zip

@@ -898,16 +898,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
     if (url.isFile() && !FileUtils::existsFile(url.getPath()))
     {
       auto filename = Path(url.getPath()).toString();
-      auto new_idxfile = idxfile;
-      new_idxfile.version = 6;
-      new_idxfile.block_interleaving = 0;
-      new_idxfile.filename_template = new_idxfile.guessFilenameTemplate(filename);
-
-      //store in row major
-      for (auto& field : new_idxfile.fields)
-        field.default_layout = "";
-
-      new_idxfile.save(filename);
+      idxfile.createNewOne(filename);
     }
 
     //need to load it again since it can be different 
