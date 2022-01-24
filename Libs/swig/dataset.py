@@ -397,10 +397,10 @@ class PyDataset(object):
 		from skimage.transform import resize
 
 		if resample_output==True:
-			data = resize(data, (z_dim,y_dim))
+			data = resize(data, (z_dim,y_dim), preserve_range=True).astype(data.dtype)
 			
 		elif	type(resample_output) is tuple:
-			data = resize(data, resample_output)
+			data = resize(data, resample_output, preserve_range=True).astype(data.dtype)
 			
 		return data
 		
@@ -463,9 +463,11 @@ class PyDataset(object):
 		from skimage.transform import resize
 
 		if resample_output==True:
-			data = resize(data, (y_dim,x_dim))
-		elif type(resample_output) is tuple:
-			data = resize(data, resample_output)
+			data = resize(data, (z_dim,y_dim), preserve_range=True).astype(data.dtype)
+			
+		elif	type(resample_output) is tuple:
+			data = resize(data, resample_output, preserve_range=True).astype(data.dtype)
+
 			
 		return data
 	
