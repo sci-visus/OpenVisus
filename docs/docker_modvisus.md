@@ -24,10 +24,10 @@ For more complex case with a load balancer (e.g. nginx or HAProxy) in front of O
 
 # Run OpenVisus server
 
-Example:
+Example (**NOTE:** better to specify a  version than `latest`, since `latest` is ambiguous):
 
 ```
-IMAGE=visus/mod_visus:latest
+IMAGE=visus/mod_visus_x86_64:latest
 sudo docker run --rm --publish 8080:80 --publish 8443:443 --name my-modvisus $IMAGE
 ```
 
@@ -86,7 +86,7 @@ EOF
 then type:
 
 ```
-IMAGE=visus/mod_visus:latest
+IMAGE=visus/mod_visus_x86_64:latest
 sudo docker run --rm --publish 8080:80 --publish 8443:443 --name my-modvisus -v $DATASETS:/datasets $IMAGE
 ```
 
@@ -147,8 +147,8 @@ sudo docker run \
 ```
 cd Docker/mod_visus/httpd
 TAG=YOUR_TAG_HERE
-sudo docker build --tag visus/mod_visus:$TAG  --build-arg TAG=$TAG .
-sudo docker push visus/mod_visus:$TAG
+sudo docker build --tag visus/mod_visus_x86_64:$TAG  --build-arg TAG=$TAG .
+sudo docker push visus/mod_visus_x86_64:$TAG
 ```
 
 # (OPTIONAL) Inspect the logs
@@ -175,7 +175,7 @@ sudo docker run --rm \
    --restart=always \
    -d --restart=unless-stopped \
    $IMAGE
-``` 
+```
 
 and start the docker daemon (see https://docs.docker.com/config/daemon/systemd): 
 
@@ -275,5 +275,4 @@ Another way (**not tested**) is to directly add the groups to `daemon` user by c
 docker run ... --group-add <group-id-1> --group-add <group-id-2> ...
 
 ```
-
 
