@@ -79,7 +79,7 @@ function DistribToPip() {
    rm -Rf ./dist
    $PYTHON -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
    PYTHON_TAG=cp$(echo $PYTHON_VERSION | awk -F'.' '{print $1 $2}')
-   $PYTHON setup.py -q bdist_wheel --python-tag=cp${PYTHON_TAG} --plat-name=$PIP_PLATFORM
+   $PYTHON setup.py -q bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=$PIP_PLATFORM
    if [[ "${GIT_TAG}" != "" ]] ; then
       $PYTHON -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_TOKEN} --skip-existing   "dist/*.whl" 
    fi
