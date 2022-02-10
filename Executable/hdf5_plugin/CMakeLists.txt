@@ -15,13 +15,13 @@ if (VISUS_PYTHON)
 endif()
 
 source_group("" FILES main.cpp)
-add_executable(hdf5-test main.cpp README.md)
-target_include_directories(hdf5-test PUBLIC ${HDF5_INCLUDE_DIRS})
-target_link_libraries(hdf5-test      PUBLIC ${HDF5_LIBRARIES})
-add_dependencies(hdf5-test openvisus_vol)
+add_executable(openvisus_vol_cli main.cpp README.md)
+target_include_directories(openvisus_vol_cli PUBLIC ${HDF5_INCLUDE_DIRS})
+target_link_libraries(openvisus_vol_cli      PUBLIC ${HDF5_LIBRARIES})
+add_dependencies(openvisus_vol_cli openvisus_vol)
 
 set_target_properties(openvisus_vol PROPERTIES FOLDER "HDF5")
-set_target_properties(hdf5-test     PROPERTIES FOLDER "HDF5")
+set_target_properties(openvisus_vol_cli     PROPERTIES FOLDER "HDF5")
 
 
 

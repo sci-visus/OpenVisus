@@ -1,6 +1,15 @@
 #include <iostream>
 #include <hdf5.h>
 #include <vector>
+#include <stdlib.h>
+#include <fstream>
+
+#if WIN32
+static void setenv(const char* key, const char* value)
+{
+  _putenv_s(key, value);
+}
+#endif
 
 ////////////////////////////////////////////////////////////////////////////
 void __Check(bool cond, std::string file,int line)
@@ -17,11 +26,8 @@ void __Check(bool cond, std::string file,int line)
 
 
 ////////////////////////////////////////////////////////////////////////////
-void Test1(std::string filename)
+void Hdf5_Test2D(std::string filename, std::string dataset_name, const int width = 6, const int height = 5)
 {
-  const int width = 6;
-  const int height = 5;
-
   // CREATE a file
   hid_t file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
@@ -29,12 +35,12 @@ void Test1(std::string filename)
   hid_t group = H5Gcreate2(file, "MyGroup", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
   // CREATE dataset with datatype and dataspace
-  std::string dataset_name = "IntArray";
+  //the idx extension will tell the plugin to enable the idx backend
 
   if (true)
   {
     // CREATE dataspace (i.e. dataset dimensions)
-    hsize_t shape[] = { height , width };
+    hsize_t shape[] = { (hsize_t)height , (hsize_t)width };
     hid_t dataspace = H5Screate_simple(2, shape, nullptr);
 
     //CREATE datatype: INT little endian
@@ -49,8 +55,8 @@ void Test1(std::string filename)
     H5Sclose(dataspace);
   }
 
-  //        ******
-  std::vector<int> BUFFER = {
+  //******
+  std::vector<int32_t> BUFFER = {
     11, 12, 13, 14, 15, 16,
     21, 22, 23, 24, 25, 26,   //*
     31, 32, 33, 34, 35, 36,   //*
@@ -58,6 +64,22 @@ void Test1(std::string filename)
     51, 52, 53, 54, 55, 56,   //*
   };
 
+
+  std::vector<int> CENTER_BUFFER = {
+
+                63,64,
+                73,74,
+                83,84,
+                93,94
+  };
+
+  std::vector<int32_t> CHECK_BUFFER({
+        11, 12, 13, 14, 15, 16,
+        21, 22, 63, 64, 25, 26,   //*
+        31, 32, 73, 74, 35, 36,   //*
+        41, 42, 83, 84, 45, 46,   //*
+        51, 52, 93, 94, 55, 56,   //*
+    });
 
   //Write ALL to dataset
   if (true)
@@ -104,13 +126,10 @@ void Test1(std::string filename)
     auto memspace = H5Screate_simple(2, memory_dims, NULL);
     CHECK(H5Sselect_all(memspace) == 0);
 
-    std::vector<int> buffer = {
-      63,64,
-      73,74,
-      83,84,
-      93,94
-    };
-    CHECK(H5Dwrite(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &buffer[0])==0);
+
+    CHECK(
+      H5Dwrite(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &CENTER_BUFFER[0])
+      ==0);
 
     H5Dclose(dataset);
     H5Sclose(dataspace);
@@ -128,13 +147,7 @@ void Test1(std::string filename)
       std::cout << val << " ";
     std::cout << std::endl;
     //        ******            
-    CHECK(buffer == std::vector<int32_t>({
-      11, 12, 13, 14, 15, 16,
-      21, 22, 63, 64, 25, 26,   //*
-      31, 32, 73, 74, 35, 36,   //*
-      41, 42, 83, 84, 45, 46,   //*
-      51, 52, 93, 94, 55, 56,   //*
-      }));
+    CHECK(buffer == CHECK_BUFFER);
   }
 
   //read SEL to dataset
@@ -156,12 +169,7 @@ void Test1(std::string filename)
     std::vector<int32_t> buffer(memory_dims[0] * memory_dims[1]);
     H5Dread(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &buffer[0]);
 
-    CHECK(buffer == std::vector<int32_t>({
-      63,64,
-      73,74,
-      83,84,
-      93,94
-      }));
+    CHECK(buffer==CENTER_BUFFER);
 
     H5Dclose(dataset);
     H5Sclose(dataspace);
@@ -173,7 +181,7 @@ void Test1(std::string filename)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
-void Test2(std::string filename)
+void Hdf5_Test3D(std::string filename, std::string dataset_name= "hdf5_test3d.idx")
 {
   //see https://github.com/mvanmoer/HDF5_examples/tree/master/orthonormalgrids/scalar
 
@@ -217,7 +225,9 @@ void Test2(std::string filename)
 
   std::cout << "Calling H5Dcreate2..." << std::endl;
   hid_t datatype = H5Tcopy(H5T_NATIVE_FLOAT);
-  hid_t dataset = H5Dcreate2(file, "scalars", datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+  //the idx extension will tell the plugin to create an IDX (if IDX is enabled)
+  hid_t dataset = H5Dcreate2(file, dataset_name.c_str(), datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
   std::cout << "Calling H5Dwrite..." << std::endl;
   CHECK(H5Dwrite(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &scalars[0])==0);
@@ -228,16 +238,39 @@ void Test2(std::string filename)
   H5Fclose(file);
 }
 
+////////////////////////////////////////////////////////////////////
+static bool FileExists(const char* fileName)
+{
+  std::ifstream infile(fileName);
+  bool ret = infile.good();
+  infile.close();
+  return ret;
+}
 
 ////////////////////////////////////////////////////////////////////
-int main()
+int main(int argn, const char* argv[])
 {
   // To debug in windows see ReadMe.md
+  std::vector<std::string> args;
+  for (int I = 0; I < argn; I++)
+    args.push_back(argv[I]);
 
-  Test1("testfile1.h5");
-  Test2("testfile2.h5");
+  std::string action = args.size()>=2? args[1] : "";
 
-  std::cout<<"all done"<<std::endl;
+  if (action == "--test")
+  {
+    //default HDF5 datasets (i.e.  OpenVisus without Idx backend)
+    Hdf5_Test2D("A_test.h5", "my_dataset2d"); CHECK(!FileExists("my_dataset2d"));
+    Hdf5_Test3D("B_test.h5", "my_dataset3d"); CHECK(!FileExists("my_dataset3d"));
+    std::cout << "Test without IDX backend ok" << std::endl;
+
+    //IDX backend (i.e. OpenVisus with Idx backend)
+    //NOTE the idx extension will tell the plugin you want to have OpenVisus as a backend
+    Hdf5_Test2D("C_test.h5", "C_test.idx"); CHECK(FileExists("C_test.idx"));
+    Hdf5_Test3D("D_test.h5", "D_test.idx"); CHECK(FileExists("D_test.idx"));
+    std::cout << "Test with IDX backend ok" << std::endl;
+    return 0;
+  }
 
   //problem here, not getting the term for the VOL connector
   //or COULD IT BE a memory leak/bug? like memory corrupted... need to check

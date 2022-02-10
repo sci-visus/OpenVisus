@@ -22,11 +22,7 @@
 #include <Visus/Python.h>
 #endif
 
-#define ENABLE_LOGGING 1
-
 using namespace Visus;
-
-#define USE_OPENVISUS_DATASET 1
 
 #ifdef _WIN32
 #pragma warning(disable:4996)
@@ -47,7 +43,7 @@ typedef struct openvisus_vol_t
 {
   hid_t under_vol_id;     // ID for underlying VOL connector 
   void* under;      // create the dataset anyway (but not the storage)
-  SharedPtr<Dataset>* db;  // Info object for underlying VOL connector
+  SharedPtr<Dataset>* visus_db;  // Info object for underlying VOL connector
 }
 openvisus_vol_t;
 
@@ -60,6 +56,20 @@ typedef struct openvisus_vol_wrap_ctx_t
 openvisus_vol_wrap_ctx_t;
 
 extern const H5VL_class_t openvisus_vol_g;
+
+static bool VISUS_HDF5_ENABLE_PYTHON()
+{
+#if VISUS_PYTHON
+  return cbool(Utils::getEnv("VISUS_HDF5_ENABLE_PYTHON"));
+#else
+  return false;
+#endif
+}
+
+static bool VISUS_HDF5_ENABLE_LOGGING()
+{
+  return cbool(Utils::getEnv("VISUS_HDF5_ENABLE_LOGGING"));
+}
 
 /*-------------------------------------------------------------------------
  * Function:    openvisus_vol_new_obj
@@ -76,15 +86,16 @@ extern const H5VL_class_t openvisus_vol_g;
  */
 
 static openvisus_vol_t*
-openvisus_vol_new_obj(void* under, hid_t under_vol_id, SharedPtr<Dataset> db= SharedPtr<Dataset>())
+openvisus_vol_new_obj(void* under, hid_t under_vol_id, SharedPtr<Dataset> visus_db = SharedPtr<Dataset>())
 {
   openvisus_vol_t* ret = (openvisus_vol_t*)calloc(1, sizeof(openvisus_vol_t));
   ret->under_vol_id = under_vol_id;
   ret->under = under;
-  ret->db = db? new SharedPtr<Dataset>(db) : nullptr;
+  ret->visus_db = visus_db ? new SharedPtr<Dataset>(visus_db) : nullptr;
   H5Iinc_ref(ret->under_vol_id);
   return ret;
 }
+
 
 
 /*-------------------------------------------------------------------------
@@ -108,11 +119,13 @@ openvisus_vol_free_obj(openvisus_vol_t* obj)
 {
   hid_t err_id;
   err_id = H5Eget_current_stack();
-  if (obj->db)
+  
+  if (obj->visus_db)
   {
-    (*obj->db).reset();
-    delete obj->db;
+    (*obj->visus_db).reset();
+    delete obj->visus_db;
   }
+
   H5Idec_ref(obj->under_vol_id);
   H5Eset_current_stack(err_id);
   free(obj);
@@ -145,36 +158,34 @@ openvisus_vol_init(hid_t vipl_id)
   auto v = StringUtils::split(H5_VERSION, ".");
   H5check_version(cint(v[0]), cint(v[1]), cint(v[2]));
 
-//#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_init","H5_VERSION", H5_VERSION);
-  //#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_init","H5_VERSION", H5_VERSION);
 
-#if USE_OPENVISUS_DATASET
-
-#if VISUS_PYTHON
-
-  if (!Py_IsInitialized())
+  //NOTE: it could be I don't want to enable it (example Paraview with a different python version
+  if (VISUS_HDF5_ENABLE_PYTHON())
   {
-    detach_python = true;
+#if VISUS_PYTHON
+    if (!Py_IsInitialized())
+    {
+      detach_python = true;
 
-    static int argn = 1;
-    static String program_name = Path(Utils::getCurrentApplicationFile()).toString();
-    static const char* argv[] = { program_name.c_str() };
+      static int argn = 1;
+      static String program_name = Path(Utils::getCurrentApplicationFile()).toString();
+      static const char* argv[] = { program_name.c_str() };
 
-    SetCommandLine(argn, argv);
-    EmbeddedPythonInit();
-    VisusReleaseAssert(Py_IsInitialized());
+      SetCommandLine(argn, argv);
+      EmbeddedPythonInit();
+      VisusReleaseAssert(Py_IsInitialized());
+    }
+
+    // I need to make sure OpenVisus is imported
+    auto acquire_gil = PyGILState_Ensure();
+    PyRun_SimpleString("from OpenVisus import *");
+    PyGILState_Release(acquire_gil);
+#endif
   }
 
-  // I need to make sure OpenVisus is imported
-  auto acquire_gil = PyGILState_Ensure();
-  PyRun_SimpleString("from OpenVisus import *");
-  PyGILState_Release(acquire_gil);
-#endif
-
   DbModule::attach();
-
-#endif
 
   return 0;
 } /* end openvisus_vol_init() */
@@ -196,25 +207,24 @@ openvisus_vol_init(hid_t vipl_id)
 static herr_t
 openvisus_vol_term(void)
 {
-
-
-#if USE_OPENVISUS_DATASET
-
-  DbModule::detach();
-  
-#if VISUS_PYTHON
-  if (detach_python)
+  if (cbool(Utils::getEnv("VISUS_HDF5")))
   {
-    EmbeddedPythonShutdown();
-    detach_python = false;
+    DbModule::detach();
+
+    if (VISUS_HDF5_ENABLE_PYTHON())
+    {
+#if VISUS_PYTHON
+      if (detach_python)
+      {
+        EmbeddedPythonShutdown();
+        detach_python = false;
+      }
+#endif
+    }
   }
-#endif
 
-#endif
-
-  //#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_term");
-  //#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_term");
 
   return 0;
 } 
@@ -236,9 +246,8 @@ openvisus_vol_info_copy(const void* _info)
   const openvisus_vol_info_t* info = (const openvisus_vol_info_t*)_info;
   openvisus_vol_info_t* new_info;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_info_copy");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_info_copy");
 
   /* Allocate new VOL info struct for the connector */
   new_info = (openvisus_vol_info_t*)calloc(1, sizeof(openvisus_vol_info_t));
@@ -270,9 +279,8 @@ openvisus_vol_info_cmp(int* cmp_value, const void* _info1, const void* _info2)
   const openvisus_vol_info_t* info1 = (const openvisus_vol_info_t*)_info1;
   const openvisus_vol_info_t* info2 = (const openvisus_vol_info_t*)_info2;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_info_cmp");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_info_cmp");
 
   /* Sanity checks */
   assert(info1);
@@ -314,9 +322,8 @@ openvisus_vol_info_free(void* _info)
   openvisus_vol_info_t* info = (openvisus_vol_info_t*)_info;
   hid_t err_id;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_info_free");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_info_free");
 
   err_id = H5Eget_current_stack();
 
@@ -352,9 +359,8 @@ openvisus_vol_info_to_str(const void* _info, char** str)
   char* under_vol_string = NULL;
   size_t under_vol_str_len = 0;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_info_to_str");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_info_to_str");
 
   /* Get value and string for underlying VOL connector */
   H5VLget_value(info->under_vol_id, &under_value);
@@ -398,9 +404,8 @@ openvisus_vol_str_to_info(const char* str, void** _info)
   hid_t under_vol_id;
   void* under_vol_info = NULL;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_str_to_info");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_str_to_info");
 
   /* Retrieve the underlying VOL connector value and info */
   sscanf(str, "under_vol=%u;", &under_vol_value);
@@ -447,9 +452,8 @@ openvisus_vol_get_object(const void* obj)
 {
   const openvisus_vol_t* o = (const openvisus_vol_t*)obj;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_get_object");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_get_object");
 
   return H5VLget_object(o->under, o->under_vol_id);
 } 
@@ -471,9 +475,8 @@ openvisus_vol_get_wrap_ctx(const void* obj, void** wrap_ctx)
   const openvisus_vol_t* o = (const openvisus_vol_t*)obj;
   openvisus_vol_wrap_ctx_t* new_wrap_ctx;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_get_wrap_ctx");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_get_wrap_ctx");
 
   /* Allocate new VOL object wrapping context for the  connector */
   new_wrap_ctx = (openvisus_vol_wrap_ctx_t*)calloc(1, sizeof(openvisus_vol_wrap_ctx_t));
@@ -505,9 +508,8 @@ openvisus_vol_wrap_object(void* obj, H5I_type_t obj_type, void* _wrap_ctx)
 {
   openvisus_vol_wrap_ctx_t* wrap_ctx = (openvisus_vol_wrap_ctx_t*)_wrap_ctx;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_wrap_object");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_wrap_object");
 
   /* Wrap the object with the underlying VOL */
   void*  under = H5VLwrap_object(obj, obj_type, wrap_ctx->under_vol_id, wrap_ctx->under_wrap_ctx);
@@ -516,15 +518,15 @@ openvisus_vol_wrap_object(void* obj, H5I_type_t obj_type, void* _wrap_ctx)
 
   openvisus_vol_t* ret = nullptr;
 
-#if USE_OPENVISUS_DATASET
+  //I have no idea what this means (maybe I am getting something from memory without a name? 
+  //TODO how to set the filename????
   if (obj_type == H5I_DATASET)
   {
-    String filename = ""; //TODO how to set the filename????
     VisusReleaseAssert(false);
-    SharedPtr<Dataset> db = LoadDataset(filename); VisusReleaseAssert(db);
-    ret = openvisus_vol_new_obj(under, wrap_ctx->under_vol_id, db);
+    String filename = ""; 
+    //SharedPtr<Dataset> visus_db = LoadDataset(filename); VisusReleaseAssert(visus_db);
+    //ret = openvisus_vol_new_obj(under, wrap_ctx->under_vol_id, visus_db);
   }
-#endif
 
   if (!ret)
     ret = openvisus_vol_new_obj(under, wrap_ctx->under_vol_id);
@@ -550,9 +552,8 @@ openvisus_vol_unwrap_object(void* obj)
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   void* under;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_unwrap_object");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_unwrap_object");
 
   /* Unrap the object with the underlying VOL */
   under = H5VLunwrap_object(o->under, o->under_vol_id);
@@ -583,9 +584,8 @@ openvisus_vol_free_wrap_ctx(void* _wrap_ctx)
   openvisus_vol_wrap_ctx_t* wrap_ctx = (openvisus_vol_wrap_ctx_t*)_wrap_ctx;
   hid_t err_id;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_free_wrap_ctx");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_free_wrap_ctx");
 
   err_id = H5Eget_current_stack();
 
@@ -622,9 +622,8 @@ openvisus_vol_attr_create(void* obj, const H5VL_loc_params_t* loc_params,
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   void* under;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_attr_create");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_attr_create");
 
   under = H5VLattr_create(o->under, loc_params, o->under_vol_id, name, type_id, space_id, acpl_id, aapl_id, dxpl_id, req);
   if (under) {
@@ -659,9 +658,8 @@ openvisus_vol_attr_open(void* obj, const H5VL_loc_params_t* loc_params,
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   void* under;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_attr_open");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_attr_open");
 
   under = H5VLattr_open(o->under, loc_params, o->under_vol_id, name, aapl_id, dxpl_id, req);
   if (under) {
@@ -695,9 +693,8 @@ openvisus_vol_attr_read(void* attr, hid_t mem_type_id, void* buf,
   openvisus_vol_t* o = (openvisus_vol_t*)attr;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_attr_read");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_attr_read");
 
   ret_value = H5VLattr_read(o->under, o->under_vol_id, mem_type_id, buf, dxpl_id, req);
 
@@ -726,9 +723,8 @@ openvisus_vol_attr_write(void* attr, hid_t mem_type_id, const void* buf,
   openvisus_vol_t* o = (openvisus_vol_t*)attr;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_attr_write");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_attr_write");
 
   ret_value = H5VLattr_write(o->under, o->under_vol_id, mem_type_id, buf, dxpl_id, req);
 
@@ -757,9 +753,8 @@ openvisus_vol_attr_get(void* obj, H5VL_attr_get_t get_type, hid_t dxpl_id,
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_attr_get");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_attr_get");
 
   ret_value = H5VLattr_get(o->under, o->under_vol_id, get_type, dxpl_id, req, arguments);
 
@@ -788,9 +783,8 @@ openvisus_vol_attr_specific(void* obj, const H5VL_loc_params_t* loc_params,
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_attr_specific");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_attr_specific");
 
   ret_value = H5VLattr_specific(o->under, loc_params, o->under_vol_id, specific_type, dxpl_id, req, arguments);
 
@@ -819,9 +813,8 @@ openvisus_vol_attr_optional(void* obj, H5VL_attr_optional_t opt_type,
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_attr_optional");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_attr_optional");
 
   ret_value = H5VLattr_optional(o->under, o->under_vol_id, opt_type, dxpl_id, req, arguments);
 
@@ -849,9 +842,8 @@ openvisus_vol_attr_close(void* attr, hid_t dxpl_id, void** req)
   openvisus_vol_t* o = (openvisus_vol_t*)attr;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_attr_close");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_attr_close");
 
   ret_value = H5VLattr_close(o->under, o->under_vol_id, dxpl_id, req);
 
@@ -867,15 +859,13 @@ openvisus_vol_attr_close(void* attr, hid_t dxpl_id, void** req)
 } /* end openvisus_vol_attr_close() */
 
 
-#if USE_OPENVISUS_DATASET
-
-
 //////////////////////////////////////////////////////////////////////////////
 class OpenVisusHDF5Utils
 {
 public:
 
-  //ToDType
+  //ToDType 
+  // convert HDF5 type to OpenVisus DType
   static DType ToDType(hid_t type_id)
   {
     size_t      type_size = H5Tget_size(type_id);
@@ -914,8 +904,10 @@ public:
 
 
   //ToTypeId
+  // convert OpenVisus DType to HDF5 type id
   static hid_t ToTypeId(DType dtype)
   {
+    //TODO: what if we have multiple components? like uint8[3]?
     VisusReleaseAssert(dtype.ncomponents() == 1);
 
     if (dtype == DTypes::INT8)  return H5T_NATIVE_CHAR;
@@ -931,23 +923,24 @@ public:
     if (dtype == DTypes::FLOAT32)  return H5T_NATIVE_FLOAT;
     if (dtype == DTypes::FLOAT64)  return H5T_NATIVE_DOUBLE;
 
+    //I should not be here
     VisusReleaseAssert(false);
     return 0;
   }
 
   //executeQuery
-  static herr_t executeQuery(SharedPtr<Dataset> db, int mode, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id, hid_t plist_id, const void* buf, void** req)
+  static herr_t executeQuery(SharedPtr<Dataset> visus_db, int mode, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id, hid_t plist_id, const void* buf, void** req)
   {
-    BoxNi world_box = db->getLogicBox();
-    int pdim = db->getPointDim();
-    auto access = db->createAccess();
-    auto dtype = db->getField().dtype;
+    BoxNi world_box = visus_db->getLogicBox();
+    int pdim = visus_db->getPointDim();
+    auto access = visus_db->createAccess();
+    auto dtype = visus_db->getField().dtype;
 
     //TODO casting for memory
     VisusReleaseAssert(dtype == ToDType(mem_type_id));
 
-    auto mem_space_type = mem_space_id == H5S_ALL ? H5S_SEL_ALL : H5Sget_select_type(mem_space_id);
-    auto file_space_type = file_space_id == H5S_ALL ? H5S_SEL_ALL : H5Sget_select_type(file_space_id);
+    H5S_sel_type mem_space_type  = (mem_space_id  == H5S_ALL) ? H5S_SEL_ALL : H5Sget_select_type(mem_space_id);
+    H5S_sel_type file_space_type = (file_space_id == H5S_ALL) ? H5S_SEL_ALL : H5Sget_select_type(file_space_id);
 
     //TODO deal with subarea (i.e. subarray) inside destination memory buffer (i.e. only onememcpy wound not be enough)
     VisusReleaseAssert(mem_space_type == H5S_SEL_ALL);
@@ -972,37 +965,7 @@ public:
 
     case H5S_SEL_HYPERSLABS:
     {
-      //TODO: other cases
-#if 0
-      hssize_t nblock = H5Sget_select_hyper_nblocks(file_space_id);
-      VisusReleaseAssert(nblock > 0);
-      VisusReleaseAssert(H5Sget_select_hyper_nblocks(mem_space_id) == nblock);
-
-      //coordinates:= start_block1 start_block2 start_block3... corner_block1 corner_block2 corner_block3
-      //   where each item has pdim values
-      std::vector<hsize_t> coordinates(pdim * 2 * nblock);
-      VisusReleaseAssert(H5Sget_select_hyper_blocklist(file_space_id, 0, nblock, &coordinates[0]) == 0);
-
-      std::vector<hsize_t> mem_coordinates(pdim * 2 * nblock);
-      VisusReleaseAssert(H5Sget_select_hyper_blocklist(mem_space_id, 0, nblock, &mem_coordinates[0]) == 0);
-
-      //see http://davis.lbl.gov/Manuals/HDF5-1.6.1/RM_H5S.html#Dataspace-SelectHyperBlockList
-      for (int Block = 0; Block < nblock; Block++)
-      {
-        auto Offset = coordinates.begin() + pdim * 2 * Block;
-
-        auto start = std::vector<Int64>(Offset + 0 * pdim, Offset + 1 * pdim);
-        auto corner = std::vector<Int64>(Offset + 1 * pdim, Offset + 2 * pdim);
-
-        std::reverse(start.begin(), start.end());
-        std::reverse(corner.begin(), corner.end());
-
-        //corner is included
-        for (auto& val : corner)
-          val++;
-#endif
-
-        //todo other cases
+        //TODO other cases
         VisusReleaseAssert(H5Sis_regular_hyperslab(file_space_id));
 
         //note count is the number of blocks, block is the block dims
@@ -1027,6 +990,36 @@ public:
           logic_box.p2[D] = start[D] + count[D] * block[D];
         }
 
+        //TODO: other cases
+#if 0
+        hssize_t nblock = H5Sget_select_hyper_nblocks(file_space_id);
+        VisusReleaseAssert(nblock > 0);
+        VisusReleaseAssert(H5Sget_select_hyper_nblocks(mem_space_id) == nblock);
+
+        //coordinates:= start_block1 start_block2 start_block3... corner_block1 corner_block2 corner_block3
+        //   where each item has pdim values
+        std::vector<hsize_t> coordinates(pdim * 2 * nblock);
+        VisusReleaseAssert(H5Sget_select_hyper_blocklist(file_space_id, 0, nblock, &coordinates[0]) == 0);
+
+        std::vector<hsize_t> mem_coordinates(pdim * 2 * nblock);
+        VisusReleaseAssert(H5Sget_select_hyper_blocklist(mem_space_id, 0, nblock, &mem_coordinates[0]) == 0);
+
+        //see http://davis.lbl.gov/Manuals/HDF5-1.6.1/RM_H5S.html#Dataspace-SelectHyperBlockList
+        for (int Block = 0; Block < nblock; Block++)
+        {
+          auto Offset = coordinates.begin() + pdim * 2 * Block;
+
+          auto start = std::vector<Int64>(Offset + 0 * pdim, Offset + 1 * pdim);
+          auto corner = std::vector<Int64>(Offset + 1 * pdim, Offset + 2 * pdim);
+
+          std::reverse(start.begin(), start.end());
+          std::reverse(corner.begin(), corner.end());
+
+          //corner is included
+          for (auto& val : corner)
+            val++;
+#endif
+
         break;
     }
 
@@ -1043,17 +1036,15 @@ public:
     //I can do this just because mem_space_type==H5S_SEL_ALL TODO Extend!
     auto heap = HeapMemory::createUnmanaged((Uint8*)buf, dtype.getByteSize(dims));
 
-    auto query = db->createBoxQuery(logic_box, mode);
-    db->beginBoxQuery(query);
+    auto query = visus_db->createBoxQuery(logic_box, mode);
+    visus_db->beginBoxQuery(query);
     VisusReleaseAssert(query->isRunning());
     query->buffer = Array(dims, dtype, heap);
-    VisusReleaseAssert(db->executeBoxQuery(access, query));
+    VisusReleaseAssert(visus_db->executeBoxQuery(access, query));
 
     return 0;
   }
 };
-
-#endif
 
 
 /*-------------------------------------------------------------------------
@@ -1068,109 +1059,118 @@ public:
  */
 static void*
 openvisus_vol_dataset_create(void* obj, const H5VL_loc_params_t* loc_params,
-  const char* name_, 
-  hid_t lcpl_id, 
-  hid_t type_id, 
+  const char* name_,
+  hid_t lcpl_id,
+  hid_t type_id,
   hid_t space_id,
-  hid_t dcpl_id, 
-  hid_t dapl_id, 
-  hid_t dxpl_id, 
+  hid_t dcpl_id,
+  hid_t dapl_id,
+  hid_t dxpl_id,
   void** req)
 {
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   String name = name_;
 
-//#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_dataset_create");
-//#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_dataset_create","name_", name_);
 
   void* under = H5VLdataset_create(o->under, loc_params, o->under_vol_id, name.c_str(), lcpl_id, type_id, space_id, dcpl_id, dapl_id, dxpl_id, req);
 
   if (!under)
     return nullptr;
 
-#if USE_OPENVISUS_DATASET
+  openvisus_vol_t* ret= nullptr;
 
-  //shape
-  std::vector<hsize_t> shape(H5S_MAX_RANK);
-  int _ndim = H5Sget_simple_extent_dims(space_id, &shape[0], NULL);
-  shape.resize(_ndim);
+  if (StringUtils::endsWith(name,".idx"))
+  {
+    String filename = name;
 
-  //dtype
-  DType dtype = OpenVisusHDF5Utils::ToDType(type_id);;
-  PointNi dims;
+    //shape
+    std::vector<hsize_t> shape(H5S_MAX_RANK);
+    int _ndim = H5Sget_simple_extent_dims(space_id, &shape[0], NULL);
+    shape.resize(_ndim);
 
-  //shape==(height,width) 2D dataset
-  if (shape.size() == 2)
-  {
-    auto width = shape[1];
-    auto height = shape[0];
-    dims = PointNi(width, height);
-  }
-  //shape==(depth,height,width) 3D dataset (note: 2D with multiple channels not supported right now)
-  else if (shape.size() == 3)
-  {
-    auto depth = shape[0];
-    auto height = shape[1];
-    auto width = shape[2];
-    dims = PointNi(width, height, depth);
-  }
-  //shape==(depth,height,width,nchannels)
-  else if (shape.size() == 4)
-  {
-    auto depth = shape[0];
-    auto height = shape[1];
-    auto width = shape[2];
-    auto nchannels = shape[3];
-    dtype = DType((int)nchannels, dtype);
-    dims = PointNi(width, height, depth);
+    //dtype
+    DType dtype = OpenVisusHDF5Utils::ToDType(type_id);;
+    PointNi dims;
+
+    //shape==(height,width) 
+    //2D dataset with a scalar one-component field
+    if (shape.size() == 2)
+    {
+      auto width = shape[1];
+      auto height = shape[0];
+      dims = PointNi(width, height);
+    }
+    //shape==(depth,height,width) 3D dataset (note: 2D with multiple channels not supported right now)
+    //3D dataset with a scalar one-component field
+    else if (shape.size() == 3)
+    {
+      auto depth = shape[0];
+      auto height = shape[1];
+      auto width = shape[2];
+      dims = PointNi(width, height, depth);
+    }
+    //shape==(depth,height,width,nchannels)
+    //3D dataset with a more-than-one component field (i.e. multichannel)
+    else if (shape.size() == 4)
+    {
+      auto depth = shape[0];
+      auto height = shape[1];
+      auto width = shape[2];
+      auto nchannels = shape[3];
+      dtype = DType((int)nchannels, dtype);
+      dims = PointNi(width, height, depth);
+    }
+    else
+    {
+      VisusAssert(false);
+    }
+
+    // Filters not supported
+    if (int nfilter = H5Pget_nfilters(dcpl_id))
+      PrintWarning("filters not supported");
+
+    //TODO
+    /*
+    - Continuos vs Chunked does it matter to set the dataset propery? Or should I set virtual
+      - see https://github.com/DataLib-ECP/vol-log-based/blob/b13778efd9e0c79135a9d7352104985408078d45/src/H5VL_log_dataset.cpp
+      - Example: H5Pset_layout (dcpl_id, H5D_CONTIGUOUS);
+    - filename should not be only the name
+    - automatically set chunked
+    - add other coarse-dataset
+    */
+
+    auto logic_box = BoxNi(PointNi::zero(dims.getPointDim()), dims);
+    auto field = Field("myfield", dtype);
+
+    //create the idx file if it does not exists
+    if (!FileUtils::existsFile(filename))
+    {
+      IdxFile idxfile;
+      idxfile.logic_box = logic_box;
+      idxfile.fields.push_back(field);
+      idxfile.save(filename);
+    }
+    else
+    {
+      PrintWarning("file", filename, "already exists. It MUST be dtype/dimension compatible");
+    }
+
+    //equivalent to open
+    auto visus_db = LoadIdxDataset(filename);
+    VisusReleaseAssert(visus_db);
+    VisusReleaseAssert(visus_db->getLogicBox()==logic_box);
+    VisusReleaseAssert(visus_db->getField().dtype == field.dtype);
+
+    PrintInfo("Created dataset", "filename", filename, "name", name, "dtype", dtype, "dims", dims, "under", (Uint64)under);
+
+    ret = openvisus_vol_new_obj(under, o->under_vol_id, visus_db);
   }
   else
   {
-    VisusAssert(false);
+    ret = openvisus_vol_new_obj(under, o->under_vol_id);
   }
-
-  // Filters not supported
-  if (int nfilter = H5Pget_nfilters(dcpl_id))
-    PrintWarning("filters not supported");
-
-  //TODO
-  /*
-  - Continuos vs Chunked does it matter to set the dataset propery? Or should I set virtual
-    - see https://github.com/DataLib-ECP/vol-log-based/blob/b13778efd9e0c79135a9d7352104985408078d45/src/H5VL_log_dataset.cpp
-    - Example: H5Pset_layout (dcpl_id, H5D_CONTIGUOUS);
-  - filename should not be only the name
-  - automatically set chunked
-  - add other coarse-dataset
-  */
-
-  String filename = StringUtils::endsWith(name, ".idx")? name : name + ".idx";
-  PrintInfo(filename, "!!!");
-
-  //create the idx file if it does not exists
-  if (!FileUtils::existsFile(filename))
-  {
-    IdxFile idxfile;
-    idxfile.logic_box = BoxNi(PointNi::zero(dims.getPointDim()), dims);
-    idxfile.fields.push_back(Field("myfield", dtype));
-    idxfile.save(filename);
-  }
-  else
-  {
-    PrintWarning("file", filename, "already exists. It MUST be dtype/dimension compatible");
-  }
-
-  //equivalent to open
-  auto db = LoadIdxDataset(filename);
-  VisusReleaseAssert(db);
-
-  PrintInfo("Created dataset", "filename", filename, "name", name, "dtype", dtype, "dims", dims, "under", (Uint64)under);
-
-  auto ret=openvisus_vol_new_obj(under, o->under_vol_id, db);
-
-#else
-  auto ret = openvisus_vol_new_obj(under, o->under_vol_id);
-#endif
 
   /* Check for async request */
   if (req && *req)
@@ -1196,25 +1196,26 @@ openvisus_vol_dataset_open(void* obj, const H5VL_loc_params_t* loc_params,
 {
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   String name = name_;
-  
-//#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_dataset_open");
-//#endif
+
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_dataset_open");
 
   void* under = H5VLdataset_open(o->under, loc_params, o->under_vol_id, name.c_str(), dapl_id, dxpl_id, req);
   if (!under)
     return nullptr;
 
-#if USE_OPENVISUS_DATASET
+  openvisus_vol_t* ret = nullptr;
+  if (StringUtils::endsWith(name,".idx"))
+  {
+    String filename = name;
+    SharedPtr<Dataset> visus_db = LoadDataset(filename); VisusReleaseAssert(visus_db);
+    ret = openvisus_vol_new_obj(under, o->under_vol_id, visus_db);
+  }
+  else
+  {
+    ret = openvisus_vol_new_obj(under, o->under_vol_id);
+  }
 
-  //open visus db
-  String filename = StringUtils::endsWith(name, ".idx") ? name : name + ".idx";
-  SharedPtr<Dataset> db = LoadDataset(filename); VisusReleaseAssert(db);
-  auto ret=openvisus_vol_new_obj(under, o->under_vol_id, db);
-
-#else
-  auto ret = openvisus_vol_new_obj(under, o->under_vol_id);
-#endif
 
   if (req && *req)
     *req = openvisus_vol_new_obj(*req, o->under_vol_id);
@@ -1241,15 +1242,14 @@ openvisus_vol_dataset_read(void* o_, hid_t mem_type_id, hid_t mem_space_id,
 {
   openvisus_vol_t* o = (openvisus_vol_t*)o_;
   
-  //#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_dataset_read","o",(Int64)o);
-  //#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_dataset_read","o",(Int64)o);
 
-#if USE_OPENVISUS_DATASET
-  herr_t ret_value = OpenVisusHDF5Utils::executeQuery(*o->db, 'r', mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
-#else
-   herr_t ret_value = H5VLdataset_read(o->under, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
-#endif
+  herr_t ret_value = 0;
+  if (o->visus_db)
+    ret_value = OpenVisusHDF5Utils::executeQuery(*o->visus_db, 'r', mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
+  else
+    ret_value = H5VLdataset_read(o->under, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req); //just forward to the HDF5 library
 
   /* Check for async request */
   if (req && *req)
@@ -1275,15 +1275,14 @@ static herr_t openvisus_vol_dataset_write(void* o_, hid_t mem_type_id, hid_t mem
 {
   openvisus_vol_t* o = (openvisus_vol_t*)o_;
     
-  //#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_dataset_write");
-  //#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_dataset_write");
 
-#if USE_OPENVISUS_DATASET
-  herr_t ret_value = OpenVisusHDF5Utils::executeQuery(*o->db, 'w', mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
-#else
-   herr_t ret_value = H5VLdataset_write(o->under, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
-#endif
+  herr_t ret_value = 0;
+	if (o->visus_db)
+		ret_value = OpenVisusHDF5Utils::executeQuery(*o->visus_db, 'w', mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
+	else
+		ret_value = H5VLdataset_write(o->under, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
 
   /* Check for async request */
   if (req && *req)
@@ -1308,9 +1307,8 @@ static herr_t openvisus_vol_dataset_get(void* dset, H5VL_dataset_get_t get_type,
 {
   openvisus_vol_t* o = (openvisus_vol_t*)dset;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_dataset_get", (int)get_type);
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_dataset_get", (int)get_type);
 
   //use the original dataset
   herr_t ret_value;
@@ -1341,9 +1339,8 @@ static herr_t
 {
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
 
- #if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_dataset_specific");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_dataset_specific");
 
   // Save copy of underlying VOL connector ID and prov helper, in case of
   // refresh destroying the current object
@@ -1376,9 +1373,8 @@ static herr_t
 {
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_dataset_optional");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_dataset_optional");
 
    herr_t ret_value = H5VLdataset_optional(o->under, o->under_vol_id, opt_type, dxpl_id, req, arguments);
 
@@ -1406,20 +1402,19 @@ static herr_t
 {
   openvisus_vol_t* o = (openvisus_vol_t*)dset;
 
-  //#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_dataset_close");
-  //#endif
-
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_dataset_close");
 
    herr_t ret_value = H5VLdataset_close(o->under, o->under_vol_id, dxpl_id, req);
 
-#if USE_OPENVISUS_DATASET
-   if (ret_value >= 0)
+   if (o->visus_db)
    {
-     SharedPtr<Dataset> db = *o->db;
-     PrintInfo("Closing database", "dims", db->getLogicBox().size(), "dtype", db->getField().dtype);
+     if (ret_value >= 0)
+     {
+       SharedPtr<Dataset> visus_db = *o->visus_db;
+       PrintInfo("Closing database", "dims", visus_db->getLogicBox().size(), "dtype", visus_db->getField().dtype);
+     }
    }
-#endif
 
   /* Check for async request */
   if (req && *req)
@@ -1453,9 +1448,8 @@ static void*
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   void* under;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_datatype_commit");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_datatype_commit");
 
   under = H5VLdatatype_commit(o->under, loc_params, o->under_vol_id, name, type_id, lcpl_id, tcpl_id, tapl_id, dxpl_id, req);
   if (under) {
@@ -1490,9 +1484,8 @@ static void*
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   void* under;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_datatype_open");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_datatype_open");
 
   under = H5VLdatatype_open(o->under, loc_params, o->under_vol_id, name, tapl_id, dxpl_id, req);
   if (under) {
@@ -1526,9 +1519,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)dt;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_datatype_get");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_datatype_get");
 
   ret_value = H5VLdatatype_get(o->under, o->under_vol_id, get_type, dxpl_id, req, arguments);
 
@@ -1558,9 +1550,8 @@ static herr_t
   hid_t under_vol_id;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_datatype_specific");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_datatype_specific");
 
   // Save copy of underlying VOL connector ID and prov helper, in case of
   // refresh destroying the current object
@@ -1593,9 +1584,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_datatype_optional");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_datatype_optional");
 
   ret_value = H5VLdatatype_optional(o->under, o->under_vol_id, opt_type, dxpl_id, req, arguments);
 
@@ -1623,9 +1613,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)dt;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_datatype_close");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_datatype_close");
 
   assert(o->under);
 
@@ -1662,9 +1651,8 @@ static void*
   hid_t under_fapl_id;
   void* under;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_file_create");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_file_create");
 
   /* Get copy of our VOL info from FAPL */
   H5Pget_vol_info(fapl_id, (void**)&info);
@@ -1719,9 +1707,9 @@ static void*
   openvisus_vol_t* file;
   hid_t under_fapl_id;
   void* under;
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_file_open");
-#endif
+
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_file_open");
 
   /* Get copy of our VOL info from FAPL */
   H5Pget_vol_info(fapl_id, (void**)&info);
@@ -1775,9 +1763,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)file;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_file_get");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_file_get");
 
   ret_value = H5VLfile_get(o->under, o->under_vol_id, get_type, dxpl_id, req, arguments);
 
@@ -1833,9 +1820,8 @@ static herr_t
   hid_t under_vol_id = -1;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_file_specific");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_file_specific");
 
   /* Unpack arguments to get at the child file pointer when mounting a file */
   if (specific_type == H5VL_FILE_MOUNT) {
@@ -1943,9 +1929,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)file;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_file_optional");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_file_optional");
 
   ret_value = H5VLfile_optional(o->under, o->under_vol_id, opt_type, dxpl_id, req, arguments);
 
@@ -1973,9 +1958,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)file;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_file_close");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_file_close");
 
   ret_value = H5VLfile_close(o->under, o->under_vol_id, dxpl_id, req);
 
@@ -2010,9 +1994,8 @@ static void*
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   void* under;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_group_create");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_group_create");
 
   under = H5VLgroup_create(o->under, loc_params, o->under_vol_id, name, lcpl_id, gcpl_id, gapl_id, dxpl_id, req);
   if (under) {
@@ -2047,9 +2030,9 @@ static void*
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   void* under;
   printf("%s:%d: openvisus_vol_group_open is called.\n", __func__, __LINE__);
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_group_open");
-#endif
+
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_group_open");
 
   under = H5VLgroup_open(o->under, loc_params, o->under_vol_id, name, gapl_id, dxpl_id, req);
   if (under) {
@@ -2083,9 +2066,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_group_get");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_group_get");
 
   ret_value = H5VLgroup_get(o->under, o->under_vol_id, get_type, dxpl_id, req, arguments);
 
@@ -2115,9 +2097,8 @@ static herr_t
   hid_t under_vol_id;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_group_specific");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_group_specific");
 
   // Save copy of underlying VOL connector ID and prov helper, in case of
   // refresh destroying the current object
@@ -2150,9 +2131,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_group_optional");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_group_optional");
 
   ret_value = H5VLgroup_optional(o->under, o->under_vol_id, opt_type, dxpl_id, req, arguments);
 
@@ -2180,9 +2160,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)grp;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_group_close");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_group_close");
 
   ret_value = H5VLgroup_close(o->under, o->under_vol_id, dxpl_id, req);
 
@@ -2243,9 +2222,8 @@ static herr_t
   hid_t under_vol_id = -1;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_link_create");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_link_create");
 
   /* Try to retrieve the "under" VOL id */
   if (o)
@@ -2309,9 +2287,8 @@ static herr_t
   hid_t under_vol_id = -1;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_link_copy");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_link_copy");
 
   /* Retrieve the "under" VOL id */
   if (o_src)
@@ -2355,9 +2332,8 @@ static herr_t
   hid_t under_vol_id = -1;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_link_move");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_link_move");
 
   /* Retrieve the "under" VOL id */
   if (o_src)
@@ -2393,9 +2369,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_link_get");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_link_get");
 
   ret_value = H5VLlink_get(o->under, loc_params, o->under_vol_id, get_type, dxpl_id, req, arguments);
 
@@ -2424,9 +2399,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_link_specific");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_link_specific");
 
   ret_value = H5VLlink_specific(o->under, loc_params, o->under_vol_id, specific_type, dxpl_id, req, arguments);
 
@@ -2455,9 +2429,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_link_optional");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_link_optional");
 
   ret_value = H5VLlink_optional(o->under, o->under_vol_id, opt_type, dxpl_id, req, arguments);
 
@@ -2479,13 +2452,12 @@ static herr_t
   *
   *-------------------------------------------------------------------------
   */
-static void*  openvisus_vol_object_open(void* o_, const H5VL_loc_params_t * loc_params, H5I_type_t * opened_type, hid_t dxpl_id, void** req)
+static void* openvisus_vol_object_open(void* o_, const H5VL_loc_params_t* loc_params, H5I_type_t* opened_type, hid_t dxpl_id, void** req)
 {
   openvisus_vol_t* o = (openvisus_vol_t*)o_;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_object_open");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_object_open");
 
   void* under = H5VLobject_open(o->under, loc_params, o->under_vol_id, opened_type, dxpl_id, req);
   if (!under)
@@ -2493,16 +2465,17 @@ static void*  openvisus_vol_object_open(void* o_, const H5VL_loc_params_t * loc_
 
   openvisus_vol_t* ret = nullptr;
 
-#if USE_OPENVISUS_DATASET
-  if (*opened_type == H5I_DATASET)
+  //if OpenVisus is enabled the HDF5 dataset name is the *.idx filename
+  if (*opened_type == H5I_DATASET && loc_params->type == H5VL_OBJECT_BY_NAME)
   {
-    VisusReleaseAssert(loc_params->type== H5VL_OBJECT_BY_NAME); //TODO other cases
     String name = loc_params->loc_data.loc_by_name.name;
-    String filename = StringUtils::endsWith(name, ".idx")? name : name+".idx";
-    SharedPtr<Dataset> db = LoadDataset(filename); VisusReleaseAssert(db);
-    ret= openvisus_vol_new_obj(under, o->under_vol_id, db);
-  } 
-#endif
+    if (StringUtils::endsWith(name, ".idx"))
+    {
+      String filename = name;
+      SharedPtr<Dataset> visus_db = LoadDataset(filename); VisusReleaseAssert(visus_db);
+      ret = openvisus_vol_new_obj(under, o->under_vol_id, visus_db);
+    }
+  }
 
   if  (!ret)
     ret = openvisus_vol_new_obj(under, o->under_vol_id);
@@ -2535,9 +2508,8 @@ static herr_t
   openvisus_vol_t* o_dst = (openvisus_vol_t*)dst_obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_object_copy");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_object_copy");
 
   ret_value = H5VLobject_copy(o_src->under, src_loc_params, src_name, o_dst->under, dst_loc_params, dst_name, o_src->under_vol_id, ocpypl_id, lcpl_id, dxpl_id, req);
 
@@ -2565,9 +2537,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_object_get");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_object_get");
 
   ret_value = H5VLobject_get(o->under, loc_params, o->under_vol_id, get_type, dxpl_id, req, arguments);
 
@@ -2598,9 +2569,8 @@ static herr_t
   hid_t under_vol_id;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_object_specific");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_object_specific");
 
   // Save copy of underlying VOL connector ID and prov helper, in case of
   // refresh destroying the current object
@@ -2633,9 +2603,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_object_optional");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_object_optional");
 
   ret_value = H5VLobject_optional(o->under, o->under_vol_id, opt_type, dxpl_id, req, arguments);
 
@@ -2663,9 +2632,8 @@ herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_introspect_get_conn_cls");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_introspect_get_conn_cls");
 
   /* Check for querying this connector's class */
   if (H5VL_GET_CONN_LVL_CURR == lvl) {
@@ -2696,9 +2664,8 @@ herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_introspect_opt_query");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_introspect_opt_query");
 
   ret_value = H5VLintrospect_opt_query(o->under, o->under_vol_id, cls,
     opt_type, supported);
@@ -2727,9 +2694,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_request_wait");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_request_wait");
 
   ret_value = H5VLrequest_wait(o->under, o->under_vol_id, timeout, status);
 
@@ -2756,9 +2722,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_request_notify");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_request_notify");
 
   ret_value = H5VLrequest_notify(o->under, o->under_vol_id, cb, ctx);
 
@@ -2784,9 +2749,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_request_cancel");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_request_cancel");
 
   ret_value = H5VLrequest_cancel(o->under, o->under_vol_id);
 
@@ -2836,9 +2800,8 @@ static herr_t
 {
   herr_t ret_value = -1;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_request_specific");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_request_specific");
 
   if (H5VL_REQUEST_WAITANY == specific_type ||
     H5VL_REQUEST_WAITSOME == specific_type ||
@@ -2948,9 +2911,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_request_optional");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_request_optional");
 
   ret_value = H5VLrequest_optional(o->under, o->under_vol_id, opt_type, arguments);
 
@@ -2975,9 +2937,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_request_free");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_request_free");
 
   ret_value = H5VLrequest_free(o->under, o->under_vol_id);
 
@@ -3004,9 +2965,8 @@ herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_blob_put");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_blob_put");
 
   ret_value = H5VLblob_put(o->under, o->under_vol_id, buf, size,
     blob_id, ctx);
@@ -3031,9 +2991,8 @@ herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_blob_get");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_blob_get");
 
   ret_value = H5VLblob_get(o->under, o->under_vol_id, blob_id, buf,
     size, ctx);
@@ -3058,9 +3017,8 @@ herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_blob_specific");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_blob_specific");
 
   ret_value = H5VLblob_specific(o->under, o->under_vol_id, blob_id,
     specific_type, arguments);
@@ -3085,9 +3043,8 @@ herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_blob_optional");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_blob_optional");
 
   ret_value = H5VLblob_optional(o->under, o->under_vol_id, blob_id,
     opt_type, arguments);
@@ -3114,9 +3071,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_token_cmp");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_token_cmp");
 
   /* Sanity checks */
   assert(obj);
@@ -3147,9 +3103,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_token_to_str");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_token_to_str");
 
   /* Sanity checks */
   assert(obj);
@@ -3179,9 +3134,8 @@ static herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_token_from_str");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_token_from_str");
 
   /* Sanity checks */
   assert(obj);
@@ -3210,9 +3164,8 @@ herr_t
   openvisus_vol_t* o = (openvisus_vol_t*)obj;
   herr_t ret_value;
 
-#if ENABLE_LOGGING
-  PrintInfo("openvisus_vol_optional");
-#endif
+  if (VISUS_HDF5_ENABLE_LOGGING())
+    PrintInfo("openvisus_vol_optional");
 
   ret_value = H5VLoptional(o->under, o->under_vol_id, op_type,
     dxpl_id, req, arguments);
