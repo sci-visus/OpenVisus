@@ -19,6 +19,10 @@ jobs:
     steps:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
+    - name: Prepare MSVC
+      uses: bus1/cabuild/action/msdevshell@v1
+      with:
+        architecture: x64      
     - name: install cpython
       uses: actions/setup-python@v2
       with:
@@ -40,6 +44,10 @@ jobs:
     steps:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
+    - name: Prepare MSVC
+      uses: bus1/cabuild/action/msdevshell@v1
+      with:
+        architecture: x64      
     - name: Compile (cpython)
       shell: bash
       run: |
