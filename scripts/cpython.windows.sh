@@ -99,6 +99,9 @@ fi
 
 # compile openvisus
 if [[ "1" == "1" ]]; then
+
+	C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat
+
 	mkdir -p ${BUILD_DIR} 
 	cd ${BUILD_DIR}
 	cmake \
