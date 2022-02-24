@@ -64,6 +64,9 @@ if [[ "1" == "1" ]]; then
 	# brew install python@${PYTHON_VERSION}
 	PYTHON=$(which python)
 	$PYTHON --version
+	
+	$PYTHON -m pip install numpy
+	
 	if [[ "$VISUS_GUI" == "1" ]]; then 
 		InstallQt5
 	fi

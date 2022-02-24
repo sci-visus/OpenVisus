@@ -10,12 +10,11 @@ env:
 
 jobs:
 
-  build-windows-macos:
-    runs-on: ${{ matrix.os }}-latest
+  build-windows:
+    runs-on: windows-latest
     strategy:
       fail-fast: false  
       matrix:
-        os: [ "windows" , "macos" ]
         type: [ "cpython" , "conda" ]
         python-version: [ '3.7', '3.8', '3.9' , '3.10' ]
     steps:
@@ -31,14 +30,37 @@ jobs:
       run: |
            set -ex
            export PYTHON_VERSION=${{ matrix.python-version }}
-           source ./scripts/${{ matrix.type }}.${{ matrix.os }}.sh
+           source ./scripts/${{ matrix.type }}.windows.sh
       
-  build-ubuntu:
-    runs-on: ${{ matrix.os }}-latest
+
+  build-macos:
+    runs-on: macos-latest
     strategy:
       fail-fast: false  
       matrix:
-        os: ["ubuntu" ]
+        type: [ "cpython" , "conda" ]
+        python-version: [ '3.7', '3.8', '3.9' , '3.10' ]
+    steps:
+    - name: git clone OpenVisus
+      uses: actions/checkout@v2
+    - name: install cpython
+      uses: actions/setup-python@v2
+      if: ${{ matrix.type == 'cpython' }} 
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Compile (cpython)
+      shell: bash
+      run: |
+           set -ex
+           export PYTHON_VERSION=${{ matrix.python-version }}
+           source ./scripts/${{ matrix.type }}.macos.sh
+            
+      
+  build-ubuntu:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false  
+      matrix:
         python-version: [ '3.7', '3.8', '3.9', '3.10' ]
     steps:
     - name: git clone OpenVisus
@@ -49,7 +71,7 @@ jobs:
            set -ex
            export PYTHON_VERSION=${{ matrix.python-version }}
            export DOCKER_IMAGE=visus/portable-linux-binaries_x86_64:4.1
-           source scripts/${{ matrix.os }}.sh
+           source scripts/ubuntu.sh
 
 
 
