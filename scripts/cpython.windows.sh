@@ -102,7 +102,7 @@ if [[ "1" == "1" ]]; then
 	mkdir -p ${BUILD_DIR} 
 	cd ${BUILD_DIR}
 	cmake \
-		-G "Visual Studio 17 2022" \
+		-G "Visual Studio 16 2019" \
 		-A x64 \
 		-DQt5_DIR=${Qt5_Dir} \
 		-DPython_EXECUTABLE=${PYTHON} \

@@ -91,7 +91,7 @@ if [[ "1" == "1" ]]; then
     -DVISUS_MODVISUS=$VISUS_MODVISUS \
     ../
   cmake --build . --target ALL_BUILD --config Release --parallel 4
-  cmake --build . --target install	 --config Release }
+  cmake --build . --target install	 --config Release 
 fi
 
 # for for `bdist_conda` problem
