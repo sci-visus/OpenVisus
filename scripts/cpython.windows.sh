@@ -37,6 +37,7 @@ function InstallCMake() {
 function InstallPython() {
 	choco install python3 --version=${PYTHON_VERSION} --yes --no-progress --debug --verbose --force # --params "/InstallDir:C:/tmp/python${PYTHON_VERSION}"
 	PYTHON=/c/tmp/python${PYTHON_VERSION}/python.exe
+	$PYTHON -m pip install --upgrade pip
 }
 
 # ///////////////////////////////////////////////
@@ -68,9 +69,9 @@ function CreateNonGuiVersion() {
 # ///////////////////////////////////////////////
 function ConfigureAndTestCPython() {
    export PYTHONPATH=../
-   $PYTHON   -m OpenVisus configure || true # this can fail on linux
+   $PYTHON   -m OpenVisus configure
    $PYTHON   -m OpenVisus test
-   $PYTHON   -m OpenVisus test-gui || true # this can fail on linux
+   $PYTHON   -m OpenVisus test-gui 
    unset PYTHONPATH
 }
 
