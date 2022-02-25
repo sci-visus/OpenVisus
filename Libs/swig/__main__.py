@@ -115,9 +115,20 @@ def Configure(bUserInstall=False):
 	print("sys.executable",sys.executable,"VISUS_GUI",VISUS_GUI, "QT_VERSION", QT_VERSION, "IS_CONDA", IS_CONDA, "CONDA_PREFIX",CONDA_PREFIX)
 
 	PACKAGES=['numpy']
-	PACKAGES+=["pyqt={}.{}".format(QT_MAJOR_VERSION,QT_MINOR_VERSION)] if VISUS_GUI and IS_CONDA else []
-	PACKAGES+=["PyQt5~={}.{}.0".format(QT_MAJOR_VERSION,QT_MINOR_VERSION),"PyQtWebEngine", "PyQt5-sip"] if VISUS_GUI and IS_CPYTHON else []
-	PACKAGES+=["libglu"] if VISUS_GUI and IS_CONDA and LINUX else []	
+	
+	# VISUS_GUI/cpython
+	PACKAGES+=[
+		"PyQt5~={}.{}.0".format(QT_MAJOR_VERSION,QT_MINOR_VERSION),
+		"PyQtWebEngine", 
+		"PyQt5-sip",
+		"pyqt5-tools~={}.{}.0".format(QT_MAJOR_VERSION,QT_MINOR_VERSION)
+		] if VISUS_GUI and IS_CPYTHON else []
+		
+	# VISUS_GUI/conda
+	PACKAGES+=[
+		"pyqt={}.{}".format(QT_MAJOR_VERSION,QT_MINOR_VERSION),
+		"libglu"
+	] if VISUS_GUI and IS_CONDA and LINUX else []	
 
 	if IS_CONDA:
 		cmd=['conda', 'install', '-y', '-c', 'conda-forge'] + PACKAGES

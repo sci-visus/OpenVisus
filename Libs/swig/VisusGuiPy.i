@@ -63,6 +63,9 @@ if True:
 
 	if os.path.isdir(os.path.join(os.path.dirname(PyQt5.__file__),"Qt/plugins")):
 		os.environ["QT_PLUGIN_PATH"]= os.path.join(os.path.dirname(PyQt5.__file__),"Qt/plugins")
+
+	elif os.path.isdir(os.path.join(os.path.dirname(PyQt5.__file__),"Qt5/plugins")):
+		os.environ["QT_PLUGIN_PATH"]= os.path.join(os.path.dirname(PyQt5.__file__),"Qt5/plugins")
 		
 	elif is_conda and os.path.isdir(os.path.join(os.environ['CONDA_PREFIX'],"Library/plugins")):
 		os.environ["QT_PLUGIN_PATH"]= os.path.join(os.environ['CONDA_PREFIX'],"Library/plugins")
