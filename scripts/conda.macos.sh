@@ -95,12 +95,11 @@ if [[ "1" == "1" ]]; then
 fi
 
 # for for `bdist_conda` problem
-if [ -f "${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/distutils/command/bdist_conda.py" ]; then
-   mkdir -p ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/site-packages/setuptools/_distutils/command
-	cp -n ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/distutils/command/bdist_conda.py \
-	      ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}/site-packages/setuptools/_distutils/command/bdist_conda.py
+if [[ "1" == "1" ]]; then
+	pushd ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}
+	cp -n distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py || true
+	popd
 fi
-
 
 if [[ "1" == "1" ]]; then
   pushd Release/OpenVisus

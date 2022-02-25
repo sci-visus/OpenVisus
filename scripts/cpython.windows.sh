@@ -37,7 +37,6 @@ function InstallCMake() {
 function InstallPython() {
 	choco install python3 --version=${PYTHON_VERSION} --yes --no-progress --debug --verbose --force # --params "/InstallDir:C:/tmp/python${PYTHON_VERSION}"
 	PYTHON=/c/tmp/python${PYTHON_VERSION}/python.exe
-	$PYTHON -m pip install --upgrade pip
 }
 
 # ///////////////////////////////////////////////
@@ -90,7 +89,12 @@ function DistribToPip() {
 if [[ "1" == "1" ]]; then
 	InstallSwig
 	InstallCMake
+	
+	# using existing python
 	#InstallPython
+
+	$PYTHON -m pip install --upgrade pip	
+	
 	PYTHON=$(which python)
 	if [[ "$VISUS_GUI" == "1" ]]; then
 		# InstallOspray
