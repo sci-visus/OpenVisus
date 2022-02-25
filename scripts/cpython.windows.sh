@@ -46,8 +46,10 @@ function InstallQt5() {
 		VERSION=5.15.0
 		ARCH=msvc2019_64
 	else
-		VERSION=5.12.0
-		ARCH=msvc2017_64
+		#VERSION=5.12.0
+		#ARCH=msvc2017_64
+		VERSION=5.15.0
+		ARCH=msvc2019_64		
 	fi
 	$PYTHON -m aqt install-qt --outputdir c:/Qt windows desktop ${VERSION} win64_${ARCH}
 	Qt5_Dir=C:/Qt/${VERSION}/${ARCH}/lib/cmake/Qt5
