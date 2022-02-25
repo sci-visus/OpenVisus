@@ -93,9 +93,9 @@ if [[ "1" == "1" ]]; then
 	# using existing python
 	#InstallPython
 
+	PYTHON=$(which python)
 	$PYTHON -m pip install --upgrade pip	
 	
-	PYTHON=$(which python)
 	if [[ "$VISUS_GUI" == "1" ]]; then
 		# InstallOspray
 		InstallQt5
