@@ -121,7 +121,7 @@ def Configure(bUserInstall=False):
 		"PyQt5~={}.{}.0".format(QT_MAJOR_VERSION,QT_MINOR_VERSION),
 		"PyQtWebEngine", 
 		"PyQt5-sip",
-		"pyqt5-tools~={}.{}.0".format(QT_MAJOR_VERSION,QT_MINOR_VERSION)
+		"pyqt5-tools" # hopefully this solves some problems on some platforms
 		] if VISUS_GUI and IS_CPYTHON else []
 		
 	# VISUS_GUI/conda
