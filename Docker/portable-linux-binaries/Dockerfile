@@ -1,5 +1,5 @@
 # sudo docker login -u scrgiorgio
-# TAG=4.1
+# TAG=4.2
 # sudo docker build --tag visus/portable-linux-binaries_x86_64:$TAG --tag visus/portable-linux-binaries_x86_64:latest --progress=plain .
 # sudo docker push visus/portable-linux-binaries_x86_64:$TAG
 # sudo docker push visus/portable-linux-binaries_x86_64:latest
@@ -39,6 +39,9 @@ RUN \
   ~/miniforge3/bin/conda install -c conda-forge conda cmake swig anaconda-client conda-build wheel
   
 RUN yum install -y mesa-libGLU yum install -y mesa-libGLU-devel
-  
+
+# added qt 5.15  
+COPY qt515.sh .
+RUN bash qt515.sh 
 
 

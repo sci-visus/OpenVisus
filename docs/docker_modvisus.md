@@ -145,7 +145,7 @@ sudo docker run \
 # (OPTIONAL)Build the image
 
 ```
-cd Docker/mod_visus/httpd
+cd Docker/mod_visus
 TAG=YOUR_TAG_HERE
 sudo docker build --tag visus/mod_visus_x86_64:$TAG  --build-arg TAG=$TAG .
 sudo docker push visus/mod_visus_x86_64:$TAG

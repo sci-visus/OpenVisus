@@ -46,8 +46,10 @@ function InstallQt5() {
 		VERSION=5.15.0
 		ARCH=msvc2019_64
 	else
-		VERSION=5.12.0
-		ARCH=msvc2017_64
+		#VERSION=5.12.0
+		#ARCH=msvc2017_64
+		VERSION=5.15.0
+		ARCH=msvc2019_64		
 	fi
 	$PYTHON -m aqt install-qt --outputdir c:/Qt windows desktop ${VERSION} win64_${ARCH}
 	Qt5_Dir=C:/Qt/${VERSION}/${ARCH}/lib/cmake/Qt5
@@ -68,9 +70,9 @@ function CreateNonGuiVersion() {
 # ///////////////////////////////////////////////
 function ConfigureAndTestCPython() {
    export PYTHONPATH=../
-   $PYTHON   -m OpenVisus configure || true # this can fail on linux
+   $PYTHON   -m OpenVisus configure
    $PYTHON   -m OpenVisus test
-   $PYTHON   -m OpenVisus test-gui || true # this can fail on linux
+   $PYTHON   -m OpenVisus test-gui 
    unset PYTHONPATH
 }
 
@@ -89,8 +91,13 @@ function DistribToPip() {
 if [[ "1" == "1" ]]; then
 	InstallSwig
 	InstallCMake
+	
+	# using existing python
 	#InstallPython
+
 	PYTHON=$(which python)
+	$PYTHON -m pip install --upgrade pip	
+	
 	if [[ "$VISUS_GUI" == "1" ]]; then
 		# InstallOspray
 		InstallQt5

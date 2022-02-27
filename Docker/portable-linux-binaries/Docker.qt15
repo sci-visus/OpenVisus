@@ -1,0 +1,12 @@
+# sudo docker login -u scrgiorgio
+# TAG=4.2
+# sudo docker build --tag visus/portable-linux-binaries_x86_64:$TAG --tag visus/portable-linux-binaries_x86_64:latest --progress=plain .
+# sudo docker push visus/portable-linux-binaries_x86_64:$TAG
+# sudo docker push visus/portable-linux-binaries_x86_64:latest
+
+FROM visus/portable-linux-binaries_x86_64:latest
+
+COPY qt515.sh .
+RUN bash qt515.sh 
+
+
