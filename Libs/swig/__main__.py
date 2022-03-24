@@ -115,24 +115,15 @@ def Configure(bUserInstall=False):
 	print("sys.executable",sys.executable,"VISUS_GUI",VISUS_GUI, "QT_VERSION", QT_VERSION, "IS_CONDA", IS_CONDA, "CONDA_PREFIX",CONDA_PREFIX)
 
 	PACKAGES=['numpy']
-	
-	# VISUS_GUI/cpython
-	PACKAGES+=[
-		"PyQt5~={}.{}.0".format(QT_MAJOR_VERSION,QT_MINOR_VERSION),
-		"PyQtWebEngine", 
-		"PyQt5-sip",
-		# "pyqt5-tools" 
-		] if VISUS_GUI and IS_CPYTHON else []
-		
-	# VISUS_GUI/conda
-	PACKAGES+=[
-		"pyqt={}.{}".format(QT_MAJOR_VERSION,QT_MINOR_VERSION),
-		"libglu"
-	] if VISUS_GUI and IS_CONDA and LINUX else []	
+	PACKAGES+=["pyqt={}.{}".format(QT_MAJOR_VERSION,QT_MINOR_VERSION)] if VISUS_GUI and IS_CONDA else []
+	PACKAGES+=["PyQt5~={}.{}.0".format(QT_MAJOR_VERSION,QT_MINOR_VERSION),"PyQtWebEngine", "PyQt5-sip"] if VISUS_GUI and IS_CPYTHON else []
+	PACKAGES+=["libglu"] if VISUS_GUI and IS_CONDA and LINUX else []	
 
 	if IS_CONDA:
 		cmd=['conda', 'install', '-y', '-c', 'conda-forge'] + PACKAGES
 		conda.cli.main(*cmd)
+		print("OPENVISUS WARNING", "if you get errors like:  module compiled against API version 0xc but this version of numpy is 0xa, then execute","conda update -y numpy")
+
 	else:
 		cmd=[sys.executable,"-m", "pip", "install", "--upgrade"]
 		if bUserInstall: cmd.append("--user")
@@ -151,7 +142,18 @@ def Configure(bUserInstall=False):
 		PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip() # this should cover the case where I just installed PyQt5
 		print("PyQt5_HOME",PyQt5_HOME)
 		Assert(os.path.isdir(PyQt5_HOME))
-		QT_LIB_DIR="{}/lib".format(CONDA_PREFIX) if IS_CONDA else os.path.join(PyQt5_HOME,'Qt/lib')
+
+		if IS_CONDA:
+			QT_LIB_DIR="{}/lib".format(CONDA_PREFIX)
+
+		elif os.path.isdir(os.path.join(PyQt5_HOME,'Qt5/lib')):
+			QT_LIB_DIR=os.path.join(PyQt5_HOME,'Qt5/lib')
+
+		elif os.path.isdir(os.path.join(PyQt5_HOME,'Qt/lib')):
+			QT_LIB_DIR=os.path.join(PyQt5_HOME,'Qt/lib')
+		else:
+			raise Exception("cannot find QT_LIB_DIR")
+
 		print("QT_LIB_DIR",QT_LIB_DIR)
 		Assert(os.path.isdir(QT_LIB_DIR))
 
@@ -433,7 +435,6 @@ def Main(args):
 		os.chdir(this_dir)
 		Configure(bUserInstall="--user" in action_args)
 		print(action,"done")
-		print("WARNING", "if you get errors like:  module compiled against API version 0xc but this version of numpy is 0xa, then execute","conda update -y numpy")
 		sys.exit(0)
 
 	#example -m OpenVisus fix-range --dataset "D:\GoogleSci\visus_dataset\cat256\visus0.idx" 
