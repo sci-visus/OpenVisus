@@ -61,12 +61,12 @@ if True:
 	# see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
 	is_conda = os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history'))
 
-	if os.path.isdir(os.path.join(os.path.dirname(PyQt5.__file__),"Qt/plugins")):
+	if os.path.isdir(os.path.join(os.path.dirname(PyQt5.__file__),"Qt5/plugins")):
+		os.environ["QT_PLUGIN_PATH"]= os.path.join(os.path.dirname(PyQt5.__file__),"Qt5/plugins")
+
+	elif os.path.isdir(os.path.join(os.path.dirname(PyQt5.__file__),"Qt/plugins")):
 		os.environ["QT_PLUGIN_PATH"]= os.path.join(os.path.dirname(PyQt5.__file__),"Qt/plugins")
 
-	elif os.path.isdir(os.path.join(os.path.dirname(PyQt5.__file__),"Qt5/plugins")):
-		os.environ["QT_PLUGIN_PATH"]= os.path.join(os.path.dirname(PyQt5.__file__),"Qt5/plugins")
-		
 	elif is_conda and os.path.isdir(os.path.join(os.environ['CONDA_PREFIX'],"Library/plugins")):
 		os.environ["QT_PLUGIN_PATH"]= os.path.join(os.environ['CONDA_PREFIX'],"Library/plugins")
 		
