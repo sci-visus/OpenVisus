@@ -166,10 +166,11 @@ class PyDataset(object):
 	# getExtendedInfo
 	def getExtendedInfo(self):
 		db=self
+		pdim=db.getPointDim()
 		p1=db.getLogicBox()[0]
 		p2=db.getLogicBox()[1]
-		center=[(p1[I]+p2[I])//2 for I in range(3)]
-		dims=[(p2[I]-p1[I]) for I in range(3)]
+		center=[(p1[I]+p2[I])//2 for I in range(pdim)]
+		dims=[(p2[I]-p1[I]) for I in range(pdim)]
 		fields=[db.getField(it) for it in db.getFields()]
 		timesteps=[int(it) for it in db.getTimesteps().asVector()]
 		files=[filename for filename in list(db.getAllFilenames()) if os.path.isfile(filename)]
@@ -178,8 +179,8 @@ class PyDataset(object):
 		total_file_size=sum([os.path.getsize(filename) for filename in files])
 
 		ret={
-			"url": self.getUrl(),
-			"dimension":db.getPointDim(),
+			"url": db.getUrl(),
+			"dimension": pdim,
 			"logic_box" : db.getLogicBox(),
 			"dims" : dims,
 			"timesteps": timesteps,
@@ -187,7 +188,6 @@ class PyDataset(object):
 			"num_files" : num_files,
 			"total_file_size" : total_file_size,
 			"total_field_size": total_field_size,
-			"compression_ratio" : "{}%".format(int(100.0*total_file_size/total_field_size)),
 			"files": files,
 		}
 

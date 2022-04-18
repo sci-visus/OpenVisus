@@ -459,16 +459,19 @@ std::vector<String> Dataset::getAllFilenames()
 
   auto access = createAccess();
 
+  //assuming blocks will go to the same file
+  auto blocksperfile = idxfile.blocksperfile;
+
   for (auto time : idxfile.timesteps.asVector())
   {
-    for (BigInt blockid = 0, total_blocks = getTotalNumberOfBlocks(); blockid < total_blocks; blockid++)
+    for (BigInt blockid = 0, total_blocks = getTotalNumberOfBlocks(); blockid < total_blocks; blockid+=blocksperfile)
     {
       for (auto field : idxfile.fields)
       {
         auto filename = access->getFilename(field, time, blockid);
 
         //usually different fields go to the same file
-        if (ret.empty() || ret.back() != filename)
+        if (ret.empty() || ret.back()!=filename)
           ret.push_back(filename);
       }
     }
