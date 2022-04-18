@@ -163,6 +163,54 @@ class PyDataset(object):
 			
 		return value
 		
+	# getExtendedInfo
+	def getExtendedInfo(self):
+		db=self
+		p1=db.getLogicBox()[0]
+		p2=db.getLogicBox()[1]
+		center=[(p1[I]+p2[I])//2 for I in range(3)]
+		dims=[(p2[I]-p1[I]) for I in range(3)]
+		fields=[db.getField(it) for it in db.getFields()]
+		timesteps=[int(it) for it in db.getTimesteps().asVector()]
+		files=[filename for filename in list(db.getAllFilenames()) if os.path.isfile(filename)]
+		num_files=len(files)
+		total_field_size=sum([field.dtype.getByteSize(PointNi(dims)) for field in fields])
+		total_file_size=sum([os.path.getsize(filename) for filename in files])
+
+		ret={
+			"url": self.getUrl(),
+			"dimension":db.getPointDim(),
+			"logic_box" : db.getLogicBox(),
+			"dims" : dims,
+			"timesteps": timesteps,
+			"fields" : [],
+			"num_files" : num_files,
+			"total_file_size" : total_file_size,
+			"total_field_size": total_field_size,
+			"compression_ratio" : "{}%".format(int(100.0*total_file_size/total_field_size)),
+			"files": files,
+		}
+
+		for field in fields:
+			dtype=field.dtype
+			ranges=[dtype.getDTypeRange(I) for I in range(dtype.ncomponents())]
+			ranges=[(r.From,r.To) if r.delta()>0 else (0,0) for r in ranges]
+			total_field_size=dtype.getByteSize(PointNi(dims))
+
+			ret["fields"].append({
+				"name":field.name,
+				"dtype":  dtype.toString(),
+				"default_compression":field.default_compression,
+				"default_layout":field.default_layout,
+				"default_value":field.default_value,
+				"filter":field.filter,
+				"dtype_ranges":ranges,
+				"total_field_size" : total_field_size,
+			})
+
+		return ret
+
+
 	# createAccess
 	def createAccess(self):
 		return self.db.createAccess()
