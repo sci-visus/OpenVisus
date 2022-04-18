@@ -453,6 +453,32 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
+std::vector<String> Dataset::getAllFilenames()
+{
+  std::vector<String> ret;
+
+  auto access = createAccess();
+
+  for (auto time : idxfile.timesteps.asVector())
+  {
+    for (BigInt blockid = 0, total_blocks = getTotalNumberOfBlocks(); blockid < total_blocks; blockid++)
+    {
+      for (auto field : idxfile.fields)
+      {
+        auto filename = access->getFilename(field, time, blockid);
+
+        //usually different fields go to the same file
+        if (ret.empty() || ret.back() != filename)
+          ret.push_back(filename);
+      }
+    }
+  }
+
+  return ret;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////
 void Dataset::compressDataset(std::vector<String> compression, Array data)
 {
   auto idx = dynamic_cast<IdxDataset*>(this);
