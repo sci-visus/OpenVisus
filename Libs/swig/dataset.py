@@ -178,7 +178,7 @@ class PyDataset(object):
 		files=[]
 		for filename in list(self.getAllFilenames()):
 			size=FileUtils.getFileSize(Path(filename))
-			if size>=0:
+			if size>0:
 				files.append({
 					"filename" : filename, 
 					"size" : size,
