@@ -520,6 +520,38 @@ void IdxFile::readFromOldFormat(const String& content)
   for (auto it = map.begin(); it != map.end(); it++)
     it->second = StringUtils::trim(it->second);
 
+
+#if 0
+
+  //there is a very old format which I am not sure has a binary compatible format.
+  //it does not have (version) and first line is (dimensions)
+  //it also has (rootpath) and (filepath)
+  //my first attempts to enable it didn't work during the read-blocks
+    if (map.hasValue("(dimensions)") && map.hasValue("(filepath)"))
+    {
+      auto dimensions = PointNi::fromString(map.getValue("(dimensions)"));
+      auto boundingbox = BoxNi::fromString(map.getValue("(boundingbox)"));
+      auto samplesize = cint(map.getValue("(samplesize)"));
+      auto samplesperblock = cint(map.getValue("(samplesperblock)"));
+      auto blocksperfile = cint(map.getValue("(blocksperfile)"));
+      auto rootpath = map.getValue("(rootpath)");
+      auto filepath = map.getValue("(filepath)");
+    
+      auto bitsperblock = Utils::getLog2(samplesperblock);
+      auto filename_template = StringUtils::replaceAll(rootpath + "/" + filepath, ":", "");
+      auto field = concatenate("DATA uint8[", samplesize, "] format(0) default_value(0) min(0) max(0)");
+      auto bits = DatasetBitmask::guess('V', dimensions,/*regular_as_soon_as possible*/true); //not sure about this
+    
+      map.setValue("(version)", "1");
+      map.setValue("(box)", boundingbox.toString());
+      map.setValue("(fields)", field);
+      map.setValue("(bits)", bits.toString());
+      map.setValue("(bitsperblock)", cstring(bitsperblock));
+      map.setValue("(blocksperfile)", cstring(blocksperfile));
+      map.setValue("(filename_template)", filename_template);
+    }
+#endif
+
   this->version = cint(map.getValue("(version)"));
   if (!(this->version >= 1 && this->version <= 6))
     ThrowException("invalid version");
