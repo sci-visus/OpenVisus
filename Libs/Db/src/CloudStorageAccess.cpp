@@ -100,7 +100,7 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 
   auto blob_name = Access::getFilename(query);
 
-  cloud_storage->getBlob(netservice, blob_name, /*head*/false, query->aborted).when_ready([this, query](SharedPtr<CloudStorageItem> blob) {
+  cloud_storage->getBlob(netservice, blob_name, /*head*/false, /*range*/{0,0}, query->aborted).when_ready([this, query](SharedPtr<CloudStorageItem> blob) {
 
     if (!blob || !blob->valid())
       return readFailed(query, query->aborted()? "query aborted" : "blob not valid");

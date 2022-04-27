@@ -171,7 +171,7 @@ public:
   virtual Future<bool> addBlob(SharedPtr<NetService> net, SharedPtr<CloudStorageItem> blob, Aborted aborted = Aborted())=0;
 
   //getBlob
-  virtual Future< SharedPtr<CloudStorageItem> > getBlob(SharedPtr<NetService> net, String name, bool head=false, Aborted aborted = Aborted()) = 0;
+  virtual Future< SharedPtr<CloudStorageItem> > getBlob(SharedPtr<NetService> net, String name, bool head = false, std::pair<Int64, Int64> range = { 0,0 }, Aborted aborted = Aborted()) = 0;
 
   // deleteBlob
   virtual Future<bool> deleteBlob(SharedPtr<NetService> net, String name, Aborted aborted = Aborted()) = 0;

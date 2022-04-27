@@ -146,13 +146,28 @@ public:
   }
 
   // getBlob 
-  virtual Future< SharedPtr<CloudStorageItem> > getBlob(SharedPtr<NetService> net, String fullname, bool head = false, Aborted aborted = Aborted()) override
+  virtual Future< SharedPtr<CloudStorageItem> > getBlob(
+    SharedPtr<NetService> net, 
+    String fullname, 
+    bool head = false, 
+    std::pair<Int64, Int64> range = { 0,0 }, 
+    Aborted aborted = Aborted()) override
   {
     auto ret = Promise< SharedPtr<CloudStorageItem> >().get_future();
 
     //NOTE blob_name already contains the bucket name
     NetRequest request(this->protocol + "://" + this->hostname + fullname, head? "HEAD" : "GET");
     request.aborted = aborted;
+
+    //range request
+    //see https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35 (section 14.35.1 Byte Ranges)
+    //NOTE the range is inclusive
+    if (!(range.first == 0 && range.second == 0))
+    {
+      VisusReleaseAssert(!head);
+      request.setHeader("Range", concatenate("bytes=", range.first, "-", range.second - 1));
+    }
+
     signRequest(request);
 
     NetService::push(net, request).when_ready([ret,this, fullname,head](NetResponse response) {

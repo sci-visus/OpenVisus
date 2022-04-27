@@ -198,8 +198,15 @@ public:
   }
 
   // getBlob 
-  virtual Future< SharedPtr<CloudStorageItem> > getBlob(SharedPtr<NetService> net, String fullname, bool head=false, Aborted aborted = Aborted()) override
+  virtual Future< SharedPtr<CloudStorageItem> > getBlob(
+    SharedPtr<NetService> net, 
+    String fullname, 
+    bool head = false, 
+    std::pair<Int64, Int64> range = {0,0}, 
+    Aborted aborted = Aborted()) override
   {
+    //TODO range query not supported
+    VisusReleaseAssert(range.first == 0 && range.second == 0);
 
     auto ret = Promise< SharedPtr<CloudStorageItem>  >().get_future();
 
