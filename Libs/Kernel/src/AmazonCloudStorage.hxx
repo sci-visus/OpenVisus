@@ -155,7 +155,7 @@ public:
     request.aborted = aborted;
     signRequest(request);
 
-    NetService::push(net, request).when_ready([ret,this, fullname](NetResponse response) {
+    NetService::push(net, request).when_ready([ret,this, fullname,head](NetResponse response) {
 
       SharedPtr<CloudStorageItem> blob;
 
@@ -166,6 +166,7 @@ public:
         //parse metadata
         for (auto it = response.headers.begin(); it != response.headers.end(); it++)
         {
+
           String name = it->first;
           if (StringUtils::startsWith(name, METADATA_PREFIX))
             name = StringUtils::replaceAll(name.substr(METADATA_PREFIX.length()), "_", "-"); //backward compatibility
@@ -173,10 +174,19 @@ public:
           blob->metadata.setValue(name, it->second);
         }
 
-        blob->body = response.body;
+        // if head I don't need the body (whatever it is)
+        if (head)
+          blob->body.reset(); 
+        else
+          blob->body = response.body;
+        
+        //scrgiorgio: why I was doing this? for OpenVisus? causing problems with `head` request
+#if 0
         blob->setContentType(response.getContentType());
         blob->setContentLength(response.body->c_size());
+#endif
 
+        // NOT ALLOWING zero-byte files
         //is probably a directory (this works both for HEAD and get)
         if (!blob->getContentLength())
           blob.reset();
@@ -310,7 +320,6 @@ private:
             blob->metadata.setValue("Last-Modified", it->getChild("LastModified")->readTextInline());
             blob->metadata.setValue("Content-Length", it->getChild("Size")->readTextInline());
             ret->childs.push_back(blob);
-
           }
           else if (it->name == "CommonPrefixes")
           {
