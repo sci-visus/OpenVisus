@@ -167,7 +167,10 @@ void Utils::saveTextDocument(String filename,String content)
     file.open(fullpath.c_str(), std::ios::binary);
 
     if (!file.is_open())
-      ThrowException("Failed to save text document",filename,strerror(errno));
+    {
+      auto error_msg = cstring("Failed to save text document", filename, strerror(errno));
+      ThrowException(error_msg);
+    }
   }
 
   file.write(content.c_str(),content.size());

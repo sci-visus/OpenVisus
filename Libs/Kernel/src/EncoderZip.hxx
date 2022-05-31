@@ -126,7 +126,8 @@ public:
     if (!decoded->resize(dtype.getByteSize(dims), __FILE__, __LINE__))
       return SharedPtr<HeapMemory>();
 
-    if (ZLib::uncompress(decoded->c_ptr(), &decoded_len, encoded->c_ptr(), (ZLib::uLong)encoded->c_size()) != Z_OK)
+    auto ret_code = ZLib::uncompress(decoded->c_ptr(), &decoded_len, encoded->c_ptr(), (ZLib::uLong)encoded->c_size());
+    if (ret_code != Z_OK)
       return SharedPtr<HeapMemory>();
 
     VisusAssert(decoded_len == decoded->c_size());

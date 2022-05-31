@@ -502,7 +502,7 @@ public:
 	  {
 	    char buff[2048]; 
 	    memset(buff, 0, sizeof(buff));
-	    SHGetSpecialFolderPath(0, buff, CSIDL_PERSONAL, FALSE);
+	    SHGetSpecialFolderPath(0, buff, CSIDL_PROFILE, FALSE);
 	    return buff;
 	  }
 	#else

@@ -414,7 +414,7 @@ class PyDataset(object):
 			# flush
 			if memsize>=max_memsize: 
 				data=numpy.stack(slab,axis=0)
-				self.write(data , x=x, y=y, z=z,field=field,time=time)
+				self.write(data , x=x, y=y, z=z,field=field,time=time, access=access)
 				z+=len(slab)
 				slab=[]
 				memsize=0

@@ -63,6 +63,9 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
     this->netservice = std::make_shared<NetService>(nconnections);
 
   this->cloud_storage=CloudStorage::createInstance(url);
+
+  //backward compatible
+  this->filename_template= config.readString("filename_template", "$(prefix)/$(time)/$(field)/$(block:%016x)");;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -73,23 +76,31 @@ CloudStorageAccess::~CloudStorageAccess()
 ///////////////////////////////////////////////////////////////////////////////////////
 String CloudStorageAccess::getFilename(Field field, double time, BigInt blockid) const
 {
-  auto ret  = Path(url.getPath()).getParent().toString() + "/${time}/${field}/${block}";
+  String fieldname = StringUtils::removeSpaces(field.name);
 
-  // new format
-  if (StringUtils::contains(ret, "${"))
-  {
-    String fieldname = StringUtils::removeSpaces(field.name);
-    ret = StringUtils::replaceFirst(ret, "${time}", StringUtils::onlyAlNum(int(time) == time ? cstring((int)time) : cstring(time)));
-    ret = StringUtils::replaceFirst(ret, "${field}", fieldname.length() < 32 ? StringUtils::onlyAlNum(fieldname) : StringUtils::computeChecksum(fieldname));
-    ret = StringUtils::replaceFirst(ret, "${block}", StringUtils::formatNumber("%016x", blockid));
-  }
+  String ret = filename_template;
+
+  ret = StringUtils::replaceFirst(ret, "$(prefix)", Path(url.getPath()).getParent().toString());
+  ret = StringUtils::replaceFirst(ret, "$(field)", fieldname.length() < 32 ? StringUtils::onlyAlNum(fieldname) : StringUtils::computeChecksum(fieldname));
+  ret = StringUtils::replaceFirst(ret, "$(time)", StringUtils::onlyAlNum(int(time) == time ? cstring((int)time) : cstring(time)));
+  ret = StringUtils::replaceFirst(ret, "$(compression)", this->compression);
+
+  //for hystorical reason the 32x is split in chunks of 4, 16 is not
+  ret = StringUtils::replaceFirst(ret, "$(block:%016x)", StringUtils::formatNumber("%016x", blockid));
+  ret = StringUtils::replaceFirst(ret, "$(block:%032x)", StringUtils::join(StringUtils::splitInChunks(StringUtils::formatNumber("%032x", blockid), 4), "/"));
 
   VisusAssert(!StringUtils::contains(ret, "$"));
 
+  //reverse is an AWS s3 trick to distribute better blocks on several AWS instances
   if (reverse_filename)
-    ret=StringUtils::reverse(ret);
+    ret = StringUtils::reverse(ret);
+
+  //s3://bucket/... -> /bucket/...
+  if (StringUtils::startsWith(ret,"s3://"))
+    ret = ret.substr(4);
 
   return ret;
+
 }
 
 

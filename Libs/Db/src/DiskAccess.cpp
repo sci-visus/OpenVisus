@@ -54,7 +54,7 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   this->path              = Path(config.readString("dir","."));
   this->bitsperblock      = default_bitsperblock;
   this->compression       = config.readString("compression", "lz4");
-  this->filename_template = config.readString("filename_template", "$(prefix)/time_$(time)/$(field)/$(block).$(compression)");
+  this->filename_template = config.readString("filename_template", "$(prefix)/$(time)/$(field)/$(block:%032x).$(compression)");
 }
 
 
@@ -66,7 +66,11 @@ String DiskAccess::getFilename(Field field,double time,BigInt blockid) const
   ret = StringUtils::replaceFirst(ret, "$(prefix)", this->path.toString());
   ret = StringUtils::replaceFirst(ret, "$(time)", StringUtils::onlyAlNum(int(time) == time ? cstring((int)time) : cstring(time)));
   ret = StringUtils::replaceFirst(ret, "$(field)", fieldname.length() < 32 ? StringUtils::onlyAlNum(fieldname) : StringUtils::computeChecksum(fieldname));
-  ret = StringUtils::replaceFirst(ret, "$(block)", StringUtils::join(StringUtils::splitInChunks(StringUtils::formatNumber("%032x", blockid), 4), "/"));
+
+  //for hystorical reason the 32x is split in chunks of 4, 16 is not
+  ret = StringUtils::replaceFirst(ret, "${block:%016x}", StringUtils::formatNumber("%016x", blockid));
+  ret = StringUtils::replaceFirst(ret, "$(block:%032x)", StringUtils::join(StringUtils::splitInChunks(StringUtils::formatNumber("%032x", blockid), 4), "/"));
+
   ret = StringUtils::replaceFirst(ret, "$(compression)", this->compression);
   VisusAssert(!StringUtils::contains(ret, "$"));
   return ret;
@@ -138,7 +142,7 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
 
   //only RowMajor is supported!
   auto layout=query->buffer.layout;
-  if (!layout.empty())
+  if (!(layout.empty() || layout=="rowmajor"))
   {
     PrintInfo("Failed to write block, only RowMajor format is supported");
     return writeFailed(query,"only raw major format is supported");
