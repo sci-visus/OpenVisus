@@ -1,0 +1,256 @@
+<Viewer version="" git_revision="d3a2dcb">
+	<AddNode>
+		<Node uuid="world" name="World" visible="True" />
+	</AddNode>
+	<AddNode parent="world">
+		<GLCameraNode uuid="glcamera" name="GLCamera" visible="True">
+			<GLLookAtCamera fov="23.132597" znear="5542.562584" zfar="12470.765814" pos="6251.439652 4271.544251 5077.016098" center="2051.439652 71.544251 877.016098" vup="0.000000 0.000000 1.000000" center_of_rotation="1000.000000 1000.000000 1000.000000" rotation="-0.983132 -0.065848 0.127303 -0.113624" />
+		</GLCameraNode>
+	</AddNode>
+	<AddNode parent="world">
+		<ModelViewNode uuid="modelview2" name="ModelView" visible="True" T="1 0 0 -163.093 0 1 0 -587.883 0 0 1 0 0 0 0 1" />
+	</AddNode>
+	<AddNode parent="world">
+		<ModelViewNode uuid="modelview1" name="ModelView" visible="True" T="0.794763 0 0 2326.16 0 1 0 -2305.14 0 0 1 0 0 0 0 1" />
+	</AddNode>
+	<AddNode parent="modelview2">
+		<DatasetNode uuid="dataset" name="file:///D:/_PANIA_NEW_DATA/visus4/visus.idx" visible="True" show_bounds="True">
+			<dataset url="file:///D:/_PANIA_NEW_DATA/visus4/visus.idx" typename="IdxDataset">
+				<idxfile>
+					<version value="6" />
+					<bitmask value="V012012012012012012012012012012012" />
+					<box value="0 2000 0 2000 0 2000" />
+					<bitsperblock value="16" />
+					<blocksperfile value="512" />
+					<block_interleaving value="0" />
+					<filename_template value="./visus/%02x/%04x.bin" />
+					<missing_blocks value="False" />
+					<time_template value="" />
+					<field name="data" description="" index="" default_compression="" default_layout="" default_value="0" filter="" dtype="uint8" />
+					<timestep when="0" />
+				</idxfile>
+			</dataset>
+		</DatasetNode>
+	</AddNode>
+	<AddNode parent="modelview1">
+		<DatasetNode uuid="dataset1" name="file:///D:/_PANIA_NEW_DATA/visus_segmented3/visus.idx" visible="True" show_bounds="True">
+			<dataset url="file:///D:/_PANIA_NEW_DATA/visus_segmented3/visus.idx" typename="IdxDataset">
+				<idxfile>
+					<version value="6" />
+					<bitmask value="V012012012012012012012012012012012" />
+					<box value="0 2000 0 2000 0 1750" />
+					<bitsperblock value="16" />
+					<blocksperfile value="512" />
+					<block_interleaving value="0" />
+					<filename_template value="./visus/%02x/%04x.bin" />
+					<missing_blocks value="False" />
+					<time_template value="" />
+					<field name="data" description="" index="" default_compression="" default_layout="" default_value="0" filter="" dtype="uint8" />
+					<timestep when="0" />
+				</idxfile>
+			</dataset>
+		</DatasetNode>
+	</AddNode>
+	<AddNode parent="dataset">
+		<TimeNode uuid="dataset_time" name="Time" visible="True" current_time="0.000000" user_range="0.000000 0.000000 1.000000" play_msec="1000">
+			<timesteps>
+				<timestep when="0" />
+			</timesteps>
+		</TimeNode>
+	</AddNode>
+	<AddNode parent="dataset">
+		<QueryNode uuid="slice" name="Slice" visible="True" verbose="1" accessindex="0" view_dependent_enabled="True" progression="-1" quality="0" accuracy="0.000000">
+			<node_bounds T="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1" box="-48.9596 1951.04 24.5061 2024.51 146.761 146.761" />
+		</QueryNode>
+	</AddNode>
+	<AddNode parent="dataset">
+		<QueryNode uuid="slice3" name="Slice" visible="True" verbose="1" accessindex="0" view_dependent_enabled="True" progression="-1" quality="0" accuracy="0.000000">
+			<node_bounds T="-2.22045e-16 0 -1 486.884 0 1 0 -29.1159 1 0 -2.22045e-16 -462.377 0 0 0 1" box="0 2000 0 2000 0 0" />
+		</QueryNode>
+	</AddNode>
+	<AddNode parent="dataset">
+		<QueryNode uuid="volume" name="Volume" visible="True" verbose="1" accessindex="0" view_dependent_enabled="True" progression="-1" quality="0" accuracy="0.000000">
+			<node_bounds T="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1" box="0 2000 0 535.74 0 2000" />
+		</QueryNode>
+	</AddNode>
+	<AddNode parent="dataset1">
+		<TimeNode uuid="dataset1_time" name="Time" visible="True" current_time="0.000000" user_range="0.000000 0.000000 1.000000" play_msec="1000">
+			<timesteps>
+				<timestep when="0" />
+			</timesteps>
+		</TimeNode>
+	</AddNode>
+	<AddNode parent="dataset1">
+		<ModelViewNode uuid="modelview" name="ModelView" visible="True" T="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1" />
+	</AddNode>
+	<AddNode parent="dataset1">
+		<QueryNode uuid="isocontour1" name="IsoContour" visible="True" verbose="1" accessindex="0" view_dependent_enabled="True" progression="-1" quality="-3" accuracy="0.000000">
+			<node_bounds T="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1" box="0 2000 0 2000 0 1750" />
+		</QueryNode>
+	</AddNode>
+	<AddNode parent="dataset1">
+		<QueryNode uuid="slice1" name="Slice" visible="True" verbose="1" accessindex="0" view_dependent_enabled="True" progression="-1" quality="0" accuracy="0.000000">
+			<node_bounds T="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1" box="0 2000 0 2000 375 375" />
+		</QueryNode>
+	</AddNode>
+	<AddNode parent="slice">
+		<FieldNode uuid="slice_field" name="Field" visible="True">
+			<fieldname>data</fieldname>
+		</FieldNode>
+	</AddNode>
+	<AddNode parent="slice">
+		<ScriptingNode uuid="slice_scripting" name="Scripting" visible="True">
+			<code>output=input</code>
+		</ScriptingNode>
+	</AddNode>
+	<AddNode parent="slice3">
+		<FieldNode uuid="slice3_field" name="Field" visible="True">
+			<fieldname>data</fieldname>
+		</FieldNode>
+	</AddNode>
+	<AddNode parent="slice3">
+		<ScriptingNode uuid="slice3_scripting" name="Scripting" visible="True">
+			<code>output=input</code>
+		</ScriptingNode>
+	</AddNode>
+	<AddNode parent="volume">
+		<FieldNode uuid="volume_field" name="Field" visible="True">
+			<fieldname>data</fieldname>
+		</FieldNode>
+	</AddNode>
+	<AddNode parent="volume">
+		<ScriptingNode uuid="volume_scripting" name="Scripting" visible="True">
+			<code>output=input</code>
+		</ScriptingNode>
+	</AddNode>
+	<AddNode parent="isocontour1">
+		<FieldNode uuid="isocontour1_field" name="Field" visible="True">
+			<fieldname>data</fieldname>
+		</FieldNode>
+	</AddNode>
+	<AddNode parent="isocontour1">
+		<ScriptingNode uuid="isocontour1_scripting" name="Scripting" visible="True">
+			<code>
+				<![CDATA[from scipy import ndimage
+output = ndimage.gaussian_filter(input.astype(numpy.float32), sigma=1)
+
+z,y,x =output.shape
+
+print (output.shape)
+
+for i in range(y):
+	for j in range(x):
+		if (i> (y/2-40)) and  ( j> (x/2-40)):
+			output[:,i,j]=0]]>
+			</code>
+		</ScriptingNode>
+	</AddNode>
+	<AddNode parent="slice1">
+		<FieldNode uuid="slice1_field" name="Field" visible="True">
+			<fieldname>data</fieldname>
+		</FieldNode>
+	</AddNode>
+	<AddNode parent="slice1">
+		<ScriptingNode uuid="slice1_scripting" name="Scripting" visible="True">
+			<code>output=input</code>
+		</ScriptingNode>
+	</AddNode>
+	<AddNode parent="slice_scripting">
+		<RenderArrayNode uuid="slice_render" name="RenderArray" visible="True" lighting_enabled="False" palette_enabled="False" use_view_direction="False" max_num_slices="0" magnify_filter="9729" minify_filter="9729" render_type="OpenGL" />
+	</AddNode>
+	<AddNode parent="slice3_scripting">
+		<RenderArrayNode uuid="slice3_render" name="RenderArray" visible="True" lighting_enabled="False" palette_enabled="False" use_view_direction="False" max_num_slices="0" magnify_filter="9729" minify_filter="9729" render_type="OpenGL" />
+	</AddNode>
+	<AddNode parent="volume_scripting">
+		<RenderArrayNode uuid="volume_render" name="RenderArray" visible="True" lighting_enabled="False" palette_enabled="False" use_view_direction="False" max_num_slices="0" magnify_filter="9729" minify_filter="9729" render_type="OpenGL" />
+	</AddNode>
+	<AddNode parent="isocontour1_scripting">
+		<IsoContourNode uuid="isocontour1_isocontour" name="IsoContour" visible="True" isovalue="128.000000" />
+	</AddNode>
+	<AddNode parent="isocontour1_scripting">
+		<PaletteNode uuid="isocontour1_palette" name="Palette" visible="True" statistics_enabled="False">
+			<palette default_name="GrayOpaque" nsamples="256" attenuation="0.000000" user_range="0.000000 0.000000 0.000000" normalization_mode="0" />
+		</PaletteNode>
+	</AddNode>
+	<AddNode parent="isocontour1_scripting">
+		<IsoContourRenderNode uuid="isocontour1_render" name="MeshRender" visible="True">
+			<material>
+				<front ambient="#191919ff" diffuse="#3c6d3eff" specular="#ffffffff" emission="#000000ff" shininess="10" />
+				<back ambient="#191919ff" diffuse="#2a4b70ff" specular="#ffffffff" emission="#000000ff" shininess="10" />
+			</material>
+		</IsoContourRenderNode>
+	</AddNode>
+	<AddNode parent="slice1_scripting">
+		<RenderArrayNode uuid="slice1_render" name="RenderArray" visible="True" lighting_enabled="False" palette_enabled="False" use_view_direction="False" max_num_slices="0" magnify_filter="9729" minify_filter="9729" render_type="OpenGL" />
+	</AddNode>
+	<AddNode parent="slice_render">
+		<PaletteNode uuid="slice_render_palette" name="Palette" visible="True" statistics_enabled="False">
+			<palette default_name="GrayOpaque" nsamples="256" attenuation="0.000000" user_range="0.000000 0.000000 0.000000" normalization_mode="0" />
+		</PaletteNode>
+	</AddNode>
+	<AddNode parent="slice3_render">
+		<PaletteNode uuid="slice3_render_palette" name="Palette" visible="True" statistics_enabled="False">
+			<palette default_name="GrayOpaque" nsamples="256" attenuation="0.000000" user_range="0.000000 0.000000 0.000000" normalization_mode="0" />
+		</PaletteNode>
+	</AddNode>
+	<AddNode parent="volume_render">
+		<PaletteNode uuid="volume_render_palette" name="Palette" visible="True" statistics_enabled="False">
+			<palette default_name="" nsamples="256" attenuation="0.000000" user_range="0.000000 0.000000 0.000000" normalization_mode="0">
+				<function>
+					<values>0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.027451 0.058824 0.086275 0.117647 0.145098 0.176471 0.203922 0.235294 0.262745 0.294118 0.321569 0.352941 0.380392 0.411765 0.439216 0.470588 0.490196 0.509804 0.529412 0.549020 0.568627 0.588235 0.607843 0.627451 0.647059 0.666667 0.686275 0.705882 0.725490 0.745098 0.764706 0.784314 0.784314 0.788235 0.788235 0.792157 0.792157 0.796078 0.796078 0.800000 0.800000 0.803922 0.803922 0.807843 0.807843 0.811765 0.811765 0.815686 0.815686 0.819608 0.819608 0.823529 0.823529 0.827451 0.827451 0.831373 0.831373 0.835294 0.835294 0.839216 0.839216 0.843137 0.843137 0.847059 0.847059 0.850980 0.850980 0.854902 0.854902 0.858824 0.858824 0.862745 0.862745 0.866667 0.866667 0.870588 0.870588 0.874510 0.874510 0.878431 0.878431 0.882353 0.882353 0.886275 0.886275 0.890196 0.890196 0.894118 0.894118 0.898039 0.898039 0.901961 0.901961 0.905882 0.905882 0.909804 0.909804 0.913725 0.913725 0.917647 0.917647 0.921569 0.921569 0.925490 0.925490 0.929412 0.929412 0.933333 0.933333 0.937255 0.937255 0.941176 0.941176 0.945098 0.945098 0.949020 0.949020 0.952941 0.952941 0.956863 0.956863 0.960784 0.960784 0.964706 0.964706 0.968627 0.968627 0.972549 0.972549 0.976471 0.976471 0.980392 0.980392 0.984314 0.984314 0.988235 0.988235 0.992157 0.992157 0.996078 0.996078 1.000000 1.000000</values>
+				</function>
+				<function>
+					<values>0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.011765 0.023529 0.035294 0.047059 0.058824 0.070588 0.082353 0.098039 0.109804 0.121569 0.133333 0.145098 0.156863 0.168627 0.180392 0.196078 0.207843 0.219608 0.231373 0.243137 0.254902 0.266667 0.278431 0.294118 0.305882 0.317647 0.329412 0.341176 0.352941 0.364706 0.376471 0.392157 0.403922 0.415686 0.427451 0.439216 0.450980 0.462745 0.474510 0.490196 0.501961 0.513725 0.525490 0.537255 0.549020 0.560784 0.572549 0.588235 0.588235 0.588235 0.588235 0.588235 0.588235 0.588235 0.588235 0.588235 0.588235 0.588235 0.588235 0.588235 0.588235 0.588235 0.588235 0.588235 0.584314 0.580392 0.580392 0.576471 0.572549 0.572549 0.568627 0.568627 0.564706 0.560784 0.560784 0.556863 0.552941 0.552941 0.549020 0.549020 0.537255 0.529412 0.517647 0.509804 0.498039 0.490196 0.478431 0.470588 0.458824 0.450980 0.439216 0.431373 0.419608 0.411765 0.400000 0.392157 0.364706 0.341176 0.317647 0.294118 0.266667 0.243137 0.219608 0.196078 0.168627 0.145098 0.121569 0.098039 0.070588 0.047059 0.023529 0.000000 0.007843 0.015686 0.023529 0.035294 0.043137 0.050980 0.062745 0.070588 0.078431 0.090196 0.098039 0.105882 0.113725 0.125490 0.133333 0.141176 0.152941 0.160784 0.168627 0.180392 0.188235 0.196078 0.207843 0.215686 0.223529 0.231373 0.243137 0.250980 0.258824 0.270588 0.278431 0.286275 0.298039 0.305882 0.313725 0.325490 0.333333 0.341176 0.349020 0.360784 0.368627 0.376471 0.388235 0.396078 0.403922 0.415686 0.423529 0.431373 0.443137 0.450980 0.458824 0.466667 0.478431 0.486275 0.494118 0.505882 0.513725 0.521569 0.533333 0.541176 0.549020 0.556863 0.568627 0.576471 0.584314 0.596078 0.603922 0.611765 0.623529 0.631373 0.639216 0.650980 0.658824 0.666667 0.674510 0.686275 0.694118 0.701961 0.713725 0.721569 0.729412 0.741176 0.749020 0.756863 0.768627 0.776471 0.784314 0.792157 0.803922 0.811765 0.819608 0.831373 0.839216 0.847059 0.858824 0.866667 0.874510 0.886275 0.894118 0.901961 0.909804 0.921569 0.929412 0.937255 0.949020 0.956863 0.964706 0.976471 0.984314 0.992157 1.000000</values>
+				</function>
+				<function>
+					<values>0.000000 0.007843 0.015686 0.023529 0.031373 0.039216 0.047059 0.054902 0.062745 0.070588 0.078431 0.086275 0.098039 0.105882 0.113725 0.121569 0.129412 0.137255 0.145098 0.152941 0.160784 0.168627 0.176471 0.184314 0.196078 0.203922 0.211765 0.219608 0.227451 0.235294 0.243137 0.250980 0.258824 0.266667 0.274510 0.282353 0.294118 0.301961 0.309804 0.317647 0.325490 0.333333 0.341176 0.349020 0.356863 0.364706 0.372549 0.380392 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.392157 0.376471 0.364706 0.352941 0.341176 0.329412 0.317647 0.305882 0.294118 0.278431 0.266667 0.254902 0.243137 0.231373 0.219608 0.207843 0.196078 0.180392 0.168627 0.156863 0.145098 0.133333 0.121569 0.109804 0.098039 0.082353 0.070588 0.058824 0.047059 0.035294 0.023529 0.011765 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000</values>
+				</function>
+				<function>
+					<values>0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 0.654902 0.658824 0.662745 0.666667 0.670588 0.674510 0.678431 0.682353 0.686275 0.690196 0.694118 0.698039 0.701961 0.705882 0.709804 0.713725 0.717647 0.721569 0.725490 0.729412 0.733333 0.737255 0.741176 0.745098 0.749020 0.752941 0.756863 0.760784 0.764706 0.768627 0.772549 0.776471 0.780392 0.784314 0.788235 0.792157 0.796078 0.800000 0.803922 0.807843 0.811765 0.815686 0.819608 0.823529 0.827451 0.831373 0.835294 0.839216 0.843137 0.847059 0.850980 0.854902 0.858824 0.862745 0.866667 0.870588 0.874510 0.878431 0.882353 0.886275 0.890196 0.894118 0.898039 0.901961 0.905882 0.909804 0.913725 0.917647 0.921569 0.925490 0.929412 0.933333 0.937255 0.941176 0.945098 0.949020 0.952941 0.956863 0.960784 0.964706 0.968627 0.972549 0.976471 0.980392 0.984314 0.988235 0.992157 0.996078 1.000000</values>
+				</function>
+			</palette>
+		</PaletteNode>
+	</AddNode>
+	<AddNode parent="slice1_render">
+		<PaletteNode uuid="slice1_render_palette" name="Palette" visible="True" statistics_enabled="False">
+			<palette default_name="GrayOpaque" nsamples="256" attenuation="0.000000" user_range="0.000000 0.000000 0.000000" normalization_mode="0" />
+		</PaletteNode>
+	</AddNode>
+	<ConnectNodes from="dataset" oport="dataset" iport="dataset" to="volume" />
+	<ConnectNodes from="dataset" oport="dataset" iport="dataset" to="slice3" />
+	<ConnectNodes from="dataset" oport="dataset" iport="dataset" to="slice" />
+	<ConnectNodes from="dataset1" oport="dataset" iport="dataset" to="isocontour1" />
+	<ConnectNodes from="dataset1" oport="dataset" iport="dataset" to="slice1" />
+	<ConnectNodes from="dataset_time" oport="time" iport="time" to="volume" />
+	<ConnectNodes from="dataset_time" oport="time" iport="time" to="slice3" />
+	<ConnectNodes from="dataset_time" oport="time" iport="time" to="slice" />
+	<ConnectNodes from="slice" oport="array" iport="array" to="slice_scripting" />
+	<ConnectNodes from="slice3" oport="array" iport="array" to="slice3_scripting" />
+	<ConnectNodes from="volume" oport="array" iport="array" to="volume_scripting" />
+	<ConnectNodes from="dataset1_time" oport="time" iport="time" to="isocontour1" />
+	<ConnectNodes from="dataset1_time" oport="time" iport="time" to="slice1" />
+	<ConnectNodes from="isocontour1" oport="array" iport="array" to="isocontour1_scripting" />
+	<ConnectNodes from="slice1" oport="array" iport="array" to="slice1_scripting" />
+	<ConnectNodes from="slice_field" oport="fieldname" iport="fieldname" to="slice" />
+	<ConnectNodes from="slice_scripting" oport="array" iport="array" to="slice_render" />
+	<ConnectNodes from="slice_scripting" oport="array" iport="array" to="slice_render_palette" />
+	<ConnectNodes from="slice3_field" oport="fieldname" iport="fieldname" to="slice3" />
+	<ConnectNodes from="slice3_scripting" oport="array" iport="array" to="slice3_render_palette" />
+	<ConnectNodes from="slice3_scripting" oport="array" iport="array" to="slice3_render" />
+	<ConnectNodes from="volume_field" oport="fieldname" iport="fieldname" to="volume" />
+	<ConnectNodes from="volume_scripting" oport="array" iport="array" to="volume_render_palette" />
+	<ConnectNodes from="volume_scripting" oport="array" iport="array" to="volume_render" />
+	<ConnectNodes from="isocontour1_field" oport="fieldname" iport="fieldname" to="isocontour1" />
+	<ConnectNodes from="isocontour1_scripting" oport="array" iport="array" to="isocontour1_isocontour" />
+	<ConnectNodes from="isocontour1_scripting" oport="array" iport="array" to="isocontour1_palette" />
+	<ConnectNodes from="slice1_field" oport="fieldname" iport="fieldname" to="slice1" />
+	<ConnectNodes from="slice1_scripting" oport="array" iport="array" to="slice1_render_palette" />
+	<ConnectNodes from="slice1_scripting" oport="array" iport="array" to="slice1_render" />
+	<ConnectNodes from="isocontour1_isocontour" oport="mesh" iport="mesh" to="isocontour1_render" />
+	<ConnectNodes from="isocontour1_palette" oport="palette" iport="palette" to="isocontour1_render" />
+	<ConnectNodes from="slice_render_palette" oport="palette" iport="palette" to="slice_render" />
+	<ConnectNodes from="slice3_render_palette" oport="palette" iport="palette" to="slice3_render" />
+	<ConnectNodes from="volume_render_palette" oport="palette" iport="palette" to="volume_render" />
+	<ConnectNodes from="slice1_render_palette" oport="palette" iport="palette" to="slice1_render" />
+	<SetSelection value="slice" />
+</Viewer>
