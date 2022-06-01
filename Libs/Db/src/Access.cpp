@@ -40,5 +40,38 @@ For support : support@visus.net
 
 namespace Visus {
 const String Access::DefaultChMod = "rw";
+
+
+///////////////////////////////////////////////////////////////////////////////////////
+String Access::getBlockFilename(String filename_template, Field field, double time, String compression, BigInt blockid, bool reverse_filename) 
+{
+  String fieldname = StringUtils::removeSpaces(field.name);
+
+  String ret = filename_template;
+
+  ret = StringUtils::replaceFirst(ret, "$(field)", fieldname.length() < 32 ? StringUtils::onlyAlNum(fieldname) : StringUtils::computeChecksum(fieldname));
+  ret = StringUtils::replaceFirst(ret, "$(time)", StringUtils::onlyAlNum(int(time) == time ? cstring((int)time) : cstring(time)));
+  ret = StringUtils::replaceFirst(ret, "$(compression)", compression);
+
+  //NOTE 16x is enough for 16*4 bits==64 bit for block number
+  //     splitting by 4 means 2^16= 64K files inside a directory which seams reasonable with max 64/16=4 levels of directories
+  {
+    auto s_blockid = StringUtils::formatNumber("%016x", blockid);
+    ret = StringUtils::replaceFirst(ret, "$(block:%016x)", s_blockid);
+    ret = StringUtils::replaceFirst(ret, "$(block:%016x:%04x)", StringUtils::join(StringUtils::splitInChunks(s_blockid, 4), "/"));
+  }
+
+  VisusAssert(!StringUtils::contains(ret, "$"));
+
+  //reverse is an AWS s3 trick to distribute better blocks on several AWS instances
+  if (reverse_filename)
+    ret = StringUtils::reverse(ret);
+
+  return ret;
+}
+
+
 } //namespace Visus
+
+
 

@@ -124,6 +124,12 @@ public:
     return (idx < 0) ? "" : filename.substr(idx);
   }
 
+  //withoutExtension (returns the full path withouth the extension)
+  String withoutExtension() const {
+    String ret = this->toString();
+    int idx = (int)ret.rfind(".");
+    return (idx < 0) ? ret : ret.substr(idx);
+  }
 
 private:
 

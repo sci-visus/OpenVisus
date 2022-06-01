@@ -53,27 +53,21 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   this->can_write         = StringUtils::find(config.readString("chmod", DefaultChMod),"w")>=0;
   this->path              = Path(config.readString("dir","."));
   this->bitsperblock      = default_bitsperblock;
-  this->compression       = config.readString("compression", "lz4");
-  this->filename_template = config.readString("filename_template", "$(prefix)/$(time)/$(field)/$(block:%032x).$(compression)");
+  this->compression       = config.readString("compression", "zip");
+
+  //example: "s3://bucket-name/whatever/$(time)/$(field)/$(block:%016x:%04x).$(compression)";
+  //NOTE 16x is enough for 16*4 bits==64 bit for block number
+  //     splitting by 4 means 2^16= 64K files inside a directory with max 64/16=4 levels of directories
+  this->filename_template = config.readString("filename_template");
+  VisusReleaseAssert(!this->filename_template.empty());
 }
 
 
 ////////////////////////////////////////////////////////////////////
 String DiskAccess::getFilename(Field field,double time,BigInt blockid) const
 {
-  String fieldname = StringUtils::removeSpaces(field.name);
-  String ret = filename_template;
-  ret = StringUtils::replaceFirst(ret, "$(prefix)", this->path.toString());
-  ret = StringUtils::replaceFirst(ret, "$(time)", StringUtils::onlyAlNum(int(time) == time ? cstring((int)time) : cstring(time)));
-  ret = StringUtils::replaceFirst(ret, "$(field)", fieldname.length() < 32 ? StringUtils::onlyAlNum(fieldname) : StringUtils::computeChecksum(fieldname));
-
-  //for hystorical reason the 32x is split in chunks of 4, 16 is not
-  ret = StringUtils::replaceFirst(ret, "${block:%016x}", StringUtils::formatNumber("%016x", blockid));
-  ret = StringUtils::replaceFirst(ret, "$(block:%032x)", StringUtils::join(StringUtils::splitInChunks(StringUtils::formatNumber("%032x", blockid), 4), "/"));
-
-  ret = StringUtils::replaceFirst(ret, "$(compression)", this->compression);
-  VisusAssert(!StringUtils::contains(ret, "$"));
-  return ret;
+  auto reverse_filename = false;
+  return Access::getBlockFilename(filename_template, field, time, compression, blockid, reverse_filename);
 }
 
 ////////////////////////////////////////////////////////////////////

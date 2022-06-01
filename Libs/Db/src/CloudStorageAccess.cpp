@@ -39,6 +39,7 @@ For support : support@visus.net
 #include <Visus/CloudStorageAccess.h>
 #include <Visus/Dataset.h>
 #include <Visus/Encoder.h>
+#include <Visus/File.h>
 
 namespace Visus {
 
@@ -64,8 +65,11 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
 
   this->cloud_storage=CloudStorage::createInstance(url);
 
-  //backward compatible
-  this->filename_template= config.readString("filename_template", "$(prefix)/$(time)/$(field)/$(block:%016x)");;
+  //example: "s3://bucket-name/whatever/$(time)/$(field)/$(block:%016x:%04x).$(compression)";
+  //NOTE 16x is enough for 16*4 bits==64 bit for block number
+  //     splitting by 4 means 2^16= 64K files inside a directory with max 64/16=4 levels of directories
+  this->filename_template= config.readString("filename_template");
+  VisusReleaseAssert(!this->filename_template.empty());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -76,31 +80,17 @@ CloudStorageAccess::~CloudStorageAccess()
 ///////////////////////////////////////////////////////////////////////////////////////
 String CloudStorageAccess::getFilename(Field field, double time, BigInt blockid) const
 {
-  String fieldname = StringUtils::removeSpaces(field.name);
+  //example: if url is s3://bucket/whatever/here/visus.idx
+  //         prefix will be s3://bucket/whatever/here/visus
+  auto prefix = Path(url.getPath()).withoutExtension();
 
-  String ret = filename_template;
-
-  ret = StringUtils::replaceFirst(ret, "$(prefix)", Path(url.getPath()).getParent().toString());
-  ret = StringUtils::replaceFirst(ret, "$(field)", fieldname.length() < 32 ? StringUtils::onlyAlNum(fieldname) : StringUtils::computeChecksum(fieldname));
-  ret = StringUtils::replaceFirst(ret, "$(time)", StringUtils::onlyAlNum(int(time) == time ? cstring((int)time) : cstring(time)));
-  ret = StringUtils::replaceFirst(ret, "$(compression)", this->compression);
-
-  //for hystorical reason the 32x is split in chunks of 4, 16 is not
-  ret = StringUtils::replaceFirst(ret, "$(block:%016x)", StringUtils::formatNumber("%016x", blockid));
-  ret = StringUtils::replaceFirst(ret, "$(block:%032x)", StringUtils::join(StringUtils::splitInChunks(StringUtils::formatNumber("%032x", blockid), 4), "/"));
-
-  VisusAssert(!StringUtils::contains(ret, "$"));
-
-  //reverse is an AWS s3 trick to distribute better blocks on several AWS instances
-  if (reverse_filename)
-    ret = StringUtils::reverse(ret);
+  auto ret = Access::getBlockFilename(this->filename_template, field, time, compression, blockid, reverse_filename);
 
   //s3://bucket/... -> /bucket/...
   if (StringUtils::startsWith(ret,"s3://"))
     ret = ret.substr(4);
 
   return ret;
-
 }
 
 

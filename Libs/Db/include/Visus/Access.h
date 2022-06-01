@@ -246,6 +246,11 @@ public:
     query->setFailed(errormsg);
   }
 
+public:
+
+  //getBlockFilename
+  static String getBlockFilename(String filename_template, Field field, double time, String compression, BigInt blockid,bool reverse_filename);
+
 private:
 
   int mode=0;
