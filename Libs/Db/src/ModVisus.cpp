@@ -516,6 +516,7 @@ NetResponse ModVisus::handleGetListOfDatasets(const NetRequest& request)
   String format = request.url.getParam("format", "xml");
   String hostname = request.url.getParam("hostname"); //trick if you want $(localhost):$(port) to be replaced with what the client has
   String port = request.url.getParam("port");
+  String protocol = request.url.getParam("protocol");
 
   NetResponse response(HttpStatus::STATUS_OK);
 
@@ -533,6 +534,9 @@ NetResponse ModVisus::handleGetListOfDatasets(const NetRequest& request)
 
   if (!port.empty())
     response.setTextBody(StringUtils::replaceAll(response.getTextBody(), "$(port)", port));
+
+  if (!protocol.empty())
+    response.setTextBody(StringUtils::replaceAll(response.getTextBody(), "$(protocol)", protocol));
 
   return response;
 }

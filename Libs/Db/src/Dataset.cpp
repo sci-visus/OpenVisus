@@ -369,6 +369,11 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
       {
         if (midx)
           return std::make_shared<IdxMultipleAccess>(midx, config);
+
+        //if the IdxFile contains an ARCO positive number I am using Disk Access
+        if (this->idxfile.arco)
+          return std::make_shared<DiskAccess>(idx, config);
+        //otherwise it's a regular IDX dataset (i.e. multiple blocks aggregated in the same file wiht file and block headers)
         else
           return std::make_shared<IdxDiskAccess>(idx, config);
       }
@@ -376,9 +381,11 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
       {
         VisusAssert(url.isRemote());
 
+        //if the IDX is on the cloud (i.e. S3) I think it's an ARCO database
         if (bool is_cloud = !CloudStorage::guessType(url).empty())
           return std::make_shared<CloudStorageAccess>(this, config);
 
+        //otherwise it's a regular modvisus dataset
         if (bForBlockQuery)
           return std::make_shared<ModVisusAccess>(this, config);
         else

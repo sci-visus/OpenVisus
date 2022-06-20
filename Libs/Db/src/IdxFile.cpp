@@ -468,6 +468,7 @@ String IdxFile::writeToOldFormat() const
 
   out << "(filename_template)\n" << filename_template << "\n";
   out << "(missing_blocks)\n" << missing_blocks << "\n";
+  out << "(arco)\n" << arco << "\n";
 
   //write other medatata
   for (auto it : this->metadata)
@@ -603,6 +604,9 @@ void IdxFile::readFromOldFormat(const String& content)
   this->missing_blocks = cint(map.getValue("(missing_blocks)"));
   map.eraseValue("(missing_blocks)");
 
+  this->arco = cint(map.getValue("(arco)"));
+  map.eraseValue("(arco)");
+
   if (map.hasValue("(interleave)"))
   {
     this->block_interleaving = cint(map.getValue("(interleave)"));
@@ -693,6 +697,7 @@ void IdxFile::write(Archive& ar) const
   ar.addChild("block_interleaving")->write("value", block_interleaving);
   ar.addChild("filename_template")->write("value", filename_template);
   ar.addChild("missing_blocks")->write("value", missing_blocks);
+  ar.addChild("arco")->write("value", arco);
   ar.addChild("time_template")->write("value", time_template);
 
   auto logic_to_physic = Position::computeTransformation(this->bounds, this->logic_box);
@@ -729,6 +734,7 @@ void IdxFile::read(Archive& ar)
   ar.getChild("block_interleaving")->read("value", block_interleaving);
   ar.getChild("filename_template")->read("value", filename_template);
   ar.getChild("missing_blocks")->read("value", missing_blocks);
+  ar.getChild("arco")->read("value", arco);
   ar.getChild("time_template")->read("value", time_template);
 
   if (ar.hasAttribute("physic_box"))

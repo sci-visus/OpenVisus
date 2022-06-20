@@ -94,6 +94,9 @@ public:
 
   //allows other metadata 
   StringMap metadata;
+
+  // adding support for arco
+  int arco = 0;
   
   //constructor
   IdxFile(int version_=0);

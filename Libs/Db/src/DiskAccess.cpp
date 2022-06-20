@@ -58,8 +58,15 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   //example: "s3://bucket-name/whatever/$(time)/$(field)/$(block:%016x:%04x).$(compression)";
   //NOTE 16x is enough for 16*4 bits==64 bit for block number
   //     splitting by 4 means 2^16= 64K files inside a directory with max 64/16=4 levels of directories
-  this->filename_template = config.readString("filename_template");
-  VisusReleaseAssert(!this->filename_template.empty());
+  this->filename_template = config.readString("filename_template","./visus/$(time)/$(field)/$(block:%016x:%04x).bin");
+
+  if (StringUtils::startsWith(filename_template, "./"))
+  {
+    Url url = config.hasAttribute("url") ? config.readString("url") : dataset->getUrl();
+    String dir = Path(url.getPath()).getParent().toString();
+    if (!dir.empty())
+      filename_template = StringUtils::replaceFirst(filename_template, ".", dir);
+  }
 }
 
 

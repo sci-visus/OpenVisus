@@ -86,6 +86,11 @@ def CreateIdx(**args):
 	if "bounds" in args:
 		idx.bounds=args["bounds"]
 
+	# am I creating an arco dataset?
+	if "arco" in args:
+		assert isinstance(args["arco"],int)
+		idx.arco=args["arco"]
+
 	idx.save(url)
 	db=LoadDataset(url)
 
