@@ -136,6 +136,9 @@ function DistribToConda() {
 
 PYTHON=`which python${PYTHON_VERSION}`
 
+# make sure pip is updated
+${PYTHON} -m pip install --upgrade pip || true
+
 # detect architecture
 if [[ "1" == "1" ]]; then
   ARCHITECTURE=`uname -m`
@@ -184,7 +187,7 @@ fi
 # fix `bdist_conda` problem
 if [[ "1" == "1" ]]; then
   pushd ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}
-  cp -n distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py
+  cp -n distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py || true
   popd
 fi
 
