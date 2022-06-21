@@ -11,6 +11,11 @@ from PyQt5.QtWidgets                  import QMainWindow, QPushButton, QVBoxLayo
 from PyQt5.QtWidgets                  import QWidget
 from PyQt5.QtWidgets                  import QTableWidget,QTableWidgetItem
 
+try:
+    from PyQt5 import sip as  sip
+except ImportError:
+    import sip
+
 
 # //////////////////////////////////////////////////////////////////////////////
 def CreatePushButton(text,callback=None, img=None ):
@@ -91,8 +96,10 @@ class MyWindow(QMainWindow):
 		
 		# create viewers
 		if True:
-			self.viewer1=MyViewer(name="viewer1",url="datasets/cat/gray.idx")
-			self.viewer2=MyViewer(name="viewer2",url="datasets/cat/rgb.idx")
+
+
+			self.viewer1=MyViewer(name="viewer1",url="http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1")
+			self.viewer2=MyViewer(name="viewer2",url="http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1")
 			
 			cam1=self.viewer1.getGLCamera()
 			cam2=self.viewer2.getGLCamera()
