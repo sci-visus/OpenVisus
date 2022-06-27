@@ -2,15 +2,9 @@
 
 set -ex
 
-
-
-
 BUILD_DIR=${BUILD_DIR:-build_docker}
 
-# scrgiorgio 20 June 2022: temporary disabling GUI, getting PyQt5 error
-# VISUS_GUI=${VISUS_GUI:-1}
-VISUS_GUI=0
-
+VISUS_GUI=${VISUS_GUI:-1}
 
 VISUS_SLAM=${VISUS_SLAM:-1}
 VISUS_MODVISUS=${VISUS_MODVISUS:-1}
@@ -39,6 +33,7 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
     -e INSIDE_DOCKER=1 \
     ${DOCKER_IMAGE} bash scripts/ubuntu.sh
 
+  # now that the wheels/conda are pushed to PyPi and conda, I can build the docker images
   if [[ "${GIT_TAG}" != "" ]] ; then
 
     # give time to 'receive' the wheel and the conda package
