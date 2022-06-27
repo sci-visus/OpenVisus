@@ -114,21 +114,19 @@ def Configure(bUserInstall=False):
 	
 	print("sys.executable",sys.executable,"VISUS_GUI",VISUS_GUI, "QT_VERSION", QT_VERSION, "IS_CONDA", IS_CONDA, "CONDA_PREFIX",CONDA_PREFIX)
 
-	PACKAGES=['numpy']
-	PACKAGES+=["pyqt={}.{}".format(QT_MAJOR_VERSION,QT_MINOR_VERSION)] if VISUS_GUI and IS_CONDA else []
-	PACKAGES+=["PyQt5~={}.{}.0".format(QT_MAJOR_VERSION,QT_MINOR_VERSION),"PyQtWebEngine", "PyQt5-sip"] if VISUS_GUI and IS_CPYTHON else []
-	PACKAGES+=["libglu"] if VISUS_GUI and IS_CONDA and LINUX else []	
-
 	if IS_CONDA:
-		cmd=['conda', 'install', '-y', '-c', 'conda-forge'] + PACKAGES
+		cmd=['conda', 'install', '-y', '-c', 'conda-forge', 'numpy'] 
+		if VISUS_GUI:
+			cmd+=["pyqt={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}"]
+			if LINUX: cmd+=["libglu"]
 		conda.cli.main(*cmd)
 		print("OPENVISUS WARNING", "if you get errors like:  module compiled against API version 0xc but this version of numpy is 0xa, then execute","conda update -y numpy")
 
 	else:
-		cmd=[sys.executable,"-m", "pip", "install", "--upgrade"]
-		if bUserInstall: cmd.append("--user")
-		cmd+=PACKAGES
-		ExecuteCommand(cmd,check_result=True)
+		cmd=[sys.executable,"-m", "pip", "install"] + (["--user"] if bUserInstall else []) + ['numpy']
+		if VISUS_GUI:
+			cmd+=[f"PyQt5~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", f"PyQtWebEngine~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", "PyQt5-sip"]
+		ExecuteCommand(cmd, check_result=False) # False since it fails a lot !
 		
 	# *** fix rpath ****
 	# on windows it's enough to use sys.path (see *.i %pythonbegin section)
