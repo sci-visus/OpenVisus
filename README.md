@@ -129,6 +129,6 @@ A user would need to start the SOCKS5 proxy connection using a client. This can 
 ssh -D 55051 user@server
 ```
 
-On Windows, you can enable a SOCKS5 proxy by using PuTTY. More information on that can be found [here](https://www.simplified.guide/putty/create-socks-proxy#:~:text=Go%20to%20Connection%20%E2%86%92%20SSH,in%20the%20Source%20port%20field.&text=Make%20sure%20Auto%20and%20Dynamic,Click%20on%20Add%20button.).
+On Windows, you can enable a SOCKS5 proxy by using PuTTY. More information on that can be found [here](https://www.simplified.guide/putty/create-socks-proxy).
 
 Keep in mind that the port you open the connection with must match the one specified in the visus.config file.
