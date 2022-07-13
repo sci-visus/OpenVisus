@@ -113,7 +113,10 @@ public:
 
   //withNumberOfComponents
   DType withNumberOfComponents(int N) const {
-    return DType(valid()? N : 0, get(0));
+    if (!valid())
+      return *this;
+    else
+      return DType(N, get(0));
   }
 
   //getBitSize

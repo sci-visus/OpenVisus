@@ -1,15 +1,15 @@
-# How to add a dataset
+# Add a dataset
 
 Copy the data to atlantis:
 
-```
+```bash
 export ATLANTIS=scrgiorgio@atlantis.sci.utah.edu
 scp -r arecibo1 $ATLANTIS:/usr/sci/cedmav/data
 ```
 
 Login into atlantis, fix permissions,add the new dataset and run the new server:
 
-```
+```bash
 ssh $ATLANTIS
 
 cd /home/sci/scrgiorgio/atlantis-docker
@@ -25,33 +25,57 @@ vi datasets.config
 
 Test it:
 
-```
+```bash
 curl https://atlantis.sci.utah.edu/mod_visus?action=list
 visusviewer https://atlantis.sci.utah.edu/mod_visus?dataset=arecibo1
 ```
 
-# Preamble:
 
-Run in the console:
+# run.background.sh
 
-```
-cd /home/sci/scrgiorgio/atlantis-docker
+```bash
 
 CONTAINER_NAME=atlantis-docker-1
 
-# !!! change as needed !!!!
-# see https://hub.docker.com/r/visus/mod_visus/tags
-TAG=2.1.166
-```
+# https://hub.docker.com/r/visus/mod_visus_x86_64/tags
+IMAGE_NAME=visus/mod_visus_x86_64:2.1.223
 
-# Run mod_visus
+# make a copy of the certificates
+__date__=$(date +"%m_%d_%Y")
+mkdir -p ./backup/certbot/${__date__}
+cp -r certbot backup/certbot/${__date__}
 
-
-Run the Docker OpenVisus server. 
-
-```
+# stop mod_visus
 sudo docker stop $CONTAINER_NAME || true
 sudo docker rm   $CONTAINER_NAME || true
+
+# if you have problems..
+RENEW_CERTIFICATE=${RENEW_CERTIFICATE:-0}
+if [[ "$RENEW_CERTIFICATE" == "1" ]] ; then
+
+  echo "Renew certificates"
+  sudo docker run -it --rm --name certbot \
+     -v "$PWD/certbot/etc/letsencrypt:/etc/letsencrypt" \
+     -v "$PWD/certbot/var/lib/letsencrypt:/var/lib/letsencrypt" \
+      -p 80:80 \
+      -p 443:443 \
+     certbot/certbot certonly --standalone -m scrgiorgio@gmail.com -n --agree-tos -d atlantis.sci.utah.edu 
+
+  echo "Fix certificate permissions"
+  sudo docker run \
+     -v "$PWD/certbot/etc/letsencrypt:/etc/letsencrypt" \
+     -v "$PWD/certbot/var/lib/letsencrypt:/var/lib/letsencrypt" \
+     ubuntu:latest chmod a+rX -R /etc/letsencrypt
+fi
+
+# restart mod_visus
+echo "Restarting mod_visus"
+
+# Please NOTE
+# - `:shared`   for the NFS mounts otherwise you will get Docker "Too many levels of symbolic links" error message
+# - `-d`        is for `detach`
+# `--restart` should cover crashes, not sure about Atlantis reboot
+# to run in foreground mode replace last 3 lines with `--rm -it $IMAGE_NAME /bin/bash`
 sudo docker run \
    --publish 80:80  \
    --publish 443:443 \
@@ -61,100 +85,32 @@ sudo docker run \
    --mount type=bind,source=$PWD/certbot/etc/letsencrypt/live/atlantis.sci.utah.edu/privkey.pem,target=/usr/local/apache2/conf/server.key \
     -v /usr/sci/cedmav:/usr/sci/cedmav:shared \
     -v /usr/sci/brain:/usr/sci/brain:shared   \
-   --restart unless-stopped --name $CONTAINER_NAME -d visus/mod_visus:$TAG
+   --restart unless-stopped \
+   --name $CONTAINER_NAME \
+   -d $IMAGE_NAME
+
+echo "Restart done"
 ```
 
-Please note:
-- `:shared`   for the NFS mounts otherwise you will get Docker "Too many levels of symbolic links" error message
-- `-d`        is for `detach`
-- `--restart` should cover crashes, not sure about Atlantis reboot
+To test test:
 
-
-# Test mod_visus
-
-Using HTTP:
-
-```
+```bash
+# HTTP test
 curl http://atlantis.sci.utah.edu/mod_visus?action=list
-```
 
-Using HTTPS:
-
-```
+# HTTPS test
 curl https://atlantis.sci.utah.edu/mod_visus?action=list
-```
- 
-If you need to copy some files from a container:
 
+# If you want to enter in the container:
+sudo docker exec -it $CONTAINER_NAME /bin/bash
 ```
+
+# To inspect the logs:
+sudo docker logs --follow $CONTAINER_NAME
+
+# If you need to copy some files from a container:
 sudo docker run --name temp visus/mod_visus:$TAG /bin/true
 sudo docker cp temp:/usr/local/apache2/conf/extra/httpd-ssl.conf ./httpd-ssl.conf
 sudo docker rm temp
 sudo docker run --rm --mount type=bind,source=$PWD/httpd-ssl.conf,target=/tmp/httpd-ssl.conf ubuntu chown $UID /tmp/httpd-ssl.conf
 ```
-
-
-# Debug mod_visus
-
-if you want to run httpd-foreground manually:
-
-```
-sudo docker run \
-   --publish 80:80  \
-   --publish 443:443 \
-   --mount type=bind,source=$PWD/datasets.config,target=/datasets/datasets.config \
-   --mount type=bind,source=$PWD/config.js,target=/home/OpenVisus/webviewer/config.js \
-   --mount type=bind,source=$PWD/certbot/etc/letsencrypt/live/atlantis.sci.utah.edu/fullchain.pem,target=/usr/local/apache2/conf/server.crt \
-   --mount type=bind,source=$PWD/certbot/etc/letsencrypt/live/atlantis.sci.utah.edu/privkey.pem,target=/usr/local/apache2/conf/server.key \
-    -v /usr/sci/cedmav:/usr/sci/cedmav:shared \
-    -v /usr/sci/brain:/usr/sci/brain:shared   \
-   --rm -it visus/mod_visus:$TAG /bin/bash
-```
-   
-If you want to enter in the container:
-
-```
-sudo docker exec -it $CONTAINER_NAME /bin/bash
-```
-
-To inspect the logs:
-
-```
-sudo docker logs --follow $CONTAINER_NAME
-```
-
-
-# Generate/Renew CA certificates
-
-See https://letsencrypt.org/docs/integration-guide/
-
-
-```
-# copy old certificates just to be sure
-mkdir -p certbot.backup
-cp -r certbot certbot.backup/$(date +"%m_%d_%Y")
-
-# I need port 80 and 443 to stop
-sudo docker stop $CONTAINER_NAME || true
-sudo docker rm   $CONTAINER_NAME || true
-
-# see https://certbot.eff.org/docs/install.html#running-with-docker
-sudo docker run -it --rm --name certbot \
-   -v "$PWD/certbot/etc/letsencrypt:/etc/letsencrypt" \
-   -v "$PWD/certbot/var/lib/letsencrypt:/var/lib/letsencrypt" \
-    -p 80:80 \
-    -p 443:443 \
-   certbot/certbot certonly --standalone -m scrgiorgio@gmail.com -n --agree-tos -d atlantis.sci.utah.edu 
-
-# fix file permissions
-sudo docker run\
-   -v "$PWD/certbot/etc/letsencrypt:/etc/letsencrypt" \
-   -v "$PWD/certbot/var/lib/letsencrypt:/var/lib/letsencrypt" \
-   ubuntu:latest chmod a+rX -R /etc/letsencrypt
-
-```
-
-Note than during the `Apache` run (previous section) the `$PWD/certbot` directory is mounted to the right Apache location.
-
-
-Now run OpenVisus again (see above).

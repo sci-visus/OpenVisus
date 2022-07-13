@@ -42,6 +42,7 @@ For support : support@visus.net
 #include <Visus/Db.h>
 #include <Visus/Access.h>
 #include <Visus/NetService.h>
+#include <Visus/GoogleMapsDataset.h>
 
 namespace Visus {
 
@@ -53,7 +54,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(GoogleMapsAccess)
 
   //constructor
-  GoogleMapsAccess(Dataset* dataset, String tiles_url, SharedPtr<NetService> netservice);
+  GoogleMapsAccess(GoogleMapsDataset* dataset, String tiles_url, SharedPtr<NetService> netservice);
 
   //destructor
   virtual ~GoogleMapsAccess() {
@@ -77,7 +78,7 @@ public:
 
 private:
 
-  Dataset*               dataset;
+  GoogleMapsDataset*     dataset;
   String                 tiles_url;
   SharedPtr<NetService>  netservice;
 

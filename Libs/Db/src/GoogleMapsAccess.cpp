@@ -37,12 +37,11 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/GoogleMapsAccess.h>
-#include <Visus/Dataset.h>
 
 namespace Visus {
 
   ////////////////////////////////////////////////////////////////////
-GoogleMapsAccess::GoogleMapsAccess(Dataset* dataset_, String tiles_url, SharedPtr<NetService> netservice)
+GoogleMapsAccess::GoogleMapsAccess(GoogleMapsDataset * dataset_, String tiles_url, SharedPtr<NetService> netservice)
   : dataset(dataset_)
 {
   this->name = "GoogleMapsAccess";
@@ -68,43 +67,49 @@ void GoogleMapsAccess::readBlock(SharedPtr<BlockQuery> query)
   auto Y = block_coord[1];
   auto Z = (query->H - bitsperblock) >> 1; //I have only even levels
 
-  //mirror along Y
-  Y = (int)((Int64(1) << Z) - Y - 1);
+	//mirror along Y
+	Y = (int)((Int64(1) << Z) - Y - 1);
 
-  auto url = Url(this->tiles_url);
-  url.setParam("x", cstring(X));
-  url.setParam("y", cstring(Y));
-  url.setParam("z", cstring(Z));
+	auto url = Url(this->tiles_url);
+	url.setParam("x", cstring(X));
+	url.setParam("y", cstring(Y));
+	url.setParam("z", cstring(Z));
 
-  auto request = NetRequest(url);
+	auto request = NetRequest(url);
 
-  if (!request.valid())
-    return readFailed(query,"request not valid");
+	if (!request.valid())
+		return readFailed(query, "request not valid");
 
-  request.aborted = query->aborted;
+	request.aborted = query->aborted;
 
-  //note [...,query] keep the query in memory
-  NetService::push(netservice, request).when_ready([this, query, block_nsamples](NetResponse response)
-  {
-    response.setHeader("visus-compression", query->field.default_compression);
-    response.setHeader("visus-nsamples", block_nsamples.toString());
-    response.setHeader("visus-dtype", query->field.dtype.toString());
-    response.setHeader("visus-layout", "");
+	//note [...,query] keep the query in memory
+	NetService::push(netservice, request).when_ready([this, query, block_nsamples](NetResponse response) {
 
-    if (query->aborted())
-      return readFailed(query,"aborted");
-      
-    if (!response.isSuccessful())
-      return readFailed(query,"response not valid");
+		DType response_dtype = DTypes::UINT8_RGB;
 
-    auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
-    if (!decoded.valid())
-      return readFailed(query,"cannot decode array");
+		response.setHeader("visus-compression", query->field.default_compression);
+		response.setHeader("visus-nsamples", block_nsamples.toString());
+		response.setHeader("visus-dtype", response_dtype.toString());
+		response.setHeader("visus-layout", "");
 
-    query->buffer = decoded;
+		if (query->aborted())
+			return readFailed(query, "aborted");
 
-    return readOk(query);
-  });
+		if (!response.isSuccessful())
+			return readFailed(query, "response not valid");
+
+		auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), response_dtype);
+		if (!decoded.valid())
+			return readFailed(query, "cannot decode array");
+
+		//need to cast?
+		if (query->field.dtype != response_dtype)
+			decoded = ArrayUtils::smartCast(decoded, query->field.dtype, query->aborted);
+
+		query->buffer = decoded;
+
+		return readOk(query);
+		});
 }
 
 } //namespace Visus 

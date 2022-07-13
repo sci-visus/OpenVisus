@@ -269,6 +269,8 @@ SharedPtr<Dataset> LoadDataset(String url)
 
     StringTree ar("dataset", "url", parsed.toString());
 
+    //NOTE: 'disk' means 'IdxDiskAccess'
+
     if (StringUtils::contains(url, "mod_visus"))
     {
       ar.addChild(StringTree::fromString(
@@ -346,7 +348,7 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
         int nconnections = config.readInt("nconnections", 8);
         netservice = std::make_shared<NetService>(nconnections);
       }
-      return std::make_shared<GoogleMapsAccess>(this, google->tiles_url, netservice);
+      return std::make_shared<GoogleMapsAccess>(google, google->tiles_url, netservice);
     }
   }
 

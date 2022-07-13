@@ -55,6 +55,7 @@ public:
   int tile_width = 256;
   int tile_height = 256;
   String tiles_url = "http://mt1.google.com/vt/lyrs=s";
+  String dtype = "uint8[3]"; //in case you want to cast to a cenrtain type
 
   //constructor
   GoogleMapsDataset() {
