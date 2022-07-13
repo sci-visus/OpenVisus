@@ -115,9 +115,9 @@ def Configure(bUserInstall=False):
 	print("sys.executable",sys.executable,"VISUS_GUI",VISUS_GUI, "QT_VERSION", QT_VERSION, "IS_CONDA", IS_CONDA, "CONDA_PREFIX",CONDA_PREFIX)
 
 	if IS_CONDA:
-		cmd=['conda', 'install', '-y', '-c', 'conda-forge', 'numpy'] 
+		cmd=['install', '-y', '-c', 'conda-forge', 'numpy']
 		if VISUS_GUI:
-			cmd+=["pyqt={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}"]
+			cmd+=[f"pyqt={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}"]
 			if LINUX: cmd+=["libglu"]
 		conda.cli.main(*cmd)
 		print("OPENVISUS WARNING", "if you get errors like:  module compiled against API version 0xc but this version of numpy is 0xa, then execute","conda update -y numpy")
