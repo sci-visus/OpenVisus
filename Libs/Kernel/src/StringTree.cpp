@@ -66,7 +66,7 @@ private:
     VisusAssert(!key.empty() && !value.empty());
     aliases.setValue(key,value);
 
-    //an alias can have childs too!
+    //an alias can have childs too! in this case the childs will get the up-alias
     for (auto src_child : src.getChilds())
     {
       auto dst_child = std::make_shared<StringTree>();
@@ -324,13 +324,16 @@ public:
   static StringTree exec(StringTree& src)
   {
     std::map<String,StringTree*> templates;
-    StringMap      aliases;
-    aliases.setValue("VisusHome"              , KnownPaths::VisusHome                );
-    aliases.setValue("BinaryDirectory"        , KnownPaths::BinaryDirectory          );
-    aliases.setValue("CurrentWorkingDirectory", KnownPaths::CurrentWorkingDirectory());
+
+    //this are implicit top-level alias
+    StringMap aliases;
+    aliases.setValue("VisusHome", GetVisusHome());
+    aliases.setValue("VisusCache", GetVisusCache());
+    aliases.setValue("BinaryDirectory", GetBinaryDirectory());
+    aliases.setValue("CurrentWorkingDirectory", GetCurrentWorkingDirectory());
 
     StringTree dst(src.name);
-    accept(dst,src,templates,aliases);
+    accept(dst,src,templates, aliases);
     return dst;
   }
 

@@ -69,6 +69,17 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   //NOTE 16x is enough for 16*4 bits==64 bit for block number
   //     splitting by 4 means 2^16= 64K files inside a directory with max 64/16=4 levels of directories
   this->filename_template= config.readString("filename_template");
+
+  if (this->filename_template.empty())
+  {
+    auto path = this->url.getPath();
+    VisusAssert(StringUtils::endsWith(path,".idx"));
+    this->filename_template = path.substr(0, path.size() - 4) + "/$(time)/$(field)/$(block:%016x:%04x).bin.zz";
+  }
+
+
+
+
   VisusReleaseAssert(!this->filename_template.empty());
 }
 

@@ -791,7 +791,7 @@ bool Viewer::takeSnapshot(bool bOnlyCanvas,String filename)
   {
     for (int I=0;;I++)
     {
-      filename = concatenate(KnownPaths::VisusHome,"/visus_snapshot.",StringUtils::formatNumber("%03d",I),".png");
+      filename = concatenate(GetVisusHome(),"/visus_snapshot.",StringUtils::formatNumber("%03d",I),".png");
       if (!FileUtils::existsFile(filename))
         break;
     }

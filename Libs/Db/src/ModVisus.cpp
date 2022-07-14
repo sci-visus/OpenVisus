@@ -121,7 +121,7 @@ public:
     }
     
     // search the filesystem for the dataset
-    Path homePath(KnownPaths::VisusHome);
+    Path homePath(GetVisusHome());
     Path idxPaths[2] = { homePath.getChild(name+"/visus.idx"),
                          homePath.getChild("converted/"+name+"/visus.idx") };
     for (int i=0; i<2; i++) {

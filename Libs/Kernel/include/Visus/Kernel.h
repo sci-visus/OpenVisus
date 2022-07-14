@@ -447,6 +447,14 @@ private:
   CommandLine() = delete;
 };
 
+
+///////////////////////////////////////////////////////////////////////
+String VISUS_KERNEL_API GetVisusHome();
+String VISUS_KERNEL_API GetVisusCache();
+String VISUS_KERNEL_API GetBinaryDirectory();
+String VISUS_KERNEL_API GetCurrentWorkingDirectory();
+
+
 } //namespace Visus
 
 

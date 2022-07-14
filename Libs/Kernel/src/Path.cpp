@@ -42,15 +42,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-String KnownPaths::VisusHome;
-String KnownPaths::BinaryDirectory;
-
-///////////////////////////////////////////////////////////////////////
-String KnownPaths::CurrentWorkingDirectory()
-{
-  return osdep::CurrentWorkingDirectory();
-}
-
 
 ///////////////////////////////////////////////////////////////////////
 bool Path::isGoodNormalizedPath(String path)
@@ -85,13 +76,16 @@ const String Path::normalizePath(String value)
 
   //replace alias
   if (StringUtils::contains(value, "$(VisusHome)"))
-    value = StringUtils::replaceAll(value, "$(VisusHome)", KnownPaths::VisusHome);
+    value = StringUtils::replaceAll(value, "$(VisusHome)", GetVisusHome());
+
+  if (StringUtils::contains(value, "$(VisusCache)"))
+    value = StringUtils::replaceAll(value, "$(VisusCache)", GetVisusCache());
 
   if (StringUtils::contains(value,"$(BinaryDirectory)"))
-    value =StringUtils::replaceAll(value,"$(BinaryDirectory)",KnownPaths::BinaryDirectory);
+    value =StringUtils::replaceAll(value,"$(BinaryDirectory)", GetBinaryDirectory());
 
   if (StringUtils::contains(value, "$(CurrentWorkingDirectory)"))
-    value=StringUtils::replaceAll(value,"$(CurrentWorkingDirectory)", KnownPaths::CurrentWorkingDirectory());
+    value=StringUtils::replaceAll(value,"$(CurrentWorkingDirectory)", GetCurrentWorkingDirectory());
 
   //don't want window separators
   value =StringUtils::replaceAll(value,"\\", "/");
@@ -99,11 +93,11 @@ const String Path::normalizePath(String value)
   // example [./something ]  -> CurrentWorkingDirectory/./something
   //         [../something]  -> CurrentWorkingDirectory/../something
   if (StringUtils::startsWith(value,"./") || StringUtils::startsWith(value,"../"))
-    value = KnownPaths::CurrentWorkingDirectory() + "/" + value;
+    value = GetCurrentWorkingDirectory() + "/" + value;
 
   // example [~/something] -> VisusHome/something
   if (StringUtils::startsWith(value,"~"))
-    value =KnownPaths::VisusHome + value.substr(1);
+    value =GetVisusHome() + value.substr(1);
 
   //example [c:/something/] -> [c:/something]
   if (StringUtils::endsWith(value,"/") && value !="/")
@@ -119,7 +113,7 @@ const String Path::normalizePath(String value)
 
   //NEED TO START WITH A ROOT DIR (example [/] or [c:])
   if (!(((value.size()>=1 && value[0]=='/') || (value.size()>=2 && isalpha(value[0]) && value[1]==':'))))
-    value = KnownPaths::CurrentWorkingDirectory() + "/" + value;
+    value = GetCurrentWorkingDirectory() + "/" + value;
 
   VisusAssert(isGoodNormalizedPath(value));
   return value;

@@ -141,7 +141,7 @@ void PrintLine(String file, int line, int level, String msg)
 int          CommandLine::argn=0;
 const char** CommandLine::argv ;
 
-static String visus_config_commandline_filename;
+static String visus_config_from_commandline;
 
 ///////////////////////////////////////////////////////////////////////////////
 String cstring10(double value) {
@@ -167,7 +167,7 @@ void SetCommandLine(int argn, const char** argv)
     //override visus.config
     if (argv[I] == String("--visus-config") && I < (argn - 1))
     {
-      visus_config_commandline_filename = argv[++I];
+      visus_config_from_commandline = argv[++I];
       continue;
     }
 
@@ -228,34 +228,77 @@ void ThrowExceptionEx(String file,int line, String what)
 }
 
 
-
-
 ///////////////////////////////////////////////////////////
-static void InitKnownPaths()
-{
-#ifdef VISUS_HOME
-  {
-    KnownPaths::VisusHome = Path(__xstr__(VISUS_HOME));
-    PrintInfo("setting VISUS_HOME", KnownPaths::VisusHome, "from C++ define");
-  }
-#else
-
-  if (auto VISUS_HOME = getenv("VISUS_HOME"))
-  {
-    KnownPaths::VisusHome = Path(VISUS_HOME);
-    PrintInfo("setting VISUS_HOME", KnownPaths::VisusHome, "from getenv");
-  }
-  else
-  {
-    KnownPaths::VisusHome = osdep::getHomeDirectory() + "/visus";
-    PrintInfo("setting VISUS_HOME", KnownPaths::VisusHome, "from home directory");
-  }
-#endif
-
-  FileUtils::createDirectory(KnownPaths::VisusHome);
-  KnownPaths::BinaryDirectory = Path(Utils::getCurrentApplicationFile()).getParent();
+String GetVisusHome() {
+  return Utils::getEnv("VISUS_HOME");
 }
 
+String GetVisusCache() {
+  return Utils::getEnv("VISUS_CACHE");
+}
+
+String GetBinaryDirectory() {
+  return Utils::getEnv("VISUS_BINARY_DIR");
+}
+
+String GetCurrentWorkingDirectory() {
+  return osdep::GetCurrentWorkingDirectory();
+}
+
+
+void InitKnownPaths()
+{
+  //visus home
+  {
+    String value;
+
+#ifdef VISUS_HOME
+    {
+      value = String(__xstr__(VISUS_HOME));
+      PrintInfo("setting VISUS_HOME from C++ define", value);
+    }
+#else
+    if (auto VISUS_HOME = getenv("VISUS_HOME"))
+    {
+      value = String(VISUS_HOME);
+      PrintInfo("setting VISUS_HOME from getenv", value);
+    }
+    else
+    {
+      value = osdep::getHomeDirectory() + "/visus";
+      PrintInfo("setting VISUS_HOME from home directory", value);
+    }
+#endif
+
+    Utils::setEnv("VISUS_HOME", value);
+    FileUtils::createDirectory(value);
+  }
+
+  //visus cache
+  {
+    String value;
+
+    if (auto VISUS_CACHE = getenv("VISUS_CACHE"))
+    {
+      value = String(VISUS_CACHE);
+      PrintInfo("setting VISUS_CACHE from getenv", value);
+    }
+    else
+    {
+      value = GetVisusHome() + "/cache";
+      PrintInfo("setting VISUS_CACHE from VISUS_HOME", value);
+    }
+
+    Utils::setEnv("VISUS_CACHE", value);
+    FileUtils::createDirectory(value);
+  }
+
+  //binary directory
+  {
+    String value= Path(Utils::getCurrentApplicationFile()).getParent();
+    Utils::setEnv("VISUS_BINARY_DIR", value);
+  }
+}
 
 int KernelModule::attached = 0;
 
@@ -298,8 +341,6 @@ void KernelModule::attach()
   VisusReleaseAssert(sizeof(S129) == 129);
   VisusReleaseAssert(sizeof(S133) == 133);
   
-
-
   osdep::InitAutoReleasePool();
 
   srand(0);
@@ -316,11 +357,13 @@ void KernelModule::attach()
 
   auto config = getModuleConfig();
 
-  for (auto filename : {
-    visus_config_commandline_filename ,
-    KnownPaths::CurrentWorkingDirectory() + "/visus.config",
-    KnownPaths::VisusHome + "/visus.config" 
-    })
+  std::vector<String> visus_config_candidates = {
+    visus_config_from_commandline ,
+    GetCurrentWorkingDirectory() + "/visus.config",
+    GetVisusHome() + "/visus.config"
+  };
+
+  for (auto filename : visus_config_candidates)
   {
     if (filename.empty())
       continue;
@@ -329,15 +372,16 @@ void KernelModule::attach()
 #if _DEBUG
     PrintInfo("VisusConfig filename",filename,"ok",bOk ? "YES" : "NO");
 #endif
-    if (bOk) break;
+    if (bOk) 
+      break;
   }
 
-  PrintInfo(
-    "VERSION", OpenVisus_VERSION,
-    "GIT_REVISION", OpenVisus_GIT_REVISION,
-    "VisusHome", KnownPaths::VisusHome, 
-    "BinaryDirectory", KnownPaths::BinaryDirectory,
-    "CurrentWorkingDirectory ", KnownPaths::CurrentWorkingDirectory());
+  PrintInfo("VISUS_VERSION", OpenVisus_VERSION);
+  PrintInfo("VISUS_GIT_REVISION", OpenVisus_GIT_REVISION);
+  PrintInfo("VISUS_HOME", GetVisusHome());
+  PrintInfo("VISUS_CACHE", GetVisusCache());
+  PrintInfo("VISUS_BINARY_DIR", GetBinaryDirectory());
+  PrintInfo("GetCurrentWorkingDirectory()", GetCurrentWorkingDirectory());
 
   ArrayPlugins::allocSingleton();
   Encoders::allocSingleton();
