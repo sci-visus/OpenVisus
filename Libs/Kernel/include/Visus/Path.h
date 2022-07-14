@@ -145,17 +145,6 @@ private:
 
 }; //end class
 
-///////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API KnownPaths
-{
-public:
-  static String VisusHome;
-  static String BinaryDirectory;
-  static String CurrentWorkingDirectory();
-private:
-  KnownPaths()=delete;
-};
-
 
 } //namespace Visus
 

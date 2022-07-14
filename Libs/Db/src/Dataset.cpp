@@ -269,23 +269,26 @@ SharedPtr<Dataset> LoadDataset(String url)
 
     StringTree ar("dataset", "url", parsed.toString());
 
-    //NOTE: 'disk' means 'IdxDiskAccess'
-
+    //if it's a remote mod_visus
     if (StringUtils::contains(url, "mod_visus"))
     {
+      String local_idx="$(VisusCache)/" + parsed.getHostname() + "/" + cstring(parsed.getPort()) + "/" + parsed.getParam("dataset") + "/visus.idx";
+
       ar.addChild(StringTree::fromString(
         "  <access type='multiplex'>\n"
-        "     <access type='disk'    chmod='rw' url='file://$(VisusHome)/cache/" + parsed.getHostname() + "/" + cstring(parsed.getPort()) + "/" + parsed.getParam("dataset") + "/visus.idx'  />\n"
-        "     <access type='network' chmod='r'  compression='zip' />\n"
+        "     <access type='IdxDiskAccess'  chmod='rw' url='" + local_idx + "' />\n"
+        "     <access type='ModVisusAccess' chmod='r'  compression='zip' />\n"
         "  </access>\n"));
     }
-    //cloud storage
+    //else is a CloudStorage
     else
     {
+      String local_idx="$(VisusCache)/" + parsed.getHostname() + parsed.getPath(); //visus.idx is already inside the path
+
       //add a default access
       ar.addChild(StringTree::fromString(
         "  <access type='multiplex'>\n"
-        "     <access type='disk'               chmod='rw' url='file://$(VisusHome)/cache/" + parsed.getHostname() + parsed.getPath() + "'  />\n"
+        "     <access type='IdxDiskAccess'      chmod='rw' url='" + local_idx  + "' />\n"
         "     <access type='CloudStorageAccess' chmod='r'  compression='zip' />\n"
         "  </access>\n"));
     }

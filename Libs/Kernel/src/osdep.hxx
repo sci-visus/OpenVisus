@@ -468,8 +468,8 @@ public:
 	  return String(buf);
 	}  
 
-  //CurrentWorkingDirectory
-  static String CurrentWorkingDirectory()
+  //GetCurrentWorkingDirectory
+  static String GetCurrentWorkingDirectory()
 	{
 	#if WIN32 
 	  {
