@@ -1,10 +1,11 @@
 ---
 layout: default
+title: copy_datasets_to_s3
 parent: Old Docs
 nav_order: 2
 ---
 
-## Table of contents
+# Table of contents
 {: .no_toc .text-delta }
 
 1. TOC
