@@ -1,10 +1,10 @@
 ---
 layout: default
 title: LoadDataset
-parent: Python/Jupyter Features
+parent: Python / Jupyter Features
 nav_order: 2
 ---
 
-# LoadDataset()
+# LoadDataset
 
 Talk about function and examples of its usage here...
