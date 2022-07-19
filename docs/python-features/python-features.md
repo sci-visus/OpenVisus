@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Python/Jupyter Features
+title: Python and Jupyter Features
 nav_order: 3
 has_children: true
 permalink: /docs/python-features

@@ -1,7 +1,6 @@
 ---
 layout: default
-title: LoadDataset
-parent: Python / Jupyter Features
+parent: Python and Jupyter Features
 nav_order: 2
 ---
 
