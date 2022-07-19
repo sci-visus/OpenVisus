@@ -1,3 +1,5 @@
 # OpenViSUS Documentation
 
-The following site serves as documentation for the OpenViSUS package.
+The following branch in the OpenViSUS repository serves as documentation for the OpenViSUS package.
+
+Access the documentation site [here](https://sci-visus.github.io/OpenVisus/).
