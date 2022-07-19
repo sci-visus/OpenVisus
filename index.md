@@ -19,15 +19,37 @@ The mission of ViSUS.org is to provide support for the scientific community with
 ## Getting Started
 
 ### Installation
+OpenViSUS is available through [pip](https://pypi.org/project/OpenVisus/) and [conda](https://anaconda.org/ViSUS/openvisus).
 
-#### Dependencies
+Through `pip`:
+
+```
+python -m pip install OpenVisus
+```
+
+Through `conda`:
+```
+conda install -c visus openvisus
+```
+
+Once installed through your Python package manager of choice, run the configuration:
+```
+python -m OpenVisus configure
+```
 
 ### Using OpenViSUS with Python/Jupyter
 
 - [See the different functions available for use in Python]({{ site.baseurl }}{% link docs/python-features/python-features.md %})
 
-### Using OpenViSUS viewer
+### Using OpenViSUS Viewer
+Launch the OpenViSUS viewer using the following command:
+```
+python -m OpenVisus viewer
+```
 
 - [See the different features of the viewer]({{ site.baseurl }}{% link docs/viewer-features/viewer-features.md %})
 
 ### Contributing to Docs
+
+## Older Documentation
+Older documentation can be found on this page [here]({{ site.baseurl }}{% link docs/old-docs/old-docs.md %})

@@ -6,7 +6,7 @@ has_children: true
 permalink: /docs/python-features
 ---
 
-# Python/Jupyter Features
+# Python and Jupyter Features
 
 The OpenViSUS Python package has various functions for reading data from a ViSUS server.
 
