@@ -2,7 +2,7 @@
 layout: default
 nav_order: 3
 has_children: true
-permalink: /docs/python-features
+permalink: /docs/jupyter-examples
 ---
 
 # Jupyter Notebook Examples

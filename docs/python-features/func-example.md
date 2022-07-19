@@ -6,4 +6,4 @@ nav_order: 2
 
 # FuncExample
 
-Template to follow for documenting functions
+Template to follow for documenting functions.

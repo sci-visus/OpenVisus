@@ -13,7 +13,7 @@ The mission of ViSUS.org is to provide support for the scientific community with
 # Table of contents
 {: .no_toc .text-delta }
 
-1. TOC
+TOC
 {:toc}
 
 ---
