@@ -105,7 +105,7 @@ def ShowDeps(all_bins):
 # ////////////////////////////////////////////////
 def Configure(bUserInstall=False):
 	
-	IS_CONDA = os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history')) # see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
+	IS_CONDA = True if "USE_CONDA" in os.environ and os.environ["USE_CONDA"] == "1" else False # os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history')) # see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
 	IS_CPYTHON = not IS_CONDA
 	CONDA_PREFIX=os.environ['CONDA_PREFIX'] if IS_CONDA else ""		
 	VISUS_GUI=os.path.isfile("QT_VERSION")
@@ -125,7 +125,7 @@ def Configure(bUserInstall=False):
 	else:
 		cmd=[sys.executable,"-m", "pip", "install"] + (["--user"] if bUserInstall else []) + ['numpy']
 		if VISUS_GUI:
-			cmd+=[f"PyQt5~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", f"PyQtWebEngine~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", "PyQt5-sip"]
+			cmd+=[f"PyQt5=={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", f"PyQtWebEngine=={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", "PyQt5-sip"] # set to == to prevent qt version mismatch on mac install
 		ExecuteCommand(cmd, check_result=False) # False since it fails a lot !
 		
 	# *** fix rpath ****
