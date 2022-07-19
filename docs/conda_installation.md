@@ -20,7 +20,7 @@ bash Anaconda3-2019.03-Linux-x86_64.sh
 conda config --set auto_activate_base false
 ```
 
-The activate conda:
+Then activate conda:
 
 ```
 conda activate
@@ -44,14 +44,15 @@ conda install --name myenv  -y --channel visus openvisus
 ```
 
 Test it (just ignore segmentation fault error on some Linux distributions in the `configure` step):
-
+If you would like to use conda for the rest of the configuration, create an environment variable: `USE_CONDA=1`
+Otherwise, by default, the configuration process will use pip.
 
 ```
 python -m OpenVisus configure 
 python -c "from OpenVisus import *"
 ```
 
-(OPTIONAL ) if you get *numpy import error* such as  `Library not loaded: @rpath/libopenblas.dylib`,  this:
+(OPTIONAL) If you get *numpy import error* such as  `Library not loaded: @rpath/libopenblas.dylib`,  this:
 
 ```
 conda uninstall --name myenv  -y numpy
