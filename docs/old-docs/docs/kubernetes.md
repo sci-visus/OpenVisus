@@ -1,3 +1,20 @@
+---
+layout: default
+parent: Old Docs
+nav_order: 2
+---
+
+# Buttons
+{: .no_toc }
+
+## Table of contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
+---
+
 # Introduction
 
 This tutorial shows how to run one or multiple modvisus with a frontend load balancer using Kubernetes (K8s).

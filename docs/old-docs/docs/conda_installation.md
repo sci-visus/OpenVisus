@@ -1,3 +1,20 @@
+---
+layout: default
+parent: Old Docs
+nav_order: 2
+---
+
+# Buttons
+{: .no_toc }
+
+## Table of contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
+---
+
 # Install OpenVisus
 
 You need a `conda` installation. For Windows, go to [this link](https://www.anaconda.com/products/individual) and follow instructions. At the end you will have an `Anacronda Prompt`. On OSX you can use `brew install` or:

@@ -1,3 +1,20 @@
+---
+layout: default
+parent: Old Docs
+nav_order: 2
+---
+
+# Buttons
+{: .no_toc }
+
+## Table of contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
+---
+
 # Load balancing with Docker Swarm
 
 In this tutorial we show how to run multiple mod_visus with a ngix load balancer.

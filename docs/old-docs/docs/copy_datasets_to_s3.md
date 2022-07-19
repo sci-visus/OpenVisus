@@ -1,3 +1,20 @@
+---
+layout: default
+parent: Old Docs
+nav_order: 2
+---
+
+# Buttons
+{: .no_toc }
+
+## Table of contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
+---
+
 # Prerequisites. Create an Access Key
 
 
