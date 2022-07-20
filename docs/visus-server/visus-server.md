@@ -1,6 +1,6 @@
 ---
 layout: default
-title: ViSUS Server
+title: Running the ViSUS Server
 nav_order: 3
 has_children: true
 permalink: /docs/visus-server
@@ -8,4 +8,4 @@ permalink: /docs/visus-server
 
 # ViSUS Server
 
-OpenViSUS has docker images that are ready to deploy...
+OpenViSUS comes with various implementations when trying to host a server.

@@ -1,6 +1,6 @@
 ---
 layout: default
-title: kubernetes
+title: main_readme
 parent: Old Docs
 nav_order: 2
 ---

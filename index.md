@@ -9,6 +9,8 @@ permalink: /
 {: .no_toc }
 The mission of ViSUS.org is to provide support for the scientific community with Big Data, management, analysis and visualization tools. In this website we provide access to open source software tools and libraries such as the ViSUS framework and the PIDX library. These softwares are distributed under the permissive BSD license (see LICENSE file).
 
+The goal of this website is to allow users of OpenViSUS to have a searchable platform for learning and troubleshooting the OpenViSUS Python package. The OpenViSUS Python package allows users to connect to a self-hostable [OpenViSUS Server]({{ site.baseurl }}{% link docs/visus-server/visus-server.md %}).
+
 ## Getting Started
 {: .no_toc }
 
