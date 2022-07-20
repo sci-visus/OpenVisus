@@ -10,6 +10,7 @@ permalink: /
 The mission of ViSUS.org is to provide support for the scientific community with Big Data, management, analysis and visualization tools. In this website we provide access to open source software tools and libraries such as the ViSUS framework and the PIDX library. These softwares are distributed under the permissive BSD license (see LICENSE file).
 
 ## Getting Started
+{: .no_toc }
 
 ## Table of contents
 {: .no_toc .text-delta }
@@ -50,6 +51,7 @@ $ python -m OpenVisus viewer
 See the different features of the viewer [here]({{ site.baseurl }}{% link docs/viewer-features/viewer-features.md %}).
 
 ### Contributing to Documentation
+You can make a GitHub PR [here]() to contribute to this documentation.
 
 
 ## Older Documentation
