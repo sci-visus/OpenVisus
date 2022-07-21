@@ -1,6 +1,6 @@
 ---
 layout: default
-title: kubernetes
+title: Kubernetes
 parent: Old Docs
 nav_order: 2
 ---
@@ -270,6 +270,17 @@ Create/ Inspect/ Debug the ingress:
 kubectl apply -f mod_visus_ingress.yaml
 kubectl describe ingress mod-visus-ingress 
 kubectl get ingress 
+```
+
+See if it works:
+
+```
+wget -O- --no-verbose http://localhost:80/mod_visus?action=list
+```
+
+
+
+bectl get ingress 
 ```
 
 See if it works:

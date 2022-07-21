@@ -1,6 +1,6 @@
 ---
 layout: default
-title: docker_swarm_modvisus
+title: Docker Swarm Modvisus
 parent: Old Docs
 nav_order: 2
 ---

@@ -1,6 +1,6 @@
 ---
 layout: default
-title: compilation.centos
+title: Compilation Centos
 parent: Old Docs
 nav_order: 2
 ---

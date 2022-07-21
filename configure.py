@@ -19,6 +19,52 @@ def create_header(parent, title):
     return HEADER.replace('{TITLE}', title).replace('{PARENT}', parent)
 
 
+def create_title(md_filename):
+    return md_filename.replace(
+        ".md",
+        "").replace(
+        ".",
+        " ").replace(
+            "-",
+            " ").replace(
+                "_",
+        " ").title()
+
+
+def save_markdown(parent_name, md_filename):
+    with open(md_filename, 'r+') as file:
+        content = file.read()
+        file.seek(0)
+        file.write(
+            create_header(
+                parent_name,
+                create_title(md_filename)) +
+            content)
+
+
+def convert_old_docs(docs_base_url, docs, tmp_dir, docs_dir):
+    for doc in docs:
+        url = docs_base_url + doc
+        response = urlopen(url).read().decode()
+        with open(doc, 'w') as file:
+            file.write(response)
+            file.close()
+
+    # add jekyll tags to all markdowns
+    markdowns = glob.glob("*.md")
+    for md in markdowns:
+        save_markdown('Old Docs', md)
+
+    # copy md files to proper docs directory
+    shutil.copytree(
+        os.getcwd(),
+        os.path.join(
+            docs_dir,
+            'docs',
+            'old-docs'),
+        dirs_exist_ok=True)
+
+
 def convert_jupyter_notebooks(
         notebooks_base_url,
         notebooks,
@@ -39,22 +85,7 @@ def convert_jupyter_notebooks(
     # add jekyll tags to all markdowns
     markdowns = glob.glob("*.md")
     for md in markdowns:
-        with open(md, 'r+') as file:
-            content = file.read()
-            file.seek(0)
-            file.write(
-                create_header(
-                    'Jupyter Notebook Examples',
-                    md.replace(
-                        ".md",
-                        "").replace(
-                        ".",
-                        " ").replace(
-                        "-",
-                        " ").replace(
-                        "_",
-                        " ").title()) + content)
-            file.close()
+        save_markdown('Jupyter Notebook Examples', md)
 
     # copy md files to proper docs directory
     shutil.copytree(
@@ -69,8 +100,22 @@ def convert_jupyter_notebooks(
 def main(tmp_dir, docs_dir):
     print("Using tmp directory: ", tmp_dir)
 
-    docs_base_url = ""
-    docs = []
+    # do all the old docs copying and conversion
+    os.mkdir('old-docs')
+    os.chdir(os.path.join(tmp_dir, 'old-docs'))
+    docs_base_url = "https://raw.githubusercontent.com/sci-visus/OpenVisus/master/docs/"
+    docs = [
+        "atlantis.sci.utah.edu.md",
+        "compilation.centos.md",
+        "compilation.md",
+        "conda_installation.md",
+        "copy_datasets_to_s3.md",
+        "docker_modvisus.md",
+        "docker_swarm_modvisus.md",
+        "kubernetes.md"]
+    convert_old_docs(docs_base_url, docs, tmp_dir, docs_dir)
+
+    os.chdir(tmp_dir)
 
     # do all the jupyter notebook copying and conversion
     os.mkdir('jupyter-examples')

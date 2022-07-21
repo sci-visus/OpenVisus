@@ -1,6 +1,6 @@
 ---
 layout: default
-title: docker_modvisus
+title: Docker Modvisus
 parent: Old Docs
 nav_order: 2
 ---
@@ -285,6 +285,13 @@ sudo docker build --tag visus/my_mod_visus:$TAG .
 ```
 
 Another way (**not tested**) is to directly add the groups to `daemon` user by command line:
+
+```
+docker run ... --group-add <group-id-1> --group-add <group-id-2> ...
+
+```
+
+d the groups to `daemon` user by command line:
 
 ```
 docker run ... --group-add <group-id-1> --group-add <group-id-2> ...

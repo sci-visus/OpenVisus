@@ -1,6 +1,6 @@
 ---
 layout: default
-title: main_readme
+title: Readme
 parent: Old Docs
 nav_order: 2
 ---

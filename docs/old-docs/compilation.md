@@ -1,6 +1,6 @@
 ---
 layout: default
-title: compilation
+title: Compilation
 parent: Old Docs
 nav_order: 2
 ---
@@ -12,6 +12,7 @@ nav_order: 2
 {:toc}
 
 ---
+
 
 # How to build OpenVisus
 
@@ -360,6 +361,12 @@ TAG=$(python3 Libs/swig/setup.py new-tag) && echo ${TAG}
 git commit -a -m "New tag" && \
   git tag -a $TAG -m "$TAG" && \
   git push origin $TAG && \
+  git push origin
+```
+
+Also remember to manually change the version in [environment.yml](https://github.com/sci-visus/OpenVisus/blob/master/environment.yml) that is used in binder.
+
+it push origin $TAG && \
   git push origin
 ```
 

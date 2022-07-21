@@ -1,6 +1,6 @@
 ---
 layout: default
-title: copy_datasets_to_s3
+title: Copy Datasets To S3
 parent: Old Docs
 nav_order: 2
 ---

@@ -1,6 +1,6 @@
 ---
 layout: default
-title: atlantis.sci.utah.edu
+title: Atlantis Sci Utah Edu
 parent: Old Docs
 nav_order: 2
 ---
