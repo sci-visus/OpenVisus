@@ -1,0 +1,17 @@
+---
+layout: default
+parent: Python OpenViSUS Functions
+nav_order: 2
+---
+
+# StringUtils_startsWith(s, what, caseSensitive=False)
+
+Describe function here.
+
+# Function Definition
+
+```python
+def StringUtils_startsWith(s, what, caseSensitive=False):
+    return _VisusKernelPy.StringUtils_startsWith(s, what, caseSensitive)
+
+```
