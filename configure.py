@@ -1,7 +1,60 @@
-# configuration script for docs
-# this script scrapes the existing OpenVisus repo (main branch) and adds it to the docs
-# it also uses nbconvert to convert notebooks to markdown
-# finally, it uses a markdown formatter to make things look clean
+"""
+ configuration script for OpenViSUS docs
+ this script scrapes the existing OpenVisus repo (main branch) and adds it to the docs
+ it also uses nbconvert to convert notebooks to markdown
+ finally, it uses a markdown formatter to make things look clean
+ you must run this script within this repository for it to scrape and modify files correctly
+"""
 
-docs = []
-notebooks = []
+from urllib.request import urlopen
+import glob
+import os
+import shutil
+import subprocess
+import tempfile
+
+def create_header(parent, title):
+    HEADER = '---\nlayout: default\ntitle: {TITLE}\nparent: {PARENT}\nnav_order: 2\n---\n\n# Table of contents\n{: .no_toc .text-delta }\n\n1. TOC\n{:toc}\n\n---\n\n'
+    return HEADER.replace('{TITLE}', title).replace('{PARENT}', parent)
+
+def convert_jupyter_notebooks(notebooks_base_url, notebooks, tmp_dir, docs_dir):
+    # download notebooks and convert to markdown
+    for nb in notebooks:
+        url = notebooks_base_url + nb
+        response = urlopen(url).read().decode()
+        with open(nb, 'w') as file:
+            file.write(response)
+            file.close()
+        subprocess.run("jupyter nbconvert --to markdown {}".format(nb), shell=True)
+        os.remove(nb)
+    
+    # add jekyll tags to all markdowns
+    markdowns = glob.glob("*.md")
+    for md in markdowns:
+        with open(md, 'r+') as file:
+            content = file.read()
+            file.seek(0)
+            file.write(create_header('Jupyter Notebook Examples', md.replace(".md", "").replace(".", " ").replace("-", " ").replace("_", " ").title()) + content)
+            file.close()
+    
+    # copy md files to proper docs directory
+    shutil.copytree(os.getcwd(), os.path.join(docs_dir, 'docs', 'jupyter-examples'), dirs_exist_ok=True)
+
+
+def main(tmp_dir, docs_dir):
+    print("Using tmp directory: ", tmp_dir)
+
+    docs_base_url = ""
+    docs = []
+
+    os.mkdir('jupyter-examples')
+    os.chdir(os.path.join(tmp_dir, 'jupyter-examples'))
+    notebooks_base_url = "https://raw.githubusercontent.com/sci-visus/OpenVisus/master/Samples/jupyter/"
+    notebooks = ["Agricolture.ipynb"]
+    convert_jupyter_notebooks(notebooks_base_url, notebooks, tmp_dir, docs_dir)
+
+if __name__ == '__main__':
+    THIS_DIR = os.getcwd()
+    with tempfile.TemporaryDirectory() as TMP_DIR:
+        os.chdir(TMP_DIR)
+        main(TMP_DIR, THIS_DIR)

@@ -32,12 +32,12 @@ $ python -m pip install OpenVisus
 ```
 
 Through `conda`:
-```
+```bash
 $ conda install -c visus openvisus
 ```
 
 Once installed through your Python package manager of choice, run the configuration:
-```
+```bash
 $ python -m OpenVisus configure
 ```
 
@@ -46,7 +46,7 @@ See the different functions available for use in Python and Jupyter [here]({{ si
 
 ### Using the OpenViSUS Viewer
 Launch the OpenViSUS viewer using the following command:
-```
+```bash
 $ python -m OpenVisus viewer
 ```
 
