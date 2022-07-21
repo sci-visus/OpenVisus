@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_containsControl(src):
     return _VisusKernelPy.StringUtils_containsControl(src)
-
 ```

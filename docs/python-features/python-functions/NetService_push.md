@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def NetService_push(service, request):
     return _VisusKernelPy.NetService_push(service, request)
-
 ```

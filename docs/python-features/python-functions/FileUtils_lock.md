@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def FileUtils_lock(path):
     return _VisusKernelPy.FileUtils_lock(path)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ThrowExceptionEx(file, line, what):
     return _VisusKernelPy.ThrowExceptionEx(file, line, what)
-
 ```

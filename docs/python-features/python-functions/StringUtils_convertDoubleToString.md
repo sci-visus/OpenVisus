@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_convertDoubleToString(v, precision=-1):
     return _VisusKernelPy.StringUtils_convertDoubleToString(v, precision)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Color_fromString(*args):
     return _VisusKernelPy.Color_fromString(*args)
-
 ```

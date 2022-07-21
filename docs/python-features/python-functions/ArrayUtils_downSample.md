@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_downSample(*args):
     return _VisusKernelPy.ArrayUtils_downSample(*args)
-
 ```

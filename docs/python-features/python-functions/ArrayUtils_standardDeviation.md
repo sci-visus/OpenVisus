@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_standardDeviation(*args):
     return _VisusKernelPy.ArrayUtils_standardDeviation(*args)
-
 ```

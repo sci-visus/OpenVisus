@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ModelViewNode_castFrom(obj):
     return _VisusNodesPy.ModelViewNode_castFrom(obj)
-
 ```

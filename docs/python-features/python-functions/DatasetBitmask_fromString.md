@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def DatasetBitmask_fromString(pattern):
     return _VisusDbPy.DatasetBitmask_fromString(pattern)
-
 ```

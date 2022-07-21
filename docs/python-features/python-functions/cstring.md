@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def cstring(*args):
     return _VisusKernelPy.cstring(*args)
-
 ```

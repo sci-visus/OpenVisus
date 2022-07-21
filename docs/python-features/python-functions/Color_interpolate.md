@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Color_interpolate(alpha, c1, beta, c2):
     return _VisusKernelPy.Color_interpolate(alpha, c1, beta, c2)
-
 ```

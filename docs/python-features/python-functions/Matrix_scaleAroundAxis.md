@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Matrix_scaleAroundAxis(axis, k):
     return _VisusKernelPy.Matrix_scaleAroundAxis(axis, k)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_compactDims(src):
     return _VisusKernelPy.ArrayUtils_compactDims(src)
-
 ```

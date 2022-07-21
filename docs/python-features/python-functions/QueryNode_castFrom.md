@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def QueryNode_castFrom(obj):
     return _VisusNodesPy.QueryNode_castFrom(obj)
-
 ```

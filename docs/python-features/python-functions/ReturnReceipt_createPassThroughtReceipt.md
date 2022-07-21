@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ReturnReceipt_createPassThroughtReceipt(node):
     return _VisusDataflowPy.ReturnReceipt_createPassThroughtReceipt(node)
-
 ```

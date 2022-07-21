@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Matrix_invNonZeroScale(vs):
     return _VisusKernelPy.Matrix_invNonZeroScale(vs)
-
 ```

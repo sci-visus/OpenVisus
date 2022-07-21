@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def FileUtils_createLink(existing_file, new_file):
     return _VisusKernelPy.FileUtils_createLink(existing_file, new_file)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_encodeForFilename(value):
     return _VisusKernelPy.StringUtils_encodeForFilename(value)
-
 ```

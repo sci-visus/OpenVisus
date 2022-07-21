@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Rectangle2d_fromString(s):
     return _VisusKernelPy.Rectangle2d_fromString(s)
-
 ```

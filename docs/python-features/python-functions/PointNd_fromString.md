@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def PointNd_fromString(src):
     return _VisusKernelPy.PointNd_fromString(src)
-
 ```

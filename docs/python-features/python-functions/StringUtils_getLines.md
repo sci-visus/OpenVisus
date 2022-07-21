@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_getLines(s):
     return _VisusKernelPy.StringUtils_getLines(s)
-
 ```

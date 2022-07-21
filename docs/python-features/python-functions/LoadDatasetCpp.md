@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def LoadDatasetCpp(url):
     return _VisusDbPy.LoadDatasetCpp(url)
-
 ```

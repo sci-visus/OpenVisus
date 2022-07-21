@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def DatasetBitmask_invalid():
     return _VisusDbPy.DatasetBitmask_invalid()
-
 ```

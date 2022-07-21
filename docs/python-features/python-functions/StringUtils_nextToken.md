@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_nextToken(src, separator):
     return _VisusKernelPy.StringUtils_nextToken(src, separator)
-
 ```

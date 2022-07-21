@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_add(*args):
     return _VisusKernelPy.ArrayUtils_add(*args)
-
 ```

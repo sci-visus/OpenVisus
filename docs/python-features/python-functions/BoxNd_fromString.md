@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def BoxNd_fromString(value, bInterleave=True):
     return _VisusKernelPy.BoxNd_fromString(value, bInterleave)
-
 ```

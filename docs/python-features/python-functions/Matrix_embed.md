@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Matrix_embed(axis, offset):
     return _VisusKernelPy.Matrix_embed(axis, offset)
-
 ```

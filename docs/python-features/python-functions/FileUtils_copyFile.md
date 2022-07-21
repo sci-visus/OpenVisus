@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def FileUtils_copyFile(src, dst, bFailIfExist):
     return _VisusKernelPy.FileUtils_copyFile(src, dst, bFailIfExist)
-
 ```

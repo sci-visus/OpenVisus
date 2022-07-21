@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Field_fromString(src):
     return _VisusKernelPy.Field_fromString(src)
-
 ```

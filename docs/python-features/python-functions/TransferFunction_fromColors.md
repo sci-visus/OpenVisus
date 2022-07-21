@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def TransferFunction_fromColors(*args):
     return _VisusKernelPy.TransferFunction_fromColors(*args)
-
 ```

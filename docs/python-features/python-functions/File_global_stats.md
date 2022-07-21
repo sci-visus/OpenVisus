@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def File_global_stats():
     return _VisusKernelPy.File_global_stats()
-
 ```

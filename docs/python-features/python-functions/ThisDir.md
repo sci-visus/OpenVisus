@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ThisDir(file):
 	return os.path.dirname(os.path.abspath(file))
-
 ```

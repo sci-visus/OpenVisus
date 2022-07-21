@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_replaceFirst(src, what, value):
     return _VisusKernelPy.StringUtils_replaceFirst(src, what, value)
-
 ```

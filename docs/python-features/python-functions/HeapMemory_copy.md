@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def HeapMemory_copy(dst, src):
     return _VisusKernelPy.HeapMemory_copy(dst, src)
-
 ```

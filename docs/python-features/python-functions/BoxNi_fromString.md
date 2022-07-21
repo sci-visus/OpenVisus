@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def BoxNi_fromString(value, bInterleave=True):
     return _VisusKernelPy.BoxNi_fromString(value, bInterleave)
-
 ```

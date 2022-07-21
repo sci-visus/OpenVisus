@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_paste(*args):
     return _VisusKernelPy.ArrayUtils_paste(*args)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_split(*args):
     return _VisusKernelPy.StringUtils_split(*args)
-
 ```

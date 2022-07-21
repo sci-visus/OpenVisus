@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def LoadDatasetEx(ar):
     return _VisusDbPy.LoadDatasetEx(ar)
-
 ```

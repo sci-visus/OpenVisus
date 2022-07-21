@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def DatasetNode_castFrom(obj):
     return _VisusNodesPy.DatasetNode_castFrom(obj)
-
 ```

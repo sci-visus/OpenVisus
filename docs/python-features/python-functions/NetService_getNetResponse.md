@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def NetService_getNetResponse(request):
     return _VisusKernelPy.NetService_getNetResponse(request)
-
 ```

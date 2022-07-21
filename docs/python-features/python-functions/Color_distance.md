@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Color_distance(c1, c2):
     return _VisusKernelPy.Color_distance(c1, c2)
-
 ```

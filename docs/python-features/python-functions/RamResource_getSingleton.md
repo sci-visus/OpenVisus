@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def RamResource_getSingleton():
     return _VisusKernelPy.RamResource_getSingleton()
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Matrix_zero(dim):
     return _VisusKernelPy.Matrix_zero(dim)
-
 ```

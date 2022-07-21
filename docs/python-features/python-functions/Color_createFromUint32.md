@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Color_createFromUint32(value):
     return _VisusKernelPy.Color_createFromUint32(value)
-
 ```

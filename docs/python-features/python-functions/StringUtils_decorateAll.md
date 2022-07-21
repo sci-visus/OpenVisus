@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_decorateAll(prefix, v, postfix):
     return _VisusKernelPy.StringUtils_decorateAll(prefix, v, postfix)
-
 ```

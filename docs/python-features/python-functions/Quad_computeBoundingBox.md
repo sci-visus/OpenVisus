@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Quad_computeBoundingBox(quads):
     return _VisusKernelPy.Quad_computeBoundingBox(quads)
-
 ```

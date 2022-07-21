@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def FileUtils_createDirectory(path, bCreateParents=True):
     return _VisusKernelPy.FileUtils_createDirectory(path, bCreateParents)
-
 ```

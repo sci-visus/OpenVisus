@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Matrix_scale(*args):
     return _VisusKernelPy.Matrix_scale(*args)
-
 ```

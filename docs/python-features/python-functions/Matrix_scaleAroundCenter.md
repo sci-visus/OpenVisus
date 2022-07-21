@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Matrix_scaleAroundCenter(*args):
     return _VisusKernelPy.Matrix_scaleAroundCenter(*args)
-
 ```

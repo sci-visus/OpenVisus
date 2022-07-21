@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_base64Decode(input):
     return _VisusKernelPy.StringUtils_base64Decode(input)
-
 ```

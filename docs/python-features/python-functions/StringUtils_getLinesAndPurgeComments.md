@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_getLinesAndPurgeComments(source, commentString):
     return _VisusKernelPy.StringUtils_getLinesAndPurgeComments(source, commentString)
-
 ```

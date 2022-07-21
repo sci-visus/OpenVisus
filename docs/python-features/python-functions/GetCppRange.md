@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def GetCppRange(dtype):
     return _VisusKernelPy.GetCppRange(dtype)
-
 ```

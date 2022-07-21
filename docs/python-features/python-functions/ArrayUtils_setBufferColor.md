@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_setBufferColor(buffer, color):
     return _VisusKernelPy.ArrayUtils_setBufferColor(buffer, color)
-
 ```

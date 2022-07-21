@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def PrintLine(file, line, severity, msg):
     return _VisusKernelPy.PrintLine(file, line, severity, msg)
-
 ```

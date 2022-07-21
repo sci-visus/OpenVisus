@@ -27,5 +27,4 @@ def CopyDirectory(src,dst):
 		shutil.rmtree(dst,ignore_errors=True)
 		
 	shutil.copytree(src, dst, symlinks=True)				
-
 ```

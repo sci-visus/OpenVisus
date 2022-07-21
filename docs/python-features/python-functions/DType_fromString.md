@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def DType_fromString(s):
     return _VisusKernelPy.DType_fromString(s)
-
 ```

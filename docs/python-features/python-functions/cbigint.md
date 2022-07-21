@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def cbigint(s):
     return _VisusKernelPy.cbigint(s)
-
 ```

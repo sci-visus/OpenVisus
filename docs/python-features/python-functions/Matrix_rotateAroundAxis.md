@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Matrix_rotateAroundAxis(axis, angle):
     return _VisusKernelPy.Matrix_rotateAroundAxis(axis, angle)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def DatasetFactory_allocSingleton():
     return _VisusDbPy.DatasetFactory_allocSingleton()
-
 ```

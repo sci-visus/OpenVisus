@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_join(*args):
     return _VisusKernelPy.StringUtils_join(*args)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def TimeNode_castFrom(obj):
     return _VisusNodesPy.TimeNode_castFrom(obj)
-
 ```

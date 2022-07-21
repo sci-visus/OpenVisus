@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def HeapMemory_equals(a, b):
     return _VisusKernelPy.HeapMemory_equals(a, b)
-
 ```

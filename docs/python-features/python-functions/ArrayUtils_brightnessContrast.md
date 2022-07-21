@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_brightnessContrast(*args):
     return _VisusKernelPy.ArrayUtils_brightnessContrast(*args)
-
 ```

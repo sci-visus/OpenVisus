@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def FileUtils_existsDirectory(path):
     return _VisusKernelPy.FileUtils_existsDirectory(path)
-
 ```

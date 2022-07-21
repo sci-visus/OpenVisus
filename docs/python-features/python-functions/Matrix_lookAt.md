@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Matrix_lookAt(eye, center, up):
     return _VisusKernelPy.Matrix_lookAt(eye, center, up)
-
 ```

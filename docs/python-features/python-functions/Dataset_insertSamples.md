@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Dataset_insertSamples(Wsamples, Wbuffer, Rsamples, Rbuffer, aborted):
     return _VisusDbPy.Dataset_insertSamples(Wsamples, Wbuffer, Rsamples, Rbuffer, aborted)
-
 ```

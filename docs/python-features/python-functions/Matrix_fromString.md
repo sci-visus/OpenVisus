@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Matrix_fromString(*args):
     return _VisusKernelPy.Matrix_fromString(*args)
-
 ```

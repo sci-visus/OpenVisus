@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def NodesModule_detach():
     return _VisusNodesPy.NodesModule_detach()
-
 ```

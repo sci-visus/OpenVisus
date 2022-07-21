@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_computeChecksum(input):
     return _VisusKernelPy.StringUtils_computeChecksum(input)
-
 ```

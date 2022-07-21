@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Quad_findQuadHomography(dst, src):
     return _VisusKernelPy.Quad_findQuadHomography(dst, src)
-
 ```

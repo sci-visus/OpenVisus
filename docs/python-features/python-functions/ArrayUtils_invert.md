@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_invert(*args):
     return _VisusKernelPy.ArrayUtils_invert(*args)
-
 ```

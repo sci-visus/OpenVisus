@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_mirror(*args):
     return _VisusKernelPy.ArrayUtils_mirror(*args)
-
 ```

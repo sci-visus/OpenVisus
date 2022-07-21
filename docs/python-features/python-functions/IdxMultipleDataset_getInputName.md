@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def IdxMultipleDataset_getInputName(dataset_name, fieldname):
     return _VisusDbPy.IdxMultipleDataset_getInputName(dataset_name, fieldname)
-
 ```

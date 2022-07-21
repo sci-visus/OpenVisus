@@ -17,5 +17,4 @@ def LoadTextDocument(filename):
 	content=file.read()
 	file.close()	
 	return content
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def BoxNi_parseFromOldFormatString(pdim, src):
     return _VisusKernelPy.BoxNi_parseFromOldFormatString(pdim, src)
-
 ```

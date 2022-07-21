@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Path_invalid():
     return _VisusKernelPy.Path_invalid()
-
 ```

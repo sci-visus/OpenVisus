@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def FindDatasetConfig(ar, url):
     return _VisusDbPy.FindDatasetConfig(ar, url)
-
 ```

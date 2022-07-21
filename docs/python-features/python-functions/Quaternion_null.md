@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Quaternion_null():
     return _VisusKernelPy.Quaternion_null()
-
 ```

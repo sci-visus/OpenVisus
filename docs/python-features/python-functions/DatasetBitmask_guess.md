@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def DatasetBitmask_guess(first_letter, dims, makeRegularAsSoonAsPossible=True):
     return _VisusDbPy.DatasetBitmask_guess(first_letter, dims, makeRegularAsSoonAsPossible)
-
 ```

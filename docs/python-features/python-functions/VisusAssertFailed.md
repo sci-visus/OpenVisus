@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def VisusAssertFailed(file, line, expr):
     return _VisusKernelPy.VisusAssertFailed(file, line, expr)
-
 ```

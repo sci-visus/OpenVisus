@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringTree_fromString(content, bEnablePostProcessing=True):
     return _VisusKernelPy.StringTree_fromString(content, bEnablePostProcessing)
-
 ```

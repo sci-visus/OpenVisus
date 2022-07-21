@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def FileUtils_moveFile(src, dst):
     return _VisusKernelPy.FileUtils_moveFile(src, dst)
-
 ```

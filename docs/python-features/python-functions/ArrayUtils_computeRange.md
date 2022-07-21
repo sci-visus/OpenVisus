@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_computeRange(*args):
     return _VisusKernelPy.ArrayUtils_computeRange(*args)
-
 ```

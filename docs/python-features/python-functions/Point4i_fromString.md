@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Point4i_fromString(value):
     return _VisusKernelPy.Point4i_fromString(value)
-
 ```

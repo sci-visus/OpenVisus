@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def VisusHasMessageLock():
     return _VisusKernelPy.VisusHasMessageLock()
-
 ```

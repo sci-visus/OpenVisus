@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_resample(*args):
     return _VisusKernelPy.ArrayUtils_resample(*args)
-
 ```

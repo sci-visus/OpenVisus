@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Quad_fromString(s):
     return _VisusKernelPy.Quad_fromString(s)
-
 ```

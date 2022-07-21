@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_trim(*args):
     return _VisusKernelPy.StringUtils_trim(*args)
-
 ```

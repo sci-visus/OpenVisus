@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def NodeFactory_setSingleton(value):
     return _VisusDataflowPy.NodeFactory_setSingleton(value)
-
 ```

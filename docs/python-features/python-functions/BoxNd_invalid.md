@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def BoxNd_invalid():
     return _VisusKernelPy.BoxNd_invalid()
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_encodeArray(compression, value):
     return _VisusKernelPy.ArrayUtils_encodeArray(compression, value)
-
 ```

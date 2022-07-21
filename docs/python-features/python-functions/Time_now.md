@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Time_now():
     return _VisusKernelPy.Time_now()
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_onlyAlNum(value):
     return _VisusKernelPy.StringUtils_onlyAlNum(value)
-
 ```

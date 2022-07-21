@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_convolve(*args):
     return _VisusKernelPy.ArrayUtils_convolve(*args)
-
 ```

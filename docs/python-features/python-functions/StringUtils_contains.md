@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_contains(src, what):
     return _VisusKernelPy.StringUtils_contains(src, what)
-
 ```

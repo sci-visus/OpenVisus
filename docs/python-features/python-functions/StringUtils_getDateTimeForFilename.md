@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_getDateTimeForFilename():
     return _VisusKernelPy.StringUtils_getDateTimeForFilename()
-
 ```

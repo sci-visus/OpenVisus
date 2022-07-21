@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Position_invalid():
     return _VisusKernelPy.Position_invalid()
-
 ```

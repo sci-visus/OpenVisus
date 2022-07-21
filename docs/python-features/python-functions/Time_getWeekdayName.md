@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Time_getWeekdayName(*args):
     return _VisusKernelPy.Time_getWeekdayName(*args)
-
 ```

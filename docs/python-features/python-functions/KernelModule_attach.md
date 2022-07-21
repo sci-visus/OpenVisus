@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def KernelModule_attach():
     return _VisusKernelPy.KernelModule_attach()
-
 ```

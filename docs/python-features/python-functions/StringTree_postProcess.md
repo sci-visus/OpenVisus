@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringTree_postProcess(src):
     return _VisusKernelPy.StringTree_postProcess(src)
-
 ```

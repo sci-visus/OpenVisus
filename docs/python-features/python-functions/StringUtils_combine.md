@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_combine(a, combinator, b):
     return _VisusKernelPy.StringUtils_combine(a, combinator, b)
-
 ```

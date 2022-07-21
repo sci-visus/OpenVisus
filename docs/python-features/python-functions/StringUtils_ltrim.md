@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_ltrim(*args):
     return _VisusKernelPy.StringUtils_ltrim(*args)
-
 ```

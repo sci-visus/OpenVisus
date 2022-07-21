@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def SetCommandLine(args):
     return _VisusKernelPy.SetCommandLine(args)
-
 ```

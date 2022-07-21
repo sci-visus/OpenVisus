@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def TransferFunction_ComputeRange(*args):
     return _VisusKernelPy.TransferFunction_ComputeRange(*args)
-
 ```

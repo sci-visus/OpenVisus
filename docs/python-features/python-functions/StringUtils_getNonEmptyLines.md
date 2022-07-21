@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_getNonEmptyLines(s):
     return _VisusKernelPy.StringUtils_getNonEmptyLines(s)
-
 ```

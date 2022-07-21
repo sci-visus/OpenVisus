@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Pose_lookingDown(t):
     return _VisusKernelPy.Pose_lookingDown(t)
-
 ```

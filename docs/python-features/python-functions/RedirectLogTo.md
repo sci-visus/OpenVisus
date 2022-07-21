@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def RedirectLogTo(arg1, user_data=None):
     return _VisusKernelPy.RedirectLogTo(arg1, user_data)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def DatasetBitmask_add(a, b):
     return _VisusDbPy.DatasetBitmask_add(a, b)
-
 ```

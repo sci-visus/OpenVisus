@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Time_getTimeStamp():
     return _VisusKernelPy.Time_getTimeStamp()
-
 ```

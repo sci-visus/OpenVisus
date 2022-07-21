@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Range_invalid():
     return _VisusKernelPy.Range_invalid()
-
 ```

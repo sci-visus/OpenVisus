@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_sqrt(*args):
     return _VisusKernelPy.ArrayUtils_sqrt(*args)
-
 ```

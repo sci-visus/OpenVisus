@@ -20,5 +20,4 @@ def VISUS_REGISTER_NODE_CLASS(TypeName, creator):
         def createInstance(self):
             return self.creator()
     NodeFactory.getSingleton().registerClass(TypeName, PyNodeCreator(creator))
-
 ```

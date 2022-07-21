@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def PaletteNode_castFrom(obj):
     return _VisusNodesPy.PaletteNode_castFrom(obj)
-
 ```

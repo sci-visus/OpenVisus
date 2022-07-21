@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_statImage(url):
     return _VisusKernelPy.ArrayUtils_statImage(url)
-
 ```

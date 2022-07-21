@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_endsWith(s, what, caseSensitive=False):
     return _VisusKernelPy.StringUtils_endsWith(s, what, caseSensitive)
-
 ```

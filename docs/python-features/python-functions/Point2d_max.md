@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Point2d_max(a, b):
     return _VisusKernelPy.Point2d_max(a, b)
-
 ```

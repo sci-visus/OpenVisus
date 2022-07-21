@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def DbModule_attach():
     return _VisusDbPy.DbModule_attach()
-
 ```

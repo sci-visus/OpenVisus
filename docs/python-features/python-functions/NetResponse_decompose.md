@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def NetResponse_decompose(RESPONSE):
     return _VisusKernelPy.NetResponse_decompose(RESPONSE)
-
 ```

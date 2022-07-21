@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def LogicSamples_invalid():
     return _VisusDbPy.LogicSamples_invalid()
-
 ```

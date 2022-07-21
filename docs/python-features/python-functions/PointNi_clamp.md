@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def PointNi_clamp(v, a, b):
     return _VisusKernelPy.PointNi_clamp(v, a, b)
-
 ```

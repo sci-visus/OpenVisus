@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def IdxDiskAccess_create(dataset):
     return _VisusDbPy.IdxDiskAccess_create(dataset)
-
 ```

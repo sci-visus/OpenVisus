@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Ray_fromTwoPoints(A, B):
     return _VisusKernelPy.Ray_fromTwoPoints(A, B)
-
 ```

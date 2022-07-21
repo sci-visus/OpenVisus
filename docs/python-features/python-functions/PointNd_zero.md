@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def PointNd_zero(pdim):
     return _VisusKernelPy.PointNd_zero(pdim)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_min(*args):
     return _VisusKernelPy.ArrayUtils_min(*args)
-
 ```

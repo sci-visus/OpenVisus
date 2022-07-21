@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def FileUtils_removeDirectory(path):
     return _VisusKernelPy.FileUtils_removeDirectory(path)
-
 ```

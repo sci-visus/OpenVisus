@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_splitAndGetSecond(*args):
     return _VisusKernelPy.ArrayUtils_splitAndGetSecond(*args)
-
 ```

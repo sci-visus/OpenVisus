@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_parseInts(*args):
     return _VisusKernelPy.StringUtils_parseInts(*args)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def cbool(s):
     return _VisusKernelPy.cbool(s)
-
 ```

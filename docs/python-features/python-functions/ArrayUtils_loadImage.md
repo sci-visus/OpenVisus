@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_loadImage(*args):
     return _VisusKernelPy.ArrayUtils_loadImage(*args)
-
 ```

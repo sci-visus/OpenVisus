@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_module2(input, aborted):
     return _VisusKernelPy.ArrayUtils_module2(input, aborted)
-
 ```

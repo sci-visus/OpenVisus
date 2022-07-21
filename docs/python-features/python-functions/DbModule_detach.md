@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def DbModule_detach():
     return _VisusDbPy.DbModule_detach()
-
 ```

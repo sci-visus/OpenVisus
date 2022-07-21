@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Matrix_rotateAroundCenter(*args):
     return _VisusKernelPy.Matrix_rotateAroundCenter(*args)
-
 ```

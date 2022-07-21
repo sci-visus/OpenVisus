@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def NetService_detach():
     return _VisusKernelPy.NetService_detach()
-
 ```

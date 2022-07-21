@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_warpPerspective(dst, T, src, aborted):
     return _VisusKernelPy.ArrayUtils_warpPerspective(dst, T, src, aborted)
-
 ```

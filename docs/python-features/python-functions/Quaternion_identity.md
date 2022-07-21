@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Quaternion_identity():
     return _VisusKernelPy.Quaternion_identity()
-
 ```

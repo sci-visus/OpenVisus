@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_median(*args):
     return _VisusKernelPy.ArrayUtils_median(*args)
-
 ```

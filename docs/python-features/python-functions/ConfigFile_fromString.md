@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ConfigFile_fromString(content, bEnablePostProcessing=True):
     return _VisusKernelPy.ConfigFile_fromString(content, bEnablePostProcessing)
-
 ```

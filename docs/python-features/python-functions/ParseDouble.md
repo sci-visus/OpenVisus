@@ -19,5 +19,4 @@ def ParseDouble(value,default_value=0.0):
 		return float(value)
 	except:
 		return default_value
-
 ```

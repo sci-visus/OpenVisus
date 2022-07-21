@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Matrix_viewport(x, y, width, height):
     return _VisusKernelPy.Matrix_viewport(x, y, width, height)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def FileUtils_findFilesInDirectory(dir):
     return _VisusKernelPy.FileUtils_findFilesInDirectory(dir)
-
 ```

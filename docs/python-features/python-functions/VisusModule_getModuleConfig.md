@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def VisusModule_getModuleConfig():
     return _VisusKernelPy.VisusModule_getModuleConfig()
-
 ```

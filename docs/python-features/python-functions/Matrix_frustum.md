@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Matrix_frustum(left, right, bottom, top, nearZ, farZ):
     return _VisusKernelPy.Matrix_frustum(left, right, bottom, top, nearZ, farZ)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_find(src, what):
     return _VisusKernelPy.StringUtils_find(src, what)
-
 ```

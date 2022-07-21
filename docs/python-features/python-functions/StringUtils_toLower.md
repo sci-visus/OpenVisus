@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_toLower(ret):
     return _VisusKernelPy.StringUtils_toLower(ret)
-
 ```

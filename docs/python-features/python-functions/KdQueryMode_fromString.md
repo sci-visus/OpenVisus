@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def KdQueryMode_fromString(value):
     return _VisusDbPy.KdQueryMode_fromString(value)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def TransferFunction_fromArray(*args):
     return _VisusKernelPy.TransferFunction_fromArray(*args)
-
 ```

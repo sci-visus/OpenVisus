@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def TransferFunction_fromString(content):
     return _VisusKernelPy.TransferFunction_fromString(content)
-
 ```

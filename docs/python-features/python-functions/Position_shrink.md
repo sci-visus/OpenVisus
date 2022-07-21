@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Position_shrink(dst_box, map, position):
     return _VisusKernelPy.Position_shrink(dst_box, map, position)
-
 ```

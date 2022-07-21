@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def DataflowModule_detach():
     return _VisusDataflowPy.DataflowModule_detach()
-
 ```

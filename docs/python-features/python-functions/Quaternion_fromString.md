@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Quaternion_fromString(value):
     return _VisusKernelPy.Quaternion_fromString(value)
-
 ```

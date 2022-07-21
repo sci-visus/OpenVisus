@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_reverse(ret):
     return _VisusKernelPy.StringUtils_reverse(ret)
-
 ```

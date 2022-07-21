@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Matrix_ortho(left, right, bottom, top, nearZ, farZ):
     return _VisusKernelPy.Matrix_ortho(left, right, bottom, top, nearZ, farZ)
-
 ```

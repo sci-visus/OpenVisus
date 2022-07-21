@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Matrix_identity(dim):
     return _VisusKernelPy.Matrix_identity(dim)
-
 ```

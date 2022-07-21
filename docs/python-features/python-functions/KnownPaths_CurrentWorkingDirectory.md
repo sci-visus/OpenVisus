@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def KnownPaths_CurrentWorkingDirectory():
     return _VisusKernelPy.KnownPaths_CurrentWorkingDirectory()
-
 ```

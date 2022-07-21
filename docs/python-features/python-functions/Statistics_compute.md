@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Statistics_compute(*args):
     return _VisusKernelPy.Statistics_compute(*args)
-
 ```

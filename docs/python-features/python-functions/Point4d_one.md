@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Point4d_one(pdim):
     return _VisusKernelPy.Point4d_one(pdim)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Quad_intersection(A, B):
     return _VisusKernelPy.Quad_intersection(A, B)
-
 ```

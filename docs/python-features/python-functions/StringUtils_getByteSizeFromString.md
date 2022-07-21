@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_getByteSizeFromString(value):
     return _VisusKernelPy.StringUtils_getByteSizeFromString(value)
-
 ```

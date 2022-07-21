@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StatisticsNode_castFrom(obj):
     return _VisusNodesPy.StatisticsNode_castFrom(obj)
-
 ```

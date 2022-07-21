@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def HeapMemory_base64Decode(input):
     return _VisusKernelPy.HeapMemory_base64Decode(input)
-
 ```

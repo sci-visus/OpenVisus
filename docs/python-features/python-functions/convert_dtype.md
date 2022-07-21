@@ -40,5 +40,4 @@ def convert_dtype(value):
 		if value==numpy.float64: return "float64"
 
 	raise Exception("Internal error")
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Quaternion_fromEulerAngles(roll, pitch, yaw):
     return _VisusKernelPy.Quaternion_fromEulerAngles(roll, pitch, yaw)
-
 ```

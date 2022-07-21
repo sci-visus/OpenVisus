@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def GetFilenameWithoutExtension(filename):
 	return os.path.splitext(os.path.basename(filename))[0]
-
 ```

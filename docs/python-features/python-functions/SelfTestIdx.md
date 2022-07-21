@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def SelfTestIdx(max_seconds=300):
     return _VisusDbPy.SelfTestIdx(max_seconds)
-
 ```

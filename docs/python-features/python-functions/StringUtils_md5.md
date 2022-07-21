@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_md5(input):
     return _VisusKernelPy.StringUtils_md5(input)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_loadImageFromMemory(*args):
     return _VisusKernelPy.ArrayUtils_loadImageFromMemory(*args)
-
 ```

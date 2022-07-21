@@ -43,5 +43,4 @@ def RunJobsInParallel(jobs, advance_callback=None, nthreads=8):
 
 		if advance_callback:
 				advance_callback(len(results))
-
 ```

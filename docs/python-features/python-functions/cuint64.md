@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def cuint64(s):
     return _VisusKernelPy.cuint64(s)
-
 ```

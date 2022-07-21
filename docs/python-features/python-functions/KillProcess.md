@@ -18,5 +18,4 @@ def KillProcess(process):
 		process.kill()
 	except:
 		pass	
-
 ```

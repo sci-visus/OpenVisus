@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_crop(*args):
     return _VisusKernelPy.ArrayUtils_crop(*args)
-
 ```

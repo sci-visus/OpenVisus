@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def FileUtils_removeFile(path):
     return _VisusKernelPy.FileUtils_removeFile(path)
-
 ```

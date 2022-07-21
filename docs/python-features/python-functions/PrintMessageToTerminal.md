@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def PrintMessageToTerminal(value):
     return _VisusKernelPy.PrintMessageToTerminal(value)
-
 ```

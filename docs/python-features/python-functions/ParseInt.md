@@ -19,5 +19,4 @@ def ParseInt(value,default_value=0):
 		return int(value)
 	except:
 		return default_value			
-
 ```

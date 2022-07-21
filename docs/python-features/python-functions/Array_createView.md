@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Array_createView(*args):
     return _VisusKernelPy.Array_createView(*args)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def cdouble(s):
     return _VisusKernelPy.cdouble(s)
-
 ```

@@ -21,5 +21,4 @@ def CopyFile(src,dst):
 
 	CreateDirectory(os.path.dirname(dst))
 	shutil.copyfile(src, dst)	
-
 ```

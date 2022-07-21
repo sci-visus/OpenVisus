@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_splitAndGetFirst(*args):
     return _VisusKernelPy.ArrayUtils_splitAndGetFirst(*args)
-
 ```

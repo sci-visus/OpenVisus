@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_withNumberOfComponents(*args):
     return _VisusKernelPy.ArrayUtils_withNumberOfComponents(*args)
-
 ```

@@ -16,5 +16,4 @@ def ReadTextFile(filename):
 	ret=file.read().strip()
 	file.close()
 	return ret
-
 ```

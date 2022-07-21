@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def IdxFile_parseFields(content):
     return _VisusDbPy.IdxFile_parseFields(content)
-
 ```

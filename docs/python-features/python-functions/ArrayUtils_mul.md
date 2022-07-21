@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_mul(*args):
     return _VisusKernelPy.ArrayUtils_mul(*args)
-
 ```

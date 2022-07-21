@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def NetService_attach():
     return _VisusKernelPy.NetService_attach()
-
 ```

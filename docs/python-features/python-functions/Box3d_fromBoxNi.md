@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Box3d_fromBoxNi(src):
     return _VisusKernelPy.Box3d_fromBoxNi(src)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def cfloat(s):
     return _VisusKernelPy.cfloat(s)
-
 ```

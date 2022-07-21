@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def KeyPoint_adaptiveNonMaximalSuppression(responses, xs, ys, max_keypoints):
     return _VisusKernelPy.KeyPoint_adaptiveNonMaximalSuppression(responses, xs, ys, max_keypoints)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Range_fromString(value):
     return _VisusKernelPy.Range_fromString(value)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Matrix_translate(*args):
     return _VisusKernelPy.Matrix_translate(*args)
-
 ```

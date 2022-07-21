@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def BlockQuery_global_stats():
     return _VisusDbPy.BlockQuery_global_stats()
-
 ```

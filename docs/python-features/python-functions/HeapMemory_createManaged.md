@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def HeapMemory_createManaged(p, n):
     return _VisusKernelPy.HeapMemory_createManaged(p, n)
-
 ```

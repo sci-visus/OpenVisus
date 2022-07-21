@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Color_random(Alpha=1.0):
     return _VisusKernelPy.Color_random(Alpha)
-
 ```

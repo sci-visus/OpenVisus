@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def TransferFunction_getDefault(name):
     return _VisusKernelPy.TransferFunction_getDefault(name)
-
 ```

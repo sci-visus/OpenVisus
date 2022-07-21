@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def cint64(*args):
     return _VisusKernelPy.cint64(*args)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_smartCast(*args):
     return _VisusKernelPy.ArrayUtils_smartCast(*args)
-
 ```

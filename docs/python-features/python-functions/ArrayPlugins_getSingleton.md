@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayPlugins_getSingleton():
     return _VisusKernelPy.ArrayPlugins_getSingleton()
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def NodesModule_attach():
     return _VisusNodesPy.NodesModule_attach()
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_toUpper(ret):
     return _VisusKernelPy.StringUtils_toUpper(ret)
-
 ```

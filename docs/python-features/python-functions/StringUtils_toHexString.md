@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_toHexString(*args):
     return _VisusKernelPy.StringUtils_toHexString(*args)
-
 ```

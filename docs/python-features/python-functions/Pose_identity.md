@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Pose_identity():
     return _VisusKernelPy.Pose_identity()
-
 ```

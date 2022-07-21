@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_decodeArray(*args):
     return _VisusKernelPy.ArrayUtils_decodeArray(*args)
-
 ```

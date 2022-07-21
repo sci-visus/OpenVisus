@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def BlockQuery_readBlockEvent():
     return _VisusDbPy.BlockQuery_readBlockEvent()
-
 ```

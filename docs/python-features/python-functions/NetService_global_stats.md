@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def NetService_global_stats():
     return _VisusKernelPy.NetService_global_stats()
-
 ```

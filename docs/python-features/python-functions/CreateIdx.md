@@ -97,5 +97,4 @@ def CreateIdx(**args):
 		db.compressDataset(compression, buffer)
 			
 	return db
-
 ```

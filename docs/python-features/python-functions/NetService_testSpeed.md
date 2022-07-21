@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def NetService_testSpeed(nconnections, nrequests, urls):
     return _VisusKernelPy.NetService_testSpeed(nconnections, nrequests, urls)
-
 ```

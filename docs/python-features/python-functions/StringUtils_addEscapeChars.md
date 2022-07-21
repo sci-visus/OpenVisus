@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_addEscapeChars(value):
     return _VisusKernelPy.StringUtils_addEscapeChars(value)
-
 ```

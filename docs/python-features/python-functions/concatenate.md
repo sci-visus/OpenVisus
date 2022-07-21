@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def concatenate(*args):
     return _VisusKernelPy.concatenate(*args)
-
 ```

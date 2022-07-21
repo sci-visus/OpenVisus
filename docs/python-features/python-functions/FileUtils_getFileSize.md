@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def FileUtils_getFileSize(path):
     return _VisusKernelPy.FileUtils_getFileSize(path)
-
 ```

@@ -18,5 +18,4 @@ def GuessUniqueFilename(pattern):
 		if not os.path.isfile(filename): 
 			return filename
 		I+=1
-
 ```

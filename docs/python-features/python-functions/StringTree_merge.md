@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringTree_merge(dst, src):
     return _VisusKernelPy.StringTree_merge(dst, src)
-
 ```

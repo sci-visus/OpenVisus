@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_joinLines(v):
     return _VisusKernelPy.StringUtils_joinLines(v)
-
 ```

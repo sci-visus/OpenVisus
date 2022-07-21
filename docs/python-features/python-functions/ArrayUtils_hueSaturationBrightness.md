@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_hueSaturationBrightness(*args):
     return _VisusKernelPy.ArrayUtils_hueSaturationBrightness(*args)
-
 ```

@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def FileUtils_getTimeLastAccessed(path):
     return _VisusKernelPy.FileUtils_getTimeLastAccessed(path)
-
 ```

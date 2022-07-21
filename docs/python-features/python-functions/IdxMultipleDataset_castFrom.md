@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def IdxMultipleDataset_castFrom(db):
     return _VisusDbPy.IdxMultipleDataset_castFrom(db)
-
 ```

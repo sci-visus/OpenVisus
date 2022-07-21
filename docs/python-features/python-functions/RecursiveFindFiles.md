@@ -16,5 +16,4 @@ def RecursiveFindFiles(rootdir='.', pattern='*'):
           for looproot, _, filenames in os.walk(rootdir)
           for filename in filenames
           if fnmatch.fnmatch(filename, pattern)]
-
 ```

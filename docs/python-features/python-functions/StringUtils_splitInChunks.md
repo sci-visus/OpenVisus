@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_splitInChunks(source, chunk):
     return _VisusKernelPy.StringUtils_splitInChunks(source, chunk)
-
 ```

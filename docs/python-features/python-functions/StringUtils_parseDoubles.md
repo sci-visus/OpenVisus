@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_parseDoubles(*args):
     return _VisusKernelPy.StringUtils_parseDoubles(*args)
-
 ```

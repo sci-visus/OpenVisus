@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Point3i_min(a, b):
     return _VisusKernelPy.Point3i_min(a, b)
-
 ```

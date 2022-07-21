@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def Time_getMonthName(*args):
     return _VisusKernelPy.Time_getMonthName(*args)
-
 ```

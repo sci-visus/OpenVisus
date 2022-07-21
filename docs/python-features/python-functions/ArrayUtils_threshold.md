@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def ArrayUtils_threshold(*args):
     return _VisusKernelPy.ArrayUtils_threshold(*args)
-
 ```

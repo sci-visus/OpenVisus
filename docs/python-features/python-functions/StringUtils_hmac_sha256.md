@@ -13,5 +13,4 @@ Describe function here.
 ```python
 def StringUtils_hmac_sha256(input, key):
     return _VisusKernelPy.StringUtils_hmac_sha256(input, key)
-
 ```
