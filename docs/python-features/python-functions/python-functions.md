@@ -2,7 +2,7 @@
 layout: default
 parent: Python and Jupyter Features
 nav_order: 2
-permalink: /docs/python-features/python-functions
+has_children: true
 ---
 
 # Python OpenViSUS Functions
