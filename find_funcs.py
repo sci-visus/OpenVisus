@@ -14,7 +14,7 @@ def filter(func): # filter functions so we document only needed user-facing func
     return has_return
 
 def create_header(func_name, func_args, func_source):
-    HEADER = '---\nlayout: default\nparent: Python OpenViSUS Functions\nnav_order: 2\n---\n\n# {}\n\nDescribe function here.\n\n# Function Definition\n\n```python\n{}```'
+    HEADER = '---\nlayout: default\nparent: Python Functions\nnav_order: 2\n---\n\n# {}\n\nDescribe function here.\n\n# Function Definition\n\n```python\n{}```'
     return HEADER.format(func_name + func_args, func_source)
 
 def main():
@@ -31,6 +31,6 @@ def main():
 
 if __name__ == '__main__':
     THIS_DIR = os.getcwd()
-    TARGET = os.path.join(THIS_DIR, 'docs', 'python-features', 'python-functions')
+    TARGET = os.path.join(THIS_DIR, 'docs', 'python-functions')
     os.chdir(TARGET)
     main()
