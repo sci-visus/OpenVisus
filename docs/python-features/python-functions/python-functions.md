@@ -1,5 +1,6 @@
 ---
 layout: default
+title: Python OpenViSUS Functions
 parent: Python and Jupyter Features
 nav_order: 2
 has_children: true
