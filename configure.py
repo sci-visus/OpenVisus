@@ -13,11 +13,17 @@ import shutil
 import subprocess
 import tempfile
 
+
 def create_header(parent, title):
     HEADER = '---\nlayout: default\ntitle: {TITLE}\nparent: {PARENT}\nnav_order: 2\n---\n\n# Table of contents\n{: .no_toc .text-delta }\n\n1. TOC\n{:toc}\n\n---\n\n'
     return HEADER.replace('{TITLE}', title).replace('{PARENT}', parent)
 
-def convert_jupyter_notebooks(notebooks_base_url, notebooks, tmp_dir, docs_dir):
+
+def convert_jupyter_notebooks(
+        notebooks_base_url,
+        notebooks,
+        tmp_dir,
+        docs_dir):
     # download notebooks and convert to markdown
     for nb in notebooks:
         url = notebooks_base_url + nb
@@ -25,20 +31,39 @@ def convert_jupyter_notebooks(notebooks_base_url, notebooks, tmp_dir, docs_dir):
         with open(nb, 'w') as file:
             file.write(response)
             file.close()
-        subprocess.run("jupyter nbconvert --to markdown {}".format(nb), shell=True)
+        subprocess.run(
+            "jupyter nbconvert --to markdown {}".format(nb),
+            shell=True)
         os.remove(nb)
-    
+
     # add jekyll tags to all markdowns
     markdowns = glob.glob("*.md")
     for md in markdowns:
         with open(md, 'r+') as file:
             content = file.read()
             file.seek(0)
-            file.write(create_header('Jupyter Notebook Examples', md.replace(".md", "").replace(".", " ").replace("-", " ").replace("_", " ").title()) + content)
+            file.write(
+                create_header(
+                    'Jupyter Notebook Examples',
+                    md.replace(
+                        ".md",
+                        "").replace(
+                        ".",
+                        " ").replace(
+                        "-",
+                        " ").replace(
+                        "_",
+                        " ").title()) + content)
             file.close()
-    
+
     # copy md files to proper docs directory
-    shutil.copytree(os.getcwd(), os.path.join(docs_dir, 'docs', 'jupyter-examples'), dirs_exist_ok=True)
+    shutil.copytree(
+        os.getcwd(),
+        os.path.join(
+            docs_dir,
+            'docs',
+            'jupyter-examples'),
+        dirs_exist_ok=True)
 
 
 def main(tmp_dir, docs_dir):
@@ -47,11 +72,17 @@ def main(tmp_dir, docs_dir):
     docs_base_url = ""
     docs = []
 
+    # do all the jupyter notebook copying and conversion
     os.mkdir('jupyter-examples')
     os.chdir(os.path.join(tmp_dir, 'jupyter-examples'))
     notebooks_base_url = "https://raw.githubusercontent.com/sci-visus/OpenVisus/master/Samples/jupyter/"
-    notebooks = ["Agricolture.ipynb"]
+    notebooks = [
+        "Agricolture.ipynb",
+        "Climate.ipynb",
+        "nasa_conversion_example.ipynb",
+        "slice_query.ipynb"]
     convert_jupyter_notebooks(notebooks_base_url, notebooks, tmp_dir, docs_dir)
+
 
 if __name__ == '__main__':
     THIS_DIR = os.getcwd()
