@@ -26,6 +26,9 @@ workflows:
   build-and-deploy:
     jobs:
       - build-openvisus-arm64:
+          filters:
+            branches:
+              ignore: gh-pages
           matrix:
             parameters:
               python-version: ['3.7', '3.8', '3.9' ,'3.10' ]
