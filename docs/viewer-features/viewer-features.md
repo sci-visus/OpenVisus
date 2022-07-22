@@ -3,7 +3,6 @@ layout: default
 title: Viewer Features
 nav_order: 3
 has_children: true
-permalink: /docs/viewer-features
 ---
 
 # Viewer Features

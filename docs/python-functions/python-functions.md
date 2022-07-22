@@ -3,7 +3,7 @@ layout: default
 title: Python Functions
 nav_order: 2
 has_children: true
-permalink: /docs/python-functions
+has_grand_children: true
 ---
 
 # Python Functions
