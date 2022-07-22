@@ -42,7 +42,7 @@ $ python -m OpenVisus configure
 ```
 
 ### Using OpenViSUS with Python and Jupyter
-See the different functions available for use in Python and Jupyter [here]({{ site.baseurl }}{% link docs/python-features/python-features.md %}).
+See the different functions available for use in Python and Jupyter [here]({{ site.baseurl }}{% link docs/python-functions/python-functions.md %}).
 
 ### Using the OpenViSUS Viewer
 Launch the OpenViSUS viewer using the following command:
