@@ -2,6 +2,7 @@
 layout: default
 title: ViSUS Configuration File
 nav_order: 4
+has_children: false
 ---
 
 # ViSUS Configuration File

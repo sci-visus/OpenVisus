@@ -55,7 +55,7 @@ $ python -m OpenVisus viewer
 See the different features of the viewer [here]({{ site.baseurl }}{% link docs/viewer-features.md %}).
 
 ### Hosting a ViSUS Server
-The ViSUS server can be self-hosted through [various methods]({{ site.baseurl }}{% link docs/visus-server.md %}).
+There are [various options]({{ site.baseurl }}{% link docs/visus-server.md %}) for hosting a ViSUS server.
 
 ### Connecting to an Existing ViSUS Server
 You can create a `visus.config` file which specifies server information for faster data access when using the Python package or viewer. [Learn more]({{ site.baseurl }}{% link docs/visus-configuration.md %}) about creating a `visus.config`.

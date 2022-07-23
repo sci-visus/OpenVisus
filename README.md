@@ -23,3 +23,11 @@ bundle exec jekyll serve
 ## Semi-Automated Documentation
 
 These docs are semi-automated. Python scripts starting with `config_` can be ran to refresh automated documentation. Keep in mind this will override exisiting automated documentation.
+
+## TODO:
+
+- Migrate exisiting pages from wiki.visus.org (maybe even create a potential redirect to this docs website once it is finished?)
+    - https://wiki.visus.org/index.php/MIDX_examples
+    - https://wiki.visus.org/index.php/Scripting_Node
+- Add docs link to main readme for visibility
+    - Add list of datasets that can be used for viewer/package testing and examples
