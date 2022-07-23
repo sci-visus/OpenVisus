@@ -1,7 +1,7 @@
 ---
 layout: default
-title: Docker Swarm Modvisus
-parent: Old Docs
+title: Docker Swarm
+parent: Running the ViSUS Server
 nav_order: 2
 ---
 

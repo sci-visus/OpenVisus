@@ -1,7 +1,7 @@
 ---
 layout: default
-title: Docker Modvisus
-parent: Old Docs
+title: Docker
+parent: Running the ViSUS Server
 nav_order: 2
 ---
 

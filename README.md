@@ -19,3 +19,7 @@ Run the server after modifying docs:
 ```bash
 bundle exec jekyll serve
 ```
+
+## Semi-Automated Documentation
+
+These docs are semi-automated. Python scripts starting with `config_` can be ran to refresh automated documentation. Keep in mind this will override exisiting automated documentation.
