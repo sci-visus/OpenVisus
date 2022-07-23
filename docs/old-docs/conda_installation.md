@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Conda Installation
-parent: Old Docs
+parent: Older Documentation
 nav_order: 2
 ---
 

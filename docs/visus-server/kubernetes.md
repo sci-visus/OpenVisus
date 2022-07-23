@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Kubernetes
-parent: Running the ViSUS Server
+parent: ViSUS Server
 nav_order: 2
 ---
 

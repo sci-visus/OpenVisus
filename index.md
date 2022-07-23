@@ -5,7 +5,7 @@ nav_order: 1
 permalink: /
 ---
 
-<img src="docs/jupyter-examples/Agricolture_files/Agricolture_5_0.png" width="200"><img src="docs/jupyter-examples/quick_tour_files/quick_tour_19_2.png" width="200"><img src="docs/jupyter-examples/slice_query_files/slice_query_7_2.png" width="200">
+![](docs/assets/images/banner.jpg)
 
 # OpenViSUS Documentation
 {: .no_toc }
@@ -44,7 +44,7 @@ $ python -m OpenVisus configure
 ```
 
 ### Using OpenViSUS with Python and Jupyter
-See the different functions available for use in Python and Jupyter [here]({{ site.baseurl }}{% link docs/python-functions.md %}).
+See the different functions available for use in Python [here]({{ site.baseurl }}{% link docs/python-functions.md %}).
 
 ### Using the OpenViSUS Viewer
 Launch the OpenViSUS viewer using the following command:
@@ -53,6 +53,12 @@ $ python -m OpenVisus viewer
 ```
 
 See the different features of the viewer [here]({{ site.baseurl }}{% link docs/viewer-features.md %}).
+
+### Hosting a ViSUS Server
+The ViSUS server can be self-hosted through [various methods]({{ site.baseurl }}{% link docs/visus-server.md %}).
+
+### Connecting to an Existing ViSUS Server
+You can create a `visus.config` file which specifies server information for faster data access when using the Python package or viewer. [Learn more]({{ site.baseurl }}{% link docs/visus-configuration.md %}) about creating a `visus.config`.
 
 ### Contributing to Documentation
 This documentation lives on the [`gh-pages`](https://github.com/sci-visus/OpenVisus/tree/gh-pages) branch of the [OpenViSUS Repository](https://github.com/sci-visus/OpenVisus). Please make a GitHub PR to contribute to this documentation. Because this branch is independent of `main`, use `git switch gh-pages` to view and edit documentation locally.

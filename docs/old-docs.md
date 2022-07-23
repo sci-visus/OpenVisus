@@ -1,7 +1,7 @@
 ---
 layout: default
-title: Old Docs
-nav_order: 6
+title: Older Documentation
+nav_order: 7
 has_children: true
 ---
 

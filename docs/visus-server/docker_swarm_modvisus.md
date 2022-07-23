@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Docker Swarm
-parent: Running the ViSUS Server
+parent: ViSUS Server
 nav_order: 2
 ---
 

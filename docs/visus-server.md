@@ -1,7 +1,7 @@
 ---
 layout: default
-title: Running the ViSUS Server
-nav_order: 4
+title: ViSUS Server
+nav_order: 5
 has_children: true
 ---
 
