@@ -1,0 +1,35 @@
+version: 2.1
+jobs:
+  build-openvisus-arm64:
+    parameters:
+      python-version:
+        type: string
+      image:
+        type: string
+    machine:
+      image: << parameters.image >>
+    resource_class: arm.large # see https://circleci.com/pricing/#compute-options-table
+    steps:
+      - checkout
+      - run:
+          name: Build openvisus
+          command: |
+                   set -ex
+                   export PYTHON_VERSION=<< parameters.python-version >>
+                   export VISUS_GUI=0
+                   export VISUS_SLAM=0
+                   export VISUS_MODVISUS=0 
+                   export DOCKER_IMAGE=nsdf/manylinux2014_aarch64:latest
+                   source scripts/ubuntu.sh
+workflows:
+  version: 2
+  build-and-deploy:
+    jobs:
+      - build-openvisus-arm64:
+          filters:
+            branches:
+              ignore: gh-pages
+          matrix:
+            parameters:
+              python-version: ['3.7', '3.8', '3.9' ,'3.10' ]
+              image: [ 'ubuntu-2004:202101-01' ]
