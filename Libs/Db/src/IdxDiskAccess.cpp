@@ -413,6 +413,9 @@ public:
     this->block_headers = (BlockHeader*)(this->headers.c_ptr() + sizeof(FileHeader));
 
     this->file = std::make_shared<File>();
+
+    if (cbool(Utils::getEnv("VISUS_VERBOSE_DISKACCESS")))
+      this->bVerbose = true;
   }
 
   //destructor
@@ -927,7 +930,8 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
     value = StringUtils::replaceAll(value, "$(CurrentFileDirectory)", dir);
     return value;
   };
-
+  
+  //NOTE: time_template will go inside filename_template so there is no reason to resolve alias
   auto createAccess = [&]()->Access*{
     if (idxfile.version < 6)
       return new IdxDiskAccessV5(this, idxfile, resoveAlias(idxfile.time_template), resoveAlias(idxfile.filename_template), bVerbose);
