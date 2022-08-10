@@ -64,4 +64,4 @@ You can create a `visus.config` file which specifies server information for fast
 This documentation lives on the [`gh-pages`](https://github.com/sci-visus/OpenVisus/tree/gh-pages) branch of the [OpenViSUS Repository](https://github.com/sci-visus/OpenVisus). Please make a GitHub PR to contribute to this documentation. Because this branch is independent of `main`, use `git switch gh-pages` to view and edit documentation locally.
 
 ### Older Documentation
-Older documentation can be found on [this page]({{ site.baseurl }}{% link docs/old-docs.md %}).
+Older documentation that has been migrated can be found [here]({{ site.baseurl }}{% link docs/old-docs.md %}).

@@ -9,7 +9,7 @@ nav_order: 1
 
 Contains documentation of important OpenViSUS functions and their uses.
 
-- [OpenVisus.LoadDataset.md]({{ site.baseurl }}{% link docs/python-functions/all/OpenVisus.LoadDataset.md %})
+- [OpenVisus.LoadDataset]({{ site.baseurl }}{% link docs/python-functions/all/OpenVisus.LoadDataset.md %})
 - [OpenVisus.dataset.PyDataset.getBounds]({{ site.baseurl }}{% link docs/python-functions/all/OpenVisus.dataset.PyDataset.getBounds.md %})
 - [OpenVisus.dataset.PyDataset.getFields]({{ site.baseurl }}{% link docs/python-functions/all/OpenVisus.dataset.PyDataset.getFields.md %})
 - [OpenVisus.dataset.PyDataset.getLogicBox]({{ site.baseurl }}{% link docs/python-functions/all/OpenVisus.dataset.PyDataset.getLogicBox.md %})
