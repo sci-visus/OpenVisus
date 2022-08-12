@@ -18,4 +18,5 @@ Contains documentation of important OpenViSUS functions and their uses.
 - [OpenVisus.dataset.PyDataset.getSliceLogicBox]({{ site.baseurl }}{% link docs/python-functions/all/OpenVisus.dataset.PyDataset.getSliceLogicBox.md %})
 - [OpenVisus.dataset.PyDataset.getXSlice]({{ site.baseurl }}{% link docs/python-functions/all/OpenVisus.dataset.PyDataset.getXSlice.md %})
 - [OpenVisus.dataset.PyDataset.getXYSlice]({{ site.baseurl }}{% link docs/python-functions/all/OpenVisus.dataset.PyDataset.getXYSlice.md %})
+- [OpenVisus.dataset.PyDataset.read]({{ site.baseurl }}{% link docs/python-functions/all/OpenVisus.dataset.PyDataset.read.md %})
 - (List more important functions here as hyperlinks)
