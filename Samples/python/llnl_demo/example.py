@@ -212,11 +212,7 @@ if __name__ == "__main__":
 	if len(sys.argv)>1:
 		url=sys.argv[-1]
 	else:
-		url=r'D:\GoogleSci\visus_dataset\2kbit1\zip\rowmajor\visus.idx'
-		# url=r'D:\GoogleSci\visus_dataset\rabbit3d\visus.idx'
-		#url=r'D:\GoogleSci\visus_dataset\TALASS\ACAM\battery.idx'
-		#url=r'D:\GoogleSci\visus_dataset\TALASS\ACAM\meteorite.idx'
-		#url=r'D:\GoogleSci\visus_dataset\TALASS\ACAM\TrussRecon.idx'
+		url=r'http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1&cached=1'
 
 	explorer=Explorer3d(url)
 	explorer.show()
