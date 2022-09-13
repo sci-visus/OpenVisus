@@ -14,6 +14,7 @@ PIP_PLATFORM=win_amd64
 GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
 
 # ///////////////////////////////////////////////
+# choco install swig
 function InstallSwig() {
 	mkdir -p /tmp
 	pushd /tmp
@@ -24,6 +25,7 @@ function InstallSwig() {
 }
 
 # ///////////////////////////////////////////////
+# choco install cmake
 function InstallCMake() {
 	mkdir -p /temp
 	pushd /tmp
@@ -34,12 +36,14 @@ function InstallCMake() {
 }
 
 # ///////////////////////////////////////////////
+# install from python website for 'all users
 function InstallPython() {
 	choco install python3 --version=${PYTHON_VERSION} --yes --no-progress --debug --verbose --force # --params "/InstallDir:C:/tmp/python${PYTHON_VERSION}"
 	PYTHON=/c/tmp/python${PYTHON_VERSION}/python.exe
 }
 
 # ///////////////////////////////////////////////
+# choco install qt5-default
 function InstallQt5() {	
 	$PYTHON -m pip install aqtinstall
 	if [[ "$PYTHON_VERSION" == "3.10" ]] ; then

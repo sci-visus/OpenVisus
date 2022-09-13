@@ -125,7 +125,7 @@ def Configure(bUserInstall=False):
 	else:
 		cmd=[sys.executable,"-m", "pip", "install"] + (["--user"] if bUserInstall else []) + ['numpy']
 		if VISUS_GUI:
-			cmd+=[f"PyQt5=={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", f"PyQtWebEngine=={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", "PyQt5-sip"] # set to == to prevent qt version mismatch on mac install
+			cmd+=[f"PyQt5~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", f"PyQtWebEngine~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", "PyQt5-sip"] # set to == to prevent qt version mismatch on mac install
 		ExecuteCommand(cmd, check_result=False) # False since it fails a lot !
 		
 	# *** fix rpath ****
