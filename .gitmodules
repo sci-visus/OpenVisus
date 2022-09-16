@@ -1,3 +1,3 @@
-[submodule "Libs/IDX2"]
+[submodule "IDX2"]
 	path = Libs/IDX2
-	url = git@github.com:sci-visus/IDX2.git
+	url = https://github.com/sci-visus/idx2.git
