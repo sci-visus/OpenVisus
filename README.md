@@ -3,45 +3,54 @@
 ![GitHub Actions](https://github.com/sci-visus/OpenVisus/workflows/BuildOpenVisus/badge.svg)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/sci-visus/OpenVisus/master?filepath=Samples%2Fjupyter)
 
-
-      
  
 # Mission
 
 The mission of ViSUS.org is to provide support for the scientific community with Big Data, management, analysis and visualization tools.
+
 In this website we provide access to open source software tools and libraries such as the ViSUS framework and the PIDX library.
 These softwares are distributed under the permissive BSD license (see [LICENSE](https://github.com/sci-visus/OpenVisus/tree/master/LICENSE) file).
 
 # Installation
 
-For `conda` see 
-[docs/conda_installation.md](https://github.com/sci-visus/OpenVisus/blob/master/docs/conda_installation.md).
+For `conda` see [docs/conda_installation.md](./docs/conda_installation.md).
 
+Make sure `pip` is [installed, updated and in PATH](https://pip.pypa.io/en/stable/installation/). The installation is tested on python3.7, so it is recommended. 
 
-Install OpenVisus:
-
-```
-python -m pip install --upgrade pip
-python -m pip install --upgrade OpenVisus
+```bash
+pip install --upgrade OpenVisus
+# configure OpenVisus (one time)
 python -m OpenVisus configure 
+# test installation
 python -c "from OpenVisus import *"
 ```
 
 Notes:
-- if you get *permission denied* error, use `python -m pip install  --user`.
+- if you get *permission denied* error, use `pip install --user`.
 - if you need a *minimal installation* without the GUI replace `OpenVisus` with `OpenVisusNoGui`
-- If you want to create an isolated *virtual environment*:
-	```
-	python -m pip install --upgrade virtualenv
-	python -m venv ~/my-virtual-environment
-	source ~/my-virtual-environment/bin/activate
+- If you want to create an isolated *virtual environment* with [`virtualenv`](https://pip.pypa.io/en/stable/installation/):
+	```bash
+	# make sure venv is latest
+	pip install --upgrade virtualenv
+	# create a virtual environment in current directory
+	venv ./ovenv
+	# activate the virtual environment
+	source ./ovenv/bin/activate
 	```
 
 Run the OpenVisus viewer:
 
-```
+```bash
 python -m OpenVisus viewer
 ```
+
+__PyQt errors__:
+Sometimes, PyQt (or other packages like `pyqt5-sip`) is already installed in system and OpenVisus viewer gets confused which package to use. To solve that issue, follow these steps before main installation:
+- If on linux, make sure PyQt5 or any of it's related packages are not installed system-wide.
+  - For Ubuntu use `sudo apt remove python3-pyqt5` to remove pyqt5 and all other related packages listed [here](https://launchpad.net/ubuntu/+source/pyqt5).
+  - For any Arch based distro, use `sudo pacman -Rs python-pyqt5`. Same for all other packages like `python-pyqt5-sip`.
+- Remove all pyqt5 packages with pip:
+  - `pip uninstall pyqt5 PyQt5-sip`
 
 # Documentation
 
@@ -50,11 +59,11 @@ You can find OpenViSUS documentation regarding the install, configuration, viewe
 # Quick Tour and Tutorials
 
 Start with 
-[quick_tour.ipynb](https://github.com/sci-visus/OpenVisus/blob/master/Samples/jupyter/quick_tour.ipynb) 
+[quick_tour.ipynb](./Samples/jupyter/quick_tour.ipynb) 
 Jupyter Notebook.
 
 See 
-[Samples/jupyter](https://github.com/sci-visus/OpenVisus/tree/master/Samples/jupyter)
+[Samples/jupyter](./Samples/jupyter)
 directory. 
 
 To run the tutorials on the cloud click this [binder link](https://mybinder.org/v2/gh/sci-visus/OpenVisus/master?filepath=Samples%2Fjupyter).
@@ -63,20 +72,20 @@ To run the tutorials on the cloud click this [binder link](https://mybinder.org/
 # Run OpenVisus server
 
 Run single `Docker` OpenVisus server:  
-[docs/docker_modvisus](https://github.com/sci-visus/OpenVisus/blob/master/docs/docker_modvisus.md).
+[docs/docker_modvisus](./docs/docker_modvisus.md).
 
 Runload-balanced `Kubernetes` OpenVisus servers: 
-[docs/kubernetes.md](https://github.com/sci-visus/OpenVisus/blob/master/docs/kubernetes.md).
+[docs/kubernetes.md](./docs/kubernetes.md).
 
 
 Run load-balanced `Docker Swarm` OpenVisus servers: 
-[docs/docker_swarm_modvisus.md](https://github.com/sci-visus/OpenVisus/blob/master/docs/docker_swarm_modvisus.md).
+[docs/docker_swarm_modvisus.md](./docs/docker_swarm_modvisus.md).
 
 
 
 # Compilation
 
-See [docs/compilation.md](https://github.com/sci-visus/OpenVisus/blob/master/docs/compilation.md).
+See [docs/compilation.md](./docs/compilation.md).
 
 
 # IDX2

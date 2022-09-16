@@ -1,79 +1,53 @@
-# Install OpenVisus
+# Install OpenVisus (conda)
 
-You need a `conda` installation. For Windows, go to [this link](https://www.anaconda.com/products/individual) and follow instructions. At the end you will have an `Anacronda Prompt`. On OSX you can use `brew install` or:
+You need a `conda` installation. Follow the instructions and make sure conda is [installed and in PATH](https://conda.io/projects/conda/en/latest/user-guide/install/index.html). You can also install the Anaconda GUI from [here](https://conda.io/projects/conda/en/latest/user-guide/install/index.html).
 
-```
-curl -O https://repo.anaconda.com/archive/Anaconda3-2020.07-MacOSX-x86_64.sh
-bash Anaconda3-2020.07-MacOSX-x86_64.sh 
-```
-
-On Linux:
-
-```
-curl -O https://repo.anaconda.com/archive/Anaconda3-2019.03-Linux-x86_64.sh
-bash Anaconda3-2019.03-Linux-x86_64.sh
-```
-
-(OPTIONAL) To avoid conflicts with CPython installations:
-
+(OPTIONAL) To avoid conflicts with CPython installations, it is better to disable auto activating the base environment in conda.
 ```
 conda config --set auto_activate_base false
 ```
 
-Then activate conda:
-
+Now create an environment, and install required packages:
+```bash
+conda create -n ovenv python=3.7 
+conda install -n ovenv -y -c visus openvisus
 ```
-conda activate
-```
-
 
 For OSX and Linux you may need to add this variable to avoid conflicts with `pip` CPython installed packages in `~/.local` (see [this link](https://github.com/conda/conda/issues/7173) for more info):
-
-```
-export PYTHONNOUSERSITE=True 
-```
-
-
-Open a Windows `Anaconda prompt` or a shell and type (change python version and env name as needed): 
-
-```
-conda create -n myenv python=3.7 
-conda activate myenv
-conda install --name myenv  -y conda
-conda install --name myenv  -y --channel visus openvisus
+```bash
+conda env config vars set PYTHONNOUSERSITE=1 -n ovenv
 ```
 
-Test it (just ignore segmentation fault error on some Linux distributions in the `configure` step):
-If you would like to use conda for the rest of the configuration, create an environment variable: `USE_CONDA=1`
-Otherwise, by default, the configuration process will use pip.
-
-```
+Finally we configure and activate the environment and test it (just ignore segmentation fault error on some Linux distributions in the `configure` step):
+```bash
+# Activate environment
+conda activate ovenv
+# one time configuration
 python -m OpenVisus configure 
+# Test the installation
 python -c "from OpenVisus import *"
 ```
 
-(OPTIONAL) If you get *numpy import error* such as  `Library not loaded: @rpath/libopenblas.dylib`,  this:
+If you would like to use conda for the rest of the configuration, create an environment variable: `USE_CONDA=1`
+Otherwise, by default, the configuration process will use pip.
 
-```
-conda uninstall --name myenv  -y numpy
-conda install   --name myenv  -y nomkl numpy scipy scikit-learn numexpr openblas blas
-conda remove    --name myenv  -y mkl mkl-service
+(OPTIONAL) If you get *numpy import error* such as  `Library not loaded: @rpath/libopenblas.dylib`, usually this is because a faulty installation of numpy. So reinstalling it should fix this problem:
+```bash
+conda uninstall -n ovenv -y numpy
+conda install   -n ovenv -y nomkl numpy scipy scikit-learn numexpr openblas blas
+conda remove    -n ovenv -y mkl mkl-service
+# test numpy
 python -c "import numpy"
 ```
 
-Run the viewer:
-
-```
+You can also run the viewer (when conda environment is activated):
+```bash
 python -m OpenVisus viewer
 ```
 
-
-
-
-
-(OPTIONAL) Remove the enviroment:
-
-```
+# Remove OpenVisus (conda)
+Just remove the whole environment.
+```bash
 conda deactivate
-conda remove --name myenv --all
+conda remove -n ovenv --all
 ```
