@@ -85,6 +85,12 @@ public:
   //setMaterial
   void setMaterial(GLMaterial new_value);
 
+  //setBackColor
+  void setBackColor(Color diffuse);
+
+  //setFrontColor
+  void setFrontColor(Color diffuse);
+
   //getPalette
   SharedPtr<Palette> getPalette() const {
     return palette;
@@ -113,6 +119,11 @@ public:
   static void allocShaders();
   static void releaseShaders();
 
+public:
+
+  static IsoContourRenderNode* castFrom(Node* obj) {
+    return dynamic_cast<IsoContourRenderNode*>(obj);
+  }
 
 public:
 

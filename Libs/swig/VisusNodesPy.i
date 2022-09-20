@@ -46,7 +46,6 @@ using namespace Visus;
 
 %include <Visus/FieldNode.h>
 %include <Visus/ModelViewNode.h>
-%include <Visus/PaletteNode.h>
 %include <Visus/StatisticsNode.h>
 %include <Visus/TimeNode.h>
 %include <Visus/DatasetNode.h>

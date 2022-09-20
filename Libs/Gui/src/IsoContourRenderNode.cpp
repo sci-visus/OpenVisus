@@ -165,6 +165,25 @@ void IsoContourRenderNode::setMaterial(GLMaterial new_value) {
 
 
 ///////////////////////////////////////////////////////////////////////////
+void IsoContourRenderNode::setFrontColor(Color diffuse) {
+
+  GLMaterial material = getMaterial();
+  material.front.diffuse = Color(diffuse);
+  material.front.specular = Color::createFromUint32(0xffffffff);
+  setMaterial(material);
+}
+
+///////////////////////////////////////////////////////////////////////////
+void IsoContourRenderNode::setBackColor(Color diffuse) {
+
+  GLMaterial material = getMaterial();
+  material.back.diffuse = Color(diffuse);
+  material.back.specular = Color::createFromUint32(0xffffffff);
+  setMaterial(material);
+}
+
+
+///////////////////////////////////////////////////////////////////////////
 void IsoContourRenderNode::setMesh(SharedPtr<IsoContour> value) {
 
   VisusReleaseAssert(VisusHasMessageLock());
