@@ -765,12 +765,11 @@ void Viewer::idle()
   auto io_stats  = File::global_stats();
   auto net_stats = NetService::global_stats();
 
-  auto nthreads     = (Int64)Thread::global_stats()->running_threads;
   auto thread_njobs = (Int64)ThreadPool::global_stats()->running_jobs;
-  auto net_njobs    = (Int64)net_stats->tot_requests;
+  auto running_requests = (Int64)net_stats->running_requests;
 
   bool bWasRunning = running.value;
-  running.value = thread_njobs > 0 || net_njobs > 0;
+  running.value = thread_njobs > 0 || running_requests > 0;
   bool bIsRunning = running.value;
 
   //changle in the status
@@ -836,9 +835,9 @@ void Viewer::idle()
   out << "gpu_used(" << BSize(GLInfo::getSingleton()->getGpuUsedMemory()) << ") ";
   out << "gpu_free(" << BSize(GLInfo::getSingleton()->getGpuFreeMemory()) << ") ";
 
-  out << "nthreads(" << nthreads << ") ";
-  out << "thread_njobs(" << thread_njobs << ") ";
-  out << "net_njobs(" << net_njobs << ") ";
+  out << "nthreads(" << (Int64)Thread::global_stats()->running_threads << ") ";
+  out << "thread_njobs(" << (Int64)thread_njobs << ") ";
+  out << "running_requests(" << (Int64)running_requests << ") ";
 
   statusBar()->showMessage(out.str().c_str());
 }
