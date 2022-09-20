@@ -577,6 +577,11 @@ public:
   //removeNode
   void removeNode(Node* node);
 
+  void removeNode(String uuid) {
+    if (Node* node = findNodeByUUID(uuid))
+      removeNode(node);
+  }
+
   //moveNode
   void moveNode(Node* dst, Node* src, int index = -1);
 
@@ -661,6 +666,9 @@ public:
 
   //addSlice
   QueryNode* addSlice(String uuid, Node* parent, String fieldname = "", int access_id = 0, int axis=2);
+
+  //setSlicePosition (sperimental for slices)
+  void setSlicePosition(QueryNode* query_node, int axis, double offset, Position target_pos = Position::invalid());
 
   //setFieldName
   void setFieldName(String value);

@@ -152,6 +152,13 @@ public:
   //read
   virtual void read(Archive& ar) override;
 
+public:
+
+  //castFrom
+  static IsoContourNode* castFrom(Node* obj) {
+    return dynamic_cast<IsoContourNode*>(obj);
+  }
+
 private:
 
   class MyJob;

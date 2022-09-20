@@ -2324,6 +2324,55 @@ QueryNode* Viewer::addVolume(String uuid, Node* parent, String fieldname, int ac
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+void Viewer::setSlicePosition(QueryNode* query_node, int axis, double offset, Position target_pos)
+{
+  if (!target_pos.valid())
+    target_pos = query_node->getDatasetNode()->getBounds();
+
+  auto BOX = target_pos.getBoxNd().withPointDim(3);
+  auto W = BOX.size()[0];
+  auto H = BOX.size()[1];
+  auto D = BOX.size()[2];
+
+  if (axis == 0)
+  {
+    auto vt = PointNd(offset,BOX.p1[1],BOX.p1[2]);
+    query_node->setBounds(Position(
+      target_pos.getTransformation(), 
+      Matrix::translate(vt), 
+      Matrix::rotate(Quaternion(Point3d(0, 1, 0), -Math::Pi / 2)), 
+      BoxNd(PointNd(0, 0, 0), PointNd(D, H, 0))));
+  }
+  else if (axis == 1)
+  {
+    auto vt = PointNd(BOX.p1[0], offset, BOX.p1[2]);
+    query_node->setBounds(Position(
+      target_pos.getTransformation(), 
+      Matrix::translate(vt), 
+      Matrix::rotate(Quaternion(Point3d(1, 0, 0), +Math::Pi / 2)), 
+      BoxNd(PointNd(0, 0, 0), PointNd(W, D, 0))));
+  }
+  else
+  {
+#if 1
+    auto box = BOX;
+    box.p1[2] = box.p2[2] = offset;
+    query_node->setBounds(Position(
+      target_pos.getTransformation(), 
+      box));
+
+#else
+    auto vt = PointNd(BOX.p1[0], BOX.p1[1], offset);
+    query_node->setBounds(Position(
+      target_pos.getTransformation(),
+      Matrix::translate(vt),
+      Matrix::rotate(Quaternion(Point3d(0, 0, 1), 0.0)),
+      BoxNd(PointNd(0, 0, 0), PointNd(W, H, 0))));
+#endif
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int access_id, int axis)
 {
   if (!parent)
@@ -2363,31 +2412,9 @@ QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int acc
 
     if (bool bPointQuery = dataset->getPointDim() == 3)
     {
-      auto BOX = dataset_node->getBounds().getBoxNd().withPointDim(3);
-      auto Width = BOX.size()[0];
-      auto Height = BOX.size()[1];
-      auto Depth = BOX.size()[2];
-
-      if (axis == 0)
-      {
-        auto box = BoxNd(PointNd(0, 0, 0), PointNd(Depth, Height, 0));
-        auto vt = BOX.p1;
-        vt[axis] = BOX.center()[0];
-        query_node->setBounds(Position(dataset_node->getBounds().getTransformation(), Matrix::translate(vt), Matrix::rotate(Quaternion(Point3d(0, 1, 0), -Math::Pi / 2)), box));
-      }
-      else if (axis==1)
-      {
-        auto box = BoxNd(PointNd(0,0,0),PointNd(Width, Depth,0));
-        auto vt = BOX.p1;
-        vt[axis] = BOX.center()[1];
-        query_node->setBounds(Position(dataset_node->getBounds().getTransformation(), Matrix::translate(vt), Matrix::rotate(Quaternion(Point3d(1, 0, 0), +Math::Pi / 2)), box));
-      }
-      else
-      {
-        auto box = BOX;
-        box.p1[2] = box.p2[2] = box.center()[2];
-        query_node->setBounds(Position(dataset_node->getBounds().getTransformation(), box));
-      }
+      Position target_pos = dataset_node->getBounds();
+      double offset = target_pos.getBoxNd().withPointDim(3).center()[axis];
+      setSlicePosition(query_node, axis, offset, target_pos);
     }
     else
     {

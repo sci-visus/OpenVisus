@@ -94,7 +94,7 @@ if True:
     %feature("nodirector") Visus::Viewer::read;
     %feature("nodirector") Visus::Viewer::write;
 
-//do I need these?
+//do I need director for this?
 #if 0
 %feature("director") Visus::GLCameraNode;
 %feature("director") Visus::IsoContourNode;
