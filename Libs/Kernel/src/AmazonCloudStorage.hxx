@@ -220,7 +220,7 @@ public:
     this->secret_key = url.getParam("secret_key",url.getParam("secret_access_key")); 
     VisusAssert(!this->secret_key.empty());
 
-#if 1
+#if 0
     PrintInfo("endpoint_url", endpoint_url);
     PrintInfo("region", region);
     PrintInfo("access_key", access_key);
