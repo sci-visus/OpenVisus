@@ -1,5 +1,10 @@
 # OpenVisus convert
 
+![Diagram](https://raw.githubusercontent.com/sci-visus/OpenVisus/s3v4/docs/openvisus-convert.png)
+
+
+
+
 ## Convert image stack to OpenVisus
 
 Instructions:
