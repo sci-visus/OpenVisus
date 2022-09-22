@@ -242,6 +242,11 @@ public:
   //join
   static String join(std::vector<String> v, String separator = " ", String prefix = "", String suffix = "");
 
+  //join
+  static String join(String separator, std::vector<String> v, String prefix = "", String suffix = "") {
+    return join(v, separator, prefix, suffix);
+  }
+
   //joinLines
   static String joinLines(std::vector<String> v) {
     return join(v, "\n");
@@ -313,6 +318,12 @@ public:
 
   //hmac_sha256
   static String hmac_sha256(String input, String key);
+
+  //hexdigest
+  static String hexdigest(String value);
+
+  //sha256
+  static String sha256(const String str);
 
   //hmac_sha1
   static String hmac_sha1(String input, String key);

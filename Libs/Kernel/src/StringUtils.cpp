@@ -44,6 +44,8 @@ For support : support@visus.net
 #include <iomanip>
 #include <cctype>
 
+#include <openssl/sha.h>
+
 #include <cryptlite/sha1.h>
 #include <cryptlite/sha256.h>
 #include <cryptlite/hmac.h>
@@ -198,12 +200,33 @@ String StringUtils::base64Decode(const String& input)
 }
 
 
+
 ///////////////////////////////////////////////////////////////////////////
 String StringUtils::hmac_sha256(String input, String key)
 {
   Uint8 buffer[cryptlite::sha256::HASH_SIZE];
   cryptlite::hmac<cryptlite::sha256>::calc(input, key, buffer);
   return String((char*)buffer, cryptlite::sha256::HASH_SIZE);
+}
+
+///////////////////////////////////////////////////////////////////////////
+String StringUtils::hexdigest(String value)
+{
+  std::stringstream  ss;
+  for (auto ch : value)
+    ss << std::hex << std::setw(2) << std::setfill('0') << (int)((unsigned char)(ch));
+  return ss.str();
+}
+
+///////////////////////////////////////////////////////////////////////////
+String StringUtils::sha256(const String str)
+{
+  unsigned char hash[SHA256_DIGEST_LENGTH];
+  SHA256_CTX sha256;
+  SHA256_Init(&sha256);
+  SHA256_Update(&sha256, str.c_str(), str.size());
+  SHA256_Final(hash, &sha256);
+  return String((char*)hash, SHA256_DIGEST_LENGTH);
 }
 
 ///////////////////////////////////////////////////////////////////////////

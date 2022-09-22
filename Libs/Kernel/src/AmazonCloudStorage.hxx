@@ -43,6 +43,142 @@ For support : support@visus.net
 #include <Visus/CloudStorage.h>
 
 namespace Visus {
+namespace Private {
+
+class S3V4
+{
+private:
+
+  static String EncodeUTF8(String value) {
+    return value;
+  }
+
+  static String Sign(String key, String msg)
+  {
+    return StringUtils::hmac_sha256(EncodeUTF8(msg), key);
+  }
+
+  static String GetSignatureKey(String key, String dateStamp, String regionName, String serviceName)
+  {
+    String kDate = Sign(EncodeUTF8("AWS4" + key), dateStamp);
+    String kRegion = Sign(kDate, regionName);
+    String kService = Sign(kRegion, serviceName);
+    String kSigning = Sign(kService, "aws4_request");
+    return kSigning;
+  }
+
+
+  static String Quote(String value) {
+
+    std::ostringstream escaped;
+    escaped.fill('0');
+    escaped << std::hex;
+
+    for (String::const_iterator i = value.begin(), n = value.end(); i != n; ++i) {
+      String::value_type c = (*i);
+
+      // Keep alphanumeric and other accepted characters intact
+      if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+        escaped << c;
+        continue;
+      }
+
+      // Any other characters are percent-encoded
+      escaped << std::uppercase;
+      escaped << '%' << std::setw(2) << int((unsigned char)c);
+      escaped << std::nouppercase;
+    }
+
+    return escaped.str();
+  }
+
+public:
+
+  static String MakeHeaders(const std::map<String, String>& d)
+  {
+    String ret;
+    for (auto it = d.begin(); it != d.end(); it++)
+    {
+      String key = it->first;
+      String value = it->second;
+      ret += (ret.empty() ? "" : "&") + key + "=" + Quote(value);
+    }
+    return ret;
+  }
+
+  //VS
+  static std::map<String, String> signRequest(
+    String url,
+    String endpoint_url = "",
+    String region = "",
+    String access_key = "",
+    String secret_key = "",
+    String amzdate = "",
+    bool debug=false)
+  {
+    if (amzdate.empty())
+    {
+      amzdate = String(256, 0);
+      time_t t; time(&t);
+      struct tm* ptm = gmtime(&t);
+      amzdate.resize(strftime((char*)amzdate.c_str(), amzdate.size(), "%Y%m%dT%H%M%SZ", ptm));
+    }
+    if (debug) PrintInfo("# amzdate", amzdate);
+
+    String datestamp = amzdate.substr(0, 8);
+    String algorithm = "AWS4-HMAC-SHA256";
+    String method = "GET";
+
+    //must be ordered
+    std::map<String, String> headers = {
+      {"X-Amz-Algorithm", algorithm},
+      {"X-Amz-Credential", StringUtils::join("/",std::vector<String>({access_key,datestamp,region,"s3","aws4_request"}))},
+      {"X-Amz-Date", amzdate},
+      {"X-Amz-Expires", "3600"},
+      {"X-Amz-SignedHeaders", "host"}
+    };
+
+    auto parsed_url = Url(url);
+    String canonical_request = StringUtils::join("\n", {
+      method,
+      parsed_url.getPath(),
+      MakeHeaders(headers),
+      concatenate("host:",parsed_url.getHostname(),"\n"),
+      "host",
+      "UNSIGNED-PAYLOAD"
+      });
+    if (debug) PrintInfo("# canonical_request", canonical_request);
+
+    String credential_scope = StringUtils::join("/", std::vector<String>({
+      datestamp,
+      region,
+      "s3",
+      "aws4_request"
+      }));
+    if (debug) PrintInfo("# credential_scope", credential_scope);
+
+    String string_to_sign = StringUtils::join("\n", std::vector<String>({
+      algorithm,
+      amzdate,
+      credential_scope,
+      StringUtils::hexdigest(StringUtils::sha256(EncodeUTF8(canonical_request)))
+      }));
+    if (debug) PrintInfo("# string_to_sign ", string_to_sign);
+
+    String signing_key = GetSignatureKey(secret_key, datestamp, region, "s3");
+    if (debug) PrintInfo("# signing_key", StringUtils::hexdigest(signing_key));
+    
+    String signature = StringUtils::hexdigest(StringUtils::hmac_sha256(EncodeUTF8(string_to_sign), signing_key));
+    if (debug) PrintInfo("# signature", signature);
+
+    headers["X-Amz-Signature"] = signature;
+    return headers;
+  }
+
+};
+
+
+} //namespace private
 
 ////////////////////////////////////////////////////////////////////////////////
 /*
@@ -58,14 +194,40 @@ public:
   //constructor
   AmazonCloudStorage(Url url) 
   {
-    this->access_key = url.getParam("access_key");
-    VisusAssert(!this->username.empty());
+    //needed for s3v4 (NOTE default endpoint is the same hostname)
+    this->endpoint_url = url.getParam("endpoint_url", url.getProtocol() + "://" + url.getHostname());
+    VisusAssert(!this->endpoint_url.empty());
 
-    this->secret_key = url.getParam("secret_key");
+    auto hostname = url.getHostname();
+
+    //needed for s3v4 (NOTE if region is empty I think I can just set it to be us-east-1)
+    this->region = url.getParam("region", "");
+    if (this->region.empty() && StringUtils::startsWith(hostname, "s3."))
+    {
+      auto v = StringUtils::split(hostname, ".");
+      //example hostname==s3.us-west-1.whatever , hopefully the second part is the region
+      if (v.size()>=2)
+        this->region=v[1];
+    }
+    if (this->region.empty())
+      this->region = "us-east-1";
+
+    VisusAssert(!this->region.empty());
+
+    this->access_key = url.getParam("access_key"); 
+    VisusAssert(!this->username.empty());
+    
+    this->secret_key = url.getParam("secret_key",url.getParam("secret_access_key")); 
     VisusAssert(!this->secret_key.empty());
 
-    this->protocol = url.getProtocol();
-    this->hostname = url.getHostname();
+#if 1
+    PrintInfo("endpoint_url", endpoint_url);
+    PrintInfo("region", region);
+    PrintInfo("access_key", access_key);
+    PrintInfo("secret_key", secret_key);
+
+#endif
+
   }
 
   //destructor
@@ -79,7 +241,7 @@ public:
 
     auto ret = Promise<bool>().get_future();
 
-    NetRequest request(this->protocol + "://" + this->hostname + "/" + bucket, "PUT");
+    NetRequest request(this->endpoint_url + "/" + bucket, "PUT");
     request.aborted = aborted;
     request.url.setPath(request.url.getPath() + "/"); //IMPORTANT the "/" to indicate is a bucket! see http://www.bucketexplorer.com/documentation/amazon-s3--how-to-create-a-folder.html
     signRequest(request);
@@ -99,7 +261,7 @@ public:
 
     auto ret = Promise<bool>().get_future();
 
-    NetRequest request(this->protocol + "://" + this->hostname + "/" + bucket, "DELETE");
+    NetRequest request(this->endpoint_url + "/" + bucket, "DELETE");
     request.aborted = aborted;
     request.url.setPath(request.url.getPath() + "/"); //IMPORTANT the "/" to indicate is a bucket!
     signRequest(request);
@@ -123,7 +285,8 @@ public:
     String bucket = v[0];
 
     //NOTE blob_name already contains the bucket name
-    NetRequest request(this->protocol + "://" + this->hostname + blob->fullname, "PUT");
+    NetRequest request(this->endpoint_url, "PUT");
+    request.url.setPath(blob->fullname);
     request.aborted = aborted;
     request.body = blob->body;
     request.setContentLength(blob->body->c_size());
@@ -156,7 +319,8 @@ public:
     auto ret = Promise< SharedPtr<CloudStorageItem> >().get_future();
 
     //NOTE blob_name already contains the bucket name
-    NetRequest request(this->protocol + "://" + this->hostname + fullname, head? "HEAD" : "GET");
+    NetRequest request(this->endpoint_url, head? "HEAD" : "GET");
+    request.url.setPath(fullname);
     request.aborted = aborted;
 
     //range request
@@ -217,7 +381,8 @@ public:
   virtual Future<bool> deleteBlob(SharedPtr<NetService> net, String blob_name, Aborted aborted = Aborted()) override
   {
     //NOTE blob_name already contains the bucket name
-    NetRequest request(this->protocol + "://" + this->hostname + blob_name, "DELETE");
+    NetRequest request(this->endpoint_url, "DELETE");
+    request.url.setPath(blob_name);
     request.aborted = aborted;
     signRequest(request);
 
@@ -244,8 +409,8 @@ private:
 
   const String METADATA_PREFIX = "x-amz-meta-";
 
-  String protocol;
-  String hostname;
+  String endpoint_url;
+  String region;
   String access_key;
   String secret_key;
 
@@ -256,6 +421,26 @@ private:
     if (access_key.empty())
       return;
 
+    if (request.method == "GET")
+      return signRequest_v4(request); //TODO: implement other methods for s3v4
+    else
+      return signRequest_v2(request);
+  }
+
+  //signRequest_v4
+  void signRequest_v4(NetRequest& request)
+  {
+    //remove any params
+    String url = request.url.getProtocol() + "://" + request.url.getHostname() + request.url.getPath();
+    auto headers = Private::S3V4::signRequest(url, this->endpoint_url,region,this->access_key,this->secret_key);
+    //NOTE: the headers MUST be in the url, not in the body of the net request, otherwise s3v4 will not work
+    request.url.setPath(request.url.getPath() + "?" + Private::S3V4::MakeHeaders(headers));
+  }
+
+
+  //signRequest_v2
+  void signRequest_v2(NetRequest& request)
+  {
     String canonicalized_resource = request.url.getPath();
 
     String canonicalized_headers;
@@ -297,7 +482,7 @@ private:
     auto bucket = v[0];
     auto prefix = StringUtils::join(std::vector<String>(v.begin()+1,v.end()),"/") + "/";
 
-    NetRequest request(this->protocol + "://" + this->hostname + "/" + bucket, "GET");
+    NetRequest request(this->endpoint_url + "/" + bucket, "GET");
     request.aborted = aborted;
 
     //not the top level of the bucket

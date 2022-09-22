@@ -72,12 +72,11 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
 
   if (this->filename_template.empty())
   {
+    //guess fromm *.idx filename
     auto path = this->url.getPath();
     VisusAssert(StringUtils::endsWith(path,".idx"));
-    this->filename_template = path.substr(0, path.size() - 4) + "/$(time)/$(field)/$(block:%016x:%04x).bin.zz";
+    this->filename_template = path.substr(0, path.size() - 4) + "/$(time)/$(field)/$(block:%016x:%04x).bin";
   }
-
-
 
 
   VisusReleaseAssert(!this->filename_template.empty());
