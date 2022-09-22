@@ -92,6 +92,9 @@ public:
   //bDisableWriteLocks (to speed up writing with only one writer)
   bool bDisableWriteLocks = false;
 
+  //compression algorithm
+  String compression;
+
   //constructor 
   Access() {
   }
@@ -103,6 +106,11 @@ public:
   //disableWriteLock
   void disableWriteLock() {
     this->bDisableWriteLocks = true;
+  }
+
+  //disableWriteLock
+  void disableCompression() {
+    this->compression = "";
   }
 
   //this is the number of samples it will return in a read/write operation

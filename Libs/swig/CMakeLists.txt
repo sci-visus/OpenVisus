@@ -70,7 +70,8 @@ if (TARGET VisusKernel)
 		set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/VisusKernelPy.i APPEND PROPERTY SWIG_FLAGS  "-DVISUS_SLAM=1")
 	endif()
 
-	AddSwigLibrary(VisusKernel __init__.py __main__.py setup.py utils.py image_utils.py VisusPy.common)
+	file(GLOB myfiles "*.py" "*.h")
+	AddSwigLibrary(VisusKernel ${myfiles} VisusPy.common)
 
 	if (VISUS_SLAM)
 		target_compile_definitions(VisusKernelPy PRIVATE VISUS_SLAM=1)
@@ -80,7 +81,7 @@ if (TARGET VisusKernel)
 endif()
 
 if (TARGET VisusDb)
-	AddSwigLibrary(VisusDb dataset.py copy_blocks.py PyMultipleDataset.h)
+	AddSwigLibrary(VisusDb)
 endif()
 
 if (TARGET VisusDataflow)
@@ -94,7 +95,7 @@ if (TARGET VisusNodes)
 endif()
 
 if (TARGET VisusGui)
-	AddSwigLibrary(VisusGui scripting_node.py viewer.py gui.py)
+	AddSwigLibrary(VisusGui)
 	AddPythonTarget("CMakePredefinedTargets" configure       -m OpenVisus configure)
 	AddPythonTarget("CMakePredefinedTargets" viewer          -m OpenVisus viewer)
 	AddPythonTarget("CMakePredefinedTargets" test-gui        -m OpenVisus test-gui)

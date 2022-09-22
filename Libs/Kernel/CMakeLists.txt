@@ -206,7 +206,7 @@ target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 if (VISUS_NET)
 	target_include_directories(VisusKernel PRIVATE ${CMAKE_SOURCE_DIR}/ExternalLibs)
 	target_compile_options(VisusKernel PRIVATE -DVISUS_NET=1)
-	target_link_libraries(VisusKernel  PRIVATE curl)
+	target_link_libraries(VisusKernel  PRIVATE curl crypto ssl tls)
 endif()
 
 if (VISUS_IMAGE)

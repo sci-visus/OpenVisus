@@ -87,6 +87,9 @@ Run load-balanced `Docker Swarm` OpenVisus servers:
 
 See [docs/compilation.md](./docs/compilation.md).
 
+# Convert (and similar)
+
+See [docs/convert.md](./docs/convert.md).
 
 # IDX2
 

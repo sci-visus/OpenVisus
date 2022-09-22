@@ -80,7 +80,6 @@ private:
 
   StringTree               config;
   Url                      url;
-  String                   compression;
   bool                     reverse_filename = false;
   String                   layout;
 
