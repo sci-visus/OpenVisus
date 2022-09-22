@@ -88,7 +88,6 @@ private:
 
   StringTree             config;
   Url                    url;
-  String                 compression;
   SharedPtr<NetService>  netservice;
 
   Batch batch;

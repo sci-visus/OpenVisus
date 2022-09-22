@@ -378,6 +378,7 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
         //if the IdxFile contains an ARCO positive number I am using Disk Access
         if (this->idxfile.arco)
           return std::make_shared<DiskAccess>(idx, config);
+
         //otherwise it's a regular IDX dataset (i.e. multiple blocks aggregated in the same file wiht file and block headers)
         else
           return std::make_shared<IdxDiskAccess>(idx, config);

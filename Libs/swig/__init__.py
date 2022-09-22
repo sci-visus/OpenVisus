@@ -16,6 +16,7 @@ NodesModule.attach()
 
 from OpenVisus.utils         import *
 from OpenVisus.dataset       import *
+from OpenVisus.convert       import *
 
 
 

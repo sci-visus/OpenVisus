@@ -87,6 +87,78 @@ Run load-balanced `Docker Swarm` OpenVisus servers:
 
 See [docs/compilation.md](./docs/compilation.md).
 
+# Convert (and similar)
+
+Extract a slice from OpenVisus:
+- `BOX` is in the format x1,x2,y1,y2,z1,z2 (all extrema included)
+
+```bash
+# change as needed, you need to know the dimension in advance
+BOX="0 2047 0 2047 1024 1024"
+python -m OpenVisus convert import /path/to/your/visus.idx  --box "${BOX}" export example.png
+```
+
+Example of extracting several slices:
+
+```bash
+for ((z=0; z<=2047; z++)); do
+  python3 -m OpenVisus convert import /path/to/visus.idx --box "0 2047 0 2047 $z $z" export /path/to/image/stack/$(printf "%04d" $z).png
+done
+```
+
+Convert image stack to OpenVisus:
+- `ARCO`: use `modvisus` if you want to use the standard OpenVisus format, suitable to be run on the OpenVisus server, 
+          use a string size (e.g. `512kb`, `1mb`, `2mb` etc.) to use the new ARCO format and run potentially  on cloud storage (i.e. serverless)
+- `SRC` the python `glob.glob` expression to find images. Found items will be sorted
+- `DST` IDX destination filename. It's reccomended to have one directory exclusive to the dataset (i.e. a single exclusive directory containing *.idx and *.bin files)
+
+```bash
+ARCO=4mb
+SRC=/path/your/image/stack/**/*.png
+DST=/path/to/your/openvisus/dataset/visus.idx 
+
+# this writes data uncompressed
+python3 -m OpenVisus convert-image-stack --arco "${ARCO}" "${SRC}" "${DST}"
+
+# final pass to compress and reduce size
+python3 -m OpenVisus compress-dataset --compression zip ${DST} 
+```
+
+Convert existing OpenVisus local dataset to ARCO format
+- NOTE: it will not copy blocks by blocks, so it may be slow. But it allows to change the blocksize (which is important for ARCO):
+
+```bash
+ARCO=2mb
+SRC=/mnt/c/data/visus-dataset/2kbit1/modvisus/visus.idx
+DST=/mnt/c/data/visus-dataset/2kbit1/1mb/visus.idx 
+
+# this writes the dataset uncompressed
+python3 -m OpenVisus copy-dataset --arco ${ARCO} ${SRC} ${DST}
+
+# final pass to compress and reduce size
+python3 -m OpenVisus compress-dataset --compression zip ${DST} 
+```
+
+Upload OpenVisus ARCO dataset to the cloud using AWS s3:
+- NOTE: `--endpoint-url` could be extracted from the `~/.aws/credentials` file if you install this https://github.com/wbingli/awscli-plugin-endpoint
+         otherwise you need to add `--endpoint-url` argument
+- NOTE: both SRC and DST must refer to directory/folder
+
+```bash
+SRC=/path/to/your/idx/dataset/directory
+DST=s3://your-bucket-name/whatever/destination/directory
+aws s3 --profile <profile> cp --if-size-differ ${SRC} ${DST}
+```
+
+Upload OpenVisus ARCO dataset to the cloud using AWS s5cmd:
+- NOTE the `/` at the end of arguments
+- endpoint must be specified using env variables or `--endpoint-url`. `s5cmd` does not seem to support any plugin
+
+```bash
+SRC=""/path/to/your/idx/dataset/directory/*"
+DST="s3://your-bucket-name/whatever/destination/directory/"
+AWS_PROFILE=<profile> S3_ENDPOINT_URL=<your-endpoint> s5cmd cp --if-size-differ ${SRC} {DST}
+```
 
 # IDX2
 

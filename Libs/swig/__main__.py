@@ -8,24 +8,6 @@ if len(sys.argv)>=2 and sys.argv[1]=="dirname":
 
 from OpenVisus import *
 
-# for conda
-try:
-	import conda.cli 
-except:
-	pass
-
-"""
-Linux:
-	readelf -d bin/visus
-	QT_DEBUG_PLUGINS=1 LD_DEBUG=libs,files  ./visusviewer.sh
-	LD_DEBUG=libs,files ldd bin/visus
-
-OSX:
-	otool -L libname.dylib
-	otool -l libVisusGui.dylib  | grep -i "rpath"
-	DYLD_PRINT_LIBRARIES=1 QT_DEBUG_PLUGINS=1 visusviewer.app/Contents/MacOS/visusviewer
-"""
-
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
 LINUX=not (WIN32 or APPLE)
@@ -56,54 +38,68 @@ def ExecuteCommand(cmd,shell=False,check_result=False):
 		return subprocess.call(cmd, shell=shell)
 
 # ////////////////////////////////////////////////
-def SetRPath(filename,value):
-	
-	if APPLE:
-
-		def GetRPaths(filename):
-			try:
-				lines  = GetCommandOutput("otool -l '%s' | grep -A2 LC_RPATH | grep path " % filename, shell=True).splitlines()
-			except:
-				return []
-				
-			path_re = re.compile("^\s*path (.*) \(offset \d*\)$")
-			return [path_re.search(line).group(1).strip() for line in lines]
-			
-		for it in GetRPaths(filename):
-			ExecuteCommand(["install_name_tool","-delete_rpath",it, filename])
-	
-		for it in value.split(":"):
-			ExecuteCommand(["install_name_tool","-add_rpath", it, filename])
-			
-		print(filename,GetRPaths(filename))
-
-	else:
-		ExecuteCommand(["patchelf","--set-rpath",value, filename])			
-				
-
-# ////////////////////////////////////////////////
-def ExtractDeps(filename):
-	output=GetCommandOutput(['otool', '-L' , filename])
-	deps=[line.strip().split(' ', 1)[0].strip() for line in output.split('\n')[1:]]
-	deps=[dep for dep in deps if os.path.basename(filename)!=os.path.basename(dep)] # remove any reference to myself
-	return deps
-	
-# ////////////////////////////////////////////////
-def ShowDeps(all_bins):
-	all_deps={}
-	for filename in all_bins:
-		for dep in ExtractDeps(filename):
-			all_deps[dep]=1
-	all_deps=list(all_deps)
-	all_deps.sort()	
-	
-				
-	print("\nAll dependencies....")
-	for filename in all_deps:
-		print(filename)	
-
-# ////////////////////////////////////////////////
 def Configure(bUserInstall=False):
+
+	"""
+	This configure step is the most buggy OpenVisus code.
+	Since OpenVisus viewer needs C++ Qt, I will try here to `replace` C++ Qt with PyQt5
+	but this has issue regarding portability on different platforms (Windows,Linux,OSX) and python versions (cpython, conda)
+	It should work in theory, but combinations are huge and a simple change in python version or PyQt version is a nightmare
+
+	To check if the software has been linking right:
+
+	Linux:
+		readelf -d bin/visus
+		QT_DEBUG_PLUGINS=1 LD_DEBUG=libs,files  ./visusviewer.sh
+		LD_DEBUG=libs,files ldd bin/visus
+
+	OSX:
+		otool -L libname.dylib
+		otool -l libVisusGui.dylib  | grep -i "rpath"
+		DYLD_PRINT_LIBRARIES=1 QT_DEBUG_PLUGINS=1 visusviewer.app/Contents/MacOS/visusviewer
+	"""
+
+	def SetRPath(filename,value):
+	
+		if APPLE:
+
+			def GetRPaths(filename):
+				try:
+					lines  = GetCommandOutput("otool -l '%s' | grep -A2 LC_RPATH | grep path " % filename, shell=True).splitlines()
+				except:
+					return []
+				
+				path_re = re.compile("^\s*path (.*) \(offset \d*\)$")
+				return [path_re.search(line).group(1).strip() for line in lines]
+			
+			for it in GetRPaths(filename):
+				ExecuteCommand(["install_name_tool","-delete_rpath",it, filename])
+	
+			for it in value.split(":"):
+				ExecuteCommand(["install_name_tool","-add_rpath", it, filename])
+			
+			print(filename,GetRPaths(filename))
+
+		else:
+			ExecuteCommand(["patchelf","--set-rpath",value, filename])			
+				
+	def ExtractDeps(filename):
+		output=GetCommandOutput(['otool', '-L' , filename])
+		deps=[line.strip().split(' ', 1)[0].strip() for line in output.split('\n')[1:]]
+		deps=[dep for dep in deps if os.path.basename(filename)!=os.path.basename(dep)] # remove any reference to myself
+		return deps
+	
+	def ShowDeps(all_bins):
+		all_deps={}
+		for filename in all_bins:
+			for dep in ExtractDeps(filename):
+				all_deps[dep]=1
+		all_deps=list(all_deps)
+		all_deps.sort()	
+	
+		print("\nAll dependencies....")
+		for filename in all_deps:
+			print(filename)	
 	
 	IS_CONDA = True if "USE_CONDA" in os.environ and os.environ["USE_CONDA"] == "1" else False # os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history')) # see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
 	IS_CPYTHON = not IS_CONDA
@@ -119,6 +115,13 @@ def Configure(bUserInstall=False):
 		if VISUS_GUI:
 			cmd+=[f"pyqt={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}"]
 			if LINUX: cmd+=["libglu"]
+
+		# for conda
+		try:
+			import conda.cli 
+		except:
+			pass
+
 		conda.cli.main(*cmd)
 		print("OPENVISUS WARNING", "if you get errors like:  module compiled against API version 0xc but this version of numpy is 0xa, then execute","conda update -y numpy")
 
@@ -193,20 +196,6 @@ def Configure(bUserInstall=False):
 			SetRPath(filename,rpath)
 		return
 
-# ////////////////////////////////////////////////
-def TestNetworkSpeed(args):
-	parser = argparse.ArgumentParser(description="Test IO read speed")
-	parser.add_argument("--nconnections", type=int, help="Number of connections", required=False,default=8)
-	parser.add_argument("--nrequests", type=int, help="Number of Request", required=False,default=1000)
-	parser.add_argument("--url", action='append', help="Url", required=True)
-	args = parser.parse_args(args)
-
-	print("NetService speed test")
-	print("nconnections",args.nconnections)
-	print("nrequests",args.nrequests)
-	print("urls\n","\n\t".join(args.url))
-	NetService.testSpeed(args.nconnections,args.nrequests,args.url)
-
 
 # ////////////////////////////////////////////////
 def FixRange(args):
@@ -270,6 +259,7 @@ def FixRange(args):
 
 # ////////////////////////////////////////////////
 def RunServer(args):
+
 	parser = argparse.ArgumentParser(description="server command.")
 	parser.add_argument("-p", "--port", type=int, help="Server port.", required=False,default=10000)
 	parser.add_argument("-d", "--dataset", type=str, help="Idx file", required=False,default="")
@@ -294,52 +284,10 @@ def RunServer(args):
 	server.runInThisThread()
 	print("server done")
 
-# ////////////////////////////////////////////////
-def CopyDataset(args):
-	parser = argparse.ArgumentParser(description="copy-dataset command.")
-	parser.add_argument("--src"       , type=str,   help="src dataset", required=True)
-	parser.add_argument("--dst"       , type=str,   help="dst dataset", required=True)
-	parser.add_argument("--src-time"  , type=float, help="src time",    required=False,default=None)
-	parser.add_argument("--dst-time"  , type=float, help="dst time",    required=False,default=None)
-	parser.add_argument("--src-field ", type=str,   help="src field",   required=False,default=None)
-	parser.add_argument("--dst-field" , type=str,   help="dst field",   required=False,default=None)
-	parser.add_argument("--src-access", type=str,   help="src access",  required=False,default=None)
-	parser.add_argument("--dst-access", type=str,   help="dst access",  required=False,default=None)
-	args = parser.parse_args(args)
-
-	src=LoadDataset(args.src)
-	dst=LoadDataset(args.dst)
-
-	src_time=src.getTime() if args.src_time is None else args.src_time
-	dst_time=dst.getTime() if args.dst_time is None else args.dst_time   
-
-	src_field=src.getField() if args.src_field is None else args.src_field
-	dst_field=dst.getField() if args.dst_field is None else args.dst_field
-
-	Assert(src_field.dtype==dst_field.dtype)
-
-	src_access=src.createAccessForBlockQuery(StringTree.fromString(args.src_access))
-	dst_access=dst.createAccessForBlockQuery(StringTree.fromString(args.dst_access))
-
-	# BROKEN!
-	Dataset.copyDataset(
-		dst, src_access, dst_field, dst_time,
-		src, dst_access, src_field, src_time)
-
-
-# ////////////////////////////////////////////////
-def CompressDataset(args):
-	parser = argparse.ArgumentParser(description="compress dataset")
-	parser.add_argument("--dataset"       , type=str,   help="dataset",     required=True)
-	parser.add_argument("--compression"   , type=str,   help="compression", required=True)
-	args = parser.parse_args(args)
-
-	db=LoadDataset(args.dataset);Assert(db)
-	db.compressDataset([args.compression])
-
 
 # ////////////////////////////////////////////////
 def MidxToIdx(args):
+
 	parser = argparse.ArgumentParser(description="compress dataset")
 	parser.add_argument("--midx"   ,"--DATASET", type=str,  required=True)
 	parser.add_argument("--field"     , type=str,   required=False,default="output=voronoi()")
@@ -418,6 +366,7 @@ def MidxToIdx(args):
 	idx.compressDataset(["zip"])
 	print("ALL DONE IN", T1.elapsedMsec())
 
+
 # ////////////////////////////////////////////////
 def Main(args):
 
@@ -445,31 +394,105 @@ def Main(args):
 		RunServer(action_args)
 		sys.exit(0)
 
-	#if action=="copy-dataset":
-	#	CopyDataset(action_args)
-	#	sys.exit(0)
-
-	# 	-m OpenVisus copy-blocks  --src http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1 --dst D:/tmp/visus.idx   --num-threads 4 --num-read-per-request 256 [--verbose] [--field fieldname]  [--time timestep]
-	if action=="copy-blocks":
-		from OpenVisus.copy_blocks import CopyBlocks
-		CopyBlocks.Main(action_args)
+	# DEPRECATED, I think you can do the same with the new convert code
+	# -m OpenVisus cpp-compress-dataset --dataset "D:\GoogleSci\visus_dataset\cat256\visus0.idx" --compression zip
+	if action=="cpp-compress-dataset":
+		parser = argparse.ArgumentParser(description="compress dataset")
+		parser.add_argument("--dataset"       , type=str,   help="dataset",     required=True)
+		parser.add_argument("--compression"   , type=str,   help="compression", required=True)
+		args = parser.parse_args(action_args)
+		db=LoadDataset(args.dataset);Assert(db)
+		db.compressDataset([args.compression])
 		sys.exit(0)
 
-	# -m OpenVisus compress-dataset --dataset "D:\GoogleSci\visus_dataset\cat256\visus0.idx" --compression zip
-	if action=="compress-dataset":
-		CompressDataset(action_args)
-		sys.exit(0)
-
+	# DEPRECATED, I think you can do the same with the new convert code
 	# example: -m OpenVisus midx-to-idx --midx "D:\GoogleSci\visus_slam\TaylorGrant\VisusSlamFiles\visus.midx" --field "output=voronoi()" --tile-size "4*1024" --idx "tmp/test.idx"
 	if action=="midx-to-idx":
 		MidxToIdx(action_args)
 		sys.exit(0)
 
-	# deprecated, old visus(convert)
+	# DEPRECATED, old visus(convert)
 	# example: -m OpenVisus convert create tmp/visus.idx --box "0 511 0 511" --fields "scalar uint8 default_compression(lz4) + vector uint8[3] default_compression(lz4)" 
 	if action=="convert":
 		VisusConvert().runFromArgs(action_args)
 		sys.exit(0)
+
+	# DEPRACATED
+	# -m OpenVisus copy-blocks  --src http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1 --dst D:/tmp/visus.idx   --num-threads 4 --num-read-per-request 256 [--verbose] [--field fieldname]  [--time timestep]
+	if action=="copy-blocks":
+		from OpenVisus.convert import CopyBlocks
+		CopyBlocks.Main(action_args)
+		sys.exit(0)
+
+	# NEW: convert-image-stack
+	if action=="convert-image-stack":
+		"""
+		# source is a python glob expression
+		SRC="/tmp/image-stack/**/*.png" 
+		DST=/mnt/d/GoogleSci/visus_dataset/cat/modvisus/visus.idx 
+		python3 -m OpenVisus convert-image-stack --arco [ modvisus | 1mb | ...] ${SRC} {$DST}
+		"""
+		parser = argparse.ArgumentParser(description=action)
+		parser.add_argument('--arco',type=str,required=False,default="modvisus")
+		parser.add_argument('src',type=str)
+		parser.add_argument('dst',type=str)
+		args=parser.parse_args(action_args)
+		from OpenVisus import ConvertImageStack
+		ConvertImageStack(src=args.src, dst=args.dst, arco=args.arco)
+		sys.exit(0)
+
+	if action=="copy-dataset":
+		"""
+		SRC=/mnt/d/GoogleSci/visus_dataset/cat/modvisus/visus.idx 
+		DST=/mnt/d/GoogleSci/visus_dataset/cat/modvisus-bis/visus.idx 
+		python3 -m OpenVisus copy-dataset --arco [ modvisus | 1mb | ... ] [--tile-size 1024 ] ${SRC} ${DST} 
+		"""
+		parser = argparse.ArgumentParser(description=action)
+		parser.add_argument('--arco',type=str, required=False,default="modvisus")
+		parser.add_argument('--tile-size',type=int, required=False,default=None)
+		parser.add_argument("src",type=str) 
+		parser.add_argument("dst",type=str)
+		args=parser.parse_args(action_args)
+		from OpenVisus import CopyDataset
+		CopyDataset(args.src, args.dst, arco=args.arco,tile_size=args.tile_size)
+		sys.exit(0)
+
+	if action=="compress-dataset":
+		"""
+		# note DST must be a local db because a lot of file seek and write will happen
+		IDX=/mnt/d/GoogleSci/visus_dataset/arco/cat/modvisus/visus.idx 
+		python3 -m OpenVisus compress-dataset --compression zip --num-threads 16 --zip-level -1 ${IDX}
+		"""
+		parser = argparse.ArgumentParser(description=action)
+		parser.add_argument('--compression',type=str,required=False,default=None)
+		parser.add_argument('--num-threads',type=int,required=False,default=32)
+		parser.add_argument('--zip-level',type=int,required=False,default=-1)
+		parser.add_argument('idx_filename',type=str) 
+		args=parser.parse_args(action_args)
+		from OpenVisus import CompressDataset
+		CompressDataset(args.idx_filename, compression=args.compression, num_threads=args.num_threads,level=args.zip_level)
+		return
+
+	# //////////////////////////////////////////
+	if action=="viewer":
+		from OpenVisus.gui import PyViewer, GuiModule
+		from PyQt5.QtWidgets import QApplication
+		viewer=PyViewer()
+		viewer.configureFromArgs(action_args)
+		viewer.render_palettes="--render-palettes" in action_args
+		QApplication.exec()
+		viewer=None
+		print("viewer done")
+		sys.exit(0)
+
+	if action=="jupyter":
+		filename=action_args[0]
+		ExecuteCommand([sys.executable,"-m","jupyter","nbconvert","--execute", filename]) # ipynb -> html 
+		# import webbrowser
+		# webbrowser.open("file://"+filename.replace(".ipynb",".html"))
+		sys.exit(0)
+
+	# ////////////////////////////////////////// TEST SECTION
 
 	# test
 	if action=="test":
@@ -510,23 +533,17 @@ def Main(args):
 		
 	# example -m OpenVisus test-network-speed  --nconnections 1 --nrequests 100 --url "http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled" 
 	if action=="test-network-speed":
-		TestNetworkSpeed(action_args)
+		parser = argparse.ArgumentParser(description="Test IO read speed")
+		parser.add_argument("--nconnections", type=int, help="Number of connections", required=False,default=8)
+		parser.add_argument("--nrequests", type=int, help="Number of Request", required=False,default=1000)
+		parser.add_argument("--url", action='append', help="Url", required=True)
+		args = parser.parse_args(action_args)
+		print("NetService speed test")
+		print("nconnections",args.nconnections)
+		print("nrequests",args.nrequests)
+		print("urls\n","\n\t".join(args.url))
+		NetService.testSpeed(args.nconnections,args.nrequests,args.url)
 		sys.exit(0)
-
-	if action=="viewer":
-		from OpenVisus.gui import PyViewer, GuiModule
-		from PyQt5.QtWidgets import QApplication
-		viewer=PyViewer()
-		viewer.configureFromArgs(action_args)
-
-		if "--render-palettes" in action_args:
-			viewer.render_palettes=True
-
-		QApplication.exec()
-		viewer=None
-		print("viewer done")
-		sys.exit(0)
-
 
 	if action=="test-viewer":
 		os.chdir(this_dir)
@@ -551,13 +568,6 @@ def Main(args):
 	if action=="test-two-viewers":
 		os.chdir(this_dir)
 		ExecuteCommand([sys.executable,os.path.join(this_dir, "Samples/python/viewer/two_viewers.py")]) 
-		sys.exit(0)
-
-	if action=="jupyter":
-		filename=action_args[0]
-		ExecuteCommand([sys.executable,"-m","jupyter","nbconvert","--execute", filename])
-		# import webbrowser
-		# webbrowser.open("file://"+filename.replace(".ipynb",".html"))
 		sys.exit(0)
 
 	raise Exception("unknown action",action)
