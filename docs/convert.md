@@ -75,7 +75,7 @@ Instructions
 ```bash
 SRC=/path/to/your/idx/dataset/directory
 DST=s3://your-bucket-name/whatever/destination/directory
-aws s3 --profile <profile> cp --if-size-differ ${SRC} ${DST}
+aws s3 [--debug] --profile <profile> sync ${SRC} ${DST}
 ```
 
 ## Upload OpenVisus ARCO dataset to the cloud using s5cmd
