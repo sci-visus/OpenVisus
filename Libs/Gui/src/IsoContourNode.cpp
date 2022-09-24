@@ -408,6 +408,31 @@ public:
 
     double v[12][3]; //vertices
 
+    std::ofstream ofile;
+
+    //example of exporting OBJ file
+    if (false)
+    {
+      String filename = cstring("mesh.", StringUtils::getDateTimeForFilename(), ".obj");
+      ofile.open(filename.c_str());
+    }
+
+    auto PushTriangle =[&](const double* p0, const double* p1, const double* p2){
+      isocontour.vertex(float(p0[0]), float(p0[1]), float(p0[2]));
+      isocontour.vertex(float(p1[0]), float(p1[1]), float(p1[2]));
+      isocontour.vertex(float(p2[0]), float(p2[1]), float(p2[2]));
+
+      if (ofile.is_open())
+      {
+        ofile << "v " << cstring(p0[0], p0[1], p0[2]) << std::endl;
+        ofile << "v " << cstring(p1[0], p1[1], p1[2]) << std::endl;
+        ofile << "v " << cstring(p2[0], p2[1], p2[2]) << std::endl;
+        ofile << "f " << cstring(ntriangles * 3 + 1, ntriangles * 3 + 2, ntriangles * 3 + 3) << std::endl;
+      }
+      ++ntriangles;
+
+    };
+
     for (int z = 0; (z < dims[2] - 1); z++)
     {
       for (int y = 0; (y < dims[1] - 1); y++)
@@ -487,16 +512,18 @@ public:
 
           for (int i = 0; TriangleTable[L][i] != -1; i += 3)
           {
-            const double* p0 = v[TriangleTable[L][i + 0]]; isocontour.vertex(float(p0[0]), float(p0[1]), float(p0[2]));
-            const double* p1 = v[TriangleTable[L][i + 1]]; isocontour.vertex(float(p1[0]), float(p1[1]), float(p1[2]));
-            const double* p2 = v[TriangleTable[L][i + 2]]; isocontour.vertex(float(p2[0]), float(p2[1]), float(p2[2]));
-            ++ntriangles;
+            const double* p0 = v[TriangleTable[L][i + 0]]; 
+            const double* p1 = v[TriangleTable[L][i + 1]]; 
+            const double* p2 = v[TriangleTable[L][i + 2]]; 
+            PushTriangle(p0,p1,p2);
           }
         }
       }
     }
-
     isocontour.end();
+
+    if (ofile.is_open())
+      ofile.close();
 
     PrintInfo("Marching cube on first",dims,"ntriangles",ntriangles,"done in",t1.elapsedMsec(),"msec");
     return true;

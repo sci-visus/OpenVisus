@@ -41,7 +41,6 @@ For support : support@visus.net
 #include <Visus/MultiplexAccess.h>
 #include <Visus/CloudStorageAccess.h>
 #include <Visus/RamAccess.h>
-#include <Visus/FilterAccess.h>
 #include <Visus/NetService.h>
 #include <Visus/StringTree.h>
 #include <Visus/Polygon.h>
@@ -453,12 +452,8 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
     return std::make_shared<ModVisusAccess>(this, config);
 
   //CloudStorageAccess
-  if (type=="cloudstorageaccess")
+  if (type=="cloudstorageaccess" || type=="cloud")
     return std::make_shared<CloudStorageAccess>(this, config);
-  
-  // FILTER 
-  if (type=="filter" || type=="filteraccess")
-    return std::make_shared<FilterAccess>(this, config);
 
   //problem here
   VisusAssert(false);

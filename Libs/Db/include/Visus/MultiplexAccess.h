@@ -68,7 +68,7 @@ public:
   virtual ~MultiplexAccess();
 
   //addChild
-  void addChild(SharedPtr<Access> child);
+  void addChild(SharedPtr<Access> child, StringTree child_config);
 
   //readBlock 
   virtual void readBlock(SharedPtr<BlockQuery> up_query) override {
@@ -100,12 +100,23 @@ private:
   Semaphore            something_happened;
   bool                 bExit = false;
 
+  class Filter
+  {
+  public:
+    BigInt A=0,B=0,F=0,S=0;
+  };
+
+  std::vector<Filter> dw_filter;
+
   SharedPtr<std::thread> thread;
 
   //isGoodIndex
   bool isGoodIndex(int index) const {
     return index >= 0 && index < (int)dw_access.size();
   }
+
+  //passThought
+  bool passThought(int index, BigInt blockid);
 
   //scheduleOp
   void scheduleOp(int mode, int index, SharedPtr<BlockQuery> up_query);

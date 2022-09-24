@@ -60,7 +60,8 @@ MultiplexAccess::MultiplexAccess(Dataset* dataset, StringTree config)
     if (!child)
       ThrowException("wrong child access");
 
-    this->addChild(child);
+    this->addChild(child,*child_config);
+
   }
 
   //NOTE: 
@@ -84,12 +85,40 @@ MultiplexAccess::~MultiplexAccess()
 }
 
 ///////////////////////////////////////////////////////
-void MultiplexAccess::addChild(SharedPtr<Access> child)
+void MultiplexAccess::addChild(SharedPtr<Access> child,StringTree child_config)
 {
   int bpb = child->bitsperblock;
   this->bitsperblock = (dw_access.empty()) ? bpb : std::min(this->bitsperblock, bpb);
   this->dw_access.push_back(SharedPtr<Access>(child));
 
+
+
+  //adding support for filters
+  Filter filter;
+  if (child_config.hasAttribute("shard"))
+  {
+    //example: 
+    //   <access shard="0/3 16" />   blocks [0 ,16) belongs to shard=0
+    //   <access shard="1/3 16" />   blocks [16,32) belongs to shard=1
+    //   <access shard="2/3 16" />   blocks [32,48) belongs to shard=2
+
+    auto v = StringUtils::split(child_config.getAttribute("shard"));
+    VisusReleaseAssert(v.size() == 2);
+
+    auto v1 = StringUtils::split(v[0], "/");
+    VisusReleaseAssert(v1.size() == 2);
+
+    auto shard_id   = cbigint(v1[0]);
+    auto tot_shards = cbigint(v1[1]);
+    auto num_blocks = cbigint(v[1]);
+
+    filter.A = num_blocks * shard_id; // offset  (ie. left overall limit)
+    filter.B = NumericLimits<BigInt>::highest(); //right overall limit
+    filter.F = num_blocks; //number of full blocks
+    filter.S = num_blocks * tot_shards; //step
+
+  }
+  dw_filter.push_back(filter);
 }
 
 ///////////////////////////////////////////////////////
@@ -105,33 +134,55 @@ void MultiplexAccess::printStatistics()
 }
 
 ///////////////////////////////////////////////////////
+bool MultiplexAccess::passThought(int index, BigInt blockid)
+{
+  Filter filter = dw_filter[index];
+
+  //not set
+  if (filter.A == 0 && filter.B == 0 && filter.F == 0 && filter.S == 0)
+    return true;
+
+  // basically I need that the requested range is inside a full range, e.g.:
+  // [A+K*step,A+K*step+full) (for some K)
+  BigInt K = (blockid - filter.A) / filter.S;
+  BigInt a = filter.A + K * filter.S;
+  BigInt b = a + filter.F;
+  return (a >= filter.A && b < filter.B) && (blockid >= a && blockid < b);
+}
+
+///////////////////////////////////////////////////////
 void MultiplexAccess::scheduleOp(int mode, int index, SharedPtr<BlockQuery> up_query)
 {
-  //find the first who can read
+  auto blockid = up_query->blockid;
+  
   if (mode == 'r')
   {
-    while (isGoodIndex(index) && !dw_access[index]->can_read)
+    //find the first who can read
+    while (isGoodIndex(index) && (!dw_access[index]->can_read || !passThought(index, blockid)))
       index++;
 
     //invalid index
-    if (!isGoodIndex(index)) {
-      return readFailed(up_query,"wrong index");
-    }
+    if (!isGoodIndex(index))
+      return readFailed(up_query, "wrong index");
+    else
+      VisusAssert(dw_access[index]->can_read && passThought(index, blockid));
   }
-
-  //find the first who can write
   else
   {
     VisusAssert(mode == 'w');
 
-    while (isGoodIndex(index) && !dw_access[index]->can_write)
+    //find the first who can write
+    while (isGoodIndex(index) && (!dw_access[index]->can_write || !passThought(index, blockid)))
       index--;
 
     //even if the writing fails, the return code for the reading is ok
-    if (!isGoodIndex(index)) {
+    if (!isGoodIndex(index)) 
       return readOk(up_query);
-    }
+    else
+      VisusAssert(dw_access[index]->can_write && passThought(index, blockid));
   }
+
+  //PrintInfo("!!!!", blockid, dw_access[index]->name);
 
   auto dw_query = dataset->createBlockQuery(up_query->blockid, up_query->field, up_query->time, mode, up_query->aborted);
   VisusAssert(dw_query->getNumberOfSamples() == up_query->getNumberOfSamples());
@@ -218,7 +269,8 @@ void MultiplexAccess::runInBackground()
           {
             scheduleOp('r', index + 1, up_query);
           }
-          //I need to write to upper access (i.e. caching)
+          //I need to write to upper access (i.e. for caching the reading)
+          //NOTE: the operation is readBlock and the caching happens in the previous dw_access
           else
           {
             VisusAssert(dw_query->ok());
@@ -232,7 +284,7 @@ void MultiplexAccess::runInBackground()
         });
       }
 
-      //need to cache
+      //need to writing (e.g. cachning a block
       else
       {
         VisusAssert(dw_query->mode == 'w');

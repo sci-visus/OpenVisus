@@ -123,3 +123,28 @@ cat <<EOF > datasets.config
 EOF
 ```
 
+# Cloud Access
+
+You can use different OpenVisus Access classes to enable caching/sharding of block access.
+As an example the following code snipped shows an access with:
+
+- RamAcccess up to a certain size
+- DiskAccess to cache blocks on client side
+- Sharded cloud requests to several cloud storages (in the example the first 16 blocks are stored on wasabi, the following 16 blocks are stored on AWS etc)
+
+```
+<dataset name='complex' url='https://s3.us-west-1.wasabisys.com/nsdf/visus-datasets/2kbit1/1mb/visus.idx?access_key=XXX&amp;secret_key=YYY' >
+	<access type='multiplex'>
+		<access name="ram"          type='RamAccess'  chmod='rw' available='2GB' />
+		<access name="cache"        type='DiskAccess' chmod='rw' compression="zip" layout="row_major" filename_template="$(VisusCache)/2kbit1/1mb/visus/$(time)/$(field)/$(block:%016x:%04x).bin" />
+		<access name="wasabi"       type="cloud"      chmod='r'  shard="0/7 1" url='https://s3.us-west-1.wasabisys.com/nsdf/visus-datasets/2kbit1/1mb/visus.idx?access_key=XXX&amp;secret_key=YYY' />
+		<access name='sealstorage'  type="cloud"      chmod='r'  shard="2/7 1" url='https://maritime.sealstorage.io/api/v0/s3/utah/nsdf/visus-datasets/2kbit1/1mb/visus.idx?access_key=XXX&amp;secret_key=YYY&amp;endpoint_url=https://maritime.sealstorage.io/api/v0/s3' /> 
+		<access name='chpc'         type="cloud"      chmod='r'  shard="3/7 1" url='https://pando-rgw01.chpc.utah.edu/nsdf/visus-datasets/2kbit1/1mb/visus.idx?access_key=XXX&amp;secret_key=YYY' /> 
+		<access name='mghp'         type="cloud"      chmod='r'  shard="4/7 1" url='https://mghp.osn.xsede.org/vpascuccibucket1/nsdf/visus-datasets/2kbit1/1mb/visus.idx?access_key=XXX&amp;secret_key=YYY' />
+		<access name='ucsd'         type="cloud"      chmod='r'  shard="5/7 1" url='https://nsdf.s3.sdsc.edu/nsdf/visus-datasets/2kbit1/1mb/visus.idx?access_key=XXXX&amp;secret_key=YYY' /> 
+		<access name='cloudflare'   type="cloud"      chmod='r'  shard="6/7 1" url='https://account_id.r2.cloudflarestorage.com/nsdf/visus-datasets/2kbit1/1mb/visus.idx?access_key=XXX&amp;secret_key=YYY' />
+		</access>
+</dataset> 
+```
+
+![Diagram](https://raw.githubusercontent.com/sci-visus/OpenVisus/master/docs/openvisus-convert-access.png)

@@ -47,7 +47,7 @@ namespace Visus {
 CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   : config(config_)
 {
-  this->name = "CloudStorageAccess";
+  this->name = this->name = config.readString("name", "CloudStorageAccess");
   this->can_read  = StringUtils::find(config.readString("chmod", DefaultChMod), "r") >= 0;
   this->can_write = StringUtils::find(config.readString("chmod", DefaultChMod), "w") >= 0;
   this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
