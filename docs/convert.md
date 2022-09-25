@@ -147,4 +147,25 @@ As an example the following code snipped shows an access with:
 </dataset> 
 ```
 
+OpenVisus has been successfully tested with:
+
+| Cloud Name             | Url reference                               | Endpoint (example)                           |
+|------------------------|---------------------------------------------|----------------------------------------------|
+| Amazon Web Services S3 | https://aws.amazon.com/pm/serv-s3           | https://s3.us-west-1.wasabisys.com           |
+| Wasabi                 | https://wasabi.com/                         | https://s3.us-west-1.wasabisys.com           |
+| Seal Storage           | https://www.sealstorage.io/                 | https://maritime.sealstorage.io/api/v0/s3    |
+| Ceph storage system    | https://docs.ceph.com/en/latest/radosgw/s3/ | https://pando-rgw01.chpc.utah.edu            |
+| Open Storage Network   | https://www.openstoragenetwork.org/         | https://mghp.osn.xsede.org/bucket-name       |
+| MinIo Storage          | https://min.io/                             | https://nsdf.s3.sdsc.edu                     |
+| CloudFlare R2          | https://www.cloudflare.com/pg-lp/r2         | https://account_id.r2.cloudflarestorage.com` |
+
 ![Diagram](https://raw.githubusercontent.com/sci-visus/OpenVisus/master/docs/openvisus-convert-access.png)
+
+
+## Cost
+
+Be careful to fees, and in particular EGRESS fees.
+The following diagram (ref https://www.qualeed.com/en/qbackup/cloud-storage-comparison/) compares different cloud solutions.
+
+![Diagram](https://www.qualeed.com/images/cloud-storages/pricing-20220922.png)
+
