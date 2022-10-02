@@ -133,7 +133,7 @@ def Configure(bUserInstall=False):
 			ExecuteCommand([sys.executable,"-m", "pip"] + (["--user"] if bUserInstall else []) + list(args), check_result=False)
 		
 		ExecutePipCommand("install","--upgrade","pip")
-		ExecutePipCommand("install","numpy=={NUMPY_VERSION}" if NUMPY_VERSION else "numpy")
+		ExecutePipCommand("install",f"numpy=={NUMPY_VERSION}" if NUMPY_VERSION is not None else "numpy")
 
 		 # False since it fails a lot !
 		if VISUS_GUI:
