@@ -107,6 +107,7 @@ def Configure(bUserInstall=False):
 	VISUS_GUI=os.path.isfile("QT_VERSION")
 	QT_VERSION=ReadTextFile("QT_VERSION") if VISUS_GUI else ""
 	QT_MAJOR_VERSION,QT_MINOR_VERSION=QT_VERSION.split('.')[0:2] if VISUS_GUI else ("","")
+	NUMPY_VERSION=os.environ.get("NUMPY_VERSION",None)
 	
 	print("sys.executable",sys.executable,"VISUS_GUI",VISUS_GUI, "QT_VERSION", QT_VERSION, "IS_CONDA", IS_CONDA, "CONDA_PREFIX",CONDA_PREFIX)
 
@@ -117,7 +118,8 @@ def Configure(bUserInstall=False):
 			if LINUX: cmd+=["libglu"]
 
 		# for conda
-		try:
+		try:# I am specifying the version because any greater version fails on my Docker portable virtual env
+
 			import conda.cli 
 		except:
 			pass
@@ -131,7 +133,7 @@ def Configure(bUserInstall=False):
 			ExecuteCommand([sys.executable,"-m", "pip"] + (["--user"] if bUserInstall else []) + list(args), check_result=False)
 		
 		ExecutePipCommand("install","--upgrade","pip")
-		ExecutePipCommand("install","numpy==1.21.6") # I am specifying the version because any greater version fails on my Docker portable virtual env
+		ExecutePipCommand("install","numpy=={NUMPY_VERSION}" if NUMPY_VERSION else "numpy")
 
 		 # False since it fails a lot !
 		if VISUS_GUI:
