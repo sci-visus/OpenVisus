@@ -18,7 +18,9 @@ GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
 function InstallSwig() {
 	mkdir -p /tmp
 	pushd /tmp
-	curl -L --insecure https://cfhcable.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip -O 
+	__filename=https://cfhcable.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip
+	curl -L --insecure  -O ${__filename} || \
+	curl -L --insecure  -O ${__filename} 
 	unzip -q swigwin-4.0.2.zip
 	SWIG_EXECUTABLE=$PWD/swigwin-4.0.2/swig.exe
 	popd
@@ -29,7 +31,9 @@ function InstallSwig() {
 function InstallCMake() {
 	mkdir -p /temp
 	pushd /tmp
-	curl -L https://github.com/Kitware/CMake/releases/download/v3.22.1/cmake-3.22.1-windows-x86_64.zip -O
+	__filename=https://github.com/Kitware/CMake/releases/download/v3.22.1/cmake-3.22.1-windows-x86_64.zip
+	curl -L ${__filename} -O || \
+	curl -L ${__filename} -O
 	unzip -q cmake-3.22.1-windows-x86_64.zip 1>/dev/null
 	export PATH=$PATH:$PWD/cmake-3.22.1-windows-x86_64/bin
 	popd
