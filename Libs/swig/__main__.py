@@ -126,10 +126,16 @@ def Configure(bUserInstall=False):
 		print("OPENVISUS WARNING", "if you get errors like:  module compiled against API version 0xc but this version of numpy is 0xa, then execute","conda update -y numpy")
 
 	else:
-		cmd=[sys.executable,"-m", "pip", "install"] + (["--user"] if bUserInstall else []) + ['numpy']
+
+		def ExecutePipCommand(*args):
+			ExecuteCommand([sys.executable,"-m", "pip"] + (["--user"] if bUserInstall else []) + list(args), check_result=False)
+		
+		ExecutePipCommand("install","--upgrade","pip")
+		ExecutePipCommand("install","numpy==1.21.6") # I am specifying the version because any greater version fails on my Docker portable virtual env
+
+		 # False since it fails a lot !
 		if VISUS_GUI:
-			cmd+=[f"PyQt5~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", f"PyQtWebEngine~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", "PyQt5-sip"] # set to == to prevent qt version mismatch on mac install
-		ExecuteCommand(cmd, check_result=False) # False since it fails a lot !
+			ExecutePipCommand("install",f"PyQt5~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", f"PyQtWebEngine~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", f"PyQt5-sip")
 		
 	# *** fix rpath ****
 	# on windows it's enough to use sys.path (see *.i %pythonbegin section)
