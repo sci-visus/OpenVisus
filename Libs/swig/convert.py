@@ -426,7 +426,7 @@ def CopyDataset(src:str,dst:str,arco="modvisus", tile_size=None):
 	print(f"timesteps={timesteps}")
 	if len(timesteps)>1:
 		print("Ignoring multi timesteps")
-		timesteps=[0]
+		timesteps=[timesteps[0]]
 
 	dims=[int(it) for it in SRC.getLogicSize()]
 
