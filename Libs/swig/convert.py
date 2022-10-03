@@ -470,6 +470,7 @@ def CopyDataset(src:str,dst:str,arco="modvisus", tile_size=None):
 	Daccess.beginWrite()
 	for I,(timestep,fieldname,logic_box) in enumerate(pieces()):
 		t1=time.time()
+		print(f"time: {time}")
 		data=SRC.read( logic_box=logic_box,time=timestep,field=SRC.getField(fieldname),access=Saccess)
 		DST.write(data,logic_box=logic_box,time=timestep,field=DST.getField(fieldname)	,access=Daccess)
 		sec=time.time()-t1
