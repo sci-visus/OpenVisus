@@ -142,8 +142,8 @@ function DistribToConda() {
 
 PYTHON=`which python${PYTHON_VERSION}`
 
-# this is for linux/docker
-yum install -y libffi-devel
+# this is for linux/docker (is this needed?)
+# yum install -y libffi-devel
 
 # make sure pip is updated
 ${PYTHON} -m pip install --upgrade pip || true
