@@ -101,6 +101,13 @@ jobs:
            set -ex
            export PYTHON_VERSION=${{ matrix.python-version }}
            export DOCKER_IMAGE=visus/portable-linux-binaries_x86_64:4.1
+           
+           # choose an old version, otherwise it will try to build numpy from scratch
+           export NUMPY_VERSION=1.21.6 
+           if [[ "${{ matrix.python-version }}" ==  "3.6" ]] ; then 
+             export NUMPY_VERSION=1.19.5
+           fi
+           
            source scripts/ubuntu.sh
 
 

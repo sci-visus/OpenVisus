@@ -9,6 +9,7 @@ VISUS_GUI=${VISUS_GUI:-1}
 VISUS_SLAM=${VISUS_SLAM:-1}
 VISUS_MODVISUS=${VISUS_MODVISUS:-1}
 PYTHON_VERSION=${PYTHON_VERSION:-3.8}
+NUMPY_VERSION=${NUMPY_VERSION:-}
 Qt5_DIR=${Qt5_DIR:-/opt/qt512}
 PYPI_USERNAME=${PYPI_USERNAME:-}
 PYPI_TOKEN=${PYPI_TOKEN:-}
@@ -27,6 +28,7 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
   docker run --rm -v ${PWD}:/home/OpenVisus -w /home/OpenVisus \
     -e BUILD_DIR=build_docker \
     -e PYTHON_VERSION=${PYTHON_VERSION} \
+	 -e NUMPY_VERSION=${NUMPY_VERSION} \
     -e PYPI_USERNAME=${PYPI_USERNAME} -e PYPI_TOKEN=${PYPI_TOKEN} \
     -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
     -e VISUS_GUI=${VISUS_GUI} -e VISUS_SLAM=${VISUS_SLAM} -e VISUS_MODVISUS=${VISUS_MODVISUS} \
@@ -105,7 +107,8 @@ function ConfigureAndTestCPython() {
 # ///////////////////////////////////////////////
 function DistribToPip() {
    rm -Rf ./dist
-   $PYTHON -m pip install setuptools wheel twine --upgrade 1>/dev/null || true
+   # $PYTHON -m pip install setuptools wheel twine 1>/dev/null || true
+	$PYTHON -m pip install setuptools wheel cryptography==3.4.0 twine || true
    PYTHON_TAG=cp$(echo $PYTHON_VERSION | awk -F'.' '{print $1 $2}')
    $PYTHON setup.py -q bdist_wheel --python-tag=$PYTHON_TAG --plat-name=$PIP_PLATFORM
    if [[ "${GIT_TAG}" != "" ]] ; then
@@ -138,6 +141,9 @@ function DistribToConda() {
 # /////////////////////////////////////////////////////////////////////////
 
 PYTHON=`which python${PYTHON_VERSION}`
+
+# this is for linux/docker
+yum install -y libffi-devel
 
 # make sure pip is updated
 ${PYTHON} -m pip install --upgrade pip || true

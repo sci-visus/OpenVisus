@@ -107,6 +107,7 @@ def Configure(bUserInstall=False):
 	VISUS_GUI=os.path.isfile("QT_VERSION")
 	QT_VERSION=ReadTextFile("QT_VERSION") if VISUS_GUI else ""
 	QT_MAJOR_VERSION,QT_MINOR_VERSION=QT_VERSION.split('.')[0:2] if VISUS_GUI else ("","")
+	NUMPY_VERSION=os.environ.get("NUMPY_VERSION",None)
 	
 	print("sys.executable",sys.executable,"VISUS_GUI",VISUS_GUI, "QT_VERSION", QT_VERSION, "IS_CONDA", IS_CONDA, "CONDA_PREFIX",CONDA_PREFIX)
 
@@ -117,7 +118,8 @@ def Configure(bUserInstall=False):
 			if LINUX: cmd+=["libglu"]
 
 		# for conda
-		try:
+		try:# I am specifying the version because any greater version fails on my Docker portable virtual env
+
 			import conda.cli 
 		except:
 			pass
@@ -126,10 +128,16 @@ def Configure(bUserInstall=False):
 		print("OPENVISUS WARNING", "if you get errors like:  module compiled against API version 0xc but this version of numpy is 0xa, then execute","conda update -y numpy")
 
 	else:
-		cmd=[sys.executable,"-m", "pip", "install"] + (["--user"] if bUserInstall else []) + ['numpy']
+
+		def ExecutePipCommand(*args):
+			ExecuteCommand([sys.executable,"-m", "pip"] + (["--user"] if bUserInstall else []) + list(args), check_result=False)
+		
+		ExecutePipCommand("install","--upgrade","pip")
+		ExecutePipCommand("install",f"numpy=={NUMPY_VERSION}" if NUMPY_VERSION is not None else "numpy")
+
+		 # False since it fails a lot !
 		if VISUS_GUI:
-			cmd+=[f"PyQt5~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", f"PyQtWebEngine~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", "PyQt5-sip"] # set to == to prevent qt version mismatch on mac install
-		ExecuteCommand(cmd, check_result=False) # False since it fails a lot !
+			ExecutePipCommand("install",f"PyQt5~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", f"PyQtWebEngine~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", f"PyQt5-sip")
 		
 	# *** fix rpath ****
 	# on windows it's enough to use sys.path (see *.i %pythonbegin section)
