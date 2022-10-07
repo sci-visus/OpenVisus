@@ -423,16 +423,12 @@ def CopyDataset(src:str,dst:str,arco="modvisus", tile_size=None):
 
 	# todo other cases
 	timesteps=[it for it in SRC.getTimesteps().asVector()]
-	print(f"timesteps={timesteps}")
-	if len(timesteps)>1:
-		print("Ignoring multi timesteps")
-		timesteps=[timesteps[0]]
-
 	dims=[int(it) for it in SRC.getLogicSize()]
 
 	DST=CreateIdx(
 		url=dst, 
 		dims=dims,
+		time=[timesteps[0],timesteps[-1],"%00000d/"]
 		fields=Dfields,
 		bitsperblock=Dbitsperblock,
 		arco=arco)
@@ -470,7 +466,7 @@ def CopyDataset(src:str,dst:str,arco="modvisus", tile_size=None):
 	Daccess.beginWrite()
 	for I,(timestep,fieldname,logic_box) in enumerate(pieces()):
 		t1=time.time()
-		print(f"time: {time}")
+	
 		data=SRC.read( logic_box=logic_box,time=timestep,field=SRC.getField(fieldname),access=Saccess)
 		DST.write(data,logic_box=logic_box,time=timestep,field=DST.getField(fieldname)	,access=Daccess)
 		sec=time.time()-t1
