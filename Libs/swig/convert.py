@@ -428,7 +428,7 @@ def CopyDataset(src:str,dst:str,arco="modvisus", tile_size=None):
 	DST=CreateIdx(
 		url=dst, 
 		dims=dims,
-		time=[timesteps[0],timesteps[-1],"%00000d/"]
+		time=[timesteps[0],timesteps[-1],"%00000d/"],
 		fields=Dfields,
 		bitsperblock=Dbitsperblock,
 		arco=arco)
