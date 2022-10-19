@@ -484,15 +484,13 @@ def Main(args):
 	if action=="copy-dataset-to-cloud":
 		"""
 		Example
-			convert-dataset-to-cloud 
-   			--source /usr/local/visus-datasets/2kbit1/visus.idx \
-        --local /tmp/remove-me/visus-convert/2kbit1/visus.idx \
-        --remote s3://visus-datasets/2kbit1/visus.idx \
-        --done /tmp/remove-me/.done/2kbit1/visus.idx \
-        --arco 1mb \
-        --profile <profile> \
-        --endpoint-url <endpoint> \
-  	"""
+			AWS_PROFILE=wasabi ENDPOINT_URL=s3.eu-east-1.amazonaws.com convert-dataset-to-cloud 
+				--source /usr/local/visus-datasets/2kbit1/visus.idx \
+				--local /tmp/remove-me/visus-convert/2kbit1/visus.idx \
+				--remote s3://visus-datasets/2kbit1/visus.idx \
+				--done /tmp/remove-me/.done/2kbit1/visus.idx \
+				--arco 1mb
+		"""
   
 		import argparse
 		parser = argparse.ArgumentParser(description="copy-dataset-to-cloud")
@@ -503,7 +501,6 @@ def Main(args):
 		parser.add_argument('--arco'        ,type=str, required=False, default="1mb")
 		parser.add_argument('--profile'     ,type=str, required=False, default=os.environ.get("AWS_PROFILE","default"))
 		parser.add_argument('--endpoint-url',type=str, required=False, default=os.environ.get("ENDPOINT_URL","s3.eu-east-1.amazonaws.com"))
-		action_args=sys.argv[1:]
 		args=parser.parse_args(action_args)
 		from OpenVisus import CopyDatasetToCloud
 		CopyDatasetToCloud(
