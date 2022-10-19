@@ -416,8 +416,10 @@ def CopyDataset(src:str,dst:str,arco="modvisus", tile_size=None):
 
 	# todo: multiple fields, but I have the problem of fields with different dtype will lead to different bitsperblock, how to solve?
 	if arco:
-		assert len(SRC.getFields())==1
-		Dbitsperblock = int(math.log2(arco // Dfields[0].dtype.getByteSize())) 
+		field_sizes=list(set([field.dtype.getByteSize() for field in Dfields]))
+		if len(field_sizes)!=1:
+			raise Exception("Multiple fields with different fieldsize is not supported (i.e. will lead to diffeent bitsperblock")
+		Dbitsperblock = int(math.log2(arco //field_sizes[0])) 
 	else:
 		Dbitsperblock=16
 
@@ -475,3 +477,77 @@ def CopyDataset(src:str,dst:str,arco="modvisus", tile_size=None):
 	Daccess.endWrite()
 
 	print(f"CopyDataset src={src} dst={dst} done in {time.time()-T1:.2f} seconds")
+
+
+
+# ////////////////////////////////////////////////////////////////////
+def CopyDatasetToCloud(
+	  source,
+		local,
+		remote,
+		done,
+		profile,
+		endpoint_url,
+	  arco='1mb',
+		num_retries=3,
+  ):
+  
+	source=os.path.expanduser(source)
+	local=os.path.expanduser(local)
+	remote=os.path.expanduser(remote) if remote else remote
+	done=os.path.expanduser(done) if done else done
+
+	print(f"CopyDatasetToCloud")
+	print(f" source={source}")
+	print(f" local={local}")
+	print(f" remote={remote}")
+	print(f" done={done}")
+	print(f" profile={profile}")
+	print(f" endpoint_url={endpoint_url}")
+	print(f" arco={arco}")
+  
+	if done and os.path.isfile(done): 
+		print(f"{done} exists, skipping conversion")
+		return
+
+	T1=time.time()
+	print("WARNING: LOCAL and REMOTE are filename belonging to self-contained directories (i.e. do not mix datasets in the same folder)")
+ 
+	try:
+
+		if source:
+			CopyDataset(source, local, arco=arco)
+			CompressDataset(local, compression="zip")
+		else:
+			assert local # I have already the dataset ,local and just need to sync
+  
+		# upload to remote
+		if remote:
+			assert profile and endpoint_url
+			for I in range(num_retries):
+				local_dir=os.path.dirname(local)
+				remote_dir=os.path.dirname(remote)
+			
+				# cmd=['s5cmd','--profile',profile,'--endpoint-url','${ENDPOINT_URL}','--no-verify-ssl','sync','--if-size-differ', f"{local_dir}/*", f"{remote_dir}/"]
+				cmd=[ 'aws', 's3', '--no-verify-ssl', '--profile', profile, '--endpoint-url', endpoint_url, '--no-verify-ssl','sync', local_dir, remote_dir]
+    
+				print(f"# EXECUTING: {cmd}")
+				subprocess.run(cmd , True if I==num_retries-1 else False)
+			
+			for I in range(num_retries):
+				shutil.rmtree(local_dir,ignore_errors=True)
+				time.sleep(1)
+   
+		# for reentrant code keep track I did it
+		if done:
+			os.makedirs(os.path.dirname(done),exist_ok=True)
+			with open(done,"w"): pass
+   
+		print(f"CopyDatasetToCloud done in {time.time()-T1:.2f} seconds")
+  
+	except Exception as ex:
+		print(f"CopyDatasetToCloud failed reason={ex}")
+		raise ex
+
+
+
