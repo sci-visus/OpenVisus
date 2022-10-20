@@ -500,7 +500,7 @@ def Main(args):
 		parser.add_argument('--done'        ,type=str, required=True)
 		parser.add_argument('--arco'        ,type=str, required=False, default="1mb")
 		parser.add_argument('--profile'     ,type=str, required=False, default=os.environ.get("AWS_PROFILE","default"))
-		parser.add_argument('--endpoint-url',type=str, required=False, default=os.environ.get("ENDPOINT_URL","s3.eu-east-1.amazonaws.com"))
+		parser.add_argument('--endpoint-url',type=str, required=False, default=os.environ.get("ENDPOINT_URL","https://s3.eu-east-1.amazonaws.com"))
 		args=parser.parse_args(action_args)
 		from OpenVisus import CopyDatasetToCloud
 		CopyDatasetToCloud(

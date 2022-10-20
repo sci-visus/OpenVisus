@@ -90,6 +90,11 @@ def CreateIdx(**args):
 	if "arco" in args:
 		assert isinstance(args["arco"],int)
 		idx.arco=args["arco"]
+  
+		# override 
+		if idx.arco>0:
+			idx.blocksperfile=1
+			idx.filename_template=""
 
 	idx.save(url)
 	db=LoadDataset(url)
