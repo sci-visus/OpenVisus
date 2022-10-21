@@ -194,30 +194,44 @@ public:
   //constructor
   AmazonCloudStorage(Url url) 
   {
-    //needed for s3v4 (NOTE default endpoint is the same hostname)
-    this->endpoint_url = url.getParam("endpoint_url", url.getProtocol() + "://" + url.getHostname());
-    VisusAssert(!this->endpoint_url.empty());
-
     auto hostname = url.getHostname();
 
-    //needed for s3v4 (NOTE if region is empty I think I can just set it to be us-east-1)
-    this->region = url.getParam("region", "");
+    String profile = url.getParam("profile", "");
+    if (!profile.empty()) 
+    {
+      auto map = readProfile(profile);
+      endpoint_url = map["endpoint_url"];
+      region       = map["region"];
+      access_key   = map["access_key"];
+      secret_key   = map["secret_key"];
+    }
+    else
+    {
+      //needed for s3v4 (NOTE default endpoint is the same hostname)
+      this->endpoint_url = url.getParam("endpoint_url", url.getProtocol() + "://" + url.getHostname());
+      VisusAssert(!this->endpoint_url.empty());
+
+      
+
+      //needed for s3v4 (NOTE if region is empty I think I can just set it to be us-east-1)
+      this->region = url.getParam("region", "");
+      this->access_key = url.getParam("access_key");
+      this->secret_key = url.getParam("secret_key", url.getParam("secret_access_key"));
+    }
+
     if (this->region.empty() && StringUtils::startsWith(hostname, "s3."))
     {
-      auto v = StringUtils::split(hostname, ".");
       //example hostname==s3.us-west-1.whatever , hopefully the second part is the region
-      if (v.size()>=2)
-        this->region=v[1];
+      auto v = StringUtils::split(hostname, ".");
+      if (v.size() >= 2)
+        this->region = v[1];
     }
+
     if (this->region.empty())
       this->region = "us-east-1";
 
     VisusAssert(!this->region.empty());
-
-    this->access_key = url.getParam("access_key"); 
     VisusAssert(!this->username.empty());
-    
-    this->secret_key = url.getParam("secret_key",url.getParam("secret_access_key")); 
     VisusAssert(!this->secret_key.empty());
 
 #if 0
@@ -225,7 +239,6 @@ public:
     PrintInfo("region", region);
     PrintInfo("access_key", access_key);
     PrintInfo("secret_key", secret_key);
-
 #endif
 
   }
@@ -233,6 +246,56 @@ public:
   //destructor
   virtual ~AmazonCloudStorage() {
   }
+
+  //readProfile
+  static std::map<String, String> readProfile(String profile)
+  {
+    String home = GetHomeDirectory();
+    std::map<String, String> ret;
+    std::vector<String> lines;
+
+    auto ReadValue=[&] (int Start, String name) {
+      for (int I = Start ; I < lines.size(); I++)
+      {
+        auto v = StringUtils::split(lines[I]);
+        v.resize(3);
+        if (!v.empty() && v[0] == name && v[1] == "=") {
+          return StringUtils::trim(v[2]);
+        }
+      }
+      return String("");
+    };
+
+
+    //config filename
+    lines = StringUtils::getLines(Utils::loadTextDocument(concatenate(home, "/.aws/config")));
+    for (int I = 0; I < lines.size(); I++)
+    {
+      auto line = lines[I];
+      if (line == concatenate("[profile ", profile, "]"))
+      {
+        ret["endpoint_url"] = ReadValue(I + 1, "endpoint_url");
+        ret["region"]       = ReadValue(I + 1, "region");
+        break;
+      }
+    }
+
+    //credentials
+    lines = StringUtils::getLines(Utils::loadTextDocument(concatenate(home, "/.aws/credentials")));
+    for (int I = 0; I < lines.size(); I++)
+    {
+      auto line = lines[I];
+      if (line == concatenate("[", profile, "]"))
+      {
+        ret["access_key"] = ReadValue(I + 1, "aws_access_key_id");
+        ret["secret_key"] = ReadValue(I + 1, "aws_secret_access_key");
+        break;
+      }
+    }
+
+    return ret;
+  }
+
 
   // addBucket
   virtual Future<bool> addBucket(SharedPtr<NetService> net, String bucket, Aborted aborted = Aborted()) override

@@ -245,6 +245,10 @@ String GetCurrentWorkingDirectory() {
   return osdep::GetCurrentWorkingDirectory();
 }
 
+String GetHomeDirectory() {
+  return osdep::getHomeDirectory();
+}
+
 
 void InitKnownPaths()
 {

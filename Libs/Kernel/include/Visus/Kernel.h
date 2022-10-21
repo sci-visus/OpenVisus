@@ -449,6 +449,7 @@ private:
 
 
 ///////////////////////////////////////////////////////////////////////
+String VISUS_KERNEL_API GetHomeDirectory();
 String VISUS_KERNEL_API GetVisusHome();
 String VISUS_KERNEL_API GetVisusCache();
 String VISUS_KERNEL_API GetBinaryDirectory();
