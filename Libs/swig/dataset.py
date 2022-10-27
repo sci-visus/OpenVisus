@@ -258,13 +258,16 @@ class PyDataset(object):
 	# read
 	def read(self, logic_box=None, x=None, y=None, z=None, time=None, field=None, num_refinements=1, quality=0, max_resolution=None, disable_filters=False, access=None):
 		"""
-		db=PyDataset.Load(url)
+		import OpenVisus as ov
+
+		db=ov.open(url)
+		width,height,depth=db.getLogicSize()
 		
 		# example of reading a single slice in logic coordinates
 		data=db.read(z=[512,513]) 
 		
-		# example of reading a single slice in normalized coordinates (i.e. [0,1])
-		data.db.read(x=[0,0.1],y=[0,0.1],z=[0,0.1])
+		# example of reading a box in normalized coordinates (i.e. [0,1])
+		data=db.read(x=[0,0.1],y=[0,0.1],z=[0,0.1])
 		
 		# example of reading a single slice with 3 refinements
 		for data in db.read(z=[512,513],num_refinements=3):
@@ -339,8 +342,10 @@ class PyDataset(object):
 	def write(self, data, x=0, y=0, z=0,logic_box=None, time=None, field=None, access=None):
 
 		"""
-		db=PyDataset.Load(url)
-		width,height,depth=db.getSize()
+		import OpenVisus as ov
+
+		db=ov.open(url)
+		width,height,depth=db.getLogicSize()
 
 		# write single slice
 		data=numpy.zeros([height,width,3],dtype.uint8)
@@ -538,7 +543,15 @@ class PyDataset(object):
 	
 
 
+def open(url):
 
+	"""
+	import OpenVisus as ov
+
+	db=ov.open(url)
+	"""
+
+	return LoadDataset(url)
 
 			
 
