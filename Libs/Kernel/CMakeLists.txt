@@ -109,21 +109,34 @@ file(GLOB dtl_Sources       src/dtl/*.hpp src/dtl/*.c)
 file(GLOB tinyxml_Sources   src/tinyxml/*.h src/tinyxml/*.cpp)
 file(GLOB lz4_Sources       src/lz4/*.h src/lz4/*.c)	
 file(GLOB zlib_Sources      src/zlib/*.h src/zlib/*.c)
-file(GLOB zfp_Sources       src/zfp/*.h src/zfp/*.cpp src/zfp/*.inl)
 
 source_group("ExternalLibs\\cryptlite" FILES ${cryptlite_Sources})
 source_group("ExternalLibs\\dtl"       FILES ${dtl_Sources})
 source_group("ExternalLibs\\lz4"       FILES ${lz4_Sources})
 source_group("ExternalLibs\\tinyxml"   FILES ${tinyxml_Sources})
-source_group("ExternalLibs\\zfp"       FILES ${zfp_Sources})
 source_group("ExternalLibs\\zlib"      FILES ${zlib_Sources})
 
 DisableWarning(${cryptlite_Sources})
 DisableWarning(${dtl_Sources})
 DisableWarning(${lz4_Sources})
 DisableWarning(${tinyxml_Sources})
-DisableWarning(${zfp_Sources})
 DisableWarning(${zlib_Sources})
+
+# /////////////////////////////////////////////////////////////////////////
+# zfp for OpenVisus
+# https://github.com/LLNL/zfp/releases/download/1.0.0/zfp-1.0.0.tar.gz
+file(GLOB zfp_Sources
+  src/zfp-1.0.0/src/zfp.c
+  src/zfp-1.0.0/src/bitstream.c
+  src/zfp-1.0.0/src/traitsf.h 
+  src/zfp-1.0.0/src/traitsd.h 
+  src/zfp-1.0.0/src/block*.h 
+  src/zfp-1.0.0/src/encode*.c 
+  src/zfp-1.0.0/src/decode*.c)
+source_group("ExternalLibs\\zfp" FILES ${zfp_Sources})
+DisableWarning(${zfp_Sources})
+# /////////////////////////////////////////////////////////////////////////
+
 
 function(AssignSourceGroup GroupName StartDir)
 	foreach(_it_ IN ITEMS ${ARGN})
@@ -202,6 +215,7 @@ if (GNUC)
 endif()
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(VisusKernel  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/zfp-1.0.0/include)
 
 if (VISUS_NET)
 	target_include_directories(VisusKernel PRIVATE ${CMAKE_SOURCE_DIR}/ExternalLibs)
@@ -221,6 +235,7 @@ endif()
 
 target_compile_definitions(VisusKernel  PRIVATE VISUS_BUILDING_VISUSKERNEL=1)
 target_include_directories(VisusKernel  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+
 
 # problem on AARCH64
 if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64") 
