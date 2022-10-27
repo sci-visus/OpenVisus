@@ -67,7 +67,7 @@ public:
   ZfpEncoder(String specs) 
   { 
     if (specs == "zfp")
-      specs = "zfp-reversible-reversible";
+      specs = "zfp-reversible-64"; //reversible for encoding, 64 for decoding precision
 
     //see https://zfp.readthedocs.io/en/release1.0.0/modes.html
 
@@ -226,7 +226,7 @@ public:
       }
     }
 
-    auto encoder = Encoders::getSingleton()->createEncoder("zfp-64");
+    auto encoder = Encoders::getSingleton()->createEncoder("zfp");
     auto encoded = encoder->encode(dims, dtype, decoded);
     auto check = encoder->decode(dims, dtype, encoded);
     VisusReleaseAssert(HeapMemory::equals(decoded, check));

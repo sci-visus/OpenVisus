@@ -541,17 +541,16 @@ class PyDataset(object):
 			
 		return data
 	
-
-
-def open(url):
-
-	"""
-	import OpenVisus as ov
-
-	db=ov.open(url)
-	"""
-
-	return LoadDataset(url)
+# disabled: it break some tests
+# e.g. __main__.py", line 17, in ReadTextFile
+# file = open(filename, "r") 
+if False:
+	def open(url):
+		"""
+		import OpenVisus as ov
+		db=ov.open(url)
+		"""
+		return LoadDataset(url)
 
 			
 
