@@ -377,6 +377,7 @@ def MidxToIdx(args):
 
 # ////////////////////////////////////////////////
 def Main(args):
+	import argparse
 
 	if not args:
 		return
