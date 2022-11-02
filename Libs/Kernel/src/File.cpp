@@ -205,14 +205,19 @@ Int64 PosixFile::size()
 /////////////////////////////////////////////////////////////////////
 bool PosixFile::write(Int64 pos, Int64 tot, const unsigned char* buffer) 
 {
-  if (!isOpen() || tot < 0 || !can_write)
+  auto failed = [&](String reason) {
+    PrintError("PosixFile::write failed", "pos=", pos, "tot=", tot, "reason=", reason);
     return false;
+  };
+
+  if (!isOpen() || tot < 0 || !can_write)
+    return failed("precondition failed");
 
   if (tot == 0)
     return true;
 
   if (!seek(pos))
-    return false;
+    return failed(concatenate("seek failed",strerror(errno)));
 
   for (Int64 remaining = tot; remaining;)
   {
@@ -222,7 +227,7 @@ bool PosixFile::write(Int64 pos, Int64 tot, const unsigned char* buffer)
     if (n <= 0)
     {
       this->cursor = -1;
-      return false;
+      return failed(concatenate("::write failed", strerror(errno)));
     }
 
     onWriteEvent(n);

@@ -201,6 +201,10 @@ public:
     int file_header_size = (idxfile.version == 1) ? 0 : (4 * sizeof(Int32));
     this->headers.resize(file_header_size + (idxfile.blocksperfile * (int)idxfile.fields.size()) * sizeof(BlockHeader), __FILE__, __LINE__);
     this->block_headers = (BlockHeader*)(this->headers.c_ptr() + file_header_size);
+
+    if (cbool(Utils::getEnv("VISUS_VERBOSE_DISKACCESS")))
+      this->bVerbose = true;
+
   }
 
   //destructor

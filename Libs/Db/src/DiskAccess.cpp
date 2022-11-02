@@ -165,13 +165,13 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   auto encoded=ArrayUtils::encodeArray(this->compression,decoded);
   if (!encoded)
   {
-    PrintInfo("Failed to write block filename", filename, "file.write failed");
+    PrintInfo("Failed to write block filename", filename, "encodeArray failed");
     return writeFailed(query, "Failed to encode data");
   }
 
   if (!file.write(0, encoded->c_size(), encoded->c_ptr()))
   {
-    PrintInfo("Failed to write block filename", filename, "compression or file.write failed");
+    PrintInfo("Failed to write block filename", filename, "file.write failed");
     return writeFailed(query,"failed to write encoded data");
   }
 

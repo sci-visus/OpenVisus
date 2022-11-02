@@ -1,8 +1,12 @@
-import os,time,glob,math,sys,shutil,shlex,subprocess,datetime,argparse,zlib,glob,struct,argparse
+import os,time,glob,math,sys,shutil,shlex,subprocess,datetime,argparse,zlib,glob,struct,argparse,logging
 from multiprocessing.pool import ThreadPool
 from threading import Thread
 
 from OpenVisus import *
+
+logger = logging.getLogger(__name__)
+
+
 
 # ////////////////////////////////////////////////////////////////////////////////////////
 """
@@ -107,7 +111,7 @@ class CopyBlocks:
 		sec=self.t1.elapsedSec()
 		if sec>1:
 			perc=100.0*self.ndone/float(self.tot)
-			print("# *** Progress {:.2f}% {}/{}".format(perc,self.ndone,self.tot))
+			logger.info(f"# *** Progress {perc:.2f}% {self.ndone}/{self.tot}")
 			self.t1=Time.now()
 
 	# writeBlocks
@@ -129,17 +133,14 @@ class CopyBlocks:
 
 			# I don't care if it fails????
 			write_ok=dst.writeBlock(read_block.blockid, field=read_block.field.name, time=read_block.time,access=waccess, data=buffer)
-			
-			if self.verbose or not write_ok:
-				if not write_ok: print("ERROR",end=' ')
-				print(f"writeBlock time({read_block.time}) field({read_block.field.name}) blockid({read_block.blockid}) write_ok({write_ok})")
+			logger.info(f"{'ERROR' if not write_ok else 'OK'} writeBlock time({read_block.time}) field({read_block.field.name}) blockid({read_block.blockid}) write_ok({write_ok})")
 
 	# doCopy
 	def doCopy(self, A, B):
 
 		self.tot+=(B-A)
 		src,dst=self.src,self.dst
-		print(f"Copying blocks time({self.time}) field({self.field.name}) A({A}) B({B}) ...")
+		logger.info(f"Copying blocks time({self.time}) field({self.field.name}) A({A}) B({B}) ...")
 
 		waccess=CreateAccess(dst, for_writing=True)
 
@@ -175,7 +176,7 @@ class CopyBlocks:
 
 	@staticmethod
 	def Main(args):
-		print("CopyBlocks", "Got args",args)
+		logger.info(f"CopyBlocks args={args}")
 		parser = argparse.ArgumentParser(description="Copy blocks")
 		parser.add_argument("--src","--source", type=str, help="source", required=True,default="")
 		parser.add_argument("--dst","--destination", type=str, help="destination", required=True,default="") 
@@ -200,7 +201,7 @@ class CopyBlocks:
 
 		nthreads=args.num_threads
 		num_per_thread=tot_blocks//nthreads
-		print("tot_blocks",tot_blocks,"nthreads",nthreads,"num_per_thread",num_per_thread)
+		logger.info(f"tot_blocks={tot_blocks} nthreads={nthreads} num_per_thread={num_per_thread}")
 
 		if nthreads<=1:
 			copier.doCopy(0,tot_blocks)
@@ -212,9 +213,6 @@ class CopyBlocks:
 				threads.append(Thread(target=CopyBlocks.doCopy, args=(copier,A,B)))
 			for t in threads: t.start()
 			for t in threads: t.join()
-
-
-
 
 # ////////////////////////////////////////////////////////////////////////////////////////
 def CompressDataset(idx_filename:str=None, compression="zip", num_threads=32, level=-1):
@@ -238,7 +236,7 @@ def CompressDataset(idx_filename:str=None, compression="zip", num_threads=32, le
 				UNCOMPRESSED_SIZE+=len(mem)
 
 			ReplaceFile(filename, mem)
-			print(f"CompressArcoBlock done {filename}")
+			logger.info(f"CompressArcoBlock done {filename}")
 			del mem
 	
 		# assuming *.bin files are in the dir of the *.idx (please keep it in mind!)
@@ -327,10 +325,10 @@ def CompressDataset(idx_filename:str=None, compression="zip", num_threads=32, le
 			ratio=int(100*compressed_size/full_size)
 			UNCOMPRESSED_SIZE+=full_size
 			COMPRESSED_SIZE+=compressed_size
-			print(f"Compressed {filename}  in {time.time()-t1} ratio({ratio}%)")
+			logger.info(f"Compressed {filename}  in {time.time()-t1} ratio({ratio}%)")
 
 	RATIO=int(100*COMPRESSED_SIZE/UNCOMPRESSED_SIZE)
-	print(f"CompressDataset done in {time.time()-T1} seconds {RATIO}%")
+	logger.info(f"CompressDataset done in {time.time()-T1} seconds {RATIO}%")
 
 
 # ////////////////////////////////////////////////////////////////////////
@@ -343,16 +341,16 @@ def ConvertImageStack(src:str, dst:str, arco="modvisus"):
 
 	arco=NormalizeArcoArg(arco)
 
-	print(f"ConvertImageStack src={src} dst={dst} arco={arco}")
+	logger.info(f"ConvertImageStack src={src} dst={dst} arco={arco}")
 
 	# get filenames
 	if True:
 		objects=sorted(glob.glob(src,recursive=True))
 		tot_slices=len(objects)
-		print(f"ConvertLocalImageStack tot_slices {tot_slices} src={src}...")
+		logger.info(f"ConvertLocalImageStack tot_slices {tot_slices} src={src}...")
 		if tot_slices==0:
 			error_msg=f"Cannot find images inside {src}"
-			print(error_msg)
+			logger.info(error_msg)
 			raise Exception(error_msg)	
 
 	# guess 3d volume size and dtype
@@ -381,7 +379,7 @@ def ConvertImageStack(src:str, dst:str, arco="modvisus"):
 	def Generator():
 		import imageio
 		for I,filename in enumerate(objects): 
-			print(f"{I}/{tot_slices} Reading image file {filename}")
+			logger.info(f"{I}/{tot_slices} Reading image file {filename}")
 			yield imageio.imread(filename)
 
 	generator=Generator()
@@ -397,47 +395,48 @@ def ConvertImageStack(src:str, dst:str, arco="modvisus"):
 	access=CreateAccess(db, for_writing=True)
 	db.writeSlabs(generator, access=access)
 
-	print(f"ConvertImageStack DONE in {time.time()-T1} seconds")
+	logger.info(f"ConvertImageStack DONE in {time.time()-T1} seconds")
 
 
 # ////////////////////////////////////////////////////////////////////////////
-def CopyDataset(src:str,dst:str,arco="modvisus", tile_size=None):
+def CopyDataset(src:str, dst:str, arco="modvisus", tile_size=None, timesteps_to_convert=[], fields_to_convert=[]):
 
 	arco=NormalizeArcoArg(arco)
 
-	print(f"CopyDataset {src} {dst} arco={arco}")
+	logger.info(f"CopyDataset {src} {dst} arco={arco}")
 	T1=time.time()
 	SRC=LoadIdxDataset(src)
 	
-	Dfields=[]
-	for Sfield in SRC.getFields():
-		Sfield=SRC.getField(Sfield)
-		Dfields.append(Field(Sfield.name,Sfield.dtype,'row_major'))
-
-	# todo: multiple fields, but I have the problem of fields with different dtype will lead to different bitsperblock, how to solve?
-	if arco:
-		field_sizes=list(set([field.dtype.getByteSize() for field in Dfields]))
-		if len(field_sizes)!=1:
-			raise Exception("Multiple fields with different fieldsize is not supported (i.e. will lead to diffeent bitsperblock")
-		Dbitsperblock = int(math.log2(arco //field_sizes[0])) 
-	else:
-		Dbitsperblock=16
-
-	# todo other cases
-	timesteps=[it for it in SRC.getTimesteps().asVector()]
 	dims=[int(it) for it in SRC.getLogicSize()]
+	max_h=SRC.getMaxResolution()
+	all_fields=SRC.getFields()
+	all_timesteps=[int(it) for it in SRC.getTimesteps().asVector()]
+	max_fieldsize=max([SRC.getField(it).dtype.getByteSize() for it in all_fields])
 
+	if not timesteps_to_convert:
+		timesteps_to_convert=all_timesteps
+	
+	if not fields_to_convert:
+		fields_to_convert=all_fields
 
+	# guess bitsperblock
+	bitsperblock = int(math.log2(arco // max_fieldsize)) if arco else 16
+	if bitsperblock>max_h:
+		bitsperblock=max_h
+	assert(bitsperblock<=max_h)
+
+	# adjust arco if needed
+	arco=(2**bitsperblock)*max_fieldsize if arco else 0
+ 
+	# NOTE: I am creating a new idx with all timesteps and all fields
 	DST=CreateIdx(
 		url=dst, 
 		dims=dims,
-		time=[timesteps[0],timesteps[-1],"%00000d/"],
-		fields=Dfields,
-		bitsperblock=Dbitsperblock,
+		time=[all_timesteps[0],all_timesteps[-1],"%00000d/"],
+		fields=[ Field(it, SRC.getField(it).dtype, 'row_major') for it in all_fields], # force row major here
+		bitsperblock=bitsperblock, 
 		arco=arco
-   )
-
-	assert(DST.getMaxResolution()>=Dbitsperblock)
+	)
 
 	Saccess=CreateAccess(SRC, for_writing=False) 
 	Daccess=CreateAccess(DST, for_writing=True) 
@@ -447,14 +446,14 @@ def CopyDataset(src:str,dst:str,arco="modvisus", tile_size=None):
 
 	# copy
 	if tile_size is None:
-		tile_size=1024 if pdim==2 else 512
+		tile_size=8192 if pdim==2 else 512
 
 	piece=[tile_size, tile_size,1 if pdim==2 else tile_size] 
 	W,H,D=[dims[0]  , dims[1]  ,1 if pdim==2 else dims[2]  ]
 
 	def pieces():
-		for timestep in timesteps:
-			for fieldname in SRC.getFields():
+		for timestep in timesteps_to_convert:
+			for fieldname in fields_to_convert:
 				for z1 in range(0,D,piece[2]):
 					for y1 in range(0,H,piece[1]):
 						for x1 in range(0,W,piece[0]):
@@ -465,20 +464,30 @@ def CopyDataset(src:str,dst:str,arco="modvisus", tile_size=None):
 							logic_box.setPointDim(pdim)
 							yield timestep,fieldname, logic_box
 
-	N=len([logic_box for logic_box in pieces()])
+	N=len([it for it in pieces()])
 	Saccess.beginRead()
 	Daccess.beginWrite()
 	for I,(timestep,fieldname,logic_box) in enumerate(pieces()):
+   
+		# TODO: how to deal with failures???
+		
+  	# read from source
 		t1=time.time()
-	
 		data=SRC.read( logic_box=logic_box,time=timestep,field=SRC.getField(fieldname),access=Saccess)
+		read_sec=time.time()-t1
+
+		# write
+		t1=time.time()
 		DST.write(data,logic_box=logic_box,time=timestep,field=DST.getField(fieldname)	,access=Daccess)
-		sec=time.time()-t1
-		print(f"Wrote {I}/{N} {logic_box.toString()} timestep({timestep}) field({Sfield.name}) in {sec:.2f} seconds")
+		write_sec=time.time()-t1
+
+		# statistics
+		ETA=N*((time.time()-T1)/(I+1)) 
+		logger.info(f"Wrote src={src} {I}/{N} {logic_box.toString()} timestep({timestep}) field({fieldname}) sec({read_sec:.2f}/{write_sec:.2f}/{read_sec+write_sec}) ETA_MIN({ETA/60.0:.0f})")
 	Saccess.endRead()
 	Daccess.endWrite()
 
-	print(f"CopyDataset src={src} dst={dst} done in {time.time()-T1:.2f} seconds")
+	logger.info(f"CopyDataset src={src} dst={dst} done in {time.time()-T1:.2f} seconds")
 
 
  
