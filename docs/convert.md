@@ -61,11 +61,10 @@ DST=/mnt/c/data/visus-dataset/2kbit1/1mb/visus.idx
 # writes the dataset uncompressed
 python3 -m OpenVisus copy-dataset --arco ${ARCO} ${SRC} ${DST}
 
-# final pass to compress and reduce size (all timesteps)
+# final pass to compress and reduce size 
+# add [--timestep <int>] to select a certain timestep
+# add [--field <string>] to select a certain field
 python3 -m OpenVisus compress-dataset --compression zip ${DST} 
-
-# pass times using --begin-time and --end-time to select timestamps and compress 
-python3 -m OpenVisus compress-dataset --compression zip --begin-time 0 --end-time 1024 ${DST} 
 ```
 
 ## Upload OpenVisus dataset to the cloud using aws s3

@@ -55,18 +55,21 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   this->bitsperblock      = default_bitsperblock;
   this->compression       = config.readString("compression", "zip");
 
+  Url url = config.hasAttribute("url") ? config.readString("url") : dataset->getUrl();
+  Path path = Path(url.getPath());
+  String dir = path.getParent().toString();
+  String base_no_ext = path.getFileNameWithoutExtension();
+  String ext = path.getExtension(); VisusAssert(ext == ".idx");
+
   //example: "s3://bucket-name/whatever/$(time)/$(field)/$(block:%016x:%04x).$(compression)";
   //NOTE 16x is enough for 16*4 bits==64 bit for block number
   //     splitting by 4 means 2^16= 64K files inside a directory with max 64/16=4 levels of directories
-  this->filename_template = config.readString("filename_template","./visus/$(time)/$(field)/$(block:%016x:%04x).bin");
+  this->filename_template = config.readString("filename_template");
+  if (this->filename_template.empty())
+    this->filename_template = "./" + base_no_ext + "/$(time)/$(field)/$(block:%016x:%04x).bin";
 
-  if (StringUtils::startsWith(filename_template, "./"))
-  {
-    Url url = config.hasAttribute("url") ? config.readString("url") : dataset->getUrl();
-    String dir = Path(url.getPath()).getParent().toString();
-    if (!dir.empty())
-      filename_template = StringUtils::replaceFirst(filename_template, ".", dir);
-  }
+  if (StringUtils::startsWith(filename_template, "./") && !dir.empty())
+    filename_template = StringUtils::replaceFirst(filename_template, ".", dir);
 }
 
 

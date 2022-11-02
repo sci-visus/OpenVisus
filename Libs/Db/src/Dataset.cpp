@@ -461,7 +461,7 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
-std::vector<String> Dataset::getAllFilenames()
+std::vector<String> Dataset::getFilenames(int user_timestep,String user_field)
 {
   std::vector<String> ret;
 
@@ -470,11 +470,14 @@ std::vector<String> Dataset::getAllFilenames()
   //assuming blocks will go to the same file
   auto blocksperfile = idxfile.blocksperfile;
 
-  for (auto time : idxfile.timesteps.asVector())
+  auto timesteps =  user_timestep >= 0 ? std::vector<double>({ double(user_timestep) }) : idxfile.timesteps.asVector();
+  auto fields    = !user_field.empty() ? std::vector<Field>({ getField(user_field) }) : idxfile.fields;
+
+  for (auto time : timesteps)
   {
     for (BigInt blockid = 0, total_blocks = getTotalNumberOfBlocks(); blockid < total_blocks; blockid+=blocksperfile)
     {
-      for (auto field : idxfile.fields)
+      for (auto field : fields)
       {
         auto filename = access->getFilename(field, time, blockid);
 

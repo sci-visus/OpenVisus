@@ -510,8 +510,8 @@ public:
     LogicSamples Wsamples, Array Wbuffer,
     LogicSamples Rsamples, Array Rbuffer, Aborted aborted);
 
-  //getAllFilenames
-  std::vector<String> getAllFilenames();
+  //getFilenames
+  std::vector<String> getFilenames(int timestep = -1,String field="");
 
   //compressDataset
   virtual void compressDataset(std::vector<String> compression, Array data = Array());;

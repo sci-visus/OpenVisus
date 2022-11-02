@@ -214,127 +214,169 @@ class CopyBlocks:
 			for t in threads: t.start()
 			for t in threads: t.join()
 
+
 # ////////////////////////////////////////////////////////////////////////////////////////
-def CompressDataset(idx_filename:str=None, compression="zip", num_threads=32, level=-1,begin_time=None,end_time=None):
+def CompressArcoDataset(idx_filename:str=None, compression="zip", num_threads=32, level=-1,timestep=None,field=None):
+
+	# ________________________________________________________________________
+	def Decompress(mem):
+		try:
+			return zlib.decompress(mem) 
+		except:
+			return None
+
+	# ________________________________________________________________________
+	def CompressArcoBlock(filename):
+		with open(filename,"rb") as f: raw=f.read()	
+		if Decompress(raw):  
+			logger.info(f"{filename} already compressed")
+		else:
+			encoded=zlib.compress(raw,level=level) # https://docs.python.org/3/library/zlib.html#zlib.compress
+			ReplaceFile(filename, encoded)
+			logger.info(f"CompressArcoBlock done {filename}")
+
+	# ________________________________________________________________________
+	def UncompressArcoBlock(filename):
+		with open(filename,"rb") as f: encoded=f.read()	
+		raw=Decompress(encoded)
+		if not raw: 
+			logger.info(f"{filename} already uncompressed")
+		else:
+			ReplaceFile(filename, raw)
+			logger.info(f"UncompressArcoBlock done {filename}")
+
+	# NOTE: this code is making some assumptions (like bin files should be inside the same diretory of *.idx and should have a certain patter)
+	# for arco I am assuming always the same pattern 
+	# /prefix/to/named/db/<basename>.idx
+	# /prefix/to/named/db/<basename>/<time>/<field>/0000/.... (see DiskAccess.cpp and CloudStorageAccess.cpp)
+	pattern=os.path.splitext(idx_filename)[0]
+	
+	if timestep is not None:
+		pattern=os.path.join(pattern,str(timestep))
+
+	if field  is not None:
+		pattern=os.path.join(pattern,str(field))
+	
+	pattern=os.path.join(pattern,"**/*.bin")
+	filenames=glob.glob(pattern,recursive=True)
+
+	assert LoadIdxDataset(idx_filename).idxfile.arco
+	T1=time.time()
+	p=ThreadPool(num_threads)
+	logger.info('Compressing ARCO dataset...' if compression else "Uncompressing ARCO dataset...")
+	p.map(CompressArcoBlock if compression else UncompressArcoBlock, filenames)
+	logger.info(f"CompressDataset done in {time.time()-T1} seconds")
+
+# ////////////////////////////////////////////////////////////////////////////////////////
+def CompressModVisusDataset(idx_filename:str=None, compression="zip", num_threads=32, level=-1,timestep=None,field=None):
 
 	T1=time.time()
 	UNCOMPRESSED_SIZE,COMPRESSED_SIZE=0,0
 
 	db=LoadIdxDataset(idx_filename)
-	if db.idxfile.arco:
+	assert not db.idxfile.arco
+	
+	# modvisus compress or decompress
+	CompressionMask, ZipMask=0x0f,0x03
+	idx=db.idxfile
+	blocks_per_file=idx.blocksperfile
+	num_fields=idx.fields.size()
+	file_header_size=10*4
+	block_header_size=10*4
+	tot_blocks=blocks_per_file*num_fields
+	header_size=file_header_size+block_header_size*tot_blocks
 
-		def CompressArcoBlock(filename):
-			nonlocal UNCOMPRESSED_SIZE,COMPRESSED_SIZE
-			with open(filename,"rb") as f: mem=f.read()	
-			if compression:
-				UNCOMPRESSED_SIZE+=len(mem)
-				mem=zlib.compress(mem,level=level) # https://docs.python.org/3/library/zlib.html#zlib.compress
-				COMPRESSED_SIZE+=len(mem)
+	# doing compression at file level
+	filenames=db.getFilenames(
+		timestep if timestep is not None else -1, # any negative number will work for all timesteps
+		field if field is not None else ""
+	)
+
+	for filename in filenames:
+
+		if not os.path.isfile(filename):
+			continue
+
+		t1=time.time()
+		with open(filename,"rb") as f: mem=f.read()
+
+		# read the header
+		v=[struct.unpack('>I',mem[cur:cur+4])[0] for cur in range(0,header_size,4)]; assert(len(v)% 10==0)
+		v=[v[I:I+10] for I in range(0,len(v),10)]
+		file_header  =v[0]
+		block_headers=v[1:]
+		assert file_header==[0]*10
+		full_size=header_size
+
+		# ________________________________________________________________________
+		def CompressModVisusBlock(B):
+			block_header=block_headers[B]
+			field_index=B // blocks_per_file
+			blocksize=idx.fields[field_index].dtype.getByteSize(2**idx.bitsperblock)
+			assert block_header[0]==0 and block_header[1]==0 and block_header[6]==0 and block_header[7]==0 and block_header[8]==0 and block_header[9]==0
+			offset=(block_header[2]<<0)+(block_header[3]<<32)
+			size  =block_header[4]
+			flags =block_header[5]
+			block=mem[offset:offset+size]
+			flags_compression=flags & CompressionMask
+
+			# note: it automatically detect if it's already compressed or not, so the code should be robust
+			if flags_compression == ZipMask:
+				decompressed=zlib.decompress(block)
 			else:
-				COMPRESSED_SIZE+=len(mem)
-				mem=zlib.decompress(mem) 
-				UNCOMPRESSED_SIZE+=len(mem)
+				assert(flags_compression==0)
+				decompressed=block
+			assert len(decompressed)==blocksize
+			nonlocal full_size
+			full_size+=blocksize
 
-			ReplaceFile(filename, mem)
-			logger.info(f"CompressArcoBlock done {filename}")
-			del mem
-		if begin_time==None or end_time==None:
-		# assuming *.bin files are in the dir of the *.idx (please keep it in mind!)
-		    filename_pattern=os.path.join(os.path.dirname(idx_filename),"**/*.bin")
-		else:
-			filename_pattern=os.path.join(os.path.dirname(idx_filename),f"visus/[{begin_time}-{end_time}]/**/*.bin")
+			if compression=="zip":
+				compressed=zlib.compress(decompressed,level=level) # https://docs.python.org/3/library/zlib.html#zlib.compress
+			else:
+				compressed=decompressed # uncompress
 
+			return (B,compressed)
 
+		# compress blocks in parallel
 		p=ThreadPool(num_threads)
-		print('Compressing Data...')
-		p.map(CompressArcoBlock, glob.glob(filename_pattern,recursive=True))
+		COMPRESSED=p.map(CompressModVisusBlock, range(tot_blocks))
+		COMPRESSED=sorted(COMPRESSED, key=lambda tup: tup[0])
 
-	else:
+		compressed_size=header_size+sum([len(it[1]) for it in COMPRESSED])
+		mem=bytearray(mem[0:compressed_size])
 
-		# modvisus compress or decompress
-		CompressionMask, ZipMask=0x0f,0x03
-		idx=db.idxfile
-		blocks_per_file=idx.blocksperfile
-		num_fields=idx.fields.size()
-		file_header_size=10*4
-		block_header_size=10*4
-		tot_blocks=blocks_per_file*num_fields
-		header_size=file_header_size+block_header_size*tot_blocks
+		# write file header
+		mem[0:40]=struct.pack('>IIIIIIIIII',0,0,0,0,0,0,0,0,0,0)
 
-		# doing compression at file level
-		for filename in glob.glob(filename_pattern,recursive=True):
+		# fill out new mem
+		offset=header_size
+		for I in range(tot_blocks):
+			compressed=COMPRESSED[I][1]
+			size=len(compressed)
+			# block header
+			header_offset=file_header_size+I*40
+			mem[header_offset:header_offset+40]=struct.pack('>IIIIIIIIII',0,0,(offset & 0xffffffff),(offset>>32),size,(block_headers[I][5] & ~CompressionMask) | ZipMask,0,0,0,0)
+			mem[offset:offset+size]=compressed; offset+=size
+		assert offset==compressed_size
 
-			t1=time.time()
-			with open(filename,"rb") as f:
-				mem=f.read()
+		ReplaceFile(filename, mem)
+		del mem
 
-			# read the header
-			v=[struct.unpack('>I',mem[cur:cur+4])[0] for cur in range(0,header_size,4)]; assert(len(v)% 10==0)
-			v=[v[I:I+10] for I in range(0,len(v),10)]
-			file_header  =v[0]
-			block_headers=v[1:]
-			assert file_header==[0]*10
-			full_size=header_size
-
-			def CompressModVisusBlock(B):
-				block_header=block_headers[B]
-				field_index=B // blocks_per_file
-				blocksize=idx.fields[field_index].dtype.getByteSize(2**idx.bitsperblock)
-				assert block_header[0]==0 and block_header[1]==0 and block_header[6]==0 and block_header[7]==0 and block_header[8]==0 and block_header[9]==0
-				offset=(block_header[2]<<0)+(block_header[3]<<32)
-				size  =block_header[4]
-				flags =block_header[5]
-				block=mem[offset:offset+size]
-				flags_compression=flags & CompressionMask
-				if flags_compression == ZipMask:
-					decompressed=zlib.decompress(block)
-				else:
-					assert(flags_compression==0)
-					decompressed=block
-				assert len(decompressed)==blocksize
-				nonlocal full_size
-				full_size+=blocksize
-
-				if compression=="zip":
-					compressed=zlib.compress(decompressed,level=level) # https://docs.python.org/3/library/zlib.html#zlib.compress
-				else:
-					compressed=decompressed # uncompress
-
-				return (B,compressed)
-
-			# compress blocks in parallel
-			p=ThreadPool(num_threads)
-			COMPRESSED=p.map(CompressModVisusBlock, range(tot_blocks))
-			COMPRESSED=sorted(COMPRESSED, key=lambda tup: tup[0])
-
-			compressed_size=header_size+sum([len(it[1]) for it in COMPRESSED])
-			mem=bytearray(mem[0:compressed_size])
-
-			# write file header
-			mem[0:40]=struct.pack('>IIIIIIIIII',0,0,0,0,0,0,0,0,0,0)
-
-			# fill out new mem
-			offset=header_size
-			for I in range(tot_blocks):
-				compressed=COMPRESSED[I][1]
-				size=len(compressed)
-				# block header
-				header_offset=file_header_size+I*40
-				mem[header_offset:header_offset+40]=struct.pack('>IIIIIIIIII',0,0,(offset & 0xffffffff),(offset>>32),size,(block_headers[I][5] & ~CompressionMask) | ZipMask,0,0,0,0)
-				mem[offset:offset+size]=compressed; offset+=size
-			assert offset==compressed_size
-
-			ReplaceFile(filename, mem)
-			del mem
-
-			ratio=int(100*compressed_size/full_size)
-			UNCOMPRESSED_SIZE+=full_size
-			COMPRESSED_SIZE+=compressed_size
-			logger.info(f"Compressed {filename}  in {time.time()-t1} ratio({ratio}%)")
+		ratio=int(100*compressed_size/full_size)
+		UNCOMPRESSED_SIZE+=full_size
+		COMPRESSED_SIZE+=compressed_size
+		logger.info(f"Compressed {filename}  in {time.time()-t1} ratio({ratio}%)")
 
 	RATIO=int(100*COMPRESSED_SIZE/UNCOMPRESSED_SIZE)
 	logger.info(f"CompressDataset done in {time.time()-T1} seconds {RATIO}%")
 
+# ////////////////////////////////////////////////////////////////////////////////////////
+def CompressDataset(idx_filename:str=None, compression="zip", num_threads=32, level=-1,timestep=None,field=None):
+	db=LoadIdxDataset(idx_filename)
+	if db.idxfile.arco:
+		CompressArcoDataset(idx_filename,compression=compression,num_threads=num_threads,level=level,timestep=timestep,field=field)
+	else:
+		CompressModVisusDataset(idx_filename,compression=compression,num_threads=num_threads,level=level,timestep=timestep,field=field)
 
 # ////////////////////////////////////////////////////////////////////////
 def ConvertImageStack(src:str, dst:str, arco="modvisus"):
@@ -404,7 +446,7 @@ def ConvertImageStack(src:str, dst:str, arco="modvisus"):
 
 
 # ////////////////////////////////////////////////////////////////////////////
-def CopyDataset(src:str, dst:str, arco="modvisus", tile_size=None, timesteps_to_convert=[], fields_to_convert=[]):
+def CopyDataset(src:str, dst:str, arco="modvisus", tile_size:int=None, timestep:int=None, field:str=None,num_attempts:int=3):
 
 	arco=NormalizeArcoArg(arco)
 
@@ -418,11 +460,8 @@ def CopyDataset(src:str, dst:str, arco="modvisus", tile_size=None, timesteps_to_
 	all_timesteps=[int(it) for it in SRC.getTimesteps().asVector()]
 	max_fieldsize=max([SRC.getField(it).dtype.getByteSize() for it in all_fields])
 
-	if not timesteps_to_convert:
-		timesteps_to_convert=all_timesteps
-	
-	if not fields_to_convert:
-		fields_to_convert=all_fields
+	timesteps_to_convert=all_timesteps if timestep is None else [int(timestep)]
+	fields_to_convert   =all_fields    if field    is None else [str(field)]
 
 	# guess bitsperblock
 	bitsperblock = int(math.log2(arco // max_fieldsize)) if arco else 16
@@ -432,22 +471,29 @@ def CopyDataset(src:str, dst:str, arco="modvisus", tile_size=None, timesteps_to_
 
 	# adjust arco if needed
 	arco=(2**bitsperblock)*max_fieldsize if arco else 0
- 
+
+	Dfields=[]
+	for fieldname in all_fields:
+		Sfield=SRC.getField(fieldname)
+		dtype=Sfield.dtype.toString()
+		Dfields.append(Field(fieldname, dtype, 'row_major'))  # force row major here
+
 	# NOTE: I am creating a new idx with all timesteps and all fields
 	DST=CreateIdx(
 		url=dst, 
 		dims=dims,
 		time=[all_timesteps[0],all_timesteps[-1],"%00000d/"],
-		fields=[ Field(it, SRC.getField(it).dtype, 'row_major') for it in all_fields], # force row major here
+		fields=Dfields,
 		bitsperblock=bitsperblock, 
 		arco=arco
 	)
-
+	
 	Saccess=CreateAccess(SRC, for_writing=False) 
 	Daccess=CreateAccess(DST, for_writing=True) 
 
 	pdim=SRC.getPointDim()
 	assert pdim==2 or pdim==3 # TODO other cases
+
 
 	# copy
 	if tile_size is None:
@@ -472,23 +518,29 @@ def CopyDataset(src:str, dst:str, arco="modvisus", tile_size=None, timesteps_to_
 	N=len([it for it in pieces()])
 	Saccess.beginRead()
 	Daccess.beginWrite()
+	logger.info(f"Number of pieces {N}")
 	for I,(timestep,fieldname,logic_box) in enumerate(pieces()):
-   
-		# TODO: how to deal with failures???
-		
-  	# read from source
-		t1=time.time()
-		data=SRC.read( logic_box=logic_box,time=timestep,field=SRC.getField(fieldname),access=Saccess)
-		read_sec=time.time()-t1
+		for K in range(num_attempts):
+			try:
+  				# read from source
+				t1=time.time()
+				data=SRC.read( logic_box=logic_box,time=timestep,field=SRC.getField(fieldname),access=Saccess)
+				read_sec=time.time()-t1
 
-		# write
-		t1=time.time()
-		DST.write(data,logic_box=logic_box,time=timestep,field=DST.getField(fieldname)	,access=Daccess)
-		write_sec=time.time()-t1
+				# write
+				t1=time.time()
+				DST.write(data,logic_box=logic_box,time=timestep,field=DST.getField(fieldname)	,access=Daccess)
+				write_sec=time.time()-t1
 
-		# statistics
-		ETA=N*((time.time()-T1)/(I+1)) 
-		logger.info(f"Wrote src={src} {I}/{N} {logic_box.toString()} timestep({timestep}) field({fieldname}) sec({read_sec:.2f}/{write_sec:.2f}/{read_sec+write_sec}) ETA_MIN({ETA/60.0:.0f})")
+				# statistics
+				ETA=N*((time.time()-T1)/(I+1)) 
+				logger.info(f"Wrote src={src} {I}/{N} {logic_box.toString()} timestep({timestep}) field({fieldname}) sec({read_sec:.2f}/{write_sec:.2f}/{read_sec+write_sec}) ETA_MIN({ETA/60.0:.0f})")
+				break
+			except:
+				if K==(num_attempts-1): raise
+				logger.info(f"Writing of src={src} {I}/{N} failed, retrying...")
+				time.sleep(1.0)
+
 	Saccess.endRead()
 	Daccess.endWrite()
 

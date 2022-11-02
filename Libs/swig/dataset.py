@@ -186,7 +186,7 @@ class PyDataset(object):
 		import datetime
 
 		files=[]
-		for filename in list(self.getAllFilenames()):
+		for filename in list(self.getFilenames()):
 			size=FileUtils.getFileSize(Path(filename))
 			if size>0:
 				files.append({

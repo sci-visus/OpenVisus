@@ -1,10 +1,13 @@
 import os, sys, glob, subprocess, platform, shutil, sysconfig, re, argparse
 
+
 this_dir=os.path.dirname(os.path.abspath(__file__))
 
 if len(sys.argv)>=2 and sys.argv[1]=="dirname":
 	print(this_dir)
 	sys.exit(0)
+
+import logging
 
 from OpenVisus import *
 
@@ -382,6 +385,12 @@ def Main(args):
 	if not args:
 		return
 
+	# enable OpenVisus convert logger
+	if True:
+		from OpenVisus.convert import logger
+		logger.addHandler(logging.StreamHandler())
+		logger.setLevel(logging.INFO)
+
 	action=args[0].lower()
 	action_args=args[1:]
 
@@ -452,39 +461,39 @@ def Main(args):
 
 	if action=="copy-dataset":
 		"""
-		SRC=/mnt/d/GoogleSci/visus_dataset/cat/modvisus/visus.idx 
-		DST=/mnt/d/GoogleSci/visus_dataset/cat/modvisus-bis/visus.idx 
-		python3 -m OpenVisus copy-dataset --arco [ modvisus | 1mb | ... ] [--tile-size 1024 ] ${SRC} ${DST} 
+		python -m OpenVisus copy-dataset --arco 1mb C:\data\visus-datasets\2kbit1\modvisus\visus.idx C:\data\visus-datasets\2kbit1\remove-me\visus.idx
 		"""
 		import argparse
 		parser = argparse.ArgumentParser(description=action)
 		parser.add_argument('--arco',type=str, required=False,default="modvisus")
 		parser.add_argument('--tile-size',type=int, required=False,default=None)
+		parser.add_argument('--timestep',type=str, required=False,default=None)
+		parser.add_argument('--field',type=str, required=False,default=None)
 		parser.add_argument("src",type=str) 
 		parser.add_argument("dst",type=str)
 		args=parser.parse_args(action_args)
+
 		from OpenVisus import CopyDataset
-		CopyDataset(args.src, args.dst, arco=args.arco,tile_size=args.tile_size)
+		CopyDataset(args.src, args.dst, arco=args.arco,tile_size=args.tile_size,timestep=args.timestep,field=args.field)
 		sys.exit(0)
 
 	if action=="compress-dataset":
 		"""
 		# note DST must be a local db because a lot of file seek and write will happen
 		IDX=/mnt/d/GoogleSci/visus_dataset/arco/cat/modvisus/visus.idx 
-		python3 -m OpenVisus compress-dataset --compression zip --num-threads 16 --zip-level -1 ${IDX}
+		python3 -m OpenVisus compress-dataset ${IDX}
 		"""
 		import argparse
 		parser = argparse.ArgumentParser(description=action)
-		parser.add_argument('--compression',type=str,required=False,default=None)
+		parser.add_argument('--compression',type=str,required=False,default="zip")
 		parser.add_argument('--num-threads',type=int,required=False,default=32)
-		parser.add_argument('--begin-time',type=int,required=False,default=None)
-		parser.add_argument('--end-time',type=int,required=False,default=None)
-
+		parser.add_argument('--timestep',type=int,required=False,default=None)
+		parser.add_argument('--field',type=str,required=False,default=None)
 		parser.add_argument('--zip-level',type=int,required=False,default=-1)
 		parser.add_argument('idx_filename',type=str) 
 		args=parser.parse_args(action_args)
 		from OpenVisus import CompressDataset
-		CompressDataset(args.idx_filename, compression=args.compression, num_threads=args.num_threads,level=args.zip_level,begin_time=args.begin_time,end_time=args.end_time)
+		CompressDataset(args.idx_filename, compression=args.compression, num_threads=args.num_threads,level=args.zip_level,timestep=args.timestep,field=args.field)
 		return
 
 	if action=="copy-dataset-to-cloud":
