@@ -260,7 +260,7 @@ class PyDataset(object):
 		"""
 		import OpenVisus as ov
 
-		db=ov.open(url)
+		db=ov.open_dataset(url)
 		width,height,depth=db.getLogicSize()
 		
 		# example of reading a single slice in logic coordinates
@@ -344,7 +344,7 @@ class PyDataset(object):
 		"""
 		import OpenVisus as ov
 
-		db=ov.open(url)
+		db=ov.open_dataset(url)
 		width,height,depth=db.getLogicSize()
 
 		# write single slice
@@ -541,16 +541,13 @@ class PyDataset(object):
 			
 		return data
 	
-# disabled: it break some tests
-# e.g. __main__.py", line 17, in ReadTextFile
-# file = open(filename, "r") 
-if False:
-	def open(url):
-		"""
-		import OpenVisus as ov
-		db=ov.open(url)
-		"""
-		return LoadDataset(url)
+
+def open_dataset(url):
+	"""
+	import OpenVisus as ov
+	db=ov.open_dataset(url)
+	"""
+	return LoadDataset(url)
 
 			
 
