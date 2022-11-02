@@ -477,11 +477,14 @@ def Main(args):
 		parser = argparse.ArgumentParser(description=action)
 		parser.add_argument('--compression',type=str,required=False,default=None)
 		parser.add_argument('--num-threads',type=int,required=False,default=32)
+		parser.add_argument('--begin-time',type=int,required=False,default=None)
+		parser.add_argument('--end-time',type=int,required=False,default=None)
+
 		parser.add_argument('--zip-level',type=int,required=False,default=-1)
 		parser.add_argument('idx_filename',type=str) 
 		args=parser.parse_args(action_args)
 		from OpenVisus import CompressDataset
-		CompressDataset(args.idx_filename, compression=args.compression, num_threads=args.num_threads,level=args.zip_level)
+		CompressDataset(args.idx_filename, compression=args.compression, num_threads=args.num_threads,level=args.zip_level,begin_time=args.begin_time,end_time=args.end_time)
 		return
 
 	if action=="copy-dataset-to-cloud":
