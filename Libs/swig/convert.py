@@ -215,7 +215,7 @@ class CopyBlocks:
 			for t in threads: t.join()
 
 # ////////////////////////////////////////////////////////////////////////////////////////
-def CompressDataset(idx_filename:str=None, compression="zip", num_threads=32, level=-1):
+def CompressDataset(idx_filename:str=None, compression="zip", num_threads=32, level=-1,begin_time=None,end_time=None):
 
 	T1=time.time()
 	UNCOMPRESSED_SIZE,COMPRESSED_SIZE=0,0
@@ -238,10 +238,15 @@ def CompressDataset(idx_filename:str=None, compression="zip", num_threads=32, le
 			ReplaceFile(filename, mem)
 			logger.info(f"CompressArcoBlock done {filename}")
 			del mem
-	
+		if begin_time==None or end_time==None:
 		# assuming *.bin files are in the dir of the *.idx (please keep it in mind!)
-		filename_pattern=os.path.join(os.path.dirname(idx_filename),"**/*.bin")
+		    filename_pattern=os.path.join(os.path.dirname(idx_filename),"**/*.bin")
+		else:
+			filename_pattern=os.path.join(os.path.dirname(idx_filename),f"visus/[{begin_time}-{end_time}]/**/*.bin")
+
+
 		p=ThreadPool(num_threads)
+		print('Compressing Data...')
 		p.map(CompressArcoBlock, glob.glob(filename_pattern,recursive=True))
 
 	else:
