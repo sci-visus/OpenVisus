@@ -615,6 +615,12 @@ public:
 NetService::NetService(int nconnections_, bool bVerbose)
   : nconnections(nconnections_), verbose(bVerbose)
 {
+  {
+    String s_verbose = Utils::getEnv("VISUS_NETSERVICE_VERBOSE");
+    if (!s_verbose.empty())
+      verbose = cint(s_verbose);
+  }
+
   this->pimpl = new Pimpl(this);
   this->pimpl->start();
 }
