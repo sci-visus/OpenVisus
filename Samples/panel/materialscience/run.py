@@ -368,5 +368,5 @@ if True:
 
 	os.environ["VISUS_NETSERVICE_VERBOSE"]=str(0)
  
-	exp=Experiment(scans,pd.read_csv(os.path.join(os.path.dirname(__file__),"data.csv")))
+	exp=Experiment(scans,pd.read_csv("https://raw.githubusercontent.com/sci-visus/OpenVisus/master/Samples/panel/materialscience/data.csv"))
 	exp.app.servable()

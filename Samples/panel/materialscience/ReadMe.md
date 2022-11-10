@@ -3,8 +3,23 @@
 To run:
 
 ```
+panel serve --show --autoreload --port 8888  Samples/panel/materialscience/run.py
+# open a browser http://localhost:8888/run
+```
 
-panel serve --show --autoreload  Samples/panel/materialscience/run.py
+Docker build
 
-# open a browser http://localhost:5006/run (may the port number is different)
+```
+cd Samples/panel/materialscience
+
+sudo docker build -t nsdf-material-science ./ 
+
+PORT=10001
+sudo docker run  \
+  -v ~/.aws:/root/.aws \
+  -v ${PWD}/run.py:/root/run.py \
+  -p ${PORT}:${PORT} \
+  nsdf-material-science \
+  python3 -m panel serve --autoreload --address='0.0.0.0' --port=${PORT} --allow-websocket-origin='*' /root/run.py
+
 ```

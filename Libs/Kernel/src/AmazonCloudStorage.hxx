@@ -196,7 +196,8 @@ public:
   {
     auto hostname = url.getHostname();
 
-    String profile = url.getParam("profile", "");
+    //if you specify the profile in the url or in the ENV it will have precedence
+    String profile = url.getParam("profile", Utils::getEnv("AWS_PROFILE"));
     if (!profile.empty()) 
     {
       auto map = readProfile(profile);
@@ -205,18 +206,18 @@ public:
       access_key   = map["access_key"];
       secret_key   = map["secret_key"];
     }
+    //otherwise first try to see the url, then try to use env variable
     else
     {
       //needed for s3v4 (NOTE default endpoint is the same hostname)
-      this->endpoint_url = url.getParam("endpoint_url", url.getProtocol() + "://" + url.getHostname());
+      String default_endpoint = url.getProtocol() + "://" + url.getHostname();
+      this->endpoint_url = url.getParam("endpoint_url", Utils::getEnv("ENDPOINT_URL",Utils::getEnv("AWS_ENDPOINT_URL",default_endpoint)));
       VisusAssert(!this->endpoint_url.empty());
-
       
-
       //needed for s3v4 (NOTE if region is empty I think I can just set it to be us-east-1)
-      this->region = url.getParam("region", "");
-      this->access_key = url.getParam("access_key");
-      this->secret_key = url.getParam("secret_key", url.getParam("secret_access_key"));
+      this->region     = url.getParam("region"                                      ,Utils::getEnv("AWS_REGION",Utils::getEnv("AWS_DEFAULT_REGION")));
+      this->access_key = url.getParam("access_key"                                  ,Utils::getEnv("AWS_ACCESS_KEY_ID",""));
+      this->secret_key = url.getParam("secret_key", url.getParam("secret_access_key",Utils::getEnv("AWS_SECRET_ACCESS_KEY", "")));
     }
 
     if (this->region.empty() && StringUtils::startsWith(hostname, "s3."))

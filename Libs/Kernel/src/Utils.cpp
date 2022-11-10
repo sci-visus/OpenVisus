@@ -64,10 +64,12 @@ String Utils::getCurrentApplicationFile() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
-String Utils::getEnv(String key)
+String Utils::getEnv(String key, String default_value)
 {
-  auto e = getenv(key.c_str());
-  return e? e : "";
+  if (auto e = getenv(key.c_str()))
+    return e;
+  else
+    return default_value;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

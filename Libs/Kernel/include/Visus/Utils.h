@@ -439,7 +439,7 @@ namespace Utils
   VISUS_KERNEL_API String getCurrentApplicationFile();
 
   //getenv
-  VISUS_KERNEL_API String getEnv(String key);
+  VISUS_KERNEL_API String getEnv(String key,String default_value="");
 
   //setenv
   VISUS_KERNEL_API void setEnv(String key, String value);
