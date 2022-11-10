@@ -305,7 +305,6 @@ class Experiment:
 			nrows=2, ncols=2,
 			sizing_mode='stretch_both')
 
-
 	# https://stackoverflow.com/questions/69619157/matplotlib-clickable-plot-in-panel-row
 	def onPickEvent(self,evt):
 		scan=evt.artist.obj
@@ -321,17 +320,19 @@ class Experiment:
 
 	# setDataset
 	def setDataset(self, target, scan,direction=2):
-
+		VISUS_CACHE_DIR=os.environ["VISUS_CACHE_DIR"]
 		slicer=self.slices[target]
 		print(f"setDataset target={target} scan={scan} direction={direction}")
 		url=scan["url"]
+		print("Loading dataset",url,"...")
 		db= ov.LoadDataset(url)
+		print("done")
 		from urllib.parse import urlparse
 		parsed=urlparse(url)
-		filename_template=os.path.join(os.path.splitext(parsed.path)[0], "$(time)/$(field)/$(block:%016x:%04x).bin.zz")
+		filename_template=os.path.join(os.path.splitext(parsed.path)[0], "$(time)/$(field)/$(block:%016x:%04x).bin.zz") # problem with the final zz that is non-default pattern
 		access=db.createAccessForBlockQuery(ov.StringTree.fromString(f"""
 				<access type='multiplex'>
-					<access type='DiskAccess' chmod='rw' compression="zip" filename_template="$(VisusCache){filename_template}" />	
+					<access type='DiskAccess' chmod='rw' compression="zip" filename_template="{VISUS_CACHE_DIR}{filename_template}" />	
 					<access type="CloudStorageAccess" filename_template="{filename_template}" />
 				</access>
 			"""))
@@ -341,14 +342,13 @@ class Experiment:
 
 # //////////////////////////////////////////////////////////////////////////////////////
 if True:
-
-	"""
-	panel serve --show --autoreload  test.py
-	"""
   
-	#db=ov.LoadDataset("/mnt/c/data/visus-datasets/2kbit1/modvisus/visus.idx")
-	#def CreateAccess(db): return db.createAccess()  
- 
+	if False:
+		url="https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112603.h5/r/idx/1mb/visus.idx"
+		db=ov.LoadDataset(url)
+		print(db.getLogicSize())
+		sys.exit(0)
+
 	scans=[
 		{"id":"112509","pos":(530 ,1.0)},
 		{"id":"112512","pos":(1400,6.5)},
@@ -363,10 +363,14 @@ if True:
 		{"id":"112532","pos":(4700,22)},
 	]
  
-	for it in scans:
-		it["url"]=f"https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_{it['id']}.h5/r/idx/1mb/visus.idx?profile=wasabi" 
-
-	os.environ["VISUS_NETSERVICE_VERBOSE"]=str(0)
+	#for k,v in os.environ.items():
+	#	print(k,v)
  
-	exp=Experiment(scans,pd.read_csv("https://raw.githubusercontent.com/sci-visus/OpenVisus/master/Samples/panel/materialscience/data.csv"))
+	for it in scans:
+		it["url"]=f"https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_{it['id']}.h5/r/idx/1mb/visus.idx" 
+
+	print("Reading CSV file...")
+	csv=pd.read_csv("https://raw.githubusercontent.com/sci-visus/OpenVisus/master/Samples/panel/materialscience/data.csv")
+	print("DONE")
+	exp=Experiment(scans,csv)
 	exp.app.servable()
