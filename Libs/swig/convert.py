@@ -494,7 +494,6 @@ def CopyDataset(src:str, dst:str, arco="modvisus", tile_size:int=None, timestep:
 	pdim=SRC.getPointDim()
 	assert pdim==2 or pdim==3 # TODO other cases
 
-
 	# copy
 	if tile_size is None:
 		tile_size=8192 if pdim==2 else 512
@@ -502,24 +501,35 @@ def CopyDataset(src:str, dst:str, arco="modvisus", tile_size:int=None, timestep:
 	piece=[tile_size, tile_size,1 if pdim==2 else tile_size] 
 	W,H,D=[dims[0]  , dims[1]  ,1 if pdim==2 else dims[2]  ]
 
-	def pieces():
-		for timestep in timesteps_to_convert:
-			for fieldname in fields_to_convert:
-				for z1 in range(0,D,piece[2]):
-					for y1 in range(0,H,piece[1]):
-						for x1 in range(0,W,piece[0]):
-							x2=min(x1+piece[0],W)
-							y2=min(y1+piece[1],H)
-							z2=min(z1+piece[2],D) 
-							logic_box=BoxNi(PointNi(x1,y1,z1),PointNi(x2,y2,z2))
-							logic_box.setPointDim(pdim)
-							yield timestep,fieldname, logic_box
+	pieces=[]
+	for timestep in timesteps_to_convert:
+		for fieldname in fields_to_convert:
+			for z1 in range(0,D,piece[2]):
+				for y1 in range(0,H,piece[1]):
+					for x1 in range(0,W,piece[0]):
+						x2=min(x1+piece[0],W)
+						y2=min(y1+piece[1],H)
+						z2=min(z1+piece[2],D) 
+						logic_box=BoxNi(PointNi(x1,y1,z1),PointNi(x2,y2,z2))
+						logic_box.setPointDim(pdim)
+						pieces.append((timestep,fieldname, logic_box))
 
-	N=len([it for it in pieces()])
+	done_filename=dst+".done"
+	try:
+		DONE=int(ReadTextFile(done_filename).strip())
+	except:
+		DONE=0
+	logger.info(f"Read {done_filename} DONE={DONE}")
+
+	N=len([it for it in pieces])
 	Saccess.beginRead()
 	Daccess.beginWrite()
 	logger.info(f"Number of pieces {N}")
-	for I,(timestep,fieldname,logic_box) in enumerate(pieces()):
+	for I,(timestep,fieldname,logic_box) in enumerate(pieces):
+
+		if I<DONE:
+			continue
+
 		for K in range(num_attempts):
 			try:
   				# read from source
@@ -534,12 +544,18 @@ def CopyDataset(src:str, dst:str, arco="modvisus", tile_size:int=None, timestep:
 
 				# statistics
 				ETA=N*((time.time()-T1)/(I+1)) 
-				logger.info(f"Wrote src={src} {I}/{N} {logic_box.toString()} timestep({timestep}) field({fieldname}) sec({read_sec:.2f}/{write_sec:.2f}/{read_sec+write_sec}) ETA_MIN({ETA/60.0:.0f})")
+				logger.info(f"Wrote src={src} {I}/{N} {logic_box.toString()} timestep({timestep}) field({fieldname}) sec({read_sec:.2f}/{write_sec:.2f}/{read_sec+write_sec}) ETA({ETA:.0f}s {ETA/60:.0f}m {ETA/3600:.0}h {ETA/86400:.0f}d)")
 				break
 			except:
 				if K==(num_attempts-1): raise
 				logger.info(f"Writing of src={src} {I}/{N} failed, retrying...")
 				time.sleep(1.0)
+
+		try:
+			DONE=I
+			WriteTextFile(done_filename,str(DONE))
+		except:
+			pass
 
 	Saccess.endRead()
 	Daccess.endWrite()
