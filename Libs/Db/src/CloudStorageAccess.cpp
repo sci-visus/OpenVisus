@@ -50,15 +50,15 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   this->name = this->name = config.readString("name", "CloudStorageAccess");
   this->can_read  = StringUtils::find(config.readString("chmod", DefaultChMod), "r") >= 0;
   this->can_write = StringUtils::find(config.readString("chmod", DefaultChMod), "w") >= 0;
-  this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
+  this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset? dataset->getDefaultBitsPerBlock() : 0))); VisusAssert(this->bitsperblock>0);
 
-  this->url = config.readString("url", dataset->getUrl()); VisusAssert(url.valid());
+  this->url = config.readString("url", dataset? dataset->getUrl(): ""); VisusAssert(url.valid());
   this->config.write("url", url.toString());
 
   this->compression = config.readString("compression", this->url.getParam("compression","zip")); //zip compress more than lz4 for network.. 
   this->layout = config.readString("layout", this->url.getParam("layout","")); //row major is default
   this->reverse_filename = config.readBool("reverse_filename", cbool(this->url.getParam("reverse_filename","0")));
-  bool disable_async = config.readBool("disable_async", cbool(this->url.getParam("disable_async",cstring(dataset->isServerMode()))));
+  bool disable_async = config.readBool("disable_async", cbool(this->url.getParam("disable_async",cstring(dataset && dataset->isServerMode()))));
 
   if (int nconnections = disable_async ? 0 : config.readInt("nconnections", cint(this->url.getParam("nconnections",cstring(64)))))
     this->netservice = std::make_shared<NetService>(nconnections);
@@ -107,26 +107,37 @@ String CloudStorageAccess::getFilename(Field field, double time, BigInt blockid)
 ///////////////////////////////////////////////////////////////////////////////////////
 void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 {
-  VisusAssert((int)query->getNumberOfSamples().innerProduct()==(1<<bitsperblock));
-
-  auto blob_name = Access::getFilename(query);
+  auto blob_name = getFilename(query->field, query->time, query->blockid);
 
   cloud_storage->getBlob(netservice, blob_name, /*head*/false, /*range*/{0,0}, query->aborted).when_ready([this, query](SharedPtr<CloudStorageItem> blob) {
 
     if (!blob || !blob->valid())
       return readFailed(query, query->aborted()? "query aborted" : "blob not valid");
 
-    blob->metadata.setValue("visus-compression", this->compression);
-    blob->metadata.setValue("visus-dtype", query->field.dtype.toString());
-    blob->metadata.setValue("visus-nsamples", query->getNumberOfSamples().toString());
-    blob->metadata.setValue("visus-layout", this->layout);
+    //special case for idx2 where I just want to data as it is
+    if (!query->getNumberOfSamples().innerProduct())
+    {
+      blob->metadata.setValue("visus-compression", this->compression);
+      blob->metadata.setValue("visus-dtype", DTypes::UINT8.toString());
+      blob->metadata.setValue("visus-nsamples", cstring(blob->body->c_size()));
+      blob->metadata.setValue("visus-layout", this->layout);
+    }
+    else
+    {
+      VisusAssert((int)query->getNumberOfSamples().innerProduct() == (1 << bitsperblock));
+      blob->metadata.setValue("visus-compression", this->compression);
+      blob->metadata.setValue("visus-dtype", query->field.dtype.toString());
+      blob->metadata.setValue("visus-nsamples", query->getNumberOfSamples().toString());
+      blob->metadata.setValue("visus-layout", this->layout);
+    }
 
     auto decoded = ArrayUtils::decodeArray(blob->metadata, blob->body);
     if (!decoded.valid())
       return readFailed(query, "cannot decode array");
 
-    VisusAssert(decoded.dims == query->getNumberOfSamples());
-    VisusAssert(decoded.dtype == query->field.dtype);
+    //disabled assert for the IDX2 case
+    //VisusAssert(decoded.dims == query->getNumberOfSamples());
+    //VisusAssert(decoded.dtype == query->field.dtype);
     query->buffer = decoded;
 
     return readOk(query);
@@ -137,7 +148,22 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 ///////////////////////////////////////////////////////////////////////////////////////
 void CloudStorageAccess::writeBlock(SharedPtr<BlockQuery> query)
 {
-  return writeFailed(query, "not supported");
+  //NOTE: do not use this function for anything different from experimental idx2
+
+  auto decoded = query->buffer;
+  auto encoded = ArrayUtils::encodeArray(this->compression, decoded);
+  if (!encoded)
+    return writeFailed(query, "Failed to encode data");
+
+  auto blob_name = getFilename(query->field, query->time, query->blockid);
+
+  auto blob = CloudStorageItem::createBlob(blob_name, encoded);
+  cloud_storage->addBlob(netservice, blob, query->aborted).when_ready([this, query](bool ok) {
+    if (ok)
+      return writeOk(query);
+    else
+      return writeFailed(query,"Write failed");
+    });
 }
 
 
