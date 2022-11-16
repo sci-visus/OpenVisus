@@ -36,10 +36,481 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/IdxDataset2.h>
+
+#include <Visus/Db.h>
+#include <Visus/Dataset.h>
+#include <Visus/IdxFile.h>
+#include <Visus/IdxHzOrder.h>
+
+#if VISUS_IDX2
+
+#include <Source/idx2.h>
 
 namespace Visus {
 
+//////////////////////////////////////////////////////////////////////
+class VISUS_DB_API IdxDiskAccess2 : public Access
+{
+public:
+
+  //constructor
+  IdxDiskAccess2() {
+  }
+
+  //destructor
+  virtual ~IdxDiskAccess2() {
+  }
+
+  //readBlock
+  virtual void readBlock(SharedPtr<BlockQuery> query)
+  {
+    ThrowException("TODO");
+  }
+
+  //writeBlock
+  virtual void writeBlock(SharedPtr<BlockQuery> query)
+  {
+    ThrowException("TODO");
+  }
+
+
+};
+
+//////////////////////////////////////////////////////////////////////
+class VISUS_DB_API IdxDataset2 : public Dataset
+{
+public:
+
+  //default constructor
+  IdxDataset2() : Idx2(nullptr) {
+  }
+
+  //destructor
+  virtual ~IdxDataset2() {
+
+    if (Idx2)
+    {
+      idx2::Dealloc(Idx2);
+      delete Idx2;
+      this->Idx2 = nullptr;
+    }
+
+  }
+
+  //castFrom
+  static SharedPtr<IdxDataset2> castFrom(SharedPtr<Dataset> db) {
+    return std::dynamic_pointer_cast<IdxDataset2>(db);
+  }
+
+  //getDatasetTypeName
+  virtual String getDatasetTypeName() const override {
+    return "IdxDataset2";
+  }
+
+public:
+
+  //createAccess (right now not needed)
+  virtual SharedPtr<Access> createAccess(StringTree config = StringTree(), bool bForBlockQuery = false) override {
+    return std::make_shared<IdxDiskAccess2>();
+  }
+
+public:
+
+  //________________________________________________
+  //block query stuff
+
+  //createBlockQuery
+  virtual SharedPtr<BlockQuery> createBlockQuery(BigInt blockid, Field field, double time, int mode = 'r', Aborted aborted = Aborted()) override {
+    ThrowException("TODO");
+    return SharedPtr<BlockQuery>();
+  }
+
+
+  //getBlockQuerySamples
+  LogicSamples getBlockQuerySamples(BigInt blockid, int& H)
+  {
+    ThrowException("TODO");
+    return LogicSamples();
+  }
+
+  //readBlock  
+  virtual void executeBlockQuery(SharedPtr<Access> access, SharedPtr<BlockQuery> query) override
+  {
+    ThrowException("TODO");
+  }
+
+  //convertBlockQueryToRowMajor
+  virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) override {
+    ThrowException("TODO");
+    return true;
+  }
+
+  //createEquivalentBoxQuery
+  virtual SharedPtr<BoxQuery> createEquivalentBoxQuery(int mode, SharedPtr<BlockQuery> block_query) override
+  {
+    ThrowException("TODO");
+    return SharedPtr<BoxQuery>();
+  }
+
+public:
+
+  //________________________________________________
+  //box query stuff
+
+  //createBoxQuery
+  virtual SharedPtr<BoxQuery> createBoxQuery(BoxNi logic_box, Field field, double time, int mode = 'r', Aborted aborted = Aborted()) override
+  {
+    return Dataset::createBoxQuery(logic_box, field, time, mode, aborted); //should be the same
+  }
+
+  //guessBoxQueryEndResolution
+  virtual int guessBoxQueryEndResolution(Frustum logic_to_screen, Position logic_position) override
+  {
+    return Dataset::guessBoxQueryEndResolution(logic_to_screen, logic_position);
+  }
+
+  //fillParams
+    //euristic to map the resolution 'H' to level and mask (e.g. V012012 resolutions in the range [0,6] with 0  -  the first V)
+    /*
+        000000000011111111112222222  IDX2 LEVEL
+        012345678901234567890123456  IDX2 MASK
+        ---------------------------
+        V01012012012012012012012012  IDX1
+
+        Level 0, mask 128 = 256 x 256 x 256\n"); 0 HALF DIM
+        Level 0, mask 64  = 256 x 256 x 128\n"); 1 HALF DIM
+        Level 0, mask 32  = 256 x 128 x 256\n"); 1 HALF DIM
+        Level 0, mask 16  = 128 x 256 x 256\n"); 1 HALF DIM
+        Level 0, mask 8   = 256 x 128 x 128\n"); 2 HALF DIM
+        Level 0, mask 4   = 128 x 256 x 128\n"); 2 HALF DIM
+        Level 0, mask 2   = 128 x 128 x 256\n"); 2 HALF DIM
+        Level 0, mask 1   = 128 x 128 x 128\n"); 3 HALF DIM
+        Level 1, mask 128 = 128 x 128 x 128\n"); ALL HALF DIMENSION
+
+    */
+  LogicSamples getDecodeParams(idx2::params& P, SharedPtr<BoxQuery> query, int H)
+  {
+    auto MaxH = getMaxResolution();
+
+    P.Action = idx2::action::Decode;
+    P.OutMode = idx2::params::out_mode::RegularGridMem; //in memory!
+
+    //what is the logic_box/logic_samples in OpenVisus
+    P.DecodeExtent = idx2::extent(Cast(query->logic_box.p1), Cast(query->logic_box.size())); //first, dims
+
+    auto pdim = getPointDim();
+    VisusAssert(pdim == 3); //todo 2d to
+
+    P.DownsamplingFactor3 = idx2::v3i(0, 0, 0);
+
+    auto bitmask = getBitmask();
+    auto& down = P.DownsamplingFactor3;
+    for (int I = MaxH; I > H; I--)
+    {
+      auto bit = bitmask[I];
+      down[bit] = std::max(1, down[bit]) << 1;
+    }
+
+    //TODO: do i need to strdup???
+    //where is the data
+    P.InputFile = this->idx2_url.c_str(); //keep in memory
+    P.InDir     = "./"; 
+
+    //todo
+    P.DecodeAccuracy = query->accuracy;
+    idx2::Init(this->Idx2, P);
+
+    idx2::grid OutGrid = idx2::GetGrid(*this->Idx2, P.DecodeExtent);
+    idx2::v3i from = idx2::From(OutGrid);
+    idx2::v3i dims = idx2::Dims(OutGrid); //is this the number of samples?
+    idx2::v3i strd = idx2::Strd(OutGrid);
+    PrintInfo("//////////////////////////////////////////");
+    PrintInfo("Bitmask", this->bitmask);
+    PrintInfo("logic_box", query->logic_box);
+    PrintInfo("H", H, "MaxH", MaxH, "down ", Cast(down));
+    PrintInfo("from", Cast(from), "Dims", Cast(dims), "stride", Cast(strd));
+    PrintInfo("Accuracy", P.DecodeAccuracy);
+
+    auto logic_samples = LogicSamples(BoxNi(Cast(from), Cast(from + dims * strd)), Cast(strd));
+    VisusReleaseAssert(logic_samples.logic_box.p1 == Cast(from));
+    VisusReleaseAssert(logic_samples.nsamples == Cast(dims));
+    VisusReleaseAssert(logic_samples.delta == Cast(strd));
+    return logic_samples;
+  }
+
+  //setBoxQueryEndResolution
+  virtual bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int H) override
+  {
+    PrintInfo("IdxDataset2::setBoxQueryEndResolution");
+    auto MaxH = this->bitmask.getMaxResolution();
+
+    VisusReleaseAssert(H >= 0 && H < MaxH);
+    VisusReleaseAssert(query->end_resolution < H);
+
+    idx2::params P;
+    auto logic_samples = getDecodeParams(P, query, H);
+    if (!logic_samples.valid())
+      return false;
+
+    query->logic_samples = logic_samples;
+    query->end_resolution = H;
+    return true;
+  }
+
+  //beginBoxQuery
+  virtual void beginBoxQuery(SharedPtr<BoxQuery> query) override
+  {
+    PrintInfo("IdxDataset2::beginBoxQuery");
+
+    if (!query)
+      return;
+
+    if (query->getStatus() != Query::QueryCreated)
+      return;
+
+    if (query->aborted())
+      return query->setFailed("query aborted");
+
+    if (!query->field.valid())
+      return query->setFailed("field not valid");
+
+    // override time from field
+    if (query->field.hasParam("time"))
+      query->time = cdouble(query->field.getParam("time"));
+
+    if (!getTimesteps().containsTimestep(query->time))
+      return query->setFailed("wrong time");
+
+    if (!query->logic_box.valid())
+      return query->setFailed("query logic_box not valid");
+
+    if (!query->logic_box.getIntersection(this->getLogicBox()).isFullDim())
+      return query->setFailed("user_box not valid");
+
+    if (query->end_resolutions.empty())
+      query->end_resolutions = { this->getMaxResolution() };
+
+
+    for (auto it : query->end_resolutions)
+    {
+      if (!(it >= 0 && it < this->getMaxResolution()))
+        return query->setFailed("wrong end resolution");
+    }
+
+    if (query->start_resolution > 0 && (query->end_resolutions.size() != 1 || query->start_resolution != query->end_resolutions[0]))
+      return query->setFailed("wrong query start resolution");
+
+    for (auto it : query->end_resolutions)
+    {
+      if (setBoxQueryEndResolution(query, it))
+        return query->setRunning();
+    }
+
+    query->setFailed("cannot find a good end_resolution to start with");
+  }
+
+
+  //executeBoxQuery
+  virtual bool executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query) override
+  {
+    PrintInfo("IdxDataset2::executeBoxQuery");
+
+    if (!query)
+      return false;
+
+    if (!(query->isRunning() && query->getCurrentResolution() < query->getEndResolution()))
+      return false;
+
+    if (query->aborted())
+    {
+      query->setFailed("query aborted");
+      return false;
+    }
+
+    if (!query->allocateBufferIfNeeded())
+    {
+      query->setFailed("cannot allocate buffer");
+      return false;
+    }
+
+    idx2::params P;
+    auto logic_samples = getDecodeParams(P, query, query->end_resolution);
+    if (!logic_samples.valid())
+      return false;
+
+    VisusReleaseAssert(logic_samples == query->logic_samples);
+
+    query->allocateBufferIfNeeded();
+    VisusAssert(query->buffer.dims == query->getNumberOfSamples());
+
+    auto buff = idx2::buffer((const idx2::byte*)query->buffer.c_ptr(), query->buffer.c_size());
+    idx2::Init(this->Idx2, P);
+    idx2::Decode(*this->Idx2, P, &buff); //TODO: no aborted?
+    query->setCurrentResolution(query->end_resolution);
+    return true;
+  }
+
+
+  //nextBoxQuery
+  virtual void nextBoxQuery(SharedPtr<BoxQuery> query) override
+  {
+    PrintInfo("IdxDataset2::nextBoxQuery");
+
+    if (!query)
+      return;
+
+    if (!(query->isRunning() && query->getCurrentResolution() == query->getEndResolution()))
+      return;
+
+    //reached the end?
+    if (query->end_resolution == query->end_resolutions.back())
+      return query->setOk();
+
+    auto failed = [&](String reason) {
+      return query->setFailed(query->aborted() ? "query aborted" : reason);
+    };
+
+    auto idx = Utils::find(query->end_resolutions, query->end_resolution);
+    if (!setBoxQueryEndResolution(query, query->end_resolutions[idx + 1]))
+      VisusReleaseAssert(false);
+
+    // no merging supported (will execute the next resolution from scratch)
+    query->buffer = Array();
+  }
+
+  //createBlockQueriesForBoxQuery
+  virtual std::vector<BigInt> createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query) override {
+    ThrowException("TODO");
+    return {};
+  }
+
+  //mergeBoxQueryWithBlockQuery
+  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) override
+  {
+    ThrowException("TODO");
+    return false;
+  }
+
+  //createBoxQueryRequest
+  virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query) override
+  {
+    ThrowException("TODO");
+    return NetRequest();
+  }
+
+  //executeBoxQueryOnServer
+  virtual bool executeBoxQueryOnServer(SharedPtr<BoxQuery> query) override
+  {
+    ThrowException("TODO");
+    return false;
+  }
+
+public:
+
+  //________________________________________________
+  //point query stuff
+
+  //constructor
+  virtual SharedPtr<PointQuery> createPointQuery(Position logic_position, Field field, double time, Aborted aborted = Aborted())
+  {
+    ThrowException("TODO");
+    return SharedPtr<PointQuery>();
+  }
+
+  //createBlockQueriesForPointQuery
+  virtual std::vector<BigInt> createBlockQueriesForPointQuery(SharedPtr<PointQuery> query) {
+    ThrowException("TODO");
+    return {};
+  }
+
+public:
+
+  //readDatasetFromArchive
+  virtual void readDatasetFromArchive(Archive& ar) override
+  {
+    //TODO: only local file so far (with *.idx2 extension)
+    String url = ar.readString("url");
+
+    VisusReleaseAssert(!this->Idx2);
+    this->Idx2 = new idx2::idx2_file;
+    this->idx2_url = url;  //keep in memory
+    idx2::SetDir(this->Idx2, "./");
+
+    if (!idx2::ReadMetaFile(this->Idx2, url.c_str()))
+      ThrowException("problem");
+
+    //if (!idx2::Finalize(this->Idx2))
+    //  ThrowException("problem");
+
+    DType dtype;
+    if (this->Idx2->DType == idx2::dtype::float32) dtype = DTypes::FLOAT32;
+    else if (this->Idx2->DType == idx2::dtype::float64) dtype = DTypes::FLOAT64;
+    else ThrowException("internal error");
+
+    //convert to idx1 and Dataset class
+#if 1
+    PointNi dims(this->Idx2->Dims3[0], this->Idx2->Dims3[1], this->Idx2->Dims3[2]);
+
+    IdxFile idx1;
+    idx1.version = 20;
+    idx1.logic_box = BoxNi(PointNi(0, 0, 0), dims);
+    idx1.bounds = idx1.logic_box;
+    idx1.fields.push_back(Field(this->Idx2->Field, dtype));
+    idx1.validate(url);
+
+    this->dataset_body = StringTree();
+    this->idxfile = idx1;
+    this->bitmask = idx1.bitmask;
+    this->default_bitsperblock = idx1.bitsperblock;
+    this->logic_box = idx1.logic_box;
+    this->timesteps = idx1.timesteps;
+
+    setDatasetBounds(idxfile.bounds);
+
+    for (auto field : idxfile.fields)
+      addField(field);
+#endif
+
+    setDatasetBody(ar);
+    setDefaultAccuracy(0.01);
+  }
+
+private:
+
+  idx2::idx2_file* Idx2 = nullptr;
+  String     idx2_url; //keep in memory
+
+  inline idx2::v3i Cast(PointNi v) {
+    return idx2::v3i((Int32)v[0], (Int32)v[1], (Int32)v[2]);
+  }
+
+  inline PointNi Cast(idx2::v3i v) {
+    return PointNi(v[0], v[1], v[2]);
+  }
+
+};
+
+void RegisterIdxDataset2IfEnabled() {
+  DatasetFactory::getSingleton()->registerDatasetType("IdxDataset2", []() {return std::make_shared<IdxDataset2>(); });
+}
+
 } //namespace Visus
+
+
+#else
+
+namespace Visus {
+
+void RegisterIdxDataset2IfEnabled() {
+}
+
+} //namespace Visus
+
+
+#endif 
+
+
+
+
 
 

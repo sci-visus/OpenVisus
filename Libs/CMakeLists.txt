@@ -1,10 +1,5 @@
 
 add_subdirectory(Kernel)
-
-if (VISUS_IDX2)
-	add_subdirectory(IDX2)
-endif()
-
 add_subdirectory(Db)
 
 if (VISUS_DATAFLOW)
@@ -26,3 +21,10 @@ endif()
 if(VISUS_WEAVING)
 	add_subdirectory(VisusWeaving)
 endif()	
+
+if (VISUS_IDX2)
+	add_subdirectory(IDX2)
+	set_target_properties(idx2App  PROPERTIES FOLDER "Executable")
+	set_target_properties(idx2Core PROPERTIES FOLDER "ExternalLibs/IDX2")
+	set_target_properties(idx2     PROPERTIES FOLDER "ExternalLibs/IDX2")
+endif()

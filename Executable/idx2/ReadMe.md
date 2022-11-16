@@ -21,7 +21,8 @@ aws_access_key_id = XXXXX
 aws_secret_access_key = YYYYY
 ```
 
-Run `CMAKE` and set (note: most visus options are disabled to keep it simple):
+Run `CMAKE` and disable unnecessary stuff:
+
 - VISUS_DATAFLOW=0
 - VISUS_GUI=0
 - VISUS_HDF5=0
@@ -31,7 +32,9 @@ Run `CMAKE` and set (note: most visus options are disabled to keep it simple):
 - VISUS_PYTHON=0
 - VISUS_SLAM=0
 - VISUS_WAVING=0
-- VISUS_IDX2=0 #  NOTE: this refers to the OLD hyphotesis of having a full IDX2 library working inside OpenVisus viewer
+
+But enable:
+- VISUS_IDX2=1
 - VISUS_NET=1  # we need libcurl for network requests
 
 Then run the `visus_idx2` binary.
