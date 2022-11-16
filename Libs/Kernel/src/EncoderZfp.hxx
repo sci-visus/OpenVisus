@@ -74,7 +74,7 @@ public:
     //example:
     //  zfp-<encode_spec>-<decode_spec> 
     //  specs:=(reversible) | (precision=<num::int>) | (accuracy=<value::double>)
-    auto v = StringUtils::split("-");
+    auto v = StringUtils::split(specs,"-");
     VisusReleaseAssert(v.size() == 3);
     VisusReleaseAssert(v[0] == "zfp");
     this->encode_specs = StringUtils::trim(v[1]);
@@ -133,8 +133,29 @@ public:
       return zfp;
     }
 
-    VisusReleaseAssert(false); //todo other cases
-    return zfp;
+    //a double
+    {
+      double accuracy = 0;
+      if (StringUtils::tryParse(specs, accuracy))
+      {
+        zfp_stream_set_accuracy(zfp, accuracy);
+        return zfp;
+      }
+    }
+
+
+    //a integer
+    {
+      int precision = 0;
+      if (StringUtils::tryParse(specs, precision))
+      {
+        zfp_stream_set_precision(zfp, precision);
+        return zfp;
+      }
+    }
+
+    VisusReleaseAssert(false);
+    return nullptr;
   }
 
   //encode
@@ -143,11 +164,17 @@ public:
     if (!decoded)
       return SharedPtr<HeapMemory>();
 
-    auto pdim = dims.getPointDim();
-    VisusReleaseAssert(pdim == 3);
     VisusReleaseAssert(dtype.ncomponents()==1);
 
-    zfp_field* field = zfp_field_3d(decoded->c_ptr(), getZfpType(dtype), dims[0], dims[1], dims[2]);
+    auto pdim = dims.getPointDim();
+    zfp_field* field = nullptr;
+    if (pdim == 2)
+      field = zfp_field_2d(decoded->c_ptr(), getZfpType(dtype), dims[0], dims[1]);
+
+    else if (pdim == 3)
+      field = zfp_field_3d(decoded->c_ptr(), getZfpType(dtype), dims[0], dims[1], dims[2]);
+    else
+      VisusReleaseAssert(false); //should I support this?
 
     zfp_stream* zfp = createStream(encode_specs);
 
@@ -179,15 +206,23 @@ public:
     if (!encoded)
       return SharedPtr<HeapMemory>();
     
-    auto pdim = dims.getPointDim();
-    VisusReleaseAssert(pdim == 3);
+    
     VisusReleaseAssert(dtype.ncomponents() == 1);
 
     auto decoded = std::make_shared<HeapMemory>();
     if (!decoded->resize(dtype.getByteSize(dims), __FILE__, __LINE__))
       return SharedPtr<HeapMemory>();
 
-    zfp_field* field = zfp_field_3d(decoded->c_ptr(), getZfpType(dtype), dims[0], dims[1], dims[2]);
+    zfp_field* field = nullptr;
+    
+    auto pdim = dims.getPointDim();
+    if (pdim == 2)
+      field = zfp_field_2d(decoded->c_ptr(), getZfpType(dtype), dims[0], dims[1]);
+    else if (pdim == 3)
+      field = zfp_field_3d(decoded->c_ptr(), getZfpType(dtype), dims[0], dims[1], dims[2]);
+    else
+      VisusAssert(false);//should I support this?
+
     zfp_stream* zfp = createStream(decode_specs);
 
     bitstream* stream = stream_open(encoded->c_ptr(), encoded->c_size());
