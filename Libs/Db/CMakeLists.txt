@@ -42,7 +42,7 @@ target_compile_definitions(VisusDb  PRIVATE VISUS_BUILDING_VISUSDB=1)
 target_include_directories(VisusDb PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 if (VISUS_IDX2)
-	target_compile_features(VisusDb    PRIVATE cxx_std_17)
+	target_compile_features(VisusDb    PRIVATE cxx_std_17) # PROBLEM here: do we really need C++17?
 	target_compile_definitions(VisusDb PRIVATE -DVISUS_IDX2=1)
 	target_compile_definitions(VisusDb PRIVATE -Didx2_Avx2)
 	target_compile_definitions(VisusDb PRIVATE "$<$<CONFIG:DEBUG>:idx2_Slow>")

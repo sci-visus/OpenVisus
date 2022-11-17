@@ -38,11 +38,7 @@ macro(DetectAndSetupCompiler)
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 	set(CMAKE_CXX_STANDARD_REQUIRED     ON)
 	
-	if (VISUS_IDX2)
-		set(CMAKE_CXX_STANDARD 17)
-	else()
-		set(CMAKE_CXX_STANDARD 11)
-	endif()
+	set(CMAKE_CXX_STANDARD 11)
 	
 	#minimum support is Vista
 	if (MINGW)
