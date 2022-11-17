@@ -211,10 +211,13 @@ public:
       down[bit] = std::max(1, down[bit]) << 1;
     }
 
-    //TODO: do i need to strdup???
     //where is the data
     P.InputFile = this->idx2_url.c_str(); //keep in memory
-    P.InDir     = "./"; 
+
+    // <whatever>/Miranda/Viscosity/...data...
+    // <whatever>/Miranda/Viscosity.idx2
+    // i need to go just after <whatever>
+    P.InDir = StringUtils::replaceAll(Path(this->idx2_url).getParent().getParent().toString(),"\\","/").c_str();
 
     //todo
     P.DecodeAccuracy = query->accuracy;
