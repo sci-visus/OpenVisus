@@ -44,7 +44,7 @@ For support : support@visus.net
 
 #if VISUS_IDX2
 
-#include <Source/idx2.h>
+#include <idx2.h>
 
 namespace Visus {
 
