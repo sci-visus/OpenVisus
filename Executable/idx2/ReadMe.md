@@ -45,3 +45,8 @@ TODO:
 - add DiskAccess      (need to work without a dataset)
 - add MemoryAccess    (need to work without a dataset)
 - add MultiplexAccess (need to work without a dataset)
+
+```
+idx2App --decode Miranda/Viscosity.idx2 --downsampling 1 1 1 --tolerance 0.001 --first 0 0 128 --last 383 383 128
+python3 Samples/python/idx2_convert.py Miranda-Viscosity-[193-193-1]-float64-accuracy-0.001000.raw out.tiff
+```
