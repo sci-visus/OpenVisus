@@ -248,6 +248,24 @@ void IdxFile::validate(String url)
   //filename_template
   if (filename_template.empty())
     filename_template = guessFilenameTemplate(url);
+
+#if 1
+  //adjust some stuff specific for arco
+  if (this->arco > 0)
+  {
+    this->blocksperfile = 1;
+
+    //guess bitsperblock
+    auto max_h = this->bitmask.getMaxResolution();
+    int max_fieldsize = 0;
+    for (auto field : this->fields)
+      max_fieldsize = Utils::max(max_fieldsize, field.dtype.getByteSize());
+    this->bitsperblock = Utils::min(max_h,int(log2(arco / max_fieldsize)));
+
+    this->arco = (1 << bitsperblock) * max_fieldsize;
+  }
+#endif
+
 }
 
 //////////////////////////////////////////////////////////////////////////////

@@ -110,7 +110,7 @@ public:
 
     if (!encoded->resize(zbound, __FILE__, __LINE__))
       return SharedPtr<HeapMemory>();
-
+    
     return encoded;
   }
 

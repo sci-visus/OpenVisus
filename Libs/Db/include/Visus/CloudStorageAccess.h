@@ -88,6 +88,7 @@ private:
   String                   filename_template;
 
 
+
 };
 
 } //namespace Visus

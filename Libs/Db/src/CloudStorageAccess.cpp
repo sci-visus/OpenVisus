@@ -87,13 +87,15 @@ CloudStorageAccess::~CloudStorageAccess()
 {
 }
 
+
 ///////////////////////////////////////////////////////////////////////////////////////
 String CloudStorageAccess::getFilename(Field field, double time, BigInt blockid) const
 {
   //example: if url is s3://bucket/whatever/here/visus.idx
   //         prefix will be s3://bucket/whatever/here/visus
   auto prefix = Path(url.getPath()).withoutExtension();
-
+    
+  auto compression = guessCompression(field);
   auto ret = Access::getBlockFilename(this->filename_template, field, time, compression, blockid, reverse_filename);
 
   //s3://bucket/... -> /bucket/...
@@ -102,6 +104,7 @@ String CloudStorageAccess::getFilename(Field field, double time, BigInt blockid)
 
   return ret;
 }
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -114,10 +117,12 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
     if (!blob || !blob->valid())
       return readFailed(query, query->aborted()? "query aborted" : "blob not valid");
 
+    auto compression = guessCompression(query->field);
+
     //special case for idx2 where I just want to data as it is
     if (!query->getNumberOfSamples().innerProduct())
     {
-      blob->metadata.setValue("visus-compression", this->compression);
+      blob->metadata.setValue("visus-compression", compression);
       blob->metadata.setValue("visus-dtype", DTypes::UINT8.toString());
       blob->metadata.setValue("visus-nsamples", cstring(blob->body->c_size()));
       blob->metadata.setValue("visus-layout", this->layout);
@@ -125,7 +130,7 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
     else
     {
       VisusAssert((int)query->getNumberOfSamples().innerProduct() == (1 << bitsperblock));
-      blob->metadata.setValue("visus-compression", this->compression);
+      blob->metadata.setValue("visus-compression", compression);
       blob->metadata.setValue("visus-dtype", query->field.dtype.toString());
       blob->metadata.setValue("visus-nsamples", query->getNumberOfSamples().toString());
       blob->metadata.setValue("visus-layout", this->layout);
@@ -150,8 +155,10 @@ void CloudStorageAccess::writeBlock(SharedPtr<BlockQuery> query)
 {
   //NOTE: do not use this function for anything different from experimental idx2
 
+  auto compression = guessCompression(query->field);
+
   auto decoded = query->buffer;
-  auto encoded = ArrayUtils::encodeArray(this->compression, decoded);
+  auto encoded = ArrayUtils::encodeArray(compression, decoded);
   if (!encoded)
     return writeFailed(query, "Failed to encode data");
 

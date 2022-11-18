@@ -202,27 +202,7 @@ def RemoveFiles(pattern):
 			os.remove(it)
 		else:
 			shutil.rmtree(os.path.abspath(it),ignore_errors=True)		
-		
-# ////////////////////////////////////////////////////////////////////////////////////////
-def ReplaceFile(filename, new_content):
 
-	assert os.path.isfile(filename)
-
-	temp_filename=filename + ".temp"
-	if os.path.isfile(temp_filename): 
-		os.remove(temp_filename)
-	
-	os.rename(filename,temp_filename)
-
-	try:
-		with open(filename,"wb") as f:
-			f.write(new_content)
-	except:
-		os.rename(temp_filename,filename) # put back the old file
-		raise
-
-	# all ok, remove the old file
-	os.remove(temp_filename)
 
 # ////////////////////////////////////////////////////////////////////////////////
 def TryRemoveFiles(mask):

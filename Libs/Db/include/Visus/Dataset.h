@@ -382,6 +382,15 @@ public:
   //getBlockQuerySamples
   LogicSamples getBlockQuerySamples(BigInt blockid, int& H);
 
+  //getBlockQuerySamples (for swig)
+  LogicSamples getBlockQuerySamples(BigInt blockid) {
+    int H=0; auto samples=getBlockQuerySamples(blockid,H); return samples;
+  }
+
+  //getBlockQueryLevel (for swig)
+  int getBlockQueryLevel(BigInt blockid) {
+    int H=0; auto samples = getBlockQuerySamples(blockid, H); return H;
+  }
 
   //readBlock  
   virtual void executeBlockQuery(SharedPtr<Access> access, SharedPtr<BlockQuery> query);

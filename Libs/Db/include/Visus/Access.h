@@ -259,6 +259,12 @@ public:
   //getBlockFilename
   static String getBlockFilename(String filename_template, Field field, double time, String compression, BigInt blockid,bool reverse_filename);
 
+
+  //guessCompression (the field override anything if specified)
+  String guessCompression(Field field) const {
+    return !field.default_compression.empty() ? field.default_compression : this->compression;
+  }
+
 private:
 
   int mode=0;

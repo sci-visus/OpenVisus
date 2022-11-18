@@ -8,83 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 
-# ////////////////////////////////////////////////////////////////////////////////////////
-"""
-
-  IDX File format
-
-  FileHeader == Uint32[10]== all zeros (not used)
-
-  class BlockHeader
-  {
-    Uint32  prefix_0    = 0; //not used
-    Uint32  prefix_1    = 0; 
-    Uint32  offset_low  = 0;
-    Uint32  offset_high = 0;
-    Uint32  size        = 0;
-    Uint32  flags       = 0;
-    Uint32  suffix_0    = 0; //not used
-    Uint32  suffix_1    = 0; //not used
-    Uint32  suffix_2    = 0; //not used
-    Uint32  suffix_3    = 0; //not used
-	};
-
-  enum
-  {
-    NoCompression = 0,
-    ZipCompression = 0x03,
-    JpgCompression = 0x04,
-    //ExrCompression =0x05,
-    PngCompression = 0x06,
-    Lz4Compression = 0x07,
-    ZfpCompression = 0x08,    
-    CompressionMask = 0x0f
-  };
-
-  enum
-  {
-    FormatRowMajor = 0x10
-  };
-"""
-
-
-
-
-# ////////////////////////////////////////////////////////////////////////////////////////
-def NormalizeArcoArg(value):
-	
-	"""
-	Example: modvisus | 0 | 1mb | 512kb
-	"""
-
-	if value is None or value=="modvisus":
-		return 0
-	
-	if isinstance(value,str):
-		return StringUtils.getByteSizeFromString(value)  
-	
-	assert(isinstance(value,int))
-	return int(value)
-
-
-# ////////////////////////////////////////////////////////////////////////////////////////
-def CreateAccess(db,for_writing=False):
-
-	"""
-	this function will create a local access if the *.idx file is local (e.g. IdxDiskAccess or DiskAccess)
-	if the *.idx is remote will guess if to create a ModVisusAccess or a CloudStorageAccess
-
-	see Dataset::createAccess
-	"""
-	ret=db.createAccessForBlockQuery()
-
-	# important for writing to disable compression otherwise I will spend most of the time to compress/uncompress
-	# blocks during the writing (remember that convert may need to write the same block several times to interleave samples from different levels)
-	if for_writing:
-		ret.disableWriteLock()
-		ret.disableCompression()
-	return ret
-
 
 # /////////////////////////////////////////////////////////////////////////////
 class CopyBlocks:
@@ -142,7 +65,7 @@ class CopyBlocks:
 		src,dst=self.src,self.dst
 		logger.info(f"Copying blocks time({self.time}) field({self.field.name}) A({A}) B({B}) ...")
 
-		waccess=CreateAccess(dst, for_writing=True)
+		waccess=dst.createAccessForBlockQuery(for_writing=True)
 
 		# for mod_visus there is the problem of aggregation (Ii.e. I need to call endRead to force the newtork request)
 		if "mod_visus" in src.getUrl():
@@ -151,7 +74,7 @@ class CopyBlocks:
 			raccess=src.createAccessForBlockQuery(StringTree.fromString("<access type='ModVisusAccess' chmod='r'  compression='zip' nconnections='1'  num_queries_per_request='1073741824' />"))
 		else:
 			num_read_per_request=1
-			raccess=CreateAccess(src,for_writing=False)
+			raccess=src.createAccessForBlockQuery(for_writing=False)
 
 		read_blocks=[]
 		aborted=Aborted()
@@ -174,107 +97,149 @@ class CopyBlocks:
 		raccess.endRead()
 		waccess.endWrite()
 
-	@staticmethod
-	def Main(args):
-		logger.info(f"CopyBlocks args={args}")
-		parser = argparse.ArgumentParser(description="Copy blocks")
-		parser.add_argument("--src","--source", type=str, help="source", required=True,default="")
-		parser.add_argument("--dst","--destination", type=str, help="destination", required=True,default="") 
-		parser.add_argument("--field", help="field"  , required=False,default="") 
-		parser.add_argument("--time", help="time", required=False,default="") 
-		parser.add_argument("--num-threads", help="number of threads", required=False,type=int, default=4)
-		parser.add_argument("--num-read-per-request", help="number of read block per network request (only for mod_visus)", required=False,type=int, default=256)
-		parser.add_argument("--verbose", help="Verbose", required=False,action='store_true') 
-		args = parser.parse_args(args)
 
-		# load src and destination dataset
-		src=LoadDataset(args.src); Assert(src)
+# ////////////////////////////////////////////////////////////////////////////////////////
+def SafeReplaceFile(filename, new_content):
 
-		# can in which destination  *.idx does not exist
-		if not os.path.isfile(args.dst):
-			src.db.idxfile.createNewOne(args.dst)
-		dst=LoadDataset(args.dst)
+	assert os.path.isfile(filename)
 
-		copier=CopyBlocks(src,dst,time=args.time,field=args.field,num_read_per_request=args.num_read_per_request, verbose=args.verbose)
+	temp_filename=filename + ".temp"
+	
+	# remove the old file
+	if os.path.isfile(temp_filename): 
+		os.remove(temp_filename)
+	
+	# rename the old file to tmp
+	os.rename(filename,temp_filename)
 
-		tot_blocks=src.getTotalNumberOfBlocks()
-
-		nthreads=args.num_threads
-		num_per_thread=tot_blocks//nthreads
-		logger.info(f"tot_blocks={tot_blocks} nthreads={nthreads} num_per_thread={num_per_thread}")
-
-		if nthreads<=1:
-			copier.doCopy(0,tot_blocks)
+	try:
+		if callable(new_content):
+			new_content()
 		else:
-			threads=[]
-			for I in range(nthreads):
-				A=(I+0)*num_per_thread
-				B=(I+1)*num_per_thread if I<(nthreads-1) else tot_blocks
-				threads.append(Thread(target=CopyBlocks.doCopy, args=(copier,A,B)))
-			for t in threads: t.start()
-			for t in threads: t.join()
+			with open(filename,"wb") as f: 
+				f.write(new_content)
+
+		os.remove(temp_filename)
+
+	except:
+		os.rename(temp_filename,filename) # put back the old file
+		raise # let outside known anyway
 
 
 # ////////////////////////////////////////////////////////////////////////////////////////
-def CompressArcoDataset(idx_filename:str=None, compression="zip", num_threads=32, level=-1,timestep=None,field=None):
-
-	# ________________________________________________________________________
-	def Decompress(mem):
-		try:
-			return zlib.decompress(mem) 
-		except:
-			return None
-
-	# ________________________________________________________________________
-	def CompressArcoBlock(filename):
+def CompressArcoBlock(compression,dims,dtype,filename, use_python_zlib=False):
+		
+	# use the python version (working only for zip files)
+	if compression=="zip" and use_python_zlib :
 		with open(filename,"rb") as f: raw=f.read()	
-		if Decompress(raw):  
+		try:
+			zlib.decompress(raw)
 			logger.info(f"{filename} already compressed")
-		else:
-			encoded=zlib.compress(raw,level=level) # https://docs.python.org/3/library/zlib.html#zlib.compress
-			ReplaceFile(filename, encoded)
-			logger.info(f"CompressArcoBlock done {filename}")
+			return
+		except:
+			pass
+		encoded=zlib.compress(raw,level=-1)
+		SafeReplaceFile(filename,encoded)
+		logger.info(f"CompressArcoBlock done {filename}")
+	else:
+		# use OpenVisus encoders
+		decoded=LoadBinaryDocument(filename)
 
-	# ________________________________________________________________________
-	def UncompressArcoBlock(filename):
-		with open(filename,"rb") as f: encoded=f.read()	
-		raw=Decompress(encoded)
-		if not raw: 
-			logger.info(f"{filename} already uncompressed")
-		else:
-			ReplaceFile(filename, raw)
-			logger.info(f"UncompressArcoBlock done {filename}")
+		# already encoded, do nothing
+		if decoded.c_size()!=dtype.getByteSize(dims):
+			logger.info(f"{filename} already compressed, skipping")
+			return
 
-	# NOTE: this code is making some assumptions (like bin files should be inside the same diretory of *.idx and should have a certain patter)
-	# for arco I am assuming always the same pattern 
-	# /prefix/to/named/db/<basename>.idx
-	# /prefix/to/named/db/<basename>/<time>/<field>/0000/.... (see DiskAccess.cpp and CloudStorageAccess.cpp)
-	pattern=os.path.splitext(idx_filename)[0]
-	
-	if timestep is not None:
-		pattern=os.path.join(pattern,str(timestep))
+		encoded = Encode(compression, dims,dtype, decoded)
 
-	if field  is not None:
-		pattern=os.path.join(pattern,str(field))
-	
-	pattern=os.path.join(pattern,"**/*.bin")
-	filenames=glob.glob(pattern,recursive=True)
+		# otherwise in rehentrant code I can call twice the Encode
+		assert encoded 
+		assert encoded.c_size()!=decoded.c_size() 
 
-	assert LoadIdxDataset(idx_filename).idxfile.arco
-	T1=time.time()
-	p=ThreadPool(num_threads)
-	logger.info('Compressing ARCO dataset...' if compression else "Uncompressing ARCO dataset...")
-	p.map(CompressArcoBlock if compression else UncompressArcoBlock, filenames)
-	logger.info(f"CompressDataset done in {time.time()-T1} seconds")
+		SafeReplaceFile(filename, lambda: SaveBinaryDocument(filename,encoded))
+		logger.info(f"CompressArcoBlock done {filename}")
 
 # ////////////////////////////////////////////////////////////////////////////////////////
-def CompressModVisusDataset(idx_filename:str=None, compression="zip", num_threads=32, level=-1,timestep=None,field=None):
+def CompressArcoDataset(db, compression="zip", num_threads=32, timestep=None,field=None):
 
+	T1=time.time()
+	timesteps=[int(it) for it in db.getTimesteps().asVector()] if timestep is None else [int(timestep)]
+	fields   = db.getFields() if field is None else [str(field)]
+
+	logger.info(f'Compressing ARCO dataset compression={compression} num_threads={num_threads} ...')
+
+	# i use this only for filenames
+	access=db.createAccessForBlockQuery() 
+
+	logger.info('Collecting blocks to compress...')
+	ARGS=[]
+	for timestep in timesteps:
+		for field in fields:
+			for blockid in range(db.getTotalNumberOfBlocks()):
+				dtype=field.dtype
+				dims=db.getBlockQuerySamples(blockid).nsamples
+				filename=access.getFilename(field,float(timestep),blockid)
+				args=(compression, dims, dtype, filename)
+				logger.info(f"compression={compression} dims=[{dims.toString()}] dtype={dtype.toString()} filename={filename}")
+				ARGS.append(args)
+	logger.info('Starting the compression...')
+	p=ThreadPool(num_threads)
+	p.map(lambda args: CompressArcoBlock(*args), ARGS)
+	SEC=time.time()-T1
+	logger.info(f"CompressArcoDataset done in {SEC} seconds")
+	# TODO: do I need to save the new idx with field.default_compression? Essentially I need to check DiskAcess and CloudAccess that assume zip as defaults
+
+# ////////////////////////////////////////////////////////////////////////////////////////
+def CompressModVisusDataset(db, compression="zip", num_threads=32, timestep=None,field=None):
+
+	"""
+
+	  IDX File format
+
+	  FileHeader == Uint32[10]== all zeros (not used)
+
+	  class BlockHeader
+	  {
+		Uint32  prefix_0    = 0; //not used
+		Uint32  prefix_1    = 0; 
+		Uint32  offset_low  = 0;
+		Uint32  offset_high = 0;
+		Uint32  size        = 0;
+		Uint32  flags       = 0;
+		Uint32  suffix_0    = 0; //not used
+		Uint32  suffix_1    = 0; //not used
+		Uint32  suffix_2    = 0; //not used
+		Uint32  suffix_3    = 0; //not used
+		};
+
+	  enum
+	  {
+		NoCompression = 0,
+		ZipCompression = 0x03,
+		JpgCompression = 0x04,
+		//ExrCompression =0x05,
+		PngCompression = 0x06,
+		Lz4Compression = 0x07,
+		ZfpCompression = 0x08,    
+		CompressionMask = 0x0f
+	  };
+
+	  enum
+	  {
+		FormatRowMajor = 0x10
+	  };
+	"""
+
+	assert not db.idxfile.arco
+
+	# TODO: the C++ version is deprecated but it is the only one to handle with other compression schemes (lz4, zfp, etc)
+	#       in the future we need to modify this function to handle with these cases
+	#       for now just consider the non-zip version is slower and needs improvement
+	if compression!="zip":
+		return db.compressDataset([compression])
+	
 	T1=time.time()
 	UNCOMPRESSED_SIZE,COMPRESSED_SIZE=0,0
-
-	db=LoadIdxDataset(idx_filename)
-	assert not db.idxfile.arco
 	
 	# modvisus compress or decompress
 	CompressionMask, ZipMask=0x0f,0x03
@@ -289,8 +254,7 @@ def CompressModVisusDataset(idx_filename:str=None, compression="zip", num_thread
 	# doing compression at file level
 	filenames=db.getFilenames(
 		timestep if timestep is not None else -1, # any negative number will work for all timesteps
-		field if field is not None else ""
-	)
+		field if field is not None else "")
 
 	for filename in filenames:
 
@@ -323,17 +287,19 @@ def CompressModVisusDataset(idx_filename:str=None, compression="zip", num_thread
 			# note: it automatically detect if it's already compressed or not, so the code should be robust
 			if flags_compression == ZipMask:
 				decompressed=zlib.decompress(block)
-			else:
-				assert(flags_compression==0)
+			elif flags_compression==0:
 				decompressed=block
+			else:
+				assert(False) # TODO OTHER CASE
+
 			assert len(decompressed)==blocksize
 			nonlocal full_size
 			full_size+=blocksize
 
 			if compression=="zip":
-				compressed=zlib.compress(decompressed,level=level) # https://docs.python.org/3/library/zlib.html#zlib.compress
+				compressed=zlib.compress(decompressed,level=-1) # https://docs.python.org/3/library/zlib.html#zlib.compress
 			else:
-				compressed=decompressed # uncompress
+				assert(False) # TODO OTHER CASE
 
 			return (B,compressed)
 
@@ -359,7 +325,7 @@ def CompressModVisusDataset(idx_filename:str=None, compression="zip", num_thread
 			mem[offset:offset+size]=compressed; offset+=size
 		assert offset==compressed_size
 
-		ReplaceFile(filename, mem)
+		SafeReplaceFile(filename, mem)
 		del mem
 
 		ratio=int(100*compressed_size/full_size)
@@ -368,15 +334,9 @@ def CompressModVisusDataset(idx_filename:str=None, compression="zip", num_thread
 		logger.info(f"Compressed {filename}  in {time.time()-t1} ratio({ratio}%)")
 
 	RATIO=int(100*COMPRESSED_SIZE/UNCOMPRESSED_SIZE)
-	logger.info(f"CompressDataset done in {time.time()-T1} seconds {RATIO}%")
+	logger.info(f"CompressModVisusDataset done in {time.time()-T1} seconds {RATIO}%")
+	# NOTE: I don't need to save the new idx since it will be the block header telling the real compression
 
-# ////////////////////////////////////////////////////////////////////////////////////////
-def CompressDataset(idx_filename:str=None, compression="zip", num_threads=32, level=-1,timestep=None,field=None):
-	db=LoadIdxDataset(idx_filename)
-	if db.idxfile.arco:
-		CompressArcoDataset(idx_filename,compression=compression,num_threads=num_threads,level=level,timestep=timestep,field=field)
-	else:
-		CompressModVisusDataset(idx_filename,compression=compression,num_threads=num_threads,level=level,timestep=timestep,field=field)
 
 # ////////////////////////////////////////////////////////////////////////
 def ConvertImageStack(src:str, dst:str, arco="modvisus"):
@@ -439,38 +399,29 @@ def ConvertImageStack(src:str, dst:str, arco="modvisus"):
 		arco=arco)
 
 	assert(db.getMaxResolution()>=bitsperblock)
-	access=CreateAccess(db, for_writing=True)
+	access=db.createAccessForBlockQuery(for_writing=True)
 	db.writeSlabs(generator, access=access)
 
 	logger.info(f"ConvertImageStack DONE in {time.time()-T1} seconds")
 
 
 # ////////////////////////////////////////////////////////////////////////////
-def CopyDataset(src:str, dst:str, arco="modvisus", tile_size:int=None, timestep:int=None, field:str=None,num_attempts:int=3):
+def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=None, field:str=None,num_attempts:int=3):
 
 	arco=NormalizeArcoArg(arco)
+
+	src=SRC.getUrl()
 
 	logger.info(f"CopyDataset {src} {dst} arco={arco}")
 	T1=time.time()
 	SRC=LoadIdxDataset(src)
 	
 	dims=[int(it) for it in SRC.getLogicSize()]
-	max_h=SRC.getMaxResolution()
 	all_fields=SRC.getFields()
 	all_timesteps=[int(it) for it in SRC.getTimesteps().asVector()]
-	max_fieldsize=max([SRC.getField(it).dtype.getByteSize() for it in all_fields])
 
 	timesteps_to_convert=all_timesteps if timestep is None else [int(timestep)]
 	fields_to_convert   =all_fields    if field    is None else [str(field)]
-
-	# guess bitsperblock
-	bitsperblock = int(math.log2(arco // max_fieldsize)) if arco else 16
-	if bitsperblock>max_h:
-		bitsperblock=max_h
-	assert(bitsperblock<=max_h)
-
-	# adjust arco if needed
-	arco=(2**bitsperblock)*max_fieldsize if arco else 0
 
 	Dfields=[]
 	for fieldname in all_fields:
@@ -484,12 +435,10 @@ def CopyDataset(src:str, dst:str, arco="modvisus", tile_size:int=None, timestep:
 		dims=dims,
 		time=[all_timesteps[0],all_timesteps[-1],"%00000d/"],
 		fields=Dfields,
-		bitsperblock=bitsperblock, 
-		arco=arco
-	)
+		arco=arco)
 	
-	Saccess=CreateAccess(SRC, for_writing=False) 
-	Daccess=CreateAccess(DST, for_writing=True) 
+	Saccess=SRC.createAccessForBlockQuery(for_writing=False) 
+	Daccess=DST.createAccessForBlockQuery(for_writing=True) 
 
 	pdim=SRC.getPointDim()
 	assert pdim==2 or pdim==3 # TODO other cases
@@ -561,6 +510,7 @@ def CopyDataset(src:str, dst:str, arco="modvisus", tile_size:int=None, timestep:
 	Daccess.endWrite()
 
 	logger.info(f"CopyDataset src={src} dst={dst} done in {time.time()-T1:.2f} seconds")
+	return DST
 
 
  

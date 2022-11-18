@@ -495,11 +495,16 @@ std::vector<String> Dataset::getFilenames(int user_timestep,String user_field)
 ///////////////////////////////////////////////////////////////////////////////////
 void Dataset::compressDataset(std::vector<String> compression, Array data)
 {
+  PrintWarning("NOTE: Dataset::compressDataset is deprecated, use python version");
+
   auto idx = dynamic_cast<IdxDataset*>(this);
   VisusReleaseAssert(idx);
 
   // for future version: here I'm making the assumption that a file contains multiple fields
   if (idxfile.version != 6)
+    ThrowException("unsupported");
+
+  if (idxfile.arco)
     ThrowException("unsupported");
 
   //PrintInfo("Compressing dataset", StringUtils::join(compression));
@@ -2130,9 +2135,9 @@ void Dataset::computeFilter(const Field& field, int window_size, bool bVerbose)
   for (int D = 0; D < getPointDim(); D++)
     sliding_box[D] = window_size;
 
-  auto acess = createAccess();
+  auto access = createAccess();
   for (auto time : getTimesteps().asVector())
-    computeFilter(filter, time, field, acess, sliding_box, bVerbose);
+    computeFilter(filter, time, field, access, sliding_box, bVerbose);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

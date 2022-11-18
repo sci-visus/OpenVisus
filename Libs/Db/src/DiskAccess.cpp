@@ -53,7 +53,7 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   this->can_write         = StringUtils::find(config.readString("chmod", DefaultChMod),"w")>=0;
   this->path              = Path(config.readString("dir","."));
   this->bitsperblock      = default_bitsperblock;
-  this->compression       = config.readString("compression", "zip");
+  this->compression       = config.readString("compression", Url(dataset->getUrl()).getParam("compression", "zip"));
 
   Url url = config.hasAttribute("url") ? config.readString("url") : dataset->getUrl();
   Path path = Path(url.getPath());
@@ -77,6 +77,7 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
 String DiskAccess::getFilename(Field field,double time,BigInt blockid) const
 {
   auto reverse_filename = false;
+  auto compression = guessCompression(field);
   return Access::getBlockFilename(filename_template, field, time, compression, blockid, reverse_filename);
 }
 
@@ -100,7 +101,7 @@ void DiskAccess::releaseWriteLock(SharedPtr<BlockQuery> query)
 void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
 {
   Int64  blockdim  = query->field.dtype.getByteSize(getSamplesPerBlock());
-  String filename  = Access::getFilename(query);
+  String filename  = Access::getFilename(query); 
 
   if (filename.empty())
     return readFailed(query,"filename empty");
@@ -119,8 +120,10 @@ void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
   if (!file.read(0,encoded->c_size(), encoded->c_ptr()))
     return readFailed(query,"cannot read encoded data");
 
+  auto compression = guessCompression(query->field);
+
   auto nsamples = query->getNumberOfSamples();
-  auto decoded=ArrayUtils::decodeArray(this->compression,nsamples,query->field.dtype, encoded);
+  auto decoded=ArrayUtils::decodeArray(compression,nsamples,query->field.dtype, encoded);
   if (!decoded.valid())
     return readFailed(query,"cannot decode data");
 
@@ -164,8 +167,10 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
     return writeFailed(query,"cannot create file or directory");
   }
 
+  auto compression = guessCompression(query->field);
+
   auto decoded=query->buffer;
-  auto encoded=ArrayUtils::encodeArray(this->compression,decoded);
+  auto encoded=ArrayUtils::encodeArray(compression,decoded);
   if (!encoded)
   {
     PrintInfo("Failed to write block filename", filename, "encodeArray failed");
