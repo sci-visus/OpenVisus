@@ -7,7 +7,7 @@ set_target_properties(visus_idx2 PROPERTIES FOLDER "Executable/")
 add_executable(idx2App 
 	${CMAKE_SOURCE_DIR}/Libs/IDX2/README.md 
 	${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Applications/idx2App.cpp 
-	${CMAKE_SOURCE_DIR}/Samples/python/idx2_convert.py)
+	${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Applications/idx2_convert.py)
 target_link_libraries(idx2App PRIVATE VisusDb)
 target_compile_features(idx2App PRIVATE cxx_std_17) # PROBLEM here: do we really need C++17?
 set_target_properties(idx2App PROPERTIES FOLDER "Executable/")

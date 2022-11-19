@@ -21,18 +21,7 @@ source_group("Idx" FILES ${IdxSources})
 FILE(GLOB TutorialSources ${CMAKE_SOURCE_DIR}/Samples/cpp/*.cpp src/SelfTest*.cpp)
 source_group("Samples\\cpp" FILES ${TutorialSources})
 
-# NOTE: I am not using the IDX2 original CMakeList.txt so I have more "freedom" to change stuff
-#       but if anything is going to change in IDX, you MUST keep this up-to-date
-if (VISUS_IDX2)
-	FILE(GLOB        Idx2Sources  ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/*.h ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/*.cpp
-		                          ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/idx2.h   ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/idx2.cpp)
-	list(REMOVE_ITEM Idx2Sources  ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/Core.cpp)
-	source_group("Idx2" FILES ${Idx2Sources})
-else()
-	set(Idx2Sources "")
-endif()
-
-file(GLOB Sources include/Visus/*.h src/*.cpp ${TutorialSources} ${Idx2Sources})
+file(GLOB Sources include/Visus/*.h src/*.cpp ${TutorialSources})
 add_library(VisusDb ${Sources})
 
 set_target_properties(VisusDb PROPERTIES FOLDER "")
@@ -41,19 +30,26 @@ target_compile_definitions(VisusDb  PRIVATE VISUS_BUILDING_VISUSDB=1)
 
 target_include_directories(VisusDb PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
+# NOTE: I am not using the IDX2 original CMakeList.txt so I have more "freedom" to change stuff
+#       but if anything is going to change in IDX, you MUST keep this up-to-date
 if (VISUS_IDX2)
-	target_compile_features(VisusDb    PRIVATE cxx_std_17) # PROBLEM here: do we really need C++17?
-	target_compile_definitions(VisusDb PRIVATE -DVISUS_IDX2=1)
-	target_compile_definitions(VisusDb PRIVATE -Didx2_Avx2)
-	target_compile_definitions(VisusDb PRIVATE "$<$<CONFIG:DEBUG>:idx2_Slow>")
-	target_include_directories(VisusDb PRIVATE ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source)
+	FILE(GLOB        Idx2Sources  ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/*.h ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/*.cpp
+		                          ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/idx2.h   ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/idx2.cpp)
+	list(REMOVE_ITEM Idx2Sources  ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/Core.cpp)
+	add_library(idx2_lib STATIC ${Idx2Sources})
+	target_compile_features(idx2_lib PUBLIC cxx_std_17) # PROBLEM here: do we really need C++17?
+	target_compile_definitions(idx2_lib PUBLIC -DVISUS_IDX2=1)
+	target_compile_definitions(idx2_lib PRIVATE -Didx2_Avx2)
+	target_compile_definitions(idx2_lib PRIVATE "$<$<CONFIG:DEBUG>:idx2_Slow>")
+	target_include_directories(idx2_lib PUBLIC ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source)
 	if (MSVC)
-		target_compile_definitions(VisusDb PRIVATE -D_CRT_SECURE_NO_WARNINGS)
-		target_compile_options(VisusDb PRIVATE /arch:AVX2 /Zc:preprocessor /Zc:__cplusplus /wd5105)
-		target_link_options(VisusDb PRIVATE dbghelp.lib)
+		target_compile_definitions(idx2_lib PRIVATE -D_CRT_SECURE_NO_WARNINGS)
+		target_compile_options(idx2_lib PRIVATE /arch:AVX2 /Zc:preprocessor /Zc:__cplusplus /wd5105)
+		target_link_options(idx2_lib PRIVATE dbghelp.lib)
 	elseif (UNIX)
-		target_compile_options(VisusDb PRIVATE -Wno-format-zero-length -mavx2)
+		target_compile_options(idx2_lib PRIVATE -Wno-format-zero-length -mavx2)
 	endif()
+	target_link_libraries(VisusDb PUBLIC idx2_lib)
 endif()
 
 

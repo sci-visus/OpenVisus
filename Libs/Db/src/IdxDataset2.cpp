@@ -198,6 +198,9 @@ public:
     //what is the logic_box/logic_samples in OpenVisus
     P.DecodeExtent = idx2::extent(Cast(query->logic_box.p1), Cast(query->logic_box.size())); //first, dims
 
+    //switch from defaiult access to OpenVisus access
+    P.ExternalAccess = false;
+
     auto pdim = getPointDim();
     VisusAssert(pdim == 3); //todo 2d to
 
