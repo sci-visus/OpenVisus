@@ -265,6 +265,15 @@ public:
     return !field.default_compression.empty() ? field.default_compression : this->compression;
   }
 
+  //setWritingMode
+  void setWritingMode() {
+    //99% of the times I am not writing in parallel to avoid the file lock thingy
+    //99% of the times I am writing disabling compression that could cause the file to grow even larger than uncompressed 
+    //    I can do a final compress pass at the end
+    this->disableWriteLock();
+    this->compression = "raw"; //force incompressed
+  }
+
 private:
 
   int mode=0;

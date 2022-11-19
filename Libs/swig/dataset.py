@@ -236,26 +236,12 @@ class PyDataset(object):
 		return ret
 
 	# createAccessForBlockQuery
-	def createAccessForBlockQuery(self,for_writing=False):
-		"""
-		this function will create a local access if the *.idx file is local (e.g. IdxDiskAccess or DiskAccess)
-		if the *.idx is remote will guess if to create a ModVisusAccess or a CloudStorageAccess
-		see Dataset::createAccess
-		"""
-		ret=self.db.createAccessForBlockQuery()
-
-		# important for writing to disable compression otherwise I will spend most of the time to compress/uncompress
-		# blocks during the writing (remember that convert may need to write the same block several times to interleave samples from different levels)
-		if for_writing:
-			ret.disableWriteLock()
-			ret.disableCompression()
-			ret.compression="raw" # when you are writing you ususally write withoiut compression and will do a compression pass at the end
-
-		return ret
+	def createAccessForReading(self,config=StringTree()):
+		return self.db.createAccessForBlockQuery(config)
 
 	# createAccess
-	def createAccess(self):
-		return self.db.createAccess()
+	def createAccess(self,config=StringTree()):
+		return self.db.createAccess(config)
 
 	# readBlock
 	def readBlock(self, block_id, time=None, field=None, access=None, aborted=Aborted()):
@@ -425,10 +411,9 @@ class PyDataset(object):
 		if not query.isRunning():
 			raise Exception("begin query failed {0}".format(query.errormsg))
 			
-		# strong assumption here: you have only one writer
-		#                         if you need something different, provide your own access 
 		if not access:
-			access=self.createAccessForBlockQuery(for_writing=True)
+			access=self.createAccessForBlockQuery()
+			access.setWritingMode()
 		
 		# I need to change the shape of the buffer, since the last component is the channel (like RGB for example)
 		buffer=Array.fromNumPy(data,bShareMem=True)

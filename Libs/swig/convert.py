@@ -65,16 +65,18 @@ class CopyBlocks:
 		src,dst=self.src,self.dst
 		logger.info(f"Copying blocks time({self.time}) field({self.field.name}) A({A}) B({B}) ...")
 
-		waccess=dst.createAccessForBlockQuery(for_writing=True)
+		waccess=dst.createAccessForBlockQuery()
+		waccess.setWritingMode()
 
 		# for mod_visus there is the problem of aggregation (Ii.e. I need to call endRead to force the newtork request)
 		if "mod_visus" in src.getUrl():
 			num_read_per_request=self.num_read_per_request 
 			# mov_visus access will not call itself the flush batch, but will wait for endRead()
-			raccess=src.createAccessForBlockQuery(StringTree.fromString("<access type='ModVisusAccess' chmod='r'  compression='zip' nconnections='1'  num_queries_per_request='1073741824' />"))
+			rconfig="<access type='ModVisusAccess' chmod='r'  compression='zip' nconnections='1'  num_queries_per_request='1073741824' />"
+			raccess=src.createAccessForBlockQuery(StringTree.fromString(rconfig))
 		else:
 			num_read_per_request=1
-			raccess=src.createAccessForBlockQuery(for_writing=False)
+			raccess=src.createAccessForBlockQuery()
 
 		read_blocks=[]
 		aborted=Aborted()
@@ -168,7 +170,7 @@ def CompressArcoDataset(db, compression="zip", num_threads=32, timestep=None,fie
 
 	logger.info(f'Compressing ARCO dataset compression={compression} num_threads={num_threads} ...')
 
-	# i use this only for filenames
+	# i use this only to generate filenames
 	access=db.createAccessForBlockQuery() 
 
 	logger.info('Collecting blocks to compress...')
@@ -399,9 +401,9 @@ def ConvertImageStack(src:str, dst:str, arco="modvisus"):
 		arco=arco)
 
 	assert(db.getMaxResolution()>=bitsperblock)
-	access=db.createAccessForBlockQuery(for_writing=True)
+	access=db.createAccessForBlockQuery()
+	access.setWritingMode()
 	db.writeSlabs(generator, access=access)
-
 	logger.info(f"ConvertImageStack DONE in {time.time()-T1} seconds")
 
 
@@ -437,8 +439,8 @@ def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=
 		fields=Dfields,
 		arco=arco)
 	
-	Saccess=SRC.createAccessForBlockQuery(for_writing=False) 
-	Daccess=DST.createAccessForBlockQuery(for_writing=True) 
+	Saccess=SRC.createAccessForBlockQuery() 
+	Daccess=DST.createAccessForBlockQuery();Daccess.setWritingMode()
 
 	pdim=SRC.getPointDim()
 	assert pdim==2 or pdim==3 # TODO other cases

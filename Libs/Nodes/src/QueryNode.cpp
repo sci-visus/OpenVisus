@@ -472,7 +472,7 @@ bool QueryNode::processInput()
     auto access_configs = dataset->getAccessConfigs();
 
     if (this->accessindex >= 0 && this->accessindex < (int)access_configs.size())
-      setAccess(dataset->createAccess(*access_configs[this->accessindex]));
+      setAccess(dataset->createAccessForBlockQuery(*access_configs[this->accessindex]));
     else
       setAccess(dataset->createAccess());
   }

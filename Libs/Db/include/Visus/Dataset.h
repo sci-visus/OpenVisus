@@ -357,13 +357,11 @@ public:
 
 public:
 
-  //createAccess
-  virtual SharedPtr<Access> createAccess(StringTree config = StringTree(), bool bForBlockQuery = false);
+  //createAccess (to be used for box query)
+  virtual SharedPtr<Access> createAccess(StringTree config = StringTree(), bool for_block_query = false);
 
   //createAccessForBlockQuery
-  SharedPtr<Access> createAccessForBlockQuery(StringTree config = StringTree()) {
-    return createAccess(config, true);
-  }
+  SharedPtr<Access> createAccessForBlockQuery(StringTree config = StringTree());
 
 
 public:

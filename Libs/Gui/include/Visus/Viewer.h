@@ -294,6 +294,11 @@ public:
     return "Viewer";
   }
 
+  //setWindowTitle
+  void setWindowTitle(String value) {
+    QMainWindow::setWindowTitle(value.c_str());
+  }
+
   //showMaximized 
   void showMaximized();
 

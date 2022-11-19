@@ -104,8 +104,11 @@ SharedPtr<Access> IdxMultipleAccess::createDownAccess(String name, String fieldn
       config.setAttribute(key, value);
   }
 
-  bool bForBlockQuery = DATASET->getKdQueryMode() & KdQueryMode::UseBlockQuery ? true : false;
-  return dataset->createAccess(config, bForBlockQuery);
+  bool for_block_query = DATASET->getKdQueryMode() & KdQueryMode::UseBlockQuery ? true : false;
+  if (for_block_query)
+    return dataset->createAccessForBlockQuery(config);
+  else
+    return dataset->createAccess(config);
 }
 
 //////////////////////////////////////////////////////

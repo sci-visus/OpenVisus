@@ -558,9 +558,11 @@ bool KdQueryNode::processInput()
       auto access_configs=dataset->getAccessConfigs();
       int accessindex=getAccessIndex();
       if (accessindex>=0 && accessindex<(int)access_configs.size())
-        this->setAccess(dataset->createAccess(*access_configs[accessindex]));
+        this->setAccess(dataset->createAccessForBlockQuery(*access_configs[accessindex]));
       else
-        this->setAccess(kdquery_mode==KdQueryMode::UseBlockQuery? dataset->createAccessForBlockQuery() : dataset->createAccess());
+        this->setAccess(kdquery_mode==KdQueryMode::UseBlockQuery? 
+          dataset->createAccessForBlockQuery() :
+          dataset->createAccess());
     }
   }
 

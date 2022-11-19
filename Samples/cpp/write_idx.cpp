@@ -69,7 +69,8 @@ void CppSamples_WriteIdx(String default_layout)
   auto dataset=LoadDataset(filename);
 
   //any time you need to read/write data from/to a Dataset I need a Access
-  auto access=dataset->createAccess();
+  auto access=dataset->createAccessForBlockQuery();
+  access->setWritingMode();
 
   //for example I want to write data by slices 
   int cont=0;

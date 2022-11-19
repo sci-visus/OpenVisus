@@ -56,7 +56,7 @@ MultiplexAccess::MultiplexAccess(Dataset* dataset, StringTree config)
     if (child_config->name != "access")
       continue;
 
-    auto child = dataset->createAccess(*child_config);
+    auto child = dataset->createAccessForBlockQuery(*child_config);
     if (!child)
       ThrowException("wrong child access");
 

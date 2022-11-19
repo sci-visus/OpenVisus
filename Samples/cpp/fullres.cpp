@@ -56,13 +56,16 @@ void CppSamples_FullRes()
 
   auto dataset = LoadDataset("tmp/fullres/visus.idx");
   auto MaxH = dataset->getMaxResolution();
-  auto access = dataset->createAccess();
   auto bitmask = dataset->getBitmask();
   auto bitsperblock = dataset->getDefaultBitsPerBlock();
   auto LOGIC_BOX = dataset->getLogicBox();
 
   for (auto mode : { 'w','r' })
   {
+    auto access = dataset->createAccessForBlockQuery(); 
+    if (mode == 'w') 
+      access->setWritingMode();
+
     for (int H = MaxH; H >= bitsperblock; H--)
     {
       auto img = images[(MaxH - H) % (int)images.size()];

@@ -2,54 +2,46 @@
 
 import os,sys,logging
 import OpenVisus as ov
-from PIL import Image
+from PIL import Image, ImageOps
 import numpy as np
+import shutil
 
 # ///////////////////////////////////////////////////////////////
-def ViewDataset(filename):
+def VIEW(filename):
 	from OpenVisus.gui import PyViewer
 	from PyQt5.QtWidgets import QApplication
 	viewer=PyViewer()
 	viewer.open(filename)
+	viewer.setWindowTitle(filename)
 	QApplication.exec()
 
+
 # ///////////////////////////////////////////////////////////////
-def LoadTestImage():
-	data=np.asarray(Image.open("./datasets/cat/gray.png")).astype(np.float32) # i need a scalar float field to test zfp
-	print("Loaded image","shape",data.shape,"dtype",data.dtype,"min",np.min(data),"max",np.max(data))
-	dims=list(reversed(data.shape))
+def TestCompressAndCopy(src, dst, arco="modvisus", compressions="zip"):
+	data=np.asarray(ImageOps.flip(Image.open(src))).astype(np.float32) # i need a scalar float field to test zfp
 	field=ov.Field('data',str(data.dtype),'row_major')
-	return data,dims,field
-
-# ///////////////////////////////////////////////////////////////
-def TestConvert(arco="modvisus", compressions="zip"):
-
-	# load image
-	data,dims,field=LoadTestImage()
-
-	# test the uncompressed write
-	db=ov.CreateIdx(url=f"./tmp/test-convert/{compression}/{arco}/visus.idx", dim=len(dims), dims=dims,fields=[field],arco=arco)
+	db=ov.CreateIdx(url=dst,dim=2, dims=list(reversed(data.shape)),fields=[field],arco=arco)
 	db.write(data)
-	ViewDataset(db.getUrl() + f"?compression=raw") # this is necessary for ARCO since otherwise it will assume zip
-
-	# test the compression
+	# VIEW(dst + f"?compression=raw") # this is necessary for ARCO since otherwise it will assume zip
 	db.compressDataset(compression)
-	ViewDataset(db.getUrl())
-
-	# test the copy function (with a final compression)
+	# VIEW(dst)
 	db=db.copyDataset(f"./tmp/test-convert/copy/{compression}/{arco}/visus.idx", arco=arco)
 	db.compressDataset(compression)
-	ViewDataset(db.getUrl())
+	ImageOps.flip(Image.fromarray(db.read().astype(np.uint8))).save(f"{dst}.png".replace("/","-"))
+	VIEW(dst)
 
 # ///////////////////////////////////////////////////////////////
-def TestWavelets(arco="modvisus", compression="zip"):
-	data,dims,field=LoadTestImage()
+def TestWavelets(src, dst, arco="modvisus", compression="zip"):
+	data=np.asarray(ImageOps.flip(Image.open(src))).astype(np.float32) # i need a scalar float field to test zfp
+	field=ov.Field('data',str(data.dtype),'row_major')
 	field.filter="wavelet"
-	db=ov.CreateIdx(url=f"./tmp/test-wavelets/{compression}/{arco}/visus.idx", dim=len(dims), dims=dims,fields=[field],arco=arco)
+	db=ov.CreateIdx(url=dst,dim=2, dims=list(reversed(data.shape)),fields=[field],arco=arco)
 	db.write(data)
-	db.computeFilter(field, 32)
+	db.computeFilter(db.getField(), 32) # make the window large enough (!)
+	# VIEW(dst + f"?compression=raw")  # note: ?compression=raw is necessary for ARCO since otherwise it will assume zip
 	db.compressDataset(compression)
-	ViewDataset(db.getUrl())
+	ImageOps.flip(Image.fromarray(db.read().astype(np.uint8))).save(f"{dst}.png".replace("/","-"))
+	VIEW(dst)
 
 
 # ///////////////////////////////////////////////////////////////
@@ -61,12 +53,13 @@ if __name__=="__main__":
 		logger.addHandler(logging.StreamHandler())
 		logger.setLevel(logging.INFO)
 
-	# dangerous
-	# import shutil
-	# shutil.rmtree("./tmp")
-
-	for arco in ['modvisus',]:
+	dir="./tmp/test-convert"
+	shutil.rmtree(dir,ignore_errors=True)
+	src="./datasets/cat/gray.png"
+	for arco in ['modvisus','16kb']:
 		for compression in ["zip","zfp-30-30"]:
-			# TestConvert(arco,compression)
-			TestWavelets(arco,compression)
+			# TestCompressAndCopy(src, f"{dir}/{arco}/{compression}/visus.idx", arco, compression)
+			TestWavelets(src, f"{dir}//wavelet/{arco}/{compression}/visus.idx",arco, compression)
+
+
 

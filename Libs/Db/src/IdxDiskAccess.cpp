@@ -936,15 +936,15 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
   };
   
   //NOTE: time_template will go inside filename_template so there is no reason to resolve alias
-  auto createAccess = [&]()->Access*{
+  auto myCreateAccess = [&]()->Access*{
     if (idxfile.version < 6)
       return new IdxDiskAccessV5(this, idxfile, resoveAlias(idxfile.time_template), resoveAlias(idxfile.filename_template), bVerbose);
     else
       return new IdxDiskAccessV6(this, idxfile, resoveAlias(idxfile.time_template), resoveAlias(idxfile.filename_template), bVerbose);
   };
 
-  this-> sync.reset(createAccess());
-  this->async.reset(createAccess());
+  this-> sync.reset(myCreateAccess());
+  this->async.reset(myCreateAccess());
 
   //set this only if you know what you are doing (example visus convert with only one process)
   this->bDisableWriteLocks = 

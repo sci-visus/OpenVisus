@@ -46,7 +46,6 @@ def Main():
 	field=db.getField()
 	
 	access=db.createAccessForBlockQuery()
-	
 	access.beginRead()
 	
 	for block_id in range(tot):

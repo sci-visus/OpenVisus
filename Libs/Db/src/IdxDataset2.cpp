@@ -110,7 +110,7 @@ public:
 public:
 
   //createAccess (right now not needed)
-  virtual SharedPtr<Access> createAccess(StringTree config = StringTree(), bool bForBlockQuery = false) override {
+  virtual SharedPtr<Access> createAccess(StringTree config = StringTree(), bool for_block_query = false) override {
     return std::make_shared<IdxDiskAccess2>();
   }
 

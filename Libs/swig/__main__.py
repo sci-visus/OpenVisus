@@ -332,7 +332,8 @@ def MidxToIdx(args):
 	Assert(field.valid())
 
 	ACCESS = midx.createAccess()
-	access = idx.createAccess()
+	access = idx.createAccessForBlockQuery()
+	access.setWritingMode()
 
 	print("Generating tiles...",args.tile_size)
 	pdim=idx.getPointDim()

@@ -182,6 +182,36 @@ Array createImageFromBuffer(Array src)
 //////////////////////////////////////////////////////////////////////////////////////
 void CppSamples_Filters(String default_layout)
 {
+  /*
+  Simple example:
+
+	Array img=ArrayUtils::loadImage("datasets/cat/gray.png");
+
+	BoxNi world_box(PointNi(0, 0), PointNi(img.getWidth(), img.getHeight()));
+	IdxFile idxfile;
+	idxfile.logic_box = world_box;
+	idxfile.fields.push_back(Field::fromString("myfield float32 layout(row_major) filter(wavelet)"));
+	idxfile.bitsperblock = 12;
+	idxfile.arco = 16 * 1024;
+	idxfile.save("tmp/tutorial_6/visus.idx");
+
+	auto db = LoadIdxDataset("tmp/tutorial_6/visus.idx");
+	auto waccess = db->createAccessForBlockQuery();
+	waccess->setWritingMode();
+	auto write = db->createBoxQuery(world_box, 'w');
+	db->beginBoxQuery(write);
+	write->buffer = ArrayUtils::cast(img, DTypes::FLOAT32);
+	db->executeBoxQuery(waccess, write);
+	db->computeFilter(db->getField(), 32);
+
+	auto raccess=db->createAccessForBlockQuery();
+	auto query=db->createBoxQuery(world_box, 'r');
+	query->enableFilters();
+	db->beginBoxQuery(query);
+	db->executeBoxQuery(raccess,query);
+	ArrayUtils::saveImage("tmp/tutorial_6/out3.png", ArrayUtils::cast(query->buffer, DTypes::UINT8));
+
+  */
   auto sliding_window_size=PointNi(32,32);
 
   int bitsperblock=12;  //I want certain number of blocks
