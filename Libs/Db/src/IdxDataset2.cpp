@@ -199,7 +199,8 @@ public:
     P.DecodeExtent = idx2::extent(Cast(query->logic_box.p1), Cast(query->logic_box.size())); //first, dims
 
     //switch from defaiult access to OpenVisus access
-    P.ExternalAccess = false;
+    auto url = this->getUrl();
+    P.ExternalAccess = cbool(Url(url).getParam("ExternalAccess","0"));
 
     auto pdim = getPointDim();
     VisusAssert(pdim == 3); //todo 2d to
@@ -214,13 +215,15 @@ public:
       down[bit] = std::max(1, down[bit]) << 1;
     }
 
-    //where is the data
-    P.InputFile = this->idx2_url.c_str(); //keep in memory
+    //since IDX2 seems to want a char* I need some storage here
+    this->input_file = Url(getUrl()).getPath();
+    P.InputFile = this->input_file.c_str(); //keep in memory
 
     // <whatever>/Miranda/Viscosity/...data...
     // <whatever>/Miranda/Viscosity.idx2
     // i need to go just after <whatever>
-    P.InDir = StringUtils::replaceAll(Path(this->idx2_url).getParent().getParent().toString(),"\\","/").c_str();
+    this->int_dir = StringUtils::replaceAll(Path(this->input_file).getParent().getParent().toString(), "\\", "/");
+    P.InDir = int_dir.c_str();
 
     //todo
     P.DecodeAccuracy = query->accuracy;
@@ -435,11 +438,10 @@ public:
   virtual void readDatasetFromArchive(Archive& ar) override
   {
     //TODO: only local file so far (with *.idx2 extension)
-    String url = ar.readString("url");
+    String url = Url(ar.readString("url")).getPath(); //remove any params
 
     VisusReleaseAssert(!this->Idx2);
-    this->Idx2 = new idx2::idx2_file;
-    this->idx2_url = url;  //keep in memory
+    this->Idx2 = new idx2::idx2_file; 
     idx2::SetDir(this->Idx2, "./");
 
     if (!idx2::ReadMetaFile(this->Idx2, url.c_str()))
@@ -484,7 +486,8 @@ public:
 private:
 
   idx2::idx2_file* Idx2 = nullptr;
-  String     idx2_url; //keep in memory
+  String     input_file; 
+  String     int_dir;
 
   inline idx2::v3i Cast(PointNi v) {
     return idx2::v3i((Int32)v[0], (Int32)v[1], (Int32)v[2]);
