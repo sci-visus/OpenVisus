@@ -200,7 +200,7 @@ public:
 
     //switch from defaiult access to OpenVisus access
     auto url = this->getUrl();
-    P.ExternalAccess = cbool(Url(url).getParam("ExternalAccess","0"));
+    P.enable_visus = cbool(Url(url).getParam("visus","0"));
 
     auto pdim = getPointDim();
     VisusAssert(pdim == 3); //todo 2d to
