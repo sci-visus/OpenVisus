@@ -37,59 +37,8 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/Db.h>
-#include <Visus/CloudStorageAccess.h>
-#include <Visus/MultiplexAccess.h>
 
-
-using namespace Visus;
-
-
-
-//////////////////////////////////////////////////////////////////////////////
 int main(int argn, const char* argv[])
 {
-  SetCommandLine(argn, argv);
-  DbModule::attach();
-
-  //fake value for bitsperblock
-  //async disabled
-  //compression 'raw' (i.e. you will do the encoding/decoding yourself)
-  //do not change the bucket name `test-idx2` that must exists
-  String config = concatenate(
-    "<access type='CloudStorageAccess' disable_async='1' url='https://s3.us-west-1.wasabisys.com/test-idx2/visus.idx?profile=wasabi' bitsperblock='16'  compression='raw' layout='rowmajor'/>");
-
-  auto cloud = std::make_shared<CloudStorageAccess>(/*dataset*/nullptr, StringTree::fromString(config));
-
-  //id for the block, please try to change it
-  BigInt blockid = 0;
-
-  //buffer for writing staff (NOTE: since I am dtype agnostic here, I always use uint8)
-  auto write_buffer = Array(256, DTypes::UINT8);
-
-  auto write = std::make_shared<BlockQuery>();
-  write->blockid = blockid; 
-  write->H = -1;//current resolution (invalid)
-  write->logic_samples = LogicSamples::invalid();
-  write->field = Field("my-field", DTypes::UINT8);
-  write->time = 0;
-  write->buffer = write_buffer;
-  cloud->writeBlock(write);
-  PrintInfo("Write Query", write->ok(), write->errormsg);
-
-  auto read = std::make_shared<BlockQuery>();
-  read->blockid = blockid; //id for the block
-  read->H = -1;//current resolution (invalid)
-  read->logic_samples = LogicSamples::invalid();
-  read->field = Field("my-field", DTypes::UINT8);
-  read->time = 0;
-  read->buffer = Array();
-  cloud->readBlock(read);
-  PrintInfo("Read", read->ok(), read->errormsg);
-  auto read_buffer = read->buffer;
-
-  //check
-  VisusReleaseAssert(HeapMemory::equals(write_buffer.heap, read_buffer.heap));
-
-  DbModule::detach();
-  return 0;
+  return Idx2App(argn, argv);
 }

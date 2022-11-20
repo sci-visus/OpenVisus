@@ -13,10 +13,6 @@ if (VISUS_HDF5)
 	add_subdirectory(hdf5_plugin)
 endif()
 
-if (VISUS_IDX2)
-	add_subdirectory(idx2)
-endif()	
-	
 
 
 
