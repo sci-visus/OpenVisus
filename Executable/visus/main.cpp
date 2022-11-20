@@ -141,10 +141,13 @@ int main(int argn, const char* argv[])
 	{
 		if (action == "idx2")
 		{
+			DbModule::attach();
 			std::vector<const char*> v;
 			for (int I = 2; I < argn; I++)
 				argv[I - 1] = argv[I];
-			return Idx2App(argn - 1, argv);
+			auto ret=Idx2App(argn - 1, argv);
+			DbModule::detach();
+			return ret;
 		}
 	}
 #endif
