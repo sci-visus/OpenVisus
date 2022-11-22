@@ -51,24 +51,26 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   int default_bitsperblock=dataset->getDefaultBitsPerBlock();
   this->can_read          = StringUtils::find(config.readString("chmod", DefaultChMod),"r")>=0;
   this->can_write         = StringUtils::find(config.readString("chmod", DefaultChMod),"w")>=0;
-  this->path              = Path(config.readString("dir","."));
   this->bitsperblock      = default_bitsperblock;
   this->compression       = config.readString("compression", Url(dataset->getUrl()).getParam("compression", "zip"));
 
   Url url = config.hasAttribute("url") ? config.readString("url") : dataset->getUrl();
   Path path = Path(url.getPath());
-  String dir = path.getParent().toString();
-  String base_no_ext = path.getFileNameWithoutExtension();
-
+  
   //example: "s3://bucket-name/whatever/$(time)/$(field)/$(block:%016x:%04x).$(compression)";
   //NOTE 16x is enough for 16*4 bits==64 bit for block number
   //     splitting by 4 means 2^16= 64K files inside a directory with max 64/16=4 levels of directories
-  this->filename_template = config.readString("filename_template"); 
-  if (this->filename_template.empty())
-    this->filename_template = "./" + base_no_ext + "/$(time)/$(field)/$(block:%016x:%04x).bin"; //NOTE: ./ will be replaced in the following lines
+  this->filename_template = config.readString("filename_template", 
+    url.isRemote() ? 
+      "$(VisusCache)/$(HostName)/$(HostPort)$(FullPathWithoutExt)/$(time)/$(field)/$(block:%016x:%04x).bin" :
+                                           "$(FullPathWithoutExt)/$(time)/$(field)/$(block:%016x:%04x).bin");
+ 
+  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(HostName)", url.getHostname());
+  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(HostPort)", cstring(url.getPort()));
+  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(FullPathWithoutExt)", path.withoutExtension());
+  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(VisusCache)", GetVisusCache());
 
-  if (StringUtils::startsWith(filename_template, "./") && !dir.empty())
-    filename_template = StringUtils::replaceFirst(filename_template, ".", dir);
+  PrintInfo("Created DiskAccess","url",url,"filename_template",filename_template,"compression", compression);
 }
 
 

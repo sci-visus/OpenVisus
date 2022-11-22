@@ -91,7 +91,6 @@ void IdxDataset2::GetDecodeParams(idx2::params& P, SharedPtr<BoxQuery> query, in
   P.Action = idx2::action::Decode;
   P.OutMode = idx2::params::out_mode::RegularGridMem;
   P.DecodeExtent = idx2::extent(Cast(query->logic_box.p1), Cast(query->logic_box.size())); //what is the logic_box/logic_samples in OpenVisus
-  P.enable_visus = cbool(Url(this->getUrl()).getParam("visus", "0")); //switch from defaiult access to OpenVisus access
   P.DownsamplingFactor3 = idx2::v3i(0, 0, 0); //get information at full resolution
   P.InputFile = this->input_file.c_str();
   P.InDir = this->in_dir.c_str();
@@ -159,12 +158,26 @@ void IdxDataset2::enableExternalRead(idx2::idx2_file& Idx2, SharedPtr<Access> ac
   Idx2.external_read = [this, access, aborted](const idx2::idx2_file& Idx2, idx2::buffer& Buf, idx2::u64 ChunkAddress) -> bool 
   {
     VisusReleaseAssert(static_cast<idx2::u64>(static_cast<Visus::BigInt>(ChunkAddress)) == ChunkAddress);
+
+#if 0
+    std::ostringstream filename; filename << Visus::StringUtils::rtrim(std::string(Idx2.Dir.Ptr, Idx2.Dir.Size), "/") << "/" << Idx2.Name << "/" << Idx2.Field << "/" << ChunkAddress;
+    auto heap = Visus::Utils::loadBinaryDocument(filename.str());
+    AllocBuf(&buff, heap->c_size());
+    memcpy(buff.Data, heap->c_ptr(), heap->c_size());
+#else
     auto query = createBlockQuery(ChunkAddress, getField(), getTime(), 'r', aborted);
     if (!executeBlockQueryAndWait(access, query)) 
       return false;
     idx2::AllocBuf(&Buf, query->buffer.c_size());
     memcpy(Buf.Data, query->buffer.c_ptr(), query->buffer.c_size());
-
+    
+#endif
+    if (false)
+    {
+      auto checksum = Visus::StringUtils::hexdigest(Visus::StringUtils::md5(std::string((const char*)Buf.Data, Buf.Bytes)));
+      PrintInfo("ExternalRead ChunkAddress", ChunkAddress, " Bytes=", Buf.Bytes, " checksum", checksum);
+    }
+    
     return true;
   };
 }
@@ -173,10 +186,29 @@ void IdxDataset2::enableExternalRead(idx2::idx2_file& Idx2, SharedPtr<Access> ac
 void IdxDataset2::enableExternalWrite(idx2::idx2_file& Idx2, SharedPtr<Access> access, Aborted aborted)
 {
   Idx2.external_write = [this, access, aborted](const idx2::idx2_file& Idx2, idx2::buffer& Buf, idx2::u64 ChunkAddress) -> bool {
+#if 0
+    std::ostringstream filename;
+    auto dir = Visus::StringUtils::rtrim(std::string(Idx2.Dir.Ptr, Idx2.Dir.Size), "/");
+    filename << dir << "/" << Idx2.Name << "/" << Idx2.Field << "/" << ChunkAddress;
+    auto heap = Visus::Utils::loadBinaryDocument(filename.str());
+    AllocBuf(&buff, heap->c_size());
+    memcpy(buff.Data, heap->c_ptr(), heap->c_size());
+    return true;
+#else
     VisusReleaseAssert(static_cast<idx2::u64>(static_cast<Visus::BigInt>(ChunkAddress))==ChunkAddress);
     auto query = createBlockQuery(ChunkAddress, getField(), getTime(), 'w', aborted);
     query->buffer = Visus::Array(Buf.Bytes, Visus::DTypes::UINT8, Visus::HeapMemory::createUnmanaged(Buf.Data, Buf.Bytes));
-    return executeBlockQueryAndWait(access, query);
+    if (!executeBlockQueryAndWait(access, query))
+      return false;
+#endif
+
+    if (false)
+    {
+      auto checksum = Visus::StringUtils::hexdigest(Visus::StringUtils::md5(std::string((const char*)Buf.Data, Buf.Bytes)));
+      PrintInfo("ExternalWrite ChunkAddress", ChunkAddress, " Bytes=", Buf.Bytes," checksum", checksum);
+    }
+
+    return true;
   };
 }
 
@@ -293,7 +325,9 @@ bool IdxDataset2::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> 
 
   //want to use OpenVisus::Access for IDX block access?
   Url url = this->getUrl();
-  if (bool enable_visus = cbool(url.getParam("enable_visus", url.getParam("enable-visus", "0"))))
+
+  //in case you want to debug with IDX2 file format
+  if (!cbool(url.getParam("DISABLE_EXTERNAL_ACCESS", "0")))
     enableExternalRead(Idx2, access, query->aborted);
 
   auto query_buffer = idx2::buffer((const idx2::byte*)query->buffer.c_ptr(), query->buffer.c_size());
