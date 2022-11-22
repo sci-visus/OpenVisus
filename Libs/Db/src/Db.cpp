@@ -45,14 +45,11 @@ For support : support@visus.net
 #include <Visus/OnDemandAccess.h>
 #include <Visus/StringTree.h>
 #include <Visus/IdxDataset.h>
+#include <Visus/IdxDataset2.h>
 #include <Visus/IdxMultipleDataset.h>
 
-#if VISUS_IDX2
-#include <Visus/IdxDataset2.h>
-#endif
-
-
 namespace Visus {
+
 
 int DbModule::attached = 0;
 
@@ -69,7 +66,7 @@ void DbModule::attach()
   DatasetFactory::getSingleton()->registerDatasetType("IdxMultipleDataset", []() {return std::make_shared<IdxMultipleDataset>(); });
 
 #if VISUS_IDX2
-  DatasetFactory::getSingleton()->registerDatasetType("IdxDataset2",        []() {return std::make_shared<IdxDataset2>(); });
+  DatasetFactory::getSingleton()->registerDatasetType("IdxDataset2", []() {return std::make_shared<IdxDataset2>(); });
 #endif
 
   ArrayPlugins::getSingleton()->values.push_back(std::make_shared<DatasetArrayPlugin>());

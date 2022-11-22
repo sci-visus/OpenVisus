@@ -1,10 +1,5 @@
 
 add_subdirectory(Kernel)
-
-if (VISUS_IDX2)
-	add_subdirectory(IDX2)
-endif()
-
 add_subdirectory(Db)
 
 if (VISUS_DATAFLOW)

@@ -13,6 +13,7 @@
 #include <Visus/Frustum.h>
 #include <Visus/NetService.h>
 #include <Visus/RamResource.h>
+#include <Visus/Encoder.h>
 
 using namespace Visus;
 %}
@@ -47,6 +48,8 @@ However, this is not the case for any C/C++ class that has been converted into a
 %shared_ptr(Visus::HeapMemory)
 %shared_ptr(Visus::StringTree)
 %shared_ptr(Visus::ConfigFile)
+%shared_ptr(Visus::Encoder)
+
 
 //VISUS_NEWOBJECT (%use newobject or %newobject_director)
 //%newobject Visus::ClassName::MethodName;
@@ -71,6 +74,7 @@ However, this is not the case for any C/C++ class that has been converted into a
 %include <Visus/Path.h>
 %include <Visus/File.h>
 %include <Visus/Time.h>
+%include <Visus/Encoder.h>
 %include <Visus/StringUtils.h>
 
 %include <Visus/Point.h> 
@@ -296,4 +300,23 @@ def convert_dtype(value):
 		if value==numpy.float64: return "float64"
 		
 	raise Exception("Internal error")
+%}
+
+
+%include <Visus/Encoder.h>
+%inline %{ 
+namespace Visus {
+  SharedPtr<HeapMemory> LoadBinaryDocument(String url)                            {return Utils::loadBinaryDocument(url);}
+  void                  SaveBinaryDocument(String url, SharedPtr<HeapMemory> src) {return Utils::saveBinaryDocument(url,src);}
+
+  SharedPtr<HeapMemory> Encode(String compression, PointNi dims,DType dtype, SharedPtr<HeapMemory> value) {
+	return value? Encoders::getSingleton()->createEncoder(compression)->encode(dims,dtype,value) : value;
+  }
+
+  SharedPtr<HeapMemory> Decode(String compression, PointNi dims,DType dtype, SharedPtr<HeapMemory> value) {
+	return value? Encoders::getSingleton()->createEncoder(compression)->decode(dims,dtype,value) : value;
+  }
+
+
+} //namespace
 %}

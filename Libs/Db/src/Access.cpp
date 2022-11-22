@@ -56,7 +56,11 @@ String Access::getBlockFilename(String filename_template, Field field, double ti
   //NOTE 16x is enough for 16*4 bits==64 bit for block number
   //     splitting by 4 means 2^16= 64K files inside a directory which seams reasonable with max 64/16=4 levels of directories
   {
-    auto s_blockid = StringUtils::formatNumber("%016x", blockid);
+    //auto s_blockid = StringUtils::formatNumber("%016x", blockid); WRONG for int64 (!)
+    std::ostringstream out;
+    out << std::setw(16) << std::hex << std::setfill('0') << blockid;
+    auto s_blockid = out.str();
+
     ret = StringUtils::replaceFirst(ret, "$(block:%016x)", s_blockid);
     ret = StringUtils::replaceFirst(ret, "$(block:%016x:%04x)", StringUtils::join(StringUtils::splitInChunks(s_blockid, 4), "/"));
   }

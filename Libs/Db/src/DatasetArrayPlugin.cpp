@@ -256,7 +256,8 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
   Time t1=Time::now();
   query->buffer=src; 
 
-  auto access=dataset->createAccess();
+  auto access=dataset->createAccessForBlockQuery();
+  access->setWritingMode();
   if (!dataset->executeBoxQuery(access,query))
   {
     PrintWarning("!dataset->executeBoxQuery()");

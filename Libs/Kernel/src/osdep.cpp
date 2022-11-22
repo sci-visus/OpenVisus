@@ -50,7 +50,7 @@ For support : support@visus.net
 #endif
 
 namespace Visus {
-	
+
 void __do_not_remove_my_function__() {
 	//nothing to do
 }

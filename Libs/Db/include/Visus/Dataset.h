@@ -357,13 +357,11 @@ public:
 
 public:
 
-  //createAccess
-  virtual SharedPtr<Access> createAccess(StringTree config = StringTree(), bool bForBlockQuery = false);
+  //createAccess (to be used for box query)
+  virtual SharedPtr<Access> createAccess(StringTree config = StringTree(), bool for_block_query = false);
 
   //createAccessForBlockQuery
-  SharedPtr<Access> createAccessForBlockQuery(StringTree config = StringTree()) {
-    return createAccess(config, true);
-  }
+  SharedPtr<Access> createAccessForBlockQuery(StringTree config = StringTree());
 
 
 public:
@@ -382,6 +380,15 @@ public:
   //getBlockQuerySamples
   LogicSamples getBlockQuerySamples(BigInt blockid, int& H);
 
+  //getBlockQuerySamples (for swig)
+  LogicSamples getBlockQuerySamples(BigInt blockid) {
+    int H=0; auto samples=getBlockQuerySamples(blockid,H); return samples;
+  }
+
+  //getBlockQueryLevel (for swig)
+  int getBlockQueryLevel(BigInt blockid) {
+    int H=0; auto samples = getBlockQuerySamples(blockid, H); return H;
+  }
 
   //readBlock  
   virtual void executeBlockQuery(SharedPtr<Access> access, SharedPtr<BlockQuery> query);

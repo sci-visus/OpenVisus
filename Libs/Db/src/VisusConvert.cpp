@@ -662,7 +662,7 @@ public:
     Utils::setEnv("VISUS_IDX_SKIP_READING", "1");
     Utils::setEnv("VISUS_IDX_DISABLE_ASYNC", "1");
 
-    auto access = db->createAccess();
+    auto access = db->createAccessForBlockQuery();
     Int64 query_size = 0;
 
     auto ram = RamResource::getSingleton();

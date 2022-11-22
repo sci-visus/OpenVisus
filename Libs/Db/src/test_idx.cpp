@@ -154,7 +154,8 @@ public:
 
     if (bool bWriteData = true)
     {
-      auto access = dataset->createAccess();
+      auto access = dataset->createAccessForBlockQuery();
+      access->setWritingMode();
 
       int cont = 0;
       for (int N = 0; N < nslices; N++)
@@ -177,7 +178,7 @@ public:
 
     if (bool bVerifyData = true)
     {
-      auto access = dataset->createAccess();
+      auto access = dataset->createAccessForBlockQuery();
 
       for (int N = 0; N < this->nslices; N++)
       {
@@ -204,7 +205,7 @@ public:
     static int nactivation = 0;
     nactivation++;
 
-    auto access = dataset->createAccess();
+    auto access = dataset->createAccessForBlockQuery();
 
     auto query = dataset->createBoxQuery(box, 'r');
 

@@ -20,8 +20,8 @@ from OpenVisus.gui import *
 class PyViewer(Viewer):
 	
 	# constructor
-	def __init__(self):	
-		super().__init__()
+	def __init__(self,title="PyViewer"):	
+		super().__init__(title)
 		self.render_palettes=False
 	
 	# run

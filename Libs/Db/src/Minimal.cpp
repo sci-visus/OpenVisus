@@ -78,10 +78,8 @@ MinimalDataset* MinimalDataset::Load(std::string filename)
   return new MinimalDataset(new SharedPtr<IdxDataset>(LoadIdxDataset(filename)));
 }
 
-
-
 ///////////////////////////////////////////////////
-MinimalAccess* MinimalDataset::createAccess()
+MinimalAccess* MinimalDataset::createMinimalAccess()
 {
   auto dataset = *static_cast<SharedPtr<IdxDataset>*>(this->pimpl);
   auto access = new IdxDiskAccess(dataset.get());

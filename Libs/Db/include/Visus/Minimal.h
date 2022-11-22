@@ -71,8 +71,8 @@ public:
   //destructor
   ~MinimalDataset();
 
-  //createAccess (must be destroyed by the caller)
-  MinimalAccess* createAccess();
+  //createMinimalAccess (must be destroyed by the caller)
+  MinimalAccess* createMinimalAccess();
 
   //writeData
   void writeData(MinimalAccess* access, int x1, int y1, int z1, int x2, int y2, int z2, Uint8* buffer, int buffer_size);

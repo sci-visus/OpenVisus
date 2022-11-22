@@ -56,6 +56,7 @@ For support : support@visus.net
 #include <Visus/IdxMultipleAccess.h>
 #include <Visus/IdxDiskAccess.h>
 #include <Visus/IdxFilter.h>
+#include <Visus/IdxDataset2.h>
 
 namespace Visus {
 
@@ -332,7 +333,7 @@ Field Dataset::getField(String name) const {
 
 
 ////////////////////////////////////////////////////////////////////
-SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
+SharedPtr<Access> Dataset::createAccess(StringTree config,bool for_block_query)
 {
   if (!config.valid())
     config = getDefaultAccessConfig();
@@ -354,7 +355,15 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
     }
   }
 
-  if (auto idx = dynamic_cast<IdxDataset*>(this))
+#if VISUS_IDX2 
+  else if (auto idx2 = dynamic_cast<IdxDataset2*>(this))
+  {
+    if (!config.valid())
+      return std::make_shared<DiskAccess>(this, StringTree::fromString("<access type='DiskAccess' compression='raw' />"));    
+  }
+#endif
+
+  else if (auto idx = dynamic_cast<IdxDataset*>(this))
   {
     //consider I can have thousands of childs (NOTE: this attribute should be "inherited" from child)
     auto midx = dynamic_cast<IdxMultipleDataset*>(this);
@@ -391,7 +400,7 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
           return std::make_shared<CloudStorageAccess>(this, config);
 
         //otherwise it's a regular modvisus dataset
-        if (bForBlockQuery)
+        if (for_block_query)
           return std::make_shared<ModVisusAccess>(this, config);
         else
           //I can execute box/point queries on the remote server
@@ -420,7 +429,7 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
   }
 
   if (!config.valid()) {
-    VisusAssert(!bForBlockQuery);
+    VisusAssert(!for_block_query);
     return SharedPtr<Access>(); //pure remote query
   }
 
@@ -460,12 +469,19 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
   return SharedPtr<Access>();
 }
 
+
+///////////////////////////////////////////////////////////////////////////////////
+SharedPtr<Access> Dataset::createAccessForBlockQuery(StringTree config) {
+  return createAccess(config, /*for_block_query*/true);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////
 std::vector<String> Dataset::getFilenames(int user_timestep,String user_field)
 {
   std::vector<String> ret;
 
-  auto access = createAccess();
+  //only for generating filenames
+  auto access = createAccessForBlockQuery();
 
   //assuming blocks will go to the same file
   auto blocksperfile = idxfile.blocksperfile;
@@ -495,11 +511,16 @@ std::vector<String> Dataset::getFilenames(int user_timestep,String user_field)
 ///////////////////////////////////////////////////////////////////////////////////
 void Dataset::compressDataset(std::vector<String> compression, Array data)
 {
+  PrintWarning("NOTE: Dataset::compressDataset is deprecated, use python version");
+
   auto idx = dynamic_cast<IdxDataset*>(this);
   VisusReleaseAssert(idx);
 
   // for future version: here I'm making the assumption that a file contains multiple fields
   if (idxfile.version != 6)
+    ThrowException("unsupported");
+
+  if (idxfile.arco)
     ThrowException("unsupported");
 
   //PrintInfo("Compressing dataset", StringUtils::join(compression));
@@ -2130,9 +2151,10 @@ void Dataset::computeFilter(const Field& field, int window_size, bool bVerbose)
   for (int D = 0; D < getPointDim(); D++)
     sliding_box[D] = window_size;
 
-  auto acess = createAccess();
+  auto access = createAccessForBlockQuery();
+  access->setWritingMode();
   for (auto time : getTimesteps().asVector())
-    computeFilter(filter, time, field, acess, sliding_box, bVerbose);
+    computeFilter(filter, time, field, access, sliding_box, bVerbose);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

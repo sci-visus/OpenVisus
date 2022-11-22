@@ -91,37 +91,6 @@ See [docs/compilation.md](./docs/compilation.md).
 
 See [docs/convert.md](./docs/convert.md).
 
-# IDX2
-
-Make sure you have the IDX submodule (check if IDX2/directory is in Libs/).
-
-In `cmake configure` step enable VISUS_IDX2 checkbox and `Build all`.
-
-You can download a test file from here https://github.com/sci-visus/OpenVisus/releases/download/files/MIRANDA-DENSITY-.384-384-256.-Float64.raw.
-
-Create an idx2 file:
-
-```
-# under Windows
-# set PATH=%PATH%;build\RelWithDebInfo\OpenVisus\bin
-
-idx2 --encode --input MIRANDA-DENSITY-[384-384-256]-Float64.raw --accuracy 1e-16 --num_levels 2 --brick_size 64 64 64 --bricks_per_tile 512 --tiles_per_file 512 --files_per_dir 512 --out_dir tmp
-```
-
-To retrieve the data
-
-```
-idx2 --decode --input tmp/MIRANDA/DENSITY.idx2 --in_dir . --first 0 0 0 --last 383 383 255 --level 1 --mask 128 --accuracy 0.001 --out_dir tmp --out_file decode.raw
-
-# CHECK the file 
-```
-
-To test in OpenVisus viewer:
-
-```
-visusviewer tmp/MIRANDA/DENSITY.idx2
-``` 
-
 # Connecting to OpenViSUS Server Using a Proxy
 
 In your visus.config, you can specify a proxy scheme, ip, and port for the client (either the viewer or the python package) to use when connecting to an OpenViSUS server. This can be useful in accessing a server that is hosted on an internal network which is only accessible through SSH, for example.

@@ -127,10 +127,32 @@ void TestCloudStorage(String connection_string)
 int main(int argn, const char* argv[])
 {
   auto T1 = Time::now();
+	String action = argn>=2? String(argv[1]): String("");
 
   SetCommandLine(argn, argv);
 
-	if (String(argv[1]) == "test-cloud-storage")
+#if VISUS_IDX2
+	// SET PATH=%PATH%;build\RelWithDebugInfo\OpenVisus\bin
+	// del *.png
+	// rmdir /S /Q Miranda
+	// DISABLE_EXTERNAL_ACCESS=1 visus.exe idx2 --encode Miranda-Viscosity-[384-384-256]-Float64.raw --tolerance 1e-16 --num_levels 2 --out_dir .
+	// DISABLE_EXTERNAL_ACCESS=1 visus.exe idx2 --decode Miranda/Viscosity.idx2 --downsampling 1 1 1 --tolerance 0.001                           
+	// python Samples/python/idx2_convert.py Miranda-Viscosity-[193-193-129]-float64-accuracy-0.001000.raw
+	{
+		if (action == "idx2")
+		{
+			DbModule::attach();
+			std::vector<const char*> v;
+			for (int I = 2; I < argn; I++)
+				argv[I - 1] = argv[I];
+			auto ret=Idx2App(argn - 1, argv);
+			DbModule::detach();
+			return ret;
+		}
+	}
+#endif
+
+	if (action == "test-cloud-storage")
 	{
 		//create a root access key (has full rights on your AWS resources) 
 		auto connection_string= argv[2];
@@ -140,6 +162,7 @@ int main(int argn, const char* argv[])
 		return 0;
 	}
 
+	//switch to visus convert
 #if VISUS_PYTHON
   EmbeddedPythonInit();
   auto acquire_gil = PyGILState_Ensure();

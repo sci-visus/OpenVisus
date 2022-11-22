@@ -11,6 +11,19 @@ try:
 except:
 	pass
 
+# ////////////////////////////////////////////////////////////////////////////////////////
+def NormalizeArcoArg(value):
+	
+	# Example: modvisus | 0 | 1mb | 512kb
+
+	if value is None or value=="modvisus":
+		return 0
+	
+	if isinstance(value,str):
+		return StringUtils.getByteSizeFromString(value)  
+	
+	assert(isinstance(value,int))
+	return int(value)
 
 # //////////////////////////////////////////////////////////
 def CreateIdx(**args):
@@ -88,20 +101,17 @@ def CreateIdx(**args):
 
 	# am I creating an arco dataset?
 	if "arco" in args:
-		assert isinstance(args["arco"],int)
-		idx.arco=args["arco"]
+		arco=NormalizeArcoArg(args["arco"])
+		idx.arco=arco
   
-		# override 
-		if idx.arco>0:
-			idx.blocksperfile=1
-			idx.filename_template=""
-
 	idx.save(url)
 	db=LoadDataset(url)
 
 	if buffer:
+		# shortcut for the C++ method
 		compression=args["compression"] if "compression" in args else ["zip"]
-		db.compressDataset(compression, buffer)
+		assert not db.db.idxfile.arco
+		db.db.compressDataset(compression, buffer)
 			
 	return db
 
@@ -227,10 +237,13 @@ class PyDataset(object):
 
 		return ret
 
+	# createAccessForBlockQuery
+	def createAccessForBlockQuery(self,config=StringTree()):
+		return self.db.createAccessForBlockQuery(config)
 
 	# createAccess
-	def createAccess(self):
-		return self.db.createAccess()
+	def createAccess(self,config=StringTree()):
+		return self.db.createAccess(config)
 
 	# readBlock
 	def readBlock(self, block_id, time=None, field=None, access=None, aborted=Aborted()):
@@ -254,6 +267,7 @@ class PyDataset(object):
 		# note write_block.buffer.layout is empty (i.e. rowmajor)
 		self.executeBlockQueryAndWait(access, write_block)
 		return write_block.ok()
+
 
 	# read
 	def read(self, logic_box=None, x=None, y=None, z=None, time=None, field=None, num_refinements=1, quality=0, max_resolution=None, disable_filters=False, access=None):
@@ -400,9 +414,8 @@ class PyDataset(object):
 			raise Exception("begin query failed {0}".format(query.errormsg))
 			
 		if not access:
-			access=IdxDiskAccess.create(self.db)
-			access.disableAsync()
-			access.disableWriteLock()
+			access=self.createAccessForBlockQuery()
+			access.setWritingMode()
 		
 		# I need to change the shape of the buffer, since the last component is the channel (like RGB for example)
 		buffer=Array.fromNumPy(data,bShareMem=True)
@@ -540,7 +553,66 @@ class PyDataset(object):
 
 			
 		return data
+
+	# copyDataset
+	def copyDataset(self, dst:str, arco="modvisus", tile_size:int=None, timestep:int=None, field:str=None,num_attempts:int=3):
+		from .convert import CopyDataset
+		return CopyDataset(self.db, dst, arco, tile_size, timestep, field, num_attempts)
+
+	# compressDataset
+	def compressDataset(self, compression="zip", num_threads=32, timestep=None,field=None):
+
+		# TODO: enable different compressions for different levels
+		if isinstance(compression, (list, tuple)):
+			assert len(compression)==1 
+			compression=compression[0]		
+
+		# no compression specified
+		if compression=="" or compression=="raw":
+			return
+
+		if self.db.idxfile.arco:
+			from .convert import CompressArcoDataset
+			CompressArcoDataset(self.db,compression=compression,num_threads=num_threads,timestep=timestep,field=field)
+		else:
+			from .convert import CompressModVisusDataset
+			CompressModVisusDataset(self.db,compression=compression,num_threads=num_threads,timestep=timestep,field=field)
+
+		# override the information for fields
+		fields=[it for it in self.db.idxfile.fields]
+		self.db.idxfile.fields.clear()
+		for field in fields:
+			field.default_compression=compression
+			self.db.idxfile.fields.push_back(field)
+
+		url=self.getUrl()
+		self.db.idxfile.save(url)
+		self.db=LoadDatasetCpp(url)
+		
+	# copyBlocks
+	def copyBlocks(self, dst, time=None, field=None, num_read_per_request=1, verbose=False):
 	
+		if not os.path.isfile(dst):
+			src.db.idxfile.createNewOne(dst)
+		dst=LoadDataset(dst)
+
+		from .convert import CopyBlocks
+		copier=CopyBlocks(self.db, dst,time=time,field=field,num_read_per_request=num_read_per_request, verbose=verbose)
+		tot_blocks=self.db.getTotalNumberOfBlocks()
+		num_per_thread=tot_blocks//num_threads
+		logger.info(f"tot_blocks={tot_blocks} num_threads={num_threads} num_per_thread={num_per_thread}")
+
+		if num_threads<=1:
+			copier.doCopy(0,tot_blocks)
+		else:
+			threads=[]
+			for I in range(num_threads):
+				A=(I+0)*num_per_thread
+				B=(I+1)*num_per_thread if I<(num_threads-1) else tot_blocks
+				threads.append(Thread(target=CopyBlocks.doCopy, args=(copier,A,B)))
+			for t in threads: t.start()
+			for t in threads: t.join()
+
 
 def open_dataset(url):
 	"""

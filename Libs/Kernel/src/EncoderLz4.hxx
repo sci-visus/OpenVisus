@@ -104,7 +104,11 @@ public:
     if (!encoded)
       return SharedPtr<HeapMemory>();
 
+    VisusAssert(dtype.getByteSize(dims));
+
     auto decoded = std::make_shared<HeapMemory>();
+
+    //I need to know the final decompressed size
     if (!decoded->resize(dtype.getByteSize(dims), __FILE__, __LINE__))
       return SharedPtr<HeapMemory>();
 

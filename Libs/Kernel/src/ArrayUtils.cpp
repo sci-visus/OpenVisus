@@ -128,23 +128,14 @@ SharedPtr<HeapMemory> ArrayUtils::encodeArray(String compression,Array array)
     return SharedPtr<HeapMemory>();
   }
 
-  SharedPtr<HeapMemory> encoded;
-  if (compression.empty())
+  auto encoder = Encoders::getSingleton()->createEncoder(compression);
+  if (!encoder)
   {
-    encoded = array.heap;
-  }
-  else
-  {
-    auto encoder = Encoders::getSingleton()->createEncoder(compression);
-    if (!encoder)
-    {
-      VisusAssert(false);
-      return SharedPtr<HeapMemory>();
-    }
-    //if encoder fails, just copy the array
-    encoded = encoder->encode(array.dims, array.dtype, array.heap);
+    VisusAssert(false);
+    return SharedPtr<HeapMemory>();
   }
 
+  auto encoded = encoder->encode(array.dims, array.dtype, array.heap);
   if (!encoded) {
     VisusAssert(false);
     return SharedPtr<HeapMemory>();
@@ -162,29 +153,32 @@ Array ArrayUtils::decodeArray(String compression,PointNi dims,DType dtype,Shared
     return Array();
   }
 
-  if (dims.innerProduct()<=0 || !dtype.valid())
-    return Array();
-
   SharedPtr<HeapMemory> decoded;
-  if (compression.empty())
-  {
-    decoded = encoded;
+
+  auto decoder = Encoders::getSingleton()->createEncoder(compression);
+  if (!decoder) {
+    VisusAssert(false);
+    return Array();
   }
-  else
-  {
-    auto decoder = Encoders::getSingleton()->createEncoder(compression);
-    if (!decoder) {
-      VisusAssert(false);
-      return Array();
-    }
-    decoded = decoder->decode(dims, dtype, encoded);
-  }
+  decoded = decoder->decode(dims, dtype, encoded);
 
   if (!decoded)
     return Array();
 
-  VisusAssert(decoded->c_size()==dtype.getByteSize(dims));
-  return Array(dims,dtype,decoded);
+  //did i predeclared a layout? if so check they are compatible
+  if (auto tot_bytes = dtype.getByteSize(dims))
+  {
+    if (tot_bytes != decoded->c_size()) {
+      VisusAssert(false);
+      return Array();
+    }
+    return Array(dims, dtype, decoded);
+  }
+  //otherwise return something plausible
+  else
+  {
+    return Array({ decoded->c_size() }, DTypes::UINT8, decoded);
+  }
 }
 
 

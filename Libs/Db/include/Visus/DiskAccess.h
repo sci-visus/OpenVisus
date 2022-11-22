@@ -78,7 +78,6 @@ public:
 
 private:
 
-  Path                path;
   String              filename_template;
 
 }; 

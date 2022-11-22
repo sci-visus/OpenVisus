@@ -332,7 +332,8 @@ def MidxToIdx(args):
 	Assert(field.valid())
 
 	ACCESS = midx.createAccess()
-	access = idx.createAccess()
+	access = idx.createAccessForBlockQuery()
+	access.setWritingMode()
 
 	print("Generating tiles...",args.tile_size)
 	pdim=idx.getPointDim()
@@ -435,11 +436,22 @@ def Main(args):
 		VisusConvert().runFromArgs(action_args)
 		sys.exit(0)
 
-	# DEPRACATED
+	# DEPRACATED (are we sure?)
 	# -m OpenVisus copy-blocks  --src http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1 --dst D:/tmp/visus.idx   --num-threads 4 --num-read-per-request 256 [--verbose] [--field fieldname]  [--time timestep]
 	if action=="copy-blocks":
-		from OpenVisus.convert import CopyBlocks
-		CopyBlocks.Main(action_args)
+		logger.info(f"copy-blocks action_args={action_args}")
+		parser = argparse.ArgumentParser(description="Copy blocks")
+		parser.add_argument("--src","--source", type=str, help="source", required=True,default="")
+		parser.add_argument("--dst","--destination", type=str, help="destination", required=True,default="") 
+		parser.add_argument("--time", help="time", required=False,default="") 
+		parser.add_argument("--field", help="field"  , required=False,default="") 
+		parser.add_argument("--num-threads", help="number of threads", required=False,type=int, default=4)
+		parser.add_argument("--num-read-per-request", help="number of read block per network request (only for mod_visus)", required=False,type=int, default=256)
+		parser.add_argument("--verbose", help="Verbose", required=False,action='store_true') 
+		args = parser.parse_args(action_args)
+
+		db=LoadDataset(args.src)
+		db.copyBlocks(dst=args.dst, time=args.time, field=args.field, num_read_per_request=args.num_read_per_request, verbose=args.verbose)
 		sys.exit(0)
 
 	# NEW: convert-image-stack
@@ -472,9 +484,8 @@ def Main(args):
 		parser.add_argument("src",type=str) 
 		parser.add_argument("dst",type=str)
 		args=parser.parse_args(action_args)
-
-		from OpenVisus import CopyDataset
-		CopyDataset(args.src, args.dst, arco=args.arco,tile_size=args.tile_size,timestep=args.timestep,field=args.field)
+		db=LoadDataset(args.src)
+		db.copyDataset(args.dst, arco=args.arco,tile_size=args.tile_size,timestep=args.timestep,field=args.field)
 		sys.exit(0)
 
 	if action=="compress-dataset":
@@ -489,11 +500,10 @@ def Main(args):
 		parser.add_argument('--num-threads',type=int,required=False,default=32)
 		parser.add_argument('--timestep',type=int,required=False,default=None)
 		parser.add_argument('--field',type=str,required=False,default=None)
-		parser.add_argument('--zip-level',type=int,required=False,default=-1)
 		parser.add_argument('idx_filename',type=str) 
 		args=parser.parse_args(action_args)
-		from OpenVisus import CompressDataset
-		CompressDataset(args.idx_filename, compression=args.compression, num_threads=args.num_threads,level=args.zip_level,timestep=args.timestep,field=args.field)
+		db=LoadDataset(args.idx_filename)
+		db.compressDataset(compression=args.compression, num_threads=args.num_threads,timestep=args.timestep,field=args.field)
 		return
 
 	if action=="copy-dataset-to-cloud":

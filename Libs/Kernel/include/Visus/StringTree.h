@@ -403,6 +403,13 @@ public:
     return cursor? cursor->getAttribute(key, default_value) : default_value;
   }
 
+  //readString
+  String readString(std::vector<String> keys, String default_value = "") const {
+      return keys.size() == 1?
+        readString(keys[0],default_value):
+        readString(keys[0], readString(std::vector<String>(keys.begin()+1, keys.end()), default_value));
+  }
+
   //readInt
   bool readBool(String key, bool default_value = false) const {
     return cbool(readString(key, cstring(default_value)));

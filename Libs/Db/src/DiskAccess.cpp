@@ -51,25 +51,26 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   int default_bitsperblock=dataset->getDefaultBitsPerBlock();
   this->can_read          = StringUtils::find(config.readString("chmod", DefaultChMod),"r")>=0;
   this->can_write         = StringUtils::find(config.readString("chmod", DefaultChMod),"w")>=0;
-  this->path              = Path(config.readString("dir","."));
   this->bitsperblock      = default_bitsperblock;
-  this->compression       = config.readString("compression", "zip");
+  this->compression       = config.readString("compression", Url(dataset->getUrl()).getParam("compression", "zip"));
 
   Url url = config.hasAttribute("url") ? config.readString("url") : dataset->getUrl();
   Path path = Path(url.getPath());
-  String dir = path.getParent().toString();
-  String base_no_ext = path.getFileNameWithoutExtension();
-  String ext = path.getExtension(); VisusAssert(ext == ".idx");
-
+  
   //example: "s3://bucket-name/whatever/$(time)/$(field)/$(block:%016x:%04x).$(compression)";
   //NOTE 16x is enough for 16*4 bits==64 bit for block number
   //     splitting by 4 means 2^16= 64K files inside a directory with max 64/16=4 levels of directories
-  this->filename_template = config.readString("filename_template");
-  if (this->filename_template.empty())
-    this->filename_template = "./" + base_no_ext + "/$(time)/$(field)/$(block:%016x:%04x).bin";
+  this->filename_template = config.readString("filename_template", 
+    url.isRemote() ? 
+      "$(VisusCache)/$(HostName)/$(HostPort)$(FullPathWithoutExt)/$(time)/$(field)/$(block:%016x:%04x).bin" :
+                                           "$(FullPathWithoutExt)/$(time)/$(field)/$(block:%016x:%04x).bin");
+ 
+  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(HostName)", url.getHostname());
+  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(HostPort)", cstring(url.getPort()));
+  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(FullPathWithoutExt)", path.withoutExtension());
+  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(VisusCache)", GetVisusCache());
 
-  if (StringUtils::startsWith(filename_template, "./") && !dir.empty())
-    filename_template = StringUtils::replaceFirst(filename_template, ".", dir);
+  PrintInfo("Created DiskAccess","url",url,"filename_template",filename_template,"compression", compression);
 }
 
 
@@ -77,6 +78,7 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
 String DiskAccess::getFilename(Field field,double time,BigInt blockid) const
 {
   auto reverse_filename = false;
+  auto compression = guessCompression(field);
   return Access::getBlockFilename(filename_template, field, time, compression, blockid, reverse_filename);
 }
 
@@ -100,7 +102,7 @@ void DiskAccess::releaseWriteLock(SharedPtr<BlockQuery> query)
 void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
 {
   Int64  blockdim  = query->field.dtype.getByteSize(getSamplesPerBlock());
-  String filename  = Access::getFilename(query);
+  String filename  = Access::getFilename(query); 
 
   if (filename.empty())
     return readFailed(query,"filename empty");
@@ -119,8 +121,10 @@ void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
   if (!file.read(0,encoded->c_size(), encoded->c_ptr()))
     return readFailed(query,"cannot read encoded data");
 
+  auto compression = guessCompression(query->field);
+
   auto nsamples = query->getNumberOfSamples();
-  auto decoded=ArrayUtils::decodeArray(this->compression,nsamples,query->field.dtype, encoded);
+  auto decoded=ArrayUtils::decodeArray(compression,nsamples,query->field.dtype, encoded);
   if (!decoded.valid())
     return readFailed(query,"cannot decode data");
 
@@ -135,25 +139,28 @@ void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
 ////////////////////////////////////////////////////////////////////
 void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
 {
-  Int64  blockdim        = query->field.dtype.getByteSize(getSamplesPerBlock());
-  String filename        = Access::getFilename(query);
+  String filename = Access::getFilename(query);
 
   if (filename.empty())
     return writeFailed(query,"filename is empty");
-    
-  if (query->buffer.c_size()!=blockdim)
-    return writeFailed(query,"wrong buffer");
-
-  //only RowMajor is supported!
-  auto layout=query->buffer.layout;
-  if (!(layout.empty() || layout=="rowmajor"))
-  {
-    PrintInfo("Failed to write block, only RowMajor format is supported");
-    return writeFailed(query,"only raw major format is supported");
-  }
 
   if (query->aborted())
-    return writeFailed(query,"query aborted");
+    return writeFailed(query, "query aborted");
+
+  //relaxing a little for VISUS_IDX2 (until I have the layout)
+#if 0
+    Int64  blockdim = query->field.dtype.getByteSize(getSamplesPerBlock());
+    if (query->buffer.c_size() != blockdim)
+      return writeFailed(query, "wrong buffer");
+
+    //only RowMajor is supported!
+    auto layout = query->buffer.layout;
+    if (!(layout.empty() || layout == "rowmajor"))
+    {
+      PrintInfo("Failed to write block, only RowMajor format is supported");
+      return writeFailed(query, "only raw major format is supported");
+    }
+#endif
 
   FileUtils::removeFile(filename);
 
@@ -164,8 +171,10 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
     return writeFailed(query,"cannot create file or directory");
   }
 
+  auto compression = guessCompression(query->field);
+
   auto decoded=query->buffer;
-  auto encoded=ArrayUtils::encodeArray(this->compression,decoded);
+  auto encoded=ArrayUtils::encodeArray(compression,decoded);
   if (!encoded)
   {
     PrintInfo("Failed to write block filename", filename, "encodeArray failed");

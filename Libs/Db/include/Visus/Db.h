@@ -69,6 +69,10 @@ public:
 
 } //namespace Visus
 
+#if VISUS_IDX2
+int VISUS_DB_API Idx2App(int argn, const char* argv[]);
+#endif
+
 
 #endif //VISUS_DB_H__
 
