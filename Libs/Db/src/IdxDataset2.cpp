@@ -122,7 +122,7 @@ bool IdxDataset2::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int H)
   //I just need to know the Grid
   idx2::idx2_file Idx2;
   DoAtExit do_at_exit([&]() {idx2::Dealloc(&Idx2); });
-  idx2::Init(&Idx2, P);
+  idx2::InitFromBuffer(&Idx2, P, idx2::buffer((const idx2::byte*)this->metafile.c_str(), this->metafile.size()));
   idx2::grid OutGrid = idx2::GetGrid(Idx2, P.DecodeExtent);
   idx2::v3i from = idx2::From(OutGrid);
   idx2::v3i dims = idx2::Dims(OutGrid); 
@@ -164,6 +164,7 @@ void IdxDataset2::enableExternalRead(idx2::idx2_file& Idx2, SharedPtr<Access> ac
       return false;
     idx2::AllocBuf(&Buf, query->buffer.c_size());
     memcpy(Buf.Data, query->buffer.c_ptr(), query->buffer.c_size());
+
     return true;
   };
 }
@@ -288,7 +289,6 @@ bool IdxDataset2::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> 
   GetDecodeParams(P, query, query->end_resolution);
 
   idx2::idx2_file Idx2; DoAtExit do_at_exit([&]() {idx2::Dealloc(&Idx2); });
-
   idx2::InitFromBuffer(&Idx2, P, idx2::buffer((const idx2::byte*)this->metafile.c_str(), this->metafile.size()));
 
   //want to use OpenVisus::Access for IDX block access?
