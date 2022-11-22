@@ -335,7 +335,7 @@ def CompressModVisusDataset(db, compression="zip", num_threads=32, timestep=None
 		COMPRESSED_SIZE+=compressed_size
 		logger.info(f"Compressed {filename}  in {time.time()-t1} ratio({ratio}%)")
 
-	RATIO=int(100*COMPRESSED_SIZE/UNCOMPRESSED_SIZE)
+	RATIO=int(100*COMPRESSED_SIZE/UNCOMPRESSED_SIZE) if UNCOMPRESSED_SIZE else 0.0
 	logger.info(f"CompressModVisusDataset done in {time.time()-T1} seconds {RATIO}%")
 	# NOTE: I don't need to save the new idx since it will be the block header telling the real compression
 

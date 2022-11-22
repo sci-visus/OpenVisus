@@ -108,8 +108,10 @@ def CreateIdx(**args):
 	db=LoadDataset(url)
 
 	if buffer:
+		# shortcut for the C++ method
 		compression=args["compression"] if "compression" in args else ["zip"]
-		db.compressDataset(compression, buffer)
+		assert not db.db.idxfile.arco
+		db.db.compressDataset(compression, buffer)
 			
 	return db
 
@@ -559,6 +561,11 @@ class PyDataset(object):
 
 	# compressDataset
 	def compressDataset(self, compression="zip", num_threads=32, timestep=None,field=None):
+
+		# TODO: enable different compressions for different levels
+		if isinstance(compression, (list, tuple)):
+			assert len(compression)==1 
+			compression=compression[0]		
 
 		# no compression specified
 		if compression=="" or compression=="raw":
