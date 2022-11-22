@@ -46,11 +46,11 @@ For support : support@visus.net
 
 #if VISUS_IDX2
 
-// I do not want to expose IDX2 (and C++17 requirement) to the outside
 namespace idx2 {
   struct idx2_file;
   struct params;
-}
+};
+
 
 namespace Visus {
 
@@ -103,14 +103,9 @@ public:
     return "IdxDataset2";
   }
 
-public:
-
-  //createAccess (right now not needed)
-  virtual SharedPtr<Access> createAccess(StringTree config = StringTree(), bool for_block_query = false) override;
 
 public:
 
-  //________________________________________________
   //block query stuff
 
   //createBlockQuery
@@ -118,36 +113,47 @@ public:
 
 
   //getBlockQuerySamples
-  LogicSamples getBlockQuerySamples(BigInt blockid, int& H);
+  LogicSamples getBlockQuerySamples(BigInt blockid, int& H) {
+    ThrowException("not supported");
+    return LogicSamples();
+  }
 
-  //readBlock  
-  virtual void executeBlockQuery(SharedPtr<Access> access, SharedPtr<BlockQuery> query) override;
+  //executeBlockQuery
+  void executeBlockQuery(SharedPtr<Access> access, SharedPtr<BlockQuery> query) override;
 
   //convertBlockQueryToRowMajor
-  virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) override;
+  virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) override {
+    ThrowException("not supported");
+    return false;
+  }
 
   //createEquivalentBoxQuery
-  virtual SharedPtr<BoxQuery> createEquivalentBoxQuery(int mode, SharedPtr<BlockQuery> block_query) override;
+  virtual SharedPtr<BoxQuery> createEquivalentBoxQuery(int mode, SharedPtr<BlockQuery> block_query) override {
+    ThrowException("not supported");
+    return SharedPtr<BoxQuery>();
+  }
 
 public:
 
-  //________________________________________________
   //box query stuff
 
   //createBoxQuery
-  virtual SharedPtr<BoxQuery> createBoxQuery(BoxNi logic_box, Field field, double time, int mode = 'r', Aborted aborted = Aborted()) override;
+  virtual SharedPtr<BoxQuery> createBoxQuery(BoxNi logic_box, Field field, double time, int mode = 'r', Aborted aborted = Aborted()) override {
+    return Dataset::createBoxQuery(logic_box, field, time, mode, aborted);
+  }
 
   //guessBoxQueryEndResolution
-  virtual int guessBoxQueryEndResolution(Frustum logic_to_screen, Position logic_position) override;
-
-  //fillParams
-  LogicSamples getDecodeParams(idx2::params* P, SharedPtr<BoxQuery> query, int H);
+  virtual int guessBoxQueryEndResolution(Frustum logic_to_screen, Position logic_position) override {
+    return Dataset::guessBoxQueryEndResolution(logic_to_screen, logic_position);
+  }
 
   //setBoxQueryEndResolution
   virtual bool setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int H) override;
 
   //beginBoxQuery
-  virtual void beginBoxQuery(SharedPtr<BoxQuery> query) override;
+  virtual void beginBoxQuery(SharedPtr<BoxQuery> query) override {
+    return Dataset::beginBoxQuery(query);
+  }
 
   //executeBoxQuery
   virtual bool executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query) override;
@@ -157,27 +163,55 @@ public:
   virtual void nextBoxQuery(SharedPtr<BoxQuery> query) override;
 
   //createBlockQueriesForBoxQuery
-  virtual std::vector<BigInt> createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query) override;
+  virtual std::vector<BigInt> createBlockQueriesForBoxQuery(SharedPtr<BoxQuery> query) override {
+    ThrowException("not supported");
+    return {};
+  }
 
   //mergeBoxQueryWithBlockQuery
-  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) override;
+  virtual bool mergeBoxQueryWithBlockQuery(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query) override {
+    ThrowException("not supported");
+    return false;
+  }
 
   //createBoxQueryRequest
-  virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query) override;
+  virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query) override {
+    ThrowException("not supported");
+    return NetRequest();
+  }
 
   //executeBoxQueryOnServer
-  virtual bool executeBoxQueryOnServer(SharedPtr<BoxQuery> query) override;
+  virtual bool executeBoxQueryOnServer(SharedPtr<BoxQuery> query) override {
+    ThrowException("not supported");
+    return false;
+  }
+
 
 public:
 
-  //________________________________________________
   //point query stuff
 
   //constructor
-  virtual SharedPtr<PointQuery> createPointQuery(Position logic_position, Field field, double time, Aborted aborted = Aborted());
+  virtual SharedPtr<PointQuery> createPointQuery(Position logic_position, Field field, double time, Aborted aborted = Aborted()) {
+    ThrowException("not supported");
+    return SharedPtr<PointQuery>();
+  }
 
   //createBlockQueriesForPointQuery
-  virtual std::vector<BigInt> createBlockQueriesForPointQuery(SharedPtr<PointQuery> query);
+  virtual std::vector<BigInt> createBlockQueriesForPointQuery(SharedPtr<PointQuery> query) {
+    ThrowException("not supported");
+    return {};
+  }
+
+
+public:
+
+  //enableExternalRead
+  void enableExternalRead(idx2::idx2_file& Idx2, SharedPtr<Access> access, Aborted aborted=Aborted());
+
+
+  //enableExternalRead
+  void enableExternalWrite(idx2::idx2_file& Idx2, SharedPtr<Access> access, Aborted aborted = Aborted());
 
 public:
 
@@ -186,9 +220,11 @@ public:
 
 private:
 
-  idx2::idx2_file* Idx2 = nullptr;
-  String           idx2_input_file;
-  String           idx2_int_dir;
+  String           input_file;
+  String           in_dir;
+  String           metafile;
+
+  void GetDecodeParams(idx2::params& P,SharedPtr<BoxQuery> query, int H);
 
 };
 
@@ -196,7 +232,7 @@ private:
 } //namespace Visus
 
 
-#endif //VISUS_IDX2
+#endif 
 
 
 #endif //_VISUS_IDX_DATASET_2_H__

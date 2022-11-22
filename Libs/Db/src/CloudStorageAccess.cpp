@@ -46,7 +46,7 @@ namespace Visus {
 ///////////////////////////////////////////////////////////////////////////////////////
 CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   : config(config_)
-{
+{ 
   this->name = this->name = config.readString("name", "CloudStorageAccess");
   this->can_read  = StringUtils::find(config.readString("chmod", DefaultChMod), "r") >= 0;
   this->can_write = StringUtils::find(config.readString("chmod", DefaultChMod), "w") >= 0;
@@ -71,13 +71,12 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   this->filename_template= config.readString("filename_template");
 
   if (this->filename_template.empty())
-  {
+  { 
     //guess fromm *.idx filename
-    auto path = this->url.getPath();
-    VisusAssert(StringUtils::endsWith(path,".idx"));
-    this->filename_template = path.substr(0, path.size() - 4) + "/$(time)/$(field)/$(block:%016x:%04x).bin";
+    auto path = Path(this->url.getPath());
+    auto path_no_ext = path.withoutExtension();
+    this->filename_template = path_no_ext + "/$(time)/$(field)/$(block:%016x:%04x).bin";
   }
-
 
   VisusReleaseAssert(!this->filename_template.empty());
 }
@@ -87,14 +86,9 @@ CloudStorageAccess::~CloudStorageAccess()
 {
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////////////
 String CloudStorageAccess::getFilename(Field field, double time, BigInt blockid) const
-{
-  //example: if url is s3://bucket/whatever/here/visus.idx
-  //         prefix will be s3://bucket/whatever/here/visus
-  auto prefix = Path(url.getPath()).withoutExtension();
-    
+{    
   auto compression = guessCompression(field);
   auto ret = Access::getBlockFilename(this->filename_template, field, time, compression, blockid, reverse_filename);
 
@@ -104,8 +98,6 @@ String CloudStorageAccess::getFilename(Field field, double time, BigInt blockid)
 
   return ret;
 }
-
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)

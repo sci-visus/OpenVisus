@@ -120,9 +120,13 @@ public:
     if (!encoded)
       return SharedPtr<HeapMemory>();
 
+    //I need to know the uncompressed sizse in advance
     ZLib::uLong decoded_len = (ZLib::uLong)(dtype.getByteSize(dims));
+    if (!decoded_len)
+      return SharedPtr<HeapMemory>();
 
     auto decoded = std::make_shared<HeapMemory>();
+
     if (!decoded->resize(dtype.getByteSize(dims), __FILE__, __LINE__))
       return SharedPtr<HeapMemory>();
 

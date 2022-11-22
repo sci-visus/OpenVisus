@@ -78,14 +78,6 @@ public:
   //decode
   virtual SharedPtr<HeapMemory> decode(PointNi dims, DType dtype, SharedPtr<HeapMemory> encoded) override
   {
-    if (!encoded)
-      return SharedPtr<HeapMemory>();
-
-    if (dtype.getByteSize(dims) != encoded->c_size()) {
-      VisusAssert(false);
-      return SharedPtr<HeapMemory>();
-    }
-
     return encoded;
   }
 

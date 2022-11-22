@@ -59,14 +59,13 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   Path path = Path(url.getPath());
   String dir = path.getParent().toString();
   String base_no_ext = path.getFileNameWithoutExtension();
-  String ext = path.getExtension(); VisusAssert(ext == ".idx");
 
   //example: "s3://bucket-name/whatever/$(time)/$(field)/$(block:%016x:%04x).$(compression)";
   //NOTE 16x is enough for 16*4 bits==64 bit for block number
   //     splitting by 4 means 2^16= 64K files inside a directory with max 64/16=4 levels of directories
-  this->filename_template = config.readString("filename_template");
+  this->filename_template = config.readString("filename_template"); 
   if (this->filename_template.empty())
-    this->filename_template = "./" + base_no_ext + "/$(time)/$(field)/$(block:%016x:%04x).bin";
+    this->filename_template = "./" + base_no_ext + "/$(time)/$(field)/$(block:%016x:%04x).bin"; //NOTE: ./ will be replaced in the following lines
 
   if (StringUtils::startsWith(filename_template, "./") && !dir.empty())
     filename_template = StringUtils::replaceFirst(filename_template, ".", dir);
@@ -138,25 +137,28 @@ void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
 ////////////////////////////////////////////////////////////////////
 void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
 {
-  Int64  blockdim        = query->field.dtype.getByteSize(getSamplesPerBlock());
-  String filename        = Access::getFilename(query);
+  String filename = Access::getFilename(query);
 
   if (filename.empty())
     return writeFailed(query,"filename is empty");
-    
-  if (query->buffer.c_size()!=blockdim)
-    return writeFailed(query,"wrong buffer");
-
-  //only RowMajor is supported!
-  auto layout=query->buffer.layout;
-  if (!(layout.empty() || layout=="rowmajor"))
-  {
-    PrintInfo("Failed to write block, only RowMajor format is supported");
-    return writeFailed(query,"only raw major format is supported");
-  }
 
   if (query->aborted())
-    return writeFailed(query,"query aborted");
+    return writeFailed(query, "query aborted");
+
+  //NOTE: for IDX2 I allow to write whavever as it is
+#if 0
+    Int64  blockdim = query->field.dtype.getByteSize(getSamplesPerBlock());
+    if (query->buffer.c_size() != blockdim)
+      return writeFailed(query, "wrong buffer");
+
+    //only RowMajor is supported!
+    auto layout = query->buffer.layout;
+    if (!(layout.empty() || layout == "rowmajor"))
+    {
+      PrintInfo("Failed to write block, only RowMajor format is supported");
+      return writeFailed(query, "only raw major format is supported");
+    }
+#endif
 
   FileUtils::removeFile(filename);
 

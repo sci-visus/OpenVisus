@@ -295,9 +295,11 @@ public:
     if (!canEncode(encoder_name, dtype))
       return SharedPtr<HeapMemory>();
 
-    dims = dims.compactDims();
-
-    int Width = (int)dims[0];
+    if (!dtype.getByteSize(dims))
+      return SharedPtr<HeapMemory>();
+     
+    //I need to know the shape (!)
+    int Width  = (int)dims[0];
     int Height = (int)dims[1];
 
     //wrong dims

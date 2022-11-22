@@ -166,6 +166,10 @@ public:
 
     VisusReleaseAssert(dtype.ncomponents()==1);
 
+    if (!dtype.getByteSize())
+      return SharedPtr<HeapMemory>();
+
+    //I need to know the layout
     auto pdim = dims.getPointDim();
     zfp_field* field = nullptr;
     if (pdim == 2)

@@ -128,7 +128,7 @@ public:
   String withoutExtension() const {
     String ret = this->toString();
     int idx = (int)ret.rfind(".");
-    return (idx < 0) ? ret : ret.substr(idx);
+    return (idx < 0) ? ret : ret.substr(0,idx);
   }
 
 private:

@@ -56,6 +56,7 @@ For support : support@visus.net
 #include <Visus/IdxMultipleAccess.h>
 #include <Visus/IdxDiskAccess.h>
 #include <Visus/IdxFilter.h>
+#include <Visus/IdxDataset2.h>
 
 namespace Visus {
 
@@ -354,7 +355,15 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool for_block_query)
     }
   }
 
-  if (auto idx = dynamic_cast<IdxDataset*>(this))
+#if VISUS_IDX2 
+  else if (auto idx2 = dynamic_cast<IdxDataset2*>(this))
+  {
+    if (!config.valid())
+      return std::make_shared<DiskAccess>(this, StringTree::fromString("<access type='DiskAccess' compression='raw' />"));    
+  }
+#endif
+
+  else if (auto idx = dynamic_cast<IdxDataset*>(this))
   {
     //consider I can have thousands of childs (NOTE: this attribute should be "inherited" from child)
     auto midx = dynamic_cast<IdxMultipleDataset*>(this);
