@@ -236,7 +236,7 @@ class PyDataset(object):
 		return ret
 
 	# createAccessForBlockQuery
-	def createAccessForReading(self,config=StringTree()):
+	def createAccessForBlockQuery(self,config=StringTree()):
 		return self.db.createAccessForBlockQuery(config)
 
 	# createAccess

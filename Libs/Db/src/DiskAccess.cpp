@@ -147,7 +147,7 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   if (query->aborted())
     return writeFailed(query, "query aborted");
 
-  //NOTE: for IDX2 I allow to write whavever as it is
+  //relaxing a little for VISUS_IDX2 (until I have the layout)
 #if 0
     Int64  blockdim = query->field.dtype.getByteSize(getSamplesPerBlock());
     if (query->buffer.c_size() != blockdim)
