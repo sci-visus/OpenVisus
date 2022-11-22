@@ -439,7 +439,7 @@ def Main(args):
 	# DEPRACATED (are we sure?)
 	# -m OpenVisus copy-blocks  --src http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1 --dst D:/tmp/visus.idx   --num-threads 4 --num-read-per-request 256 [--verbose] [--field fieldname]  [--time timestep]
 	if action=="copy-blocks":
-		logger.info(f"copy-blocks" action_args={action_args}")
+		logger.info(f"copy-blocks action_args={action_args}")
 		parser = argparse.ArgumentParser(description="Copy blocks")
 		parser.add_argument("--src","--source", type=str, help="source", required=True,default="")
 		parser.add_argument("--dst","--destination", type=str, help="destination", required=True,default="") 
