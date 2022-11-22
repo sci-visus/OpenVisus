@@ -43,6 +43,10 @@ For support : support@visus.net
 #pragma push_macro("slots")
 #undef slots
 
+#if defined(WIN32) 
+#pragma warning(disable: 4996)
+#endif
+
 #if defined(WIN32) && defined(_DEBUG) 
 #undef _DEBUG
 #include <Python.h>

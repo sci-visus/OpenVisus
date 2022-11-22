@@ -39,6 +39,10 @@ For support : support@visus.net
 #include <Visus/GLOrthoCamera.h>
 #include <Visus/LocalCoordinateSystem.h>
 
+#if defined(WIN32)
+#pragma warning(disable: 4996)
+#endif
+
 namespace Visus {
 
  //////////////////////////////////////////////////

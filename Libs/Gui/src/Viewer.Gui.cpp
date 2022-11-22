@@ -72,6 +72,10 @@ For support : support@visus.net
 #include <QDockWidget>
 #include <QScreen>
 
+#if defined(WIN32)
+#pragma warning(disable: 4996)
+#endif
+
 
 namespace Visus {
 

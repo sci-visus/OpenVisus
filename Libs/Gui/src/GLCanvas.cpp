@@ -40,6 +40,10 @@ For support : support@visus.net
 
 #include <QTimer>
 
+#if defined(WIN32)
+#pragma warning(disable: 4996)
+#endif
+
 namespace Visus {
 
 
@@ -84,6 +88,18 @@ static String getGLErrorMessage(const GLenum e)
 
   return "Unknown error";
 };
+
+/////////////////////////////////////////////////////////////////////////////
+void GLCanvas::wheelEvent(QWheelEvent* evt) 
+{
+  if (!evt->delta()) 
+    return;
+  QOpenGLWidget::wheelEvent(evt);
+
+  QWheelEvent glEvt(mirrorY(evt->pos()), evt->delta(), evt->buttons(), evt->modifiers(), evt->orientation());
+  glEvt.setAccepted(false);
+  emit glWheelEvent(&glEvt);
+}
 
 /////////////////////////////////////////////////////////////////////////////
 int GLCanvas::flushGLErrors(bool bVerbose)

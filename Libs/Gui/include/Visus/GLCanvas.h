@@ -614,15 +614,7 @@ private:
 
 
   //wheelEvent
-  virtual void wheelEvent(QWheelEvent* evt) override
-  {
-    if (!evt->delta()) return;
-    QOpenGLWidget::wheelEvent(evt);
-    
-    QWheelEvent glEvt(mirrorY(evt->pos()),evt->delta(),evt->buttons(),evt->modifiers(),evt->orientation());
-    glEvt.setAccepted(false);
-    emit glWheelEvent(&glEvt);
-  }
+  virtual void wheelEvent(QWheelEvent* evt) override;
 
   //setClippingBoxIfNeeded
   void setClippingBoxIfNeeded();

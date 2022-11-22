@@ -38,6 +38,10 @@ For support : support@visus.net
 
 #include <Visus/GLLookAtCamera.h>
 
+#if defined(WIN32)
+#pragma warning(disable: 4996)
+#endif
+
 namespace Visus {
 
 //////////////////////////////////////////////////
@@ -347,23 +351,6 @@ void GLLookAtCamera::glWheelEvent(QWheelEvent* evt, const Viewport& viewport)
 void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt, const Viewport& viewport)
 {
   int key=evt->key();
-
-  switch(key)
-  {
-  default:
-    break;
-    /*
-    //print info
-    case Qt::Key_P:
-    {
-      StringTree ar(this->getTypeName());
-      this->write(ar);
-      PrintInfo(ar.toString());
-      evt->accept();
-      return;
-    }
-    */
-  }
 }
 
 
