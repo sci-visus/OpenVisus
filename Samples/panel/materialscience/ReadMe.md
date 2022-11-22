@@ -18,13 +18,14 @@ Serve locally
 set -o allexport
 source .env
 set +o allexport
-panel serve --show --autoreload run.py
+panel serve --autoreload --address='0.0.0.0' --allow-websocket-origin='*' --port 10001 --autoreload run.py 
 ```
 
 Serve using Docker 
 
 ```
-docker build --tag nsdf/openvisus-panel:0.1 ./ 
-
-docker-compose --env-file .env up #  -d 
+sudo docker build --tag nsdf/openvisus-panel:0.1 ./ 
+sudo docker-compose --env-file .env up # -d 
+# sudo docker-compose down
+# sudo docker compose logs 
 ```
