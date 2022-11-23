@@ -40,9 +40,7 @@ For support : support@visus.net
 #include <Visus/StringTree.h>
 #include "osdep.hxx"
 
-
 namespace Visus {
-
 
 int  NetSocket::Defaults::send_buffer_size=0;
 int  NetSocket::Defaults::recv_buffer_size = 0;

@@ -107,6 +107,7 @@ For support : support@visus.net
 	
 	#include <arpa/inet.h>
 	#include <netinet/tcp.h>
+	#include <netinet/in.h>
 
 	#define getIpCat(__value__)    __value__
 	#define closesocket(socketref) ::close(socketref)
@@ -120,6 +121,7 @@ For support : support@visus.net
 	#else
 		#include <semaphore.h>
 	#endif
+
 
 //////////////////////////////////////////////////
 #else
@@ -150,6 +152,7 @@ For support : support@visus.net
 	
 	#include <arpa/inet.h>
 	#include <netinet/tcp.h>
+	#include <netinet/in.h>
 
 	#include <dirent.h>
 
