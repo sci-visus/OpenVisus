@@ -1,6 +1,14 @@
+
+# https://curl.haxx.se/download/curl-7.59.0.tar.gz
+if (WIN32)
+  add_definitions(-DPSAPI_VERSION=1)
+  add_definitions(-DFD_SETSIZE=4096)
+  add_definitions(-D_CRT_SECURE_NO_WARNINGS )
+  add_definitions(-DWIN32_LEAN_AND_MEAN)
+endif()
+
 set(Sources 
 	../CMakeLists.txt
-	../libressl/CMakeLists.txt
 	../include/curl/curl.h
 	../include/curl/curlver.h
 	../include/curl/easy.h
@@ -68,12 +76,12 @@ set(Sources
 	
 add_library(curl STATIC ${Sources})
 
-
 target_link_libraries(curl PRIVATE crypto ssl tls)
 
 target_compile_definitions(curl PRIVATE BUILDING_LIBCURL)
 target_include_directories(curl PRIVATE ./ ../include)
 target_include_directories(curl PUBLIC  ../include)
+target_include_directories(curl PRIVATE ${CMAKE_SOURCE_DIR}/ExternalLibs/libressl/include)
 
 set_target_properties(curl PROPERTIES FOLDER "ExternalLibs/VISUS_NET")
 
