@@ -232,8 +232,6 @@ public:
       this->region = "us-east-1";
 
     VisusAssert(!this->region.empty());
-    VisusAssert(!this->username.empty());
-    VisusAssert(!this->secret_key.empty());
 
 #if 0
     PrintInfo("endpoint_url", endpoint_url);
@@ -343,7 +341,7 @@ public:
     auto ret = Promise<bool>().get_future();
 
     //example /bucket/aaa/bbb/filename.pdf
-    VisusAssert(StringUtils::startsWith(blob_name, "/"));
+    //VisusAssert(StringUtils::startsWith(blob_name, "/"));
     auto v = StringUtils::split(blob->fullname, "/",/*bPurgeEmptyItems*/true);
     VisusAssert(v.size() >= 2);
     String bucket = v[0];
