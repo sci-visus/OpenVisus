@@ -210,7 +210,7 @@ public:
     else
     {
       //needed for s3v4 (NOTE default endpoint is the same hostname)
-      String default_endpoint = url.getProtocol() + "://" + url.getHostname();
+      String default_endpoint = url.getProtocol() + "://" + url.getHostname() + (url.getPort()!=80? concatenate(":",url.getPort()): "");
       this->endpoint_url = url.getParam("endpoint_url", Utils::getEnv("ENDPOINT_URL",Utils::getEnv("AWS_ENDPOINT_URL",default_endpoint)));
       VisusAssert(!this->endpoint_url.empty());
       
