@@ -36,7 +36,7 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#if __clang__
+#if __clang__ && __APPLE__
 
 #import <Foundation/NSAutoreleasePool.h>
 #import <Foundation/Foundation.h>

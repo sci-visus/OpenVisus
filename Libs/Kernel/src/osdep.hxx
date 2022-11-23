@@ -113,7 +113,7 @@ For support : support@visus.net
 	#define Stat64                 ::stat
 	#define LSeeki64               ::lseek
 	
-	#if __clang__
+	#if __clang__ && __APPLE__
 		#include <dispatch/dispatch.h>
 		void mm_InitAutoReleasePool();
 		void mm_DestroyAutoReleasePool();
@@ -214,7 +214,7 @@ public:
   //InitAutoReleasePool
   static void InitAutoReleasePool()
 	{
-	#if __clang__
+	#if __clang__  && __APPLE__
 	  mm_InitAutoReleasePool();
 	#endif
 	}  
@@ -222,7 +222,7 @@ public:
   //DestroyAutoReleasePool
   static void DestroyAutoReleasePool()
 	{
-	#if __clang__
+	#if __clang__  && __APPLE__
 	  mm_DestroyAutoReleasePool();
 	#endif
 	}  

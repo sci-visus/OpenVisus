@@ -75,7 +75,7 @@ public:
 		return WaitForSingleObject(handle, 0) == WAIT_OBJECT_0;
 	}
 
-#elif __clang__
+#elif __clang__ && __APPLE__
 
   dispatch_semaphore_t sem;
   

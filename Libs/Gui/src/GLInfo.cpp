@@ -40,8 +40,8 @@ For support : support@visus.net
 #include <Visus/GLCanvas.h>
 #include <Visus/StringTree.h>
 
-#if __clang__
-  #  include <OpenGL/CGLTypes.h>
+#if __clang__ && __APPLE__
+  #include <OpenGL/CGLTypes.h>
   #include <OpenGL/OpenGL.h>
   #include <IOKit/graphics/IOGraphicsLib.h>
   #include <CoreFoundation/CoreFoundation.h>
@@ -61,7 +61,7 @@ namespace Visus {
 VISUS_IMPLEMENT_SINGLETON_CLASS(GLInfo)
 
 ///////////////////////////////////////////////////////////////
-#if __clang__
+#if __clang__ && __APPLE__
 Int64 getTotalVideoMemoryBytes()
 {
   CGLRendererInfoObj info;
@@ -158,7 +158,7 @@ GLInfo::GLInfo() : gpu_total_memory(0), gpu_free_memory(0), gpu_used_memory(0)
   #endif
 
   //GPU memory
-  #if __clang__
+  #if __clang__ && __APPLE__
   {
     this->gpu_total_memory = getTotalVideoMemoryBytes();
     this->gpu_free_memory  = this->gpu_total_memory - ReadPerfInt64Value(CFSTR("vramUsedBytes"));
