@@ -22,7 +22,7 @@
 #
 ###########################################################################
 set(LIB_NAME libcurl)
-set(LIBCURL_OUTPUT_NAME libcurl CACHE STRING "Basename of the curl library")
+SET(LIBCURL_OUTPUT_NAME libcurl)
 add_definitions(-DBUILDING_LIBCURL)
 
 if(BUILD_SHARED_LIBS)

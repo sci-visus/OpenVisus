@@ -1,24 +1,14 @@
 
 # OpenVisus part
-SET(ENABLE_ASM                  0  CACHE BOOL   "ENABLE_ASM")
-SET(ENABLE_EXTRATESTS           0  CACHE BOOL   "ENABLE_EXTRATESTS")
-SET(ENABLE_NC                   0  CACHE BOOL   "ENABLE_NC")
-SET(LIBRESSL_APPS               0  CACHE BOOL   "LIBRESSL_APPS")
-SET(LIBRESSL_SKIP_INSTALL       0  CACHE BOOL   "LIBRESSL_SKIP_INSTALL")
-SET(LIBRESSL_TESTS              0  CACHE BOOL   "LIBRESSL_TESTS")
-SET(OPENSSLDIR                  "" CACHE STRING "OPENSSLDIR")
-SET(USE_STATIC_MSVC_RUNTIMES    0  CACHE BOOL   "USE_STATIC_MSVC_RUNTIMES")
-SET(BUILD_SHARED_LIBS 0)
-
-
-if(MSVC)
-	cmake_minimum_required (VERSION 3.16.4)
-	cmake_policy(SET CMP0091 NEW)
-else()
-	cmake_minimum_required (VERSION 3.0)
-endif()
-
-project (LibreSSL C ASM)
+SET(ENABLE_ASM                  0)
+SET(ENABLE_EXTRATESTS           0)
+SET(ENABLE_NC                   0)
+SET(LIBRESSL_APPS               0)
+SET(LIBRESSL_SKIP_INSTALL       1)
+SET(LIBRESSL_TESTS              0)
+SET(OPENSSLDIR                  "")
+SET(USE_STATIC_MSVC_RUNTIMES    0)
+SET(BUILD_SHARED_LIBS           0)
 
 include(CheckFunctionExists)
 include(CheckSymbolExists)
@@ -29,8 +19,6 @@ include(CheckTypeSize)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}" ${CMAKE_MODULE_PATH})
 include(cmake_export_symbol)
 include(GNUInstallDirs)
-
-enable_testing()
 
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/ssl/VERSION SSL_VERSION)
 string(STRIP ${SSL_VERSION} SSL_VERSION)
@@ -47,25 +35,7 @@ string(STRIP ${TLS_VERSION} TLS_VERSION)
 string(REPLACE ":" "." TLS_VERSION ${TLS_VERSION})
 string(REGEX REPLACE "\\..*" "" TLS_MAJOR_VERSION ${TLS_VERSION})
 
-option(LIBRESSL_SKIP_INSTALL "Skip installation" ${LIBRESSL_SKIP_INSTALL})
-option(LIBRESSL_APPS "Build apps" ON)
-option(LIBRESSL_TESTS "Build tests" ON)
-option(ENABLE_ASM "Enable assembly" ON)
-option(ENABLE_EXTRATESTS "Enable extra tests that may be unreliable on some platforms" OFF)
-option(ENABLE_NC "Enable installing TLS-enabled nc(1)" OFF)
-set(OPENSSLDIR ${OPENSSLDIR} CACHE PATH "Set the default openssl directory" FORCE)
-
-option(USE_STATIC_MSVC_RUNTIMES "Use /MT instead of /MD in MSVC" OFF)
-if(USE_STATIC_MSVC_RUNTIMES)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-endif()
-
-if(NOT LIBRESSL_SKIP_INSTALL)
-	set( ENABLE_LIBRESSL_INSTALL ON )
-endif(NOT LIBRESSL_SKIP_INSTALL)
-
-
-set(BUILD_NC true)
+set(BUILD_NC 1)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
 	add_definitions(-fno-common)
@@ -85,7 +55,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 endif()
 
 if(WIN32 OR (CMAKE_SYSTEM_NAME MATCHES "MINGW"))
-	set(BUILD_NC false)
+	set(BUILD_NC 0)
 	add_definitions(-D_GNU_SOURCE)
 	add_definitions(-D_POSIX)
 	add_definitions(-D_POSIX_SOURCE)
@@ -319,26 +289,6 @@ if(HAVE_NETINET_IP_H)
 	add_definitions(-DHAVE_NETINET_IP_H)
 endif()
 
-if(ENABLE_ASM)
-	if("${CMAKE_C_COMPILER_ABI}" STREQUAL "ELF")
-		if("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "(x86_64|amd64)")
-			set(HOST_ASM_ELF_X86_64 true)
-		elseif("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm")
-			set(HOST_ASM_ELF_ARMV4 true)
-		elseif(CMAKE_SYSTEM_NAME STREQUAL "SunOS" AND "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "i386")
-			set(HOST_ASM_ELF_X86_64 true)
-		endif()
-		add_definitions(-DHAVE_GNU_STACK)
-	elseif(APPLE AND "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
-		set(HOST_ASM_MACOSX_X86_64 true)
-	elseif(MSVC AND ("${CMAKE_GENERATOR}" MATCHES "Win64" OR "${CMAKE_GENERATOR_PLATFORM}" STREQUAL "x64"))
-		set(HOST_ASM_MASM_X86_64 true)
-		ENABLE_LANGUAGE(ASM_MASM)
-	elseif(CMAKE_SYSTEM_NAME MATCHES "MINGW" AND "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
-		set(HOST_ASM_MINGW64_X86_64 true)
-	endif()
-endif()
-
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	# Check if we need -lrt to get clock_gettime on Linux
 	check_library_exists(rt clock_gettime "time.h" HAVE_CLOCK_GETTIME)
@@ -363,97 +313,16 @@ endif()
 add_definitions(-DSIZEOF_TIME_T=${SIZEOF_TIME_T})
 
 set(OPENSSL_LIBS ssl crypto ${PLATFORM_LIBS})
-set(LIBTLS_LIBS tls ${PLATFORM_LIBS})
+set(LIBTLS_LIBS  tls        ${PLATFORM_LIBS})
 
 # libraries for regression test
-if(BUILD_SHARED_LIBS)
-	set(OPENSSL_TEST_LIBS ssl-static crypto-static ${PLATFORM_LIBS})
-	set(LIBTLS_TEST_LIBS tls-static ${PLATFORM_LIBS})
-else()
-	set(OPENSSL_TEST_LIBS ssl crypto ${PLATFORM_LIBS})
-	set(LIBTLS_TEST_LIBS tls ${PLATFORM_LIBS})
-endif()
+set(OPENSSL_TEST_LIBS ssl crypto ${PLATFORM_LIBS})
+set(LIBTLS_TEST_LIBS  tls        ${PLATFORM_LIBS})
 
 add_subdirectory(crypto)
 add_subdirectory(ssl)
-if(LIBRESSL_APPS)
-	add_subdirectory(apps)
-endif()
 add_subdirectory(tls)
-add_subdirectory(include)
 
-# OpenVisus all the following part has been commented
-# //////////////////////////////////////////////////////////////////
-if (0) 
-
-if(NOT MSVC)
-	add_subdirectory(man)
-endif()
-# Tests require the openssl executable and are unavailable when building shared libraries
-if(LIBRESSL_APPS AND LIBRESSL_TESTS)
-	add_subdirectory(tests)
-endif()
-
-if (BUILD_APPLE_XCFRAMEWORK)
-	# Create the super library from object libraries
-	add_library(LibreSSL_xcframework
-			$<TARGET_OBJECTS:crypto_obj> $<TARGET_OBJECTS:tls_obj> $<TARGET_OBJECTS:ssl_obj>)
-	set_target_properties(LibreSSL_xcframework PROPERTIES
-			OUTPUT_NAME ressl)
-
-	if(ENABLE_LIBRESSL_INSTALL)
-		install(TARGETS LibreSSL_xcframework
-				LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-	endif(ENABLE_LIBRESSL_INSTALL)
-endif(BUILD_APPLE_XCFRAMEWORK)
-
-if(ENABLE_LIBRESSL_INSTALL)
-	if(NOT MSVC)
-		# Create pkgconfig files.
-		set(prefix      ${CMAKE_INSTALL_PREFIX})
-		set(exec_prefix \${prefix})
-		set(libdir      \${exec_prefix}/${CMAKE_INSTALL_LIBDIR})
-		set(includedir  \${prefix}/include)
-		if(PLATFORM_LIBS)
-			string(REGEX REPLACE ";" " -l" PLATFORM_LDADD ";${PLATFORM_LIBS}")
-		endif()
-		file(STRINGS    "VERSION" VERSION LIMIT_COUNT 1)
-		file(GLOB       OPENSSL_PKGCONFIGS "*.pc.in")
-		foreach(file ${OPENSSL_PKGCONFIGS})
-			get_filename_component(filename ${file} NAME)
-			string(REPLACE ".in" "" new_file "${filename}")
-			configure_file(${filename} pkgconfig/${new_file} @ONLY)
-		endforeach()
-		install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/pkgconfig
-			DESTINATION ${CMAKE_INSTALL_LIBDIR})
-	endif()
-endif(ENABLE_LIBRESSL_INSTALL)
-
-if(NOT "${OPENSSLDIR}" STREQUAL "")
-	set(CONF_DIR "${OPENSSLDIR}")
-else()
-	set(CONF_DIR "${CMAKE_INSTALL_PREFIX}/etc/ssl")
-endif()
-
-if(ENABLE_LIBRESSL_INSTALL)
-	install(FILES cert.pem openssl.cnf x509v3.cnf DESTINATION ${CONF_DIR})
-	install(DIRECTORY DESTINATION ${CONF_DIR}/certs)
-endif(ENABLE_LIBRESSL_INSTALL)
-
-if(NOT TARGET uninstall)
-	configure_file(
-		"${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
-		"${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
-		IMMEDIATE @ONLY)
-
-	add_custom_target(uninstall
-		COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
-endif()
-
-endif()
-# //////////////////////////////////////////////////////////////////
-
-# OpenVisus part
 set_target_properties(bs_obj     PROPERTIES FOLDER "ExternalLibs/VISUS_NET")
 set_target_properties(crypto     PROPERTIES FOLDER "ExternalLibs/VISUS_NET")
 set_target_properties(crypto_obj PROPERTIES FOLDER "ExternalLibs/VISUS_NET")
