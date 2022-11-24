@@ -118,30 +118,8 @@ if(CURL_HAS_LTO)
     INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO TRUE)
 endif()
 
-if(WIN32)
-  if(BUILD_SHARED_LIBS)
-    if(MSVC)
-      # Add "_imp" as a suffix before the extension to avoid conflicting with
-      # the statically linked "libcurl.lib"
-      set_target_properties(${LIB_NAME} PROPERTIES IMPORT_SUFFIX "_imp.lib")
-    endif()
-  endif()
-endif()
 
 target_include_directories(${LIB_NAME} INTERFACE
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   $<BUILD_INTERFACE:${CURL_SOURCE_DIR}/include>)
 
-if(CURL_ENABLE_EXPORT_TARGET)
-  install(TARGETS ${LIB_NAME}
-    EXPORT ${TARGETS_EXPORT_NAME}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  )
-
-  export(TARGETS ${LIB_NAME}
-         FILE ${PROJECT_BINARY_DIR}/libcurl-target.cmake
-         NAMESPACE ${PROJECT_NAME}::
-  )
-endif()
