@@ -6,7 +6,7 @@ try:
 except:
 	pass
 
-PROJECT_VERSION="2.2.66"
+PROJECT_VERSION="2.2.67"
 
 this_dir=os.path.dirname(os.path.abspath(__file__))
 
