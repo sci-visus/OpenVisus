@@ -1,26 +1,4 @@
-#***************************************************************************
-#                                  _   _ ____  _
-#  Project                     ___| | | |  _ \| |
-#                             / __| | | | |_) | |
-#                            | (__| |_| |  _ <| |___
-#                             \___|\___/|_| \_\_____|
-#
-# Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
-#
-# This software is licensed as described in the file COPYING, which
-# you should have received as part of this distribution. The terms
-# are also available at https://curl.se/docs/copyright.html.
-#
-# You may opt to use, copy, modify, merge, publish, distribute and/or sell
-# copies of the Software, and permit persons to whom the Software is
-# furnished to do so, under the terms of the COPYING file.
-#
-# This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
-# KIND, either express or implied.
-#
-# SPDX-License-Identifier: curl
-#
-###########################################################################
+
 set(LIB_NAME libcurl)
 SET(LIBCURL_OUTPUT_NAME libcurl)
 add_definitions(-DBUILDING_LIBCURL)
@@ -46,28 +24,6 @@ list(APPEND HHEADERS
 if(WIN32 AND NOT CURL_STATICLIB)
   list(APPEND CSOURCES libcurl.rc)
 endif()
-
-# SET(CSOURCES
-# #  memdebug.c -not used
-# # nwlib.c - Not used
-# # strtok.c - specify later
-# # strtoofft.c - specify later
-# )
-
-# #OPTION(CURL_MALLOC_DEBUG "Debug mallocs in Curl" OFF)
-# MARK_AS_ADVANCED(CURL_MALLOC_DEBUG)
-# IF(CURL_MALLOC_DEBUG)
-# SET(CSOURCES ${CSOURCES}
-# memdebug.c
-# )
-# ENDIF(CURL_MALLOC_DEBUG)
-
-# # only build compat strtoofft if we need to
-# IF(NOT HAVE_STRTOLL AND NOT HAVE__STRTOI64)
-# SET(CSOURCES ${CSOURCES}
-# strtoofft.c
-# )
-# ENDIF(NOT HAVE_STRTOLL AND NOT HAVE__STRTOI64)
 
 
 # The rest of the build
@@ -96,7 +52,7 @@ if(NOT BUILD_SHARED_LIBS)
     set_target_properties(${LIB_NAME} PROPERTIES INTERFACE_COMPILE_DEFINITIONS CURL_STATICLIB)
 endif()
 
-target_link_libraries(${LIB_NAME} PRIVATE ${CURL_LIBS})
+target_link_libraries(${LIB_NAME} PRIVATE ${CURL_LIBS} crypto_obj tls_obj ssl_obj)
 
 set_target_properties(${LIB_NAME} PROPERTIES
   COMPILE_DEFINITIONS BUILDING_LIBCURL
@@ -117,7 +73,6 @@ if(CURL_HAS_LTO)
     INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE
     INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO TRUE)
 endif()
-
 
 target_include_directories(${LIB_NAME} INTERFACE
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>

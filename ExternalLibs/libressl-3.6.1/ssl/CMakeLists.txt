@@ -76,15 +76,3 @@ target_include_directories(bs_obj
 		.
 		../include/compat)
 
-# add_library(ssl $<TARGET_OBJECTS:ssl_obj> $<TARGET_OBJECTS:bs_obj>)
-add_library(ssl STATIC $<TARGET_OBJECTS:ssl_obj>)
-
-export_symbol(ssl ${CMAKE_CURRENT_SOURCE_DIR}/ssl.sym)
-target_link_libraries(ssl crypto ${PLATFORM_LIBS})
-if (WIN32)
-	set(SSL_POSTFIX -${SSL_MAJOR_VERSION})
-endif()
-
-set_target_properties(ssl PROPERTIES OUTPUT_NAME ssl${SSL_POSTFIX} ARCHIVE_OUTPUT_NAME ssl${SSL_POSTFIX})
-set_target_properties(ssl PROPERTIES VERSION ${SSL_VERSION} SOVERSION ${SSL_MAJOR_VERSION})
-

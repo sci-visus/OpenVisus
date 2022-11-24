@@ -46,16 +46,3 @@ target_include_directories(tls_obj
 		../include/compat
 	PUBLIC
 		../include)
-
-add_library(tls STATIC $<TARGET_OBJECTS:tls_obj> $<TARGET_OBJECTS:ssl_obj> $<TARGET_OBJECTS:crypto_obj>)
-
-export_symbol(tls ${CMAKE_CURRENT_BINARY_DIR}/tls.sym)
-target_link_libraries(tls ${PLATFORM_LIBS})
-if (WIN32)
-	set(TLS_POSTFIX -${TLS_MAJOR_VERSION})
-endif()
-
-
-set_target_properties(tls PROPERTIES OUTPUT_NAME tls${TLS_POSTFIX} ARCHIVE_OUTPUT_NAME tls${TLS_POSTFIX})
-set_target_properties(tls PROPERTIES VERSION ${TLS_VERSION} SOVERSION ${TLS_MAJOR_VERSION})
-
