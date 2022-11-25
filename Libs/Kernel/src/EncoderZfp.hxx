@@ -106,6 +106,7 @@ public:
       return (zfp_type)zfp_type_int32;
 
     VisusReleaseAssert(false);
+    return zfp_type_none;
   }
 
   //setStreamOptions

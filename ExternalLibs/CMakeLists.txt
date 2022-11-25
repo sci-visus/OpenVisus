@@ -8,7 +8,8 @@ else()
 endif()
 
 if (VISUS_NET)
-	add_subdirectory(curl)
+	add_subdirectory(libressl-3.6.1)
+	add_subdirectory(curl-7.86.0) 
 endif()
 
 if (VISUS_IMAGE)

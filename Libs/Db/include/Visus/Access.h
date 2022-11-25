@@ -99,6 +99,11 @@ public:
   Access() {
   }
 
+  //getAccessTypeName
+  String getAccessTypeName() {
+    return typeid(*this).name();
+  }
+
   //destructor
   virtual ~Access() {
   }
