@@ -1,3 +1,5 @@
+# Instructions
+
 Create a `.env` file (change values as needed):
 
 ```
@@ -10,8 +12,6 @@ VISUS_NETSERVICE_VERBOSE=0
 VISUS_CACHE_DIR=/tmp/nsdf-cache
 ```
 
-Modify the `docker-compose` as needed (for example you may want to change the host directory for caching)
-
 Serve locally
 
 ```
@@ -21,7 +21,8 @@ set +o allexport
 panel serve --autoreload --address='0.0.0.0' --allow-websocket-origin='*' --port 10001 --autoreload run.py 
 ```
 
-Serve using Docker 
+Serve using Docker:
+- modify the `docker-compose.yml` as needed
 
 ```
 sudo docker build --tag nsdf/openvisus-panel:0.1 ./ 
