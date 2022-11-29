@@ -16,6 +16,8 @@ from PIL import Image
 
 import OpenVisus as ov
 
+matplotlib.rcParams['toolbar'] = 'None'
+
 # https://panel.holoviz.org/reference/panes/Matplotlib.html
 pn.extension()
 pn.config.css_files.append("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.css")
@@ -81,7 +83,7 @@ def ReadSlice(db, logic_box=None, dir=0, offset=0, time=None, field=None, access
 			logic_box,delta,num_pixels=AlignSlice(db,logic_box,H)
 			# print("!!!",H,logic_box,delta,num_pixels,f"{np.prod(num_pixels):,}",f"{max_pixels:,}")
 			assert num_pixels[dir]==1
-			if np.prod(num_pixels)<=max_pixels*1.25:
+			if np.prod(num_pixels)<=max_pixels*1.10:
 				endh=H
 				break
  
@@ -136,8 +138,8 @@ class OpenVisusSlicer:
 		self.fig = Figure()
 		W,H=256,256 # this are fake dimension that will be changed
 		self.axes  = self.fig.add_subplot(111, xlim=(0,W), ylim=(0,H), autoscale_on=False) 
-		self.axes.get_xaxis().set_visible(True)
-		self.axes.get_yaxis().set_visible(True)
+		self.axes.get_xaxis().set_visible(False)
+		self.axes.get_yaxis().set_visible(False)
 		self.img = self.axes.imshow(np.uint8(np.random.random((W,H))*255), extent=(0,W,0,H))
 		self.fig.colorbar(self.img, ax=self.axes)
 		self.plot=panel.pane.plot.Matplotlib(self.fig, dpi=144,sizing_mode='stretch_both', tight=True, interactive=True)
@@ -166,6 +168,7 @@ class OpenVisusSlicer:
      	sizing_mode='stretch_both')
   
 		self.thread.start()
+
 
 	# repaint
 	def repaint(self):
@@ -224,6 +227,8 @@ class OpenVisusSlicer:
 		fig.canvas.mpl_connect("button_release_event", self.onMouseRelease)
 		fig.canvas.mpl_connect("motion_notify_event",  self.onMouseMotion)
 		fig.canvas.mpl_connect('scroll_event',         self.onMouseWheel)
+		self.fig.canvas.toolbar_visible = False
+		self.fig.tight_layout() 
 		return manager
 
 	# onMousePress
@@ -295,8 +300,8 @@ class OpenVisusSlicer:
 				self.aborted=ov.Aborted()
 				print("Worker::got_job",logic_box)
    
-			I=0
-			for logic_box, data in ReadSlice(self.db, access=self.access, logic_box=logic_box, dir=direction, offset=offset,  num_refinements=4, max_pixels=max_pixels, aborted=self.aborted):
+			I,num_refinements=0,4
+			for logic_box, data in ReadSlice(self.db, access=self.access, logic_box=logic_box, dir=direction, offset=offset,  num_refinements=num_refinements, max_pixels=max_pixels, aborted=self.aborted):
 				
 				# query failed
 				if data is None:
@@ -312,7 +317,7 @@ class OpenVisusSlicer:
 				with self.lock:
 					self.min = min(m,self.min if self.min is not None else m)
 					self.max = max(M,self.max if self.max is not None else M)
-					print("renderData",self.project(logic_box), data.shape,f"current_pixels={np.prod(data.shape):,}",f"max_pixels={max_pixels:,}")
+					print("renderData",self.project(logic_box), data.shape,f"current_pixels={np.prod(data.shape):,}",f"max_pixels={max_pixels:,} {I}/{num_refinements}")
 					self.renderData(data, logic_box=self.project(logic_box), range=(self.min,self.max), cmap=self.colormap.value)
 					# print("Worker::display_data",I,data.shape)
 					I+=1
