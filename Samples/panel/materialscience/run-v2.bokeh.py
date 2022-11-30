@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 import numpy as np
 import pandas as pd
 
+from pprint import pprint
 import numpy as np,random
 
 import bokeh.io
@@ -155,9 +156,7 @@ class Slicer:
 		self.plot.toolbar_location="below"
 		self.plot.sizing_mode = 'stretch_both' 
 
-		# events
-		self.plot.on_event(bokeh.events.MouseWheel, self.onMouseWheel)
-		self.plot.on_event(bokeh.events.DoubleTap, self.onDoubleTap)
+		
   
 		data={"image": [np.random.random((300,300))*255], "x":[0], "y":[0], "dw":[256], "dh":[256]}
 		self.source_image = bokeh.models.ColumnDataSource(data=data)
@@ -173,13 +172,9 @@ class Slicer:
   
 		self.thread.start()
 
-	# onMouseWheel
-	def onMouseWheel(self,evt):
-		print("onMouseWheel",evt)
-
-	# onDoubleTap
-	def onDoubleTap(self,evt):
-		print("onDoubleTap",evt)
+	# enableDoubleTap
+	def enableDoubleTap(self,fn):
+		self.plot.on_event(bokeh.events.DoubleTap, lambda evt: fn(self.unproject((evt.x,evt.y))))
 
 	# hasJobAborted
 	def hasJobAborted(self):
@@ -187,19 +182,32 @@ class Slicer:
 
 	# project
 	def project(self,value):
-		p1,p2=(list(value[0]),list(value[1]))
 		dir=self.getDirection()
-		del p1[dir]
-		del p2[dir]
-		return (p1,p2)
+		if hasattr(value[0],"__iter__"):
+			p1,p2=(list(value[0]),list(value[1]))
+			del p1[dir]
+			del p2[dir]
+			return (p1,p2)
+		# is a point
+		else:
+			p=list(value)
+			del p[dir]
+			return p
 
 	# unproject
 	def unproject(self,value):
-		p1,p2=(list(value[0]),list(value[1]))
 		dir=self.getDirection()
-		p1.insert(dir, self.offset.value+0)
-		p2.insert(dir, self.offset.value+1)
-		return (p1,p2)
+		# is a box?
+		if hasattr(value[0],"__iter__"):
+			p1,p2=(list(value[0]),list(value[1]))
+			p1.insert(dir, self.offset.value+0)
+			p2.insert(dir, self.offset.value+1)
+			return (p1,p2)
+		# is a point
+		else:
+			p=list(value)
+			p .insert(dir, self.offset.value+0)
+			return p
 		
 	# getLogicBox
 	def getLogicBox(self):
@@ -392,7 +400,8 @@ class Slices:
 			slicer=Slicer()
 			self.slices.append(slicer)
 			scan=scans[target % len(scans)]
-			slicer.setDataset(scan["url"], scan["id"], direction=2-(target % 3))
+			slicer.setDataset(scan["url"], scan["id"], direction=target % 3)
+			slicer.enableDoubleTap(self.selectPoint)
 
 		slice_layouts=[slice.layout for slice in self.slices]
 		if len(self.slices)==1:
@@ -419,6 +428,13 @@ class Slices:
 		self.palette.value=value
 		for slice in self.slices:
 			slice.setPalette(value)
+
+	# selectPoint
+	def selectPoint(self, p3d):
+		print("selectPoint",p3d)
+		for I,slice in enumerate(self.slices[0:3]):
+			self.slices[I].setDirection(I)
+			self.slices[I].setOffset(p3d[I])
 
 # //////////////////////////////////////////////////////////////////////////////////////
 if True:
