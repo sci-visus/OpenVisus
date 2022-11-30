@@ -140,11 +140,8 @@ class Slicer:
 		self.callback = pn.state.add_periodic_callback(self.onTimer, 100)
   
 		self.app=pn.Column(
-			#pn.pane.Markdown("""![NSDF](https://nationalsciencedatafabric.org/assets/images/logo.png)""",height=200),
-			#pn.pane.PNG('https://nationalsciencedatafabric.org/assets/images/logo.png', width=100),
    		self.fig.widget,
 			pn.Row(self.colormap,	self.direction, self.offset),
-   		# self.info,
      	sizing_mode='stretch_both')
   
 		self.thread.start()
@@ -162,81 +159,6 @@ class Slicer:
 		self.db=db
 		self.access=access 
 		self.setDirection(direction)  
-
-	# setJobAborted
-	def setJobAborted(self):
-		self.aborted.setTrue()
-
-	# hasJobAborted
-	def hasJobAborted(self):
-		ABORTED=ov.Aborted()
-		ABORTED.setTrue()   
-		return self.aborted.__call__()==ABORTED.__call__()
-
-	# runInBackground
-	def workerLoop(self):
-
-		while True:
-    
-			direction,offset,max_pixels=self.queue.get()
-
-			with self.lock:
-				self.aborted=ov.Aborted()
-				print("Worker::got_job")
-   
-			I=0
-			for data in ReadSlice(self.db, access=self.access, dir=direction, offset=offset,  num_refinements=3, max_pixels=max_pixels, aborted=self.aborted):
-				
-				# query failed
-				if data is None:
-					break
-
-				if self.hasJobAborted():
-						print("JOB ABORTED")
-						break
-
-				m,M=np.amin(data),np.amax(data)
- 
-				# assign the new data to display
-				with self.lock:
-					self.min = min(m,self.min if self.min is not None else m)
-					self.max = max(M,self.max if self.max is not None else M)
-					self.info.value = f"Displaying data {I} {data.shape} offset={offset}"
-					print(self.info.value)
-     
-					self.fig.img.set_cmap(self.colormap.value)
-					self.fig.img.set_data(data)
-					# see https://stackoverflow.com/questions/10970492/matplotlib-no-effect-of-set-data-in-imshow-for-the-plot
-					# self.fig.img.autoscale()
-					self.fig.img.set_clim(vmin=self.min, vmax=self.max)
-					self.fig.ax.set_title(f"{self.title} {data.shape} {self.min:.2f} {self.max:.2f}")
-					self.fig.widget.param.trigger('object') # vert important
-  
-					print("Worker::display_data",I,data.shape)
-					I+=1
-
-				# break
-				time.sleep(0.1)
-
-			# let the main task know I am done
-			print("Worker::done_job")
-			self.queue.task_done()
-
-	# readData
-	def readData(self):
-		self.setJobAborted()
-		self.get_new_data=True
-
-	# onTimer
-	def onTimer(self):
-
-		# reschedule new job (but make sure the worker is in idle state)
-		if self.get_new_data:
-			max_pixels=self.fig.getWidth() * self.fig.getHeight()
-			self.setJobAborted()
-			self.waitForIdleWorker()
-			self.queue.put([self.direction.value,self.offset.value, max_pixels])
-			self.get_new_data=False
 
 	# setColorMap
 	def setColorMap(self,value):
@@ -256,6 +178,79 @@ class Slicer:
 	def setOffset(self,value):
 		self.offset.value=value
 		self.readData()
+
+	# setJobAborted
+	def setJobAborted(self):
+		self.aborted.setTrue()
+
+	# hasJobAborted
+	def hasJobAborted(self):
+		ABORTED=ov.Aborted()
+		ABORTED.setTrue()   
+		return self.aborted.__call__()==ABORTED.__call__()
+
+	# readData
+	def readData(self):
+		self.setJobAborted()
+		self.get_new_data=True
+
+	# onTimer
+	def onTimer(self):
+		# reschedule new job (but make sure the worker is in idle state)
+		if self.get_new_data:
+			max_pixels=self.fig.getWidth() * self.fig.getHeight()
+			self.setJobAborted()
+			self.waitForIdleWorker()
+			self.queue.put([self.direction.value,self.offset.value, max_pixels])
+			self.get_new_data=False
+
+	# runInBackground
+	def workerLoop(self):
+		while True:
+			direction,offset,max_pixels=self.queue.get()
+
+			with self.lock:
+				self.aborted=ov.Aborted()
+				# print("Worker::got_job")
+   
+			I=0
+			for data in ReadSlice(self.db, access=self.access, dir=direction, offset=offset,  num_refinements=3, max_pixels=max_pixels, aborted=self.aborted):
+				
+				# query failed
+				if data is None:
+					break
+
+				if self.hasJobAborted():
+						# print("JOB ABORTED")
+						break
+
+				m,M=np.amin(data),np.amax(data)
+ 
+				# assign the new data to display
+				with self.lock:
+					self.min = min(m,self.min if self.min is not None else m)
+					self.max = max(M,self.max if self.max is not None else M)
+					self.info.value = f"Displaying data {I} {data.shape} offset={offset}"
+					print(self.info.value)
+     
+					self.fig.img.set_cmap(self.colormap.value)
+					self.fig.img.set_data(data)
+					# see https://stackoverflow.com/questions/10970492/matplotlib-no-effect-of-set-data-in-imshow-for-the-plot
+					# self.fig.img.autoscale()
+					self.fig.img.set_clim(vmin=self.min, vmax=self.max)
+					self.fig.ax.set_title(f"{self.title} {data.shape} {self.min:.2f} {self.max:.2f}")
+					self.fig.widget.param.trigger('object') # vert important
+  
+					# print("Worker::display_data",I,data.shape)
+					I+=1
+
+				# break
+				time.sleep(0.1)
+
+			# let the main task know I am done
+			# print("Worker::done_job")
+			self.queue.task_done()
+
 
 
 # //////////////////////////////////////////////////////////////////////////////////////

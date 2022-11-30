@@ -21,8 +21,6 @@ matplotlib.rcParams['toolbar'] = 'None'
 # https://panel.holoviz.org/reference/panes/Matplotlib.html
 pn.extension()
 pn.config.css_files.append("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.css")
-pn.extension(sizing_mode="stretch_width")
-
 
 
 # ///////////////////////////////////////////////////////////////////
@@ -100,7 +98,7 @@ def ReadSlice(db, logic_box=None, dir=0, offset=0, time=None, field=None, access
 	for H in end_resolutions:
 		query.end_resolutions.push_back(H)
 
-	print("Begin query",logic_box)
+	# print("Begin query",logic_box)
 	db.beginBoxQuery(query)
 	while query.isRunning():
 		if not db.executeBoxQuery(access, query):   break
@@ -133,17 +131,27 @@ class OpenVisusSlicer:
 		self.aborted       = ov.Aborted()
 		self.thread        = threading.Thread(target=self.workerLoop)
 		self.get_new_data  = False
+
+		self.ABORTED=ov.Aborted()
+		self.ABORTED.setTrue() 
   
 		# create the plot
 		self.fig = Figure()
-		W,H=256,256 # this are fake dimension that will be changed
+ 
+		# this are fake dimension that will be changed
+		W,H=256,256 
 		self.axes  = self.fig.add_subplot(111, xlim=(0,W), ylim=(0,H), autoscale_on=False) 
 		self.axes.get_xaxis().set_visible(False)
 		self.axes.get_yaxis().set_visible(False)
 		self.img = self.axes.imshow(np.uint8(np.random.random((W,H))*255), extent=(0,W,0,H))
 		self.fig.colorbar(self.img, ax=self.axes)
-		self.plot=panel.pane.plot.Matplotlib(self.fig, dpi=144,sizing_mode='stretch_both', tight=True, interactive=True)
-		self.plot._get_widget=self._get_widget
+
+		# not needed for mpl >= 3.1
+		from matplotlib.backends.backend_agg import FigureCanvas
+		FigureCanvas(self.fig)  
+
+		self.mpl_pane=panel.pane.plot.Matplotlib(self.fig, dpi=144,sizing_mode='stretch_both', origin="center", tight=True, interactive=True)
+		self.mpl_pane._get_widget=self._get_widget
 		self.fig.tight_layout() 
 		self.mouse_limit = None
 		self.mouse_down  = None
@@ -151,24 +159,22 @@ class OpenVisusSlicer:
 		self.colormap  = pn.widgets.Select(name='Colormap', options=self.COLORMAPS,value=self.COLORMAPS[0],width=100)
 		self.direction = pn.widgets.Select(name='Direction', options={'X': 0, 'Y': 1, 'Z' : 2},value=2,width=50)
 		self.offset    = pn.widgets.IntSlider(name='Offset', value=0, start=0, end=1024, sizing_mode="stretch_width")
-		self.info      = pn.widgets.TextInput(name="Info",value="")
 
 		self.colormap .param.watch(lambda evt: self.setColorMap(evt.new), 'value')
 		self.direction.param.watch(lambda evt: self.setDirection(evt.new), 'value')  
 		self.offset   .param.watch(lambda evt: self.setOffset(evt.new), 'value')  
 		self.callback = pn.state.add_periodic_callback(self.onTimer, 100)
   
-		self.main_layout=pn.Column(
-			#pn.pane.Markdown("""![NSDF](https://nationalsciencedatafabric.org/assets/images/logo.png)""",height=200),
-			#pn.pane.PNG('https://nationalsciencedatafabric.org/assets/images/logo.png', width=100),
-   		self.plot,
-			pn.layout.HSpacer(height=600),  # panel bug
+		self.layout=pn.Column(
 			pn.Row(self.colormap,	self.direction, self.offset),
-   		# self.info,
+   		pn.Row(self.mpl_pane,sizing_mode='stretch_both'),
      	sizing_mode='stretch_both')
   
 		self.thread.start()
 
+	# hasJobAborted
+	def hasJobAborted(self):
+		return self.aborted.__call__()==self.ABORTED.__call__()
 
 	# repaint
 	def repaint(self):
@@ -176,17 +182,17 @@ class OpenVisusSlicer:
 
 	# project
 	def project(self,value):
-		ret=(list(value[0]),list(value[1]))
-		del ret[0][self.direction.value]
-		del ret[1][self.direction.value]
-		return ret
+		p1,p2=(list(value[0]),list(value[1]))
+		del p1[self.direction.value]
+		del p2[self.direction.value]
+		return (p1,p2)
 
 	# unproject
 	def unproject(self,value):
-		ret=(list(value[0]),list(value[1]))
-		ret[0].insert(self.direction.value, self.offset.value+0)
-		ret[1].insert(self.direction.value, self.offset.value+1)
-		return ret
+		p1,p2=(list(value[0]),list(value[1]))
+		p1.insert(self.direction.value, self.offset.value+0)
+		p2.insert(self.direction.value, self.offset.value+1)
+		return (p1,p2)
 		
 	# getLogicBox
 	def getLogicBox(self):
@@ -196,7 +202,7 @@ class OpenVisusSlicer:
 	# drawLines
 	def renderLines(self, points, marker='o'):
 		self.axes.lines.clear()
-		self.plot=self.axes.plot([p[0] for p in points], [p[1] for p in points], marker = marker)
+		self.axes.plot([p[0] for p in points], [p[1] for p in points], marker = marker)
 		self.repaint()
 
 	# renderData
@@ -206,7 +212,7 @@ class OpenVisusSlicer:
 		self.img.set_clim(vmin=range[0], vmax=range[1])
 		(x1,y1),(x2,y2)=logic_box[0],logic_box[1]
 		self.img.set_extent((x1,x2,y1,y2))
-		self.plot.param.trigger('object') # very important
+		self.mpl_pane.param.trigger('object') # very important
   
 	# override _get_widget (to make it interactive)
 	def _get_widget(self, fig):
@@ -231,26 +237,37 @@ class OpenVisusSlicer:
 		self.fig.tight_layout() 
 		return manager
 
+	# setLogicBox
+	def setLogicBox(self,value):
+		self.logic_box=copy.deepcopy(value)
+		proj=self.project(value)
+		self.axes.set_xlim([x for x,y in proj])
+		self.axes.set_ylim([y for x,y in proj])
+		self.readData()
+		self.repaint()
+
+	# onPan
+	def onPan(self,dx,dy):
+		if dx==0 and dy==0: return
+		proj=[(x+dx,y+dy) for x,y in self.project(self.logic_box)]
+		self.setLogicBox(self.unproject(proj))
+
 	# onMousePress
 	def onMousePress(self,event):
 		if event.inaxes != self.axes: return
-		self.mouse_limit=[self.axes.get_xlim(),self.axes.get_ylim()]
 		self.mouse_down=[event.xdata, event.ydata]
 
 	# onMouseMotion
 	def onMouseMotion(self,event):
-		if self.mouse_down is None or self.mouse_limit is None: return
+		if self.mouse_down is None : return
 		if event.inaxes != self.axes: return
-		self.mouse_limit[0] -= (event.xdata - self.mouse_down[0])
-		self.mouse_limit[1] -= (event.ydata - self.mouse_down[1])
-		self.setLogicBox(self.unproject((
-    	(self.mouse_limit[0][0],self.mouse_limit[1][0]),
-     	(self.mouse_limit[0][1],self.mouse_limit[1][1]))))
+		self.onPan(
+    	dx=self.mouse_down[0]-event.xdata,
+     	dy=self.mouse_down[1]-event.ydata)
 
 	# onMouseRelease
 	def onMouseRelease(self,event):
 		self.mouse_down = None
-		self.mouse_limit = None
 
 	# onWheel
 	def onMouseWheel(self, event, base_scale = 1.1):
@@ -266,10 +283,6 @@ class OpenVisusSlicer:
 			[cx - w * vs * (1-relx), cy - h * vs * (1-rely)],
    		[cx + w * vs * (  relx), cy + h * vs * (  rely)])))
 
-	# waitForIdleWorker
-	def waitForIdleWorker(self):
-		self.queue.join()  
-  
 	# setDataset
 	def setDataset(self,db, access, direction=2,title=""):
 		self.setJobAborted()
@@ -279,71 +292,6 @@ class OpenVisusSlicer:
 		self.db=db
 		self.access=access 
 		self.setDirection(direction)  
-
-	# setJobAborted
-	def setJobAborted(self):
-		self.aborted.setTrue()
-
-	# hasJobAborted
-	def hasJobAborted(self):
-		ABORTED=ov.Aborted()
-		ABORTED.setTrue()   
-		return self.aborted.__call__()==ABORTED.__call__()
-
-	# runInBackground
-	def workerLoop(self):
-
-		while True:
-			logic_box, direction,offset,max_pixels=self.queue.get()
-
-			with self.lock:
-				self.aborted=ov.Aborted()
-				print("Worker::got_job",logic_box)
-   
-			I,num_refinements=0,4
-			for logic_box, data in ReadSlice(self.db, access=self.access, logic_box=logic_box, dir=direction, offset=offset,  num_refinements=num_refinements, max_pixels=max_pixels, aborted=self.aborted):
-				
-				# query failed
-				if data is None:
-					break
-
-				if self.hasJobAborted():
-						print("JOB ABORTED")
-						break
-
-				m,M=np.amin(data),np.amax(data)
- 
-				# assign the new data to display
-				with self.lock:
-					self.min = min(m,self.min if self.min is not None else m)
-					self.max = max(M,self.max if self.max is not None else M)
-					print("renderData",self.project(logic_box), data.shape,f"current_pixels={np.prod(data.shape):,}",f"max_pixels={max_pixels:,} {I}/{num_refinements}")
-					self.renderData(data, logic_box=self.project(logic_box), range=(self.min,self.max), cmap=self.colormap.value)
-					# print("Worker::display_data",I,data.shape)
-					I+=1
-
-				# break
-				time.sleep(0.1)
-
-			# let the main task know I am done
-			# print("Worker::done_job")
-			self.queue.task_done()
-
-	# readData
-	def readData(self):
-		self.setJobAborted()
-		self.get_new_data=True
-
-	# onTimer
-	def onTimer(self):
-
-		# reschedule new job (but make sure the worker is in idle state)
-		if self.get_new_data:
-			max_pixels=self.plot.width * self.plot.height
-			self.setJobAborted()
-			self.waitForIdleWorker()
-			self.queue.put([self.logic_box, self.direction.value,self.offset.value, max_pixels])
-			self.get_new_data=False
 
 	# setColorMap
 	def setColorMap(self,value):
@@ -365,15 +313,67 @@ class OpenVisusSlicer:
 		self.offset.value=value
 		self.readData()
 
-	# setLogicBox
-	def setLogicBox(self,value):
-		print("setLogicBox",value)
-		self.logic_box=value
-		proj1,proj2=self.project(value)
-		self.axes.set_xlim((proj1[0],proj2[0]))
-		self.axes.set_ylim((proj1[1],proj2[1]))
-		self.readData()
-		self.repaint()
+	# setJobAborted
+	def setJobAborted(self):
+		self.aborted.setTrue()
+
+	# readData
+	def readData(self):
+		self.setJobAborted()
+		self.get_new_data=True
+
+	# onTimer
+	def onTimer(self):
+		# reschedule new job (but make sure the worker is in idle state)
+		if self.get_new_data:
+			max_pixels=self.mpl_pane.width * self.mpl_pane.height
+			self.setJobAborted()
+			self.waitForIdleWorker()
+			self.queue.put([copy.deepcopy(self.logic_box), self.direction.value,self.offset.value, max_pixels])
+			self.get_new_data=False
+
+	# waitForIdleWorker
+	def waitForIdleWorker(self):
+		self.queue.join()  
+
+	# runInBackground
+	def workerLoop(self, verbose=False):
+
+		while True:
+			logic_box, direction,offset,max_pixels=self.queue.get()
+
+			with self.lock:
+				self.aborted=ov.Aborted()
+				if verbose: print("Worker::got_job",logic_box)
+   
+			I,num_refinements=0,4
+			for logic_box, data in ReadSlice(self.db, access=self.access, logic_box=logic_box, dir=direction, offset=offset,  num_refinements=num_refinements, max_pixels=max_pixels, aborted=self.aborted):
+				
+				# query failed
+				if data is None:
+					break
+
+				if self.hasJobAborted():
+						if verbose: print("JOB ABORTED")
+						break
+
+				m,M=np.amin(data),np.amax(data)
+ 
+				# assign the new data to display
+				with self.lock:
+					self.min = min(m,self.min if self.min is not None else m)
+					self.max = max(M,self.max if self.max is not None else M)
+					if verbose: print("renderData",self.project(logic_box), data.shape,f"current_pixels={np.prod(data.shape):,}",f"max_pixels={max_pixels:,} {I}/{num_refinements}")
+					self.renderData(data, logic_box=self.project(logic_box), range=(self.min,self.max), cmap=self.colormap.value)
+					if verbose: print("Worker::display_data",I,data.shape)
+					I+=1
+
+				# break
+				time.sleep(0.1)
+
+			# let the main task know I am done
+			if verbose: print("Worker::done_job")
+			self.queue.task_done()
 
 
 # //////////////////////////////////////////////////////////////////////////////////////
@@ -410,14 +410,13 @@ class Experiment:
 			slicer=OpenVisusSlicer()
 			self.slices.append(slicer)
 			self.setDataset(target, scan=scans[target % len(scans)], direction=2)
-			break
 
-		self.main_layout=pn.GridBox(
-			None, #pn.pane.Matplotlib(self.fig, sizing_mode='stretch_both', interactive=True,tight=False ,high_dpi  =True),
-			self.slices[0].main_layout if len(self.slices)>=1 else None,
-			self.slices[1].main_layout if len(self.slices)>=2 else None,
-			self.slices[2].main_layout if len(self.slices)>=3 else None,
-			nrows=1, ncols=1,
+		self.layout=pn.GridBox(
+			pn.pane.Matplotlib(self.fig, sizing_mode='stretch_both', interactive=True,tight=False ,high_dpi  =True),
+			self.slices[0].layout,
+			self.slices[1].layout,
+			self.slices[2].layout,
+			nrows=2, ncols=2,
 			sizing_mode='stretch_both')
 
 	# https://stackoverflow.com/questions/69619157/matplotlib-clickable-plot-in-panel-row
@@ -487,10 +486,7 @@ done
 		{"id":"112530","pos":(4400,21)},
 		{"id":"112532","pos":(4700,22)},
 	]
- 
-	#for k,v in os.environ.items():
-	#	print(k,v)
- 
+
 	for it in scans:
 		it["url"]=f"https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_{it['id']}.h5/r/idx/1mb/visus.idx" 
 
@@ -500,7 +496,7 @@ done
 	exp=Experiment(scans,csv)
  
 	pn.template.FastListTemplate(
-			site = "OpenVisus", 
-			title = "slicers",
-			main = [exp.main_layout]
-		).servable() 
+		site = "OpenVisus", 
+		title = "slicers",
+		main = [exp.layout]
+	).servable() 
