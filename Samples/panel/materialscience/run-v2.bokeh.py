@@ -156,8 +156,6 @@ class Slicer:
 		self.plot.toolbar_location="below"
 		self.plot.sizing_mode = 'stretch_both' 
 
-		
-  
 		data={"image": [np.random.random((300,300))*255], "x":[0], "y":[0], "dw":[256], "dh":[256]}
 		self.source_image = bokeh.models.ColumnDataSource(data=data)
 		self.image = self.plot.image("image", source=self.source_image, x="x", y="y", dw="dw", dh="dh", color_mapper=self.color_mapper)  
@@ -166,8 +164,8 @@ class Slicer:
 		self.plot.add_layout(self.color_bar, 'right') 
 
 		self.layout=bokeh.layouts.column(
-   		self.plot,
 			bokeh.layouts.row(self.direction, self.offset,sizing_mode='stretch_width'),
+   		self.plot,
      	sizing_mode='stretch_both')
   
 		self.thread.start()
@@ -465,7 +463,7 @@ print("Reading CSV file...")
 csv=pd.read_csv("https://raw.githubusercontent.com/sci-visus/OpenVisus/master/Samples/panel/materialscience/data.csv")
 print("DONE")
 slices=Slices(scans,csv)
-curdoc().theme = 'caliber'
+bokeh.io.curdoc().theme = 'caliber'
 bokeh.io.curdoc().add_root(slices.layout)
  
  
