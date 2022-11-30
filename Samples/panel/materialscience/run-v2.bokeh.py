@@ -437,37 +437,36 @@ class Slices:
 			self.slices[I].setOffset(p3d[I])
 
 # //////////////////////////////////////////////////////////////////////////////////////
-if True:
-
-	# # python3 -m OpenVisus fix-range --dataset /usr/sci/cedmav/data/Pania_2021Q3_in_situ_data/idx/fly_scan_id_112509.h5/reconstructions/modvisus/visus.idx
-	"""
+# # python3 -m OpenVisus fix-range --dataset /usr/sci/cedmav/data/Pania_2021Q3_in_situ_data/idx/fly_scan_id_112509.h5/reconstructions/modvisus/visus.idx
+"""
 for it in 112509 112512 112515 112517 112520  112524 112526 112528 112530 112532; do
-   mkdir -p "/mnt/h/My Drive/visus_dataset/Pania_2021Q3_in_situ_data/idx/fly_scan_id_${it}.h5/reconstructions/"
-   rsync -azP \
-      "scrgiorgio@atlantis.sci.utah.edu:/usr/sci/cedmav/data/Pania_2021Q3_in_situ_data/idx/fly_scan_id_${it}.h5/reconstructions/modvisus/*" \
-      "/mnt/h/My Drive/visus_dataset/Pania_2021Q3_in_situ_data/idx/fly_scan_id_${it}.h5/reconstructions/modvisus/"
+ mkdir -p "/mnt/h/My Drive/visus_dataset/Pania_2021Q3_in_situ_data/idx/fly_scan_id_${it}.h5/reconstructions/"
+ rsync -azP \
+    "scrgiorgio@atlantis.sci.utah.edu:/usr/sci/cedmav/data/Pania_2021Q3_in_situ_data/idx/fly_scan_id_${it}.h5/reconstructions/modvisus/*" \
+    "/mnt/h/My Drive/visus_dataset/Pania_2021Q3_in_situ_data/idx/fly_scan_id_${it}.h5/reconstructions/modvisus/"
 done
-	"""
-	# 
-	scans=[
-		{"id":"112509", "pos":(530 ,1.0), "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112509.h5/r/idx/1mb/visus.idx"},
-		{"id":"112512", "pos":(1400,6.5), "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112512.h5/r/idx/1mb/visus.idx"},
-		{"id":"112515", "pos":(2100,7.0), "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112515.h5/r/idx/1mb/visus.idx"},
-		{"id":"112517", "pos":(2400,11),  "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112517.h5/r/idx/1mb/visus.idx"},
-		{"id":"112520", "pos":(3100,14),  "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112520.h5/r/idx/1mb/visus.idx"},
-		{"id":"112522", "pos":(3400,15),  "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112522.h5/r/idx/1mb/visus.idx"},
-		{"id":"112524", "pos":(3600,17),  "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112524.h5/r/idx/1mb/visus.idx"},
-		{"id":"112526", "pos":(3800,18),  "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112526.h5/r/idx/1mb/visus.idx"},
-		{"id":"112528", "pos":(4100,19),  "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112528.h5/r/idx/1mb/visus.idx"},
-		{"id":"112530", "pos":(4400,21),  "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112530.h5/r/idx/1mb/visus.idx"},
-		{"id":"112532", "pos":(4700,22),  "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112532.h5/r/idx/1mb/visus.idx"},
-	]
- 
-	print("Reading CSV file...")
-	csv=pd.read_csv("https://raw.githubusercontent.com/sci-visus/OpenVisus/master/Samples/panel/materialscience/data.csv")
-	print("DONE")
-	slices=Slices(scans,csv)
-	bokeh.io.curdoc().add_root(slices.layout)
+"""
+# 
+scans=[
+	{"id":"112509", "pos":(530 ,1.0), "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112509.h5/r/idx/1mb/visus.idx"},
+	{"id":"112512", "pos":(1400,6.5), "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112512.h5/r/idx/1mb/visus.idx"},
+	{"id":"112515", "pos":(2100,7.0), "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112515.h5/r/idx/1mb/visus.idx"},
+	{"id":"112517", "pos":(2400,11),  "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112517.h5/r/idx/1mb/visus.idx"},
+	{"id":"112520", "pos":(3100,14),  "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112520.h5/r/idx/1mb/visus.idx"},
+	{"id":"112522", "pos":(3400,15),  "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112522.h5/r/idx/1mb/visus.idx"},
+	{"id":"112524", "pos":(3600,17),  "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112524.h5/r/idx/1mb/visus.idx"},
+	{"id":"112526", "pos":(3800,18),  "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112526.h5/r/idx/1mb/visus.idx"},
+	{"id":"112528", "pos":(4100,19),  "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112528.h5/r/idx/1mb/visus.idx"},
+	{"id":"112530", "pos":(4400,21),  "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112530.h5/r/idx/1mb/visus.idx"},
+	{"id":"112532", "pos":(4700,22),  "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112532.h5/r/idx/1mb/visus.idx"},
+]
+
+print("Reading CSV file...")
+csv=pd.read_csv("https://raw.githubusercontent.com/sci-visus/OpenVisus/master/Samples/panel/materialscience/data.csv")
+print("DONE")
+slices=Slices(scans,csv)
+curdoc().theme = 'caliber'
+bokeh.io.curdoc().add_root(slices.layout)
  
  
 
