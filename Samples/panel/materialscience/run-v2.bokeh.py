@@ -101,6 +101,16 @@ def ReadSlice(db, logic_box=None, dir=0, offset=0, time=None, field=None, access
 		yield logic_box, data
 		db.nextBoxQuery(query)
 
+PALETTES=[
+"Greys256",
+"Inferno256",
+"Magma256",
+"Plasma256",
+"Viridis256",
+"Cividis256",
+"Turbo256"
+]
+
 
 # ////////////////////////////////////////////////////////////////////////////////////
 class Slicer:
@@ -125,22 +135,12 @@ class Slicer:
 		self.ABORTED=ov.Aborted()
 		self.ABORTED.setTrue() 
   
-		palettes=[
-		"Greys256",
-		"Inferno256",
-		"Magma256",
-		"Plasma256",
-		"Viridis256",
-		"Cividis256",
-		"Turbo256"
-		]
-		self.colormap  = bokeh.models.Select(title='Colormap',  options=palettes,value='Viridis256',width=100)
-		self.direction = bokeh.models.Select(title='Direction', options=[('0','X'),('1','Y'),('2','Z')],value='2',width=50)
-		self.offset    = bokeh.models.Slider(title='Offset', value=0, start=0, end=1024, sizing_mode="stretch_width")
-  
-		self.colormap .on_change ("value",lambda attr, old, new: self.setColorMap(new))
+		self.direction = bokeh.models.Select(title='Direction', options=[('0','X'),('1','Y'),('2','Z')],value='2',width=80,sizing_mode="fixed")
 		self.direction.on_change ("value",lambda attr, old, new: self.setDirection(int(new)))  
+  
+		self.offset    = bokeh.models.Slider(title='Offset', value=0, start=0, end=1024, sizing_mode="stretch_width")
 		self.offset   .on_change ("value",lambda attr, old, new: self.setOffset(int(new))) 
+	
 		self.callback = bokeh.io.curdoc().add_periodic_callback(self.onTimer, 100)  
   
 		self.color_mapper = bokeh.models.LinearColorMapper() # LogColorMapper
@@ -168,7 +168,7 @@ class Slicer:
 
 		self.layout=bokeh.layouts.column(
    		self.plot,
-			bokeh.layouts.row(self.colormap,	self.direction, self.offset,sizing_mode='stretch_width'),
+			bokeh.layouts.row(self.direction, self.offset,sizing_mode='stretch_width'),
      	sizing_mode='stretch_both')
   
 		self.thread.start()
@@ -246,9 +246,8 @@ class Slicer:
 		self.setTime(url)
 		self.setDirection(direction) 
 
-	# setColorMap
-	def setColorMap(self,value):
-		self.colormap.value=value
+	# setPalette
+	def setPalette(self,value):
 		self.color_mapper.palette=value
 		self.refresh()
   
@@ -347,6 +346,32 @@ class Slicer:
 
 
 # //////////////////////////////////////////////////////////////////////////////////////
+class PlotScans:
+
+	# constructor
+	def __init__(self,scans,df):
+
+		self.plot = bokeh.plotting.figure(x_axis_label='time', y_axis_label='stress',tools="tap")
+		self.plot.title.text = "Experiment"
+		self.plot.title.align = "center"
+		self.plot.title.text_font_size = "20px"
+
+		self.plot.line(df.time, df.stress, color="blue")
+		x = [scan["pos"][0] for scan in scans]
+		y = [scan["pos"][1] for scan in scans]
+		self.plot_source = bokeh.models.ColumnDataSource(dict(x=x, y=y, markers=["inverted_triangle"]*len(x)))
+		self.glyph = bokeh.models.Scatter(x="x", y="y", size=20, fill_color="#74add1", marker="markers")
+ 
+		self.markers=self.plot.add_glyph(self.plot_source, self.glyph)
+  
+		self.layout=self.plot
+  
+  # enableMarkerSelection
+	def enableMarkerSelection(self,fn):
+		self.markers.data_source.selected.on_change('indices', lambda attr,old,new: fn(int(new[0])))
+
+
+# //////////////////////////////////////////////////////////////////////////////////////
 class Slices:
 
 	# constructor
@@ -354,39 +379,32 @@ class Slices:
 		self.scans=scans
 		self.slices=[]
   
-		plot = bokeh.plotting.figure(x_axis_label='time', y_axis_label='stress',tools="tap")
-
-		plot.title.text = "Experiment"
-		plot.title.align = "center"
-		plot.title.text_font_size = "20px"
-
-		plot.line(df.time, df.stress, color="blue")
-		x = [scan["pos"][0] for scan in scans]
-		y = [scan["pos"][1] for scan in scans]
-		plot_source = bokeh.models.ColumnDataSource(dict(x=x, y=y, markers=["inverted_triangle"]*len(x)))
-		glyph = bokeh.models.Scatter(x="x", y="y", size=20, fill_color="#74add1", marker="markers")
-		g=plot.add_glyph(plot_source, glyph)
-		g.data_source.selected.on_change('indices', lambda attr,old,new: self.setTime(int(new[0])))
-
+		plot_scans=PlotScans(scans,df)
+		plot_scans.enableMarkerSelection(lambda index: self.setTime(index))
+  
+		self.palette  = bokeh.models.Select(title='Palette',  options=PALETTES,value='Viridis256')
+		self.palette .on_change ("value",lambda attr, old, new: self.setPalette(new))  
+  
+		self.time = bokeh.models.Slider(title='Time', value=0, start=0, end=len(scans)-1, sizing_mode="stretch_width")
+		self.time.on_change ("value",lambda attr, old, new: self.setTime(int(new)))
+  
 		for target in range(min(3,len(scans))):
 			slicer=Slicer()
 			self.slices.append(slicer)
 			scan=scans[target % len(scans)]
-			slicer.setDataset(scan["url"], scan["id"], direction=target % 3)
+			slicer.setDataset(scan["url"], scan["id"], direction=2-(target % 3))
 
+		slice_layouts=[slice.layout for slice in self.slices]
 		if len(self.slices)==1:
-			self.layout=bokeh.layouts.grid(
-				children=[slice.layout for slice in self.slices],
-				nrows=1,
-	   		ncols=1,
-				sizing_mode='stretch_both')    
+			central=bokeh.layouts.grid( children=slice_layouts, nrows=1,ncols=1, sizing_mode='stretch_both')    
 		else:
-			self.layout=bokeh.layouts.grid(
-				children=[plot] + [slice.layout for slice in self.slices],
-				nrows=2,
-	   		ncols=2,
-				sizing_mode='stretch_both')
+			central=bokeh.layouts.grid( children=[plot_scans.layout] + slice_layouts,nrows=2,ncols=2, sizing_mode='stretch_both')
 
+		self.layout=bokeh.layouts.Column(
+			bokeh.layouts.Row(self.palette, self.time, sizing_mode='stretch_width'),
+    	central, 
+     	sizing_mode='stretch_both')
+  
 		self.setTime(0)
 
 	# setTime
@@ -396,6 +414,11 @@ class Slices:
 		for slice in self.slices:
 			slice.setTime(scan["url"])
    
+	# setPalette
+	def setPalette(self,value):
+		self.palette.value=value
+		for slice in self.slices:
+			slice.setPalette(value)
 
 # //////////////////////////////////////////////////////////////////////////////////////
 if True:
