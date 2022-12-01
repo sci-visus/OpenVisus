@@ -178,9 +178,10 @@ def CompressArcoDataset(db, compression="zip", num_threads=32, timestep=None,fie
 	for timestep in timesteps:
 		for field in fields:
 			for blockid in range(db.getTotalNumberOfBlocks()):
-				dtype=field.dtype
-				dims=db.getBlockQuerySamples(blockid).nsamples
-				filename=access.getFilename(field,float(timestep),blockid)
+				# !!! be careful here: you need to create copies of all the values, otherwise python GC will destroy them !!!
+				dtype=DType.fromString(field.dtype.toString())
+				dims=PointNi(db.getBlockQuerySamples(blockid).nsamples)
+				filename=str(access.getFilename(field,float(timestep),blockid))
 				args=(compression, dims, dtype, filename)
 				logger.info(f"compression={compression} dims=[{dims.toString()}] dtype={dtype.toString()} filename={filename}")
 				ARGS.append(args)

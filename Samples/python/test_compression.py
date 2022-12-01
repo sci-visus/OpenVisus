@@ -57,7 +57,7 @@ def Main(url=None,shape=None,arco="modvisus"):
 if __name__=="__main__":
 	"""
 	Example: python3 Samples/samples/python/test_compression.py
-	""""
+	"""
 	max_seconds=60*10 # run for 10 minute
 	url='https://klacansky.com/open-scivis-datasets/hydrogen_atom/hydrogen_atom_128x128x128_uint8.raw'
 	shape=(128, 128, 128)
