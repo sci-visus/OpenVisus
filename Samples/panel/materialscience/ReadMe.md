@@ -35,7 +35,7 @@ Notes:
 - it does not seem to work on CHPC (nsdf1,2,3)
 
 ```
-sudo docker build --tag nsdf/openvisus-panel:0.4 ./ 
+sudo docker build --tag nsdf/openvisus-panel:latest ./ 
 sudo docker-compose --env-file .env up # -d 
 # sudo docker-compose down
 # sudo docker compose logs 
