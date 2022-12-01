@@ -186,7 +186,8 @@ def CompressArcoDataset(db, compression="zip", num_threads=32, timestep=None,fie
 				ARGS.append(args)
 	logger.info('Starting the compression...')
 	p=ThreadPool(num_threads)
-	p.map(lambda args: CompressArcoBlock(*args), ARGS)
+	# p.map(lambda args: CompressArcoBlock(*args), ARGS) THISseems to have problems withn timeout
+	p.map_async(lambda args: CompressArcoBlock(*args), ARGS, 1).get(timeout=60*60*24*30) # 1 month
 	SEC=time.time()-T1
 	logger.info(f"CompressArcoDataset done in {SEC} seconds")
 	# TODO: do I need to save the new idx with field.default_compression? Essentially I need to check DiskAcess and CloudAccess that assume zip as defaults
@@ -307,7 +308,8 @@ def CompressModVisusDataset(db, compression="zip", num_threads=32, timestep=None
 
 		# compress blocks in parallel
 		p=ThreadPool(num_threads)
-		COMPRESSED=p.map(CompressModVisusBlock, range(tot_blocks))
+		# COMPRESSED=p.map(CompressModVisusBlock, range(tot_blocks)) THIS may have problems with timeout
+		COMPRESSED=p.map_async(CompressModVisusBlock, range(tot_blocks), 1).get(timeout=60*60*24*30) # 1 month
 		COMPRESSED=sorted(COMPRESSED, key=lambda tup: tup[0])
 
 		compressed_size=header_size+sum([len(it[1]) for it in COMPRESSED])

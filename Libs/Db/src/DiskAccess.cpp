@@ -70,7 +70,7 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   this->filename_template = StringUtils::replaceAll(this->filename_template, "$(FullPathWithoutExt)", path.withoutExtension());
   this->filename_template = StringUtils::replaceAll(this->filename_template, "$(VisusCache)", GetVisusCache());
 
-  PrintInfo("Created DiskAccess","url",url,"filename_template",filename_template,"compression", compression);
+  //PrintInfo("Created DiskAccess","url",url,"filename_template",filename_template,"compression", compression);
 }
 
 
