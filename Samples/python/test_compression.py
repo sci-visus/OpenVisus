@@ -47,7 +47,7 @@ def Main(url=None,shape=None,arco="modvisus"):
 	if True:
 		db.compressDataset()
 		check=db.read()
-		if not (data == check).all:
+		if not (data == check).all():
 			error_msg=f"ERROR: Failed read AFTER compression arco={arco}"
 			print(error_msg)
 			raise Exception(error_msg)
@@ -55,7 +55,10 @@ def Main(url=None,shape=None,arco="modvisus"):
 
 # /////////////////////////////////////////////////////////////////
 if __name__=="__main__":
-	max_seconds=60*10
+	"""
+	Example: python3 Samples/samples/python/test_compression.py
+	""""
+	max_seconds=60*10 # run for 10 minute
 	url='https://klacansky.com/open-scivis-datasets/hydrogen_atom/hydrogen_atom_128x128x128_uint8.raw'
 	shape=(128, 128, 128)
 	I,T1=0,time.time()
