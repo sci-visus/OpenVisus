@@ -30,7 +30,7 @@ Serve using Docker:
 - IMPORTANT modify the `docker-compose.yml` as needed
 
 ```
-sudo docker build --tag nsdf/openvisus-panel:0.2 ./ 
+sudo docker build --tag nsdf/openvisus-panel:0.3 ./ 
 sudo docker-compose --env-file .env up # -d 
 # sudo docker-compose down
 # sudo docker compose logs 
