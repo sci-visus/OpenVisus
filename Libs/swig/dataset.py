@@ -571,6 +571,7 @@ class PyDataset(object):
 		if compression=="" or compression=="raw":
 			return
 
+
 		if self.db.idxfile.arco:
 			from .convert import CompressArcoDataset
 			CompressArcoDataset(self.db,compression=compression,num_threads=num_threads,timestep=timestep,field=field)

@@ -473,7 +473,9 @@ def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=
 		DONE=int(ReadTextFile(done_filename).strip())
 	except:
 		DONE=0
-	logger.info(f"Read {done_filename} DONE={DONE}")
+
+	if DONE>0:
+		logger.info(f"CopyDataset restarting from where it left {done_filename} DONE={DONE}")
 
 	N=len([it for it in pieces])
 	Saccess.beginRead()
@@ -498,11 +500,11 @@ def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=
 
 				# statistics
 				ETA=N*((time.time()-T1)/(I+1)) 
-				logger.info(f"Wrote src={src} {I}/{N} {logic_box.toString()} timestep({timestep}) field({fieldname}) sec({read_sec:.2f}/{write_sec:.2f}/{read_sec+write_sec}) ETA({ETA:.0f}s {ETA/60:.0f}m {ETA/3600:.0}h {ETA/86400:.0f}d)")
+				logger.info(f"CopyDataset Wrote src={src} {I}/{N} {logic_box.toString()} timestep({timestep}) field({fieldname}) sec({read_sec:.2f}/{write_sec:.2f}/{read_sec+write_sec}) ETA({ETA:.0f}s {ETA/60:.0f}m {ETA/3600:.0}h {ETA/86400:.0f}d)")
 				break
 			except:
 				if K==(num_attempts-1): raise
-				logger.info(f"Writing of src={src} {I}/{N} failed, retrying...")
+				logger.info(f"CopyDataset Writing of src={src} {I}/{N} FAILED, retrying...")
 				time.sleep(1.0)
 
 		try:
@@ -514,7 +516,7 @@ def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=
 	Saccess.endRead()
 	Daccess.endWrite()
 
-	logger.info(f"CopyDataset src={src} dst={dst} done in {time.time()-T1:.2f} seconds")
+	logger.info(f"CopyDataset src={src} dst={dst} finished in {time.time()-T1:.2f} seconds")
 	return DST
 
 
