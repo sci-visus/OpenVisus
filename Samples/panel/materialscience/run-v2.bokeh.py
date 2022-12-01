@@ -12,6 +12,8 @@ import bokeh.events
 import bokeh.models
 import bokeh.plotting 
 
+import colorcet 
+
 import OpenVisus as ov
 
 # ///////////////////////////////////////////////////////////////////
@@ -113,6 +115,34 @@ PALETTES=[
 ]
 
 
+PALETTES=PALETTES+[
+  it  for it in [
+	'colorcet.blueternary', 
+	'colorcet.coolwarm', 
+	'colorcet.cyclicgrey', 
+	'colorcet.depth', 
+	'colorcet.divbjy', 
+	'colorcet.fire', 
+	'colorcet.geographic', 
+	'colorcet.geographic2', 
+	'colorcet.gouldian', 
+	'colorcet.gray', 
+	'colorcet.greenternary', 
+	'colorcet.grey', 
+	'colorcet.heat', 
+	'colorcet.phase2', 
+	'colorcet.phase4', 
+	'colorcet.rainbow', 
+	'colorcet.rainbow2', 
+	'colorcet.rainbow3', 
+	'colorcet.rainbow4', 
+	'colorcet.redternary', 
+	'colorcet.reducedgrey', 
+	'colorcet.yellowheat']
+  if hasattr(colorcet,it[9:])
+]
+
+
 # ////////////////////////////////////////////////////////////////////////////////////
 class Slicer:
 
@@ -130,8 +160,9 @@ class Slicer:
   
 		self.last_job      = None
 		self.current_img   = None
-		self.next_img      = None
+		self.render_img    = None
 		self.last_size     = None
+		self.render_point  = None
 
 		self.ABORTED=ov.Aborted()
 		self.ABORTED.setTrue() 
@@ -150,9 +181,8 @@ class Slicer:
 		self.color_mapper.high=65535.0 # TODO numbers are hardcoded 
 		
 		self.plot = bokeh.plotting.figure(active_scroll = "wheel_zoom")
-		# self.plot.title=
-		self.plot.x_range=bokeh.models.Range1d(0,1024)
-		self.plot.y_range=bokeh.models.Range1d(0, 768)
+		self.plot.x_range = bokeh.models.Range1d(0,1024)   
+		self.plot.y_range = bokeh.models.Range1d(0,768) 
 		self.plot.toolbar_location="below"
 		self.plot.sizing_mode = 'stretch_both' 
 
@@ -170,6 +200,14 @@ class Slicer:
   
 		self.thread.start()
 
+	# terminate
+	def terminate(self):
+		self.setJobAborted()
+		self.waitForIdleWorker()
+		self.queue.put(None)
+		self.thread.join()
+		self.thread=None
+  
 	# enableDoubleTap
 	def enableDoubleTap(self,fn):
 		self.plot.on_event(bokeh.events.DoubleTap, lambda evt: fn(self.unproject((evt.x,evt.y))))
@@ -178,6 +216,14 @@ class Slicer:
 	def hasJobAborted(self):
 		return self.aborted.__call__()==self.ABORTED.__call__()
 
+	# getWidth
+	def getWidth(self):
+		return self.plot.inner_width
+
+	# getHeight
+	def getHeight(self):
+		return self.plot.inner_height
+   
 	# project
 	def project(self,value):
 		dir=self.getDirection()
@@ -207,27 +253,53 @@ class Slicer:
 			p .insert(dir, self.offset.value+0)
 			return p
 		
+	# getViewport
+	def getViewport(self):
+		x1,x2=self.plot.x_range.start, self.plot.x_range.end
+		y1,y2=self.plot.y_range.start, self.plot.y_range.end 
+		return (x1,y1,x2,y2)
+
+	# getViewport
+	def setViewport(self,x1,y1,x2,y2):
+		# fix aspect ratio
+		W,H=self.getWidth(),self.getHeight()
+		if W and H: 
+			ratio=W/H
+			cx=0.5*(x1+x2)
+			cy=0.5*(y1+y2)
+			w=x2-x1
+			h=y2-y1
+			if W>H: 
+				w=h*ratio
+			else:  
+				h=w/ratio 
+			x1,y1,x2,y2=cx-w/2,cy-h/2, cx+w/2, cy+h/2
+  
+		self.plot.x_range.start=x1
+		self.plot.x_range.end  =x2
+		self.plot.y_range.start=y1
+		self.plot.y_range.end  =y2
+		self.refresh()
+  
 	# getLogicBox
 	def getLogicBox(self):
-		x1,x2=self.plot.x_range.start, self.plot.x_range.end
-		y1,y2=self.plot.y_range.start, self.plot.y_range.end
+		x1,y1,x2,y2=self.getViewport()
 		return self.unproject(((x1,y1),(x2,y2)))
 
-	# setLogicBox
+	# setLogicBox (NOTE: it ignores the coordinates on the direction)
 	def setLogicBox(self,value):
 		proj=self.project(value)
-		self.plot.x_range=bokeh.models.Range1d(*[x for x,y in proj])
-		self.plot.y_range=bokeh.models.Range1d(*[y for x,y in proj])  
-		self.refresh()
+		self.setViewport(*(proj[0] + proj[1]))
+  
+	# getLogicCenter
+	def getLogicCenter(self):
+		p1,p2=self.getLogicBox()
+		return [(p1[I]+p2[I])*0.5 for I in range(3)]
 
-	# renderData
-	def renderData(self, data, logic_box):
-		(x1,y1),(x2,y2)=self.project(logic_box)
-		self.source_image.data = {"image":[data], "x":[x1], "y":[y1], "dw":[x2-x1], "dh":[y2-y1]}
-		
-	# drawLines
-	def renderLines(self, points, marker='o'):
-		self.plot.line(x=[x for x,y in points], y=[y for x,y in points], marker = marker)
+	# getLogicSize
+	def getLogicSize(self):
+		p1,p2=self.getLogicBox()
+		return [(p2[I]-p1[I]) for I in range(3)]
 
 	# setTime
 	def setTime(self, url):
@@ -288,25 +360,56 @@ class Slicer:
 	def refresh(self):
 		self.setJobAborted()
 		self.last_job=None
+  
+  # gotoPoint
+	def gotoPoint(self,p3d):
+
+		# go to the slice
+		dir=self.getDirection()
+		self.setOffset(p3d[dir])
+
+		# the point should be centered in p3d
+		print(self.getDirection(),"P3d",p3d)
+		print(self.getDirection(),"BEFORE",self.getLogicCenter())
+		(p1,p2),dims=self.getLogicBox(),self.getLogicSize()
+		for I in range(3):
+			p1[I],p2[I]=p3d[I]-dims[I]/2,p3d[I]+dims[I]/2
+		print(self.getDirection(),"AFTER",p1,p2)
+		self.setLogicBox([p1,p2])
+		print(self.getDirection(),"AFTER",self.getLogicCenter())
+
+		# render the point
+		x,y=self.project(p3d)
+		if self.render_point: self.plot.renderers.remove(self.render_point)
+		self.render_point = self.plot.scatter(x=x, y=y, size=20, color="red", marker="cross")
+
+	# renderImage
+	def renderImage(self,data=None,logic_box=None):
+		if data is not None: 
+				(x1,y1),(x2,y2)=self.project(logic_box)
+				self.render_img={"image":[data], "x":[x1], "y":[y1], "dw":[x2-x1], "dh":[y2-y1]}
+				print("renderImage",x1,y1,x2,y2)
+		elif self.render_img is not None:
+			self.source_image.data =self.render_img
+			self.render_img=None
 
 	# onTimer
 	def onTimer(self):
 
-		# new image to display?
-		if True:
-			data,logic_box=None,None
-			with self.lock:
-				if self.next_img:
-					data,logic_box=self.next_img 
-					self.next_img=None
-			if data is not None:
-	 			self.renderData(data, logic_box)
+		# simulate fixAspectRatio (i cannot find a bokeh metod to watch for resize event)
+		current_size=(self.getWidth(),self.getHeight())
+		if self.last_size is None or self.last_size!=current_size:
+			self.setViewport(*self.getViewport())
+			self.last_size=current_size
+
+		self.renderImage()
    
 		logic_box=self.getLogicBox()
 		dir=self.getDirection()
 		offset=self.getOffset()
-		max_pixels=(self.plot.inner_width,self.plot.inner_height)
+		max_pixels=current_size
   
+		# query to run, if it's the same just skip
 		key=f"logic_box={logic_box} dir={dir} offset={offset} max_pixels{max_pixels}"
 		if key==self.last_job:
 			return
@@ -324,11 +427,17 @@ class Slicer:
 	def workerLoop(self):
 
 		while True:
-			logic_box, direction,offset,max_pixels,num_refinements=self.queue.get()
+			args=self.queue.get()
+			
+			# need to exit
+			if args is None: 
+				return
+
+			logic_box, direction,offset,max_pixels,num_refinements=args
 
 			with self.lock:
 				self.aborted=ov.Aborted()
-				print("\nWorker::got nee job",logic_box)
+				print("\nWorker::Got new job")
    
 			I=0
 			for logic_box, data in ReadSlice(self.db, access=self.access, logic_box=logic_box, dir=direction, offset=offset,  num_refinements=num_refinements, max_pixels=int(np.prod(max_pixels)), aborted=self.aborted):
@@ -340,7 +449,7 @@ class Slicer:
 				if self.hasJobAborted():
 						break
 
-				self.next_img=(data,logic_box)
+				self.renderImage(data,logic_box)
 				print(f"Got data {I}/{num_refinements} {data.shape} {max_pixels}")
 					
 				I+=1
@@ -367,7 +476,6 @@ class PlotScans:
 		y = [scan["pos"][1] for scan in scans]
 		self.plot_source = bokeh.models.ColumnDataSource(dict(x=x, y=y, markers=["inverted_triangle"]*len(x)))
 		self.glyph = bokeh.models.Scatter(x="x", y="y", size=20, fill_color="#74add1", marker="markers")
- 
 		self.markers=self.plot.add_glyph(self.plot_source, self.glyph)
   
 		self.layout=self.plot
@@ -385,34 +493,60 @@ class Slices:
 		self.scans=scans
 		self.slices=[]
   
-		plot_scans=PlotScans(scans,df)
-		plot_scans.enableMarkerSelection(lambda index: self.setTime(index))
+		self.plot_scans=PlotScans(scans,df)
+		self.plot_scans.enableMarkerSelection(lambda index: self.setTime(index))
   
-		self.palette  = bokeh.models.Select(title='Palette',  options=PALETTES,value='Viridis256')
-		self.palette .on_change ("value",lambda attr, old, new: self.setPalette(new))  
+		self.num_slices=bokeh.models.Select(title='Slices',  options=["1","2","3"],value='3',width=50,sizing_mode='fixed')
+		self.num_slices.on_change("value",lambda attr, old, new: self.setNumberOfSlices(int(new)))
+  
+		self.palette = bokeh.models.Select(title='Palette',  options=PALETTES,value='Viridis256',width=120,sizing_mode='fixed')
+		self.palette.on_change ("value",lambda attr, old, new: self.setPalette(new))  
   
 		self.time = bokeh.models.Slider(title='Time', value=0, start=0, end=len(scans)-1, sizing_mode="stretch_width")
 		self.time.on_change ("value",lambda attr, old, new: self.setTime(int(new)))
   
-		for target in range(min(3,len(scans))):
+		self.layout=bokeh.layouts.Column(
+			bokeh.layouts.Row(self.num_slices,self.palette, self.time, sizing_mode='stretch_width'),
+			sizing_mode='stretch_both')
+		assert len(self.layout.children)==1
+		self.setNumberOfSlices(3)
+		self.setTime(0)
+  
+  # setNumberOfSlices
+	def setNumberOfSlices(self,value):
+   
+		# terminate old slices
+		for slice in self.slices:
+			slice.terminate()
+		self.slices=[]
+  
+		for target in range(min(value,len(scans))):
 			slicer=Slicer()
 			self.slices.append(slicer)
 			scan=scans[target % len(scans)]
-			slicer.setDataset(scan["url"], scan["id"], direction=target % 3)
-			slicer.enableDoubleTap(self.selectPoint)
+			slicer.setDataset(scan["url"], scan["id"], direction=2 if value==1 else target % 3)
+			slicer.enableDoubleTap(self.gotoPoint)
 
 		slice_layouts=[slice.layout for slice in self.slices]
-		if len(self.slices)==1:
-			central=bokeh.layouts.grid( children=slice_layouts, nrows=1,ncols=1, sizing_mode='stretch_both')    
+		if value in (1,2):
+			central=bokeh.layouts.Row(children=slice_layouts, sizing_mode='stretch_both')  
+		elif value==2:
+			central=bokeh.layouts.Row(children=slice_layouts, sizing_mode='stretch_both')  
+		elif value==3:
+			central=bokeh.layouts.grid(children=[self.plot_scans.layout] + slice_layouts,nrows=2,ncols=2, sizing_mode='stretch_both') 
 		else:
-			central=bokeh.layouts.grid( children=[plot_scans.layout] + slice_layouts,nrows=2,ncols=2, sizing_mode='stretch_both')
-
-		self.layout=bokeh.layouts.Column(
+			raise Exception("Error")
+ 
+		if False:
+			self.layout=bokeh.layouts.Column(
 			bokeh.layouts.Row(self.palette, self.time, sizing_mode='stretch_width'),
-    	central, 
-     	sizing_mode='stretch_both')
-  
-		self.setTime(0)
+			central,
+			sizing_mode='stretch_both')
+		else:
+			while len(self.layout.children)>1: 
+				self.layout.children.pop()
+			self.layout.children.append(central)
+
 
 	# setTime
 	def setTime(self, index):
@@ -424,15 +558,17 @@ class Slices:
 	# setPalette
 	def setPalette(self,value):
 		self.palette.value=value
+		if value.startswith("colorcet."):
+			value=getattr(colorcet,value[len("colorcet."):])
 		for slice in self.slices:
 			slice.setPalette(value)
 
-	# selectPoint
-	def selectPoint(self, p3d):
-		print("selectPoint",p3d)
-		for I,slice in enumerate(self.slices[0:3]):
-			self.slices[I].setDirection(I)
-			self.slices[I].setOffset(p3d[I])
+	# gotoPoint
+	def gotoPoint(self, p):
+		print("gotoPoint",p)
+		for slice in self.slices:
+			slice.gotoPoint(p)
+
 
 # //////////////////////////////////////////////////////////////////////////////////////
 # # python3 -m OpenVisus fix-range --dataset /usr/sci/cedmav/data/Pania_2021Q3_in_situ_data/idx/fly_scan_id_112509.h5/reconstructions/modvisus/visus.idx
