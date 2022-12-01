@@ -19,18 +19,18 @@ set -o allexport
 source .env
 set +o allexport
 
-# for panel
-panel serve --autoreload --address='0.0.0.0' --allow-websocket-origin='*' --port 10001 --autoreload run-v2.panel.py 
+# for panel (BROKEN, or better to use v1)
+python3 -m panel serve --address='0.0.0.0' --port=${PANEL_PORT} --allow-websocket-origin='*'  --autoreload ./run-v2.panel.py
 
 # for bokeh
-bokeh serve  --dev --show run-v2.bokeh.py 
+python3 -m bokeh serve --address='0.0.0.0' --port ${PANEL_PORT} --allow-websocket-origin='*' --dev ./run-v2.bokeh.py
 ```
 
 Serve using Docker:
-- modify the `docker-compose.yml` as needed
+- IMPORTANT modify the `docker-compose.yml` as needed
 
 ```
-sudo docker build --tag nsdf/openvisus-panel:0.1 ./ 
+sudo docker build --tag nsdf/openvisus-panel:0.2 ./ 
 sudo docker-compose --env-file .env up # -d 
 # sudo docker-compose down
 # sudo docker compose logs 
