@@ -1,3 +1,5 @@
+print("HELLO")
+
 import os,sys,time,datetime,threading,queue,random,copy,math
 from urllib.parse import urlparse
 
@@ -15,6 +17,9 @@ import bokeh.plotting
 import colorcet 
 
 import OpenVisus as ov
+
+
+  
 
 # ///////////////////////////////////////////////////////////////////
 def ReadSlice(db, logic_box=None, dir=0, offset=0, time=None, field=None, access=None, num_refinements=1, max_pixels=None, aborted=ov.Aborted()):
@@ -580,6 +585,9 @@ for it in 112509 112512 112515 112517 112520  112524 112526 112528 112530 112532
     "/mnt/h/My Drive/visus_dataset/Pania_2021Q3_in_situ_data/idx/fly_scan_id_${it}.h5/reconstructions/modvisus/"
 done
 """
+
+
+
 # 
 scans=[
 	{"id":"112509", "pos":(530 ,1.0), "url": "https://s3.us-west-1.wasabisys.com/Pania_2021Q3_in_situ_data/workflow/fly_scan_id_112509.h5/r/idx/1mb/visus.idx"},
