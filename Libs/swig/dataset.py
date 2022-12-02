@@ -571,7 +571,6 @@ class PyDataset(object):
 		if compression=="" or compression=="raw":
 			return
 
-
 		if self.db.idxfile.arco:
 			from .convert import CompressArcoDataset
 			CompressArcoDataset(self.db,compression=compression,num_threads=num_threads,timestep=timestep,field=field)
@@ -613,6 +612,21 @@ class PyDataset(object):
 				threads.append(Thread(target=CopyBlocks.doCopy, args=(copier,A,B)))
 			for t in threads: t.start()
 			for t in threads: t.join()
+
+	# copyDatasetToCloud
+	def copyDatasetToCloud(
+		self,            
+		local:str,              # local ARCO, you need enough space for doing the local conversion
+		remote:str,             # s3://bucket/whatever/visus.idx i.e. the remote location
+		done:str=None,          # keep track on s3://.. if the conversion was already done or not
+		arco:str="1mb",         # anything from 1mb to 8mb should work
+		compression:str="zip",  # what kind of compression to apply
+		clean_local:bool=True,  # clean local dataset at the end
+		timestep:int=None,      # specify timestep or None for all datasets
+		field:str=None,         # specify field or None for all datasets
+		):  
+		from .convert import CopyDatasetToCloud
+		CopyDatasetToCloud(self,local=local,remote=remote,done=done,arco=arco,compression=compression,clean_local=clean_local,timestep=timestep,field=field)
 
 
 def open_dataset(url):

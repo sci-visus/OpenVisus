@@ -48,10 +48,9 @@ def TestWavelets(src, dst, arco="modvisus", compression="zip"):
 if __name__=="__main__":
 
 	# setup logging
-	if True:
-		from OpenVisus.convert import logger
-		logger.addHandler(logging.StreamHandler())
-		logger.setLevel(logging.INFO)
+	logger=logging.getLogger("OpenVisus")
+	from OpenVisus import SetupLogger
+	SetupLogger(logger)
 
 	dir="./tmp/test-convert"
 	shutil.rmtree(dir,ignore_errors=True)

@@ -1,6 +1,5 @@
 import os, sys, glob, subprocess, platform, shutil, sysconfig, re, argparse
 
-
 this_dir=os.path.dirname(os.path.abspath(__file__))
 
 if len(sys.argv)>=2 and sys.argv[1]=="dirname":
@@ -386,11 +385,9 @@ def Main(args):
 	if not args:
 		return
 
-	# enable OpenVisus convert logger
-	if True:
-		from OpenVisus.convert import logger
-		logger.addHandler(logging.StreamHandler())
-		logger.setLevel(logging.INFO)
+	import logging
+	from OpenVisus import SetupLogger
+	SetupLogger(logging.getLogger("OpenVisus"))
 
 	action=args[0].lower()
 	action_args=args[1:]
@@ -509,12 +506,14 @@ def Main(args):
 	if action=="copy-dataset-to-cloud":
 		"""
 		Example
-			AWS_PROFILE=wasabi ENDPOINT_URL=s3.eu-east-1.amazonaws.com convert-dataset-to-cloud 
-				--source /usr/local/visus-datasets/2kbit1/visus.idx \
-				--local /tmp/remove-me/visus-convert/2kbit1/visus.idx \
-				--remote s3://visus-datasets/2kbit1/visus.idx \
-				--done /tmp/remove-me/.done/2kbit1/visus.idx \
-				--arco 1mb
+		SET AWS_PROFILE=wasabi
+		python -m OpenVisus copy-dataset-to-cloud ^
+				--source C:\data\visus-datasets\2kbit1\modvisus\visus.idx ^
+				--local \tmp\visus-datasets\arco\1mb\2kbit1\visus.idx ^
+				--remote s3://visus-datasets/arco/1mb/2kbit1/visus.idx ^
+				--done   s3://visus-datasets/arco/1mb/2kbit1/visus.idx.done ^
+				--arco 1mb ^
+				--compression zip
 		"""
   
 		import argparse
@@ -522,21 +521,30 @@ def Main(args):
 		parser.add_argument('--source'      ,type=str, required=True)
 		parser.add_argument('--local'       ,type=str, required=True)
 		parser.add_argument('--remote'      ,type=str, required=True)
-		parser.add_argument('--done'        ,type=str, required=True)
-		parser.add_argument('--arco'        ,type=str, required=False, default="1mb")
-		parser.add_argument('--profile'     ,type=str, required=False, default=os.environ.get("AWS_PROFILE","default"))
-		parser.add_argument('--endpoint-url',type=str, required=False, default=os.environ.get("ENDPOINT_URL","https://s3.eu-east-1.amazonaws.com"))
+		parser.add_argument('--done'        ,type=str, required=False)
+		parser.add_argument("--arco", type=str, default="1mb",required=False)
+		parser.add_argument("--compression", type=str, default="zip",required=False)
+		parser.add_argument("--timestep", type=int, default=None,required=False)
+		parser.add_argument("--field", type=str, default=None,required=False)
+		parser.add_argument("--clean-local", action='store_true',required=False)
 		args=parser.parse_args(action_args)
-		from OpenVisus import CopyDatasetToCloud
-		CopyDatasetToCloud(
-			source=args.source,
-			local=args.local,
-			remote=args.remote,
-			done=args.done,
-			profile=args.profile,
-   		endpoint_url=args.endpoint_url,
-     	arco=args.arco)
-		return
+		from OpenVisus import LoadDataset
+		db=LoadDataset(args.source)
+		db.copyDatasetToCloud(local=args.local, remote=args.remote, done=args.done, arco=args.arco, compression=args.compression, timestep=args.timestep, field=args.field, clean_local=args.clean_local)
+		logger.info(f"copy-dataset-to-cloud {args.source} DONE")
+		sys.exit(0)
+
+	if action=="cloud-du":
+		"""
+		Example: 
+		SET AWS_PROFILE=wasabi     
+		python -m OpenVisus cloud-du s3://foam
+		"""
+		from OpenVisus.s3 import S3
+		prefix=action_args[0]
+		s3=S3(num_connections=32)
+		s3.computeStatistics(prefix)
+		sys.exit(0)
 
 	# //////////////////////////////////////////
 	if action=="viewer":

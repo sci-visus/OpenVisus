@@ -4,10 +4,7 @@ from threading import Thread
 
 from OpenVisus import *
 
-logger = logging.getLogger(__name__)
-
-
-
+logger = logging.getLogger("OpenVisus")
 
 # /////////////////////////////////////////////////////////////////////////////
 class CopyBlocks:
@@ -159,11 +156,10 @@ def CompressArcoBlock(compression,dims,dtype,filename, use_python_zlib=False):
 		assert encoded.c_size()!=decoded.c_size() 
 
 		SafeReplaceFile(filename, lambda: SaveBinaryDocument(filename,encoded))
-		logger.info(f"CompressArcoBlock done {filename}")
+		logger.info(f"CompressArcoBlock done {filename} {decoded.c_size() } {encoded.c_size()}")
 
 # ////////////////////////////////////////////////////////////////////////////////////////
 def CompressArcoDataset(db, compression="zip", num_threads=32, timestep=None,field=None):
-
 	T1=time.time()
 	timesteps=[int(it) for it in db.getTimesteps().asVector()] if timestep is None else [int(timestep)]
 	fields   = db.getFields() if field is None else [str(field)]
@@ -184,12 +180,16 @@ def CompressArcoDataset(db, compression="zip", num_threads=32, timestep=None,fie
 				filename=str(access.getFilename(field,float(timestep),blockid))
 				if not os.path.isfile(filename) : continue # it can be!
 				args=(compression, dims, dtype, filename)
-				logger.info(f"compression={compression} dims=[{dims.toString()}] dtype={dtype.toString()} filename={filename}")
+				# logger.info(f"compression={compression} dims=[{dims.toString()}] dtype={dtype.toString()} filename={filename}")
 				ARGS.append(args)
 	logger.info('Starting the compression...')
 	p=ThreadPool(num_threads)
 	# p.map(lambda args: CompressArcoBlock(*args), ARGS) THISseems to have problems withn timeout
-	p.map_async(lambda args: CompressArcoBlock(*args), ARGS, 1).get(timeout=60*60*24*30) # 1 month
+	if False:
+		for args in ARGS:
+			CompressArcoBlock(*args)
+	else:
+		p.map_async(lambda args: CompressArcoBlock(*args), ARGS, 1).get(timeout=60*60*24*30) # 1 month
 	SEC=time.time()-T1
 	logger.info(f"CompressArcoDataset done in {SEC} seconds")
 	# TODO: do I need to save the new idx with field.default_compression? Essentially I need to check DiskAcess and CloudAccess that assume zip as defaults
@@ -476,15 +476,16 @@ def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=
 		DONE=0
 
 	if DONE>0:
-		logger.info(f"CopyDataset restarting from where it left {done_filename} DONE={DONE}")
+		logger.info(f"CopyDataset restarting from where it left {done_filename} DONE={DONE} #PIECES={len(pieces)}")
+	else:
+		logger.info(f"CopyDataset restarting from scratch #PIECES={len(pieces)}")
 
 	N=len([it for it in pieces])
 	Saccess.beginRead()
 	Daccess.beginWrite()
-	logger.info(f"Number of pieces {N}")
 	for I,(timestep,fieldname,logic_box) in enumerate(pieces):
 
-		if I<DONE:
+		if I<=DONE:
 			continue
 
 		for K in range(num_attempts):
@@ -520,5 +521,58 @@ def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=
 	logger.info(f"CopyDataset src={src} dst={dst} finished in {time.time()-T1:.2f} seconds")
 	return DST
 
+# //////////////////////////////////////////////////////////////////////
+def CopyDatasetToCloud(
+	src,            
+	local:str,              # local ARCO, you need enough space for doing the local conversion
+	remote:str,             # s3://bucket/whatever/visus.idx i.e. the remote location
+	done:str=None,          # keep track on s3://.. if the conversion was already done or not
+	arco:str="1mb",         # anything from 1mb to 8mb should work
+	compression:str="zip",  # what kind of compression to apply
+	clean_local:bool=True,  # clean local dataset at the end
+	timestep:int=None,      # specify timestep or None for all datasets
+	field:str=None,         # specify field or None for all datasets
+	):  
 
- 
+	local_dir=os.path.dirname(local)
+	remote_dir=os.path.dirname(remote)
+
+	T1=time.time()
+	
+	from OpenVisus.s3 import S3
+	s3=S3(num_connections=1) 
+
+	if done and s3.existObject(done): 
+		logger.info(f"{done} exists , skipping")
+		return   
+
+	source_url=src.getUrl()
+	logger.info(f"CopyDatasetToCloud source={source_url} local={local} remote={remote} done={done} arco={arco} timestep={timestep} field={field}...")
+
+	import OpenVisus as ov
+
+	try:
+
+		# convert local dataset to local ARCO (note internally will create a *.done file to keep track where it left and eventually rerun from there)
+		src.copyDataset(local, arco=arco, timestep=timestep, field=field)
+
+		# compress dataset (cloud ARCO presumes it's always compressed)
+		dst=ov.LoadDataset(local)
+		dst.compressDataset(compression=compression, timestep=timestep, field=field) 
+
+		# sync local ARCO -> cloud arco (NOTE this will use `aws s3` internally)
+		s3.sync(local_dir, remote_dir)
+
+		# if this function is called again I will skip the convertion again
+		s3.touchObject(done)
+		logger.info(f"CopyDatasetToCloud source={source_url} DONE in {time.time()-T1:.2f} seconds")
+		return True
+	except:
+		logger.info(f"CopyDatasetToCloud source={source_url} ERROR in {time.time()-T1:.2f} seconds \n{traceback.format_exc()}")
+		return False
+	finally:
+
+		# clean local (NOTE: this is dangerous it it fails at 99%, but it's the only way to save local storage)
+		if clean_local:
+			logger.info(f"CopyDatasetToCloud cleaning {local_dir}")
+			RunShellCommand(f"rm -Rf {local_dir}", nretry=10)

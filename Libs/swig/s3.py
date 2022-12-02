@@ -2,6 +2,9 @@ from OpenVisus import *
 
 import botocore,boto3
 
+import configparser, urllib3
+from   urllib.parse import parse_qs, urlparse
+
 # /////////////////////////////////////////////////////////////////////////////////////////
 class S3:
 
@@ -253,7 +256,8 @@ class S3:
 			opt+=' --endpoint-url ' + self.endpoint_url
 		if self.no_verify_ssl:
 			opt+=' --no-verify-ssl'
-		RunShellCommand(f"aws s3  {opt} sync {local_dir} {remote_dir} --only-show-errors --no-progress")
+		cmd=f"aws s3  {opt} sync {local_dir} {remote_dir} --only-show-errors --no-progress"
+		RunShellCommand(cmd)
 
 	# downloadImage (NOT TESTED)
 	def downloadImage(self, url):
@@ -269,3 +273,18 @@ class S3:
 		img.save(buffer, ext)
 		buffer.seek(0)
 		self.putObject(url, buffer)
+
+	# computeStatistics
+	def computeStatistics(self,prefix):
+		s3=S3(num_connections=128)
+		num_files,num_folders,tot_size=0,0,0
+		t1=time.time()
+		for (files,folders) in self.listObjectsInParallel(prefix):
+			num_folders+=len(folders)
+			for file in files:
+				num_files+=1
+				tot_size+=int(file['Size'])
+			if time.time()-t1>10.0:
+				logger.info(f"num_files={num_files:,} tot_size={tot_size:,}...")
+				t1=time.time()
+		logger.info(f"num_files={num_files:,} tot_size={tot_size:,}")

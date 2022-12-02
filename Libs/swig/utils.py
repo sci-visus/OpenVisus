@@ -1,8 +1,6 @@
-import os,sys,glob,threading,platform,sysconfig,re,time,subprocess, errno, fnmatch, shutil, logging
+import os,sys,glob,threading,platform,sysconfig,re,time, errno, fnmatch, shutil, logging,functools
 import traceback, time, subprocess, shutil, shlex, math
-import io, queue, threading, json, multiprocessing,functools, urllib3, configparser
-from   urllib.parse import parse_qs, urlparse
-import csv,yaml
+import io, queue, threading, multiprocessing, subprocess
 
 logger = logging.getLogger("OpenVisus")
 
@@ -118,7 +116,7 @@ def RecursiveFindFiles(rootdir='.', pattern='*'):
 def PipInstall(packagename,extra_args=[]):
 	cmd=[sys.executable,"-m","pip","install","--progress-bar","off","--user",packagename]
 	if extra_args: cmd+=extra_args
-	print("# Executing",cmd)
+	logger.info(f"# Executing {cmd}")
 	return_code=subprocess.call(cmd)
 	return return_code==0
 
@@ -167,25 +165,28 @@ def ExecuteCommand(cmd):
 	note: shell=False does not support wildcard but better to use this version
 	because quoting the argument is not easy
 	"""
-	print("# Executing command: ",cmd)
+	logger.info(f"# Executing command: {cmd}")
 	return subprocess.call(cmd, shell=False)
 
 
 
 # //////////////////////////////////////////////////////////////////////////////
 def WriteCSV(filename,rows):
+	import csv
 	with open(filename,"wt") as f:
 		writer=csv.writer(f)
 		writer.writerows([row for row in rows if row])
 
 # //////////////////////////////////////////////////////////////////////////////
 def ReadCSV(filename):
+	import csv
 	with open(filename,"rt") as f:
 		reader=csv.reader(f)
 		return [row for row in reader if row]
 
 # //////////////////////////////////////////////////////////////////////
 def WriteYaml(filename,data):
+	import yaml
 	logger.info(f"Writing yaml {filename}...")
 	with open(filename, 'w') as stream:
 		yaml.dump(data, stream)
@@ -193,6 +194,7 @@ def WriteYaml(filename,data):
 
 # //////////////////////////////////////////////////////////////////////
 def ReadYaml(filename):
+	import yaml
 	logger.info(f"Reading yaml {filename}...")
 	with open(filename, 'r') as stream:
 		ret=yaml.load(stream, Loader=yaml.CLoader)
@@ -252,7 +254,7 @@ def RemoveTree(dir):
 # /////////////////////////////////////////////////////////////////////////
 def RemoveFiles(pattern):
 	files=glob.glob(pattern)
-	print("Removing files",files)
+	logger.info(f"Removing files {files}")
 	for it in files:
 		if os.path.isfile(it):
 			os.remove(it)
@@ -272,8 +274,16 @@ def TryRemoveFiles(mask):
 
 # ////////////////////////////////////////////////////////////////////////
 def RunShellCommand(cmd, verbose=False, nretry=3):
+	
 	logger.info(f"RunShellCommand {cmd} ...")
-	args=shlex.split(cmd)
+
+	if isinstance(cmd,str):
+		cmd=cmd.replace("\\","/") # shlex eats backslashes
+		args=shlex.split(cmd)
+	else:
+		args=cmd
+
+	logger.info(f"RunShellCommand {args} ...")
 	
 	t1 = time.time()
 
