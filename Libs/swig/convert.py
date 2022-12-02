@@ -182,6 +182,7 @@ def CompressArcoDataset(db, compression="zip", num_threads=32, timestep=None,fie
 				dtype=DType.fromString(field.dtype.toString())
 				dims=PointNi(db.getBlockQuerySamples(blockid).nsamples)
 				filename=str(access.getFilename(field,float(timestep),blockid))
+				if not os.path.isfile(filename) : continue # it can be!
 				args=(compression, dims, dtype, filename)
 				logger.info(f"compression={compression} dims=[{dims.toString()}] dtype={dtype.toString()} filename={filename}")
 				ARGS.append(args)
