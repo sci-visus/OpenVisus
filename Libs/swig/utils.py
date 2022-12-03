@@ -197,7 +197,7 @@ def ReadYaml(filename):
 	import yaml
 	logger.info(f"Reading yaml {filename}...")
 	with open(filename, 'r') as stream:
-		ret=yaml.load(stream, Loader=yaml.CLoader)
+		ret=yaml.load(stream)
 	logger.info(f"Reading yaml {filename} DONE")
 	return ret
 
