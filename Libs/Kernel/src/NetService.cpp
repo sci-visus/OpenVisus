@@ -68,8 +68,6 @@ public:
   NetRequest                       request;
   Promise<NetResponse>             promise;
   NetResponse                      response;
-  bool                             first_byte = false;
-  bool                             chunked = false;
 
   CURLM*                           multi_handle;
   CURL*                            handle = nullptr;
@@ -78,6 +76,12 @@ public:
   Int64                            last_size_download = 0;
   Int64                            last_size_upload = 0;
   size_t                           buffer_offset = 0;
+
+  //internal running status
+  bool                             first_byte = false;
+  long                             response_code = 0;
+  bool                             done = false;
+  CURLcode                         result = CURLE_OK;
 
   //constructor
   CurlConnection(int id_, CURLM*  multi_handle_)
@@ -179,6 +183,11 @@ public:
     this->last_size_download = 0;
     this->last_size_upload = 0;
     memset(errbuf, 0, sizeof(errbuf));
+
+    this->first_byte = false;
+    this->response_code = 0;
+    this->done = false;
+    this->result = CURLE_OK;
 
     if (this->request.valid())
     {
@@ -310,12 +319,6 @@ public:
         int content_length = cint(value);
         connection->response.body->reserve(content_length, __FILE__, __LINE__);
       }
-
-     /* if (StringUtils::toLower(key) == "transfer-encoding" && StringUtils::contains(value, "hunked"))
-      {
-        PrintInfo("Chunked encoding");
-        connection->chunked = true;
-      }*/
     }
     return(nmemb*size);
   }
@@ -338,21 +341,6 @@ public:
 
     
     size_t N = TotIn;
-
-    //BROKEN
-#if 0
-    if (connection->chunked)
-    {
-      //it should be two bytes for chunk length, and \r\n
-      //but it seems libcurl is already doing that
-      int len=0;
-      std::istringstream iss(String(chunk, 4));
-      iss >> std::hex >> len;
-      VisusReleaseAssert(len==(TotIn -4));
-      chunk += 4;
-      N-=4;
-    }
-#endif 
 
     if (!connection->response.body->resize(oldsize + N, __FILE__, __LINE__))
     {
@@ -391,6 +379,10 @@ public:
 
   SharedPtr<std::thread> thread;
 
+  std::vector< SharedPtr<CurlConnection> > connections;
+  std::list<CurlConnection*> available;
+  std::set<CurlConnection*> running;
+
   //constructor
   Pimpl(NetService* owner_) : owner(owner_) {
   }
@@ -427,51 +419,20 @@ public:
     return std::make_shared<CurlConnection>(id, multi_handle);
   }
 
-  //runMore
-  void runMore(const std::set<CurlConnection*>& running)
-  {
-    if (running.empty())
-      return;
-
-    for (int multi_perform = CURLM_CALL_MULTI_PERFORM; multi_perform == CURLM_CALL_MULTI_PERFORM;)
-    {
-      int running_handles_;
-      multi_perform = curl_multi_perform(multi_handle, &running_handles_);
-
-      CURLMsg *msg; int msgs_left_;
-      while ((msg = curl_multi_info_read(multi_handle, &msgs_left_)))
-      { 
-        CurlConnection* connection = nullptr;
-        curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &connection); VisusAssert(connection);
-
-        if (msg->msg == CURLMSG_DONE)
-        {
-          long response_code = 0;
-          curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &response_code);
-
-          //in case the request fails before being sent, the response_code is zero. 
-          connection->response.status = response_code ? response_code : HttpStatus::STATUS_BAD_REQUEST;
-
-          if (msg->data.result != CURLE_OK)
-            connection->response.setErrorMessage(String(connection->errbuf));
-        }
-      }
-    }
-  }
 
   //entryProc
   void entryProc()
   {
-    std::vector< SharedPtr<CurlConnection> > connections;
+
     for (int I = 0; I < owner->nconnections; I++)
       connections.push_back(createConnection(I));
     VisusAssert(!connections.empty());
 
-    std::list<CurlConnection*> available;
+
     for (auto connection : connections)
       available.push_back(connection.get());
 
-    std::set<CurlConnection*> running;
+
     std::deque<Int64> last_sec_connections;
     bool bExitThread = false;
     while (true)
@@ -563,8 +524,6 @@ public:
 
           request->statistics.wait_msec = wait_msec;
           request->statistics.run_t1 = Time::now();
-          connection->first_byte = false;
-          connection->chunked=false;
           connection->setNetRequest(*request, promise);
         }
         owner->waiting = still_waiting;
@@ -573,40 +532,129 @@ public:
       //handle running
       if (!running.empty())
       {
-        runMore(running);
+        for (int multi_perform = CURLM_CALL_MULTI_PERFORM; multi_perform == CURLM_CALL_MULTI_PERFORM;)
+        {
+          int running_handles_;
+          multi_perform = curl_multi_perform(multi_handle, &running_handles_);
+
+          CURLMsg* msg; int msgs_left_;
+          while ((msg = curl_multi_info_read(multi_handle, &msgs_left_)))
+          {
+            CurlConnection* connection = nullptr;
+            curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &connection);
+            VisusReleaseAssert(connection);
+
+            if (msg->msg == CURLMSG_DONE)
+            {
+              connection->done = true;
+              curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &connection->response_code);
+              connection->result = msg->data.result;
+            }
+          }
+        }
 
         for (auto connection : std::set<CurlConnection*>(running))
         {
+          String error_msg = cstring(
+            "curl_errbuf=", String(connection->errbuf), 
+            "curl_result=", (int)connection->result, 
+            "curl_response_code=", (int)connection->response_code);
+
           //run->done (since aborted)
-          if (connection->request.aborted() || bExitThread)
+          if (bExitThread || connection->request.aborted())
+          {
             connection->response = NetResponse(HttpStatus::STATUS_SERVICE_UNAVAILABLE);
+            runningToDone(connection);
+            continue;
+          }
+          
+          //connection->done==false (i.e. still running)
+          if (!connection->done)
+          {
+            //timeout (i.e. didn' receive first byte after a certain amount of seconds)
+            if (connectionTimeout(connection))
+            {
+              connection->response = NetResponse(HttpStatus::STATUS_REQUEST_TIMEOUT);
+              connection->response.setErrorMessage(cstring(("connection timeout reached", error_msg)));
+              runningToDone(connection);
+            }
+            else
+            {
+              ;
+            }
 
-          //timeout (i.e. didn' receive first byte after a certain amount of seconds
-          else if (!connection->first_byte && owner->connect_timeout > 0 && connection->request.statistics.run_msec >= (owner->connect_timeout * 1000))
-            connection->response = NetResponse(HttpStatus::STATUS_REQUEST_TIMEOUT);
+            continue;
+          }
 
-          //still running
-          if (!connection->response.status)
+          //connection->done==true
+          VisusReleaseAssert(connection->done == true);
+
+          //did I get a respose_code'?
+          if (connection->response_code)
+          {
+            if (connection->response_code == 200)
+            {
+              connection->response.status = HttpStatus::STATUS_OK;
+            }
+            else
+            {
+              connection->response.status = connection->response_code;
+              connection->response.setErrorMessage(error_msg);
+            }
+
+            runningToDone(connection);
             continue;
 
-          connection->request.statistics.run_msec = (int)connection->request.statistics.run_t1.elapsedMsec();
+          }
 
-          if (owner->verbose > 0 && !connection->request.aborted())
-            owner->printStatistics(connection->id, connection->request, connection->response);
+          //I did NOT get a `response_code` (e.g. I could get a connection->result == CURLE_COULDNT_CONNECT ||  CURLE_SEND_ERROR)      
+          VisusReleaseAssert(connection->response_code == 0);
 
-          connection->promise.set_value(connection->response);
-          --NetService::global_stats()->running_requests;
+          if (connectionTimeout(connection))
+          {
+            connection->response = NetResponse(HttpStatus::STATUS_REQUEST_TIMEOUT);
+            connection->response.setErrorMessage(cstring("timeout reached without a 'response_code'", error_msg));
+            runningToDone(connection);
+          }
+          else
+          {
+            //try once more time
+            if (owner->verbose)
+              PrintInfo("still waiting for a 'response_code', retrying once more...", error_msg);
 
-          connection->setNetRequest(NetRequest(), Promise<NetResponse>());
-          running.erase(connection);
-          available.push_back(connection);
-          
+            auto request = connection->request;
+            auto promise = connection->promise;
+            connection->setNetRequest(NetRequest(), Promise<NetResponse>());
+            connection->setNetRequest(request, promise);
+          }
         }
       }
 
       Thread::yield();
     }
   }
+
+  //connectionTimeout
+  bool connectionTimeout(CurlConnection* connection)
+  {
+    return (!connection->first_byte && owner->connect_timeout > 0 && connection->request.statistics.run_msec >= (owner->connect_timeout * 1000));
+  }
+
+  //runningToDone
+  void runningToDone(CurlConnection* connection)
+  {
+    connection->request.statistics.run_msec = (int)connection->request.statistics.run_t1.elapsedMsec();
+
+    if (owner->verbose > 0 && !connection->request.aborted())
+      owner->printStatistics(connection->id, connection->request, connection->response);
+
+    connection->promise.set_value(connection->response);
+    --NetService::global_stats()->running_requests;
+
+    connection->setNetRequest(NetRequest(), Promise<NetResponse>());
+    running.erase(connection);
+    available.push_back(connection);
+  };
 
 };
 
