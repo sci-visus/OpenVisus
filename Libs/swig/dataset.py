@@ -658,7 +658,7 @@ def create_idx(*, url, shape, fields):
 	The data is written using the write function.
 
 	Example:
-	dataset = CreateIdx(url="test.idx", shape=(10, 20, 30), fields=[Field("data", "float32")])
+	dataset = create_idx(url="test.idx", shape=(10, 20, 30), fields=[Field("data", "float32")])
 	dataset.write(data)
 	dataset.compress_dataset()
 	"""
