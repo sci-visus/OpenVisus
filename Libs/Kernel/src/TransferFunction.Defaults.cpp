@@ -6396,7 +6396,8 @@ std::vector<String> TransferFunction::getDefaults()
 		"NDVI_Forest",
 		"NDVI_VIRIDIS",
 		"NDVI_BlueGreen",
-		"NDVI_Rainbow",
+    "NDVI_Rainbow",
+    "NDVI_BlueRed",
 
 		//plt
 		"Blues",
@@ -6650,6 +6651,15 @@ SharedPtr<TransferFunction> TransferFunction::getDefault(String name)
 				std::make_pair(95.0, 0x199410ff),
 				std::make_pair(100.0, 0x134721ff)
 				});
+
+    if (StringUtils::toLower(name) == StringUtils::toLower("NDVI_BlueRed"))
+      return FromOffsetAndColors({
+        std::make_pair( 5.0, 0x8bc4f9ff),
+        std::make_pair(27.5, 0xc9995cff),
+        std::make_pair(50.0, 0xc7d270ff),
+        std::make_pair(72.5, 0x8add60ff),
+        std::make_pair(95.0, 0x097210ff),
+        });
 
 	} //amy palette
 
