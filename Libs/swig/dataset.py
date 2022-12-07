@@ -272,21 +272,20 @@ class PyDataset(object):
 	# read
 	def read(self, logic_box=None, x=None, y=None, z=None, time=None, field=None, num_refinements=1, quality=0, max_resolution=None, disable_filters=False, access=None):
 		"""
-		import OpenVisus as ov
+		Reads a box in voxel or unit coordinates.
 
-		db=ov.open_dataset(url)
-		width,height,depth=db.getLogicSize()
+		Examples:
+		dataset = load_dataset(url)
+
+		# example of reading a single slice with z coordinate 512
+		data = dataset.read(z=[512,513]) 
 		
-		# example of reading a single slice in logic coordinates
-		data=db.read(z=[512,513]) 
-		
-		# example of reading a box in normalized coordinates (i.e. [0,1])
-		data=db.read(x=[0,0.1],y=[0,0.1],z=[0,0.1])
+		# example of reading a box in normalized coordinates (i.e., [0,1])
+		data = dataset.read(x=[0,0.1], y=[0.1,0.2], z=[0,0.1])
 		
 		# example of reading a single slice with 3 refinements
-		for data in db.read(z=[512,513],num_refinements=3):
+		for data in dataset.read(z=[512,513], num_refinements=3):
 			print(data)
-
 		"""
 		
 		pdim=self.getPointDim()
@@ -560,6 +559,9 @@ class PyDataset(object):
 		return CopyDataset(self.db, dst, arco, tile_size, timestep, field, num_attempts)
 
 	# compressDataset
+	def compress_dataset(self):
+		self.compressDataset()
+
 	def compressDataset(self, compression="zip", num_threads=32, timestep=None,field=None):
 
 		# TODO: enable different compressions for different levels
@@ -629,14 +631,35 @@ class PyDataset(object):
 		CopyDatasetToCloud(self,local=local,remote=remote,done=done,arco=arco,compression=compression,clean_local=clean_local,timestep=timestep,field=field)
 
 
-def open_dataset(url):
+def load_dataset(url):
 	"""
-	import OpenVisus as ov
-	db=ov.open_dataset(url)
+	Loads dataset locally or over http.
+
+	Examples:
+	dataset = load_dataset("test.idx")
+	dataset = load_dataset("http://domain.com/test.idx")
 	"""
-	return LoadDataset(url)
+	# TODO(12/5/2022): ideally swig raises the correct exception
+	try:
+		dataset = LoadDataset(url)
+	except SystemError as e:
+		dataset = None
+	if dataset is None:
+		raise FileNotFoundError()
+	dataset.shape = tuple(reversed(dataset.getLogicSize()))
+	dataset.max_resolution = dataset.getMaxResolution()
+	dataset.fields = dataset.getFields()
+	return dataset
 
-			
 
+def create_idx(*, url, shape, fields):
+	"""
+	Creates a local .idx file at the url location storing the metadata of the shape and fields.
+	The data is written using the write function.
 
-
+	Example:
+	dataset = create_idx(url="test.idx", shape=(10, 20, 30), fields=[Field("data", "float32")])
+	dataset.write(data)
+	dataset.compress_dataset()
+	"""
+	return CreateIdx(url=url, dims=list(reversed(shape)), fields=fields, arco="1mb")
