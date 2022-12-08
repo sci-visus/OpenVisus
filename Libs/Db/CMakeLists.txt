@@ -24,6 +24,7 @@ source_group("Samples\\cpp" FILES ${TutorialSources})
 # NOTE: I am not using the IDX2 original CMakeList.txt so I have more "freedom" to change stuff
 #       but if anything is going to change in IDX, you MUST keep this up-to-date
 if (VISUS_IDX2)
+	
 	FILE(GLOB        Idx2Sources  ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/*.h ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/*.cpp
 		                          ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/idx2.h   ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/idx2.cpp
 								  ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Applications/idx2App.cpp # IDX2 does not support dynamic libraries, so I am compiling here
@@ -48,6 +49,7 @@ if (VISUS_IDX2)
 	target_compile_features(VisusDb PUBLIC cxx_std_17) # PROBLEM here: do we really need C++17?
 	target_compile_definitions(VisusDb PUBLIC -DVISUS_IDX2=1)
 	target_compile_definitions(VisusDb PRIVATE -Didx2_Avx2)
+	target_compile_definitions(VisusDb PUBLIC -Didx2_Parallel_Decode=1)
 	target_compile_definitions(VisusDb PRIVATE "$<$<CONFIG:DEBUG>:idx2_Slow>")
 	target_include_directories(VisusDb PUBLIC ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source)
 	if (MSVC)
