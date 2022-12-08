@@ -188,6 +188,48 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
 {
   String url = ar.readString("url");
 
+
+  //special case for cached dataset
+  //Example:
+  //   http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1&cached=1
+  //   https://mghp.osn.xsede.org/vpascuccibucket1/visus-server-foam/visus.idx?compression=zip&layout=hzorder&cached=1
+  Url parsed(url);
+  if (!url.empty() && !ar.getChild("config") && parsed.isRemote() && cbool(parsed.getParam("cached")))
+  {
+    //remove the cached from the url 
+    parsed.params.eraseValue("cached");
+    url = parsed.toString();
+
+    StringTree access_config;
+    
+    //if it's a remote mod_visus
+    if (StringUtils::contains(url, "mod_visus"))
+    {
+      String local_idx = "$(VisusCache)/" + parsed.getHostname() + "/" + cstring(parsed.getPort()) + "/" + parsed.getParam("dataset") + "/visus.idx";
+      access_config = StringTree::fromString(
+        "  <access type='multiplex'>\n"
+        "     <access type='IdxDiskAccess'  chmod='rw' url='" + local_idx + "' />\n"
+        "     <access type='ModVisusAccess' chmod='r'  compression='zip' />\n"
+        "  </access>\n");
+    }
+    //else is a CloudStorage
+    else
+    {
+      String local_idx = "$(VisusCache)/" + parsed.getHostname() + parsed.getPath(); //visus.idx is already inside the path
+
+      //add a default access
+      access_config=StringTree::fromString(
+        "  <access type='multiplex'>\n"
+        "     <access type='IdxDiskAccess'      chmod='rw' url='" + local_idx + "' />\n"
+        "     <access type='CloudStorageAccess' chmod='r'  compression='zip' />\n"
+        "  </access>\n");
+    }
+
+    PrintInfo("Automatically enabling caching for", url, "\n", access_config.toString());
+    ar.setAttribute("url", url);
+    ar.addChild(access_config);
+  }
+
   //could the 'ar' self contained (as for GoogleMapsDatasets)
   if (!url.empty())
   {
@@ -253,53 +295,8 @@ SharedPtr<Dataset> LoadDataset(String url)
 {
   if (auto it = FindDatasetConfig(*DbModule::getModuleConfig(), url))
     return LoadDatasetEx(it);
-
-  Url parsed(url);
-
-  //special case for cached dataset
-  //Example:
-  //   http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1&cached=1
-  //   https://mghp.osn.xsede.org/vpascuccibucket1/visus-server-foam/visus.idx?compression=zip&layout=hzorder&cached=1
-  if (parsed.isRemote() && cbool(parsed.getParam("cached")))
-  {
-    PrintInfo();
-
-    //remove the cached from the url 
-    parsed.params.eraseValue("cached");
-
-    StringTree ar("dataset", "url", parsed.toString());
-
-    //if it's a remote mod_visus
-    if (StringUtils::contains(url, "mod_visus"))
-    {
-      String local_idx="$(VisusCache)/" + parsed.getHostname() + "/" + cstring(parsed.getPort()) + "/" + parsed.getParam("dataset") + "/visus.idx";
-
-      ar.addChild(StringTree::fromString(
-        "  <access type='multiplex'>\n"
-        "     <access type='IdxDiskAccess'  chmod='rw' url='" + local_idx + "' />\n"
-        "     <access type='ModVisusAccess' chmod='r'  compression='zip' />\n"
-        "  </access>\n"));
-    }
-    //else is a CloudStorage
-    else
-    {
-      String local_idx="$(VisusCache)/" + parsed.getHostname() + parsed.getPath(); //visus.idx is already inside the path
-
-      //add a default access
-      ar.addChild(StringTree::fromString(
-        "  <access type='multiplex'>\n"
-        "     <access type='IdxDiskAccess'      chmod='rw' url='" + local_idx  + "' />\n"
-        "     <access type='CloudStorageAccess' chmod='r'  compression='zip' />\n"
-        "  </access>\n"));
-    }
-     
-    PrintInfo("Automatically enabling caching for", url, "\n", ar.toString());
-    return LoadDatasetEx(ar);
-  }
   else
-  {
     return LoadDatasetEx(StringTree("dataset", "url", url));
-  }
 }
 
 ///////////////////////////////////////////////////////////

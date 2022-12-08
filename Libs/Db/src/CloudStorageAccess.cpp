@@ -79,6 +79,8 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   }
 
   VisusReleaseAssert(!this->filename_template.empty());
+
+  PrintInfo("Created CloudStorageAccess", "url", url, "filename_template", filename_template, "compression", compression);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
