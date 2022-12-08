@@ -94,7 +94,7 @@ void IdxDataset2::GetDecodeParams(idx2::params& P, SharedPtr<BoxQuery> query, in
   P.DownsamplingFactor3 = idx2::v3i(0, 0, 0); //get information at full resolution
   P.InputFile = this->input_file.c_str();
   P.InDir = this->in_dir.c_str();
-  P.DecodeAccuracy = query->accuracy;//TODO
+  P.DecodeTolerance = query->accuracy;//TODO
   for (int I = MaxH; I > H; I--)
   {
     auto bit = bitmask[I];
@@ -103,7 +103,7 @@ void IdxDataset2::GetDecodeParams(idx2::params& P, SharedPtr<BoxQuery> query, in
 }
 
 //////////////////////////////////////////////////////////////////////
-bool IdxDataset2::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int H) 
+bool IdxDataset2::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int H)
 {
   PrintInfo("IdxDataset2::setBoxQueryEndResolution");
   auto bitmask = getBitmask();
@@ -124,7 +124,7 @@ bool IdxDataset2::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int H)
   idx2::InitFromBuffer(&Idx2, P, idx2::buffer((const idx2::byte*)this->metafile.c_str(), this->metafile.size()));
   idx2::grid OutGrid = idx2::GetGrid(Idx2, P.DecodeExtent);
   idx2::v3i from = idx2::From(OutGrid);
-  idx2::v3i dims = idx2::Dims(OutGrid); 
+  idx2::v3i dims = idx2::Dims(OutGrid);
   idx2::v3i strd = idx2::Strd(OutGrid);
 
 
@@ -135,7 +135,7 @@ bool IdxDataset2::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int H)
     PrintInfo("logic_box", query->logic_box);
     PrintInfo("H", H, "MaxH", MaxH, "DownsamplingFactor3 ", Cast(P.DownsamplingFactor3));
     PrintInfo("from", Cast(from), "Dims", Cast(dims), "stride", Cast(strd));
-    PrintInfo("Accuracy", P.DecodeAccuracy);
+    PrintInfo("Tolerance", P.DecodeTolerance);
   }
 
   auto logic_samples = LogicSamples(BoxNi(Cast(from), Cast(from + dims * strd)), Cast(strd));
@@ -155,7 +155,7 @@ bool IdxDataset2::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int H)
 //////////////////////////////////////////////////////////////////////
 void IdxDataset2::enableExternalRead(idx2::idx2_file& Idx2, SharedPtr<Access> access, Aborted aborted)
 {
-  Idx2.external_read = [this, access, aborted](const idx2::idx2_file& Idx2, idx2::buffer& Buf, idx2::u64 ChunkAddress) -> std::future<bool> 
+  Idx2.external_read = [this, access, aborted](const idx2::idx2_file& Idx2, idx2::buffer& Buf, idx2::u64 ChunkAddress) -> std::future<bool>
   {
     VisusReleaseAssert(static_cast<idx2::u64>(static_cast<Visus::BigInt>(ChunkAddress)) == ChunkAddress);
 
@@ -307,7 +307,7 @@ void IdxDataset2::executeBlockQuery(SharedPtr<Access> access, SharedPtr<BlockQue
 
 
 //////////////////////////////////////////////////////////////////////
-bool IdxDataset2::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query) 
+bool IdxDataset2::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
 {
   PrintInfo("IdxDataset2::executeBoxQuery");
 
@@ -354,7 +354,7 @@ bool IdxDataset2::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> 
 
 
 //////////////////////////////////////////////////////////////////////
-void IdxDataset2::readDatasetFromArchive(Archive& ar) 
+void IdxDataset2::readDatasetFromArchive(Archive& ar)
 {
   //TODO: only local file so far (with *.idx2 extension)
   String url = ar.readString("url"); //remove any params
@@ -439,7 +439,7 @@ void IdxDataset2::nextBoxQuery(SharedPtr<BoxQuery> query)
 } //namespace Visus
 
 
-#endif 
+#endif
 
 
 
