@@ -155,30 +155,45 @@ bool IdxDataset2::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int H)
 //////////////////////////////////////////////////////////////////////
 void IdxDataset2::enableExternalRead(idx2::idx2_file& Idx2, SharedPtr<Access> access, Aborted aborted)
 {
-  Idx2.external_read = [this, access, aborted](const idx2::idx2_file& Idx2, idx2::buffer& Buf, idx2::u64 ChunkAddress) -> bool 
+  Idx2.external_read = [this, access, aborted](const idx2::idx2_file& Idx2, idx2::buffer& Buf, idx2::u64 ChunkAddress) -> std::future<bool> 
   {
     VisusReleaseAssert(static_cast<idx2::u64>(static_cast<Visus::BigInt>(ChunkAddress)) == ChunkAddress);
 
-#if 0
-    std::ostringstream filename; filename << Visus::StringUtils::rtrim(std::string(Idx2.Dir.Ptr, Idx2.Dir.Size), "/") << "/" << Idx2.Name << "/" << Idx2.Field << "/" << ChunkAddress;
-    auto heap = Visus::Utils::loadBinaryDocument(filename.str());
-    AllocBuf(&buff, heap->c_size());
-    memcpy(buff.Data, heap->c_ptr(), heap->c_size());
-#else
+    //OLD version for debugging
+    //std::ostringstream filename; filename << Visus::StringUtils::rtrim(std::string(Idx2.Dir.Ptr, Idx2.Dir.Size), "/") << "/" << Idx2.Name << "/" << Idx2.Field << "/" << ChunkAddress;
+    //auto heap = Visus::Utils::loadBinaryDocument(filename.str());
+    //AllocBuf(&buff, heap->c_size());
+    //memcpy(buff.Data, heap->c_ptr(), heap->c_size());
+
     auto query = createBlockQuery(ChunkAddress, getField(), getTime(), 'r', aborted);
-    if (!executeBlockQueryAndWait(access, query)) 
-      return false;
-    idx2::AllocBuf(&Buf, query->buffer.c_size());
-    memcpy(Buf.Data, query->buffer.c_ptr(), query->buffer.c_size());
-    
+
+    SharedPtr< std::promise<bool> > p = std::make_shared< std::promise<bool> >( );
+    std::future<bool>  f = p->get_future();
+
+    query->done.get_promise()->addWhenDoneListener(std::function<void(Void)>([query,&Buf, p](Void) {
+
+      if (!query->ok())
+      {
+        p->set_value(false);
+      }
+      else
+      {
+        idx2::AllocBuf(&Buf, query->buffer.c_size());
+        memcpy(Buf.Data, query->buffer.c_ptr(), query->buffer.c_size());
+
+        //if you want to debug..
+# if 0
+        auto checksum = Visus::StringUtils::hexdigest(Visus::StringUtils::md5(std::string((const char*)Buf.Data, Buf.Bytes)));
+        PrintInfo("ExternalRead ChunkAddress", ChunkAddress, " Bytes=", Buf.Bytes, " checksum", checksum);
 #endif
-    if (false)
-    {
-      auto checksum = Visus::StringUtils::hexdigest(Visus::StringUtils::md5(std::string((const char*)Buf.Data, Buf.Bytes)));
-      PrintInfo("ExternalRead ChunkAddress", ChunkAddress, " Bytes=", Buf.Bytes, " checksum", checksum);
-    }
-    
-    return true;
+
+        p->set_value(true);
+      }
+
+    }));
+
+    executeBlockQuery(access, query);
+    return f;
   };
 }
 
