@@ -49,7 +49,7 @@ if (VISUS_IDX2)
 	target_compile_features(VisusDb PUBLIC cxx_std_17) # PROBLEM here: do we really need C++17?
 	target_compile_definitions(VisusDb PUBLIC -DVISUS_IDX2=1)
 	target_compile_definitions(VisusDb PRIVATE -Didx2_Avx2)
-	target_compile_definitions(VisusDb PUBLIC -Didx2_Parallel_Decode=1)
+	#target_compile_definitions(VisusDb PUBLIC -Didx2_Parallel_Decode=1)
 	target_compile_definitions(VisusDb PRIVATE "$<$<CONFIG:DEBUG>:idx2_Slow>")
 	target_include_directories(VisusDb PUBLIC ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/stlab)
 	if (MSVC)

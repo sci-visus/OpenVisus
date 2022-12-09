@@ -94,11 +94,11 @@ void IdxDataset2::GetDecodeParams(idx2::params& P, SharedPtr<BoxQuery> query, in
   P.DownsamplingFactor3 = idx2::v3i(0, 0, 0); //get information at full resolution
   P.InputFile = this->input_file.c_str();
   P.InDir = this->in_dir.c_str();
-  P.DecodeTolerance = query->accuracy;//TODO
+  P.DecodeTolerance = 0.01;//TODO
   for (int I = MaxH; I > H; I--)
   {
     auto bit = bitmask[I];
-    P.DownsamplingFactor3[bit] = std::max(1, P.DownsamplingFactor3[bit]) << 1;
+    ++P.DownsamplingFactor3[bit];
   }
 }
 
@@ -347,6 +347,7 @@ bool IdxDataset2::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> 
 
   auto query_buffer = idx2::buffer((const idx2::byte*)query->buffer.c_ptr(), query->buffer.c_size());
   idx2::Decode(Idx2, P, &query_buffer);  //TODO: no aborted?
+  //idx2::ParallelDecode(Idx2, P, &query_buffer);  //TODO: no aborted?
   query->setCurrentResolution(query->end_resolution);
 
   return true;
