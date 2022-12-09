@@ -351,7 +351,7 @@ class PyDataset(object):
 
 
 	# write
-	# IMPORTANT: usually db.write happens without write lock and syncronously (at least in python)
+	# IMPORTANT: usually db.write happens without write lock and synchronously (at least in Python)
 	def write(self, data, x=0, y=0, z=0,logic_box=None, time=None, field=None, access=None):
 
 		"""
@@ -631,16 +631,22 @@ class PyDataset(object):
 		CopyDatasetToCloud(self,local=local,remote=remote,done=done,arco=arco,compression=compression,clean_local=clean_local,timestep=timestep,field=field)
 
 
-def load_dataset(url):
+def load_dataset(url, cache_dir=None):
 	"""
 	Loads dataset locally or over http.
 
 	Examples:
 	dataset = load_dataset("test.idx")
 	dataset = load_dataset("http://domain.com/test.idx")
+	dataset = load_dataset("http://domain.com/test.idx", cache_dir='.')
 	"""
 	# TODO(12/5/2022): ideally swig raises the correct exception
 	try:
+		if cache_dir is not None:
+			if os.path.isfile(cache_dir):
+				raise NotADirectoryError("Expect cache_dir to be a directory and not a file.")
+			os.environ["VISUS_CACHE"] = cache_dir
+			url += "?cached=1" # TODO(12/8/2022): not robust because the url could already have ?bla=10
 		dataset = LoadDataset(url)
 	except SystemError as e:
 		dataset = None
