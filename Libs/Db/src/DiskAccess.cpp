@@ -60,10 +60,12 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   //example: "s3://bucket-name/whatever/$(time)/$(field)/$(block:%016x:%04x).$(compression)";
   //NOTE 16x is enough for 16*4 bits==64 bit for block number
   //     splitting by 4 means 2^16= 64K files inside a directory with max 64/16=4 levels of directories
+
+  String blob_extension = url.getParam("blob_extension", ".bin");
   this->filename_template = config.readString("filename_template", 
     url.isRemote() ? 
-      "$(VisusCache)/$(HostName)/$(HostPort)$(FullPathWithoutExt)/$(time)/$(field)/$(block:%016x:%04x).bin" :
-                                           "$(FullPathWithoutExt)/$(time)/$(field)/$(block:%016x:%04x).bin");
+      "$(VisusCache)/$(HostName)/$(HostPort)$(FullPathWithoutExt)/$(time)/$(field)/$(block:%016x:%04x)" + blob_extension :
+                                           "$(FullPathWithoutExt)/$(time)/$(field)/$(block:%016x:%04x)" + blob_extension);
  
   this->filename_template = StringUtils::replaceAll(this->filename_template, "$(HostName)", url.getHostname());
   this->filename_template = StringUtils::replaceAll(this->filename_template, "$(HostPort)", cstring(url.getPort()));

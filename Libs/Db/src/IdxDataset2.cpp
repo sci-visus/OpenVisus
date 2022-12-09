@@ -94,7 +94,7 @@ void IdxDataset2::GetDecodeParams(idx2::params& P, SharedPtr<BoxQuery> query, in
   P.DownsamplingFactor3 = idx2::v3i(0, 0, 0); //get information at full resolution
   P.InputFile = this->input_file.c_str();
   P.InDir = this->in_dir.c_str();
-  P.DecodeAccuracy = query->accuracy;//TODO
+  P.DecodeTolerance = query->accuracy;//TODO
   for (int I = MaxH; I > H; I--)
   {
     auto bit = bitmask[I];
@@ -135,7 +135,7 @@ bool IdxDataset2::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int H)
     PrintInfo("logic_box", query->logic_box);
     PrintInfo("H", H, "MaxH", MaxH, "DownsamplingFactor3 ", Cast(P.DownsamplingFactor3));
     PrintInfo("from", Cast(from), "Dims", Cast(dims), "stride", Cast(strd));
-    PrintInfo("Accuracy", P.DecodeAccuracy);
+    PrintInfo("Accuracy", P.DecodeTolerance);
   }
 
   auto logic_samples = LogicSamples(BoxNi(Cast(from), Cast(from + dims * strd)), Cast(strd));

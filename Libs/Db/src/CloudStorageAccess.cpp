@@ -75,7 +75,8 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
     //guess fromm *.idx filename
     auto path = Path(this->url.getPath());
     auto path_no_ext = path.withoutExtension();
-    this->filename_template = path_no_ext + "/$(time)/$(field)/$(block:%016x:%04x).bin";
+    String blob_extension = this->url.getParam("blob_extension", ".bin");
+    this->filename_template = path_no_ext + "/$(time)/$(field)/$(block:%016x:%04x)" + blob_extension; //example for Pania blob_extension=".bin.zz"
   }
 
   VisusReleaseAssert(!this->filename_template.empty());

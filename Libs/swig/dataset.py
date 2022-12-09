@@ -168,6 +168,10 @@ class PyDataset(object):
 		p1,p2=self.getLogicBox()
 		return numpy.subtract(p2,p1)
 
+	# getTimesteps
+	def getTimesteps(self):
+		return [int(it) for it in self.getTimesteps().asVector()]
+
 	# getFields
 	def getFields(self):
 		return [field.name for field in self.db.getFields()]
