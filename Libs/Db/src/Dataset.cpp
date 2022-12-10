@@ -277,6 +277,8 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
     }
   }
 
+  // NOTE(12/10/2022): even when the path is not remote, a user may need cache_dir, e.g., if the file
+  //    is on nfs mount and user wants to cache files on a local disk.
   String cache_dir = ar.readString("cache_dir");
   if (!cache_dir.empty()) {
         if (FileUtils::existsFile(cache_dir)) {

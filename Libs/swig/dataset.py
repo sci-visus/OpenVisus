@@ -644,7 +644,8 @@ def load_dataset(url, cache_dir=None):
 	dataset = load_dataset("http://domain.com/test.idx")
 	dataset = load_dataset("http://domain.com/test.idx", cache_dir='.')
 	"""
-	# TODO(12/5/2022): cache dir exception is the same and we can't detect it
+	# TODO(12/5/2022): cache_dir exception is the same as url not existing,
+	#	and we can't detect it (without parsing the exception string)
 	try:
 		dataset = LoadDataset(url, cache_dir=cache_dir)
 	except SystemError as e:
