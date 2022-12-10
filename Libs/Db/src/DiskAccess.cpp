@@ -62,29 +62,32 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   //NOTE 16x is enough for 16*4 bits==64 bit for block number
   //     splitting by 4 means 2^16= 64K files inside a directory with max 64/16=4 levels of directories
 
-  String blob_extension = url.getParam("blob_extension", ".bin");
-
   this->filename_template = config.readString("filename_template");
   if (this->filename_template.empty())
   {
+    //try to guess here
     if (url.isRemote())
     {
+      //probably I am doing some caching of a remote dataset
+      this->filename_template = "$(VisusCache)/$(HostName)/$(HostPort)";
       if (bool is_modvisus = StringUtils::contains(url.toString(), "mod_visus"))
-        this->filename_template = "$(VisusCache)/$(HostName)/$(HostPort)/mod_visus/" + url.getParam("dataset") + "/$(time)/$(field)/$(block:%016x:%04x)" + blob_extension;
+        this->filename_template += "/mod_visus/" + url.getParam("dataset") + "/visus";
       else
-        this->filename_template = "$(VisusCache)/$(HostName)/$(HostPort)/$(FullPathWithoutExt)/$(time)/$(field)/$(block:%016x:%04x)" + blob_extension;
+        this->filename_template += "$(FullPathWithoutExt)";
     }
     else
     {
-      this->filename_template = "$(FullPathWithoutExt)/$(time)/$(field)/$(block:%016x:%04x)" + blob_extension; //local dataset stored using DIskAccess
+      //just local dataset stored using DiskAccess
+      this->filename_template = "$(FullPathWithoutExt)"; 
     }
-  }
 
+    this->filename_template += "/$(time)/$(field)/$(block:%016x:%04x)" + url.getParam("blob_extension", ".bin");
+  }
  
   this->filename_template = StringUtils::replaceAll(this->filename_template, "$(HostName)", url.getHostname());
   this->filename_template = StringUtils::replaceAll(this->filename_template, "$(HostPort)", cstring(url.getPort()));
   this->filename_template = StringUtils::replaceAll(this->filename_template, "$(FullPathWithoutExt)", path.withoutExtension());
-  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(VisusCache)", GetVisusCache());
+  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(VisusCache)", config.readString("cache_dir", GetVisusCache()));
 
   //0 == no verbose
   //1 == read verbose, write verbose

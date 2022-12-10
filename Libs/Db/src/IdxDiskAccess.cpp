@@ -926,22 +926,22 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
 {
   Url url = dataset->getUrl();
 
-  //is an idx for caching
   if (url.isRemote() && !config.hasAttribute("url"))
   {
-    String local;
+    //probably an idx for local caching
+    String local_idx="$(VisusCache)/$(HostName)/$(HostPort)";
 
     if (bool is_modvisus = StringUtils::contains(url.toString(), "mod_visus"))
-     local  = "$(VisusCache)/$(HostName)/$(HostPort)/mod_visus/" + url.getParam("dataset") + "/visus.idx"; //for idx the path is /mod_visus?dataset=2kbit1 (becomes dmov_visus/2kbit1/visus.idx"
+      local_idx += "/mod_visus/" + url.getParam("dataset") + "/visus.idx"; //for idx the path is /mod_visus?dataset=2kbit1 (becomes dmov_visus/2kbit1/visus.idx"
     else
-      local = "$(VisusCache)/$(HostName)/$(HostPort)" + url.getPath(); //cloud storage, path should be unique and visus.idx is the end of the  the path for cloud storage
+      local_idx += url.getPath(); //cloud storage, path should be unique and visus.idx is the end of the  the path for cloud storage (!)
 
-    local = StringUtils::replaceAll(local, "$(HostName)", url.getHostname());
-    local = StringUtils::replaceAll(local, "$(HostPort)", cstring(url.getPort()));
-    local = StringUtils::replaceAll(local, "$(FullPathWithoutExt)", Path(url.getPath()).withoutExtension());
-    local = StringUtils::replaceAll(local, "$(VisusCache)", GetVisusCache());
+    local_idx = StringUtils::replaceAll(local_idx, "$(HostName)", url.getHostname());
+    local_idx = StringUtils::replaceAll(local_idx, "$(HostPort)", cstring(url.getPort()));
+    local_idx = StringUtils::replaceAll(local_idx, "$(FullPathWithoutExt)", Path(url.getPath()).withoutExtension());
+    local_idx = StringUtils::replaceAll(local_idx, "$(VisusCache)", config.readString("cache_dir", GetVisusCache()));
 
-    config.write("url", local);
+    config.write("url", local_idx);
   }
 
   //create the file if not exist
