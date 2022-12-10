@@ -188,49 +188,53 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
 {
   String url = ar.readString("url");
 
-
-  //special case for cached dataset
+  //special case for cached dataset (use cached=1|idx for IdxDiskCaching, cached=2|disk for DiskCaching)
   //Example:
   //   http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1&cached=1
   //   https://mghp.osn.xsede.org/vpascuccibucket1/visus-server-foam/visus.idx?compression=zip&layout=hzorder&cached=1
+  // NOTE: (*) if you have a visus.config with a specific config version I will skip this "cached" specific code, so better not to mix them
+  //       (*) cached here makes sense only the the url is remote
+  // NOTE(12/10/2022): even when the path is not remote, a user may need cache_dir, e.g., if the file
+  //    is on nfs mount and user wants to cache files on a local disk.
   Url parsed(url);
-  if (!url.empty() && !ar.getChild("config") && parsed.isRemote() && cbool(parsed.getParam("cached")))
+  if (!url.empty() && !ar.getChild("config") && parsed.isRemote() && (parsed.hasParam("cached") || ar.hasAttribute("cached_dir")))
   {
-    //remove the cached from the url 
+    //cached is extracted from the url
+    String cached = StringUtils::toLower(parsed.getParam("cached", "idx")); //TODO: not sure if it's better to use "idx" or "disk" here
+   
+    // cache_dir is extracted from the String Tree (see LoadDataset(url, cached_dir='...')
+    // if cache_dir is empty, then IdxDiskAccess or DiskAccess will decide where cache data will be (i.e. inside ~/visus folder)
+    auto cache_dir = ar.readString("cache_dir", Utils::getEnv("VISUS_CACHE"));
+
+    if (!cache_dir.empty() && FileUtils::existsFile(cache_dir))
+      ThrowException("LoadDataset", url, "failed. The path in cache_dir argument", cache_dir, "is a file.");
+
+    //normalize the url 
     parsed.params.eraseValue("cached");
+    parsed.params.eraseValue("cache_dir");
     url = parsed.toString();
 
-    StringTree access_config;
-    
-    //if it's a remote mod_visus
-    if (StringUtils::contains(url, "mod_visus"))
-    {
-      String local_idx = "$(VisusCache)/" + parsed.getHostname() + "/" + cstring(parsed.getPort()) + "/" + parsed.getParam("dataset") + "/visus.idx";
-      access_config = StringTree::fromString(
-        "  <access type='multiplex'>\n"
-        "     <access type='IdxDiskAccess'  chmod='rw' url='" + local_idx + "' />\n"
-        "     <access type='ModVisusAccess' chmod='r'  compression='zip' />\n"
-        "  </access>\n");
-    }
-    //else is a CloudStorage
-    else
-    {
-      String local_idx = "$(VisusCache)/" + parsed.getHostname() + parsed.getPath(); //visus.idx is already inside the path
+    //1 || idx means to use IdxDiskAccess; 2| disk means to use Disk Access
+    String local_access  = (cached == "1" || StringUtils::contains(cached, "idx")) ? "IdxDiskAccess" : "DiskAccess";
 
-      //add a default access
-      access_config=StringTree::fromString(
-        "  <access type='multiplex'>\n"
-        "     <access type='IdxDiskAccess'      chmod='rw' url='" + local_idx + "' />\n"
-        "     <access type='CloudStorageAccess' chmod='r'  compression='zip' />\n"
-        "  </access>\n");
-    }
+    //if the url contains the string mod_visus I think the origin is an OpenVisus server, otherwise is an S3 cloud dataset
+    //PROBLEM HERE: what is the S3 path contains the string mod_visus? I am not handling this case so please don't use this substring in S3
+    String remote_access = StringUtils::contains(url, "mod_visus") ? "ModVisusAccess" : "CloudStorageAccess";
+
+    StringTree access_config = StringTree::fromString(concatenate(
+      "  <access type='multiplex'>\n",
+      "     <access type='", local_access, "'  chmod='rw' cache_dir='", cache_dir, "' />\n",
+      "     <access type='", remote_access, "' chmod='r'  compression='zip' />\n",
+      "  </access>\n"));
 
     PrintInfo("Automatically enabling caching for", url, "\n", access_config.toString());
+
     ar.setAttribute("url", url);
     ar.addChild(access_config);
   }
 
-  //could the 'ar' self contained (as for GoogleMapsDatasets)
+  //here I am loading the body of the dataset and try to guess its type
+  //NOTE: could the 'ar' self contained (as for GoogleMapsDatasets)
   if (!url.empty())
   {
     if (!Url(url).valid())
@@ -275,23 +279,6 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
       //note: ar has precedence
       StringTree::merge(ar, doc);
     }
-  }
-
-  // NOTE(12/10/2022): even when the path is not remote, a user may need cache_dir, e.g., if the file
-  //    is on nfs mount and user wants to cache files on a local disk.
-  String cache_dir = ar.readString("cache_dir");
-  if (!cache_dir.empty()) {
-        if (FileUtils::existsFile(cache_dir)) {
-                ThrowException("LoadDataset", url, "failed. The path in cache_dir argument", cache_dir, "is a file.");
-                return SharedPtr<Dataset>();
-        }
-        String local_idx = cache_dir + "/" + parsed.getHostname() + parsed.getPath();
-        StringTree access_config = StringTree::fromString(
-                "  <access type='multiplex'>\n"
-                "     <access type='IdxDiskAccess' chmod='rw' url='" + local_idx + "' />\n"
-                "     <access type='CloudStorageAccess' chmod='r' compression='zip' />\n"
-                "  </access>\n");
-        ar.addChild(access_config);
   }
 
   auto TypeName = ar.getAttribute("typename");

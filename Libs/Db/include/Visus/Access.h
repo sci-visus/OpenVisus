@@ -86,8 +86,8 @@ public:
   // statistics
   Statistics statistics;
 
-  //bVerbose
-  bool bVerbose = false;
+  //verbose (1==r and w; 2==only w)
+  int verbose = 0;
 
   //bDisableWriteLocks (to speed up writing with only one writer)
   bool bDisableWriteLocks = false;

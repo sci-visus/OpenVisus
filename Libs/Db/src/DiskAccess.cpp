@@ -57,22 +57,44 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   Url url = config.hasAttribute("url") ? config.readString("url") : dataset->getUrl();
   Path path = Path(url.getPath());
   
+  
   //example: "s3://bucket-name/whatever/$(time)/$(field)/$(block:%016x:%04x).$(compression)";
   //NOTE 16x is enough for 16*4 bits==64 bit for block number
   //     splitting by 4 means 2^16= 64K files inside a directory with max 64/16=4 levels of directories
 
-  String blob_extension = url.getParam("blob_extension", ".bin");
-  this->filename_template = config.readString("filename_template", 
-    url.isRemote() ? 
-      "$(VisusCache)/$(HostName)/$(HostPort)$(FullPathWithoutExt)/$(time)/$(field)/$(block:%016x:%04x)" + blob_extension :
-                                           "$(FullPathWithoutExt)/$(time)/$(field)/$(block:%016x:%04x)" + blob_extension);
+  this->filename_template = config.readString("filename_template");
+  if (this->filename_template.empty())
+  {
+    //try to guess here
+    if (url.isRemote())
+    {
+      //probably I am doing some caching of a remote dataset
+      this->filename_template = "$(VisusCache)/$(HostName)/$(HostPort)";
+      if (bool is_modvisus = StringUtils::contains(url.toString(), "mod_visus"))
+        this->filename_template += "/mod_visus/" + url.getParam("dataset") + "/visus";
+      else
+        this->filename_template += "$(FullPathWithoutExt)";
+    }
+    else
+    {
+      //just local dataset stored using DiskAccess
+      this->filename_template = "$(FullPathWithoutExt)"; 
+    }
+
+    this->filename_template += "/$(time)/$(field)/$(block:%016x:%04x)" + url.getParam("blob_extension", ".bin");
+  }
  
   this->filename_template = StringUtils::replaceAll(this->filename_template, "$(HostName)", url.getHostname());
   this->filename_template = StringUtils::replaceAll(this->filename_template, "$(HostPort)", cstring(url.getPort()));
   this->filename_template = StringUtils::replaceAll(this->filename_template, "$(FullPathWithoutExt)", path.withoutExtension());
-  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(VisusCache)", GetVisusCache());
+  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(VisusCache)", config.readString("cache_dir", GetVisusCache()));
 
-  PrintInfo("Created DiskAccess","url",url,"filename_template",filename_template,"compression", compression);
+  //0 == no verbose
+  //1 == read verbose, write verbose
+  //2 ==               write verbose
+  this->verbose |= cint(Utils::getEnv("VISUS_VERBOSE_DISKACCESS"));
+
+  PrintInfo("Created DiskAccess","url",url,"filename_template",filename_template,"compression", compression,"bDisableWriteLocks", bDisableWriteLocks);
 }
 
 
@@ -88,53 +110,84 @@ String DiskAccess::getFilename(Field field,double time,BigInt blockid) const
 void DiskAccess::acquireWriteLock(SharedPtr<BlockQuery> query)
 {
   VisusAssert(isWriting());
-  if (bDisableWriteLocks) return;
-  FileUtils::lock(Access::getFilename(query));
+  if (bDisableWriteLocks) 
+    return;
+
+  bool bVerbose = this->verbose ? true : false;
+
+  String filename = Access::getFilename(query);
+  
+  if (bVerbose)
+    PrintInfo("Aquiring write lock", filename);
+
+  FileUtils::lock(filename);
 }
 
 ////////////////////////////////////////////////////////////////////
 void DiskAccess::releaseWriteLock(SharedPtr<BlockQuery> query)
 {
   VisusAssert(isWriting());
-  if (bDisableWriteLocks) return;
-  FileUtils::unlock(Access::getFilename(query));
+  if (bDisableWriteLocks) 
+    return;
+
+  bool bVerbose = this->verbose ? true : false;
+
+  String filename = Access::getFilename(query);
+
+  if (bVerbose)
+    PrintInfo("Release write lock", filename);
+
+  FileUtils::unlock(filename);
 }
 
 ////////////////////////////////////////////////////////////////////
 void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
 {
   Int64  blockdim  = query->field.dtype.getByteSize(getSamplesPerBlock());
-  String filename  = Access::getFilename(query); 
+  String filename  = Access::getFilename(query);
+  bool bVerbose = (this->verbose & 1) ? true : false;
+
+  auto FAILED = [&](String reason) {
+    if (bVerbose)
+      PrintInfo("DiskAccess::read blockid", query->blockid, "filename", filename, "failed ", reason);
+    return readFailed(query, "filename empty");
+  };
+
+  auto OK = [&]() {
+    if (bVerbose)
+      PrintInfo("DiskAccess::read blockid", query->blockid, "filename", filename, "OK");
+    return readOk(query);
+  };
 
   if (filename.empty())
-    return readFailed(query,"filename empty");
+    return FAILED("filename empty");
 
   if (query->aborted())
-    return readFailed(query,"query aborted");
+    return FAILED("query aborted");
 
   auto encoded=std::make_shared<HeapMemory>();
   if (!encoded->resize(FileUtils::getFileSize(filename),__FILE__,__LINE__))
-    return readFailed(query,"cannot create encoded buffer");
+    return FAILED("cannot create encoded buffer");
 
   File file;
   if (!file.open(filename,"r"))
-    return readFailed(query,cstring("cannot open file", filename));
+    return FAILED(cstring("cannot open file", filename));
 
   if (!file.read(0,encoded->c_size(), encoded->c_ptr()))
-    return readFailed(query,"cannot read encoded data");
+    return FAILED("cannot read encoded data");
 
   auto compression = guessCompression(query->field);
 
   auto nsamples = query->getNumberOfSamples();
   auto decoded=ArrayUtils::decodeArray(compression,nsamples,query->field.dtype, encoded);
   if (!decoded.valid())
-    return readFailed(query,"cannot decode data");
+    return FAILED("cannot decode data");
 
   VisusAssert(decoded.dims==query->getNumberOfSamples());
   decoded.layout=""; 
   query->buffer=decoded;
 
-  return readOk(query);
+  return OK();
 }
 
 
@@ -142,26 +195,36 @@ void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
 void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
 {
   String filename = Access::getFilename(query);
+  bool bVerbose = this->verbose ? true : false;
+
+  auto FAILED = [&](String reason) {
+    if (bVerbose)
+      PrintInfo("DiskAccess::writeBlock", query->blockid, "filename", filename, "failed ", reason);
+    return writeFailed(query, "filename empty");
+  };
+
+  auto OK = [&]() {
+    if (bVerbose)
+      PrintInfo("DiskAccess::writeBlock", query->blockid, "filename", filename, "OK");
+    return writeOk(query);
+  };
 
   if (filename.empty())
-    return writeFailed(query,"filename is empty");
+    return FAILED("filename is empty");
 
   if (query->aborted())
-    return writeFailed(query, "query aborted");
+    return FAILED("query aborted");
 
   //relaxing a little for VISUS_IDX2 (until I have the layout)
 #if 0
     Int64  blockdim = query->field.dtype.getByteSize(getSamplesPerBlock());
     if (query->buffer.c_size() != blockdim)
-      return writeFailed(query, "wrong buffer");
+      return FAILED("wrong buffer");
 
     //only RowMajor is supported!
     auto layout = query->buffer.layout;
     if (!(layout.empty() || layout == "rowmajor"))
-    {
-      PrintInfo("Failed to write block, only RowMajor format is supported");
-      return writeFailed(query, "only raw major format is supported");
-    }
+      return FAILED("only raw major format is supported");
 #endif
 
   FileUtils::removeFile(filename);
@@ -170,7 +233,7 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   if (!file.createAndOpen(filename,"w"))
   {
     PrintInfo("Failed to write block filename", filename, "cannot create file and/or directory");
-    return writeFailed(query,"cannot create file or directory");
+    return FAILED("cannot create file or directory");
   }
 
   auto compression = guessCompression(query->field);
@@ -180,16 +243,16 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   if (!encoded)
   {
     PrintInfo("Failed to write block filename", filename, "encodeArray failed");
-    return writeFailed(query, "Failed to encode data");
+    return FAILED("Failed to encode data");
   }
 
   if (!file.write(0, encoded->c_size(), encoded->c_ptr()))
   {
     PrintInfo("Failed to write block filename", filename, "file.write failed");
-    return writeFailed(query,"failed to write encoded data");
+    return FAILED("failed to write encoded data");
   }
 
-  return writeOk(query);
+  return OK();
 }
 
 } //namespace Visus
