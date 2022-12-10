@@ -635,7 +635,7 @@ class PyDataset(object):
 		CopyDatasetToCloud(self,local=local,remote=remote,done=done,arco=arco,compression=compression,clean_local=clean_local,timestep=timestep,field=field)
 
 
-def load_dataset(url, cache_dir=None):
+def load_dataset(url, cache_dir=""):
 	"""
 	Loads dataset locally or over http.
 
