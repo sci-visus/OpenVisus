@@ -94,7 +94,7 @@ void IdxDataset2::GetDecodeParams(idx2::params& P, SharedPtr<BoxQuery> query, in
   P.DownsamplingFactor3 = idx2::v3i(0, 0, 0); //get information at full resolution
   P.InputFile = this->input_file.c_str();
   P.InDir = this->in_dir.c_str();
-  P.DecodeTolerance = 0.01;//TODO
+  P.DecodeTolerance = 0.01;//TODO (query->accuracy;)
   for (int I = MaxH; I > H; I--)
   {
     auto bit = bitmask[I];
