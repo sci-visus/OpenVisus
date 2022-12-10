@@ -194,36 +194,24 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
   //   http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1&cached=1
   //   https://mghp.osn.xsede.org/vpascuccibucket1/visus-server-foam/visus.idx?compression=zip&layout=hzorder&cached=1
   Url parsed(url);
-  if (!url.empty() && !ar.getChild("config") && parsed.isRemote() && cbool(parsed.getParam("cached")))
+  if (!url.empty() && !ar.getChild("config") && parsed.isRemote() && parsed.hasParam("cached"))
   {
+    String cached = StringUtils::toLower(parsed.getParam("cached"));
     //remove the cached from the url 
     parsed.params.eraseValue("cached");
     url = parsed.toString();
 
-    StringTree access_config;
-    
-    //if it's a remote mod_visus
-    if (StringUtils::contains(url, "mod_visus"))
-    {
-      String local_idx = "$(VisusCache)/" + parsed.getHostname() + "/" + cstring(parsed.getPort()) + "/" + parsed.getParam("dataset") + "/visus.idx";
-      access_config = StringTree::fromString(
-        "  <access type='multiplex'>\n"
-        "     <access type='IdxDiskAccess'  chmod='rw' url='" + local_idx + "' />\n"
-        "     <access type='ModVisusAccess' chmod='r'  compression='zip' />\n"
-        "  </access>\n");
-    }
-    //else is a CloudStorage
-    else
-    {
-      String local_idx = "$(VisusCache)/" + parsed.getHostname() + parsed.getPath(); //visus.idx is already inside the path
+    String local_access  = (cached == "1" || StringUtils::contains(cached, "idx")) ? "IdxDiskAccess" : "DiskAccess";
+    String remote_access = StringUtils::contains(url, "mod_visus") ? "ModVisusAccess" : "CloudStorageAccess";
 
-      //add a default access
-      access_config=StringTree::fromString(
-        "  <access type='multiplex'>\n"
-        "     <access type='IdxDiskAccess'      chmod='rw' url='" + local_idx + "' />\n"
-        "     <access type='CloudStorageAccess' chmod='r'  compression='zip' />\n"
-        "  </access>\n");
-    }
+    //TODO: for the future (ref. pavol)
+    auto cache_dir = Utils::getEnv("VISUS_CACHE", parsed.getParam("cache-dir",parsed.getParam("cache_dir","")));
+
+    StringTree access_config = StringTree::fromString(concatenate(
+      "  <access type='multiplex'>\n",
+      "     <access type='", local_access, "'  chmod='rw' cache_dir='", cache_dir, "' />\n",
+      "     <access type='", remote_access, "' chmod='r'  compression='zip' />\n",
+      "  </access>\n"));
 
     PrintInfo("Automatically enabling caching for", url, "\n", access_config.toString());
     ar.setAttribute("url", url);

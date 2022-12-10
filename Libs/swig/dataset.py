@@ -170,7 +170,7 @@ class PyDataset(object):
 
 	# getTimesteps
 	def getTimesteps(self):
-		return [int(it) for it in self.getTimesteps().asVector()]
+		return [int(it) for it in self.db.getTimesteps().asVector()]
 
 	# getFields
 	def getFields(self):

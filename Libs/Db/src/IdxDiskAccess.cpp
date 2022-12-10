@@ -192,19 +192,15 @@ public:
   VISUS_NON_COPYABLE_CLASS(IdxDiskAccessV5)
 
   //constructor
-  IdxDiskAccessV5(IdxDiskAccess* owner_, const IdxFile& idxfile_, String time_template_,String filename_template_, bool bVerbose)
+  IdxDiskAccessV5(IdxDiskAccess* owner_, const IdxFile& idxfile_, String time_template_,String filename_template_, int verbose)
     : owner(owner_), idxfile(idxfile_), time_template(time_template_), filename_template(filename_template_)
   {
-    this->bVerbose = bVerbose;
+    this->verbose = verbose;
     this->bitsperblock = idxfile.bitsperblock;
 
     int file_header_size = (idxfile.version == 1) ? 0 : (4 * sizeof(Int32));
     this->headers.resize(file_header_size + (idxfile.blocksperfile * (int)idxfile.fields.size()) * sizeof(BlockHeader), __FILE__, __LINE__);
     this->block_headers = (BlockHeader*)(this->headers.c_ptr() + file_header_size);
-
-    if (cbool(Utils::getEnv("VISUS_VERBOSE_DISKACCESS")))
-      this->bVerbose = true;
-
   }
 
   //destructor
@@ -231,6 +227,7 @@ public:
   virtual void readBlock(SharedPtr<BlockQuery> query) override
   {
     BigInt blockid = query->blockid;
+    auto bVerbose = (this->verbose & 1);
 
     auto failed = [&](String reason) {
 
@@ -351,6 +348,7 @@ private:
   {
     VisusReleaseAssert(!file_mode.empty());
     VisusReleaseAssert(file_mode == "r");
+    bool bVerbose = (this->verbose & 1) ?true:false;
 
     //useless code, already opened in the desired file_mode
     if (filename == this->file.getFilename() && "r" == this->file.getFileMode())
@@ -360,7 +358,7 @@ private:
       closeFile("need to openFile");
 
     if (bVerbose)
-      PrintInfo("Opening file", filename, "file_mode", "r");
+      PrintInfo("Opening file", filename, "reading mode", file_mode);
 
     if (!this->file.open(filename, "r"))
     {
@@ -391,8 +389,12 @@ private:
     if (!this->file.isOpen())
       return;
 
+    String file_mode = this->file.getFileMode();
+    VisusReleaseAssert(file_mode == "r");
+    bool bVerbose = (verbose & 1) ? true : false;
+
     if (bVerbose)
-      PrintInfo("Closing file",this->file.getFilename(),"file_mode", "r" ,"reason",reason);
+      PrintInfo("Closing file",this->file.getFilename(),"reading_mode", file_mode ,"reason",reason);
 
     this->file.close();
   }
@@ -407,19 +409,16 @@ public:
   VISUS_NON_COPYABLE_CLASS(IdxDiskAccessV6)
 
   //constructor
-    IdxDiskAccessV6(IdxDiskAccess* owner_, const IdxFile& idxfile_, String time_template_, String filename_template_, bool bVerbose)
+    IdxDiskAccessV6(IdxDiskAccess* owner_, const IdxFile& idxfile_, String time_template_, String filename_template_, int verbose)
     : owner(owner_), idxfile(idxfile_), time_template(time_template_), filename_template(filename_template_)
   {
-    this->bVerbose = bVerbose;
+    this->verbose = verbose;
     this->bitsperblock = idxfile.bitsperblock;
     this->headers.resize(sizeof(FileHeader) + (idxfile.blocksperfile * (int)idxfile.fields.size()) * sizeof(BlockHeader), __FILE__, __LINE__);
     this->file_header   = (FileHeader* )(this->headers.c_ptr());
     this->block_headers = (BlockHeader*)(this->headers.c_ptr() + sizeof(FileHeader));
 
     this->file = std::make_shared<File>();
-
-    if (cbool(Utils::getEnv("VISUS_VERBOSE_DISKACCESS")))
-      this->bVerbose = true;
   }
 
   //destructor
@@ -444,27 +443,32 @@ public:
   virtual void readBlock(SharedPtr<BlockQuery> query) override
   {
     BigInt blockid = query->blockid;
+    String filename = getFilename(query->field, query->time, blockid);
+    auto& aborted = query->aborted;
+    bool bVerbose = (this->verbose & 1) ? true : false;
 
-    auto failed = [&](String reason) {
-
-      if (bVerbose)
-        PrintInfo("IdxDiskAccess::read blockid",blockid,"failed ",reason);
-
+    auto FAILED = [&](String reason) {
+      if (bVerbose && !aborted())
+        PrintInfo("IdxDiskAccess::read blockid",blockid, filename, "failed ",reason);
       return owner->readFailed(query,reason);
     };
 
-    auto& aborted = query->aborted;
+    auto OK = [&]() {
+      if (bVerbose)
+        PrintInfo("IdxDiskAccess::read blockid", blockid, filename, "OK");
+      return owner->readOk(query);
+    };
 
     if (aborted())
-      return failed("aborted");
+      return FAILED("aborted");
 
     //try to open the existing file
-    String filename = getFilename(query->field, query->time, blockid);
+    
     if (!openFile(filename, isWriting() ? "rw" : "r"))
-      return failed(cstring("cannot open file", filename));
+      return FAILED(cstring("cannot open file", filename));
 
     if (aborted())
-      return failed("aborted");
+      return FAILED("aborted");
 
     const BlockHeader& block_header = getBlockHeader(query->field, blockid);
     Int64 block_offset = block_header.getOffset();
@@ -476,26 +480,26 @@ public:
       PrintInfo("Block header contains the following: block_offset",block_offset,"block_size",block_size,"compression",compression,"layout",layout);
 
     if (!block_offset || !block_size)
-      return failed(cstring("the idx data seeems not stored in the file","block_offset", block_offset,"block_size", block_size));
+      return FAILED(cstring("the idx data seeems not stored in the file","block_offset", block_offset,"block_size", block_size));
 
     auto encoded = std::make_shared<HeapMemory>();
     if (!encoded->resize(block_size, __FILE__, __LINE__))
-      return failed(cstring("cannot resize block block_size",block_size));
+      return FAILED(cstring("cannot resize block block_size",block_size));
 
     if (bVerbose)
       PrintInfo("Reading buffer: read block_offset",block_offset,"encoded->c_size",encoded->c_size());
 
     if (aborted())
-      return failed("aborted");
+      return FAILED("aborted");
 
     if (!file->read(block_offset, encoded->c_size(), encoded->c_ptr()))
-      return failed("cannot read encoded buffer");
+      return FAILED("cannot read encoded buffer");
 
     if (bVerbose)
       PrintInfo("Decoding buffer");
 
     if (aborted())
-      return failed("aborted");
+      return FAILED("aborted");
 
 #if 1
     //problem with zfp. In the block header I just write it's zfp, but I don't know the number of bitplanes
@@ -508,7 +512,7 @@ public:
     //TODO: noninterruptile
     auto decoded = ArrayUtils::decodeArray(compression, query->getNumberOfSamples(), query->field.dtype, encoded);
     if (!decoded.valid())
-      return failed("cannot decode the data");
+      return FAILED("cannot decode the data");
 
     decoded.layout = layout;
 
@@ -518,29 +522,35 @@ public:
     if (bVerbose)
       PrintInfo("Read block",blockid,"from file",file->getFilename(),"ok");
 
-    owner->readOk(query);
+    return OK();
   }
 
   //writeBlock
   virtual void writeBlock(SharedPtr<BlockQuery> query) override
   {
     BigInt blockid = query->blockid;
+    String filename = getFilename(query->field, query->time, blockid);
+    bool bVerbose = (this->verbose) ? true : false;
 
     //NOTE: ignoring aborted in writing!
     auto& aborted = query->aborted; 
 
-    auto failed = [&](String reason) {
-
+    auto FAILED = [&](String reason) {
       //if (bVerbose)
-        PrintInfo("IdxDiskAccess::write blockid",blockid,"failed",reason);
-
+      PrintInfo("IdxDiskAccess::write blockid",blockid, filename, "failed",reason);
       return owner->writeFailed(query,reason);
+    };
+
+    auto OK = [&]() {
+      if (bVerbose)
+        PrintInfo("IdxDiskAccess::write blockid", blockid, filename, "OK");
+      return owner->writeOk(query);
     };
 
     if (idxfile.version < 6)
     {
       VisusAssert(false);
-      return failed("Writing not supported");
+      return FAILED("Writing not supported");
     }
 
     Int64 blockdim = query->field.dtype.getByteSize(((Int64)1) << idxfile.bitsperblock);
@@ -550,7 +560,7 @@ public:
     if (!query->field.valid() || blockid<0 || query->buffer.c_size() != blockdim)
     {
       VisusAssert(false);
-      return failed("Failed to write block, input arguments are wrong");
+      return FAILED("Failed to write block, input arguments are wrong");
     }
 
     //encode the data
@@ -560,7 +570,7 @@ public:
     if (!encoded)
     {
       VisusAssert(false);
-      return failed("Failed to encode the data");
+      return FAILED("Failed to encode the data");
     }
 
     BlockHeader block_header;
@@ -568,9 +578,9 @@ public:
     block_header.setSize((Int32)encoded->c_size());
     block_header.setCompression(compression);
 
-    String filename = getFilename(query->field, query->time, blockid);
+    
     if (!openFile(filename, "rw"))
-      return failed(cstring("cannot open file", filename));
+      return FAILED(cstring("cannot open file", filename));
 
     BlockHeader existing = getBlockHeader(query->field,blockid);
 
@@ -586,7 +596,7 @@ public:
       if (filesize <=0)
       {
         VisusAssert(false);
-        return failed("Failed to write block, gotoEnd() failed");
+        return FAILED("Failed to write block, gotoEnd() failed");
       }
 
       block_header.setOffset(filesize);
@@ -597,15 +607,12 @@ public:
     if (!file->write(block_header.getOffset(), block_header.getSize(), encoded->c_ptr()))
     {
       VisusAssert(false);
-      return failed("Failed to write block write failed");
+      return FAILED("Failed to write block write failed");
     }
 
     getBlockHeader(query->field, blockid) = block_header;
 
-    if (bVerbose)
-      PrintInfo("IdxDiskAccess::write blockid",blockid,"ok");
-
-    return owner->writeOk(query);
+    return OK();
   }
 
   //acquireWriteLock
@@ -615,7 +622,12 @@ public:
     if (bDisableWriteLocks) return;
 
     auto filename = getFilename(query->field, query->time, query->blockid);
+    bool bVerbose = (this->verbose) ? true : false;
 
+    if (bVerbose)
+      PrintInfo("Aquiring write lock", filename);
+
+    //if >1 it is a rehentrant call and I have already it
     if (++file_locks[filename] == 1)
     {
       FileUtils::lock(filename);
@@ -632,6 +644,10 @@ public:
     if (bDisableWriteLocks) return;
 
     auto filename = getFilename(query->field, query->time, query->blockid);
+    bool bVerbose = (this->verbose) ? true : false;
+
+    if (bVerbose)
+      PrintInfo("release write lock", filename);
 
     if (--file_locks[filename] == 0)
     {
@@ -788,6 +804,7 @@ private:
   {
     VisusReleaseAssert(!file_mode.empty());
     VisusReleaseAssert(file_mode=="rw" || file_mode=="r");
+    auto bVerbose = (file_mode == "rw" && this->verbose) || (file_mode == "r" && (this->verbose & 1));
 
     //useless code, already opened in the desired mode
     if (filename == this->file->getFilename() && file_mode == this->file->getFileMode())
@@ -796,8 +813,17 @@ private:
     if (this->file->isOpen())
       closeFile("need to openFile");
 
-    if (bVerbose)
-      PrintInfo("Opening file",filename,"mode", file_mode);
+    if (file_mode == "r")
+    {
+      if (bVerbose)
+        PrintInfo("Opening file", filename, "reading mode", file_mode);
+    }
+    else
+    {
+      if (bVerbose)
+        PrintInfo("Opening file", filename, "writing mode", file_mode);
+    }
+      
 
     //already exist
     if (this->file->open(filename, file_mode))
@@ -857,8 +883,19 @@ private:
     if (!this->file->isOpen())
       return;
 
-    if (bVerbose)
-      PrintInfo("Closing file",this->file->getFilename(),"file_mode",this->file->getFileMode(),"reason",reason);
+    auto file_mode = this->file->getFileMode();
+    auto bVerbose = (file_mode == "rw" && this->verbose) || (file_mode == "r" && (this->verbose & 1));
+
+    if (file_mode == "r")
+    {
+      if (bVerbose)
+        PrintInfo("Closing file", this->file->getFilename(), "reading mode", file_mode, "reason", reason);
+    }
+    else
+    {
+      if (bVerbose)
+        PrintInfo("Closing file", this->file->getFilename(), "writing mode", file_mode, "reason", reason);
+    }
 
     //need to write the headers
     if (this->file->canWrite())
@@ -873,8 +910,8 @@ private:
       if (!this->file->write(0, this->headers.c_size(), this->headers.c_ptr()))
       {
         VisusAssert(false);
-        if (bVerbose)
-          PrintInfo("cannot write headers");
+        //if (bVerbose)
+        PrintInfo("cannot write headers");
       }
     }
 
@@ -884,13 +921,30 @@ private:
 };
 
 
-
 ////////////////////////////////////////////////////////////////////
 IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree config) 
 {
   Url url = dataset->getUrl();
-  
-  //create if the file does not exist
+
+  //is an idx for caching
+  if (url.isRemote() && !config.hasAttribute("url"))
+  {
+    String local;
+
+    if (bool is_modvisus = StringUtils::contains(url.toString(), "mod_visus"))
+     local  = "$(VisusCache)/$(HostName)/$(HostPort)/mod_visus/" + url.getParam("dataset") + "/visus.idx"; //for idx the path is /mod_visus?dataset=2kbit1 (becomes dmov_visus/2kbit1/visus.idx"
+    else
+      local = "$(VisusCache)/$(HostName)/$(HostPort)" + url.getPath(); //cloud storage, path should be unique and visus.idx is the end of the  the path for cloud storage
+
+    local = StringUtils::replaceAll(local, "$(HostName)", url.getHostname());
+    local = StringUtils::replaceAll(local, "$(HostPort)", cstring(url.getPort()));
+    local = StringUtils::replaceAll(local, "$(FullPathWithoutExt)", Path(url.getPath()).withoutExtension());
+    local = StringUtils::replaceAll(local, "$(VisusCache)", GetVisusCache());
+
+    config.write("url", local);
+  }
+
+  //create the file if not exist
   if (config.hasAttribute("url"))
   {
     url = config.readString("url");
@@ -919,7 +973,11 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
   this->can_read  = StringUtils::find(config.readString("chmod", DefaultChMod), "r") >= 0;
   this->can_write = StringUtils::find(config.readString("chmod", DefaultChMod), "w") >= 0;
   this->bitsperblock = idxfile.bitsperblock;
-  this->bVerbose = config.readInt("verbose", 0);
+
+  // 0 == no verbose
+  // 1 == read verbose, write verbose
+  // 2 ==               write verbose
+  this->verbose = config.readInt("verbose") | cint(Utils::getEnv("VISUS_VERBOSE_DISKACCESS"));
 
   //special case, a "./" at the beginning means a reference to the url
   auto resoveAlias = [&](String value) {
@@ -938,9 +996,9 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
   //NOTE: time_template will go inside filename_template so there is no reason to resolve alias
   auto myCreateAccess = [&]()->Access*{
     if (idxfile.version < 6)
-      return new IdxDiskAccessV5(this, idxfile, resoveAlias(idxfile.time_template), resoveAlias(idxfile.filename_template), bVerbose);
+      return new IdxDiskAccessV5(this, idxfile, resoveAlias(idxfile.time_template), resoveAlias(idxfile.filename_template), verbose);
     else
-      return new IdxDiskAccessV6(this, idxfile, resoveAlias(idxfile.time_template), resoveAlias(idxfile.filename_template), bVerbose);
+      return new IdxDiskAccessV6(this, idxfile, resoveAlias(idxfile.time_template), resoveAlias(idxfile.filename_template), verbose);
   };
 
   this-> sync.reset(myCreateAccess());
@@ -978,8 +1036,8 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
   }
 #endif
 
-  if (bVerbose)
-    PrintInfo("IdxDiskAccess created url",url,"async",async_tpool?"yes":"no");
+
+  PrintInfo("Created IdxDiskAccess", "url", url, "compression", compression, "bDisableWriteLocks", bDisableWriteLocks);
 }
 
 
@@ -991,7 +1049,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset, StringTree config)
 ////////////////////////////////////////////////////////////////////
 IdxDiskAccess::~IdxDiskAccess()
 {
-  if (bVerbose)
+  if (verbose)
     PrintInfo("IdxDiskAccess destroyed");
 
   if (async_tpool)
@@ -1071,6 +1129,7 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
   VisusAssert(isReading() || isWriting());
 
   BigInt blockid = query->blockid;
+  bool bVerbose = (this->verbose & 1) ? true : false;
 
   if (bVerbose)
     PrintInfo("got request to read block blockid",blockid);
@@ -1110,6 +1169,7 @@ void IdxDiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   VisusAssert(isWriting());
 
   BigInt blockid = query->blockid;
+  bool bVerbose = (this->verbose!=0) ? true : false;
 
   if (bVerbose)
     PrintInfo("got request to write block blockid",blockid);
@@ -1121,9 +1181,12 @@ void IdxDiskAccess::writeBlock(SharedPtr<BlockQuery> query)
     return writeOk(query);
   }
 
-  acquireWriteLock(query);
-  sync->writeBlock(query);
-  releaseWriteLock(query);
+  //since multiple threads could write in parallel and update the header I need to acquire the lock
+  {
+    acquireWriteLock(query);
+    sync->writeBlock(query);
+    releaseWriteLock(query);
+  }
 }
 
 
