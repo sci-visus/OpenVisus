@@ -644,14 +644,9 @@ def load_dataset(url, cache_dir=None):
 	dataset = load_dataset("http://domain.com/test.idx")
 	dataset = load_dataset("http://domain.com/test.idx", cache_dir='.')
 	"""
-	# TODO(12/5/2022): ideally swig raises the correct exception
+	# TODO(12/5/2022): cache dir exception is the same and we can't detect it
 	try:
-		if cache_dir is not None:
-			if os.path.isfile(cache_dir):
-				raise NotADirectoryError("Expect cache_dir to be a directory and not a file.")
-			os.environ["VISUS_CACHE"] = cache_dir
-			url += "?cached=1" # TODO(12/8/2022): not robust because the url could already have ?bla=10
-		dataset = LoadDataset(url)
+		dataset = LoadDataset(url, cache_dir=cache_dir)
 	except SystemError as e:
 		dataset = None
 	if dataset is None:

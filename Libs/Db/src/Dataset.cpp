@@ -277,6 +277,21 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
     }
   }
 
+  String cache_dir = ar.readString("cache_dir");
+  if (!cache_dir.empty()) {
+        if (FileUtils::existsFile(cache_dir)) {
+                ThrowException("LoadDataset", url, "failed. The path in cache_dir argument", cache_dir, "is a file.");
+                return SharedPtr<Dataset>();
+        }
+        String local_idx = cache_dir + "/" + parsed.getHostname() + parsed.getPath();
+        StringTree access_config = StringTree::fromString(
+                "  <access type='multiplex'>\n"
+                "     <access type='IdxDiskAccess' chmod='rw' url='" + local_idx + "' />\n"
+                "     <access type='CloudStorageAccess' chmod='r' compression='zip' />\n"
+                "  </access>\n");
+        ar.addChild(access_config);
+  }
+
   auto TypeName = ar.getAttribute("typename");
   VisusReleaseAssert(!TypeName.empty());
   auto ret = DatasetFactory::getSingleton()->createInstance(TypeName);
@@ -291,12 +306,12 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
 }
 
 ////////////////////////////////////////////////
-SharedPtr<Dataset> LoadDataset(String url)
+SharedPtr<Dataset> LoadDataset(String url, String cache_dir)
 {
   if (auto it = FindDatasetConfig(*DbModule::getModuleConfig(), url))
     return LoadDatasetEx(it);
   else
-    return LoadDatasetEx(StringTree("dataset", "url", url));
+    return LoadDatasetEx(StringTree("dataset", "url", url, "cache_dir", cache_dir));
 }
 
 ///////////////////////////////////////////////////////////
