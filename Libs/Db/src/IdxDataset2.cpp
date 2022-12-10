@@ -346,8 +346,8 @@ bool IdxDataset2::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> 
     enableExternalRead(Idx2, access, query->aborted);
 
   auto query_buffer = idx2::buffer((const idx2::byte*)query->buffer.c_ptr(), query->buffer.c_size());
-  idx2::Decode(Idx2, P, &query_buffer);  //TODO: no aborted?
-  //idx2::ParallelDecode(Idx2, P, &query_buffer);  //TODO: no aborted?
+  //idx2::Decode(Idx2, P, &query_buffer);  //TODO: no aborted?
+  idx2::ParallelDecode(Idx2, P, &query_buffer);  //TODO: no aborted?
   query->setCurrentResolution(query->end_resolution);
 
   return true;
