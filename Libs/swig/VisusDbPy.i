@@ -59,9 +59,9 @@ using namespace Visus;
 
 
 %pythoncode %{
-def LoadDataset(url):
+def LoadDataset(url, cache_dir=""):
 	from OpenVisus.dataset import PyDataset
-	return PyDataset(LoadDatasetCpp(url))
+	return PyDataset(LoadDatasetCpp(url, cache_dir))
 
 def LoadIdxDataset(url):
 	return LoadDataset(url)

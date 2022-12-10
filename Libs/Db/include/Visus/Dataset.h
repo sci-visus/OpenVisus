@@ -579,7 +579,7 @@ VISUS_DB_API StringTree FindDatasetConfig(StringTree ar, String url);
 //LoadDatasetEx
 VISUS_DB_API SharedPtr<Dataset> LoadDatasetEx(StringTree ar);
 
-VISUS_DB_API SharedPtr<Dataset> LoadDataset(String url);
+VISUS_DB_API SharedPtr<Dataset> LoadDataset(String url, String cache_dir = "");
 
 } //namespace Visus
 

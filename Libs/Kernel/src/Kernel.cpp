@@ -220,7 +220,7 @@ String cnamed(String name, String value) {
 
 
 //////////////////////////////////////////////////////
-void ThrowExceptionEx(String file,int line, String what)
+void ThrowExceptionEx(String file, int line, String what)
 {
   String msg = cstring("Visus throwing exception", cnamed("where", file + ":" + cstring(line)), cnamed("what", what));
   PrintInfo(msg);
