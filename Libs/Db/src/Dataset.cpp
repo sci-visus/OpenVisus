@@ -213,7 +213,6 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
 
     //normalize the url 
     parsed.params.eraseValue("cached");
-    parsed.params.eraseValue("cache_dir");
     url = parsed.toString();
 
     //1 || idx means to use IdxDiskAccess; 2| disk means to use Disk Access
