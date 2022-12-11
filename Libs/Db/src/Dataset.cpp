@@ -204,7 +204,9 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
    
     // cache_dir is extracted from the String Tree (see LoadDataset(url, cached_dir='...')
     // if cache_dir is empty, then IdxDiskAccess or DiskAccess will decide where cache data will be (i.e. inside ~/visus folder)
-    auto cache_dir = ar.readString("cache_dir", Utils::getEnv("VISUS_CACHE"));
+    auto cache_dir = ar.readString("cache_dir");
+    if (cache_dir.empty())
+      cache_dir=Utils::getEnv("VISUS_CACHE");
 
     if (!cache_dir.empty() && FileUtils::existsFile(cache_dir))
       ThrowException("LoadDataset", url, "failed. The path in cache_dir argument", cache_dir, "is a file.");
@@ -223,7 +225,7 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
 
     StringTree access_config = StringTree::fromString(concatenate(
       "  <access type='multiplex'>\n",
-      "     <access type='", local_access, "'  chmod='rw' cache_dir='", cache_dir, "' />\n",
+      "     <access type='", local_access, "'  chmod='rw' ", (cache_dir.empty() ? String("") : concatenate("cache_dir='", cache_dir, "'")), "/>\n",
       "     <access type='", remote_access, "' chmod='r'  compression='zip' />\n",
       "  </access>\n"));
 

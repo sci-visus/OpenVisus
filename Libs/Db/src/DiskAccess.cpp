@@ -83,11 +83,15 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
 
     this->filename_template += "/$(time)/$(field)/$(block:%016x:%04x)" + url.getParam("blob_extension", ".bin");
   }
+
+  String cache_dir = config.readString("cache_dir");
+  if (cache_dir.empty())
+    cache_dir = GetVisusCache();
  
   this->filename_template = StringUtils::replaceAll(this->filename_template, "$(HostName)", url.getHostname());
   this->filename_template = StringUtils::replaceAll(this->filename_template, "$(HostPort)", cstring(url.getPort()));
   this->filename_template = StringUtils::replaceAll(this->filename_template, "$(FullPathWithoutExt)", path.withoutExtension());
-  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(VisusCache)", config.readString("cache_dir", GetVisusCache()));
+  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(VisusCache)", cache_dir );
 
   //0 == no verbose
   //1 == read verbose, write verbose

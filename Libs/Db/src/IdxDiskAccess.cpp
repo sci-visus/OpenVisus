@@ -936,10 +936,14 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
     else
       local_idx += url.getPath(); //cloud storage, path should be unique and visus.idx is the end of the  the path for cloud storage (!)
 
+    String cache_dir = config.readString("cache_dir");
+    if (cache_dir.empty())
+      cache_dir = GetVisusCache();
+     
     local_idx = StringUtils::replaceAll(local_idx, "$(HostName)", url.getHostname());
     local_idx = StringUtils::replaceAll(local_idx, "$(HostPort)", cstring(url.getPort()));
     local_idx = StringUtils::replaceAll(local_idx, "$(FullPathWithoutExt)", Path(url.getPath()).withoutExtension());
-    local_idx = StringUtils::replaceAll(local_idx, "$(VisusCache)", config.readString("cache_dir", GetVisusCache()));
+    local_idx = StringUtils::replaceAll(local_idx, "$(VisusCache)", cache_dir);
 
     config.write("url", local_idx);
   }
