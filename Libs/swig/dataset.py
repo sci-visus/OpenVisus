@@ -121,6 +121,9 @@ class PyDataset(object):
 	# constructor
 	def __init__(self,db):
 		self.db = db
+		self.shape = tuple(reversed(self.getLogicSize()))
+		self.max_resolution = self.getMaxResolution()
+		self.fields = self.getFields()
 
 	# __getattr__
 	def __getattr__(self,attr):
@@ -673,9 +676,6 @@ def load_dataset(url, cache_dir=""):
 		dataset = None
 	if dataset is None:
 		raise FileNotFoundError()
-	dataset.shape = tuple(reversed(dataset.getLogicSize()))
-	dataset.max_resolution = dataset.getMaxResolution()
-	dataset.fields = dataset.getFields()
 	return dataset
 
 
