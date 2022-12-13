@@ -28,7 +28,7 @@ and run it:
 python3 -m bokeh serve ./test.py 
 ```
 
-![Animation](https://raw.githubusercontent.com/sci-visus/OpenVisus/docs/dashboards.00.gif)
+![GIF](https://raw.githubusercontent.com/sci-visus/OpenVisus/master/docs/dashboards.00.gif)
 
 ## mod_visus **3d** slicer
 
@@ -58,7 +58,7 @@ python3 -m bokeh serve ./test.py
 ```
 
 
-![Animation](https://raw.githubusercontent.com/sci-visus/OpenVisus/docs/dashboards.01.gif)
+![GIF](https://github.com/sci-visus/OpenVisus/raw/master/docs/dashboards.01.gif)
 
 ## Cloud Storage **3d** slicer
 
@@ -87,7 +87,7 @@ python3 -m bokeh serve ./test.py
 ```
 
 
-![Animation](https://raw.githubusercontent.com/sci-visus/OpenVisus/docs/dashboards.02.gif)
+![GIF](https://github.com/sci-visus/OpenVisus/raw/master/docs/dashboards.02.gif)
 
 
 ## **3d** multi Slicer
@@ -120,4 +120,4 @@ python3 -m bokeh serve ./test.py
 ```
 
 
-![Animation](https://raw.githubusercontent.com/sci-visus/OpenVisus/docs/dashboards.03.gif)
+![GIF](https://github.com/sci-visus/OpenVisus/raw/master/docs/dashboards.03.gif)
