@@ -44,8 +44,8 @@ class PyStats:
 		stats.net=types.SimpleNamespace()
 		stats.net.r, stats.net.w, stats.net.n=net.getReadBytes(), net.getWriteBytes(), net.getNumRequests()
 		print(f"Statistics enlapsed={sec:.2}")
-		print(f"   IO  r={ov.HumanSize(stats.io .r)} r_sec={ov.HumanSize(stats.io .r/sec)} w={ov.HumanSize(stats.io .w)} w_sec={ov.HumanSize(stats.io .w/sec)}/sec n={stats.io .n:,} n_sec={int(stats.io .n/sec):,}/sec")
-		print(f"   NET r={ov.HumanSize(stats.net.r)} r_sec={ov.HumanSize(stats.net.r/sec)} w={ov.HumanSize(stats.net.w)} w_sec={ov.HumanSize(stats.net.w/sec)}/sec n={stats.net.n:,} n_sec={int(stats.net.n/sec):,}/sec")
+		print(f"   IO  r={ov.HumanSize(stats.io .r)} r_sec={ov.HumanSize(stats.io .r/sec)}/sec w={ov.HumanSize(stats.io .w)} w_sec={ov.HumanSize(stats.io .w/sec)}/sec n={stats.io .n:,} n_sec={int(stats.io .n/sec):,}/sec")
+		print(f"   NET r={ov.HumanSize(stats.net.r)} r_sec={ov.HumanSize(stats.net.r/sec)}/sec w={ov.HumanSize(stats.net.w)} w_sec={ov.HumanSize(stats.net.w/sec)}/sec n={stats.net.n:,} n_sec={int(stats.net.n/sec):,}/sec")
 
 
 
@@ -102,14 +102,14 @@ class PyQuery:
 		self.iqueue.put([db, access, timestep,field, logic_box, max_pixels, num_refinements,aborted])
 
 	# popResult
-	def popResult(self):
+	def popResult(self, last_only=True):
 		assert self.oqueue is not None
-		if self.oqueue.empty():
-			return None,None
-		else:
-			data,logic_box = self.oqueue.get()
+		data,logic_box=None,None
+		while not self.oqueue.empty():
+			data,logic_box=self.oqueue.get()
 			self.oqueue.task_done()
-			return data,logic_box
+			if not last_only: break
+		return data,logic_box 
   
 	# getAlignedBox
 	@staticmethod

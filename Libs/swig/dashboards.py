@@ -443,7 +443,7 @@ class Slice(Widgets):
 			self.refresh()
    
 		# a new image is available?
-		data,logic_box=self.query.popResult()
+		data,logic_box=self.query.popResult(last_only=True)
 		if data is not None:
 			(x1,y1),(x2,y2)=self.project(logic_box)
 			self.canvas.renderImage(data,x1,y1,x2,y2)
