@@ -55,17 +55,18 @@ public:
 
 #if !SWIG
   std::atomic<Int64> nopen;
+  std::atomic<Int64> nclose;
   std::atomic<Int64> rbytes;
   std::atomic<Int64> wbytes;
 #endif
 
   //constructor
-  FileGlobalStats() : nopen(0), rbytes(0), wbytes(0){
+  FileGlobalStats() : nopen(0), nclose(0), rbytes(0), wbytes(0){
   }
 
   //resetStats
   void resetStats() {
-    nopen = rbytes = wbytes = 0;
+    nopen = nclose = rbytes = wbytes = 0;
   }
 
   //getReadBytes
@@ -81,6 +82,16 @@ public:
   //getNumOpen
   Int64 getNumOpen() const {
     return nopen;
+  }
+
+  //getNumOpen
+  Int64 getNumClose() const {
+    return nclose;
+  }
+
+  //getNumOpen
+  Int64 getRunning() const {
+    return getNumOpen() - getNumClose();
   }
 
 };
@@ -143,6 +154,10 @@ public:
 
     inline void onOpenEvent() {
       File::global_stats()->nopen++;
+    }
+
+    inline void onCloseEvent() {
+      File::global_stats()->nclose++;
     }
 
     inline void onReadEvent(Int64 value) {

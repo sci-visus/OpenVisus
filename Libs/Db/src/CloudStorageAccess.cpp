@@ -58,9 +58,12 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   this->compression = config.readString("compression", this->url.getParam("compression","zip")); //zip compress more than lz4 for network.. 
   this->layout = config.readString("layout", this->url.getParam("layout","")); //row major is default
   this->reverse_filename = config.readBool("reverse_filename", cbool(this->url.getParam("reverse_filename","0")));
+
   bool disable_async = config.readBool("disable_async", cbool(this->url.getParam("disable_async",cstring(dataset->isServerMode()))));
 
-  if (int nconnections = disable_async ? 0 : config.readInt("nconnections", cint(this->url.getParam("nconnections",cstring(64)))))
+  int nconnections = disable_async ? 0 : config.readInt("nconnections", cint(this->url.getParam("nconnections", cstring(64))));
+
+  if (nconnections)
     this->netservice = std::make_shared<NetService>(nconnections);
 
   this->cloud_storage=CloudStorage::createInstance(url);
@@ -81,7 +84,7 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
 
   VisusReleaseAssert(!this->filename_template.empty());
 
-  PrintInfo("Created CloudStorageAccess", "url", url, "filename_template", filename_template, "compression", compression);
+  PrintInfo("Created CloudStorageAccess", "url", url, "filename_template", filename_template, "compression", compression, "nconnections", nconnections);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

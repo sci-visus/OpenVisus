@@ -169,7 +169,8 @@ file(GLOB OtherSources
 	${CMAKE_SOURCE_DIR}/Samples/python/dataflow/*.py
 	${CMAKE_SOURCE_DIR}/Samples/python/idx/*.py
 	${CMAKE_SOURCE_DIR}/Samples/python/viewer/*.py
-	${CMAKE_SOURCE_DIR}/Samples/python/wavelets/*.py) 
+	${CMAKE_SOURCE_DIR}/Samples/python/wavelets/*.py
+	${CMAKE_SOURCE_DIR}/Samples/python/cache/*) 
 
 AssignSourceGroup(CMakeSourceDir ${CMAKE_SOURCE_DIR} ${OtherSources})
 

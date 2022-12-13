@@ -978,6 +978,12 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
   this->can_write = StringUtils::find(config.readString("chmod", DefaultChMod), "w") >= 0;
   this->bitsperblock = idxfile.bitsperblock;
 
+  //this is needed for cachinh, in case the user specified he wants to enable the compression
+  //NOTE: for existing bloks, I am just readong the compression info from headers
+  //NOTE: DO not enable compression when converting using BoxQuery, otherwise you are going to waste a lot of disk
+  //      (i,e, same blocks will be written with different dimensions due to the comopression)
+  this->compression = config.readString("compression", Url(dataset->getUrl()).getParam("compression", "zip"));
+
   // 0 == no verbose
   // 1 == read verbose, write verbose
   // 2 ==               write verbose

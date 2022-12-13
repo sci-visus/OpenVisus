@@ -156,7 +156,7 @@ bool PosixFile::open(String filename, String file_mode, File::Options options)
     if (!(bMustCreate && errno == EEXIST) && !(!bMustCreate && errno == ENOENT))
     {
       std::ostringstream out; out << Thread::getThreadId();
-      PrintWarning("Thread[", out.str(), "] ERROR opening file ", filename, GetOpenErrorExplanation());
+      PrintWarning("Thread[", out.str(), "] ERROR opening file ", filename, "file_mode", file_mode, " ", GetOpenErrorExplanation());
     }
     return false;
   }
@@ -182,6 +182,7 @@ void PosixFile::close()
   this->can_read = false;
   this->can_write = false;
   this->filename = "";
+  onCloseEvent();
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -491,6 +492,7 @@ void MemoryMappedFile::close()
   this->nbytes = 0;
   this->mem = nullptr;
   this->filename = "";
+  onCloseEvent();
 }
 
 
@@ -625,6 +627,7 @@ void Win32File::close()
   this->can_write = false;
   this->filename = "";
   this->cursor = -1;
+  onCloseEvent();
 }
 
 

@@ -225,7 +225,7 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
 
     StringTree access_config = StringTree::fromString(concatenate(
       "  <access type='multiplex'>\n",
-      "     <access type='", local_access, "'  chmod='rw' ", (cache_dir.empty() ? String("") : concatenate("cache_dir='", cache_dir, "'")), "/>\n",
+      "     <access type='", local_access, "'  chmod='rw' compression='zip' ", (cache_dir.empty() ? String("") : concatenate("cache_dir='", cache_dir, "'")), "/>\n",
       "     <access type='", remote_access, "' chmod='r'  compression='zip' />\n",
       "  </access>\n"));
 

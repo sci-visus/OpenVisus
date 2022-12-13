@@ -87,6 +87,11 @@ public:
     return wbytes;
   }
 
+  //getRunningRequests
+  Int64 getRunningRequests() {
+    return (Int64)running_requests;
+  }
+
 };
 
 ///////////////////////////////////////////////////////////////////////

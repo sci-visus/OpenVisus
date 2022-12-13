@@ -267,7 +267,9 @@ public:
 
 
     //config filename
-    lines = StringUtils::getLines(Utils::loadTextDocument(concatenate(home, "/.aws/config")));
+    String aws_config_filename = concatenate(home, "/.aws/config");
+    PrintInfo("aws_config_filename", aws_config_filename);
+    lines = StringUtils::getLines(Utils::loadTextDocument(aws_config_filename));
     for (int I = 0; I < lines.size(); I++)
     {
       auto line = lines[I];
@@ -280,7 +282,9 @@ public:
     }
 
     //credentials
-    lines = StringUtils::getLines(Utils::loadTextDocument(concatenate(home, "/.aws/credentials")));
+    String aws_credential_filename = concatenate(home, "/.aws/credentials");
+    PrintInfo("aws_credential_filename", aws_credential_filename);
+    lines = StringUtils::getLines(Utils::loadTextDocument(aws_credential_filename));
     for (int I = 0; I < lines.size(); I++)
     {
       auto line = lines[I];
