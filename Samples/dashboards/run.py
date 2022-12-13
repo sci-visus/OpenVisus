@@ -1,8 +1,7 @@
 import os,sys,time,datetime,threading,queue,random,copy,math, types, multiprocessing
 
 import OpenVisus as ov
-
-from widgets import Slice,Slices
+from OpenVisus.dashboards import Slice,Slices
 
 	# //////////////////////////////////////////////////////////////////////////////////////
 if __name__.startswith('bokeh'):

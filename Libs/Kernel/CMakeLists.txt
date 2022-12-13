@@ -164,6 +164,7 @@ file(GLOB OtherSources
 	${CMAKE_SOURCE_DIR}/Libs/CMakeLists.txt
 	${CMAKE_SOURCE_DIR}/*.ipynb 
 	${CMAKE_SOURCE_DIR}/Samples/jupyter/*.ipynb 
+	${CMAKE_SOURCE_DIR}/Samples/dashboards/* 
 	${CMAKE_SOURCE_DIR}/Samples/python/*.py 
 	${CMAKE_SOURCE_DIR}/Samples/python/cloud_storage/*.py
 	${CMAKE_SOURCE_DIR}/Samples/python/dataflow/*.py
