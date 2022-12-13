@@ -1,7 +1,10 @@
 import os,sys,time,threading,queue,math, types
 import numpy as np
+import logging
 
 import OpenVisus as ov
+
+logger = logging.getLogger("pyquery")
 
 # ///////////////////////////////////////////////////////////////////
 class PyStats:
@@ -43,9 +46,9 @@ class PyStats:
 		net=ov.NetService.global_stats()
 		stats.net=types.SimpleNamespace()
 		stats.net.r, stats.net.w, stats.net.n=net.getReadBytes(), net.getWriteBytes(), net.getNumRequests()
-		print(f"Statistics enlapsed={sec:.2}")
-		print(f"   IO  r={ov.HumanSize(stats.io .r)} r_sec={ov.HumanSize(stats.io .r/sec)}/sec w={ov.HumanSize(stats.io .w)} w_sec={ov.HumanSize(stats.io .w/sec)}/sec n={stats.io .n:,} n_sec={int(stats.io .n/sec):,}/sec")
-		print(f"   NET r={ov.HumanSize(stats.net.r)} r_sec={ov.HumanSize(stats.net.r/sec)}/sec w={ov.HumanSize(stats.net.w)} w_sec={ov.HumanSize(stats.net.w/sec)}/sec n={stats.net.n:,} n_sec={int(stats.net.n/sec):,}/sec")
+		logger.info(f"Statistics enlapsed={sec} seconds" )
+		logger.info(f"   IO  r={ov.HumanSize(stats.io .r)} r_sec={ov.HumanSize(stats.io .r/sec)}/sec w={ov.HumanSize(stats.io .w)} w_sec={ov.HumanSize(stats.io .w/sec)}/sec n={stats.io .n:,} n_sec={int(stats.io .n/sec):,}/sec")
+		logger.info(f"   NET r={ov.HumanSize(stats.net.r)} r_sec={ov.HumanSize(stats.net.r/sec)}/sec w={ov.HumanSize(stats.net.w)} w_sec={ov.HumanSize(stats.net.w/sec)}/sec n={stats.net.n:,} n_sec={int(stats.net.n/sec):,}/sec")
 
 
 
@@ -67,12 +70,16 @@ query.stopThread()
 """
 class PyQuery:
 
-  
+
+	query_id=0
 	stats=PyStats()
 
 
 	# constructor
 	def __init__(self):
+		self.query_id=PyQuery.query_id
+		PyQuery.query_id+=1
+
 		self.iqueue=queue.Queue()
 		self.oqueue=queue.Queue()
 		self.wait_for_oqueue=False
@@ -149,7 +156,7 @@ class PyQuery:
 			if value>b: value=b
 			return value
 
-		print("read",logic_box)
+		# logger.info(f"read logic_box={logic_box}")
 
 		pdim=db.getPointDim()
 		assert pdim==2 or pdim==3 # todo other cases?
@@ -200,7 +207,7 @@ class PyQuery:
 				logic_box,delta,num_pixels=PyQuery.getAlignedBox(db,logic_box,H, slice_dir=slice_dir)
 
 				if verbose:
-					print("Guess resolution",H,logic_box,delta,num_pixels,f"{np.prod(num_pixels):,}",f"{max_pixels:,}")
+					logger.info(f"read Guess resolution H={H} logic_box={logic_box} delta={delta} num_pixels={num_pixels} tot_pixels={np.prod(num_pixels):,} max_pixels={max_pixels:,}")
 
 				if np.prod(num_pixels)<=max_pixels*1.10:
 					endh=H
@@ -256,11 +263,11 @@ class PyQuery:
 				return
 
 			self.stats.startQuery()
-			db,access, T, field, logic_box, max_pixels,num_refinements, aborted = args
+			db,access, timestep, field, logic_box, max_pixels,num_refinements, aborted = args
 
-			print("PyQuery::Got new job","logic_box",logic_box,"num_refinements",num_refinements,"max_pixels",max_pixels)
+			logger.info(f"[{self.query_id}] Got job {timestep} {field} {logic_box} {num_refinements} {max_pixels}")
 			I=0
-			for logic_box, data in PyQuery.read(db, access=access, timestep=T, field=field, logic_box=logic_box, num_refinements=num_refinements, max_pixels=int(np.prod(max_pixels)), aborted=aborted):
+			for logic_box, data in PyQuery.read(db, access=access, timestep=timestep, field=field, logic_box=logic_box, num_refinements=num_refinements, max_pixels=int(np.prod(max_pixels)), aborted=aborted):
 				
 				# query failed
 				if data is None:
@@ -269,7 +276,7 @@ class PyQuery:
 				if aborted.__call__()==ABORTED.__call__():
 					break
 
-				print(f"    Got data {I}/{num_refinements} {logic_box} data={data.shape}/{data.dtype} #pixels={data.shape}/{np.prod(data.shape):,} #max={max_pixels:,}/{np.prod(max_pixels):,} m={np.min(data)} M={np.max(data)}")
+				logger.info(f"[{self.query_id}] {I}/{num_refinements} {data.shape} {data.dtype} m={np.min(data)} M={np.max(data)}")
 				I+=1
     
 				if self.oqueue:
@@ -283,7 +290,7 @@ class PyQuery:
 				
 
 			# let the main task know I am done
-			print("PyQuery::done_job")
+			logger.info(f"[{self.query_id}] job done")
 			self.iqueue.task_done()
 			self.stats.stopQuery()
 
