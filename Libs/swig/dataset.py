@@ -121,6 +121,9 @@ class PyDataset(object):
 	# constructor
 	def __init__(self,db):
 		self.db = db
+		self.shape = tuple(reversed(self.getLogicSize()))
+		self.max_resolution = self.getMaxResolution()
+		self.fields = self.getFields()
 
 	# __getattr__
 	def __getattr__(self,attr):
@@ -291,7 +294,26 @@ class PyDataset(object):
 		for data in dataset.read(z=[512,513], num_refinements=3):
 			print(data)
 		"""
-		
+		if x is not None:
+			if isinstance(x[0], int) and isinstance(x[1], int) and not (0 <= x[0] < self.shape[-1] and 0 <= x[1] < self.shape[-1]):
+				raise IndexError(f"The bounds specified in the argument x are outside the dataset's bounds [0,{self.shape[-1]}]")
+			if not x[0] < x[1]:
+				raise IndexError(f"The first index in x needs to be lower than the second index")
+		if y is not None:
+			if isinstance(y[0], int) and isinstance(y[1], int) and not (0 <= y[0] < self.shape[-2] and 0 <= y[1] < self.shape[-2]):
+				raise IndexError(f"The bounds specified in the argument y are outside the dataset's bounds [0,{self.shape[-2]}]")
+			if not y[0] < y[1]:
+				raise IndexError(f"The first index in y needs to be lower than the second index")
+		# TODO(12/10/2022): What if the dataset is 2D?
+		if z is not None:
+			if isinstance(z[0], int) and isinstance(z[1], int) and not (0 <= z[0] < self.shape[-3] and 0 <= z[1] < self.shape[-3]):
+				raise IndexError(f"The bounds specified in the argument z are outside the dataset's bounds [0,{self.shape[-3]}]")
+			if not z[0] < z[1]:
+				raise IndexError(f"The first index in z needs to be lower than the second index")
+
+		if max_resolution is not None and not (0 <= max_resolution <= self.max_resolution):
+			raise ValueError(f"The valid range for max_resolution is from 0 to {self.max_resolution}")
+
 		pdim=self.getPointDim()
 
 		field=self.getField() if field is None else self.getField(field)	
@@ -644,17 +666,16 @@ def load_dataset(url, cache_dir=""):
 	dataset = load_dataset("http://domain.com/test.idx")
 	dataset = load_dataset("http://domain.com/test.idx", cache_dir='.')
 	"""
-	# TODO(12/5/2022): cache_dir exception is the same as url not existing,
-	#	and we can't detect it (without parsing the exception string)
+	# NOTE(12/5/2022): cache_dir exception is the same as url not existing (SystemError), so we check
+	#	the directory here
+	if os.path.isfile(cache_dir):
+		raise NotADirectoryError(f"The cache_dir {cache_dir} is a file and not a directory")
 	try:
 		dataset = LoadDataset(url, cache_dir=cache_dir)
 	except SystemError as e:
 		dataset = None
 	if dataset is None:
 		raise FileNotFoundError()
-	dataset.shape = tuple(reversed(dataset.getLogicSize()))
-	dataset.max_resolution = dataset.getMaxResolution()
-	dataset.fields = dataset.getFields()
 	return dataset
 
 
