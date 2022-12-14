@@ -277,7 +277,7 @@ class PyDataset(object):
 
 
 	# read
-	def read(self, logic_box=None, x=None, y=None, z=None, time=None, field=None, num_refinements=1, quality=0, max_resolution=None, disable_filters=False, access=None):
+	def read(self, logic_box=None, x=None, y=None, z=None, time=None, field=None, field_name=None, num_refinements=1, quality=0, max_resolution=None, disable_filters=False, access=None):
 		"""
 		Reads a box in voxel or unit coordinates.
 
@@ -313,6 +313,9 @@ class PyDataset(object):
 
 		if max_resolution is not None and not (0 <= max_resolution <= self.max_resolution):
 			raise ValueError(f"The valid range for max_resolution is from 0 to {self.max_resolution}")
+
+		if field_name is not None and field_name not in self.field_names:
+			raise ValueError(f"The field name '{field_name}' is not in field names {self.field_names}")
 
 		pdim=self.getPointDim()
 

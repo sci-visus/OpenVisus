@@ -39,8 +39,13 @@ class TestAPI(unittest.TestCase):
 
 		self.assertEqual(dataset.read(x=[10,11]).shape, (34,34,1))
 
+		dataset.read(field_name="data")
+
+		with self.assertRaises(ValueError):
+			dataset.read(field_name="missing")
+
 		for i, axis in enumerate(['x', 'y', 'z']):
-			print(dataset.read(**{axis: [dataset.shape[-i - 1] - 1, dataset.shape[-i - 1]]}).shape)
+			dataset.read(**{axis: [dataset.shape[-i - 1] - 1, dataset.shape[-i - 1]]})
 
 			with self.assertRaises(TypeError):
 				dataset.read(**{axis: 10})
