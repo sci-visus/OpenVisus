@@ -10,7 +10,7 @@ class TestAPI(unittest.TestCase):
 		dataset = ov.load_dataset("https://klacansky.com/open-scivis-datasets/silicium/silicium.idx")
 		self.assertEqual(dataset.shape, (34,34,98))
 		self.assertEqual(dataset.max_resolution, 19)
-		self.assertEqual(dataset.fields, ["data"])
+		self.assertEqual(dataset.field_names, ["data"])
 
 		with self.assertRaises(TypeError):
 			ov.load_dataset()
@@ -39,7 +39,14 @@ class TestAPI(unittest.TestCase):
 
 		self.assertEqual(dataset.read(x=[10,11]).shape, (34,34,1))
 
-		for axis in ['x', 'y', 'z']:
+		dataset.read(field_name="data")
+
+		with self.assertRaises(ValueError):
+			dataset.read(field_name="missing")
+
+		for i, axis in enumerate(['x', 'y', 'z']):
+			dataset.read(**{axis: [dataset.shape[-i - 1] - 1, dataset.shape[-i - 1]]})
+
 			with self.assertRaises(TypeError):
 				dataset.read(**{axis: 10})
 			with self.assertRaises(TypeError):

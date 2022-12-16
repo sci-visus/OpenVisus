@@ -123,7 +123,7 @@ class PyDataset(object):
 		self.db = db
 		self.shape = tuple(reversed(self.getLogicSize()))
 		self.max_resolution = self.getMaxResolution()
-		self.fields = self.getFields()
+		self.field_names = self.getFields()
 
 	# __getattr__
 	def __getattr__(self,attr):
@@ -277,7 +277,7 @@ class PyDataset(object):
 
 
 	# read
-	def read(self, logic_box=None, x=None, y=None, z=None, time=None, field=None, num_refinements=1, quality=0, max_resolution=None, disable_filters=False, access=None):
+	def read(self, logic_box=None, x=None, y=None, z=None, time=None, field=None, field_name=None, num_refinements=1, quality=0, max_resolution=None, disable_filters=False, access=None):
 		"""
 		Reads a box in voxel or unit coordinates.
 
@@ -294,26 +294,28 @@ class PyDataset(object):
 		for data in dataset.read(z=[512,513], num_refinements=3):
 			print(data)
 		"""
-  
-		if x is not None:
-			if isinstance(x[0], int) and isinstance(x[1], int) and not (0 <= x[0] < self.shape[-1] and 0 <= x[1] <= self.shape[-1]):
-				raise IndexError(f"The bounds specified in the argument x are outside the dataset's bounds [0,{self.shape[-1]}]")
+		if x is not None and not isinstance(x[0], float):
 			if not x[0] < x[1]:
 				raise IndexError(f"The first index in x needs to be lower than the second index")
-		if y is not None:
-			if isinstance(y[0], int) and isinstance(y[1], int) and not (0 <= y[0] < self.shape[-2] and 0 <= y[1] <= self.shape[-2]):
-				raise IndexError(f"The bounds specified in the argument y are outside the dataset's bounds [0,{self.shape[-2]}]")
+			if not (0 <= x[0] < self.shape[-1] and 0 < x[1] <= self.shape[-1]):
+				raise IndexError(f"The bounds specified in the argument x are outside the dataset's bounds [0,{self.shape[-1]}]")
+		if y is not None and not isinstance(y[0], float):
 			if not y[0] < y[1]:
 				raise IndexError(f"The first index in y needs to be lower than the second index")
+			if not (0 <= y[0] < self.shape[-2] and 0 < y[1] <= self.shape[-2]):
+				raise IndexError(f"The bounds specified in the argument y are outside the dataset's bounds [0,{self.shape[-2]}]")
 		# TODO(12/10/2022): What if the dataset is 2D?
-		if z is not None:
-			if isinstance(z[0], int) and isinstance(z[1], int) and not (0 <= z[0] < self.shape[-3] and 0 <= z[1] <= self.shape[-3]):
-				raise IndexError(f"The bounds specified in the argument z are outside the dataset's bounds [0,{self.shape[-3]}]")
+		if z is not None and not isinstance(z[0], float):
 			if not z[0] < z[1]:
 				raise IndexError(f"The first index in z needs to be lower than the second index")
+			if not (0 <= z[0] < self.shape[-3] and 0 < z[1] <= self.shape[-3]):
+				raise IndexError(f"The bounds specified in the argument z are outside the dataset's bounds [0,{self.shape[-3]}]")
 
 		if max_resolution is not None and not (0 <= max_resolution <= self.max_resolution):
 			raise ValueError(f"The valid range for max_resolution is from 0 to {self.max_resolution}")
+
+		if field_name is not None and field_name not in self.field_names:
+			raise ValueError(f"The field name '{field_name}' is not in field names {self.field_names}")
 
 		pdim=self.getPointDim()
 
