@@ -1,16 +1,24 @@
-
 import sys
+
+# Setting the Qt bindings for QtPy
+import os,sys
+os.environ["QT_API"] = "pyqt5"
+
+from qtpy import QtWidgets
+
+import numpy as np
+
+import pyvista as pv
+from pyvistaqt import QtInteractor, MainWindow
+
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
 from OpenVisus import *
-import pyvista as pv
-from pyvistaqt import QtInteractor
-
 
 # ////////////////////////////////////////////////////////////////////////////
-class Explorer3d(QMainWindow):
+class Explorer3d(MainWindow):
 	
 	# construtor
 	def __init__(self,url,parent=None):
@@ -70,8 +78,11 @@ class Explorer3d(QMainWindow):
 		
 		# plotter
 		if True:
-			frame=QFrame()
-			self.plotter = QtInteractor(frame)
+			self.frame=QFrame()
+			self.plotter = QtInteractor(self.frame)   
+			# vlayout.addWidget(self.plotter.interactor)
+			self.signal_close.connect(self.plotter.close)   
+   
 			main_layout.addWidget(self.plotter)
 			
 		if True:
@@ -133,7 +144,7 @@ class Explorer3d(QMainWindow):
 	def showVolume(self):
 		data=self.extractVolume()
 		self.plotter.clear()
-		# self.plotter.show_bounds(grid=True, location='back')
+		self.plotter.show_bounds(grid=True, location='back')
 		
 		grid = pv.UniformGrid()
 		grid.dimensions = numpy.array(data.shape) +1
@@ -143,7 +154,6 @@ class Explorer3d(QMainWindow):
 		grid.spacing = ((x2-x1)/w, (y2-y1)/h, (z2-z1)/d) # These are the cell sizes along each axis
 		grid.cell_arrays["values"] = data.flatten(order="F")		
 		
-		# /////////////////////////////////////////////////////////
 		# example https://docs.pyvista.org/examples/00-load/create-uniform-grid.html
 		if self.type.currentText()=='vr':
 			self.plotter.add_volume(grid, opacity=self.opacity.currentText(), cmap=self.cmap.currentText(),blending=self.blending.currentText())
@@ -212,7 +222,7 @@ if __name__ == "__main__":
 	if len(sys.argv)>1:
 		url=sys.argv[-1]
 	else:
-		url=r'http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1&cached=1'
+		url=r'C:\data\visus-datasets\2kbit1\modvisus\visus.idx'
 
 	explorer=Explorer3d(url)
 	explorer.show()
