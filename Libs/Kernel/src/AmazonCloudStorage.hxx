@@ -194,31 +194,30 @@ public:
   //constructor
   AmazonCloudStorage(Url url) 
   {
-    auto hostname = url.getHostname();
+    String hostname = url.getHostname();
 
     //if you specify the profile in the url or in the ENV it will have precedence
     String profile = url.getParam("profile", Utils::getEnv("AWS_PROFILE"));
     if (!profile.empty()) 
     {
       auto map = readProfile(profile);
-      endpoint_url = map["endpoint_url"];
-      region       = map["region"];
-      access_key   = map["access_key"];
-      secret_key   = map["secret_key"];
+      this->endpoint_url = map["endpoint_url"];
+      this->region       = map["region"];
+      this->access_key   = map["access_key"];
+      this->secret_key   = map["secret_key"];
     }
-    //otherwise first try to see the url, then try to use env variable
-    else
+
+    if (this->endpoint_url.empty())
     {
       //needed for s3v4 (NOTE default endpoint is the same hostname)
-      String default_endpoint = url.getProtocol() + "://" + url.getHostname() + (url.getPort()!=80? concatenate(":",url.getPort()): "");
-      this->endpoint_url = url.getParam("endpoint_url", Utils::getEnv("ENDPOINT_URL",Utils::getEnv("AWS_ENDPOINT_URL",default_endpoint)));
+      String default_endpoint = url.getProtocol() + "://" + hostname + (url.getPort() != 80 ? concatenate(":", url.getPort()) : "");
+      this->endpoint_url = url.getParam("endpoint_url", Utils::getEnv("ENDPOINT_URL", Utils::getEnv("AWS_ENDPOINT_URL", default_endpoint)));
       VisusAssert(!this->endpoint_url.empty());
-      
-      //needed for s3v4 (NOTE if region is empty I think I can just set it to be us-east-1)
-      this->region     = url.getParam("region"                                      ,Utils::getEnv("AWS_REGION",Utils::getEnv("AWS_DEFAULT_REGION")));
-      this->access_key = url.getParam("access_key"                                  ,Utils::getEnv("AWS_ACCESS_KEY_ID",""));
-      this->secret_key = url.getParam("secret_key", url.getParam("secret_access_key",Utils::getEnv("AWS_SECRET_ACCESS_KEY", "")));
     }
+      
+    //needed for s3v4 (NOTE if region is empty I think I can just set it to be us-east-1)
+    if (this->region.empty())
+      this->region = url.getParam("region", Utils::getEnv("AWS_REGION", Utils::getEnv("AWS_DEFAULT_REGION")));
 
     if (this->region.empty() && StringUtils::startsWith(hostname, "s3."))
     {
@@ -233,12 +232,20 @@ public:
 
     VisusAssert(!this->region.empty());
 
-#if 0
-    PrintInfo("endpoint_url", endpoint_url);
-    PrintInfo("region", region);
-    PrintInfo("access_key", access_key);
-    PrintInfo("secret_key", secret_key);
-#endif
+    if (this->access_key.empty())
+      this->access_key = url.getParam("access_key", Utils::getEnv("AWS_ACCESS_KEY_ID", ""));
+
+    if (this->secret_key.empty())
+      this->secret_key = url.getParam("secret_key", url.getParam("secret_access_key", Utils::getEnv("AWS_SECRET_ACCESS_KEY", "")));
+
+
+    if (cbool(Utils::getEnv("VISUS_AWS_VERBOSE", "")))
+    {
+      PrintInfo("AmazonCloudStorage::endpoint_url", endpoint_url);
+      PrintInfo("AmazonCloudStorage::region", region);
+      PrintInfo("AmazonCloudStorage::access_key", access_key); //dangerous!!!
+      PrintInfo("AmazonCloudStorage::secret_key", secret_key); //dangerous!!!
+    }
 
   }
 
