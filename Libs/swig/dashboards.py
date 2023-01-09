@@ -21,7 +21,7 @@ class Canvas:
 		self.color_bar=color_bar
 		self.color_mapper=color_mapper
   
-		self.figure=bokeh.plotting.Figure(active_scroll = "wheel_zoom")
+		self.figure=bokeh.plotting.figure(active_scroll = "wheel_zoom")
 		self.figure.x_range = bokeh.models.Range1d(0,1024)   
 		self.figure.y_range = bokeh.models.Range1d(0,768) 
 		self.figure.toolbar_location="below"
