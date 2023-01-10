@@ -381,6 +381,8 @@ def MidxToIdx(args):
 # ////////////////////////////////////////////////
 def Main(args):
 	import argparse
+	from OpenVisus import LoadDataset
+
 
 	if not args:
 		return

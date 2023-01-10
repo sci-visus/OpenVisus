@@ -424,7 +424,7 @@ def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=
 	
 	dims=[int(it) for it in SRC.getLogicSize()]
 	all_fields=SRC.getFields()
-	all_timesteps=[int(it) for it in SRC.getTimesteps().asVector()]
+	all_timesteps=[int(it) for it in SRC.getTimesteps()]
 
 	timesteps_to_convert=all_timesteps if timestep is None else [int(timestep)]
 	fields_to_convert   =all_fields    if field    is None else [str(field)]
