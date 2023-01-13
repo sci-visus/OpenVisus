@@ -197,12 +197,12 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
   // NOTE(12/10/2022): even when the path is not remote, a user may need cache_dir, e.g., if the file
   //    is on nfs mount and user wants to cache files on a local disk.
   Url parsed(url);
-  if (!url.empty() && !ar.getChild("config") && parsed.isRemote() && (parsed.hasParam("cached") || ar.hasAttribute("cached_dir")))
+  if (!url.empty() && !ar.getChild("config") && parsed.isRemote() && (parsed.hasParam("cached") || ar.hasAttribute("cache_dir")))
   {
     //cached is extracted from the url
     String cached = StringUtils::toLower(parsed.getParam("cached", "idx")); //TODO: not sure if it's better to use "idx" or "disk" here
    
-    // cache_dir is extracted from the String Tree (see LoadDataset(url, cached_dir='...')
+    // cache_dir is extracted from the String Tree (see LoadDataset(url, cache_dir='...')
     // if cache_dir is empty, then IdxDiskAccess or DiskAccess will decide where cache data will be (i.e. inside ~/visus folder)
     auto cache_dir = ar.readString("cache_dir");
     if (cache_dir.empty())
