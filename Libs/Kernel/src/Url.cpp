@@ -50,11 +50,6 @@ Url::Url(String value) : port(0)
     this->protocol=value.substr(0,idx_protocol);
     value =value.substr(idx_protocol+3);
   }
-  else
-  {
-    //default is file protocol
-    protocol="file";
-  }
 
   //parse params
   {
@@ -87,7 +82,19 @@ Url::Url(String value) : port(0)
     }
     else
     {
-      this->port=80;
+      if (protocol=="https")
+      {
+        this->port=443;
+      }
+      else if (protocol=="http")
+      {
+        this->port=80;
+      }
+      else
+      {
+        (*this)=Url();
+        return;
+      }
     }
   }
   
