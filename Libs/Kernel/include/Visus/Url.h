@@ -135,8 +135,8 @@ public:
 
 private:
 
-  //protocol (example "http" "https")
-  String protocol;
+  //protocol (example "file" "http" "https")
+  String protocol="file";
 
   //the hostname (ex "localhost")
   String  hostname;
