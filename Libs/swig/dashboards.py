@@ -11,6 +11,9 @@ import OpenVisus as ov
 
 from OpenVisus.pyquery import PyQuery
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 # ////////////////////////////////////////////////////////////////////////////////////
 class Canvas:
@@ -65,7 +68,7 @@ class Canvas:
 
 	# renderPoints
 	def renderPoints(self,points,size=20,color="red",marker="cross"):
-		print("renderPoints",points)
+		logger.info(f"renderPoints {points}")
 		if self.points is not None: 
 			self.figure.renderers.remove(self.points)
 		self.points = self.figure.scatter(x=[p[0] for p in points], y=[p[1] for p in points], size=size, color=color, marker=marker)   
@@ -250,7 +253,7 @@ class Widgets:
 
 	# setPalette
 	def setPalette(self, value, palette_range=(0.0,1.0)):
-		print("Slice:: setPalette",self.getDirection(), value, palette_range)
+		logger.info(f"Slice::setPalette direction={self.getDirection()} value={value} palette_range={palette_range}")
 		self.widgets.palette.value=value
 		if value.startswith("colorcet."):
 			import colorcet
@@ -352,7 +355,8 @@ class Slice(Widgets):
 		# is a point
 		else:
 			p=list(value)
-			del p[dir]
+			if pdim==3:
+				del p[dir]
 			return p
 
 	# unproject
@@ -423,6 +427,7 @@ class Slice(Widgets):
 			self.setOffset(point[dir])
 		# the point should be centered in p3d
 		(p1,p2),dims=self.getLogicBox(),self.getLogicSize()
+		p1,p2=list(p1),list(p2)
 		for I in range(pdim):
 			p1[I],p2[I]=point[I]-dims[I]/2,point[I]+dims[I]/2
 		self.setLogicBox([p1,p2])
@@ -570,7 +575,7 @@ class Slices(Widgets):
   
 	# setPalette
 	def setPalette(self,value, palette_range=(0.0,1.0)):
-		print("Slices:: setPalette",value, palette_range)
+		logger.info(f"Slices::setPalette value={value} palette_range={palette_range}")
 		super().setPalette(value, palette_range)
 		for slice in self.slices:
 			slice.setPalette(value,palette_range=palette_range)

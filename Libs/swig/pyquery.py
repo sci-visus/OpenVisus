@@ -4,7 +4,7 @@ import logging
 
 import OpenVisus as ov
 
-logger = logging.getLogger("pyquery")
+logger = logging.getLogger(__name__)
 
 # ///////////////////////////////////////////////////////////////////
 class PyStats:
