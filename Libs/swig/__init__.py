@@ -9,8 +9,7 @@ from OpenVisus.VisusDbPy       import *
 from OpenVisus.VisusDataflowPy import *
 from OpenVisus.VisusNodesPy    import *
 
-# TODO(1/17/2023): ideally we would redirect logging from the C++ side to the Python logger (may require a lock)
-DisableLogging()
+SetLoggingFunction(lambda message: logger.info(message.rstrip("\n")))
 
 SetCommandLine(list(it for it in [sys.executable] + sys.argv if it))
 

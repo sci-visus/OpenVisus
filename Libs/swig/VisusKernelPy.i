@@ -320,3 +320,47 @@ namespace Visus {
 
 } //namespace
 %}
+
+%{
+class PyCallback
+{
+	PyObject *func;
+    
+public:
+	PyCallback() {};
+	PyCallback(const PyCallback& o) : func(o.func) {
+		Py_XINCREF(func);
+	}
+	PyCallback(PyObject *func) : func(func) {
+		Py_XINCREF(this->func);
+	}
+	PyCallback& operator=(const PyCallback&) = delete;
+	~PyCallback() {
+		Py_XDECREF(func);
+	}
+	void operator()(const std::string& s) {
+		PyGILState_STATE gil_state = PyGILState_Ensure();
+		if (!func || Py_None == func || !PyCallable_Check(func)) {
+			PyGILState_Release(gil_state);
+			return;
+		}
+		PyObject *arg = Py_BuildValue("s", s.c_str());
+		PyObject *result = PyObject_CallOneArg(func, arg);
+		Py_DECREF(arg);
+		Py_XDECREF(result);
+		PyGILState_Release(gil_state);
+	}
+};
+%}
+
+%inline %{
+	static PyCallback *logging_callback = nullptr;
+	static void call_callback(String msg, void* data) {
+		((PyCallback *)data)->operator()(msg);
+	}
+	void SetLoggingFunction(PyObject *callback) {
+		delete logging_callback;
+		logging_callback = new PyCallback(callback);
+		RedirectLogTo(call_callback, logging_callback);
+	}
+%}

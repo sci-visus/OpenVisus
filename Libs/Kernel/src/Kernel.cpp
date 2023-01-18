@@ -105,13 +105,6 @@ ConfigFile* VisusModule::getModuleConfig() {
 //////////////////////////////////////////////////////////////////
 static std::pair< void (*)(String msg, void*), void*> __redirect_log__;
 
-void DiscardLog(String msg, void*) {
-}
-
-void DisableLogging() {
-  __redirect_log__ = std::make_pair(DiscardLog, nullptr);
-}
-
 void RedirectLogTo(void(*callback)(String msg, void*), void* user_data) {
   __redirect_log__ = std::make_pair(callback, user_data);
 }
