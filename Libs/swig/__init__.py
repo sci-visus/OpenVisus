@@ -1,11 +1,16 @@
+import logging
 import sys
 
-print("Starting OpenVisus",__file__,sys.version,sys.version_info,"...")
+logger = logging.getLogger(__name__)
+logger.info(f"Starting OpenVisus {__file__} {sys.version} {sys.version_info} ...")
 
 from OpenVisus.VisusKernelPy   import *
 from OpenVisus.VisusDbPy       import *
 from OpenVisus.VisusDataflowPy import *
 from OpenVisus.VisusNodesPy    import *
+
+# TODO(1/17/2023): ideally we would redirect logging from the C++ side to the Python logger (may require a lock)
+DisableLogging()
 
 SetCommandLine(list(it for it in [sys.executable] + sys.argv if it))
 

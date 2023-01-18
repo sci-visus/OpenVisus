@@ -234,6 +234,8 @@ VISUS_KERNEL_API void PrintLine(String file, int line, int severity, String msg)
 #define PrintWarning(...) PrintLine(__FILE__,__LINE__, 2, cstring(__VA_ARGS__))
 #define PrintError(...)   PrintLine(__FILE__,__LINE__, 3, cstring(__VA_ARGS__))
 
+VISUS_KERNEL_API void DisableLogging();
+
 VISUS_KERNEL_API void RedirectLogTo(void(*)(String msg, void*), void* user_data = nullptr);
 
 #if !SWIG
