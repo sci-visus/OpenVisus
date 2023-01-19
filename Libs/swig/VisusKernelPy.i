@@ -344,9 +344,9 @@ public:
 			PyGILState_Release(gil_state);
 			return;
 		}
-		PyObject *arg = Py_BuildValue("s", s.c_str());
-		PyObject *result = PyObject_CallOneArg(func, arg);
-		Py_DECREF(arg);
+		PyObject *args = Py_BuildValue("(s)", s.c_str());
+		PyObject *result = PyObject_Call(func, args, nullptr);
+		Py_DECREF(args);
 		Py_XDECREF(result);
 		PyGILState_Release(gil_state);
 	}
