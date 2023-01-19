@@ -132,10 +132,11 @@ void PrintLine(String file, int line, int level, String msg)
     << " " << msg << std::endl;
 
   msg = out.str();
-  PrintMessageToTerminal(msg);
-
+  
   if (__redirect_log__.first)
     __redirect_log__.first(msg, __redirect_log__.second);
+  else
+    PrintMessageToTerminal(msg);
 }
 
 int          CommandLine::argn=0;
