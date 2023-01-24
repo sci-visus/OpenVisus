@@ -153,9 +153,9 @@ class PyDataset(object):
 		
 	# getSliceLogicBox
 	def getSliceLogicBox(self,axis,offset):
-		ret=self.getLogicBox()
+		p1,p2=self.getLogicBox()
 		p1[axis]=offset+0
-		p1[axis]=offset+1
+		p2[axis]=offset+1
 		return (p1,p2)
 		
 	# getBounds
