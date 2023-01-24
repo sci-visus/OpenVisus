@@ -47,9 +47,11 @@ class PyStats:
 		stats.net=types.SimpleNamespace()
 		stats.net.r, stats.net.w, stats.net.n=net.getReadBytes(), net.getWriteBytes(), net.getNumRequests()
 		logger.info(f"Statistics enlapsed={sec} seconds" )
-		logger.info(f"   IO  r={ov.HumanSize(stats.io .r)} r_sec={ov.HumanSize(stats.io .r/sec)}/sec w={ov.HumanSize(stats.io .w)} w_sec={ov.HumanSize(stats.io .w/sec)}/sec n={stats.io .n:,} n_sec={int(stats.io .n/sec):,}/sec")
-		logger.info(f"   NET r={ov.HumanSize(stats.net.r)} r_sec={ov.HumanSize(stats.net.r/sec)}/sec w={ov.HumanSize(stats.net.w)} w_sec={ov.HumanSize(stats.net.w/sec)}/sec n={stats.net.n:,} n_sec={int(stats.net.n/sec):,}/sec")
-
+		try: # division by zero
+			logger.info(f"   IO  r={ov.HumanSize(stats.io .r)} r_sec={ov.HumanSize(stats.io .r/sec)}/sec w={ov.HumanSize(stats.io .w)} w_sec={ov.HumanSize(stats.io .w/sec)}/sec n={stats.io .n:,} n_sec={int(stats.io .n/sec):,}/sec")
+			logger.info(f"   NET r={ov.HumanSize(stats.net.r)} r_sec={ov.HumanSize(stats.net.r/sec)}/sec w={ov.HumanSize(stats.net.w)} w_sec={ov.HumanSize(stats.net.w/sec)}/sec n={stats.net.n:,} n_sec={int(stats.net.n/sec):,}/sec")
+		except:
+			pass
 
 
 # ////////////////////////////////////////////////////////////////////////
@@ -231,6 +233,7 @@ class PyQuery:
 		for H in end_resolutions:
 			query.end_resolutions.push_back(H)
 
+		# print("beginBoxQuery","box",box_ni.toString(),"field",field.name,"timestep",timestep)
 		db.beginBoxQuery(query)
 		I,N=0,len(end_resolutions)
 		while query.isRunning():
@@ -247,7 +250,6 @@ class PyQuery:
 	  
 			yield logic_box, data
 			db.nextBoxQuery(query)
-
 	# _threadLoop
 	def _threadLoop(self):
 

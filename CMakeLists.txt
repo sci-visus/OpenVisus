@@ -1,6 +1,8 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 
 
+
+
 # /////////////////////////////////////////////////////////////////////
 macro(DetectAndSetupCompiler)
 
@@ -151,6 +153,7 @@ if (VISUS_MINIMAL)
 	MESSAGE(STATUS "Forcing static linking on MSVC")
 	SET(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
+
 
 PROJECT(OpenVisus) 
 

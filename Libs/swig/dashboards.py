@@ -8,8 +8,8 @@ import bokeh.models
 import bokeh.plotting 
 
 import OpenVisus as ov
-
 from OpenVisus.pyquery import PyQuery
+from OpenVisus.image_utils import SplitChannels, InterleaveChannels
 
 import logging
 logger = logging.getLogger(__name__)
@@ -19,16 +19,15 @@ logger = logging.getLogger(__name__)
 class Canvas:
   
 	# constructor
-	def __init__(self,color_bar, color_mapper):
-
+	def __init__(self, color_bar, color_mapper,sizing_mode='stretch_both'):
+		self.sizing_mode=sizing_mode
 		self.color_bar=color_bar
 		self.color_mapper=color_mapper
-  
-		self.figure=bokeh.plotting.figure(active_scroll = "wheel_zoom")
+		self.figure=bokeh.plotting.figure(active_scroll = "wheel_zoom") 
 		self.figure.x_range = bokeh.models.Range1d(0,1024)   
 		self.figure.y_range = bokeh.models.Range1d(0,768) 
 		self.figure.toolbar_location="below"
-		self.figure.sizing_mode = 'stretch_both'
+		self.figure.sizing_mode = self.sizing_mode
 		# self.figure.add_tools(bokeh.models.HoverTool(tooltips=[ ("(x, y)", "($x, $y)"),("RGB", "(@R, @G, @B)")])) # is it working?
   
 		self.source_image = bokeh.models.ColumnDataSource(data={"image": [np.random.random((300,300))*255], "x":[0], "y":[0], "dw":[256], "dh":[256]})  
@@ -74,42 +73,92 @@ class Canvas:
 		self.points = self.figure.scatter(x=[p[0] for p in points], y=[p[1] for p in points], size=size, color=color, marker=marker)   
 		assert self.points in self.figure.renderers
 
-	# __getImage
-	def __getImage(self, data):
+	# getImage
+	def getImage(self, data,normalize_float=True):
 
-		# grayscale is just fine
-		if len(data.shape)==2:
-			return data
-		else:
-    
-			assert(len(data.shape)==3)   # the 3rd is the number of channels
-			nchannels=data.shape[-1]
+		height,width=data.shape[0],data.shape[1]
+
+		# typycal case
+		if data.dtype==np.uint8:
+
+			# (height,width)::uint8... grayscale, I will apply the colormap
+			if len(data.shape)==2:
+				Gray=data
+				return Gray 
+	
+			# (height,depth,channel)
+			if len(data.shape)!=3:
+				raise Exception(f"Wrong dtype={data.dtype} shape={data.shape}")
+
+			channels=SplitChannels(data)
+
+			if len(channels)==1:
+				Gray=channels[0]
+				return Gray
+
+			
 	  
-			if nchannels==2:
-				G,A=data[:,:,1],data[:,:,0] # gray,alpha -> RGBA
-				ret=np.dstack([G,G,G,A])
+			if len(channels)==2:
+				G,A=channels
+				return  InterleaveChannels([G,G,G,A]).view(dtype=np.uint32).reshape([height,width]) 
 	 
-			elif nchannels==3:
-				default_alpha=255 if data.dtype==np.uint8 else 1.0 # NOT SURE ABOUT THIS!
-				R,G,B=data[:,:,0],data[:,:,1],data[:,:,2] # RGB -> RGBA
-				A=np.full(R.shape, default_alpha,dtype=R.dtype)
-				ret= np.dstack([R,G,B,A])
+			elif len(channels)==3:
+				R,G,B=channels
+				A=np.full(channels[0].shape, 255, np.uint8)
+				return  InterleaveChannels([R,G,B,A]).view(dtype=np.uint32).reshape([height,width]) 
 
-			else:
-				raise Exception(f"to handle shape={data.shape} dtype={data.dtype} nchannels={nchannels}")   
- 
-			# what to do with other dtypes?
-			assert(data.dtype==np.uint8) 
-			return ret.view(dtype=np.uint32).reshape(ret.shape[0:2])
+			elif len(channels)==4:
+				R,G,B,A=channels
+				return InterleaveChannels([R,G,B,A]).view(dtype=np.uint32).reshape([height,width]) 
+			
+			
+		else:
+
+			# (height,depth) ... I will apply matplotlib colormap 
+			if len(data.shape)==2:
+				G=data.astype(np.float32)
+				return G
+			
+			# (height,depth,channel)
+			if len(data.shape)!=3:
+				raise Exception(f"Wrong dtype={data.dtype} shape={data.shape}")  
+		
+			# convert all channels in float32
+			channels=SplitChannels(data)
+			channels=[channel.astype(np.float32) for channel in channels]
+
+			if normalize_float:
+				for C,channel in enumerate(channels):
+					m,M=np.min(channel),np.max(channel)
+					channels[C]=(channel-m)/(M-m)
+
+			if len(channels)==1:
+				G=channels[0]
+				return G
+
+			if len(channels)==2:
+				G,A=channels
+				return InterleaveChannels([G,G,G,A])
+	 
+			elif len(channels)==3:
+				R,G,B=channels
+				A=np.full(channels[0].shape, 1.0, np.float32)
+				return InterleaveChannels([R,G,B,A])
+
+			elif len(channels)==4:
+				R,G,B,A=channels
+				return InterleaveChannels([R,G,B,A])
+		
+		raise Exception(f"Wrong dtype={data.dtype} shape={data.shape}") 
+
 
 	# renderImage
 	def renderImage(self, data, x1, y1, x2, y2):
-   
-		img=self.__getImage(data)
+		img=self.getImage(data)
 		dtype=img.dtype
  
 		if self.dtype==dtype :
-			# just change the soource _data
+			# current dtype is 'compatible' with the new image dtype, just change the source _data
 			self.source_image.data={"image":[img], "x":[x1], "y":[y1], "dw":[x2-x1], "dh":[y2-y1]}
 		else:
 			# need to create a new one from scratch
@@ -147,7 +196,7 @@ class Widgets:
 		self.color_bar = bokeh.models.ColorBar(color_mapper=self.color_mapper)
  
 		# timestep
-		self.widgets.timestep = bokeh.models.Slider(title='Time', value=0, start=0, end=1, sizing_mode="stretch_width")
+		self.widgets.timestep = bokeh.models.Slider(title='Time', value=0, start=0, end=1, sizing_mode='stretch_width')
 		self.widgets.timestep.on_change ("value",lambda attr, old, new: self.setTimestep(int(new)))  
   
 		# field
@@ -159,7 +208,7 @@ class Widgets:
 		self.widgets.direction.on_change ("value",lambda attr, old, new: self.setDirection(int(new)))  
   
 		# offset 
-		self.widgets.offset = bokeh.models.Slider(title='Offset', value=0, start=0, end=1024, sizing_mode="stretch_width")
+		self.widgets.offset = bokeh.models.Slider(title='Offset', value=0, start=0, end=1024, sizing_mode='stretch_width')
 		self.widgets.offset.on_change ("value",lambda attr, old, new: self.setOffset(int(new)))
   
 	@staticmethod
@@ -285,19 +334,22 @@ class Widgets:
 class Slice(Widgets):
 	
 	# constructor
-	def __init__(self):
+	def __init__(self,doc=None, sizing_mode='stretch_both'):
 		super().__init__()
+		if doc is None: doc=bokeh.io.curdoc()
+		self.doc=doc
+		self.sizing_mode=sizing_mode
 		self.access=None
 		self.lock          = threading.Lock()
 		self.aborted       = ov.Aborted()
 		self.new_job       = False
 		self.current_img   = None
 		self.options={}
-		self.canvas = Canvas(self.color_bar, self.color_mapper)
+		self.canvas = Canvas(self.color_bar, self.color_mapper, sizing_mode=self.sizing_mode)
 		self.status = {}
-		self.layout=bokeh.layouts.column(children=[],sizing_mode='stretch_both')
+		self.layout=bokeh.layouts.column(children=[],sizing_mode=self.sizing_mode)
 		self.show_options=["palette","timestep","field","direction","offset"]
-		self.callback = bokeh.io.curdoc().add_periodic_callback(self.onTimer, 100)  
+		self.callback = doc.add_periodic_callback(self.onTimer, 100)  
 		self.query=PyQuery()
 		self.query.startThread()
 
@@ -326,7 +378,7 @@ class Slice(Widgets):
 		if self.getPointDim()==3 and "offset" in self.show_options:
 			first_row.append(self.widgets.offset)
 
-		self.layout.children.append(bokeh.layouts.Row(*first_row, sizing_mode='stretch_width')  )  
+		self.layout.children.append(bokeh.layouts.Row(*first_row, sizing_mode='stretch_width'))  
 		self.layout.children.append(self.canvas.figure)
   
 		self.setTimestep(timesteps[0])
@@ -435,11 +487,12 @@ class Slice(Widgets):
 
 	# onTimer
 	def onTimer(self):
+
 		# ready for jobs?
 		canvas_w,canvas_h=(self.canvas.getWidth(),self.canvas.getHeight())
 		if canvas_w==0 or canvas_h==0 or not self.db:
 			return
-		
+
 		# simulate fixAspectRatio (i cannot find a bokeh metod to watch for resize event)
 		if self.status.get("w",0)!=canvas_w or self.status.get("h",0)!=canvas_h:
 			self.canvas.setViewport(*self.canvas.getViewport())
@@ -447,8 +500,9 @@ class Slice(Widgets):
 			self.status["h"]=canvas_h
 			self.refresh()
    
+
 		# a new image is available?
-		data,logic_box=self.query.popResult(last_only=True)
+		data,logic_box=self.query.popResult(last_only=True) 
 		if data is not None:
 			(x1,y1),(x2,y2)=self.project(logic_box)
 			self.canvas.renderImage(data,x1,y1,x2,y2)
@@ -472,13 +526,15 @@ class Slice(Widgets):
 class Slices(Widgets):
 
 	# constructor
-	def __init__(self):
+	def __init__(self, doc=None,sizing_mode='stretch_both'):
 		super().__init__()
-  
+		if doc is None: doc=bokeh.io.curdoc()
+		self.doc=doc
+		self.sizing_mode=sizing_mode
 		self.slices=[]
 		self.widgets.nviews=bokeh.models.Select(title='Layout',  options=["1","2","3","4"],value='3',width=50,sizing_mode='fixed')
 		self.widgets.nviews.on_change("value",lambda attr, old, new: self.setDataset(self.db, layout=int(new)))
-		self.layout=bokeh.layouts.column(children=[],sizing_mode='stretch_both')
+		self.layout=bokeh.layouts.column(children=[],sizing_mode=self.sizing_mode)
 		self.show_options=["nviews","palette","timestep","field","!direction","!offset"]
 
 	# getHeaderLayout
@@ -529,7 +585,7 @@ class Slices(Widgets):
 				elif cell=="c":
 						children.append(bokeh.layouts.Col())
 				elif cell in [0,1,2]:
-					slice=Slice()	
+					slice=Slice(self.doc,sizing_mode=self.sizing_mode)	
 					slice.show_options=["direction","offset"]
 					slice.enableDoubleTap(self.gotoPoint)
 					slice.setDataset(self.db, direction=cell)
@@ -537,7 +593,8 @@ class Slices(Widgets):
 					children.append(slice.layout)
 				else:
 					children.append(cell)
-		return bokeh.layouts.grid(children=children, nrows=nrows, ncols=ncols, sizing_mode='stretch_both') 
+		ret=bokeh.layouts.grid(children=children, nrows=nrows, ncols=ncols, sizing_mode=self.sizing_mode) 
+		return ret
 
 	# clearSlices
 	def clearSlices(self):
