@@ -49,7 +49,7 @@ jobs:
       
 
   build-macos-cpython:
-    runs-on: macos-latest
+    runs-on: macos-11
     strategy:
       fail-fast: false  
       matrix:
@@ -70,7 +70,7 @@ jobs:
             
       
   build-macos-conda:
-    runs-on: macos-latest
+    runs-on: macos-11
     strategy:
       fail-fast: false  
       matrix:
