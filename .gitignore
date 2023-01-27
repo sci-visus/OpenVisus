@@ -2,5 +2,5 @@
 ~*
 .*
 .DS_Store
-build/*
-build22/*
+./build/*
+./build22/*
