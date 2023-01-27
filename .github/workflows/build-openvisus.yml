@@ -66,6 +66,7 @@ jobs:
       run: |
            set -ex
            export PYTHON_VERSION=${{ matrix.python-version }}
+           xcode-select --install
            source ./scripts/cpython.macos.sh
             
       
@@ -83,6 +84,7 @@ jobs:
       run: |
            set -ex
            export PYTHON_VERSION=${{ matrix.python-version }}
+           xcode-select --install
            source ./scripts/conda.macos.sh
                   
       
