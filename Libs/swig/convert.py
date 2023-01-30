@@ -278,9 +278,13 @@ def CompressModVisusDataset(db, compression="zip", num_threads=32, timestep=None
 		full_size=header_size
 
 		# ________________________________________________________________________
+		# NOTE B = (repeat for number of fields in a file)
+		#          (blocks_per_file*0)+(0,1,2,..,blocks_per_file-1),   
+		#          (blocks_per_file*1)+(0,1,2,..,blocks_per_file-1),    
+		#          (blocks_per_file*2)+(0,1,2,..,blocks_per_file-1),   
 		def CompressModVisusBlock(B):
-			block_header=block_headers[B]
-			field_index=B // blocks_per_file
+			block_header=block_headers[B] 
+			field_index=B // blocks_per_file # I can have multiple fields in the same file
 			blocksize=idx.fields[field_index].dtype.getByteSize(2**idx.bitsperblock)
 			assert block_header[0]==0 and block_header[1]==0 and block_header[6]==0 and block_header[7]==0 and block_header[8]==0 and block_header[9]==0
 			offset=(block_header[2]<<0)+(block_header[3]<<32)
@@ -288,6 +292,10 @@ def CompressModVisusDataset(db, compression="zip", num_threads=32, timestep=None
 			flags =block_header[5]
 			block=mem[offset:offset+size]
 			flags_compression=flags & CompressionMask
+
+			# special case: the block does not exist on disk (totally legit case)
+			if size==0:
+				return (B,[]) 
 
 			# note: it automatically detect if it's already compressed or not, so the code should be robust
 			if flags_compression == ZipMask:
@@ -312,7 +320,8 @@ def CompressModVisusDataset(db, compression="zip", num_threads=32, timestep=None
 		p=ThreadPool(num_threads)
 		# COMPRESSED=p.map(CompressModVisusBlock, range(tot_blocks)) THIS may have problems with timeout
 		COMPRESSED=p.map_async(CompressModVisusBlock, range(tot_blocks), 1).get(timeout=60*60*24*30) # 1 month
-		COMPRESSED=sorted(COMPRESSED, key=lambda tup: tup[0])
+		COMPRESSED=sorted(COMPRESSED, key=lambda tup: tup[0]) # order by block number
+		assert(len(COMPRESSED)==tot_blocks)
 
 		compressed_size=header_size+sum([len(it[1]) for it in COMPRESSED])
 		mem=bytearray(mem[0:compressed_size])
@@ -328,7 +337,9 @@ def CompressModVisusDataset(db, compression="zip", num_threads=32, timestep=None
 			# block header
 			header_offset=file_header_size+I*40
 			mem[header_offset:header_offset+40]=struct.pack('>IIIIIIIIII',0,0,(offset & 0xffffffff),(offset>>32),size,(block_headers[I][5] & ~CompressionMask) | ZipMask,0,0,0,0)
-			mem[offset:offset+size]=compressed; offset+=size
+			if size:
+				mem[offset:offset+size]=compressed
+				offset+=size
 		assert offset==compressed_size
 
 		SafeReplaceFile(filename, mem)
