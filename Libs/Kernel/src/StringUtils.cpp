@@ -221,12 +221,17 @@ String StringUtils::hexdigest(String value)
 ///////////////////////////////////////////////////////////////////////////
 String StringUtils::sha256(const String str)
 {
+#if VISUS_NET 
   unsigned char hash[SHA256_DIGEST_LENGTH];
   SHA256_CTX sha256;
   SHA256_Init(&sha256);
   SHA256_Update(&sha256, str.c_str(), str.size());
   SHA256_Final(hash, &sha256);
   return String((char*)hash, SHA256_DIGEST_LENGTH);
+#else
+  ThrowException("network not supported");
+  return "";
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////
