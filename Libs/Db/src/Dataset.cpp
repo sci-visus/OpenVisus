@@ -625,7 +625,7 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
           return;
 
         if (!prev_filename.empty())
-          PrintInfo("Compressed file", prev_filename);
+          PrintInfo("Compressed file", prev_filename,StringUtils::join(" ", compression));
 
         // close any read file handle only if it's the last read op
         if (value.empty())

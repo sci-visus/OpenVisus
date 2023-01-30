@@ -134,7 +134,8 @@ public:
       return zfp;
     }
 
-    //a double
+    //a double == accuracy
+    if (StringUtils::contains(specs,"."))
     {
       double accuracy = 0;
       if (StringUtils::tryParse(specs, accuracy))
@@ -144,8 +145,7 @@ public:
       }
     }
 
-
-    //a integer
+    //a integer ==precision
     {
       int precision = 0;
       if (StringUtils::tryParse(specs, precision))
