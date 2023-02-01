@@ -56,7 +56,7 @@ python3 -m OpenVisus configure || python3 -m OpenVisus configure
 
 There are two ways to circumvent firewalling problems.
 
-## SSH dynamic SOCKS (recoomended)
+## SSH dynamic SOCKS (reccomended)
 
 Run a local SOCKS server while connecting to the remote (behind a firewall) node:
 - `-q` means: quiet
@@ -67,9 +67,9 @@ Run a local SOCKS server while connecting to the remote (behind a firewall) node
 ssh -D 8888 -q -C <ssh-remote-hostname>
 ```
 
-Then change your local browser proxy setting (**TODO: find a browser extension that handles proxy on name patterns**).
+Then change your local browser proxy setting.
 For example in Firefox `Settings`/`Manual proxy configuration`:
-- 
+
 ```
 SOCKS HOST: localhost
 SOCKS PORT: 8888
@@ -82,7 +82,7 @@ ENABLE DNS over HTTPS: checked
 since `localhost` or `127.0.0.1` will NOT work (the browser refuses to use any proxy server for any local address).
 
 
-## SSH local port forwarding 
+## SSH local port forwarding
 
 NOTE: With this modality, you should know the ports-to-forward in advance.
 Each bokeh app, running in a Jupyter Notebook cell, seems to need two forwarded port.
