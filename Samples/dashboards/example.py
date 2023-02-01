@@ -14,13 +14,9 @@ if __name__.startswith('bokeh'):
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--multiple"     , help="enable multiple slices"  , action="store_true")
 	parser.add_argument("--palette-range", help="palette range", type=str, required=False, default="0 255")
-	parser.add_argument("--debug"        , help="bokeh debug level"  , action="store_true")
 	parser.add_argument("url", type=str)
 	args = parser.parse_args()
 	print("Got arguments",args)
-
-	if args.debug:
-		os.environ["BOKEH_LOG_LEVEL"]="debug" 
  
 	db=ov.LoadDataset(args.url)
  

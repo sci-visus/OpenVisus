@@ -1,5 +1,24 @@
+# Jupyter notebooks
 
-# (OPTIONAL) Install Python
+Run OpenVisus Jupyter notebook:
+
+```
+python -m jupyter notebook Samples/dashboards/example.ipynb [--ip=0.0.0.0] [--port <jupyter-port>] [--debug]
+```
+
+# Bokeh Dashboard
+
+Run OpenVisus Bokeh dashboard:
+- **NOTE** dangerous to allow all bokeh origins, but just for debugging purpouse
+
+```
+export BOKEH_LOG_LEVEL=info
+export BOKEH_ALLOW_WS_ORIGIN='*' 
+python -m bokeh serve Samples/dashboards/example.py  [--address 0.0.0.0] [--port <bokeh-port>] --args "http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1" --palette-range "0.0 255.0" [--multiple]
+```
+
+
+# (OPTIONAL) Install Python using miniforge
 
 ```
 curl -L -O https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
@@ -33,12 +52,48 @@ mamba install -c scrgiorgio  openvisusnogui
 python3 -m OpenVisus configure || python3 -m OpenVisus configure
 ```
 
-# (OPTIONAL) SSh tunneling
+# (OPTIONAL) SSH tunneling firewall problem
 
-You can ssh-tunnels doing:
+There are two ways to circumvent firewalling problems.
+
+## SSH dynamic SOCKS (recoomended)
+
+Run a local SOCKS server while connecting to the remote (behind a firewall) node:
+- `-q` means: quiet
+- `-C` means: enable compression
+- `-D <port>` create a SOCKS server
 
 ```
-ssh -L local-port:127.0.0.1:remote-port -L local-port:127.0.0.1:remote-port ...
+ssh -D 8888 -q -C <ssh-remote-hostname>
+```
+
+Then change your local browser proxy setting (**TODO: find a browser extension that handles proxy on name patterns**).
+For example in Firefox `Settings`/`Manual proxy configuration`:
+- 
+```
+SOCKS HOST: localhost
+SOCKS PORT: 8888
+SOCKS TYPE: SOCKS_v5
+PROXY DNS when using SOCKS v5: checked
+ENABLE DNS over HTTPS: checked
+```
+
+**IMPORTANT TO REMEMBER** When typing the Jupyter/Bokeh url in your browser, make sure always to use **the full qualified hostname** 
+since `localhost` or `127.0.0.1` will NOT work (the browser refuses to use any proxy server for any local address).
+
+
+## SSH local port forwarding 
+
+NOTE: With this modality, you should know the ports-to-forward in advance.
+Each bokeh app, running in a Jupyter Notebook cell, seems to need two forwarded port.
+
+You can forward ssh-port(s) by doing:
+
+```
+ssh \
+   -L local-port:127.0.0.1:remote-port \
+   -L local-port:127.0.0.1:remote-port \
+   ...
 ```
 
 Or you can change the  `~/.ssh/config` to forward ports:
@@ -50,52 +105,7 @@ Host our-hostname
 	Port 22	
 	ServerAliveInterval 60
 	IdentityFile ~/.ssh/your-private-identity
-	LocalForward 10011 127.0.0.1:10011 # FORMAT local-port host:remote-port
+	LocalForward 10011 127.0.0.1:10011
 	LocalForward 10012 127.0.0.1:10012          
 ```
-
-# Jupyter notebooks
-
-Without specifying the port:
-
-```
-python -m jupyter notebook Samples/dashboards/example.ipynb
-```
-
-specifying the port (necessary for ssh tunneling):
-
-```
-python -m jupyter --port jupyter-port Samples/dashboards/example.ipynb
-```
-
-# Bokeh Dashboards
-
-Note: add `--port bokeh-port` for ssh tunneling
-
-## Single slice (2D-RGB)
-
-```
-export VISUS_NETSERVICE_VERBOSE=0
-python -m bokeh serve Samples/dashboards/example.py  --dev --args  "http://atlantis.sci.utah.edu/mod_visus?dataset=david_subsampled" --palette-range "0.0 255.0"
-```
-
-## Single slice (3D-grayscale)
-
-```
-python -m bokeh serve Samples/dashboards/example.py  --dev --args "http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1"  --palette-range "0.0 255.0"
-```
-
-## Multiple slice (2D-RGB)
-
-```
-python -m bokeh serve Samples/dashboards/example.py  --dev --args  "http://atlantis.sci.utah.edu/mod_visus?dataset=david_subsampled" --palette-range "0.0 255.0" --multiple
-```
-
-## Multiple slice (3D-grayscale)
-
-```
-python -m bokeh serve Samples/dashboards/example.py  --dev --args "http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1"  --palette-range "0.0 255.0" --multiple
-```
-
-
 
