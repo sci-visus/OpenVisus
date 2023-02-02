@@ -48,7 +48,7 @@ mamba install -y -c hexrd -c conda-forge \
 
 # install openvisusnogui
 # TODO: change the channel for openvisus
-mamba install -c scrgiorgio  openvisusnogui
+mamba install -c visus  openvisusnogui
 python3 -m OpenVisus configure || python3 -m OpenVisus configure
 ```
 

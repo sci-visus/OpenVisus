@@ -763,6 +763,8 @@ void Viewer::showWidget(QWidget* widget, String title)
 }
 
 
+
+
 ///////////////////////////////////////////////////////////
 void Viewer::addDockWidget(String name,QWidget* widget)
 {

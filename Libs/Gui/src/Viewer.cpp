@@ -96,12 +96,23 @@ namespace Visus {
 static void RedirectLogToViewer(String msg, void* user_data)
 {
   auto viewer = (Viewer*)user_data;
+  PrintMessageToTerminal(msg);
   viewer->printInfo(msg);
+}
+
+static Viewer* __viewer_instance = nullptr;
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+Viewer* Viewer::getInstance() {
+  return __viewer_instance;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 Viewer::Viewer(String title) : QMainWindow()
 {
+  __viewer_instance = this;
+
   QueryNode::willFitOnGpu = [](Int64 size) ->bool {
     return GLInfo::getSingleton()->mallocOpenGLMemory(1.2 * size,/*simulate_only*/true);
   };
@@ -150,6 +161,8 @@ Viewer::~Viewer()
   PrintInfo("destroying VisusViewer");
   RedirectLogTo(nullptr);
   setDataflow(nullptr);
+
+  __viewer_instance = nullptr;
 }
 
 ////////////////////////////////////////////////////////////
@@ -174,6 +187,13 @@ void Viewer::printInfo(String msg)
   emit postFlushMessages();
 }
 
+////////////////////////////////////////////////////////////
+double Viewer::getCurrentTime() {
+  if (auto time_node = findNode<TimeNode>())
+    return time_node->getCurrentTime();
+  else
+    return 0;
+}
 
 ////////////////////////////////////////////////////////////
 void Viewer::execute(Archive& ar)

@@ -283,6 +283,9 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(Viewer)
 
+  //getInstance
+  static Viewer* getInstance();
+
   //constructor
   Viewer(String title = "Visus Viewer");
 
@@ -353,6 +356,9 @@ public:
   QTextEdit* getLog() const {
     return widgets.log;
   }
+
+  //getCurrentTime
+  double getCurrentTime();
 
   //addDockWidget
   void addDockWidget(String name, QWidget* widget);

@@ -908,6 +908,8 @@ SharedPtr<BoxQuery> Dataset::createBoxQuery(BoxNi logic_box, Field field, double
 //////////////////////////////////////////////////////////////
 void Dataset::beginBoxQuery(SharedPtr<BoxQuery> query)
 {
+  Url url = this->getUrl();
+
   if (!query)
     return;
 
@@ -923,6 +925,8 @@ void Dataset::beginBoxQuery(SharedPtr<BoxQuery> query)
   // override time from field
   if (query->field.hasParam("time"))
     query->time = cdouble(query->field.getParam("time"));
+  else if (url.hasParam("time"))
+    query->time = cdouble(url.getParam("time"));
 
   if (!getTimesteps().containsTimestep(query->time))
     return query->setFailed("wrong time");
@@ -1584,6 +1588,8 @@ void Dataset::beginPointQuery(SharedPtr<PointQuery> query)
 {
   VisusAssert(!blocksFullRes());
 
+  Url url = getUrl();
+
   if (!query)
     return;
 
@@ -1605,6 +1611,8 @@ void Dataset::beginPointQuery(SharedPtr<PointQuery> query)
   // override time from field
   if (query->field.hasParam("time"))
     query->time = cdouble(query->field.getParam("time"));
+  else if (url.hasParam("time"))
+    query->time = cdouble(url.getParam("time"));
 
   if (!getTimesteps().containsTimestep(query->time))
     return query->setFailed("wrong time");
