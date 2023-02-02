@@ -153,7 +153,7 @@ def toNumPy(src, bShareMem=False, bSqueeze=False):
 
 	# invalid arrray is a zero numpy,0 is "shape"
 	if not src.dtype.valid(): 
-		return numpy.zeros(0, dtype=numpy.float) 
+		return numpy.zeros(0, dtype=numpy.float32) 
 
 	# dtype  (<: little-endian, >: big-endian, |: not-relevant) ; integer providing the number of bytes  ; i (integer) u (unsigned integer) f (floating point)
 	atomic_dtype=src.dtype.get(0)
