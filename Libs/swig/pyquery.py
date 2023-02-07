@@ -6,7 +6,7 @@ import OpenVisus as ov
 
 logger = logging.getLogger(__name__)
 
-if ov.cbool(os.environ.get("VISUS_PYQUERY_VERBOSE",0)) == True:
+if ov.cbool(os.environ.get("VISUS_PYQUERY_VERBOSE","0")) == True:
 	ov.SetupLogger(logger)
 
 # ///////////////////////////////////////////////////////////////////
