@@ -6,6 +6,9 @@ import OpenVisus as ov
 
 logger = logging.getLogger(__name__)
 
+if ov.cbool(os.environ.get("VISUS_PYQUERY_VERBOSE",0)) == True:
+	ov.SetupLogger(logger)
+
 # ///////////////////////////////////////////////////////////////////
 class PyStats:
 	
@@ -46,7 +49,7 @@ class PyStats:
 		net=ov.NetService.global_stats()
 		stats.net=types.SimpleNamespace()
 		stats.net.r, stats.net.w, stats.net.n=net.getReadBytes(), net.getWriteBytes(), net.getNumRequests()
-		logger.info(f"Statistics enlapsed={sec} seconds" )
+		logger.info(f"PyStats::printStatistics enlapsed={sec} seconds" )
 		try: # division by zero
 			logger.info(f"   IO  r={ov.HumanSize(stats.io .r)} r_sec={ov.HumanSize(stats.io .r/sec)}/sec w={ov.HumanSize(stats.io .w)} w_sec={ov.HumanSize(stats.io .w/sec)}/sec n={stats.io .n:,} n_sec={int(stats.io .n/sec):,}/sec")
 			logger.info(f"   NET r={ov.HumanSize(stats.net.r)} r_sec={ov.HumanSize(stats.net.r/sec)}/sec w={ov.HumanSize(stats.net.w)} w_sec={ov.HumanSize(stats.net.w/sec)}/sec n={stats.net.n:,} n_sec={int(stats.net.n/sec):,}/sec")
@@ -150,7 +153,7 @@ class PyQuery:
 
 	# read
 	@staticmethod
-	def read(db,  access=None, timestep=None, field=None, logic_box=None, num_refinements=1, max_pixels=None, aborted=ov.Aborted(), verbose=False):
+	def read(db,  access=None, timestep=None, field=None, logic_box=None, num_refinements=1, max_pixels=None, aborted=ov.Aborted()):
 
 		def Clamp(value,a,b):
 			assert a<=b
@@ -158,7 +161,7 @@ class PyQuery:
 			if value>b: value=b
 			return value
 
-		# logger.info(f"read logic_box={logic_box}")
+		logger.info(f"PyQuery::read (staticmethod) logic_box={logic_box}")
 
 		pdim=db.getPointDim()
 		assert pdim==2 or pdim==3 # todo other cases?
@@ -208,10 +211,9 @@ class PyQuery:
 			for H in range(maxh,0,-1):
 				logic_box,delta,num_pixels=PyQuery.getAlignedBox(db,logic_box,H, slice_dir=slice_dir)
 
-				if verbose:
-					logger.info(f"read Guess resolution H={H} logic_box={logic_box} delta={delta} num_pixels={num_pixels} tot_pixels={np.prod(num_pixels):,} max_pixels={max_pixels:,}")
+				logger.info(f"PyQuery::read (staticmethod) Guess resolution H={H} logic_box={logic_box} delta={delta} num_pixels={repr(num_pixels)} tot_pixels={np.prod(num_pixels,dtype=np.int64):,} max_pixels={max_pixels:,}")
 
-				if np.prod(num_pixels)<=max_pixels*1.10:
+				if np.prod(num_pixels,dtype=np.int64)<=max_pixels*1.10:
 					endh=H
 					break
 
@@ -250,6 +252,8 @@ class PyQuery:
 	  
 			yield logic_box, data
 			db.nextBoxQuery(query)
+			
+
 	# _threadLoop
 	def _threadLoop(self):
 
@@ -267,9 +271,9 @@ class PyQuery:
 			self.stats.startQuery()
 			db,access, timestep, field, logic_box, max_pixels,num_refinements, aborted = args
 
-			logger.info(f"[{self.query_id}] Got job {timestep} {field} {logic_box} {num_refinements} {max_pixels}")
+			logger.info(f"PyQuery::_threadLoop [{self.query_id}] Start job timestep={timestep} field={field} logic_box={logic_box} num_refinements={num_refinements} max_pixels={max_pixels}")
 			I=0
-			for logic_box, data in PyQuery.read(db, access=access, timestep=timestep, field=field, logic_box=logic_box, num_refinements=num_refinements, max_pixels=int(np.prod(max_pixels)), aborted=aborted):
+			for logic_box, data in PyQuery.read(db, access=access, timestep=timestep, field=field, logic_box=logic_box, num_refinements=num_refinements, max_pixels=int(np.prod(max_pixels,dtype=np.int64)), aborted=aborted):
 				
 				# query failed
 				if data is None:
@@ -278,9 +282,10 @@ class PyQuery:
 				if aborted.__call__()==ABORTED.__call__():
 					break
 
-				logger.info(f"[{self.query_id}] {I}/{num_refinements} {data.shape} {data.dtype} m={np.min(data)} M={np.max(data)}")
+				logger.info(f"PyQuery::_threadLoop [{self.query_id}] Got data {I}/{num_refinements} {data.shape} {data.dtype} m={np.min(data)} M={np.max(data)}")
 				I+=1
     
+				
 				if self.oqueue:
 					self.oqueue.put((data,logic_box))
 					if self.wait_for_oqueue:
@@ -292,7 +297,7 @@ class PyQuery:
 				
 
 			# let the main task know I am done
-			logger.info(f"[{self.query_id}] job done")
+			logger.info(f"PyQuery::_threadLoop [{self.query_id}] job done")
 			self.iqueue.task_done()
 			self.stats.stopQuery()
 

@@ -12,9 +12,10 @@ Run OpenVisus Bokeh dashboard:
 - **NOTE** dangerous to allow all bokeh origins, but just for debugging purpouse
 
 ```
-export BOKEH_LOG_LEVEL=info
 export BOKEH_ALLOW_WS_ORIGIN='*' 
-python -m bokeh serve Samples/dashboards/example.py  [--address 0.0.0.0] [--port <bokeh-port>] --args "http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1" --palette-range "0.0 255.0" [--multiple]
+export VISUS_DASHBOARDS_VERBOSE=0
+export VISUS_PYQUERY_VERBOSE=0
+python -m bokeh serve Samples/dashboards/example.py  [--dev] [--log-level=debug] [--address 0.0.0.0] [--port <bokeh-port>] --args "http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1" --palette-range "0.0 255.0" [--multiple]
 ```
 
 

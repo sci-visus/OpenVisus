@@ -759,7 +759,7 @@ n_colors=256
 if True:
 
 		def ConvertToCpp(name,array):
-				out="static unsigned char {}[{}]=\n".format(name,np.prod(array.shape))
+				out="static unsigned char {}[{}]=\n".format(name,np.prod(array.shape,dtype=np.int64))
 				out+="{\n"
 				N=array.shape[0]
 				for I in range(N):
@@ -777,7 +777,7 @@ if True:
 if True:
 
 		def ConvertToCpp(name,array):
-				out="static unsigned char {}[{}]=\n".format(name,np.prod(array.shape))
+				out="static unsigned char {}[{}]=\n".format(name,np.prod(array.shape,dtype=np.int64))
 				out+="{\n"
 				N=array.shape[0]
 				for I in range(N):

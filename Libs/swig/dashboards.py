@@ -15,6 +15,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+if ov.cbool(os.environ.get("VISUS_DASHBOARDS_VERBOSE",0)) == True:
+	ov.SetupLogger(logger)
+
+
 # ////////////////////////////////////////////////////////////////////////////////////
 class Canvas:
   
@@ -67,7 +71,7 @@ class Canvas:
 
 	# renderPoints
 	def renderPoints(self,points,size=20,color="red",marker="cross"):
-		logger.info(f"renderPoints {points}")
+		logger.info(f"Canvas::renderPoints {points}")
 		if self.points is not None: 
 			self.figure.renderers.remove(self.points)
 		self.points = self.figure.scatter(x=[p[0] for p in points], y=[p[1] for p in points], size=size, color=color, marker=marker)   

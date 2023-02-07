@@ -53,11 +53,13 @@ For support : support@visus.net
 #include <QOpenGLWidget>
 #include <QOpenGLContext>
 
+#if !SWIG
 #if QT_VERSION >= QT_VERSION_CHECK(5, 6, 0)
   #include <QOpenGLExtraFunctions>
 #else
   #include <QOpenGLFunctions>
   #define QOpenGLExtraFunctions QOpenGLFunctions
+#endif
 #endif
 
 

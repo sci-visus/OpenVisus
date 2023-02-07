@@ -1,6 +1,6 @@
 .ipynb_checkpoints
 ~*
-.*
+.git/
 .DS_Store
 build/
 
