@@ -220,9 +220,11 @@ If your need to change the `datasets.config` at runtime, for example because you
 
 ```
 <visus>
-  <ModVisus>
-     <Dynamic enabled='true' filename='/datasets/datasets.config' msec='5000' />
-  </ModVisus>
+  <Configuration>
+    <ModVisus>
+      <Dynamic enabled='true' filename='/datasets/datasets.config' msec='5000' />
+    </ModVisus>
+  </Configuration>
   ...
 </visus>
 ```
