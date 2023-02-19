@@ -9,7 +9,7 @@ from OpenVisus.VisusDataflowPy import *
 from OpenVisus.VisusNodesPy    import *
 
 if cbool(os.environ.get("VISUS_CPP_VERBOSE","0")):
-	# keep c++ logs
+	# keep C++ logs
 	pass
 else:
 	# silent C++ logs

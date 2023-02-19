@@ -660,6 +660,8 @@ class PyDataset(object):
 		CopyDatasetToCloud(self,local=local,remote=remote,done=done,arco=arco,compression=compression,clean_local=clean_local,timestep=timestep,field=field)
 
 
+
+############### stable OpenVisus API #####################
 def load_dataset(url, cache_dir=""):
 	"""
 	Loads dataset locally or over http.
@@ -674,7 +676,7 @@ def load_dataset(url, cache_dir=""):
 	if os.path.isfile(cache_dir):
 		raise NotADirectoryError(f"The cache_dir {cache_dir} is a file and not a directory")
 	try:
-		dataset = LoadDataset(url, cache_dir=cache_dir)
+		dataset = Dataset(LoadDatasetCpp(url, cache_dir))
 	except SystemError as e:
 		dataset = None
 	if dataset is None:
@@ -682,14 +684,144 @@ def load_dataset(url, cache_dir=""):
 	return dataset
 
 
-def create_idx(*, url, shape, fields):
+
+
+def create_dataset(*, url, shape, fields):
 	"""
 	Creates a local .idx file at the url location storing the metadata of the shape and fields.
 	The data is written using the write function.
 
 	Example:
-	dataset = create_idx(url="test.idx", shape=(10, 20, 30), fields=[Field("data", "float32")])
+	dataset = create_dataset(url="test.idx", shape=(10, 20, 30), fields=[Field("data", "float32")])
 	dataset.write(data)
 	dataset.compress_dataset()
 	"""
 	return CreateIdx(url=url, dims=list(reversed(shape)), fields=fields, arco="1mb")
+
+
+
+
+class Dataset(object):
+	def __init__(self,db):
+		self.db = db
+		self.max_resolution = self.db.getMaxResolution()
+		self.field_names = [field.name for field in self.db.getFields()]
+
+		low, high = self.getLogicBox()
+		assert len(low) == len(high)
+		self.x = low[0], high[0] if len(low) > 0 else None
+		self.y = low[1], high[1] if len(low) > 1 else None
+		self.z = low[2], high[2] if len(low) > 2 else None
+
+
+	def getLogicBox(self,x=None,y=None,z=None):
+		pdim=self.db.getPointDim()
+		lbox=self.db.getLogicBox()
+		A=[lbox.p1[I] for I in range(pdim)]
+		B=[lbox.p2[I] for I in range(pdim)]
+		p1,p2=[0]*pdim,[0]*pdim
+		for I in range(pdim):
+			r=(x,y,z)[I]
+			if r is None: r=A[I],B[I]
+			if type(r) is tuple:
+				p1[I] = r[0]
+				p2[I] = r[1]
+			else:
+				p1[I] = r
+				p2[I] = r + 1
+		return p1,p2
+		
+
+	def read(self, logic_box=None, x=None, y=None, z=None, field_name=None, resolution=None):
+		"""
+		Reads a box in voxel or unit coordinates.
+
+		Examples:
+		dataset = load_dataset(url)
+
+		# example of reading a single slice with z coordinate 512
+		data = dataset.read(z=512) 
+
+		# reading box with y coordinate automatically set, first coordinate is inclusive, second is exclusive
+		data = dataset.read(x=(10,20), z=(5,30))
+		"""
+		if x is None:
+			x = self.x
+		if y is None:
+			y = self.y
+		if z is None:
+			z = self.z
+		if resolution is None:
+			resolution = self.max_resolution
+
+		if x is not None:
+			if type(x) is tuple:
+				if not x[0] < x[1]:
+					raise IndexError(f"The first index in x needs to be lower than the second index")
+				if not (self.x[0] <= x[0] < self.x[1] and self.x[0] < x[1] <= self.x[1]):
+					raise IndexError(f"The bounds specified in the argument x are outside the dataset's bounds [{self.x[0]},{self.x[1]}]")
+			elif not (self.x[0] <= x < self.x[1]):
+				raise IndexError(f"The bounds specified in the argument x are outside the dataset's bounds [{self.x[0]},{self.x[1]}]")
+		if y is not None:
+			if type(y) is tuple:
+				if not y[0] < y[1]:
+					raise IndexError(f"The first index in y needs to be lower than the second index")
+				if not (self.y[0] <= y[0] < self.y[1] and self.y[0] < y[1] <= self.y[1]):
+					raise IndexError(f"The bounds specified in the argument y are outside the dataset's bounds [{self.y[0]},{self.y[1]}]")
+			elif not (self.y[0] <= y < self.y[1]):
+				raise IndexError(f"The bounds specified in the argument y are outside the dataset's bounds [{self.y[0]},{self.y[1]}]")
+		if z is not None:
+			if type(z) is tuple:
+				if not z[0] < z[1]:
+					raise IndexError(f"The first index in z needs to be lower than the second index")
+				if not (self.z[0] <= z[0] < self.z[1] and self.z[0] < z[1] <= self.z[1]):
+					raise IndexError(f"The bounds specified in the argument z are outside the dataset's bounds [{self.z[0]},{self.z[1]}]")
+			elif not (self.z[0] <= z < self.z[1]):
+				raise IndexError(f"The bounds specified in the argument z are outside the dataset's bounds [{self.z[0]},{self.z[1]}]")
+
+		if resolution is not None and not (0 <= resolution <= self.max_resolution):
+			raise ValueError(f"The valid range for max_resolution is [0, {self.max_resolution}]")
+
+		if field_name is not None and field_name not in self.field_names:
+			raise ValueError(f"The field name '{field_name}' is not in field names {self.field_names}")
+
+		if field_name is None:
+			field = self.db.getField()
+		else:
+			field = self.db.getField(field_name)
+
+		pdim = self.db.getPointDim()
+			
+		time = self.db.getTime()			
+		logic_box = self.getLogicBox(x,y,z)
+
+		if isinstance(logic_box, tuple):
+			logic_box = BoxNi(PointNi(logic_box[0]), PointNi(logic_box[1]))
+
+		query = self.db.createBoxQuery(BoxNi(logic_box), field , time, ord('r'))
+		query.disableFilters()
+		query.end_resolutions.push_back(resolution)
+		
+		self.db.beginBoxQuery(query)
+		
+		if not query.isRunning():
+			raise Exception(f"begin query failed {query.errormsg}")
+			
+		access = self.db.createAccess(StringTree())
+		#access.disableWriteLock()
+			
+		if not self.db.executeBoxQuery(access, query):
+			raise Exception(f"query error {query.errormsg}")
+		# I cannot be sure how the numpy will be used outside or when the query will dealllocate the buffer
+		data = Array.toNumPy(query.buffer, bShareMem=False)
+		if pdim != 3:
+			return data
+
+		# extract slice if needed
+		if type(x) is not tuple:
+			data = data[:,:,0]
+		elif type(y) is not tuple:
+			data = data[:,0,:]
+		elif type(z) is not tuple:
+			data = data[0,:,:]
+		return data
