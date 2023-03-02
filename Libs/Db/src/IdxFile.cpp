@@ -278,7 +278,7 @@ IdxFile IdxFile::createNewOneForBlocks(String filename) const
   ret.filename_template = ""; //guess from the url
   ret.blocksperfile = 0; //guess
   ret.arco = 0; //remove any arco
-  ret.time_template = ""; //guess
+  ret.time_template = "time_%04d/"; //override (somme existing files are wrong so I am overriding!)
 
   //store in row major
   for (auto& field : ret.fields)
