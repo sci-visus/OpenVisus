@@ -192,9 +192,10 @@ public:
   VISUS_NON_COPYABLE_CLASS(IdxDiskAccessV5)
 
   //constructor
-  IdxDiskAccessV5(IdxDiskAccess* owner_, const IdxFile& idxfile_, String time_template_,String filename_template_, int verbose)
+  IdxDiskAccessV5(IdxDiskAccess* owner_, const IdxFile& idxfile_, String time_template_,String filename_template_, String compression, int verbose)
     : owner(owner_), idxfile(idxfile_), time_template(time_template_), filename_template(filename_template_)
   {
+    this->compression = compression;
     this->verbose = verbose;
     this->bitsperblock = idxfile.bitsperblock;
 
@@ -408,10 +409,13 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(IdxDiskAccessV6)
 
+  bool bSkipDecode=false;
+
   //constructor
-    IdxDiskAccessV6(IdxDiskAccess* owner_, const IdxFile& idxfile_, String time_template_, String filename_template_, int verbose)
+    IdxDiskAccessV6(IdxDiskAccess* owner_, const IdxFile& idxfile_, String time_template_, String filename_template_, String compression, int verbose)
     : owner(owner_), idxfile(idxfile_), time_template(time_template_), filename_template(filename_template_)
   {
+    this->compression = compression;
     this->verbose = verbose;
     this->bitsperblock = idxfile.bitsperblock;
     this->headers.resize(sizeof(FileHeader) + (idxfile.blocksperfile * (int)idxfile.fields.size()) * sizeof(BlockHeader), __FILE__, __LINE__);
@@ -419,6 +423,9 @@ public:
     this->block_headers = (BlockHeader*)(this->headers.c_ptr() + sizeof(FileHeader));
 
     this->file = std::make_shared<File>();
+
+    if (auto env = getenv("VISUS_IDX_SKIP_DECODE"))
+      this->bSkipDecode = cbool(String(env));
   }
 
   //destructor
@@ -509,10 +516,20 @@ public:
       compression = query->field.default_compression;
 #endif
 
-    //TODO: noninterruptile
-    auto decoded = ArrayUtils::decodeArray(compression, query->getNumberOfSamples(), query->field.dtype, encoded);
-    if (!decoded.valid())
-      return FAILED("cannot decode the data");
+    
+    Array decoded;
+    if (bSkipDecode)
+    {
+      decoded = Array(query->getNumberOfSamples(), query->field.dtype);
+    }
+    else
+    {
+      //TODO: noninterruptile
+      decoded = ArrayUtils::decodeArray(compression, query->getNumberOfSamples(), query->field.dtype, encoded);
+
+      if (!decoded.valid())
+        return FAILED("cannot decode the data");;
+    }
 
     decoded.layout = layout;
 
@@ -564,7 +581,11 @@ public:
     }
 
     //encode the data
-    String compression = query->field.default_compression;
+    String compression = guessCompression(query->field.default_compression);
+
+    //if (compression != "" || compression != "zip")
+    //  ThrowException("probably an error");
+
     auto decoded = query->buffer;
     auto encoded = ArrayUtils::encodeArray(compression, decoded);
     if (!encoded)
@@ -963,7 +984,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
     if (url.isFile() && !FileUtils::existsFile(url.getPath()))
     {
       auto filename = Path(url.getPath()).toString();
-      idxfile.createNewOne(filename);
+      idxfile.createNewOneForBlocks(filename);
     }
 
     //need to load it again since it can be different 
@@ -1006,9 +1027,9 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
   //NOTE: time_template will go inside filename_template so there is no reason to resolve alias
   auto myCreateAccess = [&]()->Access*{
     if (idxfile.version < 6)
-      return new IdxDiskAccessV5(this, idxfile, resoveAlias(idxfile.time_template), resoveAlias(idxfile.filename_template), verbose);
+      return new IdxDiskAccessV5(this, idxfile, resoveAlias(idxfile.time_template), resoveAlias(idxfile.filename_template), compression, verbose);
     else
-      return new IdxDiskAccessV6(this, idxfile, resoveAlias(idxfile.time_template), resoveAlias(idxfile.filename_template), verbose);
+      return new IdxDiskAccessV6(this, idxfile, resoveAlias(idxfile.time_template), resoveAlias(idxfile.filename_template), compression, verbose);
   };
 
   this-> sync.reset(myCreateAccess());
@@ -1076,13 +1097,6 @@ IdxDiskAccess::~IdxDiskAccess()
 void IdxDiskAccess::disableAsync()
 {
   async_tpool.reset();
-}
-
-
-////////////////////////////////////////////////////////////////////
-void IdxDiskAccess::disableWriteLock()
-{
-  this->bDisableWriteLocks=true;
 }
 
 

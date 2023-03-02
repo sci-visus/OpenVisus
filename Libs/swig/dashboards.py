@@ -100,8 +100,6 @@ class Canvas:
 				Gray=channels[0]
 				return Gray
 
-			
-	  
 			if len(channels)==2:
 				G,A=channels
 				return  InterleaveChannels([G,G,G,A]).view(dtype=np.uint32).reshape([height,width]) 
@@ -214,6 +212,19 @@ class Widgets:
 		# offset 
 		self.widgets.offset = bokeh.models.Slider(title='Offset', value=0, start=0, end=1024, sizing_mode='stretch_width')
 		self.widgets.offset.on_change ("value",lambda attr, old, new: self.setOffset(int(new)))
+  
+		# num_refimements (0==guess)
+		self.widgets.num_refinements=bokeh.models.Slider(title='Num Refinements', value=0, start=0, end=4, sizing_mode='stretch_width')
+		self.widgets.num_refinements.on_change ("value",lambda attr, old, new: self.setNumberOfRefinements(int(new)))
+  
+		# quality (0==full quality, -1==decreased quality by half-pixels, +1==increase quality by doubling pixels etc)
+		self.widgets.quality = bokeh.models.Slider(title='Quality', value=0, start=-12, end=+12, sizing_mode='stretch_width')
+		self.widgets.quality.on_change("value",lambda attr, old, new: self.setQuality(int(new)))  
+  
+		# status_bar
+		self.widgets.status_bar= {}
+		self.widgets.status_bar["request" ]=bokeh.models.TextInput(title="Request" ,sizing_mode='stretch_width')
+		self.widgets.status_bar["response"]=bokeh.models.TextInput(title="Response",sizing_mode='stretch_width')
   
 	@staticmethod
 	def GetPalettes():
@@ -332,198 +343,260 @@ class Widgets:
 	def getOffset(self):
 		return self.widgets.offset.value
 
+	# setNumOfRefinements
+	def setNumberOfRefinements(self,value):
+		self.widgets.num_refinements.value=value
+		self.refresh()
+
+	# getNumberOfRefinements
+	def getNumberOfRefinements(self):
+		return self.widgets.num_refinements.value
+
+	# setQuality
+	def setQuality(self,value):
+		self.widgets.quality.value=value
+		self.refresh()
+
+	# getQuality
+	def getQuality(self):
+		return self.widgets.quality.value
 
 
 # ////////////////////////////////////////////////////////////////////////////////////
 class Slice(Widgets):
-	
-	# constructor
-	def __init__(self,doc=None, sizing_mode='stretch_both'):
-		super().__init__()
-		if doc is None: doc=bokeh.io.curdoc()
-		self.doc=doc
-		self.sizing_mode=sizing_mode
-		self.access=None
-		self.lock          = threading.Lock()
-		self.aborted       = ov.Aborted()
-		self.new_job       = False
-		self.current_img   = None
-		self.options={}
-		self.canvas = Canvas(self.color_bar, self.color_mapper, sizing_mode=self.sizing_mode)
-		self.status = {}
-		self.layout=bokeh.layouts.column(children=[],sizing_mode=self.sizing_mode)
-		self.show_options=["palette","timestep","field","direction","offset"]
-		self.callback = doc.add_periodic_callback(self.onTimer, 100)  
-		self.query=PyQuery()
-		self.query.startThread()
-
-	# setDataset
-	def setDataset(self,  db , direction=2):
-		self.db=db
-		self.access=self.db.createAccessForBlockQuery()
-		while self.layout.children:
-			self.layout.children.pop()
-		first_row=[]
+    
+    # constructor
+    def __init__(self,doc=None, sizing_mode='stretch_both'):
+        super().__init__()
+        if doc is None: doc=bokeh.io.curdoc()
+        self.doc=doc
+        self.sizing_mode=sizing_mode
+        self.access=None
+        self.lock          = threading.Lock()
+        self.aborted       = ov.Aborted()
+        self.new_job       = False
+        self.current_img   = None
+        self.options={}
+        self.render_id = 0
+        self.canvas = Canvas(self.color_bar, self.color_mapper, sizing_mode=self.sizing_mode)
+        self.status = {}
+        self.layout=bokeh.layouts.column(children=[],sizing_mode=self.sizing_mode)
+        self.show_options=["palette","timestep","field","direction","offset","quality","num_refinements","status_bar"]
+        self.callback = doc.add_periodic_callback(self.onTimer, 100)  
+        self.query=PyQuery()
+        self.query.startThread()
+        
+    # setShowOptions
+    def setShowOptions(self,value):
+        self.show_options=value
   
-		if "palette" in self.show_options:  
-			first_row.append(self.widgets.palette)
+	# getShowOptions
+    def getShowOptions(self):
+        return self.show_options
 
-		timesteps=self.getTimesteps()
-		self.widgets.timestep.end= max(1,len(timesteps)-1)
-		if len(timesteps)>1 and "timestep" in self.show_options:  
-			first_row.append(self.widgets.timestep)
+    # setDataset
+    def setDataset(self,  db , direction=2):
+        self.db=db
+        self.access=self.db.createAccessForBlockQuery()
+        while self.layout.children:
+            self.layout.children.pop()
+        first_row=[]
   
-		if len(self.getFields())>1 and "field" in self.show_options:
-			first_row.append(self.widgets.field)
+        if "palette" in self.show_options:  
+            first_row.append(self.widgets.palette)
 
-		if self.getPointDim()==3 and "direction" in self.show_options:
-			first_row.append(self.widgets.direction)
+        timesteps=self.getTimesteps()
+        self.widgets.timestep.end= max(1,len(timesteps)-1)
+        if len(timesteps)>1 and "timestep" in self.show_options:  
+            first_row.append(self.widgets.timestep)
+  
+        if len(self.getFields())>1 and "field" in self.show_options:
+            first_row.append(self.widgets.field)
+            
+        if "num_refinements" in self.show_options:
+            first_row.append(self.widgets.num_refinements)
+
+        if "quality" in self.show_options:
+            first_row.append(self.widgets.quality)            
+
+        if self.getPointDim()==3 and "direction" in self.show_options:
+            first_row.append(self.widgets.direction)
    
-		if self.getPointDim()==3 and "offset" in self.show_options:
-			first_row.append(self.widgets.offset)
+        if self.getPointDim()==3 and "offset" in self.show_options:
+            first_row.append(self.widgets.offset)
 
-		self.layout.children.append(bokeh.layouts.Row(*first_row, sizing_mode='stretch_width'))  
-		self.layout.children.append(self.canvas.figure)
+        self.layout.children.append(bokeh.layouts.Row(*first_row, sizing_mode='stretch_width'))  
+        self.layout.children.append(self.canvas.figure)
+        
+        if "status_bar" in self.show_options:
+            self.layout.children.append(bokeh.layouts.Row(
+                self.widgets.status_bar["request"],
+                self.widgets.status_bar["response"], 
+                sizing_mode='stretch_width'))
   
-		self.setTimestep(timesteps[0])
-		self.setField(self.getFields()[0])
-		self.setDirection(direction)    
+        self.setTimestep(timesteps[0])
+        self.setField(self.getFields()[0])
+        self.setDirection(direction)    
 
-	# refresh
-	def refresh(self):
-		self.aborted.setTrue()
-		self.new_job=True
+    # refresh
+    def refresh(self):
+        self.aborted.setTrue()
+        self.new_job=True
 
-	# enableDoubleTap
-	def enableDoubleTap(self,fn):
-		self.canvas.figure.on_event(bokeh.events.DoubleTap, lambda evt: fn(self.unproject((evt.x,evt.y))))
+    # enableDoubleTap
+    def enableDoubleTap(self,fn):
+        self.canvas.figure.on_event(bokeh.events.DoubleTap, lambda evt: fn(self.unproject((evt.x,evt.y))))
    
-	# project
-	def project(self,value):
-		pdim=self.getPointDim()
-		dir=self.getDirection()
-		if hasattr(value[0],"__iter__"):
-			p1,p2=(list(value[0]),list(value[1]))
-			if pdim==3:
-				del p1[dir]
-				del p2[dir]
-			return (p1,p2)
-		# is a point
-		else:
-			p=list(value)
-			if pdim==3:
-				del p[dir]
-			return p
+    # project
+    def project(self,value):
+        pdim=self.getPointDim()
+        dir=self.getDirection()
+        if hasattr(value[0],"__iter__"):
+            p1,p2=(list(value[0]),list(value[1]))
+            if pdim==3:
+                del p1[dir]
+                del p2[dir]
+            return (p1,p2)
+        # is a point
+        else:
+            p=list(value)
+            if pdim==3:
+                del p[dir]
+            return p
 
-	# unproject
-	def unproject(self,value):
+    # unproject
+    def unproject(self,value):
 
-		pdim=self.getPointDim() 
+        pdim=self.getPointDim() 
 
-		# no projection needed
-		if pdim!=3: 
-			return value
+        # no projection needed
+        if pdim!=3: 
+            return value
 
-		dir=self.getDirection()
-		# is a box?
-		if hasattr(value[0],"__iter__"):
-			p1,p2=(list(value[0]),list(value[1]))
-			p1.insert(dir, self.widgets.offset.value+0)
-			p2.insert(dir, self.widgets.offset.value+1)
-			return (p1,p2)
-		# is a point
-		else:
-			p=list(value)
-			p .insert(dir, self.widgets.offset.value+0)
-			return p
+        dir=self.getDirection()
+        # is a box?
+        if hasattr(value[0],"__iter__"):
+            p1,p2=(list(value[0]),list(value[1]))
+            p1.insert(dir, self.widgets.offset.value+0)
+            p2.insert(dir, self.widgets.offset.value+1)
+            return (p1,p2)
+        # is a point
+        else:
+            p=list(value)
+            p .insert(dir, self.widgets.offset.value+0)
+            return p
   
-	# getLogicBox
-	def getLogicBox(self):
-		x1,y1,x2,y2=self.canvas.getViewport()
-		return self.unproject(((x1,y1),(x2,y2)))
+    # getLogicBox
+    def getLogicBox(self):
+        x1,y1,x2,y2=self.canvas.getViewport()
+        return self.unproject(((x1,y1),(x2,y2)))
 
-	# setLogicBox (NOTE: it ignores the coordinates on the direction)
-	def setLogicBox(self,value):
-		proj=self.project(value)
-		self.canvas.setViewport(*(proj[0] + proj[1]))
-		self.refresh()
+    # setLogicBox (NOTE: it ignores the coordinates on the direction)
+    def setLogicBox(self,value):
+        proj=self.project(value)
+        self.canvas.setViewport(*(proj[0] + proj[1]))
+        self.refresh()
   
-	# getLogicCenter
-	def getLogicCenter(self):
-		pdim=self.getPointDim()  
-		p1,p2=self.getLogicBox()
-		assert(len(p1)==pdim and len(p2)==pdim)
-		return [(p1[I]+p2[I])*0.5 for I in range(pdim)]
+    # getLogicCenter
+    def getLogicCenter(self):
+        pdim=self.getPointDim()  
+        p1,p2=self.getLogicBox()
+        assert(len(p1)==pdim and len(p2)==pdim)
+        return [(p1[I]+p2[I])*0.5 for I in range(pdim)]
 
-	# getLogicSize
-	def getLogicSize(self):
-		pdim=self.getPointDim()
-		p1,p2=self.getLogicBox()
-		assert(len(p1)==pdim and len(p2)==pdim)
-		return [(p2[I]-p1[I]) for I in range(pdim)]
+    # getLogicSize
+    def getLogicSize(self):
+        pdim=self.getPointDim()
+        p1,p2=self.getLogicBox()
+        assert(len(p1)==pdim and len(p2)==pdim)
+        return [(p2[I]-p1[I]) for I in range(pdim)]
 
-	# setAccess
-	def setAccess(self, value):
-		self.access=value
-		self.refresh()
+    # setAccess
+    def setAccess(self, value):
+        self.access=value
+        self.refresh()
 
-	# setDirection
-	def setDirection(self,dir):
-		super().setDirection(dir)
-		dims=[int(it) for it in self.db.getLogicSize()]
-		self.setLogicBox(([0]*self.getPointDim(),dims))
-		self.refresh()
+    # setDirection
+    def setDirection(self,dir):
+        super().setDirection(dir)
+        dims=[int(it) for it in self.db.getLogicSize()]
+        self.setLogicBox(([0]*self.getPointDim(),dims))
+        self.refresh()
+  
 
   # gotoPoint
-	def gotoPoint(self,point):
-		pdim=self.getPointDim()
-		# go to the slice
-		if pdim==3:
-			dir=self.getDirection()
-			self.setOffset(point[dir])
-		# the point should be centered in p3d
-		(p1,p2),dims=self.getLogicBox(),self.getLogicSize()
-		p1,p2=list(p1),list(p2)
-		for I in range(pdim):
-			p1[I],p2[I]=point[I]-dims[I]/2,point[I]+dims[I]/2
-		self.setLogicBox([p1,p2])
-		self.canvas.renderPoints([self.project(point)])
+    def gotoPoint(self,point):
+        pdim=self.getPointDim()
+        # go to the slice
+        if pdim==3:
+            dir=self.getDirection()
+            self.setOffset(point[dir])
+        # the point should be centered in p3d
+        (p1,p2),dims=self.getLogicBox(),self.getLogicSize()
+        p1,p2=list(p1),list(p2)
+        for I in range(pdim):
+            p1[I],p2[I]=point[I]-dims[I]/2,point[I]+dims[I]/2
+        self.setLogicBox([p1,p2])
+        self.canvas.renderPoints([self.project(point)])
+  
+    # renderImage
+    def renderImage(self,I,N,timestep,field,query_box, data, msec):
+        (x1,y1),(x2,y2)=self.project(query_box)
+        self.canvas.renderImage(data,x1,y1,x2,y2)
+        tot_pixels=data.shape[0]*data.shape[1]
+        canvas_pixels=self.canvas.getWidth()*self.canvas.getHeight()
+        self.widgets.status_bar["response"].value=f"{I}/{N} tms={timestep} fld={field} bx={query_box} pxl={tot_pixels:,}/{canvas_pixels:,} msc={msec}"  
+        self.render_id+=1     
 
-	# onTimer
-	def onTimer(self):
+    # onTimer
+    def onTimer(self):
 
-		# ready for jobs?
-		canvas_w,canvas_h=(self.canvas.getWidth(),self.canvas.getHeight())
-		if canvas_w==0 or canvas_h==0 or not self.db:
-			return
+        # ready for jobs?
+        canvas_w,canvas_h=(self.canvas.getWidth(),self.canvas.getHeight())
+        if canvas_w==0 or canvas_h==0 or not self.db:
+            return
 
-		# simulate fixAspectRatio (i cannot find a bokeh metod to watch for resize event)
-		if self.status.get("w",0)!=canvas_w or self.status.get("h",0)!=canvas_h:
-			self.canvas.setViewport(*self.canvas.getViewport())
-			self.status["w"]=canvas_w
-			self.status["h"]=canvas_h
-			self.refresh()
+        # simulate fixAspectRatio (i cannot find a bokeh metod to watch for resize event)
+        if self.status.get("w",0)!=canvas_w or self.status.get("h",0)!=canvas_h:
+            self.canvas.setViewport(*self.canvas.getViewport())
+            self.status["w"]=canvas_w
+            self.status["h"]=canvas_h
+            self.refresh()
    
+        # a new image is available?
+        result=self.query.popResult(last_only=True) 
+        if result is not None:
+            self.renderImage(*result)
 
-		# a new image is available?
-		data,logic_box=self.query.popResult(last_only=True) 
-		if data is not None:
-			(x1,y1),(x2,y2)=self.project(logic_box)
-			self.canvas.renderImage(data,x1,y1,x2,y2)
-
-		# push a new job if necesssary
-		logic_box=self.getLogicBox()
-		pdim=self.getPointDim()
-		if self.new_job or str(self.status.get("logic_box",""))!=str(logic_box):
-			# abort the last one
-			self.aborted.setTrue()
-			self.query.waitIdle()
-			# TODO: beter control on number of refinments
-			num_refinements = 3 if pdim==2 else 4
-			self.aborted=ov.Aborted()
-			self.query.pushJob(self.db, self.access, self.getTimestep(),self.getField(), logic_box, canvas_w*canvas_h, num_refinements,self.aborted)
-			self.status["logic_box"]=logic_box
-			self.new_job=False
+        # push a new job if necesssary
+        logic_box=self.getLogicBox()
+        pdim=self.getPointDim()
+        if self.new_job or str(self.status.get("logic_box",""))!=str(logic_box):
+            # abort the last one
+            self.aborted.setTrue()
+            self.query.waitIdle()
+            num_refinements = self.getNumberOfRefinements()
+            if num_refinements==0:
+                num_refinements=3 if pdim==2 else 4
+            self.aborted=ov.Aborted()
+            
+            # compute max_pixels
+            max_pixels=canvas_w*canvas_h
+            quality=self.getQuality()
+            if quality==0:
+                pass
+            elif quality<0:
+                max_pixels=int(max_pixels/pow(1.3,abs(quality))) # decrease the quality
+            else:
+                max_pixels=int(max_pixels*pow(1.3,abs(quality))) # increase the quality
+                
+            timestep=self.getTimestep()
+            field=self.getField()
+            box_i=[[int(it) for it in jt] for jt in logic_box]
+            self.widgets.status_bar["request"].value=f"tms={timestep} fdl={field} bx={box_i} nrf={num_refinements} qlt={quality} max_pxl={max_pixels:,}"
+            self.query.pushJob(self.db, self.access, timestep, field, logic_box, max_pixels, num_refinements,self.aborted)
+            self.status["logic_box"]=logic_box
+            self.new_job=False
 
 
 # //////////////////////////////////////////////////////////////////////////////////////
@@ -539,7 +612,10 @@ class Slices(Widgets):
 		self.widgets.nviews=bokeh.models.Select(title='Layout',  options=["1","2","3","4"],value='3',width=50,sizing_mode='fixed')
 		self.widgets.nviews.on_change("value",lambda attr, old, new: self.setDataset(self.db, layout=int(new)))
 		self.layout=bokeh.layouts.column(children=[],sizing_mode=self.sizing_mode)
-		self.show_options=["nviews","palette","timestep","field","!direction","!offset"]
+		self.show_options=[
+      		"nviews","palette","timestep","field","quality","num_refinements",
+        	"!direction","!offset" # this will be show on the single SLice
+         ],
 
 	# getHeaderLayout
 	def getHeaderLayout(self):
@@ -559,6 +635,12 @@ class Slices(Widgets):
   
 		if len(self.getFields())>1 and "field" in self.show_options:
 			v.append(self.widgets.field)
+   
+		if "quality" in self.show_options:
+			v.append(self.widgets.quality) 
+  
+		if "num_refinements" in self.show_options:
+			v.append(self.widgets.num_refinements)  
 
 		if self.getPointDim()==3 and "direction" in self.show_options:
 			v.append(self.widgets.direction)
@@ -640,6 +722,20 @@ class Slices(Widgets):
 		super().setPalette(value, palette_range)
 		for slice in self.slices:
 			slice.setPalette(value,palette_range=palette_range)
+
+	# setQuality
+	def setQuality(self,value):
+		logger.info(f"Slices::setQuality value={value} ")    
+		super().setQuality(value)
+		for slice in self.slices:
+			slice.setQuality(value)   
+   
+ 	# setNumOfRefinements
+	def setNumOfRefinements(self,value):
+		logger.info(f"Slices::setNumOfRefinements value={value} ")    
+		super().setNumOfRefinements(value)
+		for slice in self.slices:
+			slice.setNumOfRefinements(value)     
 
 	# gotoPoint
 	def gotoPoint(self, p):

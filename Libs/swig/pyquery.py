@@ -1,6 +1,7 @@
 import os,sys,time,threading,queue,math, types
 import numpy as np
 import logging
+import copy
 
 import OpenVisus as ov
 
@@ -69,7 +70,7 @@ query.startThread()
 access=db.createAccessForBlockQuery()
 logic_box=...
 query.pushJob(db, access=access, timestep=db.getTimestep(), field=db.getField(), logic_box=logic_box, max_pixels=1024*768, num_refinements=3, aborted=ov.Aborted())
-data,logic_box=query.popResult()
+I,N,timestep,field, query_box,data,msec=query.popResult()
 query.stopThread()
 
 """
@@ -116,52 +117,53 @@ class PyQuery:
 	# popResult
 	def popResult(self, last_only=True):
 		assert self.oqueue is not None
-		data,logic_box=None,None
+		ret=None
 		while not self.oqueue.empty():
-			data,logic_box=self.oqueue.get()
+			ret=self.oqueue.get()
 			self.oqueue.task_done()
 			if not last_only: break
-		return data,logic_box 
+		return ret
   
 	# getAlignedBox
 	@staticmethod
 	def getAlignedBox(db,logic_box,H, slice_dir:int=None):
+		ret=copy.deepcopy(logic_box)
 		pdim=db.getPointDim()
 		maxh=db.getMaxResolution()
 		bitmask=db.getBitmask().toString()
 		delta=[1,1,1]
 		for B in range(maxh,H,-1):
 			bit=ord(bitmask[B])-ord('0')
-			A,B,D=logic_box[0][bit], logic_box[1][bit], delta[bit]
+			A,B,D=ret[0][bit], ret[1][bit], delta[bit]
 			D*=2
 			A=int(math.floor(A/D))*D
 			B=int(math.ceil (B/D))*D
 			B=max(A+D,B)
-			logic_box[0][bit] = A 
-			logic_box[1][bit] = B
+			ret[0][bit] = A 
+			ret[1][bit] = B
 			delta[bit] = D
 	  
 		#  force to be a slice?
 		if pdim==3 and slice_dir is not None:
-			offset=logic_box[0][slice_dir]
-			logic_box[1][slice_dir]=offset+0
-			logic_box[1][slice_dir]=offset+1
+			offset=ret[0][slice_dir]
+			ret[1][slice_dir]=offset+0
+			ret[1][slice_dir]=offset+1
 			delta[slice_dir]=1
-
-		num_pixels=[(logic_box[1][I]-logic_box[0][I])//delta[I] for I in range(pdim)]
-		return logic_box, delta,num_pixels
+   
+		num_pixels=[(ret[1][I]-ret[0][I])//delta[I] for I in range(pdim)]
+		return ret, delta,num_pixels
 
 	# read
 	@staticmethod
 	def read(db,  access=None, timestep=None, field=None, logic_box=None, num_refinements=1, max_pixels=None, aborted=ov.Aborted()):
+     
+		logger.info(f"read begin timestep={timestep} field={field} logic_box={logic_box} num_refinements={num_refinements} max_pixels={max_pixels}")
 
 		def Clamp(value,a,b):
 			assert a<=b
 			if value<a: value=a
 			if value>b: value=b
 			return value
-
-		logger.info(f"PyQuery::read (staticmethod) logic_box={logic_box}")
 
 		pdim=db.getPointDim()
 		assert pdim==2 or pdim==3 # todo other cases?
@@ -208,34 +210,33 @@ class PyQuery:
 	 
 		# is view dependent? if so guess max resolution 
 		if max_pixels:
+			original_box=logic_box
 			for H in range(maxh,0,-1):
-				logic_box,delta,num_pixels=PyQuery.getAlignedBox(db,logic_box,H, slice_dir=slice_dir)
-
-				logger.info(f"PyQuery::read (staticmethod) Guess resolution H={H} logic_box={logic_box} delta={delta} num_pixels={repr(num_pixels)} tot_pixels={np.prod(num_pixels,dtype=np.int64):,} max_pixels={max_pixels:,}")
-
-				if np.prod(num_pixels,dtype=np.int64)<=max_pixels*1.10:
+				aligned_box,delta,num_pixels=PyQuery.getAlignedBox(db,original_box,H, slice_dir=slice_dir)
+				tot_pixels=np.prod(num_pixels,dtype=np.int64)
+				if tot_pixels<=max_pixels*1.10:
 					endh=H
+					logger.info(f"Guess resolution H={H} original_box={original_box} aligned_box={aligned_box} delta={delta} num_pixels={repr(num_pixels)} tot_pixels={tot_pixels:,} max_pixels={max_pixels:,}")
+					logic_box=aligned_box
 					break
 
-		# compute intermediate resolutions
-		if num_refinements==1:
-			end_resolutions=[endh]
-		else:
-			end_resolutions=list(reversed([ endh-pdim*I for I in range(num_refinements) if endh-pdim*I>=0]))
-
 		# this is the query I need
-		logic_box,delta,num_pixels=PyQuery.getAlignedBox(db,logic_box, end_resolutions[0], slice_dir=slice_dir)
+		logic_box,delta,num_pixels=PyQuery.getAlignedBox(db,logic_box, endh, slice_dir=slice_dir)
 	 
 		box_ni=ov.BoxNi(
 			ov.PointNi([int(it) for it in logic_box[0]]),  
 			ov.PointNi([int(it) for it in logic_box[1]]))
-	 
+  
 		query = db.createBoxQuery(box_ni,  field ,  timestep, ord('r'), aborted)
 
+		# compute intermediate resolutions
+		end_resolutions=list(reversed([ endh-pdim*I for I in range(num_refinements) if endh-pdim*I>=0]))
+		# print("!!!!!",end_resolutions)
 		for H in end_resolutions:
 			query.end_resolutions.push_back(H)
 
 		# print("beginBoxQuery","box",box_ni.toString(),"field",field.name,"timestep",timestep)
+		t1=time.time()
 		db.beginBoxQuery(query)
 		I,N=0,len(end_resolutions)
 		while query.isRunning():
@@ -249,10 +250,15 @@ class PyQuery:
 				del dims[slice_dir]
 				while len(dims)>2 and dims[-1]==1: dims=dims[0:-1] # remove right `1`
 				data=data.reshape(list(reversed(dims))) 
-	  
-			yield logic_box, data
+    
+			H=query.getCurrentResolution()
+			msec=int(1000*(time.time()-t1))
+			logger.info(f"got data {I}/{N} timestep={timestep} field={field.name} H={H} data.shape={data.shape} data.dtype={data.dtype} logic_box={logic_box} m={np.min(data)} M={np.max(data)} ms={msec}")
+			yield (I,N,timestep,field.name,logic_box, data,msec)
+			I+=1
 			db.nextBoxQuery(query)
-			
+
+		logger.info(f"read done")
 
 	# _threadLoop
 	def _threadLoop(self):
@@ -271,33 +277,25 @@ class PyQuery:
 			self.stats.startQuery()
 			db,access, timestep, field, logic_box, max_pixels,num_refinements, aborted = args
 
-			logger.info(f"PyQuery::_threadLoop [{self.query_id}] Start job timestep={timestep} field={field} logic_box={logic_box} num_refinements={num_refinements} max_pixels={max_pixels}")
-			I=0
-			for logic_box, data in PyQuery.read(db, access=access, timestep=timestep, field=field, logic_box=logic_box, num_refinements=num_refinements, max_pixels=int(np.prod(max_pixels,dtype=np.int64)), aborted=aborted):
+			for result in PyQuery.read(db, access=access, timestep=timestep, field=field, logic_box=logic_box, num_refinements=num_refinements, max_pixels=int(np.prod(max_pixels,dtype=np.int64)), aborted=aborted):
 				
-				# query failed
-				if data is None:
+				if result is None:
 					break
 
+				# query aborted
 				if aborted.__call__()==ABORTED.__call__():
 					break
 
-				logger.info(f"PyQuery::_threadLoop [{self.query_id}] Got data {I}/{num_refinements} {data.shape} {data.dtype} m={np.min(data)} M={np.max(data)}")
-				I+=1
-    
-				
+				# push the result to the output quue
 				if self.oqueue:
-					self.oqueue.put((data,logic_box))
+					self.oqueue.put(result)
 					if self.wait_for_oqueue:
 						self.oqueue.join()
       
 				if aborted.__call__()==ABORTED.__call__():
 					break   
    
-				
-
 			# let the main task know I am done
-			logger.info(f"PyQuery::_threadLoop [{self.query_id}] job done")
 			self.iqueue.task_done()
 			self.stats.stopQuery()
 

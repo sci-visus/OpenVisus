@@ -624,7 +624,7 @@ class PyDataset(object):
 	def copyBlocks(self, dst, time=None, field=None, num_read_per_request=1, verbose=False):
 	
 		if not os.path.isfile(dst):
-			src.db.idxfile.createNewOne(dst)
+			src.db.idxfile.createNewOneForBlocks(dst)
 		dst=LoadDataset(dst)
 
 		from .convert import CopyBlocks

@@ -212,7 +212,7 @@ void IdxFile::validate(String url)
     //probably the file will be compressed and I will have a compression ratio at least of 50%, so the file size won't be larger than 16mb
     const double likely_compression_ratio = 0.5;
     const int mb = 1024 * 1024;
-    const int target_compressed_filesize = 16 * mb;
+    const int target_compressed_filesize = 64 * mb;
     const int target_uncompressed_filesize = (int)(target_compressed_filesize / likely_compression_ratio);
 
     blocksperfile = target_uncompressed_filesize / overall_blockdim;
@@ -269,17 +269,26 @@ void IdxFile::validate(String url)
 }
 
 //////////////////////////////////////////////////////////////////////////////
-IdxFile IdxFile::createNewOne(String filename) const
+IdxFile IdxFile::createNewOneForBlocks(String filename) const
 {
   VisusReleaseAssert(!FileUtils::existsFile(filename));
   IdxFile ret = *this;
-  ret.version = 6;
+  ret.version = 0; //need to fill put the missing infos
   ret.block_interleaving = 0;
-  ret.filename_template = ret.guessFilenameTemplate(filename);
+  ret.filename_template = ""; //guess from the url
+  ret.blocksperfile = 0; //guess
+  ret.arco = 0; //remove any arco
+  ret.time_template = ""; //guess
 
   //store in row major
   for (auto& field : ret.fields)
+  {
     field.default_layout = "";
+
+    //auto set the compression
+    if (field.default_compression.empty())
+      field.default_compression = "zip";
+  }
 
   ret.save(filename);
   return ret;

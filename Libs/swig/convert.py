@@ -63,8 +63,10 @@ class CopyBlocks:
 		logger.info(f"Copying blocks time({self.time}) field({self.field.name}) A({A}) B({B}) ...")
 
 		waccess=dst.createAccessForBlockQuery()
-		waccess.setWritingMode()
 
+		# keep compression for block-to-block operation
+		waccess.setWritingMode(waccess.compression) 
+ 
 		# for mod_visus there is the problem of aggregation (Ii.e. I need to call endRead to force the newtork request)
 		if "mod_visus" in src.getUrl():
 			num_read_per_request=self.num_read_per_request 
@@ -455,7 +457,9 @@ def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=
 		arco=arco)
 	
 	Saccess=SRC.createAccessForBlockQuery() 
-	Daccess=DST.createAccessForBlockQuery();Daccess.setWritingMode()
+
+	Daccess=DST.createAccessForBlockQuery()
+	Daccess.setWritingMode()
 
 	pdim=SRC.getPointDim()
 	assert pdim==2 or pdim==3 # TODO other cases

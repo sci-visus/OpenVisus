@@ -515,9 +515,6 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
 {
   PrintWarning("NOTE: Dataset::compressDataset is deprecated, use python version");
 
-  auto idx = dynamic_cast<IdxDataset*>(this);
-  VisusReleaseAssert(idx);
-
   // for future version: here I'm making the assumption that a file contains multiple fields
   if (idxfile.version != 6)
     ThrowException("unsupported");
@@ -554,14 +551,11 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
     VisusAssert(query->getNumberOfSamples() == data.dims);
     query->buffer = data;
 
-    auto Waccess = std::make_shared<IdxDiskAccess>(idx);
-    Waccess->disableWriteLock();
-    Waccess->disableAsync();
+    auto Waccess = createAccessForBlockQuery();
+    Waccess->setWritingMode(Waccess->compression); // keep compression for block-to-block operation
 
     auto Raccess = std::make_shared<RamAccess>(getDefaultBitsPerBlock());
     Raccess->setAvailableMemory(/* no memory limit*/0);
-
-    Raccess->disableWriteLock();
     VisusReleaseAssert(executeBoxQuery(Raccess, query));
 
     //read blocks are in RAM assuming there is no file yet stored on disk
@@ -596,6 +590,9 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
   }
   else
   {
+    auto idx = dynamic_cast<IdxDataset*>(this);
+    VisusReleaseAssert(idx);
+
     String suffix = ".~compressed";
 
     String idx_filename = getUrl();
@@ -607,13 +604,10 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
     compressed_idx_file.save(compressed_idx_filename);
 
     auto Waccess = std::make_shared<IdxDiskAccess>(idx, compressed_idx_file);
+    Waccess->setWritingMode(Waccess->compression);// keep compression for block-to-block operation
+
     auto Raccess = std::make_shared<IdxDiskAccess>(idx, idxfile);
-
-    Raccess->disableAsync();
-    Raccess->disableWriteLock();
-
-    Waccess->disableWriteLock();
-    Waccess->disableAsync();
+    Raccess->disableAsync(); //don't need to have async read ops here
 
     for (auto time : idxfile.timesteps.asVector())
     {

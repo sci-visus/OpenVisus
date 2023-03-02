@@ -108,16 +108,6 @@ public:
   virtual ~Access() {
   }
 
-  //disableWriteLock
-  void disableWriteLock() {
-    this->bDisableWriteLocks = true;
-  }
-
-  //disableWriteLock
-  void disableCompression() {
-    this->compression = "";
-  }
-
   //this is the number of samples it will return in a read/write operation
   int getSamplesPerBlock() const {
     return 1 << bitsperblock;
@@ -271,17 +261,19 @@ public:
   }
 
   //setWritingMode
-  void setWritingMode() {
+  void setWritingMode(String compression = "raw") {
     //99% of the times I am not writing in parallel to avoid the file lock thingy
+    this->bDisableWriteLocks = true; //disable write lock
+
     //99% of the times I am writing disabling compression that could cause the file to grow even larger than uncompressed 
-    //    I can do a final compress pass at the end
-    this->disableWriteLock();
-    this->compression = "raw"; //force incompressed
+    //  you can do a final `compress` pass at the end
+    this->compression = compression;
   }
 
 private:
 
   int mode=0;
+  bool writes_are_final = false;
 
 }; //end class
 

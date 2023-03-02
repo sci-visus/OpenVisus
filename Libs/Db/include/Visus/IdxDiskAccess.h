@@ -67,11 +67,6 @@ public:
   //destructor 
   virtual ~IdxDiskAccess();
 
-  //create
-  static SharedPtr<IdxDiskAccess> create(IdxDataset* dataset) {
-    return std::make_shared<IdxDiskAccess>(dataset);
-  }
-
   //setSkipReading
   void setSkipReading(bool value) {
     bSkipReading = value;
@@ -84,10 +79,7 @@ public:
 
   //disableAsync
   void disableAsync();
-  
-  //disableWriteLock
-  void disableWriteLock();
-
+ 
   //getFilename
   virtual String getFilename(Field field, double time, BigInt blockid) const override;
 
