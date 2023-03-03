@@ -69,7 +69,7 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(Access)
 
-  typedef AccessStatistics Statistics;
+    typedef AccessStatistics Statistics;
 
   static const String DefaultChMod;
 
@@ -77,11 +77,11 @@ public:
   String name;
 
   // if read/write ops are allowed 
-  bool can_read=true;
-  bool can_write=true;
+  bool can_read = true;
+  bool can_write = true;
 
   // bitsperblock for read/write operations 
-  int bitsperblock=0;
+  int bitsperblock = 0;
 
   // statistics
   Statistics statistics;
@@ -123,17 +123,17 @@ public:
   }
 
   //getFilename
-  virtual String getFilename(Field field,double time,BigInt blockid) const {
+  virtual String getFilename(Field field, double time, BigInt blockid) const {
     return "";
   }
 
   //getFilename
   String getFilename(SharedPtr<BlockQuery> query) const {
-    return getFilename(query->field,query->time,query->blockid);
+    return getFilename(query->field, query->time, query->blockid);
   }
 
   //getCompression
-  String getCompression(String default_compression="zip") const {
+  String getCompression(String default_compression = "zip") const {
     return !this->compression.empty() ? this->compression : default_compression;
   }
 
@@ -216,11 +216,11 @@ public:
 
   //resetStatistics
   void resetStatistics() {
-    statistics=Statistics();
+    statistics = Statistics();
   }
 
   //printStatistics
-  virtual void printStatistics() 
+  virtual void printStatistics()
   {
     PrintInfo("type", typeid(*this).name(), "chmod", can_read ? "r" : "", can_write ? "w" : "", "bitsperblock", bitsperblock);
     PrintInfo("rok", statistics.rok, "rfail", statistics.rfail);
@@ -246,7 +246,7 @@ public:
   }
 
   //readFailed
-  void readFailed(SharedPtr<BlockQuery> query,String errormsg) {
+  void readFailed(SharedPtr<BlockQuery> query, String errormsg) {
     ++statistics.rfail;
     query->setFailed(errormsg);
   }
@@ -266,7 +266,7 @@ public:
 public:
 
   //getBlockFilename
-  static String getBlockFilename(String filename_template, Field field, double time, String compression, BigInt blockid,bool reverse_filename);
+  static String getBlockFilename(String filename_template, Field field, double time, String compression, BigInt blockid, bool reverse_filename);
 
   //disableWriteLocks
   //99% of the times I am not writing in parallel to avoid the file lock thingy
@@ -279,6 +279,10 @@ public:
     this->compression = "raw"; //note: setting a non-empty value i force the Access::compression to be returned
   }
 
+  //disableAsync
+  virtual void disableAsync() {
+    //nop here
+  }
 
 private:
 

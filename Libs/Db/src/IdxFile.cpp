@@ -250,48 +250,21 @@ void IdxFile::validate(String url)
     filename_template = guessFilenameTemplate(url);
 
 #if 1
-  //adjust some stuff specific for arco
-  if (this->arco > 0)
+  //override arco to be the upper=bound for max blocksize
+  if (this->arco)
   {
+    VisusAssert(this->arco > 0);
+
     this->blocksperfile = 1;
 
-    //guess bitsperblock
+    //adjust bitsperblock
     auto max_h = this->bitmask.getMaxResolution();
-    int max_fieldsize = 0;
-    for (auto field : this->fields)
-      max_fieldsize = Utils::max(max_fieldsize, field.dtype.getByteSize());
+    int max_fieldsize = getMaxFieldSize();
     this->bitsperblock = Utils::min(max_h,int(log2(arco / max_fieldsize)));
-
     this->arco = (1 << bitsperblock) * max_fieldsize;
   }
 #endif
 
-}
-
-//////////////////////////////////////////////////////////////////////////////
-IdxFile IdxFile::createNewOneForBlocks(String filename) const
-{
-  VisusReleaseAssert(!FileUtils::existsFile(filename));
-  IdxFile ret = *this;
-  ret.version = 0; //need to fill put the missing infos
-  ret.block_interleaving = 0;
-  ret.filename_template = ""; //guess from the url
-  ret.blocksperfile = 0; //guess
-  ret.arco = 0; //remove any arco
-  ret.time_template = "time_%04d/"; //override (somme existing files are wrong so I am overriding!)
-
-  //store in row major
-  for (auto& field : ret.fields)
-  {
-    field.default_layout = "";
-
-    //auto set the compression
-    if (field.default_compression.empty())
-      field.default_compression = "zip";
-  }
-
-  ret.save(filename);
-  return ret;
 }
 
 //////////////////////////////////////////////////////////////////////////////

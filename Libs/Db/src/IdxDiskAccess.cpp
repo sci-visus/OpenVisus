@@ -183,7 +183,6 @@ static String GetFilenameV56(const IdxFile& idxfile, String TimeTemplate, String
 }
 
 
-
 //////////////////////////////////////////////////////////////////////////////////
 class IdxDiskAccessV5 : public Access
 {
@@ -937,73 +936,91 @@ private:
 };
 
 
+
 ////////////////////////////////////////////////////////////////////
-IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree config) 
+IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset, StringTree config) 
 {
-  Url url = dataset->getUrl();
+  //caching
+  //IdxDiskAccess  (*) Access::compression (*) field.default_compression
 
-  if (url.isRemote() && !config.hasAttribute("url"))
-  {
-    //probably an idx for local caching
-    String local_idx="$(VisusCache)/$(HostName)/$(HostPort)";
+  this->idxfile = dataset->idxfile;
+  Url url = config.readString("url",dataset->getUrl());
+  VisusReleaseAssert(url.valid());
 
-    if (bool is_modvisus = StringUtils::contains(url.toString(), "mod_visus"))
-      local_idx += "/mod_visus/" + url.getParam("dataset") + "/visus.idx"; //for idx the path is /mod_visus?dataset=2kbit1 (becomes dmov_visus/2kbit1/visus.idx"
-    else
-      local_idx += url.getPath(); //cloud storage, path should be unique and visus.idx is the end of the  the path for cloud storage (!)
-
-    String cache_dir = config.readString("cache_dir");
-    if (cache_dir.empty())
-      cache_dir = GetVisusCache();
-     
-    local_idx = StringUtils::replaceAll(local_idx, "$(HostName)", url.getHostname());
-    local_idx = StringUtils::replaceAll(local_idx, "$(HostPort)", cstring(url.getPort()));
-    local_idx = StringUtils::replaceAll(local_idx, "$(FullPathWithoutExt)", Path(url.getPath()).withoutExtension());
-    local_idx = StringUtils::replaceAll(local_idx, "$(VisusCache)", cache_dir);
-
-    config.write("url", local_idx);
-  }
-
-  //create the file if not exist
-  if (config.hasAttribute("url"))
-  {
-    url = config.readString("url");
-
-    if (!url.valid())
-      ThrowException(cstring("cannot use", url, "for IdxDiskAccess::create, reason wrong url"));
-
-    PrintInfo("Trying to use", url, "as cache location...");
-
-    //can create the file if it does not exists, this is useful if you want
-    //to create a disk cache for remote datasets
-    if (url.isFile() && !FileUtils::existsFile(url.getPath()))
-    {
-      auto filename = Path(url.getPath()).toString();
-      idxfile.createNewOneForBlocks(filename);
-    }
-
-    //need to load it again since it can be different 
-    idxfile.load(url.toString());
-  }
-
-  VisusAssert(idxfile.version>=1 && idxfile.version<=6);
-
-  this->name = config.readString("name", "IdxDiskAccess");
   this->idxfile = idxfile;
-  this->can_read  = StringUtils::find(config.readString("chmod", DefaultChMod), "r") >= 0;
+  this->name = config.readString("name", "IdxDiskAccess");
+  this->can_read = StringUtils::find(config.readString("chmod", DefaultChMod), "r") >= 0;
   this->can_write = StringUtils::find(config.readString("chmod", DefaultChMod), "w") >= 0;
-  this->bitsperblock = idxfile.bitsperblock;
+  this->bitsperblock = this->idxfile.bitsperblock;
   this->compression = config.readString("compression");
+
+  String local_idx_filename;
+  if (url.isRemote())
+  {
+    if (this->compression.empty())
+      this->compression = "raw";
+
+    //automatic guess local *.idx filename for caching
+    std::ostringstream out;
+    out 
+      << config.readString("cache_dir", GetVisusCache()) << "/"
+      << "IdxDiskAccess" << "/"
+      << url.getHostname() << "/"
+      << url.getPort() << "/"
+      << compression;
+
+    if (StringUtils::contains(url.toString(), "mod_visus?"))
+      out << "/" << url.getParam("dataset") << "/visus.idx"; //for idx the path is /mod_visus?dataset=2kbit1 (becomes dmov_visus/2kbit1/visus.idx"
+    else
+      out << url.getPath(); //cloud storage, path should be unique and visus.idx is the end of the  the path for cloud storage (!)
+
+    local_idx_filename = out.str();
+  }
+  else
+  {
+    VisusAssert(url.isFile());
+    local_idx_filename = url.getPath();
+  }
+
+  if (!FileUtils::existsFile(local_idx_filename))
+  {
+    //automatically create the *.idx file, useful for caching
+    auto  tmp = idxfile;
+    tmp.version = 0;                         //need to fill put for the validate step
+    tmp.time_template = "time_%04d/";        //override (somme existing files are wrong so I am overriding!)
+    tmp.blocksperfile = 0;                   //re-guess
+    tmp.filename_template = "";              //re-guess 
+    tmp.arco = 0;                            //force non-arco
+    tmp.setDefaultCompression(compression);  //"" will be equivalent to raw/uncompressed
+
+    tmp.save(local_idx_filename);
+    PrintInfo("IdxDiskAccess creating IdxFile at", local_idx_filename);
+    this->idxfile = tmp;
+  }
+  else
+  {
+    PrintInfo("IdxDiskAccess using existing IdxFile at", local_idx_filename);
+
+    //need to load it again since it can be different from the dataset
+    if (local_idx_filename != dataset->getUrl())
+    {
+      this->idxfile = IdxFile();
+      this->idxfile.load(local_idx_filename);
+    }
+  }
+  VisusAssert(this->idxfile.version>=1 && this->idxfile.version<=6);
+
+
 
   // 0 == no verbose
   // 1 == read verbose, write verbose
   // 2 ==               write verbose
   this->verbose = config.readInt("verbose") | cint(Utils::getEnv("VISUS_VERBOSE_DISKACCESS"));
 
-  //special case, a "./" at the beginning means a reference to the url
+  //special case, a "./" at the beginning means a reference to the visus.idx directory
   auto resoveAlias = [&](String value) {
 
-    String dir = Path(url.getPath()).getParent().toString();
+    String dir = Path(local_idx_filename).getParent().toString();
     if (dir.empty())
       return value;
 
@@ -1057,14 +1074,10 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
   }
 #endif
 
-  PrintInfo("Created IdxDiskAccess", "url", url, "compression", compression, "bDisableWriteLocks", bDisableWriteLocks);
+  PrintInfo("Created IdxDiskAccess", "local_idx_filename", local_idx_filename, "compression", compression, "bDisableWriteLocks", bDisableWriteLocks);
 }
 
 
-////////////////////////////////////////////////////////////////////
-IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset, StringTree config)
-    : IdxDiskAccess(dataset, dataset->idxfile, config) {
-}
 
 ////////////////////////////////////////////////////////////////////
 IdxDiskAccess::~IdxDiskAccess()

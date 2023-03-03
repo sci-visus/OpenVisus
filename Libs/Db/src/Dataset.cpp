@@ -203,7 +203,14 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
     String cached = StringUtils::toLower(parsed.getParam("cached", "idx")); //TODO: not sure if it's better to use "idx" or "disk" here
 
     //1 || idx means to use IdxDiskAccess; 2| disk means to use Disk Access
-    String cache_access_type = (cached == "1" || StringUtils::contains(cached, "idx")) ? "IdxDiskAccess" : "DiskAccess";
+    String cache_access_type;
+    
+    if (cached == "1" || StringUtils::contains(cached, "idx"))
+      cache_access_type = "IdxDiskAccess";
+    else if (cached == "2" || StringUtils::contains(cached, "arco"))
+      cache_access_type = "DiskAccess";
+    else
+      cache_access_type = "IdxDiskAccess"; //default is this
    
     // cache_dir is extracted from the String Tree (see LoadDataset(url, cache_dir='...')
     // if cache_dir is empty, then IdxDiskAccess or DiskAccess will decide where cache data will be (i.e. inside ~/visus folder)
@@ -214,7 +221,7 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
     if (!cache_dir.empty() && FileUtils::existsFile(cache_dir))
       ThrowException("LoadDataset", url, "failed. The path in cache_dir argument", cache_dir, "is a file.");
 
-    //normalize the url 
+    //compression, but default I set zip
     auto cache_compression = parsed.getParam("cache_compression", "zip");
 
     //if the url contains the string mod_visus I think the origin is an OpenVisus server, otherwise is an S3 cloud dataset
@@ -230,11 +237,13 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
     std::ostringstream out;
     out << "<access type='multiplex'>" << std::endl;
     {
+      //local
       out << "<access type='" << cache_access_type << "'  chmod='rw' compression='" << cache_compression << "' ";
       if (!cache_dir.empty())
         out << "cache_dir='" << cache_dir << "' ";
       out << "/>" << std::endl;
 
+      //remote
       out << "<access type='" << remote_access_type << "' chmod='r' />" << std::endl;
     }
     out << "</access>" << std::endl;
@@ -605,24 +614,25 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
   }
   else
   {
-    auto idx = dynamic_cast<IdxDataset*>(this);
-    VisusReleaseAssert(idx);
-
     String suffix = ".~compressed";
-
     String idx_filename = getUrl();
     VisusReleaseAssert(FileUtils::existsFile(idx_filename));
     String compressed_idx_filename = idx_filename + suffix;
 
-    auto compressed_idx_file = idx->idxfile;
-    compressed_idx_file.filename_template = idxfile.filename_template + suffix;
-    compressed_idx_file.save(compressed_idx_filename);
+    //TODO test
+    VisusReleaseAssert(false);
+    {
+      IdxFile tmp = this->idxfile;
+      tmp.filename_template = idxfile.filename_template + suffix;
+      tmp.save(compressed_idx_filename);
+    }
 
-    auto Waccess = std::make_shared<IdxDiskAccess>(idx, compressed_idx_file);
+    auto dst=LoadDataset(compressed_idx_filename);
+    auto Waccess = dst->createAccessForBlockQuery();
     Waccess->disableWriteLocks();
     // Waccess->disableCompression();I want block compression here
 
-    auto Raccess = std::make_shared<IdxDiskAccess>(idx, idxfile);
+    auto Raccess = this->createAccessForBlockQuery();
     Raccess->disableAsync(); //don't need to have async read ops here
 
     for (auto time : idxfile.timesteps.asVector())
@@ -700,6 +710,7 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
       Waccess->endWrite();
     }
 
+    //note: the *.idx will be the original one, with the sampe filename_template, but internally the data is compressed
     VisusReleaseAssert(FileUtils::existsFile(compressed_idx_filename));
     FileUtils::removeFile(compressed_idx_filename);
   }

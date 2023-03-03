@@ -59,9 +59,6 @@ public:
   VISUS_NON_COPYABLE_CLASS(IdxDiskAccess)
 
   //constructor
-  IdxDiskAccess(IdxDataset* dataset, IdxFile value, StringTree config = StringTree());
-
-  //constructor
   IdxDiskAccess(IdxDataset* dataset, StringTree config = StringTree());
 
   //destructor 
@@ -78,7 +75,7 @@ public:
   }
 
   //disableAsync
-  void disableAsync();
+  virtual void disableAsync() override;
  
   //getFilename
   virtual String getFilename(Field field, double time, BigInt blockid) const override;
