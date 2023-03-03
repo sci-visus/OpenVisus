@@ -63,9 +63,8 @@ class CopyBlocks:
 		logger.info(f"Copying blocks time({self.time}) field({self.field.name}) A({A}) B({B}) ...")
 
 		waccess=dst.createAccessForBlockQuery()
-
-		# keep compression for block-to-block operation
-		waccess.setWritingMode(waccess.compression) 
+		waccess.disableWriteLocks()
+		# waccess.disableCompression()  I want block compression here
  
 		# for mod_visus there is the problem of aggregation (Ii.e. I need to call endRead to force the newtork request)
 		if "mod_visus" in src.getUrl():
@@ -419,7 +418,8 @@ def ConvertImageStack(src:str, dst:str, arco="modvisus"):
 
 	assert(db.getMaxResolution()>=bitsperblock)
 	access=db.createAccessForBlockQuery()
-	access.setWritingMode()
+	access.disableWriteLocks()
+	access.disableCompression()
 	db.writeSlabs(generator, access=access)
 	logger.info(f"ConvertImageStack DONE in {time.time()-T1} seconds")
 
@@ -459,7 +459,8 @@ def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=
 	Saccess=SRC.createAccessForBlockQuery() 
 
 	Daccess=DST.createAccessForBlockQuery()
-	Daccess.setWritingMode()
+	Daccess.disableWriteLocks()
+	Daccess.disableCompression()
 
 	pdim=SRC.getPointDim()
 	assert pdim==2 or pdim==3 # TODO other cases

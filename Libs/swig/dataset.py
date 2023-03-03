@@ -443,7 +443,8 @@ class PyDataset(object):
 			
 		if not access:
 			access=self.createAccessForBlockQuery()
-			access.setWritingMode()
+			access.disableWriteLocks()
+			access.disableCompression()
 		
 		# I need to change the shape of the buffer, since the last component is the channel (like RGB for example)
 		buffer=Array.fromNumPy(data,bShareMem=True)

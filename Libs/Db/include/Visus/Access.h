@@ -92,7 +92,16 @@ public:
   //bDisableWriteLocks (to speed up writing with only one writer)
   bool bDisableWriteLocks = false;
 
-  //compression algorithm
+  //internal use only
+  /*
+    Remote:
+      CloudAccess    (*) Access::compression (*) zip
+      ModVisusAccess (*) Access::compression (*) zip
+
+    Local:
+      IdxDiskAccess  (*) Access::compression (*) field.default_compression
+      DiskAccess     (*) Access::compression (*) field.default_compression
+  */
   String compression;
 
   //constructor 
@@ -121,6 +130,11 @@ public:
   //getFilename
   String getFilename(SharedPtr<BlockQuery> query) const {
     return getFilename(query->field,query->time,query->blockid);
+  }
+
+  //getCompression
+  String getCompression(String default_compression="zip") const {
+    return !this->compression.empty() ? this->compression : default_compression;
   }
 
   //getStartAddress
@@ -254,26 +268,21 @@ public:
   //getBlockFilename
   static String getBlockFilename(String filename_template, Field field, double time, String compression, BigInt blockid,bool reverse_filename);
 
-
-  //guessCompression (the field override anything if specified)
-  String guessCompression(Field field) const {
-    return !field.default_compression.empty() ? field.default_compression : this->compression;
+  //disableWriteLocks
+  //99% of the times I am not writing in parallel to avoid the file lock thingy
+  void disableWriteLocks() {
+    this->bDisableWriteLocks = true;
   }
 
-  //setWritingMode
-  void setWritingMode(String compression = "raw") {
-    //99% of the times I am not writing in parallel to avoid the file lock thingy
-    this->bDisableWriteLocks = true; //disable write lock
-
-    //99% of the times I am writing disabling compression that could cause the file to grow even larger than uncompressed 
-    //  you can do a final `compress` pass at the end
-    this->compression = compression;
+  //disableCompression (need it anytime I am executing a BoxQuery that is going to write the sample blocks multiple times)
+  void disableCompression() {
+    this->compression = "raw"; //note: setting a non-empty value i force the Access::compression to be returned
   }
+
 
 private:
 
   int mode=0;
-  bool writes_are_final = false;
 
 }; //end class
 

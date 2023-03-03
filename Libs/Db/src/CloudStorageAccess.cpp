@@ -55,7 +55,8 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   this->url = config.readString("url", dataset->getUrl()); VisusAssert(url.valid());
   this->config.write("url", url.toString());
 
-  this->compression = config.readString("compression", this->url.getParam("compression","zip")); //zip compress more than lz4 for network.. 
+  this->compression = config.readString("compression","zip");
+
   this->layout = config.readString("layout", this->url.getParam("layout","")); //row major is default
   this->reverse_filename = config.readBool("reverse_filename", cbool(this->url.getParam("reverse_filename","0")));
 
@@ -84,7 +85,7 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
 
   VisusReleaseAssert(!this->filename_template.empty());
 
-  PrintInfo("Created CloudStorageAccess", "url", url, "filename_template", filename_template, "compression", compression, "nconnections", nconnections);
+  PrintInfo("Created CloudStorageAccess", "url", url, "filename_template", filename_template, "compression", this->compression, "nconnections", nconnections);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -92,10 +93,12 @@ CloudStorageAccess::~CloudStorageAccess()
 {
 }
 
+
+
 ///////////////////////////////////////////////////////////////////////////////////////
 String CloudStorageAccess::getFilename(Field field, double time, BigInt blockid) const
 {    
-  auto compression = guessCompression(field);
+  auto compression = getCompression();
   auto ret = Access::getBlockFilename(this->filename_template, field, time, compression, blockid, reverse_filename);
 
   //s3://bucket/... -> /bucket/...
@@ -118,7 +121,7 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
     if (!blob || !blob->valid())
       return readFailed(query, query->aborted()? "query aborted" : "blob not valid");
 
-    auto compression = guessCompression(query->field);
+    auto compression = getCompression();
 
     //special case for idx2 where I just want to data as it is
     if (!query->getNumberOfSamples().innerProduct())
@@ -154,28 +157,7 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 ///////////////////////////////////////////////////////////////////////////////////////
 void CloudStorageAccess::writeBlock(SharedPtr<BlockQuery> query)
 {
-#if 1
   return writeFailed(query, "not supported");
-#else
-  //NOTE: do not use this function for anything different from experimental idx2
-
-  auto compression = guessCompression(query->field);
-
-  auto decoded = query->buffer;
-  auto encoded = ArrayUtils::encodeArray(compression, decoded);
-  if (!encoded)
-    return writeFailed(query, "Failed to encode data");
-
-  auto blob_name = getFilename(query->field, query->time, query->blockid);
-
-  auto blob = CloudStorageItem::createBlob(blob_name, encoded);
-  cloud_storage->addBlob(netservice, blob, query->aborted).when_ready([this, query](bool ok) {
-    if (ok)
-      return writeOk(query);
-    else
-      return writeFailed(query,"Write failed");
-    });
-#endif
 }
 
 

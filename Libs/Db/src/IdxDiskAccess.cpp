@@ -247,7 +247,7 @@ public:
     
     Int64 block_offset = block_header.offset;
     Int32 block_size   = block_header.len;
-    String compression = block_header.compressed ? "zip" : "";
+    String compression = getCompression(block_header.compressed ? "zip" : "");
 
     if (bVerbose)
       PrintInfo("Block header contains the following: block_offset",block_offset,"block_size",block_size,"compression",compression);
@@ -483,6 +483,14 @@ public:
     String compression = block_header.getCompression();
     String layout      = block_header.getLayout();
 
+#if 1
+    //problem with zfp. In the block header I just write it's zfp, but I don't know the number of bitplanes
+    //so I am trying to get the full information from the field default_compression (example "zfp-64")
+    //TODO: can we be sure we will get the full specs always from default_compression? not so sure
+    if (compression == "zfp" && StringUtils::startsWith(query->field.default_compression, "zfp"))
+      compression = query->field.default_compression;
+#endif
+
     if (bVerbose)
       PrintInfo("Block header contains the following: block_offset",block_offset,"block_size",block_size,"compression",compression,"layout",layout);
 
@@ -508,15 +516,6 @@ public:
     if (aborted())
       return FAILED("aborted");
 
-#if 1
-    //problem with zfp. In the block header I just write it's zfp, but I don't know the number of bitplanes
-    //so I am trying to get the full information from the field default_compression (example "zfp-64")
-    //TODO: can we be sure we will get the full specs always from default_compression? not so sure
-    if (compression == "zfp" && StringUtils::startsWith(query->field.default_compression, "zfp"))
-      compression = query->field.default_compression;
-#endif
-
-    
     Array decoded;
     if (bSkipDecode)
     {
@@ -581,10 +580,7 @@ public:
     }
 
     //encode the data
-    String compression = guessCompression(query->field.default_compression);
-
-    //if (compression != "" || compression != "zip")
-    //  ThrowException("probably an error");
+    String compression = getCompression(query->field.default_compression);
 
     auto decoded = query->buffer;
     auto encoded = ArrayUtils::encodeArray(compression, decoded);
@@ -599,7 +595,6 @@ public:
     block_header.setSize((Int32)encoded->c_size());
     block_header.setCompression(compression);
 
-    
     if (!openFile(filename, "rw"))
       return FAILED(cstring("cannot open file", filename));
 
@@ -998,12 +993,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
   this->can_read  = StringUtils::find(config.readString("chmod", DefaultChMod), "r") >= 0;
   this->can_write = StringUtils::find(config.readString("chmod", DefaultChMod), "w") >= 0;
   this->bitsperblock = idxfile.bitsperblock;
-
-  //this is needed for cachinh, in case the user specified he wants to enable the compression
-  //NOTE: for existing bloks, I am just readong the compression info from headers
-  //NOTE: DO not enable compression when converting using BoxQuery, otherwise you are going to waste a lot of disk
-  //      (i,e, same blocks will be written with different dimensions due to the comopression)
-  this->compression = config.readString("compression", Url(dataset->getUrl()).getParam("compression", "zip"));
+  this->compression = config.readString("compression");
 
   // 0 == no verbose
   // 1 == read verbose, write verbose
@@ -1066,7 +1056,6 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,IdxFile idxfile, StringTree con
     async_tpool = std::make_shared<ThreadPool>("IdxDiskAccess Thread", nthreads);
   }
 #endif
-
 
   PrintInfo("Created IdxDiskAccess", "url", url, "compression", compression, "bDisableWriteLocks", bDisableWriteLocks);
 }

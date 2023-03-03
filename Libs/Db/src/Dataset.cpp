@@ -201,6 +201,9 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
   {
     //cached is extracted from the url
     String cached = StringUtils::toLower(parsed.getParam("cached", "idx")); //TODO: not sure if it's better to use "idx" or "disk" here
+
+    //1 || idx means to use IdxDiskAccess; 2| disk means to use Disk Access
+    String cache_access_type = (cached == "1" || StringUtils::contains(cached, "idx")) ? "IdxDiskAccess" : "DiskAccess";
    
     // cache_dir is extracted from the String Tree (see LoadDataset(url, cache_dir='...')
     // if cache_dir is empty, then IdxDiskAccess or DiskAccess will decide where cache data will be (i.e. inside ~/visus folder)
@@ -212,21 +215,32 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
       ThrowException("LoadDataset", url, "failed. The path in cache_dir argument", cache_dir, "is a file.");
 
     //normalize the url 
-    parsed.params.eraseValue("cached");
-    url = parsed.toString();
-
-    //1 || idx means to use IdxDiskAccess; 2| disk means to use Disk Access
-    String local_access  = (cached == "1" || StringUtils::contains(cached, "idx")) ? "IdxDiskAccess" : "DiskAccess";
+    auto cache_compression = parsed.getParam("cache_compression", "zip");
 
     //if the url contains the string mod_visus I think the origin is an OpenVisus server, otherwise is an S3 cloud dataset
     //PROBLEM HERE: what is the S3 path contains the string mod_visus? I am not handling this case so please don't use this substring in S3
-    String remote_access = StringUtils::contains(url, "mod_visus") ? "ModVisusAccess" : "CloudStorageAccess";
+    String remote_access_type = StringUtils::contains(url, "mod_visus") ? "ModVisusAccess" : "CloudStorageAccess";
 
-    StringTree access_config = StringTree::fromString(concatenate(
-      "  <access type='multiplex'>\n",
-      "     <access type='", local_access, "'  chmod='rw' compression='zip' ", (cache_dir.empty() ? String("") : concatenate("cache_dir='", cache_dir, "'")), "/>\n",
-      "     <access type='", remote_access, "' chmod='r'  compression='zip' />\n",
-      "  </access>\n"));
+    //remove any reference to the cache from the url
+    parsed.params.eraseValue("cached");
+    parsed.params.eraseValue("cache_dir");
+    parsed.params.eraseValue("cache_compression");
+    url = parsed.toString();
+
+    std::ostringstream out;
+    out << "<access type='multiplex'>" << std::endl;
+    {
+      out << "<access type='" << cache_access_type << "'  chmod='rw' compression='" << cache_compression << "' ";
+      if (!cache_dir.empty())
+        out << "cache_dir='" << cache_dir << "' ";
+      out << "/>" << std::endl;
+
+      out << "<access type='" << remote_access_type << "' chmod='r' />" << std::endl;
+    }
+    out << "</access>" << std::endl;
+
+    auto access_config=StringTree::fromString(out.str());
+    VisusReleaseAssert(access_config.valid())
 
     PrintInfo("Automatically enabling caching for", url, "\n", access_config.toString());
 
@@ -552,7 +566,8 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
     query->buffer = data;
 
     auto Waccess = createAccessForBlockQuery();
-    Waccess->setWritingMode(Waccess->compression); // keep compression for block-to-block operation
+    Waccess->disableWriteLocks();
+    // Waccess->disableCompression() I want block compression here
 
     auto Raccess = std::make_shared<RamAccess>(getDefaultBitsPerBlock());
     Raccess->setAvailableMemory(/* no memory limit*/0);
@@ -604,7 +619,8 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
     compressed_idx_file.save(compressed_idx_filename);
 
     auto Waccess = std::make_shared<IdxDiskAccess>(idx, compressed_idx_file);
-    Waccess->setWritingMode(Waccess->compression);// keep compression for block-to-block operation
+    Waccess->disableWriteLocks();
+    // Waccess->disableCompression();I want block compression here
 
     auto Raccess = std::make_shared<IdxDiskAccess>(idx, idxfile);
     Raccess->disableAsync(); //don't need to have async read ops here
@@ -2156,7 +2172,8 @@ void Dataset::computeFilter(const Field& field, int window_size, bool bVerbose)
     sliding_box[D] = window_size;
 
   auto access = createAccessForBlockQuery();
-  access->setWritingMode();
+  access->disableWriteLocks();
+  access->disableCompression();
   for (auto time : getTimesteps().asVector())
     computeFilter(filter, time, field, access, sliding_box, bVerbose);
 }

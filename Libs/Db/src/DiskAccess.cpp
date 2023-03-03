@@ -52,12 +52,11 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   this->can_read          = StringUtils::find(config.readString("chmod", DefaultChMod),"r")>=0;
   this->can_write         = StringUtils::find(config.readString("chmod", DefaultChMod),"w")>=0;
   this->bitsperblock      = default_bitsperblock;
-  this->compression       = config.readString("compression", Url(dataset->getUrl()).getParam("compression", "zip"));
+  this->compression       = config.readString("compression");
 
-  Url url = config.hasAttribute("url") ? config.readString("url") : dataset->getUrl();
+  this->url = config.readString("url", dataset->getUrl());
   Path path = Path(url.getPath());
-  
-  
+
   //example: "s3://bucket-name/whatever/$(time)/$(field)/$(block:%016x:%04x).$(compression)";
   //NOTE 16x is enough for 16*4 bits==64 bit for block number
   //     splitting by 4 means 2^16= 64K files inside a directory with max 64/16=4 levels of directories
@@ -98,7 +97,7 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   //2 ==               write verbose
   this->verbose |= cint(Utils::getEnv("VISUS_VERBOSE_DISKACCESS"));
 
-  PrintInfo("Created DiskAccess","url",url,"filename_template",filename_template,"compression", compression,"bDisableWriteLocks", bDisableWriteLocks);
+  PrintInfo("Created DiskAccess", "url", url, "filename_template", filename_template, "compression", compression, "bDisableWriteLocks", bDisableWriteLocks);
 }
 
 
@@ -106,7 +105,7 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
 String DiskAccess::getFilename(Field field,double time,BigInt blockid) const
 {
   auto reverse_filename = false;
-  auto compression = guessCompression(field);
+  auto compression = getCompression(field.default_compression);
   return Access::getBlockFilename(filename_template, field, time, compression, blockid, reverse_filename);
 }
 
@@ -180,9 +179,8 @@ void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
   if (!file.read(0,encoded->c_size(), encoded->c_ptr()))
     return FAILED("cannot read encoded data");
 
-  auto compression = guessCompression(query->field);
-
   auto nsamples = query->getNumberOfSamples();
+  auto compression = getCompression(query->field.default_compression);
   auto decoded=ArrayUtils::decodeArray(compression,nsamples,query->field.dtype, encoded);
   if (!decoded.valid())
     return FAILED("cannot decode data");
@@ -240,9 +238,8 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
     return FAILED("cannot create file or directory");
   }
 
-  auto compression = guessCompression(query->field);
-
   auto decoded=query->buffer;
+  auto compression = getCompression(query->field.default_compression);
   auto encoded=ArrayUtils::encodeArray(compression,decoded);
   if (!encoded)
   {

@@ -78,7 +78,8 @@ public:
 
 private:
 
-  String              filename_template;
+  Url url;
+  String filename_template;
 
 }; 
 

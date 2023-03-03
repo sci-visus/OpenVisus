@@ -257,7 +257,8 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
   query->buffer=src; 
 
   auto access=dataset->createAccessForBlockQuery();
-  access->setWritingMode();
+  access->disableWriteLocks();
+  access->disableCompression();
   if (!dataset->executeBoxQuery(access,query))
   {
     PrintWarning("!dataset->executeBoxQuery()");
