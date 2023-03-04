@@ -204,14 +204,14 @@ public:
   virtual void acquireWriteLock(SharedPtr<BlockQuery> query) {
     VisusAssert(isWriting());
     if (bDisableWriteLocks) return;
-    ThrowException("not supported");
+    ThrowException("Access::releaseWriteLock not supported");
   }
 
   //releaseWriteLock
   virtual void releaseWriteLock(SharedPtr<BlockQuery> query) {
     VisusAssert(isWriting());
     if (bDisableWriteLocks) return;
-    ThrowException("not supported");
+    ThrowException("Access::releaseWriteLock not supported");
   }
 
   //resetStatistics

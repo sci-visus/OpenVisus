@@ -473,13 +473,7 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool for_block_query)
   
   // RAM CACHE 
   if (type == "lruam" || type == "ram" || type == "ramaccess")
-  {
-    auto ret = std::make_shared<RamAccess>(getDefaultBitsPerBlock());
-    ret->can_read = StringUtils::contains(config.readString("chmod", Access::DefaultChMod), "r");
-    ret->can_write = StringUtils::contains(config.readString("chmod", Access::DefaultChMod), "w");
-    ret->setAvailableMemory(StringUtils::getByteSizeFromString(config.readString("available", "128mb")));
-    return ret;
-  }
+    return std::make_shared<RamAccess>(getDefaultBitsPerBlock(),config);
 
   // NETWORK 
   if (type=="network" || type=="modvisusaccess")
@@ -566,25 +560,33 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
 
   if (data.valid())
   {
-    //data will replace current data
-    //write BoxQuery(==data) to BlockQuery(==RAM)
+    auto ram_access = std::make_shared<RamAccess>(getDefaultBitsPerBlock());
+    ram_access->setAvailableMemory(/* no memory limit*/0);
+
+    //IMPORTANT: since there is one RamAccess with one client (==me) it is safe to disable writelocks (btw they are not supported by RamAccess anyway)
+    //I am sure that I am going to read write in-sync (see RamAccess implementation) from only one thread
+    //and later on, when I am copying blocks, all access are sequential/in-sync
+    ram_access->disableWriteLocks(); 
+
+    //write blocks to RAM
     auto query = createBoxQuery(getLogicBox(), 'w');
     beginBoxQuery(query);
     VisusReleaseAssert(query->isRunning());
     VisusAssert(query->getNumberOfSamples() == data.dims);
     query->buffer = data;
+    VisusReleaseAssert(executeBoxQuery(ram_access, query));
 
-    auto Waccess = createAccessForBlockQuery();
-    Waccess->disableWriteLocks();
-    // Waccess->disableCompression() I want block compression here
 
-    auto Raccess = std::make_shared<RamAccess>(getDefaultBitsPerBlock());
-    Raccess->setAvailableMemory(/* no memory limit*/0);
-    VisusReleaseAssert(executeBoxQuery(Raccess, query));
+    //copy blocks from RAM to disk 
+    query = createBoxQuery(getLogicBox(), 'w');
+
+    auto disk_access = createAccessForBlockQuery();
+    disk_access->disableWriteLocks();
+    // disk_access->disableCompression() I want block compression here
 
     //read blocks are in RAM assuming there is no file yet stored on disk
-    Raccess->beginRead();
-    Waccess->beginWrite();
+    ram_access->beginRead();
+    disk_access->beginWrite();
     for (auto time : idxfile.timesteps.asVector())
     {
       for (BigInt blockid = 0, total_blocks = getTotalNumberOfBlocks(); blockid < total_blocks; blockid++)
@@ -592,7 +594,7 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
         for (auto Rfield : idxfile.fields)
         {
           auto read_block = createBlockQuery(blockid, Rfield, time, 'r');
-          if (!executeBlockQueryAndWait(Raccess, read_block))
+          if (!executeBlockQueryAndWait(ram_access, read_block))
             continue;
 
           //NOTE: the layout will remain the same, I am not switching it]
@@ -605,12 +607,12 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
           Wfield.default_compression = compression[H];
           auto write_block = createBlockQuery(read_block->blockid, Wfield, read_block->time, 'w');
           write_block->buffer = read_block->buffer;
-          VisusReleaseAssert(executeBlockQueryAndWait(Waccess, write_block));
+          VisusReleaseAssert(executeBlockQueryAndWait(disk_access, write_block));
         }
       }
     }
-    Raccess->endRead();
-    Waccess->endWrite();
+    ram_access->endRead();
+    disk_access->endWrite();
   }
   else
   {
