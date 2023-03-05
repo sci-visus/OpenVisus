@@ -1,5 +1,8 @@
 # TESTS to run
 
+
+![Diagram](https://raw.githubusercontent.com/sci-visus/OpenVisus/master/docs/compression.png)
+
 ## [OK] visusviewer 
 
 Note: to test different configurations, remember to remove the `visus.idx` file.
