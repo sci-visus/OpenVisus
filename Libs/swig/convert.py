@@ -63,8 +63,9 @@ class CopyBlocks:
 		logger.info(f"Copying blocks time({self.time}) field({self.field.name}) A({A}) B({B}) ...")
 
 		waccess=dst.createAccessForBlockQuery()
-		waccess.setWritingMode()
-
+		waccess.disableWriteLocks()
+		# waccess.disableCompression()  I want block compression here
+ 
 		# for mod_visus there is the problem of aggregation (Ii.e. I need to call endRead to force the newtork request)
 		if "mod_visus" in src.getUrl():
 			num_read_per_request=self.num_read_per_request 
@@ -417,13 +418,14 @@ def ConvertImageStack(src:str, dst:str, arco="modvisus"):
 
 	assert(db.getMaxResolution()>=bitsperblock)
 	access=db.createAccessForBlockQuery()
-	access.setWritingMode()
+	access.disableWriteLocks()
+	access.disableCompression()
 	db.writeSlabs(generator, access=access)
 	logger.info(f"ConvertImageStack DONE in {time.time()-T1} seconds")
 
 
 # ////////////////////////////////////////////////////////////////////////////
-def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=None, field:str=None,num_attempts:int=3):
+def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=None, field:str=None,num_attempts:int=3,force=False):
 
 	arco=NormalizeArcoArg(arco)
 
@@ -455,7 +457,10 @@ def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=
 		arco=arco)
 	
 	Saccess=SRC.createAccessForBlockQuery() 
-	Daccess=DST.createAccessForBlockQuery();Daccess.setWritingMode()
+
+	Daccess=DST.createAccessForBlockQuery()
+	Daccess.disableWriteLocks()
+	Daccess.disableCompression()
 
 	pdim=SRC.getPointDim()
 	assert pdim==2 or pdim==3 # TODO other cases
@@ -496,7 +501,7 @@ def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=
 	Daccess.beginWrite()
 	for I,(timestep,fieldname,logic_box) in enumerate(pieces):
 
-		if I<=DONE:
+		if I<DONE and not force:
 			continue
 
 		for K in range(num_attempts):
@@ -520,8 +525,8 @@ def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=
 				logger.info(f"CopyDataset Writing of src={src} {I}/{N} FAILED, retrying...")
 				time.sleep(1.0)
 
+		DONE=I+1
 		try:
-			DONE=I
 			WriteTextFile(done_filename,str(DONE))
 		except:
 			pass

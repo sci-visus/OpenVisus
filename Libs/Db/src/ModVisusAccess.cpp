@@ -52,7 +52,8 @@ ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_)
   this->can_write = StringUtils::find(config.readString("chmod", DefaultChMod), "w") >= 0;
   this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
   this->url = config.readString("url", dataset->getUrl()); VisusAssert(url.valid());
-  this->compression = config.readString("compression", url.getParam("compression", "zip"));
+
+  this->compression = config.readString("compression", "zip");
 
   this->config.write("url", url.toString());
 
@@ -91,6 +92,8 @@ ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_)
 ModVisusAccess::~ModVisusAccess() {
 }
 
+
+
 ///////////////////////////////////////////////////////////////////////////////////////
 void ModVisusAccess::readBlock(SharedPtr<BlockQuery> query)
 {
@@ -122,10 +125,12 @@ void ModVisusAccess::flushBatch()
   Batch batch;
   std::swap(batch,this->batch);
 
+  auto compression = getCompression();
+
   Url URL(this->url.withPath("/mod_visus"));
   URL.setParam("action"      , "rangequery");
   URL.setParam("dataset"     , this->url.getParam("dataset"));
-  URL.setParam("compression" , this->compression);
+  URL.setParam("compression" , compression);
   URL.setParam("field"       , batch[0]->field.name);
   URL.setParam("time"        , cstring(batch[0]->time));
 
@@ -136,21 +141,6 @@ void ModVisusAccess::flushBatch()
       v.push_back(cstring(query->blockid));
     URL.setParam("block", StringUtils::join(v));
   }
-
-  //backward compatible (send address range)
-#if 0
-  {
-    std::vector<String> from, to;
-    for (auto query : batch)
-    {
-      from.push_back(cstring((query->blockid + 0) << bitsperblock));
-      to  .push_back(cstring((query->blockid + 1) << bitsperblock));
-    }
-
-    URL.setParam("from", StringUtils::join(from));
-    URL.setParam("to"  , StringUtils::join(to));
-  }
-#endif
 
   auto REQUEST=NetRequest(URL);
   REQUEST.aborted=batch[0]->aborted;

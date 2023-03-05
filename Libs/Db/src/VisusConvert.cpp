@@ -93,7 +93,8 @@ public:
       << "   [--bitsperblock <int>]" << std::endl
       << "   [--blocksperfile <int>]" << std::endl
       << "   [--filename_template <string>]" << std::endl
-      << "   [--time from to template]" << std::endl;
+      << "   [--time from to template]" << std::endl
+      << "   [--arco <value>]" << std::endl;
     return out.str();
   }
 
@@ -150,11 +151,16 @@ public:
 
         idxfile.time_template = time_template;
       }
+      else if (args[I] == "--arco")
+      {
+        idxfile.arco = cint(args[++I]);
+      }
       else
       {
         //just ignore
       }
     }
+
 
     idxfile.save(filename);
 

@@ -42,6 +42,7 @@ For support : support@visus.net
 #include <Visus/Db.h>
 #include <Visus/Access.h>
 #include <Visus/Path.h>
+#include <Visus/IdxFile.h>
 
 namespace Visus {
 
@@ -78,7 +79,8 @@ public:
 
 private:
 
-  String              filename_template;
+  IdxFile idxfile;
+  String filename_template;
 
 }; 
 
