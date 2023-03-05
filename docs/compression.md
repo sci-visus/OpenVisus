@@ -9,6 +9,8 @@ Note: to test different configurations, remember to remove the `visus.idx` file.
 This is because I am usually not overwriting the file in case it exists, and IDX get the compression
 info from the block header
 
+```
+
 [OK] (IdxDiskAccess) (openvisus-server) All local files contains multiple blocks with compression disabled
 http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1&cached=idx&cache_compression=raw
 
@@ -32,6 +34,8 @@ https://s3.us-west-1.wasabisys.com/nsdf/visus-datasets/2kbit1/1mb/visus.idx?prof
 
 [OK] (DiskAccess) (wasabi) All local files contains one block with compression disabled
 https://s3.us-west-1.wasabisys.com/nsdf/visus-datasets/2kbit1/1mb/visus.idx?profile=wasabi&cached=arco&cache_compression=zip
+
+```
 
 # [OK] test-idx 
 
@@ -157,7 +161,7 @@ db=ov.CreateIdx(url="tmp/visus.idx", dim=3, fields=[ov.Field('data','uint8[3]','
 db.writeSlabs(generateSlices())
 ```
 
-## Convert existing OpenVisus local dataset to ARCO format
+## [OK] Convert existing OpenVisus local dataset to ARCO format
 
 [OK] Arco==0:
 
