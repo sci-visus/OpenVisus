@@ -621,8 +621,6 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
     VisusReleaseAssert(FileUtils::existsFile(idx_filename));
     String compressed_idx_filename = idx_filename + suffix;
 
-    //TODO test
-    VisusReleaseAssert(false);
     {
       IdxFile tmp = this->idxfile;
       tmp.filename_template = idxfile.filename_template + suffix;
