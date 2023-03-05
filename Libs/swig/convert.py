@@ -425,7 +425,7 @@ def ConvertImageStack(src:str, dst:str, arco="modvisus"):
 
 
 # ////////////////////////////////////////////////////////////////////////////
-def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=None, field:str=None,num_attempts:int=3):
+def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=None, field:str=None,num_attempts:int=3,force=False):
 
 	arco=NormalizeArcoArg(arco)
 
@@ -501,7 +501,7 @@ def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=
 	Daccess.beginWrite()
 	for I,(timestep,fieldname,logic_box) in enumerate(pieces):
 
-		if I<=DONE:
+		if I<DONE and not force:
 			continue
 
 		for K in range(num_attempts):
@@ -525,8 +525,8 @@ def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=
 				logger.info(f"CopyDataset Writing of src={src} {I}/{N} FAILED, retrying...")
 				time.sleep(1.0)
 
+		DONE=I+1
 		try:
-			DONE=I
 			WriteTextFile(done_filename,str(DONE))
 		except:
 			pass
