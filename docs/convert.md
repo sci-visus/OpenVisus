@@ -2,7 +2,11 @@
 
 ![Diagram](https://raw.githubusercontent.com/sci-visus/OpenVisus/master/docs/openvisus-convert.png)
 
-
+Notes:
+- to enable IDX caching do `?cached=idx&caching_compression=zip`
+-    slower in writing (since it will create write locks for concurrent threads) but faster for reading (less `fopen`/`fclose` ops)
+- to enable one-block-per-file caching do `?cached=arco&caching_compression=zip`
+-    faster to write (no need of file locks) but slower for reading (more `fopen`/`fclose` ops)
 
 
 ## Convert image stack to OpenVisus
