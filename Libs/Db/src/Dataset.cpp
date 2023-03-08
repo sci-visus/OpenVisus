@@ -248,10 +248,14 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
     }
     out << "</access>" << std::endl;
 
-    auto access_config=StringTree::fromString(out.str());
-    VisusReleaseAssert(access_config.valid())
-
-    PrintInfo("Automatically enabling caching for", url, "\n", access_config.toString());
+    String s = out.str();
+    PrintInfo("Automatically enabling caching for", url, "\n", s);
+    auto access_config=StringTree::fromString(s);
+    if (!access_config.valid())
+    {
+      PrintInfo("XML config is not valid", s);
+      VisusReleaseAssert(false);
+    }
 
     ar.setAttribute("url", url);
     ar.addChild(access_config);

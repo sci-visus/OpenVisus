@@ -174,7 +174,7 @@ class PyQuery:
 
 		# if timestep is not specified get the default one
 		if timestep is None:
-			timestep=db.getTimestep()
+			timestep=db.getTime()
 
 		# if field is not specified get the default one
 		if field is None:
