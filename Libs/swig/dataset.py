@@ -663,6 +663,20 @@ class PyDataset(object):
 		CopyDatasetToCloud(self,local=local,remote=remote,done=done,arco=arco,compression=compression,clean_local=clean_local,timestep=timestep,field=field)
 
 
+def create_idx(*, url, shape, fields):
+	"""
+	Creates a local .idx file at the url location storing the metadata of the shape and fields.
+	The data is written using the write function.
+
+	Example:
+	dataset = create_idx(url="test.idx", shape=(10, 20, 30), fields=[Field("data", "float32")])
+	dataset.write(data)
+	dataset.compress_dataset()
+	"""
+	return CreateIdx(url=url, dims=list(reversed(shape)), fields=fields, arco="1mb")
+
+
+
 
 ############### stable OpenVisus API #####################
 def load_dataset(url, cache_dir=""):
@@ -679,7 +693,7 @@ def load_dataset(url, cache_dir=""):
 	if os.path.isfile(cache_dir):
 		raise NotADirectoryError(f"The cache_dir {cache_dir} is a file and not a directory")
 	try:
-		dataset = Dataset(LoadDatasetCpp(url, cache_dir))
+		dataset = Dataset1(LoadDatasetCpp(url, cache_dir))
 	except SystemError as e:
 		dataset = None
 	if dataset is None:
@@ -687,24 +701,7 @@ def load_dataset(url, cache_dir=""):
 	return dataset
 
 
-
-
-def create_dataset(*, url, shape, fields):
-	"""
-	Creates a local .idx file at the url location storing the metadata of the shape and fields.
-	The data is written using the write function.
-
-	Example:
-	dataset = create_dataset(url="test.idx", shape=(10, 20, 30), fields=[Field("data", "float32")])
-	dataset.write(data)
-	dataset.compress_dataset()
-	"""
-	return CreateIdx(url=url, dims=list(reversed(shape)), fields=fields, arco="1mb")
-
-
-
-
-class Dataset(object):
+class Dataset1(object):
 	def __init__(self,db):
 		self.db = db
 		self.max_resolution = self.db.getMaxResolution()

@@ -36,8 +36,8 @@ class TestAPI(unittest.TestCase):
 		assert not os.path.isdir("test")
 		dataset = ov.load_dataset("https://klacansky.com/open-scivis-datasets/silicium/silicium.idx", cache_dir="test")
 		dataset.read()
-		self.assertTrue(os.path.exists("test/klacansky.com/443/open-scivis-datasets/silicium/silicium.idx"))
-		self.assertTrue(os.path.exists("test/klacansky.com/443/open-scivis-datasets/silicium/silicium/0000.bin"))
+		self.assertTrue(os.path.exists("test/IdxDiskAccess/klacansky.com/443/zip/open-scivis-datasets/silicium/silicium.idx"))
+		self.assertTrue(os.path.exists("test/IdxDiskAccess/klacansky.com/443/zip/open-scivis-datasets/silicium/silicium/time_0000/0000.bin"))
 		shutil.rmtree("test")
 
 		# TODO(2/19/2023): test if dangling lock file is handled correctly (can happen if process is interrupted)
