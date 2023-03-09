@@ -13,7 +13,7 @@ These softwares are distributed under the permissive BSD license (see [LICENSE](
 
 # Installation
 
-For `conda` see [docs/conda_installation.md](./docs/conda_installation.md).
+For `conda` see [docs/conda-installation.md](./docs/conda-installation.md).
 
 Make sure `pip` is [installed, updated and in PATH](https://pip.pypa.io/en/stable/installation/). The installation is tested on python3.7, so it is recommended. 
 

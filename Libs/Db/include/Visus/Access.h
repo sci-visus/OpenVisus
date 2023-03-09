@@ -69,7 +69,7 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(Access)
 
-  typedef AccessStatistics Statistics;
+    typedef AccessStatistics Statistics;
 
   static const String DefaultChMod;
 
@@ -77,11 +77,11 @@ public:
   String name;
 
   // if read/write ops are allowed 
-  bool can_read=true;
-  bool can_write=true;
+  bool can_read = true;
+  bool can_write = true;
 
   // bitsperblock for read/write operations 
-  int bitsperblock=0;
+  int bitsperblock = 0;
 
   // statistics
   Statistics statistics;
@@ -92,7 +92,16 @@ public:
   //bDisableWriteLocks (to speed up writing with only one writer)
   bool bDisableWriteLocks = false;
 
-  //compression algorithm
+  //internal use only
+  /*
+    Remote:
+      CloudAccess    (*) Access::compression (*) zip
+      ModVisusAccess (*) Access::compression (*) zip
+
+    Local:
+      IdxDiskAccess  (*) Access::compression (*) field.default_compression
+      DiskAccess     (*) Access::compression (*) field.default_compression
+  */
   String compression;
 
   //constructor 
@@ -108,29 +117,24 @@ public:
   virtual ~Access() {
   }
 
-  //disableWriteLock
-  void disableWriteLock() {
-    this->bDisableWriteLocks = true;
-  }
-
-  //disableWriteLock
-  void disableCompression() {
-    this->compression = "";
-  }
-
   //this is the number of samples it will return in a read/write operation
   int getSamplesPerBlock() const {
     return 1 << bitsperblock;
   }
 
   //getFilename
-  virtual String getFilename(Field field,double time,BigInt blockid) const {
+  virtual String getFilename(Field field, double time, BigInt blockid) const {
     return "";
   }
 
   //getFilename
   String getFilename(SharedPtr<BlockQuery> query) const {
-    return getFilename(query->field,query->time,query->blockid);
+    return getFilename(query->field, query->time, query->blockid);
+  }
+
+  //getCompression
+  String getCompression(String default_compression = "zip") const {
+    return !this->compression.empty() ? this->compression : default_compression;
   }
 
   //getStartAddress
@@ -200,23 +204,23 @@ public:
   virtual void acquireWriteLock(SharedPtr<BlockQuery> query) {
     VisusAssert(isWriting());
     if (bDisableWriteLocks) return;
-    ThrowException("not supported");
+    ThrowException("Access::releaseWriteLock not supported");
   }
 
   //releaseWriteLock
   virtual void releaseWriteLock(SharedPtr<BlockQuery> query) {
     VisusAssert(isWriting());
     if (bDisableWriteLocks) return;
-    ThrowException("not supported");
+    ThrowException("Access::releaseWriteLock not supported");
   }
 
   //resetStatistics
   void resetStatistics() {
-    statistics=Statistics();
+    statistics = Statistics();
   }
 
   //printStatistics
-  virtual void printStatistics() 
+  virtual void printStatistics()
   {
     PrintInfo("type", typeid(*this).name(), "chmod", can_read ? "r" : "", can_write ? "w" : "", "bitsperblock", bitsperblock);
     PrintInfo("rok", statistics.rok, "rfail", statistics.rfail);
@@ -242,7 +246,7 @@ public:
   }
 
   //readFailed
-  void readFailed(SharedPtr<BlockQuery> query,String errormsg) {
+  void readFailed(SharedPtr<BlockQuery> query, String errormsg) {
     ++statistics.rfail;
     query->setFailed(errormsg);
   }
@@ -262,21 +266,22 @@ public:
 public:
 
   //getBlockFilename
-  static String getBlockFilename(String filename_template, Field field, double time, String compression, BigInt blockid,bool reverse_filename);
+  static String getBlockFilename(String filename_template, Field field, double time, String compression, BigInt blockid, bool reverse_filename);
 
-
-  //guessCompression (the field override anything if specified)
-  String guessCompression(Field field) const {
-    return !field.default_compression.empty() ? field.default_compression : this->compression;
+  //disableWriteLocks
+  //99% of the times I am not writing in parallel to avoid the file lock thingy
+  void disableWriteLocks() {
+    this->bDisableWriteLocks = true;
   }
 
-  //setWritingMode
-  void setWritingMode() {
-    //99% of the times I am not writing in parallel to avoid the file lock thingy
-    //99% of the times I am writing disabling compression that could cause the file to grow even larger than uncompressed 
-    //    I can do a final compress pass at the end
-    this->disableWriteLock();
-    this->compression = "raw"; //force incompressed
+  //disableCompression (need it anytime I am executing a BoxQuery that is going to write the sample blocks multiple times)
+  void disableCompression() {
+    this->compression = "raw"; //note: setting a non-empty value i force the Access::compression to be returned
+  }
+
+  //disableAsync
+  virtual void disableAsync() {
+    //nop here
   }
 
 private:

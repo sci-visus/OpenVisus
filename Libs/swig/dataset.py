@@ -443,7 +443,8 @@ class PyDataset(object):
 			
 		if not access:
 			access=self.createAccessForBlockQuery()
-			access.setWritingMode()
+			access.disableWriteLocks()
+			access.disableCompression()
 		
 		# I need to change the shape of the buffer, since the last component is the channel (like RGB for example)
 		buffer=Array.fromNumPy(data,bShareMem=True)
@@ -624,8 +625,10 @@ class PyDataset(object):
 	def copyBlocks(self, dst, time=None, field=None, num_read_per_request=1, verbose=False):
 	
 		if not os.path.isfile(dst):
-			src.db.idxfile.createNewOne(dst)
-		dst=LoadDataset(dst)
+  			dst=IdxFile.clone(src.db.idxfile)
+  			dst.version= 0             # re-validate 
+  			dst.filename_template = "" # re-guess (since the path can be different)
+  			dst.save(filename)
 
 		from .convert import CopyBlocks
 		copier=CopyBlocks(self.db, dst,time=time,field=field,num_read_per_request=num_read_per_request, verbose=verbose)

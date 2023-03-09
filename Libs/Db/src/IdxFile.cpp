@@ -212,7 +212,7 @@ void IdxFile::validate(String url)
     //probably the file will be compressed and I will have a compression ratio at least of 50%, so the file size won't be larger than 16mb
     const double likely_compression_ratio = 0.5;
     const int mb = 1024 * 1024;
-    const int target_compressed_filesize = 16 * mb;
+    const int target_compressed_filesize = 64 * mb;
     const int target_uncompressed_filesize = (int)(target_compressed_filesize / likely_compression_ratio);
 
     blocksperfile = target_uncompressed_filesize / overall_blockdim;
@@ -250,39 +250,21 @@ void IdxFile::validate(String url)
     filename_template = guessFilenameTemplate(url);
 
 #if 1
-  //adjust some stuff specific for arco
-  if (this->arco > 0)
+  //override arco to be the upper=bound for max blocksize
+  if (this->arco)
   {
+    VisusAssert(this->arco > 0);
+
     this->blocksperfile = 1;
 
-    //guess bitsperblock
+    //adjust bitsperblock
     auto max_h = this->bitmask.getMaxResolution();
-    int max_fieldsize = 0;
-    for (auto field : this->fields)
-      max_fieldsize = Utils::max(max_fieldsize, field.dtype.getByteSize());
+    int max_fieldsize = getMaxFieldSize();
     this->bitsperblock = Utils::min(max_h,int(log2(arco / max_fieldsize)));
-
     this->arco = (1 << bitsperblock) * max_fieldsize;
   }
 #endif
 
-}
-
-//////////////////////////////////////////////////////////////////////////////
-IdxFile IdxFile::createNewOne(String filename) const
-{
-  VisusReleaseAssert(!FileUtils::existsFile(filename));
-  IdxFile ret = *this;
-  ret.version = 6;
-  ret.block_interleaving = 0;
-  ret.filename_template = ret.guessFilenameTemplate(filename);
-
-  //store in row major
-  for (auto& field : ret.fields)
-    field.default_layout = "";
-
-  ret.save(filename);
-  return ret;
 }
 
 //////////////////////////////////////////////////////////////////////////////

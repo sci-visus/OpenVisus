@@ -45,60 +45,94 @@ For support : support@visus.net
 
 namespace Visus {
 
+
 ////////////////////////////////////////////////////////////////////
 DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
 {
-  int default_bitsperblock=dataset->getDefaultBitsPerBlock();
-  this->can_read          = StringUtils::find(config.readString("chmod", DefaultChMod),"r")>=0;
-  this->can_write         = StringUtils::find(config.readString("chmod", DefaultChMod),"w")>=0;
-  this->bitsperblock      = default_bitsperblock;
-  this->compression       = config.readString("compression", Url(dataset->getUrl()).getParam("compression", "zip"));
+  //caching
+  //DiskAccess     (*) Access::compression (*) field.default_compression
 
-  Url url = config.hasAttribute("url") ? config.readString("url") : dataset->getUrl();
-  Path path = Path(url.getPath());
-  
-  
+  this->idxfile = dataset->idxfile;
+  this->name = config.readString("name", "DiskAccess");
+  this->can_read = StringUtils::find(config.readString("chmod", DefaultChMod), "r") >= 0;
+  this->can_write = StringUtils::find(config.readString("chmod", DefaultChMod), "w") >= 0;
+  this->bitsperblock = this->idxfile.bitsperblock;
+  this->compression = config.readString("compression");
+
+  Url url = config.readString("url", dataset->getUrl());
+  VisusReleaseAssert(url.valid());
+
+  auto blob_extension = config.readString("blob_extension", url.getParam("blob_extension", ".bin"));
+
+  String local_idx_filename;
+  if (url.isRemote())
+  {
+    if (this->compression.empty())
+      this->compression = "raw";
+
+    //automatic guess local *.idx filename for caching
+    std::ostringstream out;
+    out
+      << config.readString("cache_dir", GetVisusCache()) << "/"
+      << "DiskAccess" << "/"
+      << url.getHostname() << "/"
+      << url.getPort() << "/"
+      << compression;
+
+    if (StringUtils::contains(url.toString(), "mod_visus?"))
+      out << "/" << url.getParam("dataset") << "/visus.idx"; //for idx the path is /mod_visus?dataset=2kbit1 (becomes dmov_visus/2kbit1/visus.idx"
+    else
+      out << url.getPath(); //cloud storage, path should be unique and visus.idx is the end of the  the path for cloud storage (!)
+
+    local_idx_filename = out.str();
+  }
+  else
+  {
+    VisusReleaseAssert(url.isFile());
+    local_idx_filename = url.getPath();
+  }
+
+  if (!FileUtils::existsFile(local_idx_filename))
+  {
+    //automatically create the *.idx file, useful for caching
+    auto  tmp = this->idxfile;
+    tmp.version = 0;                                                              //need to fill put for the validate step
+    tmp.blocksperfile = 1;                                                        //one file per block
+    tmp.arco = std::max(tmp.arco, (1 << bitsperblock) * tmp.getMaxFieldSize());   //force arco
+    tmp.setDefaultCompression(compression);                                       //"" will be equivalent to raw/uncompressed
+
+    tmp.save(local_idx_filename);
+    PrintInfo("DiskAccess creating IdxFile at", local_idx_filename);
+    this->idxfile = tmp;
+  }
+  else
+  {
+    PrintInfo("DiskAccess using existing IdxFile at", local_idx_filename);
+
+    //need to load it again since it can be different from the dataset
+    if (local_idx_filename != dataset->getUrl())
+    {
+      this->idxfile = IdxFile();
+      this->idxfile.load(local_idx_filename);
+    }
+  }
+  VisusAssert(this->idxfile.version >= 1 && idxfile.version <= 6);
+
+
+  //NOTE I am ignoring what it is stored in the idx file, but using filename template to guess filenames
   //example: "s3://bucket-name/whatever/$(time)/$(field)/$(block:%016x:%04x).$(compression)";
   //NOTE 16x is enough for 16*4 bits==64 bit for block number
   //     splitting by 4 means 2^16= 64K files inside a directory with max 64/16=4 levels of directories
-
-  this->filename_template = config.readString("filename_template");
-  if (this->filename_template.empty())
-  {
-    //try to guess here
-    if (url.isRemote())
-    {
-      //probably I am doing some caching of a remote dataset
-      this->filename_template = "$(VisusCache)/$(HostName)/$(HostPort)";
-      if (bool is_modvisus = StringUtils::contains(url.toString(), "mod_visus"))
-        this->filename_template += "/mod_visus/" + url.getParam("dataset") + "/visus";
-      else
-        this->filename_template += "$(FullPathWithoutExt)";
-    }
-    else
-    {
-      //just local dataset stored using DiskAccess
-      this->filename_template = "$(FullPathWithoutExt)"; 
-    }
-
-    this->filename_template += "/$(time)/$(field)/$(block:%016x:%04x)" + url.getParam("blob_extension", ".bin");
-  }
-
-  String cache_dir = config.readString("cache_dir");
-  if (cache_dir.empty())
-    cache_dir = GetVisusCache();
- 
-  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(HostName)", url.getHostname());
-  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(HostPort)", cstring(url.getPort()));
-  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(FullPathWithoutExt)", path.withoutExtension());
-  this->filename_template = StringUtils::replaceAll(this->filename_template, "$(VisusCache)", cache_dir );
+  this->filename_template = config.readString("filename_template", Path(local_idx_filename).withoutExtension() + "/$(time)/$(field)/$(block:%016x:%04x)" + blob_extension);
 
   //0 == no verbose
   //1 == read verbose, write verbose
   //2 ==               write verbose
   this->verbose |= cint(Utils::getEnv("VISUS_VERBOSE_DISKACCESS"));
 
-  PrintInfo("Created DiskAccess","url",url,"filename_template",filename_template,"compression", compression,"bDisableWriteLocks", bDisableWriteLocks);
+  this->verbose = 1;
+
+  PrintInfo("Created DiskAccess", "local_idx_filename", local_idx_filename, "filename_template", filename_template, "compression", compression, "bDisableWriteLocks", bDisableWriteLocks);
 }
 
 
@@ -106,7 +140,7 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
 String DiskAccess::getFilename(Field field,double time,BigInt blockid) const
 {
   auto reverse_filename = false;
-  auto compression = guessCompression(field);
+  auto compression = getCompression(field.default_compression);
   return Access::getBlockFilename(filename_template, field, time, compression, blockid, reverse_filename);
 }
 
@@ -180,15 +214,14 @@ void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
   if (!file.read(0,encoded->c_size(), encoded->c_ptr()))
     return FAILED("cannot read encoded data");
 
-  auto compression = guessCompression(query->field);
-
   auto nsamples = query->getNumberOfSamples();
+  auto compression = getCompression(query->field.default_compression);
   auto decoded=ArrayUtils::decodeArray(compression,nsamples,query->field.dtype, encoded);
   if (!decoded.valid())
     return FAILED("cannot decode data");
 
   VisusAssert(decoded.dims==query->getNumberOfSamples());
-  decoded.layout=""; 
+  decoded.layout= query->field.default_layout;
   query->buffer=decoded;
 
   return OK();
@@ -240,9 +273,8 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
     return FAILED("cannot create file or directory");
   }
 
-  auto compression = guessCompression(query->field);
-
   auto decoded=query->buffer;
+  auto compression = getCompression(query->field.default_compression);
   auto encoded=ArrayUtils::encodeArray(compression,decoded);
   if (!encoded)
   {

@@ -199,9 +199,13 @@ private:
 
 
 ////////////////////////////////////////////////////////////////////////////////
-RamAccess::RamAccess(int bitsperblock) {
+RamAccess::RamAccess(int bitsperblock,StringTree config) {
   this->name = "RamAccess";
   this->bitsperblock = bitsperblock;
+  this->can_read = StringUtils::contains(config.readString("chmod", Access::DefaultChMod), "r");
+  this->can_write = StringUtils::contains(config.readString("chmod", Access::DefaultChMod), "w");
+  this->setAvailableMemory(StringUtils::getByteSizeFromString(config.readString("available", "128mb")));
+
 }
 
 

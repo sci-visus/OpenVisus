@@ -101,8 +101,26 @@ public:
   //constructor
   IdxFile(int version_=0);
 
-  //createNewOne
-  IdxFile createNewOne(String filename) const;
+  //for swig
+  static IdxFile clone(const IdxFile& src) {
+    IdxFile dst;
+    dst = src;
+    return dst;
+  }
+
+  //setDefaultCompression
+  void setDefaultCompression(String value) {
+    for (auto& field : this->fields)
+      field.default_compression = value;
+  }
+
+  //getMaxFieldSize
+  int getMaxFieldSize() const {
+    int ret = 0;
+    for (auto field : this->fields)
+      ret = Utils::max(ret, field.dtype.getByteSize());
+    return ret;
+  }
 
   //load
   void load(String url,String& TypeName);

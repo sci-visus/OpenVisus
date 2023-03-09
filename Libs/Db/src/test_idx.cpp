@@ -155,7 +155,8 @@ public:
     if (bool bWriteData = true)
     {
       auto access = dataset->createAccessForBlockQuery();
-      access->setWritingMode();
+      access->disableWriteLocks();
+      access->disableCompression();
 
       int cont = 0;
       for (int N = 0; N < nslices; N++)

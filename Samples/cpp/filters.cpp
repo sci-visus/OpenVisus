@@ -197,7 +197,8 @@ void CppSamples_Filters(String default_layout)
 
 	auto db = LoadIdxDataset("tmp/tutorial_6/visus.idx");
 	auto waccess = db->createAccessForBlockQuery();
-	waccess->setWritingMode();
+	waccess->disableCompression();
+  waccess->disableWriteLocks();
 	auto write = db->createBoxQuery(world_box, 'w');
 	db->beginBoxQuery(write);
 	write->buffer = ArrayUtils::cast(img, DTypes::FLOAT32);

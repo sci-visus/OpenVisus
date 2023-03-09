@@ -63,8 +63,11 @@ void CppSamples_FullRes()
   for (auto mode : { 'w','r' })
   {
     auto access = dataset->createAccessForBlockQuery(); 
-    if (mode == 'w') 
-      access->setWritingMode();
+    if (mode == 'w')
+    {
+      access->disableWriteLocks();
+      access->disableCompression();
+    }
 
     for (int H = MaxH; H >= bitsperblock; H--)
     {

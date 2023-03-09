@@ -201,6 +201,16 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
   {
     //cached is extracted from the url
     String cached = StringUtils::toLower(parsed.getParam("cached", "idx")); //TODO: not sure if it's better to use "idx" or "disk" here
+
+    //1 || idx means to use IdxDiskAccess; 2| disk means to use Disk Access
+    String cache_access_type;
+    
+    if (cached == "1" || StringUtils::contains(cached, "idx"))
+      cache_access_type = "IdxDiskAccess";
+    else if (cached == "2" || StringUtils::contains(cached, "arco"))
+      cache_access_type = "DiskAccess";
+    else
+      cache_access_type = "IdxDiskAccess"; //default is this
    
     // cache_dir is extracted from the String Tree (see LoadDataset(url, cache_dir='...')
     // if cache_dir is empty, then IdxDiskAccess or DiskAccess will decide where cache data will be (i.e. inside ~/visus folder)
@@ -211,24 +221,41 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
     if (!cache_dir.empty() && FileUtils::existsFile(cache_dir))
       ThrowException("LoadDataset", url, "failed. The path in cache_dir argument", cache_dir, "is a file.");
 
-    //normalize the url 
-    parsed.params.eraseValue("cached");
-    url = parsed.toString();
-
-    //1 || idx means to use IdxDiskAccess; 2| disk means to use Disk Access
-    String local_access  = (cached == "1" || StringUtils::contains(cached, "idx")) ? "IdxDiskAccess" : "DiskAccess";
+    //compression, but default I set zip
+    auto cache_compression = parsed.getParam("cache_compression", "zip");
 
     //if the url contains the string mod_visus I think the origin is an OpenVisus server, otherwise is an S3 cloud dataset
     //PROBLEM HERE: what is the S3 path contains the string mod_visus? I am not handling this case so please don't use this substring in S3
-    String remote_access = StringUtils::contains(url, "mod_visus") ? "ModVisusAccess" : "CloudStorageAccess";
+    String remote_access_type = StringUtils::contains(url, "mod_visus") ? "ModVisusAccess" : "CloudStorageAccess";
 
-    StringTree access_config = StringTree::fromString(concatenate(
-      "  <access type='multiplex'>\n",
-      "     <access type='", local_access, "'  chmod='rw' compression='zip' ", (cache_dir.empty() ? String("") : concatenate("cache_dir='", cache_dir, "'")), "/>\n",
-      "     <access type='", remote_access, "' chmod='r'  compression='zip' />\n",
-      "  </access>\n"));
+    //remove any reference to the cache from the url
+    parsed.params.eraseValue("cached");
+    parsed.params.eraseValue("cache_dir");
+    parsed.params.eraseValue("cache_compression");
+    url = parsed.toString();
 
-    PrintInfo("Automatically enabling caching for", url, "\n", access_config.toString());
+    std::ostringstream out;
+    out << "<access type='multiplex'>" << std::endl;
+    {
+      //local
+      out << "<access type='" << cache_access_type << "'  chmod='rw' compression='" << cache_compression << "' ";
+      if (!cache_dir.empty())
+        out << "cache_dir='" << cache_dir << "' ";
+      out << "/>" << std::endl;
+
+      //remote
+      out << "<access type='" << remote_access_type << "' chmod='r' />" << std::endl;
+    }
+    out << "</access>" << std::endl;
+
+    String s = out.str();
+    PrintInfo("Automatically enabling caching for", url, "\n", s);
+    auto access_config=StringTree::fromString(s);
+    if (!access_config.valid())
+    {
+      PrintInfo("XML config is not valid", s);
+      VisusReleaseAssert(false);
+    }
 
     ar.setAttribute("url", url);
     ar.addChild(access_config);
@@ -450,13 +477,7 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool for_block_query)
   
   // RAM CACHE 
   if (type == "lruam" || type == "ram" || type == "ramaccess")
-  {
-    auto ret = std::make_shared<RamAccess>(getDefaultBitsPerBlock());
-    ret->can_read = StringUtils::contains(config.readString("chmod", Access::DefaultChMod), "r");
-    ret->can_write = StringUtils::contains(config.readString("chmod", Access::DefaultChMod), "w");
-    ret->setAvailableMemory(StringUtils::getByteSizeFromString(config.readString("available", "128mb")));
-    return ret;
-  }
+    return std::make_shared<RamAccess>(getDefaultBitsPerBlock(),config);
 
   // NETWORK 
   if (type=="network" || type=="modvisusaccess")
@@ -515,9 +536,6 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
 {
   PrintWarning("NOTE: Dataset::compressDataset is deprecated, use python version");
 
-  auto idx = dynamic_cast<IdxDataset*>(this);
-  VisusReleaseAssert(idx);
-
   // for future version: here I'm making the assumption that a file contains multiple fields
   if (idxfile.version != 6)
     ThrowException("unsupported");
@@ -546,27 +564,33 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
 
   if (data.valid())
   {
-    //data will replace current data
-    //write BoxQuery(==data) to BlockQuery(==RAM)
+    auto ram_access = std::make_shared<RamAccess>(getDefaultBitsPerBlock());
+    ram_access->setAvailableMemory(/* no memory limit*/0);
+
+    //IMPORTANT: since there is one RamAccess with one client (==me) it is safe to disable writelocks (btw they are not supported by RamAccess anyway)
+    //I am sure that I am going to read write in-sync (see RamAccess implementation) from only one thread
+    //and later on, when I am copying blocks, all access are sequential/in-sync
+    ram_access->disableWriteLocks(); 
+
+    //write blocks to RAM
     auto query = createBoxQuery(getLogicBox(), 'w');
     beginBoxQuery(query);
     VisusReleaseAssert(query->isRunning());
     VisusAssert(query->getNumberOfSamples() == data.dims);
     query->buffer = data;
+    VisusReleaseAssert(executeBoxQuery(ram_access, query));
 
-    auto Waccess = std::make_shared<IdxDiskAccess>(idx);
-    Waccess->disableWriteLock();
-    Waccess->disableAsync();
 
-    auto Raccess = std::make_shared<RamAccess>(getDefaultBitsPerBlock());
-    Raccess->setAvailableMemory(/* no memory limit*/0);
+    //copy blocks from RAM to disk 
+    query = createBoxQuery(getLogicBox(), 'w');
 
-    Raccess->disableWriteLock();
-    VisusReleaseAssert(executeBoxQuery(Raccess, query));
+    auto disk_access = createAccessForBlockQuery();
+    disk_access->disableWriteLocks();
+    // disk_access->disableCompression() I want block compression here
 
     //read blocks are in RAM assuming there is no file yet stored on disk
-    Raccess->beginRead();
-    Waccess->beginWrite();
+    ram_access->beginRead();
+    disk_access->beginWrite();
     for (auto time : idxfile.timesteps.asVector())
     {
       for (BigInt blockid = 0, total_blocks = getTotalNumberOfBlocks(); blockid < total_blocks; blockid++)
@@ -574,7 +598,7 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
         for (auto Rfield : idxfile.fields)
         {
           auto read_block = createBlockQuery(blockid, Rfield, time, 'r');
-          if (!executeBlockQueryAndWait(Raccess, read_block))
+          if (!executeBlockQueryAndWait(ram_access, read_block))
             continue;
 
           //NOTE: the layout will remain the same, I am not switching it]
@@ -587,33 +611,33 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
           Wfield.default_compression = compression[H];
           auto write_block = createBlockQuery(read_block->blockid, Wfield, read_block->time, 'w');
           write_block->buffer = read_block->buffer;
-          VisusReleaseAssert(executeBlockQueryAndWait(Waccess, write_block));
+          VisusReleaseAssert(executeBlockQueryAndWait(disk_access, write_block));
         }
       }
     }
-    Raccess->endRead();
-    Waccess->endWrite();
+    ram_access->endRead();
+    disk_access->endWrite();
   }
   else
   {
     String suffix = ".~compressed";
-
     String idx_filename = getUrl();
     VisusReleaseAssert(FileUtils::existsFile(idx_filename));
     String compressed_idx_filename = idx_filename + suffix;
 
-    auto compressed_idx_file = idx->idxfile;
-    compressed_idx_file.filename_template = idxfile.filename_template + suffix;
-    compressed_idx_file.save(compressed_idx_filename);
+    {
+      IdxFile tmp = this->idxfile;
+      tmp.filename_template = idxfile.filename_template + suffix;
+      tmp.save(compressed_idx_filename);
+    }
 
-    auto Waccess = std::make_shared<IdxDiskAccess>(idx, compressed_idx_file);
-    auto Raccess = std::make_shared<IdxDiskAccess>(idx, idxfile);
+    auto dst=LoadDataset(compressed_idx_filename);
+    auto Waccess = dst->createAccessForBlockQuery();
+    Waccess->disableWriteLocks();
+    // Waccess->disableCompression();I want block compression here
 
-    Raccess->disableAsync();
-    Raccess->disableWriteLock();
-
-    Waccess->disableWriteLock();
-    Waccess->disableAsync();
+    auto Raccess = this->createAccessForBlockQuery();
+    Raccess->disableAsync(); //don't need to have async read ops here
 
     for (auto time : idxfile.timesteps.asVector())
     {
@@ -690,6 +714,7 @@ void Dataset::compressDataset(std::vector<String> compression, Array data)
       Waccess->endWrite();
     }
 
+    //note: the *.idx will be the original one, with the sampe filename_template, but internally the data is compressed
     VisusReleaseAssert(FileUtils::existsFile(compressed_idx_filename));
     FileUtils::removeFile(compressed_idx_filename);
   }
@@ -2162,7 +2187,8 @@ void Dataset::computeFilter(const Field& field, int window_size, bool bVerbose)
     sliding_box[D] = window_size;
 
   auto access = createAccessForBlockQuery();
-  access->setWritingMode();
+  access->disableWriteLocks();
+  access->disableCompression();
   for (auto time : getTimesteps().asVector())
     computeFilter(filter, time, field, access, sliding_box, bVerbose);
 }
