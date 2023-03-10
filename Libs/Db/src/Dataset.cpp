@@ -240,7 +240,7 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
       //local
       out << "<access type='" << cache_access_type << "'  chmod='rw' compression='" << cache_compression << "' ";
       if (!cache_dir.empty())
-        out << "cache_dir='" << cache_dir << "' ";
+        out << "cache_dir=\"" << cache_dir << "\" ";
       out << "/>" << std::endl;
 
       //remote
