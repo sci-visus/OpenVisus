@@ -34,9 +34,9 @@ def MyApp(doc):
 	os.environ["AWS_ENDPOINT_URL"]="https://maritime.sealstorage.io/api/v0/s3"
 
 	urls=[f"https://maritime.sealstorage.io/api/v0/s3/utah/nasa/dyamond/idx_arco/face{zone}/u_face_{zone}_depth_52_time_0_10269.idx?cached=1" for zone in range(6)]
-	palette,palette_range="Turbo256",(-1.3,1.7)
+	palette,palette_range="Turbo256",(30,60)
 	field=None
-	logic_to_pixel=[(0.0,1.0), (0.0,1.0), (0.0,20.0)]
+	logic_to_pixel=[(0.0,1.0), (0.0,1.0), (0.0,10.0)]
 	
 	# urls=["https://maritime.sealstorage.io/api/v0/s3/utah/nasa/dyamond/mit_output/llc2160_arco/visus.idx?cached=1"]
 	# palette,palette_range="Turbo256",(-1.3,1.7)

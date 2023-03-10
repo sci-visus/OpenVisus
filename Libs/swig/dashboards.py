@@ -63,8 +63,9 @@ class Canvas:
 		self.color_bar=color_bar
 		self.color_mapper=color_mapper
 		self.figure=bokeh.plotting.figure(active_scroll = "wheel_zoom") 
-		self.figure.x_range = bokeh.models.Range1d(0,1024)   
-		self.figure.y_range = bokeh.models.Range1d(0,768) 
+		self.viewport=(0,0,1024,1024)
+		self.figure.x_range = bokeh.models.Range1d(self.viewport[0],self.viewport[2])   
+		self.figure.y_range = bokeh.models.Range1d(self.viewport[1],self.viewport[3]) 
 		self.figure.toolbar_location="below"
 		self.figure.sizing_mode = self.sizing_mode
 		# self.figure.add_tools(bokeh.models.HoverTool(tooltips=[ ("(x, y)", "($x, $y)"),("RGB", "(@R, @G, @B)")])) # is it working?
@@ -87,22 +88,39 @@ class Canvas:
 
   	# getViewport
 	def getViewport(self):
-		x1,x2=self.figure.x_range.start, self.figure.x_range.end
-		y1,y2=self.figure.y_range.start, self.figure.y_range.end 
-		return(x1,y1,x2,y2)
+		return self.viewport
 
   	# getViewport
 	def setViewport(self,x1,y1,x2,y2):
+
+		if (x2<x1): x1,x2=x2,x1
+		if (y2<y1): y1,y2=y2,y1
+
+		w =(x2-x1)
+		h =(y2-y1)
+		cx=x1+0.5*w
+		cy=y1+0.5*h
+
+		# fix aspect ratio if possible
 		W,H=self.getWidth(),self.getHeight()
-		if W and H: 
-			# fix aspect ratio
-			ratio=W/H
-			w, h, cx, cy=(x2-x1),(y2-y1),0.5*(x1+x2),0.5*(y1+y2)
-			w,h=(h*ratio,h) if W>H else (w,w/ratio) 
-			x1,y1,x2,y2=cx-w/2,cy-h/2, cx+w/2, cy+h/2
+		if W>0 and H>0:
+
+
+			# w/W == h/H
+			if (w/W) > (h/H):
+				h=(w/W)*H
+			else:
+				w=(h/H)*W
+
+			x1=cx-w/2
+			y1=cy-h/2
+			x2=cx+w/2
+			y2=cy+h/2
+
+		self.viewport=(x1,y1,x2,y2)
 		self.figure.x_range.start=x1
-		self.figure.x_range.end  =x2
 		self.figure.y_range.start=y1
+		self.figure.x_range.end  =x2
 		self.figure.y_range.end  =y2
 
 	# renderPoints
