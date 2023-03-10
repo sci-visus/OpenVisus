@@ -86,36 +86,34 @@ class Canvas:
 	def getHeight(self):
 		return self.figure.inner_height    
 
+	# onSizeChange
+	def onSizeChange(self):
+		W,H=self.getWidth(),self.getHeight()
+		if W>0 and H>0: 
+			self.setViewport(*self.getViewport(),fix_aspect_ratio=True)
+
   	# getViewport
 	def getViewport(self):
 		return self.viewport
 
   	# getViewport
-	def setViewport(self,x1,y1,x2,y2):
+	def setViewport(self,x1,y1,x2,y2,fix_aspect_ratio=False):
 
 		if (x2<x1): x1,x2=x2,x1
 		if (y2<y1): y1,y2=y2,y1
 
-		w =(x2-x1)
-		h =(y2-y1)
-		cx=x1+0.5*w
-		cy=y1+0.5*h
-
-		# fix aspect ratio if possible
-		W,H=self.getWidth(),self.getHeight()
-		if W>0 and H>0:
-
-
-			# w/W == h/H
-			if (w/W) > (h/H):
-				h=(w/W)*H
-			else:
+		# fix aspect ratio
+		if fix_aspect_ratio:
+			W,H=self.getWidth(),self.getHeight()
+			assert(W>0 and H>0)
+			w,cx =(x2-x1),x1+0.5*(x2-x1)
+			h,cy =(y2-y1),y1+0.5*(y2-y1)
+			if (w/W) > (h/H): 
+				h=(w/W)*H 
+			else: 
 				w=(h/H)*W
-
-			x1=cx-w/2
-			y1=cy-h/2
-			x2=cx+w/2
-			y2=cy+h/2
+			x1,y1=cx-w/2,cy-h/2
+			x2,y2=cx+w/2,cy+h/2
 
 		self.viewport=(x1,y1,x2,y2)
 		self.figure.x_range.start=x1
@@ -570,6 +568,8 @@ class Slice(Widgets):
 
 		if not compatible:
 
+			self.status={}
+
 			while self.layout.children:
 				self.layout.children.pop()
 			first_row=[]
@@ -611,6 +611,7 @@ class Slice(Widgets):
 			self.setField(db.getFields()[0])
 			self.setDirection(direction)
 			self.setPalette("Greys256",palette_range=[0,255]) 
+
 
 		self.refresh()
 
@@ -747,8 +748,8 @@ class Slice(Widgets):
 			return
 
 		# simulate fixAspectRatio (i cannot find a bokeh metod to watch for resize event)
-		if self.status.get("w",0)!=canvas_w or self.status.get("h",0)!=canvas_h:
-			self.canvas.setViewport(*self.canvas.getViewport())
+		if canvas_w>0 and canvas_h>0 and self.status.get("w",0)<=0 and self.status.get("h",0)<=0:
+			self.canvas.onSizeChange()
 			self.status["w"]=canvas_w
 			self.status["h"]=canvas_h
 			self.refresh()
