@@ -25,7 +25,6 @@ sys.path.append(r"C:\projects\OpenVisus\build\RelWithDebInfo")
 import OpenVisus as ov
 from OpenVisus.dashboards import Slice,Slices,DiscreteSlider
 
-
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def MyApp(doc):
 	
@@ -33,17 +32,27 @@ def MyApp(doc):
 	os.environ["AWS_ACCESS_KEY_ID"]="any"
 	os.environ["AWS_SECRET_ACCESS_KEY"]="any"
 	os.environ["AWS_ENDPOINT_URL"]="https://maritime.sealstorage.io/api/v0/s3"
-	if True:
-		urls=[f"https://maritime.sealstorage.io/api/v0/s3/utah/nasa/dyamond/idx_arco/face{zone}/u_face_{zone}_depth_52_time_0_10269.idx?cached=1" for zone in range(6)]
-		palette,palette_range="Turbo256",(-1.3,1.7)
+
+	urls=[f"https://maritime.sealstorage.io/api/v0/s3/utah/nasa/dyamond/idx_arco/face{zone}/u_face_{zone}_depth_52_time_0_10269.idx?cached=1" for zone in range(6)]
+	palette,palette_range="Turbo256",(-1.3,1.7)
+	field=None
+	logic_to_pixel=[(0.0,1.0), (0.0,1.0), (0.0,20.0)]
 	
-	else:
-		urls=["https://maritime.sealstorage.io/api/v0/s3/utah/nasa/dyamond/mit_output/llc2160_arco/visus.idx?cached=1"]
-		palette,palette_range="Turbo256",(-1.3,1.7)
+	# urls=["https://maritime.sealstorage.io/api/v0/s3/utah/nasa/dyamond/mit_output/llc2160_arco/visus.idx?cached=1"]
+	# palette,palette_range="Turbo256",(-1.3,1.7)
+	# field=None
+	# logic_to_pixel=[(0.0,1.0), (0.0,1.0), (0.0,20.0)]
+
+
+	# urls=["http://atlantis.sci.utah.edu/mod_visus?dataset=cmip6_cm2&cached=idx"]
+	# palette,palette_range="Turbo256",(-1.3,1.7)
+	# field="ssp585_tasmax"
+	# logic_to_pixel=[(0.0,1.0), (0.0,1.0), (0.0,20.0)]
 
 	ov.dashboards.DIRECTIONS=[('0','Long'),('1','Lat'),('2','Depth')]
 
 	slices=Slices()
+	slices.logic_to_pixel=logic_to_pixel
 	slices.show_options=["nviews","palette","timestep","timestep-delta","field","quality","num_refinements","!direction","!offset","play-button", "play-msec"]
 	slices.single_slice_show_options=["direction","offset","status_bar"]
 
@@ -55,6 +64,10 @@ def MyApp(doc):
 	slices.setQuality(-3)
 	slices.setNumberOfRefinements(3)
 	slices.setPalette(palette, palette_range=palette_range) 
+
+	if field is not None:
+		slices.setField(field)
+
 
 	# change zone
 	if len(urls)>0:

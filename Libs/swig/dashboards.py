@@ -53,6 +53,7 @@ class DiscreteSlider():
 		self.refreshText()
 		if self.on_change: self.on_change(value)
 
+
 # ////////////////////////////////////////////////////////////////////////////////////
 class Canvas:
   
@@ -75,11 +76,12 @@ class Canvas:
 		self.points     = None
 		self.dtype      = None
 
-	# getWidth
+
+	# getWidth (this is number of pixels along X for the canvas)
 	def getWidth(self):
 		return self.figure.inner_width
 
-	# getHeight
+	# getHeight (this is number of pixels along Y  for the canvas)
 	def getHeight(self):
 		return self.figure.inner_height    
 
@@ -87,13 +89,13 @@ class Canvas:
 	def getViewport(self):
 		x1,x2=self.figure.x_range.start, self.figure.x_range.end
 		y1,y2=self.figure.y_range.start, self.figure.y_range.end 
-		return (x1,y1,x2,y2)
+		return(x1,y1,x2,y2)
 
   	# getViewport
 	def setViewport(self,x1,y1,x2,y2):
-		# fix aspect ratio
 		W,H=self.getWidth(),self.getHeight()
 		if W and H: 
+			# fix aspect ratio
 			ratio=W/H
 			w, h, cx, cy=(x2-x1),(y2-y1),0.5*(x1+x2),0.5*(y1+y2)
 			w,h=(h*ratio,h) if W>H else (w,w/ratio) 
@@ -104,16 +106,14 @@ class Canvas:
 		self.figure.y_range.end  =y2
 
 	# renderPoints
-	def renderPoints(self,points,size=20,color="red",marker="cross"):
-		logger.info(f"Canvas::renderPoints {points}")
+	def renderPoints(self,points, size=20, color="red", marker="cross"):
 		if self.points is not None: 
 			self.figure.renderers.remove(self.points)
 		self.points = self.figure.scatter(x=[p[0] for p in points], y=[p[1] for p in points], size=size, color=color, marker=marker)   
 		assert self.points in self.figure.renderers
 
-	# getImage
-	def getImage(self, data,normalize_float=True):
-
+	# __getImage
+	def __getImage(self, data, normalize_float=True):
 		height,width=data.shape[0],data.shape[1]
 
 		# typycal case
@@ -146,7 +146,6 @@ class Canvas:
 			elif len(channels)==4:
 				R,G,B,A=channels
 				return InterleaveChannels([R,G,B,A]).view(dtype=np.uint32).reshape([height,width]) 
-			
 			
 		else:
 
@@ -190,7 +189,7 @@ class Canvas:
 
 	# renderImage
 	def renderImage(self, data, x1, y1, x2, y2):
-		img=self.getImage(data)
+		img=self.__getImage(data)
 		dtype=img.dtype
  
 		if self.dtype==dtype :
@@ -510,8 +509,9 @@ class Widgets:
 class Slice(Widgets):
 	
 	# constructor
-	def __init__(self,doc=None, sizing_mode='stretch_both',timer_msec=100):
+	def __init__(self,doc=None, sizing_mode='stretch_both',timer_msec=100,logic_to_pixel=[(0.0,1.0)]*3):
 		super().__init__()
+		self.logic_to_pixel=logic_to_pixel
 		self.sizing_mode=sizing_mode
 		self.access=None
 		self.lock          = threading.Lock()
@@ -535,6 +535,7 @@ class Slice(Widgets):
 		self.query=PyQuery()
 		self.query.startThread()
 		
+
 	# setShowOptions
 	def setShowOptions(self,value):
 		self.show_options=value
@@ -606,42 +607,58 @@ class Slice(Widgets):
    
 	# project
 	def project(self,value):
+
 		pdim=self.getPointDim()
 		dir=self.getDirection()
+		assert(pdim,len(value))
+
+		# is a box
 		if hasattr(value[0],"__iter__"):
-			p1,p2=(list(value[0]),list(value[1]))
-			if pdim==3:
-				del p1[dir]
-				del p2[dir]
-			return (p1,p2)
-		# is a point
-		else:
-			p=list(value)
-			if pdim==3:
-				del p[dir]
-			return p
+			p1,p2=[self.project(p) for p in value]
+			return [p1,p2]
+
+		# apply scaling and translating
+		ret=[self.logic_to_pixel[I][0] + self.logic_to_pixel[I][1]*value[I] for I in range(pdim)]
+
+		if pdim==3:
+			del ret[dir]
+
+		assert(len(ret)==2)
+		return ret
 
 	# unproject
 	def unproject(self,value):
 
+		assert(len(value)==2)
+
 		pdim=self.getPointDim() 
-
-		# no projection needed
-		if pdim!=3: 
-			return value
-
 		dir=self.getDirection()
+
 		# is a box?
 		if hasattr(value[0],"__iter__"):
-			p1,p2=(list(value[0]),list(value[1]))
-			p1.insert(dir, self.widgets.offset.value+0)
-			p2.insert(dir, self.widgets.offset.value+1)
-			return (p1,p2)
-		# is a point
-		else:
-			p=list(value)
-			p .insert(dir, self.widgets.offset.value+0)
-			return p
+			p1,p2=[self.unproject(p) for p in value]
+			if pdim==3: 
+				p2[dir]+=1 # make full dimensional
+			return [p1,p2]
+
+		ret=list(value)
+
+		# reinsert removed coordinate
+		if pdim==3:
+			ret.insert(dir, 0)
+
+		assert(len(ret)==pdim)
+
+		# scaling/translatation
+		ret=[(ret[I]-self.logic_to_pixel[I][0])/self.logic_to_pixel[I][1] for I in range(pdim)]
+
+		
+		# this is the right value in logic domain
+		if pdim==3:
+			ret[dir]=self.widgets.offset.value
+
+		assert(len(ret)==pdim)
+		return ret
   
 	# getLogicBox
 	def getLogicBox(self):
@@ -680,7 +697,6 @@ class Slice(Widgets):
 		self.setLogicBox(([0]*self.getPointDim(),dims))
 		self.refresh()
   
-
   # gotoPoint
 	def gotoPoint(self,point):
 		pdim=self.getPointDim()
@@ -762,6 +778,7 @@ class Slices(Widgets):
 	def __init__(self, doc=None,panel_state=None,sizing_mode='stretch_both'):
 		super().__init__()
 		self.doc=doc 
+		self.logic_to_pixel=[(0.0,1.0)] * 3 # translation/scaling for each dimensions
 		self.panel_state=panel_state 
 		self.sizing_mode=sizing_mode
 		self.slices=[]
@@ -836,7 +853,7 @@ class Slices(Widgets):
 
 		self.slices=[]
 		for direction in range(num_views):
-			slice=Slice(self.doc,sizing_mode=self.sizing_mode)	
+			slice=Slice(self.doc,sizing_mode=self.sizing_mode,logic_to_pixel=self.logic_to_pixel)
 			slice.show_options=self.single_slice_show_options
 			slice.enableDoubleTap(self.gotoPoint)
 			slice.setDataset(self.db, direction=direction % 3, compatible=False)
@@ -949,3 +966,4 @@ class Slices(Widgets):
 	def gotoPoint(self, p):
 		for slice in self.slices:
 			slice.gotoPoint(p)
+
