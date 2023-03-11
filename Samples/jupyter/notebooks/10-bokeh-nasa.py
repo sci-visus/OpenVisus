@@ -6,7 +6,7 @@ os.environ["BOKEH_ALLOW_WS_ORIGIN"]="*"
 os.environ["BOKEH_LOG_LEVEL"]="debug" 
 os.environ["VISUS_NETSERVICE_VERBOSE"]="1"
 os.environ["VISUS_CPP_VERBOSE"]="1"
-os.environ["VISUS_DASHBOARDS_VERBOSE"]="1"
+os.environ["VISUS_DASHBOARDS_VERBOSE"]="0"
 
 import bokeh
 import bokeh.io 
@@ -112,7 +112,7 @@ def MyApp(doc):
  
 # //////////////////////////////////////////////////////////////////////////////////////
 if __name__.startswith('bokeh'):
-	# python -m bokeh serve "Samples/jupyter/notebooks/10 bokeh-nasa.py"  --dev --log-level=debug --address localhost --port 8888 
+	# python -m bokeh serve "Samples/jupyter/notebooks/10-bokeh-nasa.py"  --dev --log-level=debug --address localhost --port 8888 
 	ov.SetupLogger(logging.getLogger("OpenVisus"))
 	doc=bokeh.io.curdoc()
 	doc.theme = 'caliber'

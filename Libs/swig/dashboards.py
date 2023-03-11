@@ -16,7 +16,6 @@ from OpenVisus.image_utils import SplitChannels, InterleaveChannels
 import logging
 logger = logging.getLogger(__name__)
 
-
 if ov.cbool(os.environ.get("VISUS_DASHBOARDS_VERBOSE","0")) == True:
 	ov.SetupLogger(logger)
 
@@ -148,6 +147,7 @@ class Canvas:
 		self.figure.y_range.start=y1
 		self.figure.x_range.end  =x2
 		self.figure.y_range.end  =y2
+
 
 	# renderPoints
 	def renderPoints(self,points, size=20, color="red", marker="cross"):
@@ -912,7 +912,9 @@ class Slices(Widgets):
 		self.db=db
 		
 		for slice in self.slices:
+			dir=slice.getDirection()
 			slice.setDataset(db)
+			slice.setDirection(dir) # keep at least the direction, others will be set here
 
 		# my settings should override the single slices
 		# NOTE: the slices could be brand new in case of setNumberOfViews
@@ -921,8 +923,8 @@ class Slices(Widgets):
 		fields=db.getFields()
 
 		timestep_delta        = self.getTimestepDelta() if compatible else 1
-		timestep              = self.getTimestep() if compatible else timesteps[0]
-		field                 = self.getField() if compatible else fields[0]
+		timestep              = self.getTimestep()      if compatible else timesteps[0]
+		field                 = self.getField()         if compatible else fields[0]
 		palette,palette_range = self.getPalette(),self.getPaletteRange()
 
 		self.setTimestepDelta(timestep_delta) 
