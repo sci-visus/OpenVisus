@@ -437,7 +437,7 @@ class Widgets:
 		dims=[int(it) for it in self.db.getLogicSize()]
 		self.widgets.direction.value = str(dir)
 
-		# 2d there is no direction
+		# 2d there is no direction 
 		pdim=self.getPointDim()
 		if pdim==2:
 			assert dir==2
@@ -456,7 +456,7 @@ class Widgets:
 	# setPalette
 	def setPalette(self, value, palette_range=None):
 	 
-		logger.info(f"Slice::setPalette direction={self.getDirection()} value={value} palette_range={palette_range}")
+		logger.info(f"Slice::setPalette value={value} palette_range={palette_range}")
   
 		if palette_range is None:
 			palette_range=self.palette_range
