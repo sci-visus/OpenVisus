@@ -35,7 +35,7 @@ if __name__.startswith('bokeh'):
 	# multiple slices
 	else:
 		slices=Slices(doc, sizing_mode='stretch_both')
-		slices.setDataset(db,layout=4)
+		slices.setDataset(db)
 		slices.setPalette("Greys256", palette_range=palette_range)
 		slices.setTimestep(db.getTime())
 		slices.setField(db.getField().name) 

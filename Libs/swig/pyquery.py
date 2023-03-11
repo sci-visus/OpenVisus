@@ -70,7 +70,7 @@ query.startThread()
 access=db.createAccessForBlockQuery()
 logic_box=...
 query.pushJob(db, access=access, timestep=db.getTimestep(), field=db.getField(), logic_box=logic_box, max_pixels=1024*768, num_refinements=3, aborted=ov.Aborted())
-I,N,timestep,field, query_box,data,msec=query.popResult()
+result=query.popResult()
 query.stopThread()
 
 """
@@ -231,7 +231,7 @@ class PyQuery:
 
 		# compute intermediate resolutions
 		end_resolutions=list(reversed([ endh-pdim*I for I in range(num_refinements) if endh-pdim*I>=0]))
-		# print("!!!!!",end_resolutions)
+		# print("!!!!!","endh",endh,"end_resolutions",end_resolutions,"maxh",maxh)
 		for H in end_resolutions:
 			query.end_resolutions.push_back(H)
 
@@ -254,7 +254,7 @@ class PyQuery:
 			H=query.getCurrentResolution()
 			msec=int(1000*(time.time()-t1))
 			logger.info(f"got data {I}/{N} timestep={timestep} field={field.name} H={H} data.shape={data.shape} data.dtype={data.dtype} logic_box={logic_box} m={np.min(data)} M={np.max(data)} ms={msec}")
-			yield (I,N,timestep,field.name,logic_box, data,msec)
+			yield {"I":I,"N":N,"timestep":timestep,"field":field.name,"logic_box":logic_box, "H":H, "data":data,"msec":msec}
 			I+=1
 			db.nextBoxQuery(query)
 
