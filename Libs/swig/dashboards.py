@@ -441,10 +441,10 @@ class Widgets:
 		pdim=self.getPointDim()
 		if pdim==2:
 			assert dir==2
-			self.widgets.offset.start, self.widgets.offset.end= 0,1
+			self.widgets.offset.start, self.widgets.offset.end= 0,1-1
 			self.widgets.offset.value = 0
 		else:
-			self.widgets.offset.start, self.widgets.offset.end = 0,int(dims[dir])
+			self.widgets.offset.start, self.widgets.offset.end = 0,int(dims[dir])-1
 			self.widgets.offset.value = int(dims[dir]//2)
    
 		self.refresh()
