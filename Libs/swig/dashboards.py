@@ -565,7 +565,13 @@ class Slice(Widgets):
 
 		if "timestep_delta" in options:
 			v.append(self.widgets.timestep_delta)
-  
+
+		if "direction" in options:
+			v.append(self.widgets.direction)
+
+		if "offset" in options:
+			v.append(self.widgets.offset)
+
 		if "field" in options:
 			v.append(self.widgets.field)
 
@@ -575,14 +581,15 @@ class Slice(Widgets):
 		if "num_refinements" in options:
 			v.append(self.widgets.num_refinements)
        
-
 		if self.getPointDim()==3 and "direction" in options:
 			v.append(self.widgets.direction)
    
 		if self.getPointDim()==3 and "offset" in options:
 			v.append(self.widgets.offset)
 
-		self.layout.children.append(bokeh.layouts.Row(*v, sizing_mode='stretch_width'))  
+		self.layout.children.append(
+			bokeh.layouts.Row(*v, sizing_mode='stretch_width')
+		)  
 
 		self.layout.children.append(self.canvas.figure)
 		
