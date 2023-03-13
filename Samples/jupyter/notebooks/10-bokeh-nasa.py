@@ -1,12 +1,8 @@
 
-import os,sys,logging, urllib,time,types,datetime,threading,multiprocessing,queue,random,copy,math, types,argparse,logging
-
+import os,sys,logging
 
 os.environ["BOKEH_ALLOW_WS_ORIGIN"]="*"
 os.environ["BOKEH_LOG_LEVEL"]="debug" 
-os.environ["VISUS_NETSERVICE_VERBOSE"]="1"
-os.environ["VISUS_CPP_VERBOSE"]="1"
-os.environ["VISUS_DASHBOARDS_VERBOSE"]="0"
 
 import bokeh
 import bokeh.io 
@@ -22,11 +18,17 @@ bokeh.core.validation.silence(bokeh.core.validation.warnings.EMPTY_LAYOUT, True)
 bokeh.io.output_notebook()
 
 sys.path.append(r"C:\projects\OpenVisus\build\RelWithDebInfo")
-import OpenVisus as ov
-from OpenVisus.dashboards import Slice,Slices
+import OpenVisus
+from OpenVisus.dashboards import LoadDataset, Slice, Slices, DIRECTIONS, SetupLogger
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def MyApp(doc):
+    
+	os.environ["VISUS_NETSERVICE_VERBOSE"]="1"
+	os.environ["VISUS_CPP_VERBOSE"]="1"
+	os.environ["VISUS_DASHBOARDS_VERBOSE"]="0" 
+
+	DIRECTIONS=[('0','Long'),('1','Lat'),('2','Depth')]
 	
 	# profile=sealstorage
 	os.environ["AWS_ACCESS_KEY_ID"]="any"
@@ -49,13 +51,11 @@ def MyApp(doc):
 	# field="ssp585_tasmax"
 	# logic_to_pixel=[(0.0,1.0), (0.0,1.0), (0.0,20.0)]
 
-	ov.dashboards.DIRECTIONS=[('0','Long'),('1','Lat'),('2','Depth')]
-
 	slices=Slices(show_options=["num_views","palette","timestep","timestep_delta","field","viewdep","quality","num_refinements","!direction","!offset","play-button", "play-msec"])
 	slices.logic_to_pixel=logic_to_pixel
 	slices.slice_show_options=["direction","offset","viewdep","status_bar"]
 
-	db=ov.LoadDataset(urls[0])
+	db=LoadDataset(urls[0])
 	print(db.getDatasetBody().toString())
 	timesteps=db.getTimesteps()
 
@@ -77,7 +77,7 @@ def MyApp(doc):
 			nonlocal slices
 			url=urls[int(new)]
 			print(f"Setting url={url}")
-			db=ov.LoadDataset(url)
+			db=LoadDataset(url)
 			print(db.getDatasetBody().toString())
 			slices.setDataset(db,compatible=True)
 		url.on_change("value",onUrlChanged)
@@ -100,7 +100,7 @@ def MyApp(doc):
 # //////////////////////////////////////////////////////////////////////////////////////
 if __name__.startswith('bokeh'):
 	# python -m bokeh serve "Samples/jupyter/notebooks/10-bokeh-nasa.py"  --dev --log-level=debug --address localhost --port 8888 
-	ov.SetupLogger(logging.getLogger("OpenVisus"))
+	SetupLogger(logging.getLogger("OpenVisus.dashboards"))
 	doc=bokeh.io.curdoc()
 	doc.theme = 'caliber'
 	MyApp(doc)

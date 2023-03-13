@@ -10,7 +10,7 @@ import bokeh.models
 import bokeh.plotting 
 
 from OpenVisus import cbool,SetupLogger,Aborted
-from OpenVisus.pyquery import PyQuery
+from OpenVisus.dashboards import PyQuery
 from OpenVisus.image_utils import SplitChannels, InterleaveChannels
 
 import logging
