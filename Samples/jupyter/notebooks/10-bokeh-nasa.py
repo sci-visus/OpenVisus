@@ -51,10 +51,9 @@ def MyApp(doc):
 
 	ov.dashboards.DIRECTIONS=[('0','Long'),('1','Lat'),('2','Depth')]
 
-	slices=Slices(show_options=["num_views","palette","timestep","timestep_delta","field","quality","num_refinements","!direction","!offset","play-button", "play-msec"])
+	slices=Slices(show_options=["num_views","palette","timestep","timestep_delta","field","viewdep","quality","num_refinements","!direction","!offset","play-button", "play-msec"])
 	slices.logic_to_pixel=logic_to_pixel
-	# slices.slice_show_options=["palette","timestep","timestep_delta","field","quality","num_refinements","direction","offset"] 
-	slices.slice_show_options=["direction","offset","status_bar"]
+	slices.slice_show_options=["direction","offset","viewdep","status_bar"]
 
 	db=ov.LoadDataset(urls[0])
 	print(db.getDatasetBody().toString())
@@ -66,19 +65,7 @@ def MyApp(doc):
 	slices.setNumberOfRefinements(3)
 	slices.setPalette(palette, palette_range=palette_range) 
 
-	N=100
-	if len(timesteps)>100*N:
-		slices.setTimestepDelta(100)
-	elif len(timesteps)>50*N:	
-		slices.setTimestepDelta(50)
-	elif len(timesteps)>10*N:
-		slices.setTimestepDelta(10)
-	elif len(timesteps)>5*N:
-		slices.setTimestepDelta(5)
-	elif len(timesteps)>2*N:
-		slices.setTimestepDelta(2)
-	else:
-		slices.setTimestepDelta(1)
+	slices.setTimestepDelta(10)
 
 	if field is not None:
 		slices.setField(field)

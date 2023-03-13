@@ -83,6 +83,7 @@ class DiscreteSlider():
 		self.refreshText()
 		if self.on_change: self.on_change(value)
 
+
 # ////////////////////////////////////////////////////////////////////////////////////
 class Canvas:
   
@@ -114,6 +115,7 @@ class Canvas:
 	def getHeight(self):
 		return self.figure.inner_height    
 
+
 	  # getViewport
 	def getViewport(self):
 		return [
@@ -125,7 +127,6 @@ class Canvas:
 
 	  # getViewport
 	def setViewport(self,x1,y1,x2,y2):
-
 		if (x2<x1): x1,x2=x2,x1
 		if (y2<y1): y1,y2=y2,y1
 
@@ -233,6 +234,7 @@ class Canvas:
 
 	# setImage
 	def setImage(self, data, x1, y1, x2, y2):
+
 		img=self.__getImage(data)
 		dtype=img.dtype
  
@@ -309,6 +311,10 @@ class Widgets:
 		# quality (0==full quality, -1==decreased quality by half-pixels, +1==increase quality by doubling pixels etc)
 		self.widgets.quality = bokeh.models.Slider(title='Quality', value=0, start=-12, end=+12, width=120)
 		self.widgets.quality.on_change("value",lambda attr, old, new: self.setQuality(int(new)))  
+
+		# viewdep
+		self.widgets.viewdep = bokeh.models.Select(title="View Dep",options=[('1','Enabled'),('0','Disabled')], value="True",width=100)
+		self.widgets.viewdep.on_change("value",lambda attr, old, new: self.setViewDependent(int(new)))  
   
 		# status_bar
 		self.widgets.status_bar= {}
@@ -325,6 +331,7 @@ class Widgets:
 		self.widgets.direction.disabled=value
 		self.widgets.offset.disabled=value
 		self.widgets.num_refinements.disabled=value
+		self.widgets.viewdep.disabled=value
 
 	# refresh (to override if needed)
 	def refresh(self):
@@ -523,12 +530,22 @@ class Widgets:
 		self.widgets.timestep.end   =  timesteps[-1]
 		self.widgets.timestep.step  = 1
 
+	# getViewDepedent
+	def getViewDepedent(self):
+		return ov.cbool(self.widgets.viewdep.value)
+
+	# setViewDependent
+	def setViewDependent(self,value):
+		self.widgets.viewdep.value=str(int(value))
+		self.refresh()
+
 # ////////////////////////////////////////////////////////////////////////////////////
 class Slice(Widgets):
 	
 	# constructor
 	def __init__(self,doc=None, sizing_mode='stretch_both',timer_msec=100,logic_to_pixel=[(0.0,1.0)]*3, 
-			show_options=["palette","timestep","field","direction","offset","quality","!num_refinements","status_bar"]):
+			show_options=["palette","timestep","field","direction","offset","viewdep","quality","!num_refinements","status_bar"]):
+
 		super().__init__()
 		self.logic_to_pixel=logic_to_pixel
 		self.sizing_mode=sizing_mode
@@ -575,6 +592,9 @@ class Slice(Widgets):
 		if "field" in options:
 			v.append(self.widgets.field)
 
+		if "viewdep" in options:
+			v.append(self.widgets.viewdep)
+
 		if "quality" in options:
 			v.append(self.widgets.quality)     
 			
@@ -613,6 +633,7 @@ class Slice(Widgets):
 		field                      = self.getField() if compatible else fields[0]
 		direction                  = self.getDirection() if compatible else 2
 		palette, palette_range     = self.getPalette(),self.getPaletteRange()
+		viewdep                    = self.getViewDepedent()
 
 		self.setTimesteps(timesteps)
 		self.setTimestepDelta(timestep_delta)
@@ -621,7 +642,9 @@ class Slice(Widgets):
 		self.setFields(fields)
 		self.setField(field)
 		self.setPalette(palette,palette_range) 
+		self.setViewDependent(viewdep)
 		self.last_canvas_size=[0,0] if not compatible else self.last_canvas_size 
+
 
 		self.refresh()
 
@@ -784,22 +807,36 @@ class Slice(Widgets):
 			if num_refinements==0:
 				num_refinements=3 if pdim==2 else 4
 			self.aborted=ov.Aborted()
-			
-			# compute max_pixels
-			max_pixels=canvas_w*canvas_h
+
 			quality=self.getQuality()
-			if quality==0:
-				pass
-			elif quality<0:
-				max_pixels=int(max_pixels/pow(1.3,abs(quality))) # decrease the quality
+
+			if self.getViewDepedent():
+				endh=None
+				max_pixels=canvas_w*canvas_h
+				if quality<0:
+					max_pixels=int(max_pixels/pow(1.3,abs(quality))) # decrease the quality
+				elif quality>0:
+					max_pixels=int(max_pixels*pow(1.3,abs(quality))) # increase the quality
 			else:
-				max_pixels=int(max_pixels*pow(1.3,abs(quality))) # increase the quality
-				
+				max_pixels=None
+				endh=self.db.getMaxResolution()+quality
+			
 			timestep=self.getTimestep()
 			field=self.getField()
 			box_i=[[int(it) for it in jt] for jt in logic_box]
 			self.widgets.status_bar["request"].value=f"t={timestep} b={str(box_i).replace(' ','')} {canvas_w}x{canvas_h}"
-			self.query.pushJob(self.db, self.access, timestep, field, logic_box, max_pixels, num_refinements,self.aborted)
+
+			self.query.pushJob({
+				"db": self.db, 
+				"access": self.access,
+				"timestep":timestep, 
+				"field":field, 
+				"logic_box":logic_box, 
+				"max_pixels":max_pixels, 
+				"num_refinements":num_refinements, 
+				"endh":endh, 
+				"aborted":self.aborted
+			})
 			self.last_logic_box=logic_box
 			self.new_job=False
 		
@@ -810,7 +847,7 @@ class Slices(Widgets):
 
 	# constructor
 	def __init__(self, doc=None,panel_state=None,sizing_mode='stretch_both', show_options=[
-			  "num_views","palette","timestep","field","quality","!num_refinements",
+			  "num_views","palette","timestep","field","viewdep","quality","!num_refinements",
 			"!direction","!offset" # this will be show on the single SLice
 		 ]):
 		super().__init__()
@@ -847,6 +884,9 @@ class Slices(Widgets):
 		if "field" in options:
 			v.append(self.widgets.field)
    
+		if "viewdep" in options:
+			v.append(self.widgets.viewdep)
+
 		if "quality" in options:
 			v.append(self.widgets.quality) 
   
@@ -914,6 +954,13 @@ class Slices(Widgets):
 		for slice in self.slices:
 			slice.setTimestepDelta(value)     
 
+
+	# setViewDependent
+	def setViewDependent(self,value):
+		super().setViewDependent(value)
+		for slice in self.slices:
+			slice.setViewDependent(value)   
+
 	# setDataset
 	def setDataset(self, db, compatible=False):
 		self.db=db
@@ -933,6 +980,7 @@ class Slices(Widgets):
 		timestep              = self.getTimestep()      if compatible else timesteps[0]
 		field                 = self.getField()         if compatible else fields[0]
 		palette,palette_range = self.getPalette(),self.getPaletteRange()
+		viewdep               = self.getViewDepedent()
 
 		self.setTimestepDelta(timestep_delta) 
 		self.setTimesteps(timesteps)
@@ -940,6 +988,7 @@ class Slices(Widgets):
 		self.setFields(fields)
 		self.setField(field)
 		self.setPalette(palette,palette_range) 
+		self.setViewDependent(viewdep)
 
 	# setNumberOfViews
 	def setNumberOfViews(self,value):
@@ -1011,4 +1060,5 @@ class Slices(Widgets):
 	def gotoPoint(self, p):
 		for slice in self.slices:
 			slice.gotoPoint(p)
+
 

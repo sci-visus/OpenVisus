@@ -121,11 +121,8 @@ class PyQuery:
 		self.iqueue.join()
 
 	# pushJob
-	def pushJob(self,db=None, access=None,timestep=None,field=None,logic_box=None,max_pixels=None, endh=None, num_refinements=None, aborted=ov.Aborted()):
-		if is_iterable(max_pixels):
-			max_pixels=int(np.prod(max_pixels,dtype=np.int64))
-
-		self.iqueue.put([db, access, timestep,field, logic_box, max_pixels, endh, num_refinements,aborted])
+	def pushJob(self,args):
+		self.iqueue.put(args)
 
 	# popResult
 	def popResult(self, last_only=True):
@@ -188,6 +185,9 @@ class PyQuery:
 		# default is to use max resolution
 		if endh is None:
 			endh=maxh
+
+		if is_iterable(max_pixels):
+			max_pixels=int(np.prod(max_pixels,dtype=np.int64))
 
 		# if timestep is not specified get the default one
 		if timestep is None:
@@ -291,7 +291,15 @@ class PyQuery:
 				return
 
 			self.stats.startQuery()
-			db,access, timestep, field, logic_box, max_pixels, endh, num_refinements, aborted = args
+			db=args["db"]
+			access=args["access"]
+			timestep=args["timestep"]
+			field=args["field"]
+			logic_box=args["logic_box"]
+			max_pixels=args["max_pixels"]
+			endh=args["endh"]
+			num_refinements=args["num_refinements"]
+			aborted=args["aborted"]
 
 			for result in PyQuery.read(db, access=access, timestep=timestep, field=field, logic_box=logic_box, num_refinements=num_refinements, max_pixels=max_pixels, endh=endh, aborted=aborted):
 				
