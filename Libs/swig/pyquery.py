@@ -4,15 +4,40 @@ import logging
 import copy
 
 import OpenVisus as ov
+from OpenVisus import Aborted,SetupLogger, cbool, HumanSize
 
 logger = logging.getLogger(__name__)
 
-if ov.cbool(os.environ.get("VISUS_PYQUERY_VERBOSE","0")) == True:
-	ov.SetupLogger(logger)
+if cbool(os.environ.get("VISUS_PYQUERY_VERBOSE","0")) == True:
+	SetupLogger(logger)
+
+# ///////////////////////////////////////////////////////////////////
+def ResetStats():
+	ov.File.global_stats().resetStats()
+	ov.NetService.global_stats().resetStats()
+
+# ///////////////////////////////////////////////////////////////////
+def ReadStats():
+
+	io=ov.File.global_stats()
+	net=ov.NetService.global_stats()
+
+	return {
+		"io": {
+			"r":io.getReadBytes(),
+			"w":io.getWriteBytes(),
+			"n":io.getNumOpen(),
+		},
+		"net":{
+			"r":net.getReadBytes(), 
+			"w":net.getWriteBytes(),
+			"n":net.getNumRequests(),
+		}
+	}
 
 
 # ///////////////////////////////////////////////////////////////////
-def is_iterable(value):
+def IsIterable(value):
 	try:
 		iter(value)
 		return True
@@ -40,8 +65,7 @@ class PyStats:
 			if self.num_running>1: return
 
 		self.t1=time.time()
-		ov.File.global_stats().resetStats()
-		ov.NetService.global_stats().resetStats()
+		ResetStats()
 			
 	# stopQuery
 	def stopQuery(self):
@@ -53,17 +77,11 @@ class PyStats:
 	# printStatistics
 	def printStatistics(self):
 		sec=time.time()-self.t1
-		stats=types.SimpleNamespace()
-		io=ov.File.global_stats()
-		stats.io=types.SimpleNamespace()
-		stats.io.r,stats.io.w, stats.io.n=io.getReadBytes(), io.getWriteBytes(), io.getNumOpen()
-		net=ov.NetService.global_stats()
-		stats.net=types.SimpleNamespace()
-		stats.net.r, stats.net.w, stats.net.n=net.getReadBytes(), net.getWriteBytes(), net.getNumRequests()
+		stats=ReadStats()
 		logger.info(f"PyStats::printStatistics enlapsed={sec} seconds" )
 		try: # division by zero
-			logger.info(f"   IO  r={ov.HumanSize(stats.io .r)} r_sec={ov.HumanSize(stats.io .r/sec)}/sec w={ov.HumanSize(stats.io .w)} w_sec={ov.HumanSize(stats.io .w/sec)}/sec n={stats.io .n:,} n_sec={int(stats.io .n/sec):,}/sec")
-			logger.info(f"   NET r={ov.HumanSize(stats.net.r)} r_sec={ov.HumanSize(stats.net.r/sec)}/sec w={ov.HumanSize(stats.net.w)} w_sec={ov.HumanSize(stats.net.w/sec)}/sec n={stats.net.n:,} n_sec={int(stats.net.n/sec):,}/sec")
+			for k,v in stats.items():
+				logger.info(f"   {k}  r={HumanSize(v['r'])} r_sec={HumanSize(v['r']/sec)}/sec w={HumanSize(v['w'])} w_sec={HumanSize(v['w']/sec)}/sec n={v.n:,} n_sec={int(v/sec):,}/sec")
 		except:
 			pass
 
@@ -96,11 +114,11 @@ def Read(args):
 	max_pixels=args.get("max_pixels",None)
 	endh=args.get("endh",maxh)
 	num_refinements=args.get("num_refinements",1)
-	aborted=args.get("aborted",ov.Aborted())
+	aborted=args.get("aborted",Aborted())
 
 	logger.info(f"pyquery.Read begin timestep={timestep} field={field} logic_box={logic_box} num_refinements={num_refinements} max_pixels={max_pixels} endh={endh}")
 
-	if is_iterable(max_pixels):
+	if IsIterable(max_pixels):
 		max_pixels=int(np.prod(max_pixels,dtype=np.int64))
 
 	if isinstance(field,str):
@@ -142,7 +160,8 @@ def Read(args):
 
 	# this is the query I need
 	logic_box,delta,num_pixels=PyQuery.getAlignedBox(db,logic_box, endh, slice_dir=slice_dir)
-	 
+
+
 	box_ni=ov.BoxNi(
 		ov.PointNi([int(it) for it in logic_box[0]]),  
 		ov.PointNi([int(it) for it in logic_box[1]]))
@@ -157,8 +176,8 @@ def Read(args):
 
 	# print("beginBoxQuery","box",box_ni.toString(),"field",field.name,"timestep",timestep)
 	t1=time.time()
-	db.beginBoxQuery(query)
 	I,N=0,len(end_resolutions)
+	db.beginBoxQuery(query)
 	while query.isRunning():
 		if not db.executeBoxQuery(access, query): break
 		data=ov.Array.toNumPy(query.buffer, bShareMem=False) 
@@ -181,34 +200,14 @@ def Read(args):
 	logger.info(f"pyqquery.read read done")
 
 
-# ////////////////////////////////////////////////////////////////////////
+# /////////////////////////////////////////////////////////////////////////////////////////////////
 # PyQuery is the equivalent of C++ QUeryNode but in Python, useful for python dashboards
-
-"""
-Example:
-
-db=ov.LoadDataset(...)
-query=PyQuery()
-query.startThread()
-access=db.createAccessForBlockQuery()
-logic_box=...
-query.pushJob(db, access=access, timestep=db.getTimestep(), field=db.getField(), logic_box=logic_box, max_pixels=1024*768, num_refinements=3, aborted=ov.Aborted())
-result=query.popResult()
-query.stopThread()
-
-"""
 class PyQuery:
 
-
-	query_id=0
 	stats=PyStats()
-
 
 	# constructor
 	def __init__(self):
-		self.query_id=PyQuery.query_id
-		PyQuery.query_id+=1
-
 		self.iqueue=queue.Queue()
 		self.oqueue=queue.Queue()
 		self.wait_for_oqueue=False
@@ -279,30 +278,16 @@ class PyQuery:
 	
 	# _threadLoop
 	def _threadLoop(self):
-
-		ABORTED=ov.Aborted()
+		ABORTED=Aborted()
 		ABORTED.setTrue() 
-
 		while True:
-
 			args=self.iqueue.get()
-			
-			# need to exit
-			if args is None: 
-				return
-
-			self.stats.startQuery()
-
+			if args is None: return # need to exit
+			self.stats.startQuery() # collect statistics
 			for result in Read(args):
-
-				aborted=args.get("aborted",ov.Aborted())
-				
-				if result is None:
-					break
-
-				# query aborted
-				if aborted.__call__()==ABORTED.__call__():
-					break
+				aborted=args.get("aborted",Aborted())
+				if result is None: break # no result, jumpt this lopp
+				if aborted.__call__()==ABORTED.__call__(): break # query aborted
 
 				# push the result to the output quue
 				if self.oqueue:
@@ -310,10 +295,9 @@ class PyQuery:
 					if self.wait_for_oqueue:
 						self.oqueue.join()
       
-				if aborted.__call__()==ABORTED.__call__():
-					break   
+				if aborted.__call__()==ABORTED.__call__(): break # aborder
    
 			# let the main task know I am done
 			self.iqueue.task_done()
-			self.stats.stopQuery()
+			self.stats.stopQuery() # print statistics
 

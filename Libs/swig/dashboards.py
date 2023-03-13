@@ -9,15 +9,15 @@ import bokeh.events
 import bokeh.models
 import bokeh.plotting 
 
-import OpenVisus as ov
+from OpenVisus import cbool,SetupLogger,Aborted
 from OpenVisus.pyquery import PyQuery
 from OpenVisus.image_utils import SplitChannels, InterleaveChannels
 
 import logging
 logger = logging.getLogger(__name__)
 
-if ov.cbool(os.environ.get("VISUS_DASHBOARDS_VERBOSE","0")) == True:
-	ov.SetupLogger(logger)
+if cbool(os.environ.get("VISUS_DASHBOARDS_VERBOSE","0")) == True:
+	SetupLogger(logger)
 
 DIRECTIONS=[('0','X'),('1','Y'),('2','Z')]
 
@@ -512,7 +512,7 @@ class Widgets:
 
 	# getViewDepedent
 	def getViewDepedent(self):
-		return ov.cbool(self.widgets.viewdep.value)
+		return cbool(self.widgets.viewdep.value)
 
 	# setViewDependent
 	def setViewDependent(self,value):
@@ -531,7 +531,7 @@ class Slice(Widgets):
 		self.sizing_mode=sizing_mode
 		self.access=None
 		self.lock          = threading.Lock()
-		self.aborted       = ov.Aborted()
+		self.aborted       = Aborted()
 		self.new_job       = False
 		self.current_img   = None
 		self.options={}
@@ -786,7 +786,7 @@ class Slice(Widgets):
 			num_refinements = self.getNumberOfRefinements()
 			if num_refinements==0:
 				num_refinements=3 if pdim==2 else 4
-			self.aborted=ov.Aborted()
+			self.aborted=Aborted()
 
 			quality=self.getQuality()
 
