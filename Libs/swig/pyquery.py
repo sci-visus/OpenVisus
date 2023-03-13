@@ -10,6 +10,16 @@ logger = logging.getLogger(__name__)
 if ov.cbool(os.environ.get("VISUS_PYQUERY_VERBOSE","0")) == True:
 	ov.SetupLogger(logger)
 
+
+# ///////////////////////////////////////////////////////////////////
+def is_iterable(value):
+	try:
+		iter(value)
+		return True
+	except:
+		return False
+
+
 # ///////////////////////////////////////////////////////////////////
 class PyStats:
 	
@@ -111,8 +121,11 @@ class PyQuery:
 		self.iqueue.join()
 
 	# pushJob
-	def pushJob(self,db=None, access=None,timestep=None,field=None,logic_box=None,max_pixels=None,num_refinements=None,aborted=ov.Aborted()):
-		self.iqueue.put([db, access, timestep,field, logic_box, max_pixels, num_refinements,aborted])
+	def pushJob(self,db=None, access=None,timestep=None,field=None,logic_box=None,max_pixels=None, endh=None, num_refinements=None, aborted=ov.Aborted()):
+		if is_iterable(max_pixels):
+			max_pixels=int(np.prod(max_pixels,dtype=np.int64))
+
+		self.iqueue.put([db, access, timestep,field, logic_box, max_pixels, endh, num_refinements,aborted])
 
 	# popResult
 	def popResult(self, last_only=True):
@@ -155,9 +168,9 @@ class PyQuery:
 
 	# read
 	@staticmethod
-	def read(db,  access=None, timestep=None, field=None, logic_box=None, num_refinements=1, max_pixels=None, aborted=ov.Aborted()):
+	def read(db,  access=None, timestep=None, field=None, logic_box=None, num_refinements=1, max_pixels=None, endh=None, aborted=ov.Aborted()):
      
-		logger.info(f"read begin timestep={timestep} field={field} logic_box={logic_box} num_refinements={num_refinements} max_pixels={max_pixels}")
+		logger.info(f"read begin timestep={timestep} field={field} logic_box={logic_box} num_refinements={num_refinements} max_pixels={max_pixels} endh={endh}")
 
 		def Clamp(value,a,b):
 			assert a<=b
@@ -171,6 +184,10 @@ class PyQuery:
 		maxh=db.getMaxResolution()
 		bitmask=db.getBitmask().toString()
 		dims=db.getLogicSize()
+
+		# default is to use max resolution
+		if endh is None:
+			endh=maxh
 
 		# if timestep is not specified get the default one
 		if timestep is None:
@@ -205,8 +222,7 @@ class PyQuery:
 				assert p1[I]<p2[I]
 			logic_box=(p1,p2)
 
-		# default is to use max resolution
-		endh=maxh
+
 	 
 		# is view dependent? if so guess max resolution 
 		if max_pixels:
@@ -216,7 +232,7 @@ class PyQuery:
 				tot_pixels=np.prod(num_pixels,dtype=np.int64)
 				if tot_pixels<=max_pixels*1.10:
 					endh=H
-					logger.info(f"Guess resolution H={H} original_box={original_box} aligned_box={aligned_box} delta={delta} num_pixels={repr(num_pixels)} tot_pixels={tot_pixels:,} max_pixels={max_pixels:,}")
+					logger.info(f"Guess resolution H={H} original_box={original_box} aligned_box={aligned_box} delta={delta} num_pixels={repr(num_pixels)} tot_pixels={tot_pixels:,} max_pixels={max_pixels:,} end={endh}")
 					logic_box=aligned_box
 					break
 
@@ -275,9 +291,9 @@ class PyQuery:
 				return
 
 			self.stats.startQuery()
-			db,access, timestep, field, logic_box, max_pixels,num_refinements, aborted = args
+			db,access, timestep, field, logic_box, max_pixels, endh, num_refinements, aborted = args
 
-			for result in PyQuery.read(db, access=access, timestep=timestep, field=field, logic_box=logic_box, num_refinements=num_refinements, max_pixels=int(np.prod(max_pixels,dtype=np.int64)), aborted=aborted):
+			for result in PyQuery.read(db, access=access, timestep=timestep, field=field, logic_box=logic_box, num_refinements=num_refinements, max_pixels=max_pixels, endh=endh, aborted=aborted):
 				
 				if result is None:
 					break
