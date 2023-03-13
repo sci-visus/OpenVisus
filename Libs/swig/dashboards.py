@@ -21,6 +21,18 @@ if ov.cbool(os.environ.get("VISUS_DASHBOARDS_VERBOSE","0")) == True:
 
 DIRECTIONS=[('0','X'),('1','Y'),('2','Z')]
 
+doc=None
+
+def AddIdleCallback(callback, msec=10):
+	curdoc=doc if doc is not None else bokeh.io.curdoc()
+	return curdoc.add_periodic_callback(callback,msec)
+
+
+def RemoveIdleCallback(callback):
+	curdoc=doc if doc is not None else bokeh.io.curdoc()
+	return curdoc.remove_periodic_callback(callback)
+
+
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def GetPalettes():
 	import colorcet 
@@ -52,36 +64,6 @@ def GetPalettes():
 		'colorcet.yellowheat']
 		if hasattr(colorcet,it[9:])
 	]  
-
-# ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-class DiscreteSlider():
-	
-	def __init__(self, name="",options=None, value=None, on_change=None,sizing_mode='stretch_width'):
-		self.options=options
-		self.sizing_mode=sizing_mode
-		self.name=bokeh.models.Div(text=name)
-		self.slider=bokeh.models.Slider(title='', start=0,end=len(options)-1, step=1,value=options.index(value), sizing_mode=sizing_mode,show_value=False)
-		self.value=bokeh.models.Div(text="")
-		self.on_change=on_change
-		self.slider.on_change("value",lambda attr, old, new: self.onSliderChange(self.options[new]))
-		self.layout=bokeh.models.Column(self.slider, bokeh.models.Row(self.name, self.value, sizing_mode=sizing_mode), sizing_mode=sizing_mode)
-		self.refreshText()
-
-	def refreshText(self):
-		value=self.getValue()
-		self.value.text=f"{value}"
-
-	def getValue(self):
-		idx=self.slider.value
-		return self.options[idx]
-
-	def setValue(self,value):
-		idx=self.options.index(value)
-		self.slider.value=idx
-
-	def onSliderChange(self,value):
-		self.refreshText()
-		if self.on_change: self.on_change(value)
 
 
 # ////////////////////////////////////////////////////////////////////////////////////
@@ -352,8 +334,7 @@ class Widgets:
 		self.play.num_refinements=self.getNumberOfRefinements()
 		self.setNumberOfRefinements(1)
 		self.setWidgetsDisabled(True)
-		doc=self.doc if self.doc else bokeh.io.curdoc();assert(doc)
-		self.play.callback=doc.add_periodic_callback(self.onPlayTimer,10)
+		self.play.callback=AddIdleCallback(self.onPlayTimer)
 		self.play.button.label="Stop"
 	
 	# stopPlay
@@ -361,8 +342,7 @@ class Widgets:
 		assert(self.play.callback is not None)
 		self.setNumberOfRefinements(self.play.num_refinements)
 		self.setWidgetsDisabled(False)
-		doc=self.doc if self.doc else bokeh.io.curdoc();assert(doc)
-		doc.remove_periodic_callback(self.play.callback)
+		RemoveIdleCallback(self.play.callback)
 		self.play.callback=None
 		self.play.button.label="Play"
 

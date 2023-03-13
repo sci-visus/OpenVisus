@@ -23,7 +23,7 @@ bokeh.io.output_notebook()
 
 sys.path.append(r"C:\projects\OpenVisus\build\RelWithDebInfo")
 import OpenVisus as ov
-from OpenVisus.dashboards import Slice,Slices,DiscreteSlider
+from OpenVisus.dashboards import Slice,Slices
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def MyApp(doc):
