@@ -23,7 +23,7 @@ from OpenVisus.dashboards import LoadDataset, Slice, Slices, DIRECTIONS, SetupLo
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def MyApp(doc):
-    
+
 	os.environ["VISUS_NETSERVICE_VERBOSE"]="1"
 	os.environ["VISUS_CPP_VERBOSE"]="1"
 	os.environ["VISUS_DASHBOARDS_VERBOSE"]="0" 
@@ -51,7 +51,7 @@ def MyApp(doc):
 	# field="ssp585_tasmax"
 	# logic_to_pixel=[(0.0,1.0), (0.0,1.0), (0.0,20.0)]
 
-	slices=Slices(show_options=["num_views","palette","timestep","timestep_delta","field","viewdep","quality","num_refinements","!direction","!offset","play-button", "play-msec"])
+	slices=Slices(doc=doc, show_options=["num_views","palette","timestep","timestep_delta","field","viewdep","quality","num_refinements","!direction","!offset","play-button", "play-msec"])
 	slices.logic_to_pixel=logic_to_pixel
 	slices.slice_show_options=["direction","offset","viewdep","status_bar"]
 
@@ -83,7 +83,6 @@ def MyApp(doc):
 		url.on_change("value",onUrlChanged)
 	else:
 		url=None
-
 
 	# add the zone at the beginning of first row
 	first_row=slices.layout.children[0]
