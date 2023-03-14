@@ -2,7 +2,7 @@
 import os,sys,io,types,threading,time,logging
 import numpy as np
 
-from bokeh.models import Select,Column,Row
+from bokeh.models import Select,Column,Row,Grid
 
 from .widgets import Widgets
 from .slice   import Slice
@@ -24,7 +24,8 @@ class Slices(Widgets):
 		self.slice_show_options=["direction","offset"]
 		self.palette="Greys256"
 		self.palette_range=[0,255]
-		self.layout=self.createGui(central_layout=None, options=show_options)
+		self.central_layout=Column(sizing_mode='stretch_both')
+		self.layout=self.createGui(central_layout=self.central_layout, options=show_options)
 
 	# setDataset
 	def setDataset(self, db, compatible=False):
@@ -65,17 +66,6 @@ class Slices(Widgets):
 		for it in self.children:
 			it.aborted.setTrue()
 			it.query.stopThread()
-
-		self.children=[]  
-
-		 # clear current central layout
-		while len(self.layout.children)>1:
-			self.layout.children.pop()  
-
-		# create central panel
-		if value is None or value==0:
-			value=1
-
 		self.children=[]
 
 		for direction in range(value):
@@ -84,36 +74,20 @@ class Slices(Widgets):
 			it.setDataset(self.db)
 			it.setDirection(direction % 3)
 			self.children.append(it)
+   
+		layouts=[it.layout for it in self.children]
 
-		if value==1:
-			self.children=[self.children[0]]
-			self.layout.children.append(self.children[0].layout)
-
-		elif value==2:
-			self.layout.children.append(Row(
-				   self.children[0].layout,
-				  self.children[1].layout, 
-				sizing_mode=self.sizing_mode) )
+		if value<=2:
+			self.central_layout.children=[Row(*layouts, sizing_mode='stretch_both')]
 
 		elif value==3:
-			self.layout.children.append(Row(
-				   self.children[2].layout, 
-				  Column(
-					self.children[0].layout,
-					 self.children[1].layout,
-					  sizing_mode=self.sizing_mode),
-				sizing_mode=self.sizing_mode))
+			self.central_layout.children=[Row(
+					layouts[2], 
+					Column(*layouts[0:2],sizing_mode='stretch_both'),
+					sizing_mode='stretch_both')]
    
 		elif value==4:
-			self.layout.children.append(Grid(children=[
-				self.children[0].layout,
-				self.children[1].layout,
-				self.children[2].layout,
-				self.children[3].layout,
-			   ],
-			nrows=2, 
-			ncols=2, 
-			sizing_mode=self.sizing_mode))
+			self.central_layout.children=[Grid(*layouts,nrows=2, ncols=2, sizing_mode='stretch_both')]
 
 		else:
 			raise Exception("internal error")
