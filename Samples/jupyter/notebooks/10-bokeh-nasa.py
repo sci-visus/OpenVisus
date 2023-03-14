@@ -3,33 +3,19 @@ import os,sys,logging
 
 os.environ["BOKEH_ALLOW_WS_ORIGIN"]="*"
 os.environ["BOKEH_LOG_LEVEL"]="debug" 
-
 import bokeh
-import bokeh.io 
-import bokeh.io.notebook 
-import bokeh.models.widgets  
-import bokeh.core.validation
-import bokeh.plotting
-import bokeh.core.validation.warnings
-import bokeh.layouts
-from bokeh.models import Slider,Div,Button,TextInput,Select,Row,Column
-
-bokeh.core.validation.silence(bokeh.core.validation.warnings.EMPTY_LAYOUT, True)
-bokeh.io.output_notebook()
 
 sys.path.append(r"C:\projects\OpenVisus\build\RelWithDebInfo")
 import OpenVisus
-from OpenVisus.dashboards import LoadDataset, Slice, Slices, DIRECTIONS, SetupLogger
+from OpenVisus.dashboards import Slice, Slices, SetupLogger
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-def MyApp(doc):
-
-	os.environ["VISUS_NETSERVICE_VERBOSE"]="1"
-	os.environ["VISUS_CPP_VERBOSE"]="1"
+def MyApp(doc=bokeh.io.curdoc()):
+	
+	os.environ["VISUS_NETSERVICE_VERBOSE"]="0"
+	os.environ["VISUS_CPP_VERBOSE"]="0"
 	os.environ["VISUS_DASHBOARDS_VERBOSE"]="0" 
 
-	DIRECTIONS=[('0','Long'),('1','Lat'),('2','Depth')]
-	
 	# profile=sealstorage
 	os.environ["AWS_ACCESS_KEY_ID"]="any"
 	os.environ["AWS_SECRET_ACCESS_KEY"]="any"
@@ -52,14 +38,13 @@ def MyApp(doc):
 	# logic_to_pixel=[(0.0,1.0), (0.0,1.0), (0.0,20.0)]
 
 	slices=Slices(
-               show_options=["num_views","palette","dataset","timestep","timestep-delta","field","viewdep","quality","num_refinements","play-button", "play-sec"],
-               slice_show_options=["num_views","palette","dataset","timestep","timestep-delta","field","viewdep","quality","num_refinements","play-button", "play-sec"],
-               #slice_show_options=["direction","offset","viewdep","status_bar"],
-               )
+				doc=doc,
+			   show_options=["num_views","palette","dataset","timestep","timestep-delta","field","viewdep","quality","num_refinements","play-button", "play-sec"],
+			   #slice_show_options=["num_views","palette","dataset","timestep","timestep-delta","field","viewdep","quality","num_refinements","play-button", "play-sec"],
+			   slice_show_options=["direction","offset","viewdep","status_bar"],
+			   )
  
-	slices.setNumberOfViews(1)
-
-	slices.setLogicToPixel(logic_to_pixel)
+	slices.setNumberOfViews(3)
 	slices.setDatasets([(url,str(I)) for I,url in enumerate(urls)],"Zone")
 	slices.setDataset(urls[0])
 	slices.setQuality(-3)
@@ -68,16 +53,17 @@ def MyApp(doc):
 	slices.setPaletteRange(palette_range)
 	slices.setTimestepDelta(10)
 	slices.setField(field)
+	slices.setLogicToPixel(logic_to_pixel)
+	slices.setDirections([('0','Long'),('1','Lat'),('2','Depth')])
  
 	doc.add_root(slices.layout)
  
 # //////////////////////////////////////////////////////////////////////////////////////
 if __name__.startswith('bokeh'):
 	# python -m bokeh serve "Samples/jupyter/notebooks/10-bokeh-nasa.py"  --dev --log-level=debug --address localhost --port 8888 
-	# SetupLogger(logging.getLogger("OpenVisus.dashboards"))
-	doc=bokeh.io.curdoc()
-	doc.theme = 'caliber'
-	MyApp(doc)
+	logger=logging.getLogger("OpenVisus.dashboards")
+	logger.setLevel(logging.INFO)
+	MyApp()
 
 	
 

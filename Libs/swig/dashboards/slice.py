@@ -16,9 +16,10 @@ class Slice(Widgets):
 	
 	# constructor
 	def __init__(self,
+			doc=None,
 			show_options=["palette","timestep","field","direction","offset","viewdep","quality","!num_refinements","status_bar"]):
 
-		super().__init__()
+		super().__init__(doc=None)
 		self.render_id     = 0
 		self.aborted       = Aborted()
 		self.new_job       = False
@@ -106,6 +107,7 @@ class Slice(Widgets):
 
 	# setLogicBox (NOTE: it ignores the coordinates on the direction)
 	def setLogicBox(self,value):
+		logger.info(f"Slice[{self.id}]::setLogicBox value={value}")
 		proj=self.project(value)
 		self.canvas.setViewport(*(proj[0] + proj[1]))
 		self.refresh()
@@ -138,6 +140,7 @@ class Slice(Widgets):
   
   # gotoPoint
 	def gotoPoint(self,point):
+		logger.info(f"Slice[{self.id}]::gotoPoint point={point}")
 		pdim=self.getPointDim()
 		# go to the slice
 		if pdim==3:
@@ -156,13 +159,14 @@ class Slice(Widgets):
 		result=self.query.popResult(last_only=True) 
 		if result is None: return
 		data=result['data']
-		query_box=result['logic_box']
-		(x1,y1),(x2,y2)=self.project(query_box)
+		logic_box=result['logic_box'] 
+		logger.info(f"Slice[{self.id}]::rendering result data.shape={data.shape} data.dtype={data.dtype} logic_box={logic_box}")
+		(x1,y1),(x2,y2)=self.project(logic_box)
 		self.canvas.setImage(data,x1,y1,x2,y2)
 		tot_pixels=data.shape[0]*data.shape[1]
 		canvas_pixels=self.canvas.getWidth()*self.canvas.getHeight()
 		MaxH=self.db.getMaxResolution()
-		self.widgets.status_bar["response"].value=f"{result['I']}/{result['N']} {str(query_box).replace(' ','')} {data.shape[0]}x{data.shape[1]} H={result['H']}/{MaxH} {result['msec']}msec"
+		self.widgets.status_bar["response"].value=f"{result['I']}/{result['N']} {str(logic_box).replace(' ','')} {data.shape[0]}x{data.shape[1]} H={result['H']}/{MaxH} {result['msec']}msec"
 		self.render_id+=1     
   
 	# pushJobIfNeeded

@@ -1,9 +1,5 @@
 import colorcet 
 
-doc=None
-
-DIRECTIONS=[('0','X'),('1','Y'),('2','Z')]
-
 PALETTES=[
 	"Greys256", 
     "Inferno256", 

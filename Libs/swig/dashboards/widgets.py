@@ -3,20 +3,23 @@ import os,sys,logging,types,time
 import colorcet
 
 from .utils import cbool
-from .config import DIRECTIONS, PALETTES
+from .config import PALETTES
 from .backend import LoadDataset
 
 from bokeh.models import Select,LinearColorMapper,ColorBar,Button,Slider,TextInput,Row,Column,Div
-from bokeh.io import curdoc
 
 logger = logging.getLogger(__name__)
 
 # //////////////////////////////////////////////////////////////////////////////////////
 class Widgets:
 
+	ID=0
+
 	# constructor
-	def __init__(self):
+	def __init__(self,doc=None):
    
+		self.id=Widgets.ID
+		Widgets.ID+=1
 		self.db=None		
 		self.url=None
 		self.access=None
@@ -57,7 +60,7 @@ class Widgets:
 		self.widgets.field.on_change("value",lambda attr, old, new: self.setField(new))  
   
 		# direction 
-		self.widgets.direction = Select(title='Direction', options=DIRECTIONS,value='2',width=100)
+		self.widgets.direction = Select(title='Direction', options=[('0','X'), ('1','Y'), ('2','Z')],value='2',width=100)
 		self.widgets.direction.on_change ("value",lambda attr, old, new: self.setDirection(int(new)))  
   
 		# offset 
@@ -91,7 +94,10 @@ class Widgets:
 		self.widgets.play_sec = Select(title="Play sec",options=["0.01","0.1","0.2","0.1","1","2"], value="0.01",width=120)
   
 		# timer
-		curdoc().add_periodic_callback(self.onIdle, 10)
+		if doc is None:
+			from bokeh.io import curdoc
+			doc=curdoc()
+		doc.add_periodic_callback(self.onIdle, 10)
    
 	# onIdle
 	def onIdle(self):
@@ -122,28 +128,6 @@ class Widgets:
   
 		return ret
   
-	# getDatasets
-	def getDatasets(self):
-		return self.widgets.dataset.options
-
-	# getDatasets
-	def setDatasets(self,value,title=None):
-		self.widgets.dataset.options=value
-		if title is not None: 
-			self.widgets.dataset.title=title
-		for it in self.children:
-			it.setDatasets(value,title=title)
-  
-	# getLogicToPixel
-	def getLogicToPixel(self):
-		return self.logic_to_pixel
-
-	# setLogicToPixel
-	def setLogicToPixel(self,value):
-		self.logic_to_pixel=value
-		for it in self.children:
-			it.setLogicToPixel(value)
-		self.refresh()
 
 	# setWidgetsDisabled
 	def setWidgetsDisabled(self,value):
@@ -170,6 +154,40 @@ class Widgets:
 	def refresh(self):
 		for it in self.children:
 			it.refresh()
+   
+	# getPointDim
+	def getPointDim(self):
+		return self.db.getPointDim() if self.db else 2
+
+	# gotoPoint
+	def gotoPoint(self, p):
+		for it in self.children:
+			it.gotoPoint(p) 
+  
+	# getDatasets
+	def getDatasets(self):
+		return self.widgets.dataset.options
+
+	# getDatasets
+	def setDatasets(self,value,title=None):
+		logger.info(f"Widgets[{self.id}]::setDatasets num={len(value)}")
+		self.widgets.dataset.options=value
+		if title is not None: 
+			self.widgets.dataset.title=title
+		for it in self.children:
+			it.setDatasets(value,title=title)
+  
+	# getLogicToPixel
+	def getLogicToPixel(self):
+		return self.logic_to_pixel
+
+	# setLogicToPixel
+	def setLogicToPixel(self,value):
+		logger.info(f"Widgets[{self.id}]::setLogicToPixel value={value}")
+		self.logic_to_pixel=value
+		for it in self.children:
+			it.setLogicToPixel(value)
+		self.refresh()
   
 	# setDataset
 	def setDataset(self, url, db=None):
@@ -177,6 +195,8 @@ class Widgets:
 		# rehentrant call
 		if self.url==url:
 			return 
+
+		logger.info(f"Widgets[{self.id}]::setDataset value={url}")
 
 		self.url=url
 	 
@@ -211,22 +231,13 @@ class Widgets:
   
 		self.refresh() 
   
-
-	# getPointDim
-	def getPointDim(self):
-		return self.db.getPointDim() if self.db else 2
-
-	# gotoPoint
-	def gotoPoint(self, p):
-		for it in self.children:
-			it.gotoPoint(p)
-
 	# getNumberOfViews
 	def getNumberOfViews(self):
 		return int(self.widgets.num_views.value)
 
 	# setNumberOfViews
 	def setNumberOfViews(self,value):
+		logger.info(f"Widgets[{self.id}]::setNumberOfViews value={value}")
 		self.widgets.num_views.value=str(value)
 
 	# getTimesteps
@@ -234,9 +245,10 @@ class Widgets:
 		return [int(value) for value in self.db.db.getTimesteps().asVector()]
 
 	# setTimesteps
-	def setTimesteps(self,timesteps):
-		self.widgets.timestep.start =  timesteps[0]
-		self.widgets.timestep.end   =  timesteps[-1]
+	def setTimesteps(self,value):
+		logger.info(f"Widgets[{self.id}]::setTimesteps start={value[0]} end={value[-1]}")
+		self.widgets.timestep.start =  value[0]
+		self.widgets.timestep.end   =  value[-1]
 		self.widgets.timestep.step  = 1
 
 	# getTimestepDelta
@@ -245,6 +257,7 @@ class Widgets:
 
 	# setTimestepDelta
 	def setTimestepDelta(self,value):
+		logger.info(f"Widgets[{self.id}]::setTimestepDelta value={value}")
 		self.widgets.timestep_delta.value=str(value)
 		self.widgets.timestep.step=value
 		A=self.widgets.timestep.start
@@ -265,6 +278,7 @@ class Widgets:
 
 	# setTimestep
 	def setTimestep(self, value):
+		logger.info(f"Widgets[{self.id}]::setTimestep value={value}")
 		self.widgets.timestep.value=value
 		for it in self.children:
 			it.setTimestep(value)  
@@ -275,8 +289,9 @@ class Widgets:
 		return self.widgets.field.options 
   
 	# setFields
-	def setFields(self, options):
-		self.widgets.field.options =list(options)
+	def setFields(self, value):
+		logger.info(f"Widgets[{self.id}]::setFields value={value}")
+		self.widgets.field.options =list(value)
 
 	# getField
 	def getField(self):
@@ -284,6 +299,7 @@ class Widgets:
 
 	# setField
 	def setField(self,value):
+		logger.info(f"Widgets[{self.id}]::setField value={value}")
 		if value is None: return
 		self.widgets.field.value=value
 		for it in self.children:
@@ -296,7 +312,7 @@ class Widgets:
 
 	# setPalette
 	def setPalette(self, value):	 
-		logger.info(f"Slice::setPalette value={value}")
+		logger.info(f"Widgets[{self.id}]::setPalette value={value}")
 		self.palette=value
 		self.widgets.palette.value=value
 		self.color_mapper.palette=getattr(colorcet,value[len("colorcet."):]) if value.startswith("colorcet.") else value
@@ -310,6 +326,7 @@ class Widgets:
 
 	# setPaletteRange
 	def setPaletteRange(self,value):
+		logger.info(f"Widgets[{self.id}]::setPaletteRange value={value}")
 		self.color_mapper.low, self.color_mapper.high=value  
 		for it in self.children:
 			it.setPaletteRange(value)     
@@ -320,6 +337,7 @@ class Widgets:
 
 	# setNumberOfRefinements
 	def setNumberOfRefinements(self,value):
+		logger.info(f"Widgets[{self.id}]::setNumberOfRefinements value={value}")
 		self.widgets.num_refinements.value=value
 		for it in self.children:
 			it.setNumberOfRefinements(value)      
@@ -331,6 +349,7 @@ class Widgets:
 
 	# setQuality
 	def setQuality(self,value):
+		logger.info(f"Widgets[{self.id}]::setQuality value={value}")
 		self.widgets.quality.value=value
 		for it in self.children:
 			it.setQuality(value) 
@@ -342,35 +361,48 @@ class Widgets:
 
 	# setViewDependent
 	def setViewDependent(self,value):
+		logger.info(f"Widgets[{self.id}]::setViewDependent value={value}")
 		self.widgets.viewdep.value=str(int(value))
 		for it in self.children:
 			it.setViewDependent(value)     
 		self.refresh()
+
+	# getDirections
+	def getDirections(self):
+		return self.widgets.direction.options
+
+	# setDirections
+	def setDirections(self,value):
+		logger.info(f"Widgets[{self.id}]::setDirections value={value}")
+		self.widgets.direction.options=value
+		for it in self.children:
+			it.setDirections(value)
 
 	# getDirection
 	def getDirection(self):
 		return int(self.widgets.direction.value)
 
 	# setDirection
-	def setDirection(self,dir):
+	def setDirection(self,value):
+		logger.info(f"Widgets[{self.id}]::setDirection value={value}")
 		pdim=self.getPointDim()
-		if pdim==2: dir=2
+		if pdim==2: value=2
 		dims=[int(it) for it in self.db.getLogicSize()]
-		self.widgets.direction.value = str(dir)
+		self.widgets.direction.value = str(value)
 
 		# 2d there is no direction 
 		pdim=self.getPointDim()
 		if pdim==2:
-			assert dir==2
+			assert value==2
 			self.widgets.offset.start, self.widgets.offset.end= 0,1-1
 			self.widgets.offset.value = 0
 		else:
-			self.widgets.offset.start, self.widgets.offset.end = 0,int(dims[dir])-1
-			self.widgets.offset.value = int(dims[dir]//2)
+			self.widgets.offset.start, self.widgets.offset.end = 0,int(dims[value])-1
+			self.widgets.offset.value = int(dims[value]//2)
    
 		# DO NOT PROPAGATE
 		# for it in self.children:
-		#	it.setDirection(dir)
+		#	it.setDirection(value)
    
 		self.refresh()
 
@@ -380,6 +412,7 @@ class Widgets:
 
 	# setOffset (3d only)
 	def setOffset(self,value):
+		logger.info(f"Widgets[{self.id}]::getOffset value={value}")
 		self.widgets.offset.value=value
   
  		# DO NOT PROPAGATE
@@ -399,6 +432,7 @@ class Widgets:
 			
 	# startPlay
 	def startPlay(self):
+		logger.info(f"Widgets[{self.id}]::startPlay")
 		self.play.is_playing=True
 		self.play.t1=time.time()
 		self.play.wait_render_id=None
@@ -410,6 +444,7 @@ class Widgets:
 	
 	# stopPlay
 	def stopPlay(self):
+		logger.info(f"Widgets[{self.id}]::stopPlay")
 		self.play.is_playing=False
 		self.play.wait_render_id=None
 		self.setNumberOfRefinements(self.play.num_refinements)
@@ -442,6 +477,8 @@ class Widgets:
 		# reached the end -> go to the beginning?
 		if T>=self.widgets.timestep.end: 
 			T=self.timesteps.widgets.timestep.start
+   
+		logger.info(f"Widgets[{self.id}]::playing timestep={T}")
 		
 		# I will wait for the resolution to be displayed
 		self.play.wait_render_id=[(it+1) if it is not None else None for it in render_id]

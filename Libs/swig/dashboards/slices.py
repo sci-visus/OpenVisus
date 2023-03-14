@@ -15,9 +15,10 @@ class Slices(Widgets):
 
 	# constructor
 	def __init__(self, 
+			doc=None,
 			show_options=["num_views","palette","timestep","field","viewdep","quality"],
 			slice_show_options=["direction","offset","viewdep","status_bar"]):
-		super().__init__()
+		super().__init__(doc=doc)
 		self.slice_show_options=slice_show_options
 		self.central_layout=Column(sizing_mode='stretch_both')
 		self.layout=self.createGui(central_layout=self.central_layout, options=show_options)
