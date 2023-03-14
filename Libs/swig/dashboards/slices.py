@@ -14,10 +14,9 @@ class Slices(Widgets):
 
 	# constructor
 	def __init__(self, 
-			doc=None,
 			show_options=["num_views","palette","timestep","field","viewdep","quality"],
 			slice_show_options=["direction","offset","viewdep","status_bar"]):
-		super().__init__(doc=doc)
+		super().__init__()
 		self.slice_show_options=slice_show_options
 		self.central_layout=Column(sizing_mode='stretch_both')
 		self.layout=self.createGui(central_layout=self.central_layout, options=show_options)
@@ -64,7 +63,7 @@ class Slices(Widgets):
 		self.children=[]
 
 		for direction in range(value):
-			it=Slice(doc=self.doc,show_options=self.slice_show_options)
+			it=Slice(show_options=self.slice_show_options)
 			it.canvas.enableDoubleTap(lambda x,y: self.gotoPoint(self.unproject([x,y])))
 			it.setLogicToPixel(self.getLogicToPixel())
 			it.setDataset(self.db)

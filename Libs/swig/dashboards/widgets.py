@@ -13,9 +13,8 @@ logger = logging.getLogger(__name__)
 class Widgets:
 
 	# constructor
-	def __init__(self,doc=None):
+	def __init__(self):
    
-		self.doc=doc
 		self.db=None
 		self.access=None
 		self.render_id=None # by default I am not rendering
@@ -158,23 +157,19 @@ class Widgets:
 
 	# addIdleCallback
 	def addIdleCallback(self, callback, msec=10):
-		doc=self.doc if self.doc else curdoc()
-		return doc.add_periodic_callback(callback, msec)
+		return curdoc().add_periodic_callback(callback, msec)
   
 	# removeIdleCallback
 	def removeIdleCallback(self,callback):
-		doc=self.doc if self.doc else curdoc()
-		doc.remove_periodic_callback(callback)
+		curdoc().remove_periodic_callback(callback)
   
 	# ///////////////////////////////////////// PLAY
 
 	# togglePlay
 	def togglePlay(self,evt=None):
 		if self.play.callback is not None:
-			print("!!!!!!!!!!!! stopPlay")
 			self.stopPlay()  
 		else:
-			print("!!!!!!!!!!!! startPlay")
 			self.startPlay()
 			
 	# startPlay

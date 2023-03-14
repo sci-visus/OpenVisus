@@ -15,13 +15,11 @@ class Slice(Widgets):
 	
 	# constructor
 	def __init__(self,
-            doc=None, 
 			show_options=["palette","timestep","field","direction","offset","viewdep","quality","!num_refinements","status_bar"]):
 
-		super().__init__(doc=doc)
-		
-		self.aborted       = Aborted()
+		super().__init__()
 		self.render_id     = 0
+		self.aborted       = Aborted()
 		self.new_job       = False
 		self.current_img   = None
 		self.options={}

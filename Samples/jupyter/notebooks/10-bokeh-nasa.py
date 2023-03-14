@@ -51,7 +51,7 @@ def MyApp(doc):
 	# field="ssp585_tasmax"
 	# logic_to_pixel=[(0.0,1.0), (0.0,1.0), (0.0,20.0)]
 
-	slices=Slices(doc=None, 
+	slices=Slices(
                show_options=["num_views","palette","dataset","timestep","timestep-delta","field","viewdep","quality","num_refinements","play-button", "play-sec"],
                slice_show_options=["direction","offset","viewdep","status_bar"])
 
