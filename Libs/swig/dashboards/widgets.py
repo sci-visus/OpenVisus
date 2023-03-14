@@ -16,6 +16,7 @@ class Widgets:
    
 		self.doc=doc
 		self.db=None
+		self.children=[]
   
 		self.palette='Greys256'
 		self.palette_range=(0,255) 
@@ -29,11 +30,13 @@ class Widgets:
 		 # color mapper
 		self.color_mapper = LinearColorMapper() # LogColorMapper
 		self.color_mapper.palette=self.widgets.palette.value
-  
 		self.color_mapper.low,self.color_mapper.high=self.palette_range
 
 		# colorbar
 		self.color_bar = ColorBar(color_mapper=self.color_mapper)
+  
+		self.widgets.num_views=Select(title='#Views',  options=["1","2","3","4"],value='3',width=50,sizing_mode='stretch_height')
+		self.widgets.num_views.on_change("value",lambda attr, old, new: self.setNumberOfViews(int(new))) 
  
 		# timestep
 		self.widgets.timestep = Slider(title='Time', value=0, start=0, end=1, sizing_mode='stretch_width')
@@ -161,6 +164,19 @@ class Widgets:
 	def getPointDim(self):
 		return self.db.getPointDim() if self.db else 2
 
+	# gotoPoint
+	def gotoPoint(self, p):
+		for it in self.children:
+			it.gotoPoint(p)
+
+	# getNumberOfViews
+	def getNumberOfViews(self):
+		return int(self.widgets.num_views.value)
+
+	# setNumberOfViews
+	def setNumberOfViews(self,value):
+		self.widgets.num_views.value=str(value)
+
 	# getTimesteps
 	def getTimesteps(self):
 		return [int(value) for value in self.db.db.getTimesteps().asVector()]
@@ -172,6 +188,8 @@ class Widgets:
 	# setTimestep
 	def setTimestep(self, value):
 		self.widgets.timestep.value=value
+		for it in self.children:
+			it.setTimestep(value)  
 		self.refresh()
 
 	# getTimestep
@@ -179,15 +197,19 @@ class Widgets:
 		return int(self.widgets.timestep.value)
 
 	# setTimestepDelta
-	def setTimestepDelta(self,D):
-		self.widgets.timestep_delta.value=str(D)
-		self.widgets.timestep.step=D
+	def setTimestepDelta(self,value):
+		self.widgets.timestep_delta.value=str(value)
+		self.widgets.timestep.step=value
 		A=self.widgets.timestep.start
 		B=self.widgets.timestep.end
 		T=self.getTimestep()
-		T=A+D*int((T-A)/D)
+		T=A+value*int((T-A)/value)
 		T=min(B,max(A,T))
 		self.setTimestep(T)
+  
+		for it in self.children:
+			it.setTimestepDelta(value)  
+  
 		self.refresh()
 
 	# getTimestepDelta
@@ -197,6 +219,8 @@ class Widgets:
 	# setField
 	def setField(self,value):
 		self.widgets.field.value=value
+		for it in self.children:
+			it.setField(value)  
 		self.refresh()
   
 	# getField
@@ -245,6 +269,10 @@ class Widgets:
 
 		self.color_mapper.palette=value
 		self.color_mapper.low, self.color_mapper.high=palette_range
+  
+		for I,it in enumerate(self.children):
+			it.setPalette(value,palette_range=palette_range)  
+  
 		self.refresh()
 
 	# getPalette
@@ -267,6 +295,8 @@ class Widgets:
 	# setNumberOfRefinements
 	def setNumberOfRefinements(self,value):
 		self.widgets.num_refinements.value=value
+		for it in self.children:
+			it.setNumberOfRefinements(value)      
 		self.refresh()
 
 	# getNumberOfRefinements
@@ -276,6 +306,8 @@ class Widgets:
 	# setQuality
 	def setQuality(self,value):
 		self.widgets.quality.value=value
+		for it in self.children:
+			it.setQuality(value) 
 		self.refresh()
 
 	# getQuality
@@ -303,4 +335,6 @@ class Widgets:
 	# setViewDependent
 	def setViewDependent(self,value):
 		self.widgets.viewdep.value=str(int(value))
+		for it in self.children:
+			it.setViewDependent(value)     
 		self.refresh()
