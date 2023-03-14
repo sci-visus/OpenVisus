@@ -98,7 +98,7 @@ class Widgets:
 	# addIdleCallback
 	def addIdleCallback(self, callback, msec=10):
 		doc=self.doc if self.doc else curdoc()
-		doc.add_period_callback(callback, msec)
+		doc.add_periodic_callback(callback, msec)
   
 	# removeIdleCallback
 	def removeIdleCallback(self,callback):

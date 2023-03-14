@@ -5,12 +5,35 @@ ABORTED=ov.Aborted()
 ABORTED.setTrue() 
 
 # ///////////////////////////////////////////////////////////////////
+class Dataset:
+	
+	# coinstructor
+	def __init__self(self,url):
+		self.inner=ov.LoadDataset(url)
+  
+	# getTimesteps
+	def getTimesteps(self):
+		return self.inner.getTimesteps() 
+
+	# getFields
+	def getFields(self):
+		return self.inner.getFields()
+
+	# createAccess
+	def createAccess(self):
+		self.inner.createAccess(self)
+
+	# getField
+	def getField(self,field):
+		self.inner.getField(field)
+
+# ///////////////////////////////////////////////////////////////////
 def LoadDataset(url):
-    return ov.LoadDataset(url)
+	return Dataset(url)
 
 # ///////////////////////////////////////////////////////////////////
 class Aborted:
-    
+	
 	# constructor
 	def __init__(self,value=False):
 		self.inner=ov.Aborted()
@@ -23,6 +46,7 @@ class Aborted:
 	# isTrue
 	def isTrue(self):
 		return self.inner.__call__()==ABORTED.__call__()
+
 
 # ///////////////////////////////////////////////////////////////////
 def ReadStats(reset=False):
@@ -50,10 +74,10 @@ def ReadStats(reset=False):
 
 # //////////////////////////////////////////////////////
 class Query:
-    
+	
 	# constructor
 	def __init__(self, db, timestep, field, logic_box, end_resolutions, aborted=None):
-		self.db=db
+		self.db=db.inner
 		self.timestep=timestep
 		self.field=field
 		self.logic_box=logic_box
