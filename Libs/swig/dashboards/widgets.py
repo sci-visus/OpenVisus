@@ -18,6 +18,7 @@ class Widgets:
 		self.doc=doc
 		self.db=None
 		self.access=None
+		self.render_id=None # by default I am not rendering
 		self.logic_to_pixel=[(0.0,1.0)]*3
 		self.children=[]
   
@@ -85,7 +86,7 @@ class Widgets:
 		self.play=types.SimpleNamespace()
 		self.play.callback=None
 		self.widgets.play_button = Button(label="Play",width=80,sizing_mode='stretch_height')
-		self.widgets.play_button.on_click(self.startOrStopPlay)
+		self.widgets.play_button.on_click(self.togglePlay)
 		self.widgets.play_sec = Select(title="Play sec",options=["0.01","0.1","0.2","0.1","1","2"], value="0.01",width=120)
    
   
@@ -119,7 +120,7 @@ class Widgets:
 	# getDatasets
 	def setDatasets(self,value,title=None):
 		self.widgets.dataset.options=value
-		if title is not None: self.widgets.dataset=title
+		if title is not None: self.widgets.dataset.title=title
   
 	# getLogicToPixel
 	def getLogicToPixel(self):
@@ -132,8 +133,21 @@ class Widgets:
 
 	# setWidgetsDisabled
 	def setWidgetsDisabled(self,value):
-		for widget in dir(self.widgets):
-			widget.disabled=value
+		self.widgets.dataset.disabled=value
+		self.widgets.palette.disabled=value
+		self.widgets.num_views.disabled=value
+		self.widgets.timestep.disabled=value
+		self.widgets.timestep_delta.disabled=value
+		self.widgets.field.disabled=value
+		self.widgets.direction.disabled=value
+		self.widgets.offset.disabled=value
+		self.widgets.num_refinements.disabled=value
+		self.widgets.quality.disabled=value
+		self.widgets.viewdep.disabled=value
+		self.widgets.status_bar["request" ].disabled=value
+		self.widgets.status_bar["response"].disabled=value
+		self.widgets.play_button.disabled=value
+		self.widgets.play_sec.disabled=value
  		
 		for it in self.children:
 			it.setWidgetsDisabled(value)  
@@ -145,41 +159,50 @@ class Widgets:
 	# addIdleCallback
 	def addIdleCallback(self, callback, msec=10):
 		doc=self.doc if self.doc else curdoc()
-		doc.add_periodic_callback(callback, msec)
+		return doc.add_periodic_callback(callback, msec)
   
 	# removeIdleCallback
 	def removeIdleCallback(self,callback):
 		doc=self.doc if self.doc else curdoc()
 		doc.remove_periodic_callback(callback)
+  
+	# ///////////////////////////////////////// PLAY
 
-	# startOrStopRunning
-	def startOrStopPlay(self,evt=None):
-		if not self.play.callback:
-			self.startPlay()
+	# togglePlay
+	def togglePlay(self,evt=None):
+		if self.play.callback is not None:
+			print("!!!!!!!!!!!! stopPlay")
+			self.stopPlay()  
 		else:
-			self.stopPlay()
-
+			print("!!!!!!!!!!!! startPlay")
+			self.startPlay()
+			
 	# startPlay
 	def startPlay(self):
-		assert(self.play.callback is None)
+		self.play.callback=self.addIdleCallback(self.onPlayTimer)
 		self.play.t1=time.time()
-		self.play.render_id=None
+		self.play.wait_render_id=None
 		self.play.num_refinements=self.getNumberOfRefinements()
 		self.setNumberOfRefinements(1)
 		self.setWidgetsDisabled(True)
 		self.widgets.play_button.disabled=False
-		self.play.callback=self.addIdleCallback(self.onPlayTimer)
 		self.widgets.play_button.label="Stop"
 	
 	# stopPlay
 	def stopPlay(self):
-		assert(self.play.callback is not None)
+		callback,self.play.callback=self.play.callback,None
+		self.removeIdleCallback(callback)
+		self.play.wait_render_id=None
 		self.setNumberOfRefinements(self.play.num_refinements)
 		self.setWidgetsDisabled(False)
 		self.widgets.play_button.disabled=False
-		self.removeIdleCallback(self.play.callback)
-		self.play.callback=None
 		self.widgets.play_button.label="Play"
+  
+	# stillRendering
+	def stillRendering(self):
+		for it in self.children:
+			if it.stillRendering(): return True
+		return False
 
 	# onPlayTimer
 	def onPlayTimer(self):
@@ -188,21 +211,23 @@ class Widgets:
 		t2=time.time()
 		if (t2-self.play.t1)<float(self.widgets.play_sec.value):
 			return   
-			
-		if self.play.render_id is not None and any([a<b for a,b in zip([slice.render_id for slice in self.slices],self.play.render_id)]):
-			# logger.info("fWaiting render {self.render_id} {render_id}")
-			return
+
+		render_id = [self.render_id] + [it.render_id for it in self.children]
+
+		if self.play.wait_render_id is not None:
+			if any([a<b for (a,b) in zip(render_id,self.play.wait_render_id) if a is not None and b is not None]):
+				# logger.info(f"Waiting render {render_id} {self.play.wait_render_id}")
+				return
 
 		# advance
-		D=int(self.widgets.timestep_delta.value)
-		T=self.getTimestep()+D
+		T=self.getTimestep()+self.getTimestepDelta()
 
-		# reached the end -> go to the beginning
+		# reached the end -> go to the beginning?
 		if T>=self.widgets.timestep.end: 
 			T=self.timesteps.widgets.timestep.start
 		
 		# I will wait for the resolution to be displayed
-		self.play.render_id=[slice.render_id+1 for slice in self.slices]
+		self.play.wait_render_id=[(it+1) if it is not None else None for it in render_id]
 		self.play.t1=time.time()
 		self.setTimestep(T) 
 

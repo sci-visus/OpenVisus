@@ -51,14 +51,14 @@ def MyApp(doc):
 	# field="ssp585_tasmax"
 	# logic_to_pixel=[(0.0,1.0), (0.0,1.0), (0.0,20.0)]
 
-	slices=Slices(doc=doc, 
+	slices=Slices(doc=None, 
                show_options=["num_views","palette","dataset","timestep","timestep-delta","field","viewdep","quality","num_refinements","play-button", "play-sec"],
                slice_show_options=["direction","offset","viewdep","status_bar"])
 
 	slices.setLogicToPixel(logic_to_pixel)
 	slices.setDatasets([(url,str(I)) for I,url in enumerate(urls)],"Zone")
 	slices.setDataset(LoadDataset(urls[0]))
-	slices.setNumberOfViews(3)
+	slices.setNumberOfViews(1)
 	slices.setQuality(-3)
 	slices.setNumberOfRefinements(3)
 	slices.setPalette(palette, palette_range=palette_range) 
@@ -70,7 +70,7 @@ def MyApp(doc):
 # //////////////////////////////////////////////////////////////////////////////////////
 if __name__.startswith('bokeh'):
 	# python -m bokeh serve "Samples/jupyter/notebooks/10-bokeh-nasa.py"  --dev --log-level=debug --address localhost --port 8888 
-	SetupLogger(logging.getLogger("OpenVisus.dashboards"))
+	# SetupLogger(logging.getLogger("OpenVisus.dashboards"))
 	doc=bokeh.io.curdoc()
 	doc.theme = 'caliber'
 	MyApp(doc)

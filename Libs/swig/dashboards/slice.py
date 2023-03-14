@@ -21,10 +21,10 @@ class Slice(Widgets):
 		super().__init__(doc=doc)
 		
 		self.aborted       = Aborted()
+		self.render_id     = 0
 		self.new_job       = False
 		self.current_img   = None
 		self.options={}
-		self.render_id = 0
 		self.canvas = Canvas(self.color_bar, self.color_mapper, sizing_mode='stretch_both')
 		self.last_logic_box = None
 		self.last_canvas_size = [0,0]
@@ -120,7 +120,7 @@ class Slice(Widgets):
 		
 		# this is the right value in logic domain
 		if pdim==3:
-			ret[dir]=self.widgets.offset.value
+			ret[dir]=self.getOffset()
 
 		assert(len(ret)==pdim)
 		return ret
