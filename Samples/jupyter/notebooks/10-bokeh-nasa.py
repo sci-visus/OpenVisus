@@ -52,50 +52,20 @@ def MyApp(doc):
 	# logic_to_pixel=[(0.0,1.0), (0.0,1.0), (0.0,20.0)]
 
 	slices=Slices(doc=doc, 
-               show_options=["num_views","palette","timestep","timestep_delta","field","viewdep","quality","num_refinements","play-button", "play-msec"],
+               show_options=["num_views","palette","dataset","timestep","timestep-delta","field","viewdep","quality","num_refinements","play-button", "play-sec"],
                slice_show_options=["direction","offset","viewdep","status_bar"])
 
-	db=LoadDataset(urls[0])
-	print(db.getDatasetBody().toString())
-	timesteps=db.getTimesteps()
-
 	slices.setLogicToPixel(logic_to_pixel)
-	slices.setDataset(db)
+	slices.setDatasets([(url,str(I)) for I,url in enumerate(urls)],"Zone")
+	slices.setDataset(LoadDataset(urls[0]))
 	slices.setNumberOfViews(3)
 	slices.setQuality(-3)
 	slices.setNumberOfRefinements(3)
 	slices.setPalette(palette, palette_range=palette_range) 
-
 	slices.setTimestepDelta(10)
+	slices.setField(field)
 
-	if field is not None:
-		slices.setField(field)
-
-	# change zone
-	if len(urls)>0:
-		url = Select(title="Zone", options=[str(I) for I in range(len(urls))],width=100) 
-		def onUrlChanged(attr, old, new):
-			nonlocal slices
-			url=urls[int(new)]
-			print(f"Setting url={url}")
-			db=LoadDataset(url)
-			print(db.getDatasetBody().toString())
-			slices.setDataset(db,compatible=True)
-		url.on_change("value",onUrlChanged)
-	else:
-		url=None
-
-	# add the zone at the beginning of first row
-	first_row=slices.layout.children[0]
-	if url:
-		first_row.children.insert(0,url)
-
-	main_layout=Column(
-		slices.layout,
-  		sizing_mode='stretch_both'
-	)
-
-	doc.add_root(main_layout)
+	doc.add_root(slices.layout)
  
 # //////////////////////////////////////////////////////////////////////////////////////
 if __name__.startswith('bokeh'):

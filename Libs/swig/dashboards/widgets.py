@@ -2,8 +2,9 @@ import os,sys,logging,types,time
 
 from .utils import cbool
 from .config import DIRECTIONS, PALETTES
+from .backend import LoadDataset
 
-from bokeh.models import Select,LinearColorMapper,ColorBar,Button,Slider,TextInput,Row,Column
+from bokeh.models import Select,LinearColorMapper,ColorBar,Button,Slider,TextInput,Row,Column,Div
 from bokeh.io import curdoc
 
 logger = logging.getLogger(__name__)
@@ -25,19 +26,20 @@ class Widgets:
 
 		self.widgets=types.SimpleNamespace()
 
-		# palette
-		self.widgets.palette = Select(title='Palette',  options=PALETTES,value=self.palette,width=120)
-		self.widgets.palette.on_change("value",lambda attr, old, new: self.setPalette(new))  
+		# dataset
+		self.widgets.dataset = Select(title="Dataset", options=[],width=100) 
+		self.widgets.dataset.on_change("value",lambda attr,old,new: self.setDataset(LoadDataset(new),compatible=True)) 
  
-		 # color mapper
-		self.color_mapper = LinearColorMapper() # LogColorMapper
+		# palette
+		self.widgets.palette = Select(title='Palette', options=PALETTES,value=self.palette,width=100)
+		self.widgets.palette.on_change("value",lambda attr, old, new: self.setPalette(new))  
+		self.color_mapper = LinearColorMapper() 
 		self.color_mapper.palette=self.widgets.palette.value
 		self.color_mapper.low,self.color_mapper.high=self.palette_range
-
-		# colorbar
 		self.color_bar = ColorBar(color_mapper=self.color_mapper)
   
-		self.widgets.num_views=Select(title='#Views',  options=["1","2","3","4"],value='3',width=50)
+		# num_views
+		self.widgets.num_views=Select(title='#Views',  options=["1","2","3","4"],value='3',width=100)
 		self.widgets.num_views.on_change("value",lambda attr, old, new: self.setNumberOfViews(int(new))) 
  
 		# timestep
@@ -45,15 +47,15 @@ class Widgets:
 		self.widgets.timestep.on_change ("value",lambda attr, old, new: self.setTimestep(int(new)))  
 
 		# timestep delta
-		self.widgets.timestep_delta=Select(title="Time delta",options=["1","2","5","10","50","100","200"], value="1", width=120)
+		self.widgets.timestep_delta=Select(title="Time delta",options=["1","2","5","10","50","100","200"], value="1",width=100)
 		self.widgets.timestep_delta.on_change("value", lambda attr, old, new: self.setTimestepDelta(int(new)))   
 
 		# field
-		self.widgets.field = Select(title='Field',  options=[],value='data',width=120)
+		self.widgets.field = Select(title='Field',  options=[],value='data',width=100)
 		self.widgets.field.on_change("value",lambda attr, old, new: self.setField(new))  
   
 		# direction 
-		self.widgets.direction = Select(title='Direction', options=DIRECTIONS,value='2',width=80)
+		self.widgets.direction = Select(title='Direction', options=DIRECTIONS,value='2',width=100)
 		self.widgets.direction.on_change ("value",lambda attr, old, new: self.setDirection(int(new)))  
   
 		# offset 
@@ -61,11 +63,11 @@ class Widgets:
 		self.widgets.offset.on_change ("value",lambda attr, old, new: self.setOffset(int(new)))
   
 		# num_refimements (0==guess)
-		self.widgets.num_refinements=Slider(title='#Refinements', value=0, start=0, end=4)
+		self.widgets.num_refinements=Slider(title='#Refinements', value=0, start=0, end=4,width=100)
 		self.widgets.num_refinements.on_change ("value",lambda attr, old, new: self.setNumberOfRefinements(int(new)))
   
 		# quality (0==full quality, -1==decreased quality by half-pixels, +1==increase quality by doubling pixels etc)
-		self.widgets.quality = Slider(title='Quality', value=0, start=-12, end=+12, width=120)
+		self.widgets.quality = Slider(title='Quality', value=0, start=-12, end=+12,width=100)
 		self.widgets.quality.on_change("value",lambda attr, old, new: self.setQuality(int(new)))  
 
 		# viewdep
@@ -82,65 +84,23 @@ class Widgets:
  		# play time
 		self.play=types.SimpleNamespace()
 		self.play.callback=None
-		self.play.button = Button(label="Play",width=80)
-		self.play.button.on_click(self.startOrStopPlay)
-		self.play.sec = Select(title="Play sec",options=["0.01","0.1","0.2","0.1","1","2"], value="0.01",width=120)
+		self.widgets.play_button = Button(label="Play",width=80,sizing_mode='stretch_height')
+		self.widgets.play_button.on_click(self.startOrStopPlay)
+		self.widgets.play_sec = Select(title="Play sec",options=["0.01","0.1","0.2","0.1","1","2"], value="0.01",width=120)
    
   
 	# createGui
 	def createGui(self,central_layout=None,options=[]):
+     
+		options=[it.replace("-","_") for it in options]
+		first_row=[getattr(self.widgets,it) for it in options if it!="status_bar"]
+     
 		ret=Column(sizing_mode='stretch_both')
-
-		first_row=[]
   
-		for option in options:
-			option=option.replace("_","-")
-	
-			if "num-views" == option:
-				first_row.append(self.widgets.num_views) 
-	
-			elif "palette" == option:  
-				first_row.append(self.widgets.palette)
+		ret.children.append(Row(
+      		children=first_row,
+        	sizing_mode="stretch_width"))
 
-			elif "timestep" in option:  
-				first_row.append(self.widgets.timestep)
-
-			elif "timestep-delta" == option:
-				first_row.append(self.widgets.timestep_delta)
-
-			elif "direction" == option:
-				first_row.append(self.widgets.direction)
-
-			elif "offset" == option:
-				first_row.append(self.widgets.offset)
-
-			elif "field" == option:
-				first_row.append(self.widgets.field)
-
-			elif "quality" == option:
-				first_row.append(self.widgets.quality)     
-				
-			elif "num-refinements" == option:
-				first_row.append(self.widgets.num_refinements)
-		
-			elif "direction" == option:
-				first_row.append(self.widgets.direction)
-	
-			elif "offset" == option:
-				first_row.append(self.widgets.offset)
-	
-			elif "viewdep" == option:
-				first_row.append(self.widgets.viewdep)
-	
-			elif "play-button" == option:
-				first_row.append(self.play.button)
-					
-			if "play-msec" == option:
-				first_row.append(self.play.sec)  
-
-		ret.children.append(
-			Row(*first_row, sizing_mode='stretch_width')
-		)  
 		if central_layout:
 			ret.children.append(central_layout)
 		
@@ -151,6 +111,15 @@ class Widgets:
 				sizing_mode='stretch_width'))
   
 		return ret
+  
+	# getDatasets
+	def getDatasets(self):
+		return self.widgets.dataset.options
+
+	# getDatasets
+	def setDatasets(self,value,title=None):
+		self.widgets.dataset.options=value
+		if title is not None: self.widgets.dataset=title
   
 	# getLogicToPixel
 	def getLogicToPixel(self):
@@ -198,24 +167,26 @@ class Widgets:
 		self.play.num_refinements=self.getNumberOfRefinements()
 		self.setNumberOfRefinements(1)
 		self.setWidgetsDisabled(True)
+		self.widgets.play_button.disabled=False
 		self.play.callback=self.addIdleCallback(self.onPlayTimer)
-		self.play.button.label="Stop"
+		self.widgets.play_button.label="Stop"
 	
 	# stopPlay
 	def stopPlay(self):
 		assert(self.play.callback is not None)
 		self.setNumberOfRefinements(self.play.num_refinements)
 		self.setWidgetsDisabled(False)
+		self.widgets.play_button.disabled=False
 		self.removeIdleCallback(self.play.callback)
 		self.play.callback=None
-		self.play.button.label="Play"
+		self.widgets.play_button.label="Play"
 
 	# onPlayTimer
 	def onPlayTimer(self):
 
 		# avoid playing too fast by waiting a minimum amount of time
 		t2=time.time()
-		if (t2-self.play.t1)<float(self.play.sec.value):
+		if (t2-self.play.t1)<float(self.widgets.play_sec.value):
 			return   
 			
 		if self.play.render_id is not None and any([a<b for a,b in zip([slice.render_id for slice in self.slices],self.play.render_id)]):
@@ -293,6 +264,7 @@ class Widgets:
 
 	# setField
 	def setField(self,value):
+		if value is None: return
 		self.widgets.field.value=value
 		for it in self.children:
 			it.setField(value)  
