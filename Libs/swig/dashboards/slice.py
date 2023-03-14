@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
 class Slice(Widgets):
 	
 	# constructor
-	def __init__(self,doc=None,show_options=["palette","timestep","field","direction","offset","viewdep","quality","!num_refinements","status_bar"]):
+	def __init__(self,doc=None, show_options=["palette","timestep","field","direction","offset","viewdep","quality","!num_refinements","status_bar"], disable_timers=False):
 
-		super().__init__(doc=doc)
+		super().__init__(doc=doc,disable_timers=disable_timers)
 		self.render_id     = 0
 		self.aborted       = Aborted()
 		self.new_job       = False

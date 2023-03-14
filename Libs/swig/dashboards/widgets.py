@@ -16,7 +16,7 @@ class Widgets:
 	ID=0
 
 	# constructor
-	def __init__(self,doc=None):
+	def __init__(self,doc=None,disable_timers=False):
    
 		self.id=Widgets.ID
 		Widgets.ID+=1
@@ -94,10 +94,11 @@ class Widgets:
 		self.widgets.play_sec = Select(title="Play sec",options=["0.01","0.1","0.2","0.1","1","2"], value="0.01",width=120)
   
 		# timer
-		if doc is None:
-			from bokeh.io import curdoc
-			doc=curdoc()
-		doc.add_periodic_callback(self.onIdle, 10)
+		if not disable_timers:
+			if doc is None:
+				from bokeh.io import curdoc
+				doc=curdoc()
+			doc.add_periodic_callback(self.onIdle, 10)
    
 	# onIdle
 	def onIdle(self):

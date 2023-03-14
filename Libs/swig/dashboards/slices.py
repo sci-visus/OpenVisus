@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 class Slices(Widgets):
 
 	# constructor
-	def __init__(self, doc=None,
+	def __init__(self, doc=None,disable_timers=False,
 			show_options=["num_views","palette","timestep","field","viewdep","quality"],
 			slice_show_options=["direction","offset","viewdep","status_bar"],
    			num_views=2):
-		super().__init__(doc=doc)
+		super().__init__(doc=doc,disable_timers=disable_timers)
 		self.slice_show_options=slice_show_options
 		self.central_layout=Column(sizing_mode='stretch_both')
 		self.layout=self.createGui(central_layout=self.central_layout, options=show_options)
