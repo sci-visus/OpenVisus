@@ -3,7 +3,7 @@ import os,sys,logging,types,time
 from .utils import cbool
 from .config import DIRECTIONS, PALETTES
 
-from bokeh.models import Select,LinearColorMapper,ColorBar,Button,Slider,TextInput
+from bokeh.models import Select,LinearColorMapper,ColorBar,Button,Slider,TextInput,Row,Column
 from bokeh.io import curdoc
 
 logger = logging.getLogger(__name__)
@@ -83,16 +83,78 @@ class Widgets:
 		self.widgets.status_bar["response"]=TextInput(title="" ,sizing_mode='stretch_width')
 		self.widgets.status_bar["request" ].disabled=True
 		self.widgets.status_bar["response"].disabled=True
+  
+  
+	# createGui
+	def createGui(self,central_layout=None,options=[]):
+		ret=Column(children=[],sizing_mode=self.sizing_mode)
+
+		v=[]
+  
+		if "num_views" in options:
+			v.append(self.widgets.num_views) 
+  
+		if "palette" in options:  
+			v.append(self.widgets.palette)
+
+		if "timestep" in options:  
+			v.append(self.widgets.timestep)
+
+		if "timestep_delta" in options:
+			v.append(self.widgets.timestep_delta)
+
+		if "direction" in options:
+			v.append(self.widgets.direction)
+
+		if "offset" in options:
+			v.append(self.widgets.offset)
+
+		if "field" in options:
+			v.append(self.widgets.field)
+
+		if "viewdep" in options:
+			v.append(self.widgets.viewdep)
+
+		if "quality" in options:
+			v.append(self.widgets.quality)     
+			
+		if "num_refinements" in options:
+			v.append(self.widgets.num_refinements)
+	   
+		if "direction" in options:
+			v.append(self.widgets.direction)
+   
+		if "offset" in options:
+			v.append(self.widgets.offset)
+   
+		if "play-button" in options:
+				v.append(self.play.button)
+				
+		if "play-msec" in options:
+			v.append(self.play.sec)  
+
+		ret.children.append(
+			Row(*v, sizing_mode='stretch_width')
+		)  
+		if central_layout:
+			ret.children.append(central_layout)
+		
+		if "status_bar" in options:
+			ret.children.append(Row(
+				self.widgets.status_bar["request"],
+				self.widgets.status_bar["response"], 
+				sizing_mode='stretch_width'))
+  
+		return ret
+  
 
 	# setWidgetsDisabled
 	def setWidgetsDisabled(self,value):
-		self.widgets.palette.disabled=value
-		self.widgets.timestep.disabled=value
-		self.widgets.field.disabled=value
-		self.widgets.direction.disabled=value
-		self.widgets.offset.disabled=value
-		self.widgets.num_refinements.disabled=value
-		self.widgets.viewdep.disabled=value
+		for widget in dir(self.widgets):
+			widget.disabled=value
+ 		
+		for it in self.children:
+			it.setWidgetsDisabled(value)  
 
 	# refresh (to override if needed)
 	def refresh(self):

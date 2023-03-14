@@ -24,47 +24,7 @@ class Slices(Widgets):
 		self.slice_show_options=["direction","offset"]
 		self.palette="Greys256"
 		self.palette_range=[0,255]
-		self.createGui(show_options)
-
-	# createGui
-	def createGui(self,options):
-
-		# create first row
-		v=[]
-
-		if "num_views" in options:
-			v.append(self.widgets.num_views)
-   
-		if "palette" in options:
-			v.append(self.widgets.palette)
-  
-		if "timestep" in options:  
-			v.append(self.widgets.timestep)
-
-		if "timestep_delta" in options:
-			v.append(self.widgets.timestep_delta)
-
-		if "field" in options:
-			v.append(self.widgets.field)
-   
-		if "viewdep" in options:
-			v.append(self.widgets.viewdep)
-
-		if "quality" in options:
-			v.append(self.widgets.quality) 
-  
-		if "num_refinements" in options:
-			v.append(self.widgets.num_refinements)  
-
-		if "play-button" in options:
-			v.append(self.play.button)
-			
-		if "play-msec" in options:
-			v.append(self.play.sec)
-
-		self.layout=Column(
-			Row(*v, sizing_mode='stretch_width'),
-			sizing_mode=self.sizing_mode)
+		self.layout=self.createGui(central_layout=None, options=show_options)
 
 	# setDataset
 	def setDataset(self, db, compatible=False):

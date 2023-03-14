@@ -31,64 +31,13 @@ class Slice(Widgets):
 		self.last_logic_box = None
 		self.last_canvas_size = [0,0]
 
-		self.createGui(show_options)
+		self.layout=self.createGui(central_layout=self.canvas.figure, options=show_options)
 
 		self.addIdleCallback(self.onTimer)
 
 		self.query=QueryNode()
 		self.query.startThread()
 		
-	# createGui
-	def createGui(self,options):
-		self.layout=Column(children=[],sizing_mode=self.sizing_mode)
-
-		v=[]
-  
-		if "palette" in options:  
-			v.append(self.widgets.palette)
-
-		if "timestep" in options:  
-			v.append(self.widgets.timestep)
-
-		if "timestep_delta" in options:
-			v.append(self.widgets.timestep_delta)
-
-		if "direction" in options:
-			v.append(self.widgets.direction)
-
-		if "offset" in options:
-			v.append(self.widgets.offset)
-
-		if "field" in options:
-			v.append(self.widgets.field)
-
-		if "viewdep" in options:
-			v.append(self.widgets.viewdep)
-
-		if "quality" in options:
-			v.append(self.widgets.quality)     
-			
-		if "num_refinements" in options:
-			v.append(self.widgets.num_refinements)
-       
-		if self.getPointDim()==3 and "direction" in options:
-			v.append(self.widgets.direction)
-   
-		if self.getPointDim()==3 and "offset" in options:
-			v.append(self.widgets.offset)
-
-		self.layout.children.append(
-			Row(*v, sizing_mode='stretch_width')
-		)  
-
-		self.layout.children.append(self.canvas.figure)
-		
-		if "status_bar" in options:
-			self.layout.children.append(Row(
-				self.widgets.status_bar["request"],
-				self.widgets.status_bar["response"], 
-				sizing_mode='stretch_width'))
-  
 	# setDataset
 	def setDataset(self, db, compatible=False):
 
