@@ -26,25 +26,18 @@ def MyApp(doc=bokeh.io.curdoc()):
 	field=None
 	logic_to_pixel=[(0.0,1.0), (0.0,1.0), (0.0,10.0)]
 	
-	# urls=["https://maritime.sealstorage.io/api/v0/s3/utah/nasa/dyamond/mit_output/llc2160_arco/visus.idx?cached=1"]
-	# palette,palette_range="Turbo256",(-1.3,1.7)
-	# field=None
-	# logic_to_pixel=[(0.0,1.0), (0.0,1.0), (0.0,20.0)]
+	# urls,field,palette,palette_range=["https://maritime.sealstorage.io/api/v0/s3/utah/nasa/dyamond/mit_output/llc2160_arco/visus.idx?cached=1"],None,"Turbo256",(-1.3,1.7)
 
-
-	# urls=["http://atlantis.sci.utah.edu/mod_visus?dataset=cmip6_cm2&cached=idx"]
-	# palette,palette_range="Turbo256",(-1.3,1.7)
-	# field="ssp585_tasmax"
-	# logic_to_pixel=[(0.0,1.0), (0.0,1.0), (0.0,20.0)]
+	# urls,palette,palette_range=["http://atlantis.sci.utah.edu/mod_visus?dataset=cmip6_cm2&cached=idx"],"Turbo256",(-1.3,1.7),"ssp585_tasmax"
+	# logic_to_pixel=[(0.0,1.0), (0.0,1.0), (0.0,10.0)]
 
 	slices=Slices(
-				doc=doc,
-			   show_options=["num_views","palette","dataset","timestep","timestep-delta","field","viewdep","quality","num_refinements","play-button", "play-sec"],
-			   #slice_show_options=["num_views","palette","dataset","timestep","timestep-delta","field","viewdep","quality","num_refinements","play-button", "play-sec"],
-			   slice_show_options=["direction","offset","viewdep","status_bar"],
-			   )
+		doc=doc,num_views=3,
+		show_options=["num_views","palette","dataset","timestep","timestep-delta","field","viewdep","quality","num_refinements","play-button", "play-sec"],
+		#slice_show_options=["num_views","palette","dataset","timestep","timestep-delta","field","viewdep","quality","num_refinements","play-button", "play-sec"],
+		slice_show_options=["direction","offset","viewdep","status_bar"],
+    )
  
-	slices.setNumberOfViews(3)
 	slices.setDatasets([(url,str(I)) for I,url in enumerate(urls)],"Zone")
 	slices.setDataset(urls[0])
 	slices.setQuality(-3)
