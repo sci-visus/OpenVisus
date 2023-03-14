@@ -26,11 +26,7 @@ class Slice(Widgets):
 		self.canvas = Canvas(self.color_bar, self.color_mapper, sizing_mode='stretch_both')
 		self.last_logic_box = None
 		self.last_canvas_size = [0,0]
-
 		self.layout=self.createGui(central_layout=self.canvas.figure, options=show_options)
-
-		self.addIdleCallback(self.onTimer)
-
 		self.query=QueryNode()
 		self.query.startThread()
 		
@@ -175,8 +171,10 @@ class Slice(Widgets):
 		self.setLogicBox([p1,p2])
 		self.canvas.renderPoints([self.project(point)])
   
-	# renderImage
-	def renderImage(self,result):
+	# renderResultIfNeeded
+	def renderResultIfNeeded(self):
+		result=self.query.popResult(last_only=True) 
+		if result is None: return
 		data=result['data']
 		query_box=result['logic_box']
 		(x1,y1),(x2,y2)=self.project(query_box)
@@ -186,67 +184,75 @@ class Slice(Widgets):
 		MaxH=self.db.getMaxResolution()
 		self.widgets.status_bar["response"].value=f"{result['I']}/{result['N']} {str(query_box).replace(' ','')} {data.shape[0]}x{data.shape[1]} H={result['H']}/{MaxH} {result['msec']}msec"
 		self.render_id+=1     
+  
+	# pushJobIfNeeded
+	def pushJobIfNeeded(self):
+ 
+		logic_box=self.getLogicBox()
+		pdim=self.getPointDim()
+		if not self.new_job and str(self.last_logic_box)==str(logic_box):
+			return
 
-	# onTimer
-	def onTimer(self):
+		# abort the last one
+		self.aborted.setTrue()
+		self.query.waitIdle()
+		num_refinements = self.getNumberOfRefinements()
+		if num_refinements==0:
+			num_refinements=3 if pdim==2 else 4
+		self.aborted=Aborted()
+
+		quality=self.getQuality()
+
+		if self.getViewDepedent():
+			canvas_w,canvas_h=(self.canvas.getWidth(),self.canvas.getHeight())
+			endh=None
+			max_pixels=canvas_w*canvas_h
+			if quality<0:
+				max_pixels=int(max_pixels/pow(1.3,abs(quality))) # decrease the quality
+			elif quality>0:
+				max_pixels=int(max_pixels*pow(1.3,abs(quality))) # increase the quality
+		else:
+			max_pixels=None
+			endh=self.db.getMaxResolution()+quality
+		
+		timestep=self.getTimestep()
+		field=self.getField()
+		box_i=[[int(it) for it in jt] for jt in logic_box]
+		self.widgets.status_bar["request"].value=f"t={timestep} b={str(box_i).replace(' ','')} {canvas_w}x{canvas_h}"
+
+		self.query.pushJob({
+			"db": self.db, 
+			"access": self.access,
+			"timestep":timestep, 
+			"field":field, 
+			"logic_box":logic_box, 
+			"max_pixels":max_pixels, 
+			"num_refinements":num_refinements, 
+			"endh":endh, 
+			"aborted":self.aborted
+		})
+		self.last_logic_box=logic_box
+		self.new_job=False    
+  
+  	# onCanvasResize
+	def watchForCanvasResize(self):
+		canvas_w,canvas_h=(self.canvas.getWidth(),self.canvas.getHeight())
+		if canvas_w>0 and canvas_h>0 and self.last_canvas_size[0]<=0 and self.last_canvas_size[0]<=0:
+			self.setDirection(self.getDirection())
+			self.last_canvas_size=[canvas_w,canvas_h]
+			self.refresh()
+  
+	# onIdle
+	def onIdle(self):
+     
+		super().onIdle()
+     
 		# ready for jobs?
 		canvas_w,canvas_h=(self.canvas.getWidth(),self.canvas.getHeight())
 		if canvas_w==0 or canvas_h==0 or not self.db:
 			return
 
-		# simulate fixAspectRatio (i cannot find a bokeh metod to watch for resize event)
-		if canvas_w>0 and canvas_h>0 and self.last_canvas_size[0]<=0 and self.last_canvas_size[0]<=0:
-			self.setDirection(self.getDirection())
-			self.last_canvas_size=[canvas_w,canvas_h]
-			self.refresh()
-   
-		# a new image is available?
-		result=self.query.popResult(last_only=True) 
-		if result is not None:
-			self.renderImage(result)
-
-		# note: the canvas does not comminicate viewport changes, so I need to keep track the last viewport/logic box I queries
-		logic_box=self.getLogicBox()
-		pdim=self.getPointDim()
-		if self.new_job or str(self.last_logic_box)!=str(logic_box):
-
-			# abort the last one
-			self.aborted.setTrue()
-			self.query.waitIdle()
-			num_refinements = self.getNumberOfRefinements()
-			if num_refinements==0:
-				num_refinements=3 if pdim==2 else 4
-			self.aborted=Aborted()
-
-			quality=self.getQuality()
-
-			if self.getViewDepedent():
-				endh=None
-				max_pixels=canvas_w*canvas_h
-				if quality<0:
-					max_pixels=int(max_pixels/pow(1.3,abs(quality))) # decrease the quality
-				elif quality>0:
-					max_pixels=int(max_pixels*pow(1.3,abs(quality))) # increase the quality
-			else:
-				max_pixels=None
-				endh=self.db.getMaxResolution()+quality
-			
-			timestep=self.getTimestep()
-			field=self.getField()
-			box_i=[[int(it) for it in jt] for jt in logic_box]
-			self.widgets.status_bar["request"].value=f"t={timestep} b={str(box_i).replace(' ','')} {canvas_w}x{canvas_h}"
-
-			self.query.pushJob({
-				"db": self.db, 
-				"access": self.access,
-				"timestep":timestep, 
-				"field":field, 
-				"logic_box":logic_box, 
-				"max_pixels":max_pixels, 
-				"num_refinements":num_refinements, 
-				"endh":endh, 
-				"aborted":self.aborted
-			})
-			self.last_logic_box=logic_box
-			self.new_job=False
+		self.watchForCanvasResize()
+		self.renderResultIfNeeded()
+		self.pushJobIfNeeded()
 		

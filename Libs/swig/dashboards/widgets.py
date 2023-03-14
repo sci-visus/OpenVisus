@@ -87,19 +87,26 @@ class Widgets:
 		self.widgets.play_button = Button(label="Play",width=80,sizing_mode='stretch_height')
 		self.widgets.play_button.on_click(self.togglePlay)
 		self.widgets.play_sec = Select(title="Play sec",options=["0.01","0.1","0.2","0.1","1","2"], value="0.01",width=120)
+  
+		# timer
+		curdoc().add_periodic_callback(self.onIdle, 10)
    
+	# onIdle
+	def onIdle(self):
+		for it in self.children:
+			it.onIdle()
   
 	# createGui
 	def createGui(self,central_layout=None,options=[]):
-     
+	 
 		options=[it.replace("-","_") for it in options]
 		first_row=[getattr(self.widgets,it) for it in options if it!="status_bar"]
-     
+	 
 		ret=Column(sizing_mode='stretch_both')
   
 		ret.children.append(Row(
-      		children=first_row,
-        	sizing_mode="stretch_width"))
+	  		children=first_row,
+			sizing_mode="stretch_width"))
 
 		if central_layout:
 			ret.children.append(central_layout)
@@ -155,9 +162,6 @@ class Widgets:
 	def refresh(self):
 		pass
 
-	# addIdleCallback
-	def addIdleCallback(self, callback, msec=10):
-		return curdoc().add_periodic_callback(callback, msec)
   
 	# removeIdleCallback
 	def removeIdleCallback(self,callback):
