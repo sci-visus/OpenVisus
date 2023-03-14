@@ -8,12 +8,36 @@ ABORTED.setTrue()
 class Dataset:
 	
 	# coinstructor
-	def __init__self(self,url):
+	def __init__(self,url):
 		self.inner=ov.LoadDataset(url)
   
+	# getPointDim
+	def getPointDim(self):
+		return self.inner.getPointDim()
+
+	# getLogicBox
+	def getLogicBox(self):
+		return self.inner.getLogicBox()
+
+	# getMaxResolution
+	def getMaxResolution(self):
+		return self.inner.getMaxResolution()
+
+	# getBitmask
+	def getBitmask(self):
+		return self.inner.getBitmask()
+
+	# getLogicSize
+	def getLogicSize(self):
+		return self.inner.getLogicSize()
+	
 	# getTimesteps
 	def getTimesteps(self):
 		return self.inner.getTimesteps() 
+
+	# getTimestep
+	def getTimestep(self):
+		return self.inner.getTime()
 
 	# getFields
 	def getFields(self):
@@ -21,11 +45,16 @@ class Dataset:
 
 	# createAccess
 	def createAccess(self):
-		self.inner.createAccess(self)
+		return self.inner.createAccess()
 
 	# getField
-	def getField(self,field):
-		self.inner.getField(field)
+	def getField(self,field=None):
+		return self.inner.getField(field) if field is not None else self.inner.getField()
+  
+	# getDatasetBody
+	def getDatasetBody(self):
+		return self.inner.getDatasetBody()
+
 
 # ///////////////////////////////////////////////////////////////////
 def LoadDataset(url):

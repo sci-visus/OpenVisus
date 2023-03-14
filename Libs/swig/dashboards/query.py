@@ -48,7 +48,7 @@ def ExecuteQuery(args):
 	dims=db.getLogicSize()
 
 	access=args["access"]
-	timestep=args.get("timestep",db.getTime())
+	timestep=args.get("timestep",db.getTimestep())
 	field=args.get("field",db.getField())
 	logic_box=args["logic_box"]
 	max_pixels=args.get("max_pixels",None)

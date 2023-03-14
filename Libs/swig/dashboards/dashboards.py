@@ -603,7 +603,7 @@ class Slice(Widgets):
 	def setDataset(self, db, compatible=False):
 
 		self.db=db
-		self.access=self.db.createAccessForBlockQuery()
+		self.access=self.db.createAccess()
 
 		timesteps=db.getTimesteps()
 		fields=db.getFields()
