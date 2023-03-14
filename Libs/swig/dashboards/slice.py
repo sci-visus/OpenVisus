@@ -1,10 +1,11 @@
 import os,sys,io,types,threading,time,logging
 import numpy as np
 
-from .backend import Aborted
+from .backend import Aborted,LoadDataset
 from .canvas import Canvas
 from .widgets import Widgets
 from .querynode import QueryNode
+
 
 from bokeh.models import Column,Row
 
@@ -24,43 +25,22 @@ class Slice(Widgets):
 		self.current_img   = None
 		self.options={}
 		self.canvas = Canvas(self.color_bar, self.color_mapper, sizing_mode='stretch_both')
+		# self.canvas.enableDoubleTap(lambda x,y: self.gotoPoint(self.unproject([x,y])))
 		self.last_logic_box = None
 		self.last_canvas_size = [0,0]
 		self.layout=self.createGui(central_layout=self.canvas.figure, options=show_options)
+		
 		self.query=QueryNode()
 		self.query.startThread()
 		
 	# setDataset
-	def setDataset(self, db, compatible=False):
-
-		self.db=db
-		self.access=self.db.createAccess()
-
-		timesteps=db.getTimesteps()
-		fields=db.getFields()
-
-		timestep                   = self.getTimestep() if compatible else timesteps[0]
-		timestep_delta             = self.getTimestepDelta() if compatible else 1
-		field                      = self.getField() if compatible else fields[0]
-		direction                  = self.getDirection() if compatible else 2
-		palette, palette_range     = self.getPalette(),self.getPaletteRange()
-		viewdep                    = self.getViewDepedent()
-
-		self.setTimesteps(timesteps)
-		self.setTimestepDelta(timestep_delta)
-		self.setDirection(direction)
-		self.setTimestep(timestep)
-		self.setFields(fields)
-		self.setField(field)
-		self.setPalette(palette,palette_range) 
-		self.setViewDependent(viewdep)
-		self.last_canvas_size=[0,0] if not compatible else self.last_canvas_size 
-
-
-		self.refresh()
+	def setDataset(self, url,db=None):
+		super().setDataset(url,db=db)
+		self.last_canvas_size=[0,0] 
 
 	# refresh
 	def refresh(self):
+		super().refresh()
 		self.aborted.setTrue()
 		self.new_job=True
    
@@ -187,6 +167,8 @@ class Slice(Widgets):
   
 	# pushJobIfNeeded
 	def pushJobIfNeeded(self):
+     
+		canvas_w,canvas_h=(self.canvas.getWidth(),self.canvas.getHeight())
  
 		logic_box=self.getLogicBox()
 		pdim=self.getPointDim()
@@ -244,9 +226,7 @@ class Slice(Widgets):
   
 	# onIdle
 	def onIdle(self):
-     
-		super().onIdle()
-     
+
 		# ready for jobs?
 		canvas_w,canvas_h=(self.canvas.getWidth(),self.canvas.getHeight())
 		if canvas_w==0 or canvas_h==0 or not self.db:
@@ -256,3 +236,4 @@ class Slice(Widgets):
 		self.renderResultIfNeeded()
 		self.pushJobIfNeeded()
 		
+		super().onIdle()

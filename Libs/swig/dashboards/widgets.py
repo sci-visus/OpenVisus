@@ -1,5 +1,7 @@
 import os,sys,logging,types,time
 
+import colorcet
+
 from .utils import cbool
 from .config import DIRECTIONS, PALETTES
 from .backend import LoadDataset
@@ -15,27 +17,27 @@ class Widgets:
 	# constructor
 	def __init__(self):
    
-		self.db=None
+		self.db=None		
+		self.url=None
 		self.access=None
 		self.render_id=None # by default I am not rendering
 		self.logic_to_pixel=[(0.0,1.0)]*3
 		self.children=[]
   
 		self.palette='Greys256'
-		self.palette_range=(0,255) 
 
 		self.widgets=types.SimpleNamespace()
 
 		# dataset
 		self.widgets.dataset = Select(title="Dataset", options=[],width=100) 
-		self.widgets.dataset.on_change("value",lambda attr,old,new: self.setDataset(LoadDataset(new),compatible=True)) 
+		self.widgets.dataset.on_change("value",lambda attr,old,new: self.setDataset(new)) 
  
 		# palette
 		self.widgets.palette = Select(title='Palette', options=PALETTES,value=self.palette,width=100)
 		self.widgets.palette.on_change("value",lambda attr, old, new: self.setPalette(new))  
 		self.color_mapper = LinearColorMapper() 
 		self.color_mapper.palette=self.widgets.palette.value
-		self.color_mapper.low,self.color_mapper.high=self.palette_range
+		self.color_mapper.low,self.color_mapper.high=(0.0,255.0) 
 		self.color_bar = ColorBar(color_mapper=self.color_mapper)
   
 		# num_views
@@ -83,7 +85,7 @@ class Widgets:
   
  		# play time
 		self.play=types.SimpleNamespace()
-		self.play.callback=None
+		self.play.is_playing=False
 		self.widgets.play_button = Button(label="Play",width=80,sizing_mode='stretch_height')
 		self.widgets.play_button.on_click(self.togglePlay)
 		self.widgets.play_sec = Select(title="Play sec",options=["0.01","0.1","0.2","0.1","1","2"], value="0.01",width=120)
@@ -93,6 +95,7 @@ class Widgets:
    
 	# onIdle
 	def onIdle(self):
+		self.playNextIfNeeded()
 		for it in self.children:
 			it.onIdle()
   
@@ -126,7 +129,10 @@ class Widgets:
 	# getDatasets
 	def setDatasets(self,value,title=None):
 		self.widgets.dataset.options=value
-		if title is not None: self.widgets.dataset.title=title
+		if title is not None: 
+			self.widgets.dataset.title=title
+		for it in self.children:
+			it.setDatasets(value,title=title)
   
 	# getLogicToPixel
 	def getLogicToPixel(self):
@@ -135,6 +141,8 @@ class Widgets:
 	# setLogicToPixel
 	def setLogicToPixel(self,value):
 		self.logic_to_pixel=value
+		for it in self.children:
+			it.setLogicToPixel(value)
 		self.refresh()
 
 	# setWidgetsDisabled
@@ -160,25 +168,238 @@ class Widgets:
 
 	# refresh (to override if needed)
 	def refresh(self):
-		pass
-
+		for it in self.children:
+			it.refresh()
   
-	# removeIdleCallback
-	def removeIdleCallback(self,callback):
-		curdoc().remove_periodic_callback(callback)
+	# setDataset
+	def setDataset(self, url, db=None):
+	 
+		# rehentrant call
+		if self.url==url:
+			return 
+
+		self.url=url
+	 
+		try:
+			self.widgets.dataset.value=url
+		except:
+			self.widgets.dataset.options=[url]
+			self.widgets.dataset.value=url
+   
+		self.db=LoadDataset(url) if db is None else db 
+		self.access=self.db.createAccess()
+  
+		for it in self.children:
+			it.setDataset(url, db=self.db) # avoid reloading db multiple times
+
+		# timestep
+		timesteps =self.db.getTimesteps()
+		self.setTimesteps(timesteps)
+		self.setTimestepDelta(1)
+		self.setTimestep(timesteps[0])
+  
+		# direction
+		pdim = self.db.getPointDim()
+		self.setDirection(2)
+		for I,it in enumerate(self.children):
+			it.setDirection((I % 3) if pdim==3 else 2)
+
+		# field
+		fields    =self.db.getFields()
+		self.setFields(fields)
+		self.setField(fields[0]) 
+  
+		self.refresh() 
+  
+
+	# getPointDim
+	def getPointDim(self):
+		return self.db.getPointDim() if self.db else 2
+
+	# gotoPoint
+	def gotoPoint(self, p):
+		for it in self.children:
+			it.gotoPoint(p)
+
+	# getNumberOfViews
+	def getNumberOfViews(self):
+		return int(self.widgets.num_views.value)
+
+	# setNumberOfViews
+	def setNumberOfViews(self,value):
+		self.widgets.num_views.value=str(value)
+
+	# getTimesteps
+	def getTimesteps(self):
+		return [int(value) for value in self.db.db.getTimesteps().asVector()]
+
+	# setTimesteps
+	def setTimesteps(self,timesteps):
+		self.widgets.timestep.start =  timesteps[0]
+		self.widgets.timestep.end   =  timesteps[-1]
+		self.widgets.timestep.step  = 1
+
+	# getTimestepDelta
+	def getTimestepDelta(self):
+		return int(self.widgets.timestep_delta.value)
+
+	# setTimestepDelta
+	def setTimestepDelta(self,value):
+		self.widgets.timestep_delta.value=str(value)
+		self.widgets.timestep.step=value
+		A=self.widgets.timestep.start
+		B=self.widgets.timestep.end
+		T=self.getTimestep()
+		T=A+value*int((T-A)/value)
+		T=min(B,max(A,T))
+		self.setTimestep(T)
+  
+		for it in self.children:
+			it.setTimestepDelta(value)  
+  
+		self.refresh()
+
+	# getTimestep
+	def getTimestep(self):	
+		return int(self.widgets.timestep.value)
+
+	# setTimestep
+	def setTimestep(self, value):
+		self.widgets.timestep.value=value
+		for it in self.children:
+			it.setTimestep(value)  
+		self.refresh()
+  
+	# getFields
+	def getFields(self):
+		return self.widgets.field.options 
+  
+	# setFields
+	def setFields(self, options):
+		self.widgets.field.options =list(options)
+
+	# getField
+	def getField(self):
+		return str(self.widgets.field.value)
+
+	# setField
+	def setField(self,value):
+		if value is None: return
+		self.widgets.field.value=value
+		for it in self.children:
+			it.setField(value)  
+		self.refresh()
+
+	# getPalette
+	def getPalette(self):
+		return self.palette
+
+	# setPalette
+	def setPalette(self, value):	 
+		logger.info(f"Slice::setPalette value={value}")
+		self.palette=value
+		self.widgets.palette.value=value
+		self.color_mapper.palette=getattr(colorcet,value[len("colorcet."):]) if value.startswith("colorcet.") else value
+		for it in self.children:
+			it.setPalette(value)  
+		self.refresh()
+
+	# getPaletteRange
+	def getPaletteRange(self):
+		return self.color_mapper.low,self.color_mapper.high
+
+	# setPaletteRange
+	def setPaletteRange(self,value):
+		self.color_mapper.low, self.color_mapper.high=value  
+		for it in self.children:
+			it.setPaletteRange(value)     
+
+	# getNumberOfRefinements
+	def getNumberOfRefinements(self):
+		return self.widgets.num_refinements.value
+
+	# setNumberOfRefinements
+	def setNumberOfRefinements(self,value):
+		self.widgets.num_refinements.value=value
+		for it in self.children:
+			it.setNumberOfRefinements(value)      
+		self.refresh()
+
+	# getQuality
+	def getQuality(self):
+		return self.widgets.quality.value
+
+	# setQuality
+	def setQuality(self,value):
+		self.widgets.quality.value=value
+		for it in self.children:
+			it.setQuality(value) 
+		self.refresh()
+
+	# getViewDepedent
+	def getViewDepedent(self):
+		return cbool(self.widgets.viewdep.value)
+
+	# setViewDependent
+	def setViewDependent(self,value):
+		self.widgets.viewdep.value=str(int(value))
+		for it in self.children:
+			it.setViewDependent(value)     
+		self.refresh()
+
+	# getDirection
+	def getDirection(self):
+		return int(self.widgets.direction.value)
+
+	# setDirection
+	def setDirection(self,dir):
+		pdim=self.getPointDim()
+		if pdim==2: dir=2
+		dims=[int(it) for it in self.db.getLogicSize()]
+		self.widgets.direction.value = str(dir)
+
+		# 2d there is no direction 
+		pdim=self.getPointDim()
+		if pdim==2:
+			assert dir==2
+			self.widgets.offset.start, self.widgets.offset.end= 0,1-1
+			self.widgets.offset.value = 0
+		else:
+			self.widgets.offset.start, self.widgets.offset.end = 0,int(dims[dir])-1
+			self.widgets.offset.value = int(dims[dir]//2)
+   
+		# DO NOT PROPAGATE
+		# for it in self.children:
+		#	it.setDirection(dir)
+   
+		self.refresh()
+
+	# getOffset
+	def getOffset(self):
+		return self.widgets.offset.value
+
+	# setOffset (3d only)
+	def setOffset(self,value):
+		self.widgets.offset.value=value
+  
+ 		# DO NOT PROPAGATE
+		# for it in self.children:
+		#	it.setDirection(dir) 
+  
+		self.refresh()
   
 	# ///////////////////////////////////////// PLAY
 
 	# togglePlay
 	def togglePlay(self,evt=None):
-		if self.play.callback is not None:
+		if self.play.is_playing:
 			self.stopPlay()  
 		else:
 			self.startPlay()
 			
 	# startPlay
 	def startPlay(self):
-		self.play.callback=self.addIdleCallback(self.onPlayTimer)
+		self.play.is_playing=True
 		self.play.t1=time.time()
 		self.play.wait_render_id=None
 		self.play.num_refinements=self.getNumberOfRefinements()
@@ -189,22 +410,19 @@ class Widgets:
 	
 	# stopPlay
 	def stopPlay(self):
-		callback,self.play.callback=self.play.callback,None
-		self.removeIdleCallback(callback)
+		self.play.is_playing=False
 		self.play.wait_render_id=None
 		self.setNumberOfRefinements(self.play.num_refinements)
 		self.setWidgetsDisabled(False)
 		self.widgets.play_button.disabled=False
 		self.widgets.play_button.label="Play"
   
-	# stillRendering
-	def stillRendering(self):
-		for it in self.children:
-			if it.stillRendering(): return True
-		return False
 
-	# onPlayTimer
-	def onPlayTimer(self):
+	# playNextIfNeeded
+	def playNextIfNeeded(self):
+	 
+		if not self.play.is_playing: 
+			return
 
 		# avoid playing too fast by waiting a minimum amount of time
 		t2=time.time()
@@ -229,183 +447,3 @@ class Widgets:
 		self.play.wait_render_id=[(it+1) if it is not None else None for it in render_id]
 		self.play.t1=time.time()
 		self.setTimestep(T) 
-
-	# getPointDim
-	def getPointDim(self):
-		return self.db.getPointDim() if self.db else 2
-
-	# gotoPoint
-	def gotoPoint(self, p):
-		for it in self.children:
-			it.gotoPoint(p)
-
-	# getNumberOfViews
-	def getNumberOfViews(self):
-		return int(self.widgets.num_views.value)
-
-	# setNumberOfViews
-	def setNumberOfViews(self,value):
-		self.widgets.num_views.value=str(value)
-
-	# getTimesteps
-	def getTimesteps(self):
-		return [int(value) for value in self.db.db.getTimesteps().asVector()]
-
-	# getFields
-	def getFields(self):
-		return self.db.getFields()
-  
-	# setTimestep
-	def setTimestep(self, value):
-		self.widgets.timestep.value=value
-		for it in self.children:
-			it.setTimestep(value)  
-		self.refresh()
-
-	# getTimestep
-	def getTimestep(self):	
-		return int(self.widgets.timestep.value)
-
-	# setTimestepDelta
-	def setTimestepDelta(self,value):
-		self.widgets.timestep_delta.value=str(value)
-		self.widgets.timestep.step=value
-		A=self.widgets.timestep.start
-		B=self.widgets.timestep.end
-		T=self.getTimestep()
-		T=A+value*int((T-A)/value)
-		T=min(B,max(A,T))
-		self.setTimestep(T)
-  
-		for it in self.children:
-			it.setTimestepDelta(value)  
-  
-		self.refresh()
-
-	# getTimestepDelta
-	def getTimestepDelta(self):
-		return int(self.widgets.timestep_delta.value)
-
-	# setField
-	def setField(self,value):
-		if value is None: return
-		self.widgets.field.value=value
-		for it in self.children:
-			it.setField(value)  
-		self.refresh()
-  
-	# getField
-	def getField(self):
-		return str(self.widgets.field.value)
-
-	# setDirection
-	def setDirection(self,dir):
-		pdim=self.getPointDim()
-		if pdim==2: dir=2
-		dims=[int(it) for it in self.db.getLogicSize()]
-		self.widgets.direction.value = str(dir)
-
-		# 2d there is no direction 
-		pdim=self.getPointDim()
-		if pdim==2:
-			assert dir==2
-			self.widgets.offset.start, self.widgets.offset.end= 0,1-1
-			self.widgets.offset.value = 0
-		else:
-			self.widgets.offset.start, self.widgets.offset.end = 0,int(dims[dir])-1
-			self.widgets.offset.value = int(dims[dir]//2)
-   
-		self.refresh()
-
-	# getDirection
-	def getDirection(self):
-		return int(self.widgets.direction.value)
-
-	# setPalette
-	def setPalette(self, value, palette_range=None):
-	 
-		logger.info(f"Slice::setPalette value={value} palette_range={palette_range}")
-  
-		if palette_range is None:
-			palette_range=self.palette_range
-  
-		self.palette=value
-		self.palette_range=palette_range
-  
-		self.widgets.palette.value=value
-
-		if value.startswith("colorcet."):
-			import colorcet
-			value=getattr(colorcet,value[len("colorcet."):])   
-
-		self.color_mapper.palette=value
-		self.color_mapper.low, self.color_mapper.high=palette_range
-  
-		for I,it in enumerate(self.children):
-			it.setPalette(value,palette_range=palette_range)  
-  
-		self.refresh()
-
-	# getPalette
-	def getPalette(self):
-		return self.palette
-
-	# getPaletteRange
-	def getPaletteRange(self):
-		return self.palette_range
-
-	# setOffset (3d only)
-	def setOffset(self,value):
-		self.widgets.offset.value=value
-		self.refresh()
-
-	# getOffset
-	def getOffset(self):
-		return self.widgets.offset.value
-
-	# setNumberOfRefinements
-	def setNumberOfRefinements(self,value):
-		self.widgets.num_refinements.value=value
-		for it in self.children:
-			it.setNumberOfRefinements(value)      
-		self.refresh()
-
-	# getNumberOfRefinements
-	def getNumberOfRefinements(self):
-		return self.widgets.num_refinements.value
-
-	# setQuality
-	def setQuality(self,value):
-		self.widgets.quality.value=value
-		for it in self.children:
-			it.setQuality(value) 
-		self.refresh()
-
-	# getQuality
-	def getQuality(self):
-		return self.widgets.quality.value
-
-	# setFields
-	def setFields(self, options):
-		self.widgets.field.options =list(options)
-
-	# getFields
-	def getFields(self):
-		return self.widgets.field.options 
-
-	# setTimesteps
-	def setTimesteps(self,timesteps):
-		self.widgets.timestep.start =  timesteps[0]
-		self.widgets.timestep.end   =  timesteps[-1]
-		self.widgets.timestep.step  = 1
-
-	# getViewDepedent
-	def getViewDepedent(self):
-		return cbool(self.widgets.viewdep.value)
-
-	# setViewDependent
-	def setViewDependent(self,value):
-		self.widgets.viewdep.value=str(int(value))
-		for it in self.children:
-			it.setViewDependent(value)     
-		self.refresh()

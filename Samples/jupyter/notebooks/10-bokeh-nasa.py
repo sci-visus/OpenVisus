@@ -53,18 +53,22 @@ def MyApp(doc):
 
 	slices=Slices(
                show_options=["num_views","palette","dataset","timestep","timestep-delta","field","viewdep","quality","num_refinements","play-button", "play-sec"],
-               slice_show_options=["direction","offset","viewdep","status_bar"])
+               slice_show_options=["num_views","palette","dataset","timestep","timestep-delta","field","viewdep","quality","num_refinements","play-button", "play-sec"],
+               #slice_show_options=["direction","offset","viewdep","status_bar"],
+               )
+ 
+	slices.setNumberOfViews(1)
 
 	slices.setLogicToPixel(logic_to_pixel)
 	slices.setDatasets([(url,str(I)) for I,url in enumerate(urls)],"Zone")
-	slices.setDataset(LoadDataset(urls[0]))
-	slices.setNumberOfViews(1)
+	slices.setDataset(urls[0])
 	slices.setQuality(-3)
 	slices.setNumberOfRefinements(3)
-	slices.setPalette(palette, palette_range=palette_range) 
+	slices.setPalette(palette) 
+	slices.setPaletteRange(palette_range)
 	slices.setTimestepDelta(10)
 	slices.setField(field)
-
+ 
 	doc.add_root(slices.layout)
  
 # //////////////////////////////////////////////////////////////////////////////////////
