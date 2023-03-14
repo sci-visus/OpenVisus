@@ -14,20 +14,18 @@ logger = logging.getLogger(__name__)
 class Slice(Widgets):
 	
 	# constructor
-	def __init__(self,doc=None, sizing_mode='stretch_both',timer_msec=100,logic_to_pixel=[(0.0,1.0)]*3, 
+	def __init__(self,
+            doc=None, 
 			show_options=["palette","timestep","field","direction","offset","viewdep","quality","!num_refinements","status_bar"]):
 
 		super().__init__(doc=doc)
-		self.logic_to_pixel=logic_to_pixel
-		self.sizing_mode=sizing_mode
-		self.access=None
-		self.lock          = threading.Lock()
+		
 		self.aborted       = Aborted()
 		self.new_job       = False
 		self.current_img   = None
 		self.options={}
 		self.render_id = 0
-		self.canvas = Canvas(self.color_bar, self.color_mapper, sizing_mode=self.sizing_mode)
+		self.canvas = Canvas(self.color_bar, self.color_mapper, sizing_mode='stretch_both')
 		self.last_logic_box = None
 		self.last_canvas_size = [0,0]
 

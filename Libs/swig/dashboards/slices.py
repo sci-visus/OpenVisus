@@ -13,17 +13,12 @@ logger = logging.getLogger(__name__)
 class Slices(Widgets):
 
 	# constructor
-	def __init__(self, doc=None,panel_state=None,sizing_mode='stretch_both', show_options=[
-			  "num_views","palette","timestep","field","viewdep","quality","!num_refinements",
-			"!direction","!offset" # this will be show on the single SLice
-		 ]):
+	def __init__(self, 
+			doc=None,
+			show_options=["num_views","palette","timestep","field","viewdep","quality"],
+			slice_show_options=["direction","offset","viewdep","status_bar"]):
 		super().__init__(doc=doc)
-		self.logic_to_pixel=[(0.0,1.0)] * 3 # translation/scaling for each dimensions
-		self.panel_state=panel_state 
-		self.sizing_mode=sizing_mode
-		self.slice_show_options=["direction","offset"]
-		self.palette="Greys256"
-		self.palette_range=[0,255]
+		self.slice_show_options=slice_show_options
 		self.central_layout=Column(sizing_mode='stretch_both')
 		self.layout=self.createGui(central_layout=self.central_layout, options=show_options)
 
@@ -69,8 +64,9 @@ class Slices(Widgets):
 		self.children=[]
 
 		for direction in range(value):
-			it=Slice(doc=self.doc,sizing_mode=self.sizing_mode,logic_to_pixel=self.logic_to_pixel,show_options=self.slice_show_options)
+			it=Slice(doc=self.doc,show_options=self.slice_show_options)
 			it.canvas.enableDoubleTap(lambda x,y: self.gotoPoint(self.unproject([x,y])))
+			it.setLogicToPixel(self.getLogicToPixel())
 			it.setDataset(self.db)
 			it.setDirection(direction % 3)
 			self.children.append(it)
@@ -81,10 +77,7 @@ class Slices(Widgets):
 			self.central_layout.children=[Row(*layouts, sizing_mode='stretch_both')]
 
 		elif value==3:
-			self.central_layout.children=[Row(
-					layouts[2], 
-					Column(*layouts[0:2],sizing_mode='stretch_both'),
-					sizing_mode='stretch_both')]
+			self.central_layout.children=[Row(layouts[2], Column(*layouts[0:2],sizing_mode='stretch_both'),sizing_mode='stretch_both')]
    
 		elif value==4:
 			self.central_layout.children=[Grid(*layouts,nrows=2, ncols=2, sizing_mode='stretch_both')]

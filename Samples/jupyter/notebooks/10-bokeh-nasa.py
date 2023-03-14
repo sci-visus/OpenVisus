@@ -51,14 +51,15 @@ def MyApp(doc):
 	# field="ssp585_tasmax"
 	# logic_to_pixel=[(0.0,1.0), (0.0,1.0), (0.0,20.0)]
 
-	slices=Slices(doc=doc, show_options=["num_views","palette","timestep","timestep_delta","field","viewdep","quality","num_refinements","!direction","!offset","play-button", "play-msec"])
-	slices.logic_to_pixel=logic_to_pixel
-	slices.slice_show_options=["direction","offset","viewdep","status_bar"]
+	slices=Slices(doc=doc, 
+               show_options=["num_views","palette","timestep","timestep_delta","field","viewdep","quality","num_refinements","!direction","!offset","play-button", "play-msec"],
+               slice_show_options=["direction","offset","viewdep","status_bar"])
 
 	db=LoadDataset(urls[0])
 	print(db.getDatasetBody().toString())
 	timesteps=db.getTimesteps()
 
+	slices.setLogicToPixel(logic_to_pixel)
 	slices.setDataset(db)
 	slices.setNumberOfViews(3)
 	slices.setQuality(-3)

@@ -16,6 +16,8 @@ class Widgets:
    
 		self.doc=doc
 		self.db=None
+		self.access=None
+		self.logic_to_pixel=[(0.0,1.0)]*3
 		self.children=[]
   
 		self.palette='Greys256'
@@ -24,7 +26,7 @@ class Widgets:
 		self.widgets=types.SimpleNamespace()
 
 		# palette
-		self.widgets.palette = Select(title='Palette',  options=PALETTES,value=self.palette,width=120,sizing_mode='stretch_height')
+		self.widgets.palette = Select(title='Palette',  options=PALETTES,value=self.palette,width=120)
 		self.widgets.palette.on_change("value",lambda attr, old, new: self.setPalette(new))  
  
 		 # color mapper
@@ -35,7 +37,7 @@ class Widgets:
 		# colorbar
 		self.color_bar = ColorBar(color_mapper=self.color_mapper)
   
-		self.widgets.num_views=Select(title='#Views',  options=["1","2","3","4"],value='3',width=50,sizing_mode='stretch_height')
+		self.widgets.num_views=Select(title='#Views',  options=["1","2","3","4"],value='3',width=50)
 		self.widgets.num_views.on_change("value",lambda attr, old, new: self.setNumberOfViews(int(new))) 
  
 		# timestep
@@ -46,13 +48,6 @@ class Widgets:
 		self.widgets.timestep_delta=Select(title="Time delta",options=["1","2","5","10","50","100","200"], value="1", width=120)
 		self.widgets.timestep_delta.on_change("value", lambda attr, old, new: self.setTimestepDelta(int(new)))   
 
-		# play time
-		self.play=types.SimpleNamespace()
-		self.play.callback=None
-		self.play.button = Button(label="Play",sizing_mode='stretch_height',width=80)
-		self.play.button.on_click(self.startOrStopPlay)
-		self.play.sec = Select(title="Play sec",options=["0.01","0.1","0.2","0.1","1","2"], value="0.01",width=120)
-  
 		# field
 		self.widgets.field = Select(title='Field',  options=[],value='data',width=120)
 		self.widgets.field.on_change("value",lambda attr, old, new: self.setField(new))  
@@ -66,7 +61,7 @@ class Widgets:
 		self.widgets.offset.on_change ("value",lambda attr, old, new: self.setOffset(int(new)))
   
 		# num_refimements (0==guess)
-		self.widgets.num_refinements=Slider(title='#Refinements', value=0, start=0, end=4, sizing_mode='stretch_width')
+		self.widgets.num_refinements=Slider(title='#Refinements', value=0, start=0, end=4)
 		self.widgets.num_refinements.on_change ("value",lambda attr, old, new: self.setNumberOfRefinements(int(new)))
   
 		# quality (0==full quality, -1==decreased quality by half-pixels, +1==increase quality by doubling pixels etc)
@@ -84,10 +79,17 @@ class Widgets:
 		self.widgets.status_bar["request" ].disabled=True
 		self.widgets.status_bar["response"].disabled=True
   
+ 		# play time
+		self.play=types.SimpleNamespace()
+		self.play.callback=None
+		self.play.button = Button(label="Play",width=80)
+		self.play.button.on_click(self.startOrStopPlay)
+		self.play.sec = Select(title="Play sec",options=["0.01","0.1","0.2","0.1","1","2"], value="0.01",width=120)
+   
   
 	# createGui
 	def createGui(self,central_layout=None,options=[]):
-		ret=Column(children=[],sizing_mode=self.sizing_mode)
+		ret=Column(sizing_mode='stretch_both')
 
 		v=[]
   
@@ -147,6 +149,14 @@ class Widgets:
   
 		return ret
   
+	# getLogicToPixel
+	def getLogicToPixel(self):
+		return self.logic_to_pixel
+
+	# setLogicToPixel
+	def setLogicToPixel(self,value):
+		self.logic_to_pixel=value
+		self.refresh()
 
 	# setWidgetsDisabled
 	def setWidgetsDisabled(self,value):
