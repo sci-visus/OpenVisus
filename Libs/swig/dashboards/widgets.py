@@ -91,52 +91,55 @@ class Widgets:
 	def createGui(self,central_layout=None,options=[]):
 		ret=Column(sizing_mode='stretch_both')
 
-		v=[]
+		first_row=[]
   
-		if "num_views" in options:
-			v.append(self.widgets.num_views) 
-  
-		if "palette" in options:  
-			v.append(self.widgets.palette)
+		for option in options:
+			option=option.replace("_","-")
+	
+			if "num-views" == option:
+				first_row.append(self.widgets.num_views) 
+	
+			elif "palette" == option:  
+				first_row.append(self.widgets.palette)
 
-		if "timestep" in options:  
-			v.append(self.widgets.timestep)
+			elif "timestep" in option:  
+				first_row.append(self.widgets.timestep)
 
-		if "timestep_delta" in options:
-			v.append(self.widgets.timestep_delta)
+			elif "timestep-delta" == option:
+				first_row.append(self.widgets.timestep_delta)
 
-		if "direction" in options:
-			v.append(self.widgets.direction)
+			elif "direction" == option:
+				first_row.append(self.widgets.direction)
 
-		if "offset" in options:
-			v.append(self.widgets.offset)
+			elif "offset" == option:
+				first_row.append(self.widgets.offset)
 
-		if "field" in options:
-			v.append(self.widgets.field)
+			elif "field" == option:
+				first_row.append(self.widgets.field)
 
-		if "viewdep" in options:
-			v.append(self.widgets.viewdep)
-
-		if "quality" in options:
-			v.append(self.widgets.quality)     
-			
-		if "num_refinements" in options:
-			v.append(self.widgets.num_refinements)
-	   
-		if "direction" in options:
-			v.append(self.widgets.direction)
-   
-		if "offset" in options:
-			v.append(self.widgets.offset)
-   
-		if "play-button" in options:
-				v.append(self.play.button)
+			elif "quality" == option:
+				first_row.append(self.widgets.quality)     
 				
-		if "play-msec" in options:
-			v.append(self.play.sec)  
+			elif "num-refinements" == option:
+				first_row.append(self.widgets.num_refinements)
+		
+			elif "direction" == option:
+				first_row.append(self.widgets.direction)
+	
+			elif "offset" == option:
+				first_row.append(self.widgets.offset)
+	
+			elif "viewdep" == option:
+				first_row.append(self.widgets.viewdep)
+	
+			elif "play-button" == option:
+				first_row.append(self.play.button)
+					
+			if "play-msec" == option:
+				first_row.append(self.play.sec)  
 
 		ret.children.append(
-			Row(*v, sizing_mode='stretch_width')
+			Row(*first_row, sizing_mode='stretch_width')
 		)  
 		if central_layout:
 			ret.children.append(central_layout)

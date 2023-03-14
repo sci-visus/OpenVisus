@@ -52,7 +52,7 @@ def MyApp(doc):
 	# logic_to_pixel=[(0.0,1.0), (0.0,1.0), (0.0,20.0)]
 
 	slices=Slices(doc=doc, 
-               show_options=["num_views","palette","timestep","timestep_delta","field","viewdep","quality","num_refinements","!direction","!offset","play-button", "play-msec"],
+               show_options=["num_views","palette","timestep","timestep_delta","field","viewdep","quality","num_refinements","play-button", "play-msec"],
                slice_show_options=["direction","offset","viewdep","status_bar"])
 
 	db=LoadDataset(urls[0])
