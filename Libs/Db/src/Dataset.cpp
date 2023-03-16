@@ -183,11 +183,10 @@ StringTree FindDatasetConfig(StringTree ar, String url)
   return StringTree();
 }
 
-/////////////////////////////////////////////////////////////////////////
-SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
-{
-  String url = ar.readString("url");
 
+/// ////////////////////////////////////////////////////////////////
+void EnableCachingIfNeeded(String& url, Archive& ar)
+{
   //special case for cached dataset (use cached=1|idx for IdxDiskCaching, cached=2|disk for DiskCaching)
   //Example:
   //   http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1&cached=1
@@ -196,70 +195,92 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
   //       (*) cached here makes sense only the the url is remote
   // NOTE(12/10/2022): even when the path is not remote, a user may need cache_dir, e.g., if the file
   //    is on nfs mount and user wants to cache files on a local disk.
+
+  // not valid url
+  if (url.empty())
+    return;
+
+  //already has a config
+  if (ar.getChild("config"))
+    return;
+
   Url parsed(url);
-  if (!url.empty() && !ar.getChild("config") && parsed.isRemote() && (parsed.hasParam("cached") || !ar.getAttribute("cache_dir","").empty()))
+
+  //no remote dataset
+  if (!parsed.isRemote())
+    return;
+
+  //no params that enable the caching
+  if (!parsed.hasParam("cached") && ar.getAttribute("cache_dir", "").empty())
+    return;
+
+  //cached is extracted from the url
+  String cached = StringUtils::toLower(parsed.getParam("cached", "idx")); //TODO: not sure if it's better to use "idx" or "disk" here
+
+  //1 || idx means to use IdxDiskAccess; 2| disk means to use Disk Access
+  String cache_access_type;
+
+  if (cached == "1" || StringUtils::contains(cached, "idx"))
+    cache_access_type = "IdxDiskAccess";
+  else if (cached == "2" || StringUtils::contains(cached, "arco"))
+    cache_access_type = "DiskAccess";
+  else
+    cache_access_type = "IdxDiskAccess"; //default is this
+
+  // cache_dir is extracted from the String Tree (see LoadDataset(url, cache_dir='...')
+  // if cache_dir is empty, then IdxDiskAccess or DiskAccess will decide where cache data will be (i.e. inside ~/visus folder)
+  auto cache_dir = ar.readString("cache_dir");
+  if (cache_dir.empty())
+    cache_dir = Utils::getEnv("VISUS_CACHE");
+
+  if (!cache_dir.empty() && FileUtils::existsFile(cache_dir))
+    ThrowException("LoadDataset", url, "failed. The path in cache_dir argument", cache_dir, "is a file.");
+
+  //compression, but default I set zip
+  auto cache_compression = parsed.getParam("cache_compression", "zip");
+
+  //if the url contains the string mod_visus I think the origin is an OpenVisus server, otherwise is an S3 cloud dataset
+  //PROBLEM HERE: what is the S3 path contains the string mod_visus? I am not handling this case so please don't use this substring in S3
+  String remote_access_type = StringUtils::contains(url, "mod_visus") ? "ModVisusAccess" : "CloudStorageAccess";
+
+  //remove any reference to the cache from the url
+  parsed.params.eraseValue("cached");
+  parsed.params.eraseValue("cache_dir");
+  parsed.params.eraseValue("cache_compression");
+  url = parsed.toString();
+
+  std::ostringstream out;
+  out << "<access type='multiplex'>" << std::endl;
   {
-    //cached is extracted from the url
-    String cached = StringUtils::toLower(parsed.getParam("cached", "idx")); //TODO: not sure if it's better to use "idx" or "disk" here
+    //local
+    out << "<access type='" << cache_access_type << "'  chmod='rw' compression='" << cache_compression << "' ";
+    if (!cache_dir.empty())
+      out << "cache_dir=\"" << cache_dir << "\" ";
+    out << "/>" << std::endl;
 
-    //1 || idx means to use IdxDiskAccess; 2| disk means to use Disk Access
-    String cache_access_type;
-    
-    if (cached == "1" || StringUtils::contains(cached, "idx"))
-      cache_access_type = "IdxDiskAccess";
-    else if (cached == "2" || StringUtils::contains(cached, "arco"))
-      cache_access_type = "DiskAccess";
-    else
-      cache_access_type = "IdxDiskAccess"; //default is this
-   
-    // cache_dir is extracted from the String Tree (see LoadDataset(url, cache_dir='...')
-    // if cache_dir is empty, then IdxDiskAccess or DiskAccess will decide where cache data will be (i.e. inside ~/visus folder)
-    auto cache_dir = ar.readString("cache_dir");
-    if (cache_dir.empty())
-      cache_dir=Utils::getEnv("VISUS_CACHE");
-
-    if (!cache_dir.empty() && FileUtils::existsFile(cache_dir))
-      ThrowException("LoadDataset", url, "failed. The path in cache_dir argument", cache_dir, "is a file.");
-
-    //compression, but default I set zip
-    auto cache_compression = parsed.getParam("cache_compression", "zip");
-
-    //if the url contains the string mod_visus I think the origin is an OpenVisus server, otherwise is an S3 cloud dataset
-    //PROBLEM HERE: what is the S3 path contains the string mod_visus? I am not handling this case so please don't use this substring in S3
-    String remote_access_type = StringUtils::contains(url, "mod_visus") ? "ModVisusAccess" : "CloudStorageAccess";
-
-    //remove any reference to the cache from the url
-    parsed.params.eraseValue("cached");
-    parsed.params.eraseValue("cache_dir");
-    parsed.params.eraseValue("cache_compression");
-    url = parsed.toString();
-
-    std::ostringstream out;
-    out << "<access type='multiplex'>" << std::endl;
-    {
-      //local
-      out << "<access type='" << cache_access_type << "'  chmod='rw' compression='" << cache_compression << "' ";
-      if (!cache_dir.empty())
-        out << "cache_dir=\"" << cache_dir << "\" ";
-      out << "/>" << std::endl;
-
-      //remote
-      out << "<access type='" << remote_access_type << "' chmod='r' />" << std::endl;
-    }
-    out << "</access>" << std::endl;
-
-    String s = out.str();
-    PrintInfo("Automatically enabling caching for", url, "\n", s);
-    auto access_config=StringTree::fromString(s);
-    if (!access_config.valid())
-    {
-      PrintInfo("XML config is not valid", s);
-      VisusReleaseAssert(false);
-    }
-
-    ar.setAttribute("url", url);
-    ar.addChild(access_config);
+    //remote
+    out << "<access type='" << remote_access_type << "' chmod='r' />" << std::endl;
   }
+  out << "</access>" << std::endl;
+
+  String s = out.str();
+  PrintInfo("Automatically enabling caching for", url, "\n", s);
+  auto access_config = StringTree::fromString(s);
+  if (!access_config.valid())
+  {
+    PrintInfo("XML config is not valid", s);
+    VisusReleaseAssert(false);
+  }
+
+  ar.setAttribute("url", url);
+  ar.addChild(access_config);
+}
+
+/////////////////////////////////////////////////////////////////////////
+SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
+{
+  String url = ar.readString("url");
+  EnableCachingIfNeeded(url, ar);
 
   //here I am loading the body of the dataset and try to guess its type
   //NOTE: could the 'ar' self contained (as for GoogleMapsDatasets)
@@ -2263,7 +2284,6 @@ bool Dataset::executeBlockQuerWithFilters(SharedPtr<Access> access, SharedPtr<Bo
 
 
 
-
 /// ////////////////////////////////////////////////////////////////
 void Dataset::readDatasetFromArchive(Archive& ar)
 {
@@ -2272,6 +2292,8 @@ void Dataset::readDatasetFromArchive(Archive& ar)
 
   String url = ar.readString("url");
   idxfile.validate(url);
+
+  EnableCachingIfNeeded(url, ar);
 
   this->dataset_body = ar;
   this->kdquery_mode = KdQueryMode::fromString(ar.readString("kdquery", Url(url).getParam("kdquery")));
