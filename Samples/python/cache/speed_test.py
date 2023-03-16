@@ -1,7 +1,7 @@
 import os,sys,time,datetime,threading,queue,random,copy,math, types, multiprocessing
 
 import OpenVisus as ov
-from pyquery import PyQuery
+from OpenVisus.dashboards import QueryNode
 
 # //////////////////////////////////////////////////////////////////////////////////////
 def CacheSpeedTest(urls, num_query_per_db=6, num_threads=3):
@@ -12,7 +12,7 @@ def CacheSpeedTest(urls, num_query_per_db=6, num_threads=3):
 	datasets=[ov.LoadDataset(url) for url in urls]
 
 	def RunTask(dir, ):
-		query=PyQuery()
+		query=QueryNode()
 		query.startThread()
 		query.disableOutputQueue()
 		dims=datasets[0].getLogicSize()
@@ -33,9 +33,9 @@ def CacheSpeedTest(urls, num_query_per_db=6, num_threads=3):
 				
 		query.stopThread()	
 
-	PyQuery.stats.startQuery()
+	QueryNode.stats.startQuery()
 	multiprocessing.pool.ThreadPool(num_threads).map(RunTask, range(3)) 
-	PyQuery.stats.stopQuery()
+	QueryNode.stats.stopQuery()
  
 # //////////////////////////////////////////////////////////////////////////////////////
 if __name__=="__main__":

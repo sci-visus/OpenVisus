@@ -278,6 +278,7 @@ INSTALL(DIRECTORY Libs/Gui/include/Visus                  DESTINATION \${CMAKE_I
 if (VISUS_PYTHON)
 	FILE(GLOB PyFiles Libs/swig/*.py)
 	INSTALL(FILES     ${PyFiles}                          DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
+	INSTALL(DIRECTORY Libs/swig/dashboards                DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/dashboards/)
 	INSTALL(DIRECTORY Samples/jupyter                     DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/)
 	INSTALL(DIRECTORY Samples/python                      DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/)
 	INSTALL(DIRECTORY Samples/dashboards                  DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/)
