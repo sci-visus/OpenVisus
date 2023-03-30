@@ -1,7 +1,6 @@
 import os,sys,time,datetime,threading,queue,random,copy,math, types, multiprocessing
 
 import OpenVisus as ov
-from OpenVisus.dashboards import QueryNode
 
 # //////////////////////////////////////////////////////////////////////////////////////
 def CacheSpeedTest(urls, num_query_per_db=6, num_threads=3):

@@ -920,6 +920,19 @@ NetResponse ModVisus::handleRequest(NetRequest request)
     response = NetResponse(HttpStatus::STATUS_OK);
     response.setHeader("block-query-support-aggregation", "1");
   }
+  else if (action == "info")
+  {
+    response = NetResponse(HttpStatus::STATUS_OK);
+    response.setHeader("visus-config-filename", this->config_filename);
+    response.setHeader("visus-dynamic-enabled", cstring(this->dynamic.enabled));
+    response.setHeader("visus-dynamic-filename",this->dynamic.filename);
+    response.setHeader("visus-dynamic-msec", cstring(this->dynamic.msec));
+    response.setHeader("visus-home", GetVisusHome());
+    response.setHeader("visus-cache", GetVisusCache());
+    response.setHeader("visus-binary-dir", GetBinaryDirectory());
+    response.setHeader("visus-cwd", GetCurrentWorkingDirectory());
+    response.setHeader("block-query-support-aggregation", "1");
+  }
 
   ////////////////////////// DEPRECATED, do not use. Use COnfiguration/ModVisus/Dynamic instead
 #if 1

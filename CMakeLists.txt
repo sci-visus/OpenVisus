@@ -280,7 +280,6 @@ if (VISUS_PYTHON)
 	INSTALL(FILES     ${PyFiles}                          DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/)
 	INSTALL(DIRECTORY Samples/jupyter                     DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/)
 	INSTALL(DIRECTORY Samples/python                      DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/)
-	INSTALL(DIRECTORY Samples/dashboards                  DESTINATION \${CMAKE_INSTALL_CONFIG_NAME}/OpenVisus/Samples/)
 endif()
 
 # some dlls for windows
