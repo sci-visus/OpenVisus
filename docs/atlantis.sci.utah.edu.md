@@ -106,9 +106,14 @@ sudo docker exec -it $CONTAINER_NAME /bin/bash
 ```
 
 # To inspect the logs:
+
+```
 sudo docker logs --follow $CONTAINER_NAME
+```
 
 # If you need to copy some files from a container:
+
+```
 sudo docker run --name temp visus/mod_visus:$TAG /bin/true
 sudo docker cp temp:/usr/local/apache2/conf/extra/httpd-ssl.conf ./httpd-ssl.conf
 sudo docker rm temp
