@@ -365,8 +365,12 @@ void KernelModule::attach()
   std::vector<String> visus_config_candidates = {
     visus_config_from_commandline ,
     GetCurrentWorkingDirectory() + "/visus.config",
-    GetVisusHome() + "/visus.config"
+    GetVisusHome() + "/visus.config",
+
+    //example /whatever/site-packates/OpenVisus/bin -> /whatever/site-packates/OpeNVisus/visus.config
+    Path(GetBinaryDirectory()).getParent().toString() + "/visus.config"
   };
+
 
   for (auto filename : visus_config_candidates)
   {
