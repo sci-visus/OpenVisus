@@ -30,22 +30,22 @@ class TestAPI(unittest.TestCase):
 		# test no cache directory is created if it is empty
 		dataset = ov.load_dataset("https://open-scivis-datasets.sci.utah.edu/open-scivis-datasets/silicium/silicium.idx")
 		dataset.read()
-		self.assertFalse(os.path.isdir("klacansky.com"))
+		self.assertFalse(os.path.isdir("open-scivis-datasets.sci.utah.edu"))
 
 		# test if the cached files are correctly downloaded
 		assert not os.path.isdir("test")
 		dataset = ov.load_dataset("https://open-scivis-datasets.sci.utah.edu/open-scivis-datasets/silicium/silicium.idx", cache_dir="test")
 		dataset.read()
-		self.assertTrue(os.path.exists("test/IdxDiskAccess/klacansky.com/443/zip/open-scivis-datasets/silicium/silicium.idx"))
-		self.assertTrue(os.path.exists("test/IdxDiskAccess/klacansky.com/443/zip/open-scivis-datasets/silicium/silicium/time_0000/0000.bin"))
+		self.assertTrue(os.path.exists("test/IdxDiskAccess/open-scivis-datasets.sci.utah.edu/443/zip/open-scivis-datasets/silicium/silicium.idx"))
+		self.assertTrue(os.path.exists("test/IdxDiskAccess/open-scivis-datasets.sci.utah.edu/443/zip/open-scivis-datasets/silicium/silicium/time_0000/0000.bin"))
 		shutil.rmtree("test")
 
 		# TODO(2/19/2023): test if dangling lock file is handled correctly (can happen if process is interrupted)
 		#assert not os.path.isdir("test")
 		#dataset = ov.load_dataset("https://open-scivis-datasets.sci.utah.edu/open-scivis-datasets/silicium/silicium.idx", cache_dir="test")
 		#dataset.read()
-		#os.remove("test/klacansky.com/443/open-scivis-datasets/silicium/silicium/0000.bin")
-		#with open("test/klacansky.com/443/open-scivis-datasets/silicium/silicium/0000.bin.lock", "w") as f:
+		#os.remove("test/open-scivis-datasets.sci.utah.edu/443/open-scivis-datasets/silicium/silicium/0000.bin")
+		#with open("test/open-scivis-datasets.sci.utah.edu/443/open-scivis-datasets/silicium/silicium/0000.bin.lock", "w") as f:
 		#	pass
 		#dataset.read()
 		#shutil.rmtree("test")
