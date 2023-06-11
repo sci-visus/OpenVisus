@@ -186,6 +186,10 @@ fi
 # *** conda ***
 # /////////////////////////////////////////////////////////////////////////
 
+# scrgiorgio: disabled on linux for now, getting `ImportError: /lib64/libc.so.6: version `GLIBC_2.14' not found1
+
+if [[ "1" == "0" ]]; then
+
 # install conda
 if [[ "1" == "1" ]]; then
   # avoid conflicts with pip packages installed using --user
@@ -214,6 +218,8 @@ if [[ "${VISUS_GUI}" == "1" ]]; then
   ConfigureAndTestConda
   DistribToConda
   popd
+fi
+
 fi
 
 echo "All done ubuntu $PYTHON_VERSION} (in docker) "
