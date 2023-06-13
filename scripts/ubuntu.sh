@@ -188,39 +188,37 @@ fi
 
 # scrgiorgio: disabled on linux for now, getting `ImportError: /lib64/libc.so.6: version `GLIBC_2.14' not found1
 
-if [[ "1" == "0" ]]; then
-
 # install conda
-if [[ "1" == "1" ]]; then
-  # avoid conflicts with pip packages installed using --user
-  export PYTHONNOUSERSITE=True 
-  InstallConda 
-  ActivateConda
-  PYTHON=`which python`
-fi
+# if [[ "1" == "1" ]]; then
+#  # avoid conflicts with pip packages installed using --user
+#  export PYTHONNOUSERSITE=True 
+#  InstallConda 
+#  ActivateConda
+#  PYTHON=`which python`
+#fi
 
 # fix `bdist_conda` problem
-if [[ "1" == "1" ]]; then
-  pushd ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}
-  cp -n distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py || true
-  popd
-fi
+#if [[ "1" == "1" ]]; then
+#  pushd ${CONDA_PREFIX}/lib/python${PYTHON_VERSION}
+#  cp -n distutils/command/bdist_conda.py site-packages/setuptools/_distutils/command/bdist_conda.py || true
+#  popd
+#fi
 
-if [[ "1" == "1" ]]; then
-  pushd Release/OpenVisus 
-  ConfigureAndTestConda 
-  DistribToConda 
-  popd
-fi
+#if [[ "1" == "1" ]]; then
+#  pushd Release/OpenVisus 
+#  ConfigureAndTestConda 
+#  DistribToConda 
+#  popd
+#fi
 
-if [[ "${VISUS_GUI}" == "1" ]]; then
-  pushd Release.nogui/OpenVisus
-  ConfigureAndTestConda
-  DistribToConda
-  popd
-fi
+#if [[ "${VISUS_GUI}" == "1" ]]; then
+#  pushd Release.nogui/OpenVisus
+#  ConfigureAndTestConda
+#  DistribToConda
+#  popd
+#fi
 
-fi
+#fi
 
 echo "All done ubuntu $PYTHON_VERSION} (in docker) "
 
