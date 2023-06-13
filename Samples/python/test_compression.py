@@ -59,7 +59,7 @@ if __name__=="__main__":
 	Example: python3 Samples/samples/python/test_compression.py
 	"""
 	max_seconds=60*10 # run for 10 minute
-	url='https://open-scivis-datasets.sci.utah.edu/open-scivis-datasets/hydrogen_atom/hydrogen_atom_128x128x128_uint8.raw'
+	url='https://klacansky.com/open-scivis-datasets/hydrogen_atom/hydrogen_atom_128x128x128_uint8.raw'
 	shape=(128, 128, 128)
 	I,T1=0,time.time()
 	while (time.time()-T1)<max_seconds: 
