@@ -64,9 +64,11 @@ DST=/mnt/c/data/visus-dataset/2kbit1/1mb/visus.idx
 
 # writes the dataset uncompressed
 python3 -m OpenVisus copy-dataset --arco ${ARCO} ${SRC} ${DST}
+```
+**Mandatory** compression step. This step is required because the reader currently assumes blocks are compressed.
 
-# MANDATORY STEP: final pass to compress and reduce size. 
-# This step is required because the reader currently assumes blocks are compressed.
+```bash
+# final pass to compress and reduce size.
 # add [--timestep <int>] to select a certain timestep
 # add [--field <string>] to select a certain field
 python3 -m OpenVisus compress-dataset --compression zip ${DST} 
