@@ -1,4 +1,4 @@
-FROM httpd:2.4
+FROM httpd:2.4.55
 
 # make sure the architecture is right
 RUN uname -m
