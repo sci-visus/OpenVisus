@@ -92,6 +92,7 @@ def LoadIdxDataset(url):
 %include <Visus/DatasetBitmask.h>
 %include <Visus/DatasetTimesteps.h>
 %include <Visus/IdxFile.h>
+%include <Visus/IdxHzOrder.h>
 %include <Visus/Dataset.h>
 %include <Visus/ModVisus.h>
 %include <Visus/Db.h>

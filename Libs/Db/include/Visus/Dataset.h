@@ -319,6 +319,17 @@ public:
 
 public:
 
+  //for python
+  int getNumberOfLevelSamples() const {
+    return (int)level_samples.size();
+  }
+
+  //getLevelSamples
+  LogicSamples getLevelSamples(int lvl) const  {
+    return level_samples[lvl];
+  }
+
+
   //________________________________________________
   //fields stuff
 

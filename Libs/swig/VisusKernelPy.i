@@ -289,7 +289,7 @@ def convert_dtype(value):
 		if value=="float32":  return numpy.float32
 		if value=="float64":  return numpy.float64
 			
-	if isinstance(value,numpy):
+	if isinstance(value,numpy.dtype):
 		if value==numpy.uint8:   return "uint8"
 		if value==numpy.int8:    return "int8"
 		if value==numpy.uint16:  return "uint16"
