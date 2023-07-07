@@ -266,7 +266,7 @@ public:
 public:
 
   //getBlockFilename
-  static String getBlockFilename(String filename_template, Field field, double time, String compression, BigInt blockid, bool reverse_filename);
+  static String getBlockFilename(Dataset* dataset, int bitsperblock, String filename_template, Field field, double time, String compression, BigInt blockid, bool reverse_filename);
 
   //disableWriteLocks
   //99% of the times I am not writing in parallel to avoid the file lock thingy

@@ -52,6 +52,7 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   //caching
   //DiskAccess     (*) Access::compression (*) field.default_compression
 
+  this->dataset = dataset;
   this->idxfile = dataset->idxfile;
   this->name = config.readString("name", "DiskAccess");
   this->can_read = StringUtils::find(config.readString("chmod", DefaultChMod), "r") >= 0;
@@ -141,7 +142,7 @@ String DiskAccess::getFilename(Field field,double time,BigInt blockid) const
 {
   auto reverse_filename = false;
   auto compression = getCompression(field.default_compression);
-  return Access::getBlockFilename(filename_template, field, time, compression, blockid, reverse_filename);
+  return getBlockFilename(this->dataset, this->bitsperblock, filename_template, field, time, compression, blockid, reverse_filename);
 }
 
 ////////////////////////////////////////////////////////////////////

@@ -79,6 +79,7 @@ public:
 
 private:
 
+  Dataset* dataset;
   IdxFile idxfile;
   String filename_template;
 

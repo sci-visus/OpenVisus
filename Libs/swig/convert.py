@@ -357,7 +357,7 @@ def CompressModVisusDataset(db, compression="zip", num_threads=32, timestep=None
 
 
 # ////////////////////////////////////////////////////////////////////////
-def ConvertImageStack(src:str, dst:str, arco="modvisus"):
+def ConvertImageStack(src:str, dst:str, arco="modvisus", access_config=""):
 
 	T1=time.time()
 
@@ -417,7 +417,13 @@ def ConvertImageStack(src:str, dst:str, arco="modvisus"):
 		arco=arco)
 
 	assert(db.getMaxResolution()>=bitsperblock)
-	access=db.createAccessForBlockQuery()
+
+	if access_config:
+		access_config=StringTree.fromString(access_config)
+	else:
+		access_config=StringTree()
+
+	access=db.createAccessForBlockQuery(access_config)
 	access.disableWriteLocks()
 	access.disableCompression()
 	db.writeSlabs(generator, access=access)

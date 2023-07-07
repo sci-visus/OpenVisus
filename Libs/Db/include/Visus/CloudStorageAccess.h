@@ -78,6 +78,7 @@ public:
 
 private:
 
+  Dataset*                 dataset;
   StringTree               config;
   Url                      url;
   bool                     reverse_filename = false;

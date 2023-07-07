@@ -460,15 +460,16 @@ def Main(args):
 		# source is a python glob expression
 		SRC="/tmp/image-stack/**/*.png" 
 		DST=/mnt/d/GoogleSci/visus_dataset/cat/modvisus/visus.idx 
-		python3 -m OpenVisus convert-image-stack --arco [ modvisus | 1mb | ...] ${SRC} {$DST}
+		python3 -m OpenVisus convert-image-stack --arco [ modvisus | 1mb | ...] [--access-config ...] ${SRC} {$DST}
 		"""
 		parser = argparse.ArgumentParser(description=action)
 		parser.add_argument('--arco',type=str,required=False,default="modvisus")
+		parser.add_argument('--access-config',type=str,required=False)
 		parser.add_argument('src',type=str)
 		parser.add_argument('dst',type=str)
 		args=parser.parse_args(action_args)
 		from OpenVisus import ConvertImageStack
-		ConvertImageStack(src=args.src, dst=args.dst, arco=args.arco)
+		ConvertImageStack(src=args.src, dst=args.dst, arco=args.arco, access_config=args.access_config)
 		sys.exit(0)
 
 	if action=="copy-dataset":

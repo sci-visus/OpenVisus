@@ -47,6 +47,8 @@ namespace Visus {
 CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   : config(config_)
 { 
+  this->dataset = dataset;
+
   this->name = this->name = config.readString("name", "CloudStorageAccess");
   this->can_read  = StringUtils::find(config.readString("chmod", DefaultChMod), "r") >= 0;
   this->can_write = StringUtils::find(config.readString("chmod", DefaultChMod), "w") >= 0;
@@ -99,7 +101,7 @@ CloudStorageAccess::~CloudStorageAccess()
 String CloudStorageAccess::getFilename(Field field, double time, BigInt blockid) const
 {    
   auto compression = getCompression();
-  auto ret = Access::getBlockFilename(this->filename_template, field, time, compression, blockid, reverse_filename);
+  auto ret = getBlockFilename(this->dataset, this->bitsperblock, this->filename_template, field, time, compression, blockid, reverse_filename);
 
   //s3://bucket/... -> /bucket/...
   if (StringUtils::startsWith(ret,"s3://"))

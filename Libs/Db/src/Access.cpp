@@ -37,13 +37,15 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/Access.h>
+#include <Visus/IdxHzOrder.h>
+#include <Visus/Dataset.h>
 
 namespace Visus {
 const String Access::DefaultChMod = "rw";
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
-String Access::getBlockFilename(String filename_template, Field field, double time, String compression, BigInt blockid, bool reverse_filename) 
+String Access::getBlockFilename(Dataset* dataset, int bitsperblock, String filename_template, Field field, double time, String compression, BigInt blockid, bool reverse_filename) 
 {
   String fieldname = StringUtils::removeSpaces(field.name);
 
@@ -65,6 +67,46 @@ String Access::getBlockFilename(String filename_template, Field field, double ti
     ret = StringUtils::replaceFirst(ret, "$(block:%016x:%04x)", StringUtils::join(StringUtils::splitInChunks(s_blockid, 4), "/"));
   }
 
+  //zarr (e.g. visus/$(time)/$(field)/$(level)/$(block-offset)  (block-offset == Z.Y.X resolution==[0,MaxH])
+  if (StringUtils::contains(ret, "$(block-offset)") || StringUtils::contains(ret, "$(level)"))
+  {
+    //TODO: could this part be too slow?
+    auto bitmask = dataset->getBitmask();
+    HzOrder hzorder(bitmask);
+
+    auto hzaddress = blockid << bitsperblock;
+    PointNi block_p1 = hzorder.getPoint(hzaddress);
+    auto pdim = bitmask.getPointDim();
+    int H;
+    auto block_samples=dataset->getBlockQuerySamples(blockid, H);
+    auto level_samples = dataset->getLevelSamples(H);
+    auto level_p1 = level_samples.logic_box.p1;
+
+    std::vector< Int64> v(pdim);
+    for (int I = 0; I < pdim; I++)
+    {
+      auto block_delta = block_samples.nsamples[I] * block_samples.delta[I];
+      VisusAssert((block_p1[I] - level_p1[I]) % block_delta == 0);
+      v[I] = (block_p1[I] - level_p1[I]) / block_delta;
+    }
+
+
+
+    //zarr use ZXY
+    std::reverse(v.begin(), v.end());
+
+    auto nchannels = field.dtype.ncomponents();
+    if (nchannels > 1)
+      v.push_back(0); // e.g. in uint8[3] the RGB will alwasy be together
+
+    const String separator = "."; //TODO other separator
+    String key=StringUtils::join(v, separator);
+    ret = StringUtils::replaceFirst(ret, "$(block-offset)", key);
+    ret = StringUtils::replaceFirst(ret, "$(level)", cstring(H));
+
+    PrintInfo("level",level_samples.logic_box.toString(),"block",block_samples.logic_box.toString());
+  }
+   
   VisusAssert(!StringUtils::contains(ret, "$"));
 
   //reverse is an AWS s3 trick to distribute better blocks on several AWS instances
