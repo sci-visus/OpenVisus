@@ -102,7 +102,17 @@ public:
   virtual String getDatasetTypeName() const override {
     return "IdxDataset2";
   }
+  
+  //VISUS_USE_IDX2_FILE_FORMAT
+  static bool VISUS_USE_IDX2_FILE_FORMAT() {
+    return cbool(Utils::getEnv("VISUS_USE_IDX2_FILE_FORMAT", "0"));
+  }
 
+  //disableExternalAccess
+  bool useIdx2FileFormat() const {
+    Url url = this->getUrl();
+    return IdxDataset2::VISUS_USE_IDX2_FILE_FORMAT() || cbool(url.getParam("VISUS_USE_IDX2_FILE_FORMAT", "0"));
+  }
 
 public:
 

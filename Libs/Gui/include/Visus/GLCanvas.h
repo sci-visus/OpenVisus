@@ -127,12 +127,7 @@ public:
 
   //operator->
   QOpenGLExtraFunctions* operator->() {
-
-#if QT_VERSION >= QT_VERSION_CHECK(5, 6, 0)
     return QOpenGLContext::currentContext()->extraFunctions();
-#else
-    return QOpenGLContext::currentContext()->functions();
-#endif
   }
 
 private:

@@ -132,12 +132,6 @@ int main(int argn, const char* argv[])
   SetCommandLine(argn, argv);
 
 #if VISUS_IDX2
-	// SET PATH=%PATH%;build\RelWithDebugInfo\OpenVisus\bin
-	// del *.png
-	// rmdir /S /Q Miranda
-	// DISABLE_EXTERNAL_ACCESS=1 visus.exe idx2 --encode Miranda-Viscosity-[384-384-256]-Float64.raw --tolerance 1e-16 --num_levels 2 --out_dir .
-	// DISABLE_EXTERNAL_ACCESS=1 visus.exe idx2 --decode Miranda/Viscosity.idx2 --downsampling 1 1 1 --tolerance 0.001                           
-	// python Samples/python/idx2_convert.py Miranda-Viscosity-[193-193-129]-float64-accuracy-0.001000.raw
 	{
 		if (action == "idx2")
 		{

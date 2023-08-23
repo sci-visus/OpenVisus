@@ -408,8 +408,26 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool for_block_query)
 #if VISUS_IDX2 
   else if (auto idx2 = dynamic_cast<IdxDataset2*>(this))
   {
-    if (!config.valid())
-      return std::make_shared<DiskAccess>(this, StringTree::fromString("<access type='DiskAccess' compression='raw' />"));    
+    if (idx2->useIdx2FileFormat())
+    {
+      //no access needed, I will just do BoxQuery using native IDX2 format
+      //I do not support Block Query / Access classes (i.e. I will support only BlockQueries)
+      VisusAssert(!for_block_query);
+      return SharedPtr<Access>();
+    }
+    else
+    {
+      //OpenVisus + IDX2 (==with IDX2 'external access' I can support CloudAccess and DiskAccess (even if no BLockQuery can be directly executed, only via BoxQuery)
+      if (!config.valid())
+      {
+        config = StringTree::fromString("<access type='DiskAccess' compression='raw' />");
+        type = StringUtils::toLower(config.readString("type"));
+      }
+      else
+      {
+        ;//hopefully the user knows what he's doing
+      }
+    }
   }
 #endif
 

@@ -338,11 +338,8 @@ bool IdxDataset2::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> 
   idx2::idx2_file Idx2; DoAtExit do_at_exit([&]() {idx2::Dealloc(&Idx2); });
   idx2::InitFromBuffer(&Idx2, P, idx2::buffer((const idx2::byte*)this->metafile.c_str(), this->metafile.size()));
 
-  //want to use OpenVisus::Access for IDX block access?
-  Url url = this->getUrl();
-
-  //in case you want to debug with IDX2 file format
-  if (!cbool(url.getParam("DISABLE_EXTERNAL_ACCESS", "0")))
+  //in OpenVisus by default I use IDX1 format
+  if (!this->useIdx2FileFormat())
     enableExternalRead(Idx2, access, query->aborted);
 
   auto query_buffer = idx2::buffer((const idx2::byte*)query->buffer.c_ptr(), query->buffer.c_size());

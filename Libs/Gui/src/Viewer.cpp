@@ -1534,7 +1534,7 @@ bool Viewer::openFile(String url, Node* parent)
   if (url.empty())
   {
     url = cstring(QFileDialog::getOpenFileName(nullptr, "Choose a file to open...", last_filename.c_str(),
-      "All supported (*.idx *.midx *.gidx *.obj *.xml *.config *.scn);;IDX (*.idx *.midx *.gidx);;OBJ (*.obj);;XML files (*.xml *.config *.scn);; All files (*.*)"));
+      "All supported (*.idx *.idx2 *.midx *.gidx *.obj *.xml *.config *.scn);;IDX (*.idx *.idx2 *.midx *.gidx);;OBJ (*.obj);;XML files (*.xml *.config *.scn);; All files (*.*)"));
 
     if (url.empty()) return false;
     last_filename = url;

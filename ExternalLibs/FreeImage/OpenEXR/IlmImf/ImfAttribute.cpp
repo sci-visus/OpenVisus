@@ -45,6 +45,7 @@
 #include "Iex.h"
 #include <string.h>
 #include <map>
+#include <functional>
 
 #include "ImfNamespace.h"
 
@@ -63,7 +64,7 @@ Attribute::~Attribute () {}
 
 namespace {
 
-struct NameCompare: std::binary_function <const char *, const char *, bool>
+struct NameCompare: std::function<bool (const char*,const char*)>
 {
     bool
     operator () (const char *x, const char *y) const
