@@ -217,11 +217,11 @@ void Field::read(Archive& ar)
     String s_m;  ar.read("min", s_m); std::vector<String> vmin = StringUtils::split(s_m);
     String s_M;  ar.read("max", s_M); std::vector<String> vmax = StringUtils::split(s_M);
 
-    if (!vmin.empty() && !vmax.empty())
+    if (!vmin.empty() || !vmax.empty())
     {
       //you can specify a range for all components or a range for each component (separated by spaces)
-      vmin.resize(this->dtype.ncomponents(), vmin.back());
-      vmax.resize(this->dtype.ncomponents(), vmax.back());
+      vmin.resize(this->dtype.ncomponents(), vmin.empty()? cstring(0.0) : vmin.back());
+      vmax.resize(this->dtype.ncomponents(), vmax.empty()? cstring(0.0) : vmax.back());
 
       for (int C = 0; C < dtype.ncomponents(); C++)
         this->setDTypeRange(Range(cdouble(vmin[C]), cdouble(vmax[C]), 0.0), C);
