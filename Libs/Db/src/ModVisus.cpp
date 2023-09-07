@@ -92,7 +92,7 @@ public:
   }
 
   //findDataset
-  SharedPtr<Dataset> findDataset(String name) 
+  SharedPtr<Dataset> findDataset(String name, const NetRequest& request)
   {
     // first remove any temp datasets older than 5 minutes
     for (auto it = temp_dataset_map.cbegin(); it != temp_dataset_map.cend(); /* no increment */) {
@@ -105,6 +105,12 @@ public:
         ++it;
       }
     }
+
+    //check security, I am asking the request to have a certain prefix
+    //http://localhost/aaaaa/mod_visus?action=list
+    auto required = this->location_match[name];
+    if (!required.empty() && required!=request.url.getPath())
+      return SharedPtr<Dataset>();
     
     // return dataset from visus.config, if it exists
     auto it = dataset_map.find(name);
@@ -167,19 +173,22 @@ private:
 
   StringTree                              datasets;
   std::map<String, SharedPtr<Dataset > >  dataset_map;
+  std::map<String, String>                location_match;
   std::map<String, std::pair<SharedPtr<Dataset>, Time>> temp_dataset_map;
   String                                  datasets_xml_body;
   String                                  datasets_json_body;
 
   //addPublicDataset
-  int addPublicDataset(StringTree& dst, String name, SharedPtr<Dataset> dataset)
+  int addPublicDataset(StringTree& dst, String name, SharedPtr<Dataset> dataset, String location_match)
   {
     this->dataset_map[name] = dataset;
+    this->location_match[name] = location_match;
     dataset->setServerMode(true);
 
     auto child= dst.addChild("dataset");
     child->write("name", name);
     child->write("url", createPublicUrl(name));
+    child->write("location_match", location_match);
 
     //automatically add the childs of a multiple datasets
     int ret = 1;
@@ -189,7 +198,7 @@ private:
       {
         auto child_name    = it.first;
         auto child_dataset = it.second;
-        ret += addPublicDataset(*child, name + "/" + child_name, child_dataset);
+        ret += addPublicDataset(*child, name + "/" + child_name, child_dataset, location_match);
       }
     }
 
@@ -234,6 +243,9 @@ private:
     String name = cursor.readString("name");
     if (name.empty())
       return 0;
+
+    //for security check, I can specify the path should start with something
+    String location_match = cursor.readString("location_match");
     
     SharedPtr<Dataset> dataset;
     try
@@ -252,9 +264,8 @@ private:
       return 0;
     }
 
-    return addPublicDataset(dst, name, dataset);
+    return addPublicDataset(dst, name, dataset, location_match);
   }
-
 
 };
 
@@ -366,98 +377,6 @@ bool ModVisus::configureDatasets(const ConfigFile& config)
 }
 
 
-///////////////////////////////////////////////////////////////////////////
-NetResponse ModVisus::handleDynamicAddDataset(const NetRequest& request)
-{
-  //only for dynamic mode
-  if (!this->dynamic.enabled)
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Mod visus is in non-dynamic mode");
-
-  auto datasets = getDatasets();
-
-  StringTree stree;
-  if (request.url.hasParam("name"))
-  {
-    auto name = request.url.getParam("name");
-    auto url = request.url.getParam("url");
-
-    stree = StringTree("dataset");
-    stree.write("name", name);
-    stree.write("url", url);
-    stree.write("permissions", "public");
-  }
-  else if (request.url.hasParam("xml"))
-  {
-    String content = request.url.getParam("xml");
-    stree = StringTree::fromString(content);
-    if (!stree.valid())
-      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Cannot decode xml");
-  }
-
-  //using a file lock to make sure I have no collision on the same file
-  //a reload will happen in the background thread soon or later
-  //(lazy add-dataset)
-  {
-    ScopedFileLock file_lock(this->config_filename);
-
-    String name = stree.readString("name");
-
-    if (name.empty())
-      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Empty name");
-
-    if (m_datasets->findDataset(name))
-      return NetResponseError(HttpStatus::STATUS_CONFLICT, "Cannot add dataset(" + name + ") because it already exists");
-
-    ConfigFile config;
-    if (!config.load(this->config_filename,/*bEnablePostProcessing*/false))
-    {
-      PrintWarning("Cannot load",this->config_filename);
-      VisusAssert(false);//TODO rollback
-      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
-    }
-
-    //add a <dataset> child to the file
-    config.addChild(stree);
-
-    try
-    {
-      config.save();
-    }
-    catch (...)
-    {
-      PrintWarning("Cannot save", config.getFilename());
-      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
-    }
-  }
-
-  return NetResponse(HttpStatus::STATUS_OK);
-}
-
-///////////////////////////////////////////////////////////////////////////
-NetResponse ModVisus::handleDynamicReload(const NetRequest& request)
-{
-  //only for dynamic mode
-  if (!this->dynamic.enabled)
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Mod visus is in non-dynamic mode");
-
-  ConfigFile config;
-  if (!config.load(this->config_filename))
-  {
-    PrintInfo("Reload modvisus config_filename", this->config_filename, "failed");
-    return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "Cannot reload");
-  }
-
-  auto datasets = std::make_shared<PublicDatasets>(this, config);
-
-  //make this as fast as possible
-  {
-    ScopedWriteLock lock(dynamic.lock);
-    this->m_datasets = datasets;
-  }
-
-  PrintInfo("reload done", this->config_filename, "#datasets", datasets->getNumberOfDatasets());
-  return NetResponse(HttpStatus::STATUS_OK);
-}
 
 
 ///////////////////////////////////////////////////////////////////////////
@@ -466,7 +385,7 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
   String dataset_name = request.url.getParam("dataset");
 
   auto datasets=getDatasets();
-  auto dataset = datasets->findDataset(dataset_name);
+  auto dataset = datasets->findDataset(dataset_name, request);
   if (!dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
 
@@ -522,6 +441,8 @@ NetResponse ModVisus::handleGetListOfDatasets(const NetRequest& request)
 
   auto datasets=getDatasets();
 
+  //TODO: here I am getting the list of all users, need to filter by location_match
+
   if (format == "xml")
     response.setXmlBody(datasets->getDatasetsBody(format));
   else if (format == "json")
@@ -542,38 +463,12 @@ NetResponse ModVisus::handleGetListOfDatasets(const NetRequest& request)
 }
 
 ///////////////////////////////////////////////////////////////////////////
-//deprecated
-#if 0
-NetResponse ModVisus::handleHtmlForPlugin(const NetRequest& request)
-{
-  String htmlcontent =
-    "<HTML>\r\n"
-    "<HEAD><TITLE>Visus Plugin</TITLE><STYLE>body{margin:0;padding:0;}</STYLE></HEAD><BODY>\r\n"
-    "  <center>\r\n"
-    "  <script>\r\n"
-    "    document.write('<embed  id=\"plugin\" type=\"application/npvisusplugin\" src=\"\" width=\"100%%\" height=\"100%%\"></embed>');\r\n"
-    "    document.getElementById(\"plugin\").open(location.href);\r\n"
-    "  </script>\r\n"
-    "  <noscript>NPAPI not enabled</noscript>\r\n"
-    "  </center>\r\n"
-    "</BODY>\r\n"
-    "</HTML>\r\n";
-
-  NetResponse response(HttpStatus::STATUS_OK);
-  response.setHtmlBody(htmlcontent);
-  return response;
-}
-#endif
-
-
-///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
 {
-  auto datasets=getDatasets();
-
   String dataset_name = request.url.getParam("dataset");
 
-  auto dataset = datasets->findDataset(dataset_name);
+  auto datasets = getDatasets();
+  auto dataset = datasets->findDataset(dataset_name, request);
   if (!dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
 
@@ -652,18 +547,17 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
 NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
 {
   auto dataset_name = request.url.getParam("dataset");
+
+  auto datasets = getDatasets();
+  auto dataset = datasets->findDataset(dataset_name, request);
+  if (!dataset)
+    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
+
   auto fromh = cint(request.url.getParam("fromh"));
   auto endh = cint(request.url.getParam("toh"));
   auto maxh = cint(request.url.getParam("maxh"));
   auto time = cdouble(request.url.getParam("time"));
   auto compression = request.url.getParam("compression");
-
-  auto datasets = getDatasets();
-
-  auto dataset = datasets->findDataset(dataset_name);
-  if (!dataset)
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
-
 
   double accuracy = request.url.hasParam("accuracy")? 
     cdouble(request.url.getParam("accuracy")) :
@@ -793,18 +687,17 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
 NetResponse ModVisus::handlePointQuery(const NetRequest& request)
 {
   auto dataset_name = request.url.getParam("dataset");
+
+  auto datasets = getDatasets();
+  auto dataset = datasets->findDataset(dataset_name, request);
+  if (!dataset)
+    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
+
   auto fromh = cint(request.url.getParam("fromh"));
   auto endh = cint(request.url.getParam("toh"));
   auto maxh = cint(request.url.getParam("maxh"));
   auto time = cdouble(request.url.getParam("time"));
   auto compression = request.url.getParam("compression");
-
-  auto datasets = getDatasets();
-
-  auto dataset = datasets->findDataset(dataset_name);
-  if (!dataset)
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
-
 
   auto accuracy = request.url.hasParam("accuracy") ?
     cdouble(request.url.getParam("accuracy")) :
@@ -887,6 +780,8 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
   return response;
 }
 
+
+
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleRequest(NetRequest request)
 {
@@ -922,6 +817,8 @@ NetResponse ModVisus::handleRequest(NetRequest request)
   }
   else if (action == "info")
   {
+    //TODO: always allowed?
+
     response = NetResponse(HttpStatus::STATUS_OK);
     response.setHeader("visus-config-filename", this->config_filename);
     response.setHeader("visus-dynamic-enabled", cstring(this->dynamic.enabled));
@@ -934,19 +831,10 @@ NetResponse ModVisus::handleRequest(NetRequest request)
     response.setHeader("block-query-support-aggregation", "1");
   }
 
-  ////////////////////////// DEPRECATED, do not use. Use COnfiguration/ModVisus/Dynamic instead
-#if 1
-
-  else if (action == "configure_datasets" || action == "configure" || action == "reload")
-    response = handleDynamicReload(request);
-
-  else if (action == "AddDataset" || action == "add_dataset")
-    response = handleDynamicAddDataset(request);
-
-#endif
-
   else
+  {
     response = NetResponseError(HttpStatus::STATUS_NOT_FOUND, "unknown action(" + action + ")");
+  }
 
   PrintInfo(
     "request", request.url,

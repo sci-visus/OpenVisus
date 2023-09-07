@@ -106,10 +106,6 @@ private:
   NetResponse handleBoxQuery         (const NetRequest& request);
   NetResponse handlePointQuery       (const NetRequest& request);
 
-  //deprecated, use dynamic 
-  NetResponse handleDynamicReload(const NetRequest& request);
-  NetResponse handleDynamicAddDataset(const NetRequest& request);
-
   //trackConfigChangesInBackground
   void trackConfigChangesInBackground();
 
