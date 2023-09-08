@@ -760,17 +760,14 @@ static int MyHookRequest(request_rec *apache_request)
   //convert apache_request to visus_request
   //NOTE: I should not care about the scheme or the port or the hostname
 
-  NetRequest visus_request(
-    String(apache_request->parsed_uri.scheme) + //e.g. http | https
-    String("://") +
-    String(apache_request->parsed_uri.host)   + //e.g. www.example.com
-    String(":") +                             
-    cstring(apache_request->parsed_uri.port)  + / //e.g. 8080
-    String(apache_request->parsed_uri.path)   + //e.g. /mod_visus | /user/mod_visus
-    String("?") +                                 
-    String(apache_request->parsed_uri.query)    //e.g. key1=value1&key2=value2..
-  );
+  std::ostringstream out;
+  out 
+    << apache_request->parsed_uri.scheme << "://"                                   //e.g. http:// | https://
+    << apache_request->parsed_uri.host << ":" << apache_request->parsed_uri.port    //e.g. www.example.com:8080
+    << apache_request->parsed_uri.path                                              //e.g. /mod_visus | /user/mod_visus
+    << "?" << apache_request->parsed_uri.query;                                     //e.g. ?key1=value1&key2=value2..
 
+  NetRequest visus_request(String(out.str()));
 
   apr_table_do(MyFillRequestHeader, &(visus_request.headers), apache_request->headers_in, NULL);    
   NetResponse visus_response=(*module)->handleRequest(visus_request);  
