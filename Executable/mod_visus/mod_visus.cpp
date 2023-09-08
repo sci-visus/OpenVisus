@@ -757,10 +757,7 @@ static int MyHookRequest(request_rec *apache_request)
   String client_ip = apache_request->useragent_ip;
   #endif
 
-  //removeme
-#if 1
-  PrintInfo("APACHE got apache_request->parsed_uri.path", apache_request->parsed_uri.path, "apache_request->parsed_uri.query", apache_request->parsed_uri.query, "visus_request.url", visus_request.url);
-#endif
+
 
   //convert apache_request to visus_request
   //NOTE: I should not care about the scheme or the port or the hostname
@@ -768,7 +765,10 @@ static int MyHookRequest(request_rec *apache_request)
     "http://localhost" + String(apache_request->parsed_uri.path) + "?" + String(apache_request->parsed_uri.query)
   );
 
-
+  //removeme
+#if 1
+  PrintInfo("APACHE got apache_request->parsed_uri.path", apache_request->parsed_uri.path, "apache_request->parsed_uri.query", apache_request->parsed_uri.query, "visus_request.url", visus_request.url);
+#endif
 
   apr_table_do(MyFillRequestHeader, &(visus_request.headers), apache_request->headers_in, NULL);    
   NetResponse visus_response=(*module)->handleRequest(visus_request);  
