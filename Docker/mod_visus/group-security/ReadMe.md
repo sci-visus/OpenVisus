@@ -65,32 +65,38 @@ From another shell you can try all combinations
 
 ```bash
 
+# denied
+curl  "http://localhost:8080"
+curl  "http://localhost:8080/mod_visus"
+
+# ok
 curl -uvisus:visus0 http://localhost:8080/server-status
 curl -vvvv -uvisus:visus0 http://localhost:8080/mod_visus?action=info
 
 # denied
 curl http://localhost:8080 
-curl -uvisus:visus1 http://localhost:8080
+curl -uvisus:visus1 "http://localhost:8080"
 
 # ok
-curl -uvisus:visus0 http://localhost:8080
-curl -uvisus:visus0 http://localhost:8080/mod_visus?action=list
-curl -uvisus:visus0 http://localhost:8080/mod_visus?dataset=cat1
+curl -uvisus:visus0 "http://localhost:8080"
+curl -uvisus:visus0 "http://localhost:8080/mod_visus?action=list"
+curl -uvisus:visus0 "http://localhost:8080/mod_visus?dataset=cat1"
 
 
-curl -uaaaaa:aaaaa0 http://localhost:8080/aaaaa/mod_visus?action=list
-curl -uaaaaa:aaaaa0 http://localhost:8080/aaaaa/mod_visus?dataset=cat1
+# ok
+curl -uaaaaa:aaaaa0 "http://localhost:8080/aaaaa/mod_visus?action=list"
+curl -uaaaaa:aaaaa0 "http://localhost:8080/aaaaa/mod_visus?dataset=cat1"
+
+# ok
+curl -uaaaaa:aaaaa0 "http://localhost:8080/aaaaa/mod_visus?action=list"
+curl -uaaaaa:aaaaa0 "http://localhost:8080/aaaaa/mod_visus?dataset=cat1"
 
 
-curl -uaaaaa:aaaaa0 http://localhost:8080/aaaaa/mod_visus?action=list
-curl -uaaaaa:aaaaa0 http://localhost:8080/aaaaa/mod_visus?dataset=cat1
+curl -ubbbbb:bbbbb0 "http://localhost:8080/bbbbb/mod_visus?action=list"
+curl -ubbbbb:bbbbb0 "http://localhost:8080/bbbbb/mod_visus?dataset=cat2"
 
 
-curl -ubbbbb:bbbbb0 http://localhost:8080/bbbbb/mod_visus?action=list
-curl -ubbbbb:bbbbb0 http://localhost:8080/bbbbb/mod_visus?dataset=cat2
-
-
-curl -uccccc:ccccc0 http://localhost:8080/ccccc/mod_visus?action=list
-curl -uccccc:ccccc0 http://localhost:8080/ccccc/mod_visus?dataset=cat3
+curl -uccccc:ccccc0 "http://localhost:8080/ccccc/mod_visus?action=list"
+curl -uccccc:ccccc0 "http://localhost:8080/ccccc/mod_visus?dataset=cat3"
 
 ```

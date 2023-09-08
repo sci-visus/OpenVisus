@@ -757,17 +757,18 @@ static int MyHookRequest(request_rec *apache_request)
   String client_ip = apache_request->useragent_ip;
   #endif
 
+  //removeme
+#if 1
+  PrintInfo("APACHE got apache_request->parsed_uri.path", apache_request->parsed_uri.path, "apache_request->parsed_uri.query", apache_request->parsed_uri.query, "visus_request.url", visus_request.url);
+#endif
+
   //convert apache_request to visus_request
   //NOTE: I should not care about the scheme or the port or the hostname
+  NetRequest visus_request(
+    "http://localhost" + String(apache_request->parsed_uri.path) + "?" + String(apache_request->parsed_uri.query)
+  );
 
-  std::ostringstream out;
-  out 
-    << apache_request->parsed_uri.scheme << "://"                                   //e.g. http:// | https://
-    << "localhost" << ":" << apache_request->parsed_uri.port                        //e.g. localhost:8080 (I SHOULD NOT CARE in modvisus about hostname)
-    << apache_request->parsed_uri.path                                              //e.g. /mod_visus | /user/mod_visus
-    << "?" << apache_request->parsed_uri.query;                                     //e.g. ?key1=value1&key2=value2..
 
-  NetRequest visus_request(String(out.str()));
 
   apr_table_do(MyFillRequestHeader, &(visus_request.headers), apache_request->headers_in, NULL);    
   NetResponse visus_response=(*module)->handleRequest(visus_request);  

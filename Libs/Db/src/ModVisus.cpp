@@ -837,8 +837,11 @@ NetResponse ModVisus::handleRequest(NetRequest request)
   }
 
   PrintInfo(
-    "request", request.url,
-    "status", response.getStatusDescription(), "body", StringUtils::getStringFromByteSize(response.body ? response.body->c_size() : 0), "msec", t1.elapsedMsec());
+    "handleRequest, sending response",
+    "REQUEST", request.url,
+    "STATUS", response.getStatusDescription(), 
+    "BODY-SIZE", StringUtils::getStringFromByteSize(response.body ? response.body->c_size() : 0), 
+    "MSEC", t1.elapsedMsec());
 
   //add some standard header
   response.setHeader("git_revision", OpenVisus_GIT_REVISION);
