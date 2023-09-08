@@ -61,9 +61,6 @@ int main(int argn,const char* argv[])
   GuiModule::attach();
 #endif
 
-
-
-
   {
     auto viewer=std::make_shared<Viewer>();
     auto args = std::vector<String>(CommandLine::args.begin() + 1, CommandLine::args.end());

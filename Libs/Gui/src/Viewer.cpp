@@ -591,7 +591,7 @@ void Viewer::configureFromArgs(std::vector<String> args)
     else if (args[I] == "--server")
     {
       auto modvisus = new ModVisus();
-      modvisus->default_public = false;
+      modvisus->default_public = true;
       modvisus->configureDatasets();
       this->server = std::make_shared<NetServer>(10000, modvisus);
       this->server->runInBackground();
@@ -1330,7 +1330,7 @@ bool Viewer::open(String s_url,Node* parent)
   //  http://atlantis.sci.utah.edu:8080/mod_visus?action=list&cached=1
   {
     Url url(s_url);
-    if (url.isRemote() && url.getPath() == "/mod_visus" && url.getParam("action") == "list")
+    if (url.isRemote() && StringUtils::contains(url.getPath(),"mod_visus") && url.getParam("action") == "list")
     {
       bool enable_caching = cbool(url.getParam("cached", "0"));
       url.params.eraseValue("cached");

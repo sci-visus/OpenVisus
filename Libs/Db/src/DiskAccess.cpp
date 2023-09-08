@@ -80,10 +80,10 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
       << url.getPort() << "/"
       << compression;
 
-    if (StringUtils::contains(url.toString(), "mod_visus?"))
-      out << "/" << url.getParam("dataset") << "/visus.idx"; //for idx the path is /mod_visus?dataset=2kbit1 (becomes dmov_visus/2kbit1/visus.idx"
+    if (StringUtils::contains(url.toString(), "mod_visus"))
+      out << url.getPath() << "/" << url.getParam("dataset") << "/" << "visus.idx";
     else
-      out << url.getPath(); //cloud storage, path should be unique and visus.idx is the end of the  the path for cloud storage (!)
+      out << url.getPath(); //cloud storage, path should be unique and visus.idx is ALREADY at the end of the  the path for cloud storage (!)
 
     local_idx_filename = out.str();
   }
