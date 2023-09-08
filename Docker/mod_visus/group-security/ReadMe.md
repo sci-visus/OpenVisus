@@ -8,8 +8,6 @@ are accessible only to some group of users, some other datasets to another group
 
 ```bash
 
-cd Docker/mod_visus/group-security
-
 # add <N> users to the apache password file
 # NOTE: since passwords are encrypted you need to remember the password
 #       if you want to generate a username  `tr -dc a-z </dev/urandom | head -c 5 ; echo ''`
@@ -30,7 +28,7 @@ For example
 <dataset name="cat1" url="/datasets/cat/gray.idx" location_match="/aaaaa/mod_visus" />
 ```
 
-only user `aaaaa` will have access.
+only user `aaaaa` will have access (see section below to get more details).
 
 # Step 3. Check Apache permission
 
@@ -48,7 +46,7 @@ Run a Docker instance binding files
 ```bash
 
 # change as needed
-IMAGE=visus/mod_visus_x86_64:2.2.115
+IMAGE=visus/mod_visus_x86_64:2.2.116
 
 docker run --rm -it  --publish 8080:80 --publish 8443:443 --name my-modvisus \
    --mount type=bind,source=$PWD/.htpasswd,target=/datasets/.htpasswd \
