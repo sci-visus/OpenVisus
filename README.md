@@ -72,14 +72,19 @@ To run the tutorials on the cloud click this [binder link](https://mybinder.org/
 # Run OpenVisus server
 
 Run single `Docker` OpenVisus server:  
-[docs/docker_modvisus](./Docker/ReadMe.md).
+[Docker/mod_visus/ReadMe.md](./Docker/mod_visus/ReadMe.md).
+
+Run load-balanced `Docker Swarm` OpenVisus servers: 
+[Docker/mod_visus/ReadMe.swarm.md](./Docker/mod_visus/ReadMe.swarm.md).
+
+Run `Docker` OpenVisus server with group security:
+[Docker/mod_visus/group-security/ReadMe.md](./Docker/mod_visus/group-security/ReadMe.md).
+
 
 Runload-balanced `Kubernetes` OpenVisus servers: 
 [docs/kubernetes.md](./docs/kubernetes.md).
 
 
-Run load-balanced `Docker Swarm` OpenVisus servers: 
-[docs/docker_swarm_modvisus.md](./Docker/ReadMe.swarm.md).
 
 
 

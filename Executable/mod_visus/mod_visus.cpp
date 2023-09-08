@@ -763,7 +763,7 @@ static int MyHookRequest(request_rec *apache_request)
   std::ostringstream out;
   out 
     << apache_request->parsed_uri.scheme << "://"                                   //e.g. http:// | https://
-    << apache_request->parsed_uri.host << ":" << apache_request->parsed_uri.port    //e.g. www.example.com:8080
+    << "localhost" << ":" << apache_request->parsed_uri.port                        //e.g. localhost:8080 (I SHOULD NOT CARE in modvisus about hostname)
     << apache_request->parsed_uri.path                                              //e.g. /mod_visus | /user/mod_visus
     << "?" << apache_request->parsed_uri.query;                                     //e.g. ?key1=value1&key2=value2..
 
