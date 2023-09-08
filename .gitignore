@@ -4,6 +4,6 @@
 .DS_Store
 build/
 .vs/
-
-
+Docker/mod_visus/group-security/.htpasswd
+.vscode
 

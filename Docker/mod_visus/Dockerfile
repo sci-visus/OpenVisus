@@ -36,8 +36,14 @@ RUN echo "Include /usr/local/apache2/conf/openvisus.conf" >> /usr/local/apache2/
 RUN echo "<visus><include url='/datasets/datasets.config' /></visus>" > /home/OpenVisus/visus.config
 COPY datasets /datasets
 
+# I want to see error/info messages unbuffered
 ENV PYTHONUNBUFFERED=1
+
+# I created a symbolic link about to the OpenVisus package
 ENV VISUS_HOME=/home/OpenVisus
+
+# this is to get full OpenVisus logs
+ENV VISUS_CPP_VERBOSE=1
 
 
 

@@ -62,7 +62,7 @@ ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_)
   if (this->num_queries_per_request>1)
   {
     //I may have some extra params I want to keep!
-    auto request=NetRequest(url.withPath("/mod_visus"));
+    auto request=NetRequest(url.withPath(url.getPath()));
     request.url.setParam("action", "ping");
 
     auto response = NetService::getNetResponse(request);
@@ -127,7 +127,7 @@ void ModVisusAccess::flushBatch()
 
   auto compression = getCompression();
 
-  Url URL(this->url.withPath("/mod_visus"));
+  Url URL(this->url.withPath(url.getPath()));
   URL.setParam("action"      , "rangequery");
   URL.setParam("dataset"     , this->url.getParam("dataset"));
   URL.setParam("compression" , compression);

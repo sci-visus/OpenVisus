@@ -1588,7 +1588,7 @@ NetRequest Dataset::createBoxQueryRequest(SharedPtr<BoxQuery> query)
   Url url = this->getUrl();
 
   //I may have some extra params I want to keep!
-  auto ret = NetRequest(url.withPath("/mod_visus"));
+  auto ret = NetRequest(url.withPath(url.getPath()));
   ret.url.setParam("action", "boxquery");
   ret.url.setParam("dataset", url.getParam("dataset"));
   ret.url.setParam("time", url.getParam("time", cstring(query->time)));
@@ -1987,7 +1987,7 @@ NetRequest Dataset::createPointQueryRequest(SharedPtr<PointQuery> query)
   Url url = this->getUrl();
 
   //I may have some extra params I want to keep!
-  auto request=NetRequest(url.withPath("/mod_visus"));
+  auto request=NetRequest(url.withPath(url.getPath()));
 
   request.url.setParam("action", "pointquery");
   request.url.setParam("dataset", url.getParam("dataset"));

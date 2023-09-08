@@ -108,8 +108,8 @@ public:
 
     //check security, I am asking the request to have a certain prefix
     //http://localhost/aaaaa/mod_visus?action=list
-    auto required = this->location_match[name];
-    if (!required.empty() && required!=request.url.getPath())
+    auto location_match = this->location_match[name];
+    if (!location_match.empty() && location_match !=request.url.getPath())
       return SharedPtr<Dataset>();
     
     // return dataset from visus.config, if it exists
@@ -156,8 +156,8 @@ public:
   }
 
   //createPublicUrl
-  String createPublicUrl(String name) const {
-    return "$(protocol)://$(hostname):$(port)/mod_visus?action=readdataset&dataset=" + name;
+  String createPublicUrl(String path, String dataset) const {
+    return "$(protocol)://$(hostname):$(port)" + path  + "?action=readdataset&dataset=" + dataset;
   }
 
   //getDatasetsBody
@@ -187,7 +187,7 @@ private:
 
     auto child= dst.addChild("dataset");
     child->write("name", name);
-    child->write("url", createPublicUrl(name));
+    child->write("url", createPublicUrl(/*path*/location_match.empty() ? "/mod_visus" : location_match, /*dataset_name*/name));
     child->write("location_match", location_match);
 
     //automatically add the childs of a multiple datasets
@@ -347,7 +347,7 @@ bool ModVisus::configureDatasets(const ConfigFile& config)
   this->m_datasets = datasets;
 
   PrintInfo("ModVisus::configure", config_filename, "...");
-  PrintInfo("/mod_visus?action=list\n", datasets->getDatasetsBody());
+  PrintInfo("datasets body\n", datasets->getDatasetsBody());
 
   //for in-memory configueation file I cannot reload from disk, so it does not make sense to configure dynamic
   if (!this->config_filename.empty())
@@ -404,7 +404,7 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
   }
   else 
   {
-    //remap urls...
+    //remap urls in case I have inner child that are datasets too
     std::stack< std::pair<String, StringTree*> > stack;
     stack.push(std::make_pair("", &body));
     while (!stack.empty())
@@ -416,7 +416,7 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
       {
         prefix += prefix.empty() ? "" : "/";
         prefix += cur->readString("name");
-        cur->write("url", datasets->createPublicUrl(prefix));
+        cur->write("url", datasets->createPublicUrl(/*path*/request.url.getPath(), /*dataset name*/prefix));
       }
 
       for (auto child : cur->getChilds())
@@ -837,8 +837,11 @@ NetResponse ModVisus::handleRequest(NetRequest request)
   }
 
   PrintInfo(
-    "request", request.url,
-    "status", response.getStatusDescription(), "body", StringUtils::getStringFromByteSize(response.body ? response.body->c_size() : 0), "msec", t1.elapsedMsec());
+    "handleRequest, sending response",
+    "REQUEST", request.url,
+    "STATUS", response.getStatusDescription(), 
+    "BODY-SIZE", StringUtils::getStringFromByteSize(response.body ? response.body->c_size() : 0), 
+    "MSEC", t1.elapsedMsec());
 
   //add some standard header
   response.setHeader("git_revision", OpenVisus_GIT_REVISION);

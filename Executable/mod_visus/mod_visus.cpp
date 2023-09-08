@@ -244,7 +244,7 @@ public:
     String iis_raw_url(iis_request->pRawUrl);
 
     //filter addresses
-    if (!StringUtils::startsWith(iis_raw_url, "/mod_visus"))
+    if (!StringUtils::contains(iis_raw_url, "mod_visus"))
       return RQ_NOTIFICATION_CONTINUE;
 
     //convert url
@@ -757,8 +757,13 @@ static int MyHookRequest(request_rec *apache_request)
   String client_ip = apache_request->useragent_ip;
   #endif
 
+
+
   //convert apache_request to visus_request
-  NetRequest visus_request("http://localhost/mod_visus?" + String(apache_request->parsed_uri.query));
+  //NOTE: I should not care about the scheme or the port or the hostname
+  NetRequest visus_request(
+    "http://localhost" + String(apache_request->parsed_uri.path) + "?" + String(apache_request->parsed_uri.query)
+  );
 
   apr_table_do(MyFillRequestHeader, &(visus_request.headers), apache_request->headers_in, NULL);    
   NetResponse visus_response=(*module)->handleRequest(visus_request);  
