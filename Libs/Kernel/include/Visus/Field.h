@@ -89,6 +89,13 @@ public:
   //fromString
   static Field fromString(String src);
 
+  //toString
+  String toString() const{
+    Archive ar;
+    ar.writeObject("Field", *this);
+    return ar.toString();
+  }
+
   //valid
   inline bool valid() const{
     return this->dtype.valid();

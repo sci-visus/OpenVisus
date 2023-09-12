@@ -66,14 +66,14 @@ curl  "http://localhost:8080/mod_visus"
 
 # only visus can access admin stuff
 curl -uvisus:visus0 "http://localhost:8080/server-status"
-curl -uaaaaa:aaaaaa "http://localhost:8080/server-status"
+curl -uaaaaa:aaaaa0 "http://localhost:8080/server-status"
 
 # only visus can access the root path "/mod_visus"
 curl -uvisus:visus0 "http://localhost:8080/mod_visus?"
-curl -uaaaaa:aaaaaa "http://localhost:8080/mod_visus?"
+curl -uaaaaa:aaaaa0 "http://localhost:8080/mod_visus?"
 
 curl -uvisus:visus0 "http://localhost:8080/mod_visus?action=list"
-curl -uaaaaa:aaaaaa "http://localhost:8080/mod_visus?action=list"
+curl -uaaaaa:aaaaa0 "http://localhost:8080/mod_visus?action=list"
 
 # any authenticated user can list all datasets (of any user, TODO: fix this)
 curl -uaaaaa:aaaaa0 "http://localhost:8080/aaaaa/mod_visus?action=list"
