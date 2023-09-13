@@ -107,8 +107,13 @@ function ConfigureAndTestCPython() {
 # ///////////////////////////////////////////////
 function DistribToPip() {
   rm -Rf ./dist
-  $PYTHON -m pip install --upgrade pip || true 
-  $PYTHON -m pip install setuptools wheel cryptography==3.4.0 twine || true
+  
+  # this fails a LOT on linux
+  $PYTHON -m pip install --upgrade pip         ||  true 
+  $PYTHON -m pip install setuptools            ||  true
+  $PYTHON -m pip install wheel                 ||  true
+  $PYTHON -m pip install cryptography==3.4.0   ||  true
+  $PYTHON -m pip install twine                 ||  true
   
   PYTHON_TAG=cp$(echo $PYTHON_VERSION | awk -F'.' '{print $1 $2}')
   $PYTHON setup.py -q bdist_wheel --python-tag=$PYTHON_TAG --plat-name=$PIP_PLATFORM
