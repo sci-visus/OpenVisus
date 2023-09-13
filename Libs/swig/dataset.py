@@ -99,6 +99,12 @@ def CreateIdx(**args):
 	if "bounds" in args:
 		idx.bounds=args["bounds"]
 
+	if "physic_box" in args:
+		idx.bounds=Position(args["physic_box"])
+
+	if "axis" in args:
+		idx.axis=args["axis"]
+
 	# am I creating an arco dataset?
 	if "arco" in args:
 		arco=NormalizeArcoArg(args["arco"])

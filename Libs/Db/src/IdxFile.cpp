@@ -383,9 +383,22 @@ String IdxFile::writeToOldFormat() const
   out<<"(version)\n"<<this->version<<"\n";
   out<<"(box)\n"<< this->logic_box.toOldFormatString()<<"\n";
 
-  auto logic_to_physic = Position::computeTransformation(this->bounds,this->logic_box);
+  if (!this->axis.empty())
+    out << "(axis)\n" << this->axis << "\n";
+
+  auto logic_to_physic = Position::computeTransformation(this->bounds, this->logic_box);
   if (!logic_to_physic.isIdentity())
-    out << "(logic_to_physic)\n" << logic_to_physic.toString() << "\n";
+  {
+    if (this->bounds.getTransformation().isOnlyScaleAndTranslate())
+    {
+      auto physic_box = this->bounds.toAxisAlignedBox();
+      out << "(physic_box)\n" << physic_box.toString() << "\n";
+    }
+    else
+    {
+      out << "(logic_to_physic)\n" << logic_to_physic.toString() << "\n";
+    }
+  }
   
   //dump fields
   out<<"(fields)\n";
@@ -470,6 +483,8 @@ String IdxFile::writeToOldFormat() const
   out << "(missing_blocks)\n" << missing_blocks << "\n";
   out << "(arco)\n" << arco << "\n";
 
+
+
   //write other medatata
   for (auto it : this->metadata)
     out << "(" << it.first << ")\n" << it.second<< "\n"; 
@@ -528,29 +543,29 @@ void IdxFile::readFromOldFormat(const String& content)
   //it does not have (version) and first line is (dimensions)
   //it also has (rootpath) and (filepath)
   //my first attempts to enable it didn't work during the read-blocks
-    if (map.hasValue("(dimensions)") && map.hasValue("(filepath)"))
-    {
-      auto dimensions = PointNi::fromString(map.getValue("(dimensions)"));
-      auto boundingbox = BoxNi::fromString(map.getValue("(boundingbox)"));
-      auto samplesize = cint(map.getValue("(samplesize)"));
-      auto samplesperblock = cint(map.getValue("(samplesperblock)"));
-      auto blocksperfile = cint(map.getValue("(blocksperfile)"));
-      auto rootpath = map.getValue("(rootpath)");
-      auto filepath = map.getValue("(filepath)");
-    
-      auto bitsperblock = Utils::getLog2(samplesperblock);
-      auto filename_template = StringUtils::replaceAll(rootpath + "/" + filepath, ":", "");
-      auto field = concatenate("DATA uint8[", samplesize, "] format(0) default_value(0) min(0) max(0)");
-      auto bits = DatasetBitmask::guess('V', dimensions,/*regular_as_soon_as possible*/true); //not sure about this
-    
-      map.setValue("(version)", "1");
-      map.setValue("(box)", boundingbox.toString());
-      map.setValue("(fields)", field);
-      map.setValue("(bits)", bits.toString());
-      map.setValue("(bitsperblock)", cstring(bitsperblock));
-      map.setValue("(blocksperfile)", cstring(blocksperfile));
-      map.setValue("(filename_template)", filename_template);
-    }
+  if (map.hasValue("(dimensions)") && map.hasValue("(filepath)"))
+  {
+    auto dimensions = PointNi::fromString(map.getValue("(dimensions)"));
+    auto boundingbox = BoxNi::fromString(map.getValue("(boundingbox)"));
+    auto samplesize = cint(map.getValue("(samplesize)"));
+    auto samplesperblock = cint(map.getValue("(samplesperblock)"));
+    auto blocksperfile = cint(map.getValue("(blocksperfile)"));
+    auto rootpath = map.getValue("(rootpath)");
+    auto filepath = map.getValue("(filepath)");
+
+    auto bitsperblock = Utils::getLog2(samplesperblock);
+    auto filename_template = StringUtils::replaceAll(rootpath + "/" + filepath, ":", "");
+    auto field = concatenate("DATA uint8[", samplesize, "] format(0) default_value(0) min(0) max(0)");
+    auto bits = DatasetBitmask::guess('V', dimensions,/*regular_as_soon_as possible*/true); //not sure about this
+
+    map.setValue("(version)", "1");
+    map.setValue("(box)", boundingbox.toString());
+    map.setValue("(fields)", field);
+    map.setValue("(bits)", bits.toString());
+    map.setValue("(bitsperblock)", cstring(bitsperblock));
+    map.setValue("(blocksperfile)", cstring(blocksperfile));
+    map.setValue("(filename_template)", filename_template);
+  }
 #endif
 
   this->version = cint(map.getValue("(version)"));
@@ -583,6 +598,13 @@ void IdxFile::readFromOldFormat(const String& content)
   else
   {
     this->bounds = this->logic_box;
+  }
+
+  //for bokeh/python
+  if (map.hasValue("(axis)"))
+  {
+    this->axis = map.getValue("(axis)");
+    map.eraseValue("(axis)");
   }
 
   //parse fields
@@ -618,7 +640,6 @@ void IdxFile::readFromOldFormat(const String& content)
     this->block_interleaving = cint(map.getValue("(interleave block)"));
     map.eraseValue("(interleave block)");
   }
-
 
   if (map.hasValue("(time)"))
   {
@@ -684,8 +705,6 @@ void IdxFile::readFromOldFormat(const String& content)
 
 }
 
-
-
 //////////////////////////////////////////////////////////////////////////////
 void IdxFile::write(Archive& ar) const
 {
@@ -699,11 +718,12 @@ void IdxFile::write(Archive& ar) const
   ar.addChild("missing_blocks")->write("value", missing_blocks);
   ar.addChild("arco")->write("value", arco);
   ar.addChild("time_template")->write("value", time_template);
+  ar.addChild("axis")->write("value", axis);
 
   auto logic_to_physic = Position::computeTransformation(this->bounds, this->logic_box);
   if (logic_to_physic.isIdentity())
     ;
-  else if (logic_to_physic.isOnlyScale())
+  else if (logic_to_physic.isOnlyScaleAndTranslate())
     ar.addChild("physic_box")->write("value", this->bounds.toAxisAlignedBox());
   else
     ar.addChild("logic_to_physic")->write("value", logic_to_physic);
@@ -736,6 +756,7 @@ void IdxFile::read(Archive& ar)
   ar.getChild("missing_blocks")->read("value", missing_blocks);
   ar.getChild("arco")->read("value", arco);
   ar.getChild("time_template")->read("value", time_template);
+  ar.getChild("axis")->read("value", axis);
 
   if (ar.hasAttribute("physic_box"))
   {

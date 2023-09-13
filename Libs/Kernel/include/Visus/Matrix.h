@@ -452,6 +452,36 @@ public:
     return v.back() == 1.0 && Matrix::scale(v.withoutBack()) == (*this);
   }
 
+  //isOnlyScale
+  bool isOnlyScaleAndTranslate() const
+  {
+    //last item of a matrix
+    if (get(dim - 1, dim - 1) != 1.0)
+      return false;
+
+    //last homo row must be all zero
+    int R = dim - 1;
+    for (int C = 0; C < dim - 1; C++) {
+      if (get(R, C) != 0.0)
+        return false;
+    }
+
+    //translation can be anything
+
+    //check if is diagonal
+    for (int R = 0; R < dim - 1; R++)
+    {
+      for (int C = 0; C < dim - 1; C++)
+      {
+        if (R != C && get(R, C) != 0.0)
+          return false;
+      }
+    }
+
+    return true;
+  }
+
+
   // rotate
   static Matrix rotate(int dim, int i, int j, double angle)
   {
