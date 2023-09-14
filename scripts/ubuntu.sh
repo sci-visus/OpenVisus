@@ -110,11 +110,8 @@ function DistribToPip() {
   
   # this fails a LOT on linux
   $PYTHON -m pip install --upgrade pip         ||  true 
-  $PYTHON -m pip install setuptools            ||  true
-  $PYTHON -m pip install wheel                 ||  true
-  $PYTHON -m pip install cryptography==3.4.0   ||  true
-  $PYTHON -m pip install twine                 ||  true
-  
+  $PYTHON -m pip install setuptools==68.2.0 wheel==0.37.0 cryptography==3.4.0 twine==4.0.2 readme-renderer==41.0 ||  true
+
   PYTHON_TAG=cp$(echo $PYTHON_VERSION | awk -F'.' '{print $1 $2}')
   $PYTHON setup.py -q bdist_wheel --python-tag=$PYTHON_TAG --plat-name=$PIP_PLATFORM
   
