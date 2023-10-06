@@ -61,7 +61,9 @@ public:
 
   //guess bitmask for a certain number of samples (will store the result in bitmask)
   //first letter == 'V' | 'F'
-  static DatasetBitmask guess(int first_letter, PointNi dims, bool makeRegularAsSoonAsPossible = true);
+  //scrgiorgio 202311005 changing `makeRegularAsSoonAsPossible` from true to false
+  //           from experience it seeems it is always better to have regular pattern on the left near the V
+  static DatasetBitmask guess(int first_letter, PointNi dims, bool makeRegularAsSoonAsPossible = false);
 
   //invalid
   static DatasetBitmask invalid() {
