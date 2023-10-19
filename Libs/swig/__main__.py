@@ -439,19 +439,20 @@ def Main(args):
 	# DEPRACATED (are we sure?)
 	# -m OpenVisus copy-blocks  --src http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1 --dst D:/tmp/visus.idx   --num-threads 4 --num-read-per-request 256 [--verbose] [--field fieldname]  [--time timestep]
 	if action=="copy-blocks":
-		logger.info(f"copy-blocks action_args={action_args}")
 		parser = argparse.ArgumentParser(description="Copy blocks")
 		parser.add_argument("--src","--source", type=str, help="source", required=True,default="")
 		parser.add_argument("--dst","--destination", type=str, help="destination", required=True,default="") 
 		parser.add_argument("--time", help="time", required=False,default="") 
 		parser.add_argument("--field", help="field"  , required=False,default="") 
 		parser.add_argument("--num-threads", help="number of threads", required=False,type=int, default=4)
-		parser.add_argument("--num-read-per-request", help="number of read block per network request (only for mod_visus)", required=False,type=int, default=256)
+		parser.add_argument("--num-read-per-request", help="number of read block per network request (only for mod_visus)", required=False,type=int, default=16)
 		parser.add_argument("--verbose", help="Verbose", required=False,action='store_true') 
 		args = parser.parse_args(action_args)
 
+
 		db=LoadDataset(args.src)
-		db.copyBlocks(dst=args.dst, time=args.time, field=args.field, num_read_per_request=args.num_read_per_request, verbose=args.verbose)
+		logger.info(f"copy-blocks time={args.time}, field={args.field}, num_threads={args.num_threads} num_read_per_request={args.num_read_per_request}, verbose={args.verbose}")
+		db.copyBlocks(dst=args.dst, time=args.time, field=args.field, num_threads=args.num_threads,num_read_per_request=args.num_read_per_request, verbose=args.verbose)
 		sys.exit(0)
 
 	# NEW: convert-image-stack
