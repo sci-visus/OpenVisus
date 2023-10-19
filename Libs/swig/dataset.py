@@ -5,6 +5,8 @@ import shutil
 
 from OpenVisus import *
 
+from threading import Thread
+
 #in configure step I dont have numpy and skimage yet
 try:
 	import numpy
@@ -109,7 +111,7 @@ def CreateIdx(**args):
 	if "arco" in args:
 		arco=NormalizeArcoArg(args["arco"])
 		idx.arco=arco
-  
+	
 	idx.save(url)
 	db=LoadDataset(url)
 
@@ -133,7 +135,7 @@ class PyDataset(object):
 
 	# __getattr__
 	def __getattr__(self,attr):
-	    return getattr(self.db, attr)	
+		return getattr(self.db, attr)	
 
 	# getPointDim
 	def getPointDim(self):
@@ -628,13 +630,19 @@ class PyDataset(object):
 		self.db=LoadDatasetCpp(url)
 		
 	# copyBlocks
-	def copyBlocks(self, dst, time=None, field=None, num_read_per_request=1, verbose=False):
-	
-		if not os.path.isfile(dst):
-  			dst=IdxFile.clone(src.db.idxfile)
-  			dst.version= 0             # re-validate 
-  			dst.filename_template = "" # re-guess (since the path can be different)
-  			dst.save(filename)
+	def copyBlocks(self, dst, time=None, field=None, num_read_per_request=16, num_threads=4, verbose=False):
+
+		if isinstance(dst,str):
+
+			# create the dataset
+			if not os.path.isfile(dst):
+				idx=IdxFile.clone(self.db.idxfile)
+				idx.version= 0             # re-validate 
+				idx.filename_template = "" # re-guess (since the path can be different)
+				idx.save(dst)
+
+			dst=LoadDataset(dst)
+
 
 		from .convert import CopyBlocks
 		copier=CopyBlocks(self.db, dst,time=time,field=field,num_read_per_request=num_read_per_request, verbose=verbose)
