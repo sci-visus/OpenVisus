@@ -131,7 +131,7 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   //2 ==               write verbose
   this->verbose |= cint(Utils::getEnv("VISUS_VERBOSE_DISKACCESS"));
 
-  this->verbose = 1;
+  //this->verbose = 1;
 
   PrintInfo("Created DiskAccess", "local_idx_filename", local_idx_filename, "filename_template", filename_template, "compression", compression, "bDisableWriteLocks", bDisableWriteLocks);
 }
