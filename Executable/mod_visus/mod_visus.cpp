@@ -41,6 +41,7 @@ For support : support@visus.net
 #endif
 
 #include <Visus/Kernel.h>
+#include <Visus/Utils.h>
 #include <Visus/ModVisus.h>
 #include <Visus/Path.h>
 #include <Visus/Db.h>
@@ -168,6 +169,9 @@ public:
     static String program_name = Path(Utils::getCurrentApplicationFile()).toString();
     static const char* argv[] = { program_name.c_str() , "--visus-config", "/inetpub/wwwroot/visus/visus.config" };
     SetCommandLine(argn, argv);
+
+    //I want to see the logs
+    Utils::setEnv("VISUS_CPP_VERBOSE", "1");
 
 #if VISUS_PYTHON  
     EmbeddedPythonInit();
@@ -617,6 +621,9 @@ public:
     static String program_name = Path(Utils::getCurrentApplicationFile()).toString();
     static const char* argv[] = { program_name.c_str() };
     SetCommandLine(argn, argv);
+
+    //I want to see the logs
+    Utils::setEnv("VISUS_CPP_VERBOSE", "1");
 
 #if VISUS_PYTHON    
     EmbeddedPythonInit();
