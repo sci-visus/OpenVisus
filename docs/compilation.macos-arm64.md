@@ -86,6 +86,8 @@ function compile_cpython() {
   PYTHON_EXE=`which python${PYTHON_VERSION}`
   PYTHON_TAG=cp${PYTHON_VERSION/./}
 
+  ${PYTHON_EXE} -m pip install --user setuptools wheel twine --upgrade 
+
   mkdir -p ${BUILD_DIR}
   pushd ${BUILD_DIR}
 
@@ -109,34 +111,36 @@ function compile_cpython() {
   # GUI VERSION
   pushd ./Release/OpenVisus
   export PYTHONPATH=../
-  python3   -m OpenVisus configure 
-  python3   -m OpenVisus test
-  python3   -m OpenVisus test-gui 
+  ${PYTHON_EXE} -m OpenVisus configure --user
+  ${PYTHON_EXE} -m OpenVisus test
+  ${PYTHON_EXE} -m OpenVisus test-gui 
   unset PYTHONPATH
   rm -Rf ./dist
-  python3 -m pip install setuptools wheel twine --upgrade 
-  python3 setup.py -q bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PYPI_PLATFORM_NAME}
-  python3 -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_TOKEN} --skip-existing   "dist/*.whl" 
+  
+  ${PYTHON_EXE} setup.py -q bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PYPI_PLATFORM_NAME}
+  ${PYTHON_EXE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_TOKEN} --skip-existing "dist/*.whl" 
   popd
 
   # NO GUI VERSION
   mkdir -p Release.nogui
-  cp -R   Release/OpenVisus Release.nogui/OpenVisus
+  cp -R Release/OpenVisus Release.nogui/OpenVisus
   rm -Rf Release.nogui/OpenVisus/QT_VERSION $(find Release.nogui/OpenVisus -iname "*VisusGui*")
   pushd Release.nogui/OpenVisus
   export PYTHONPATH=../
-  python3   -m OpenVisus configure
-  python3   -m OpenVisus test
-  python3   -m OpenVisus test-gui
+  ${PYTHON_EXE} -m OpenVisus configure
+  ${PYTHON_EXE} -m OpenVisus test
+  ${PYTHON_EXE} -m OpenVisus test-gui
   unset PYTHONPATH
   rm -Rf ./dist
-  python3 -m pip install setuptools wheel twine --upgrade 
-  python3 setup.py -q bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PYPI_PLATFORM_NAME}
-  python3 -m twine upload --username "${PYPI_USERNAME}" --password "${PYPI_TOKEN}" --skip-existing   "dist/*.whl" 
+
+  ${PYTHON_EXE} setup.py -q bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PYPI_PLATFORM_NAME}
+  ${PYTHON_EXE} -m twine upload --username "${PYPI_USERNAME}" --password "${PYPI_TOKEN}" --skip-existing "dist/*.whl" 
   popd 
 
   popd
 }
+
+bash
 
 # enable brew
 eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -154,6 +158,9 @@ export CMAKE_OSX_ARCHITECTURES="arm64"
 export CMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX11.3.sdk"
 export QT5_DIR="/opt/homebrew/opt/qt@5/lib/cmake/Qt5"
 
+cd ~/sci-visus/OpenVisus
+rm -Rf ./build-cpython*
+
 compile_cpython 3.8
 compile_cpython 3.9
 compile_cpython 3.10
@@ -162,7 +169,6 @@ compile_cpython 3.12
 ```
 
 # Conda
-
 
 ```bash
 
@@ -237,10 +243,17 @@ export PYPI_PLATFORM_NAME="macosx_11_0_arm64"
 export CMAKE_OSX_ARCHITECTURES="arm64"
 export CMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX11.3.sdk"
 
+rm -Rf ~/miniforge3/envs/my-env*
+
+cd ~/sci-visus/OpenVisus
+rm -Rf ./build-conda*
+
 compile_conda 3.8
 compile_conda 3.9
 compile_conda 3.10
 compile_conda 3.11
+
+# NOT available yet?
 # compile_conda 3.12
 
 ```
