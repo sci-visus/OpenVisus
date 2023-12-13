@@ -3,6 +3,16 @@
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
 
+//scrgiorgio
+//https://www.ultraengine.com/community/topic/59665-freeimage-build-errors/
+#if 1
+    #ifdef __APPLE__
+        #define _LARGEFILE64_SOURCE     /* See feature_test_macros(7) */
+        #include <sys/types.h>
+        #include <unistd.h>
+    #endif
+#endif
+
 #include "gzguts.h"
 
 #if defined(_WIN32) && !defined(__BORLANDC__)
