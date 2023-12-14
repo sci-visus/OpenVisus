@@ -61,6 +61,12 @@ if [[ 1 == 1 ]] ; then
    ${PYTHON_EXE} -m pip install setuptools wheel twine --upgrade 
 fi
 
+#  cjeck python environment
+echo "PYTHON_EXE=${PYTHON_EXE}"
+${PYTHON_EXE} -c "import platform; print(platform.processor())"      # arm
+${PYTHON_EXE} -c "import sysconfig;print(sysconfig.get_platform())"  # macosx-11.0-arm64
+
+
 BUILD_DIR="./build-cpython-${PYTHON_VERSION}"
 mkdir -p ${BUILD_DIR}
 cd ${BUILD_DIR}

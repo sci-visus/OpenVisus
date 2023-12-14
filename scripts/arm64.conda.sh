@@ -3,7 +3,7 @@
 
 set -ex
 
-PYTHON_VERSION=${1:-3.9}
+PYTHON_VERSION=${PYTHON_VERSION:-3.9}
 
 # install a portable SDK (it sems the same used by miniforge and  PyQt5-5.15.10-cp37-abi3-macosx_11_0_arm64.whl)
 if [ ! -d "/tmp/MacOSX-SDKs" ] ; then
@@ -13,6 +13,7 @@ if [ ! -d "/tmp/MacOSX-SDKs" ] ; then
   popd
   sudo ln -s /tmp/MacOSX-SDKs/MacOSX11.3.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
 fi
+export CMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX11.3.sdk"
 
 # install miniforge3 for arm64
 if [ ! -d "${HOME}/miniforge3" ] ; then
@@ -49,18 +50,15 @@ fi
 
 # avoid conflicts with pip packages installed using --user
 # tools to change the RPATH (NOTE: conda tools causing crashes, so using OS tools)
-conda env config vars set PYTHONNOUSERSITE=True
-conda env config vars set INSTALL_NAME_TOOL=/usr/bin/install_name_tool  
-conda env config vars set CODE_SIGN=/usr/bin/codesign
-conda env config vars set PYPI_PLATFORM_NAME="macosx_11_0_arm64" 
-conda env config vars set CMAKE_OSX_ARCHITECTURES="arm64"
-conda env config vars set CMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX11.3.sdk"
+export PYTHONNOUSERSITE=True
+export INSTALL_NAME_TOOL=/usr/bin/install_name_tool  
+export CODE_SIGN=/usr/bin/codesign
+export CMAKE_OSX_ARCHITECTURES="arm64"
 
 # check the environment
-# which python                                                  # /Users/m1/miniforge3/bin/python
-# python -c "import platform; print(platform.processor())"      # arm
-# python -c "import sysconfig;print(sysconfig.get_platform())"  # macosx-11.0-arm64
-
+which python                                                  # /Users/m1/miniforge3/bin/python
+python -c "import platform; print(platform.processor())"      # arm
+python -c "import sysconfig;print(sysconfig.get_platform())"  # macosx-11.0-arm64
 
 BUILD_DIR="./build-conda-${PYTHON_VERSION}"
 # rm -Rf ${BUILD_DIR}
@@ -88,7 +86,7 @@ fi
 # GUI version
 if [[ 1 == 1 ]] ; then
 
-  pushd Release/OpenVisus
+  pushd ./Release/OpenVisus
 
   export PYTHONPATH=$PWD/..
   python -m OpenVisus configure #  add `--dry-run`` to see what's going on
@@ -110,7 +108,7 @@ if [[ 1 == 1 ]] ; then
   cp -R   Release/OpenVisus Release.nogui/OpenVisus
   rm -Rf Release.nogui/OpenVisus/QT_VERSION $(find Release.nogui/OpenVisus -iname "*VisusGui*")
 
-  pushd Release.nogui/OpenVisus
+  pushd ./Release.nogui/OpenVisus
 
   export PYTHONPATH=$PWD/..
   python -m OpenVisus configure
