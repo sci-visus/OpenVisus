@@ -97,7 +97,7 @@ if [[ 1 == 1 ]] ; then
   rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2") || true
   python setup.py -q bdist_conda
   CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2" | head -n 1)
-  anaconda --verbose --show-traceback -t "${ANACONDA_TOKEN}" upload "${CONDA_FILENAME}"
+  anaconda --verbose --show-traceback -t "${ANACONDA_TOKEN}" upload --skip  "${CONDA_FILENAME}"
   
   popd
 fi
@@ -118,7 +118,7 @@ if [[ 1 == 1 ]] ; then
   rm -Rf $(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2") || true
   python setup.py -q bdist_conda 
   CONDA_FILENAME=$(find ${CONDA_PREFIX} -iname "openvisus*.tar.bz2" | head -n 1)
-  anaconda --verbose --show-traceback -t ${ANACONDA_TOKEN} upload ${CONDA_FILENAME}
+  anaconda --verbose --show-traceback -t ${ANACONDA_TOKEN} upload --skip "${CONDA_FILENAME}" 
 
   popd
 fi

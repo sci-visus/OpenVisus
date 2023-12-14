@@ -29,12 +29,12 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # install dependencies
 if [[ 1 == 1 ]] ; then
-   brew install python@${PYTHON_VERSION} swig cmake
+   brew install python@${PYTHON_VERSION} swig cmake || true
 
    # use a virtual environment
    if [[ 1 == 1 ]] ; then
       ENV_NAME=arm64-env-${PYTHON_VERSION}
-      python${PYTHON_VERSION} -m pip install virtualenv
+      python${PYTHON_VERSION} -m pip install virtualenv || true
       python${PYTHON_VERSION} -m venv ${HOME}/cpython/envs/${ENV_NAME}
       source  ${HOME}/cpython/envs/${ENV_NAME}/bin/activate
    fi
