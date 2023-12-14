@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.7', '3.8', '3.9' , '3.10', '3.11', '3.12']
+        python-version: [ '3.8', '3.9' , '3.10', '3.11', '3.12']
     steps:
     - name: git clone OpenVisus
       uses: actions/checkout@v2    
@@ -36,7 +36,7 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.7', '3.8', '3.9', '3.10', '3.11', '3.12' ]
+        python-version: [ '3.8', '3.9', '3.10' ] # TODO: getting conflicts '3.11', '3.12'
     steps:
     - name: git clone OpenVisus
       uses: actions/checkout@v2     
@@ -53,7 +53,7 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.7', '3.8', '3.9' , '3.10', '3.11', '3.12' ]
+        python-version: [ '3.8', '3.9' , '3.10', '3.11', '3.12' ]
     steps:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
@@ -74,7 +74,7 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: [ '3.8', '3.9', '3.10' ] # todo '3.11', '3.12' getting conflicts
     steps:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
@@ -91,7 +91,7 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9', '3.10', '3.11', '3.12' ] # , TODO '3.11' and 3.12 WE DON"T HAVE IT IN THE DOCKER IMAGE
+        python-version: [ '3.6', '3.7', '3.8', '3.9', '3.10'] # , TODO '3.11' and 3.12 WE DON"T HAVE IT IN THE DOCKER IMAGE
     steps:
     - name: git clone OpenVisus
       uses: actions/checkout@v2

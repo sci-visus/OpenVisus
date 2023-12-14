@@ -145,7 +145,7 @@ def Configure():
 	else:
 
 		# install dependencies
-		pip_cmd=[sys.executable,"-m", "pip"] + (["--user"] if user_install else []) + ["install"]
+		pip_cmd=[sys.executable,"-m", "pip", "install"] + (["--user"] if user_install else [])
 
 		ExecuteCommand(pip_cmd + ["--upgrade","pip"], check_result=False, dry_run=dry_run)
 

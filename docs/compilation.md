@@ -7,6 +7,7 @@ Table of content:
 - [Windows compilation using mingw](#windows-compilation-mingw)
 - [MacOSX compilation using clang](#macosx-compilation-clang)
 - [MacOSX compilation using gcc](#macosx-compilation-gcc)
+- [MaxODX compulation arm64](#macosx-compilation-arm64)
 - [Linux compilation using gcc](#linux-compilation-gcc)
 - [Minimal compilation](#minimal-compilation)
 - [Commit tag](#commit-tag)
@@ -181,6 +182,50 @@ python3 -m OpenVisus viewer2
 # OPTIONAL
 python3 -m pip install --upgrade jupyter
 python3 -m jupyter notebook ../Samples/jupyter/Agricolture.ipynb
+```
+
+## MacOSX compilation arm64
+
+
+# Instructions
+
+Create a Silocon M1/M2 machine(e.g.  Scaleway or MacCloud)
+
+- change shell to `bash``
+- setup `id_nsdf`` key (it will be the default `id_rsa`)
+- add the pub key to `~/.ssh/authorized_keys`
+- install xcode
+- Open xcode once from the UI
+
+Create the `~/.bashrc` file with credentials to upload artifacts:
+
+```bash
+export ANACONDA_TOKEN="xxx"
+export PYPI_USERNAME="__token__"
+export PYPI_TOKEN="zzzz" # generate a new token with the name `arm64`
+```
+
+Remove request for sudo password (needed to run cpython script):
+
+```
+sudo visudo
+
+<your-user-name-here> ALL=(ALL) NOPASSWD: ALL
+```
+
+Clone the OpenVisus repo
+
+```bash
+mkdir -p sci-visus
+cd sci-visus
+git clone git clone git@github.com:sci-visus/OpenVisus.git
+cd OpenVisus
+
+git pull
+
+./scripts/arm64.all.sh
+
+
 ```
 
 <!--//////////////////////////////////////////////////////////////////////// -->
