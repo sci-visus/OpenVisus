@@ -6,17 +6,23 @@ try:
 except:
 	pass
 
-PROJECT_VERSION="2.2.127"
+# the following line can be replaced automatically by `NewTag` so be careful not to change its format
+PROJECT_VERSION="2.2.128"
+
+# I can override by env variable
+if "PROJECT_VERSION" in os.environ:
+	PROJECT_VERSION=os.environ("PROJECT_VERSION")
 
 this_dir=os.path.dirname(os.path.abspath(__file__))
 
 # ///////////////////////////////////////////////////////////////
 def NewTag():
-	new_version=PROJECT_VERSION.split(".")
+	old_version=PROJECT_VERSION
+	new_version=old_version.split(".")
 	new_version[2]=str(int(new_version[2])+1)
 	new_version=".".join(new_version)
 	with open(__file__, 'r') as file : content = file.read()
-	content = content.replace('PROJECT_VERSION="{0}"'.format(PROJECT_VERSION), 'PROJECT_VERSION="{0}"'.format(new_version))
+	content = content.replace(f'PROJECT_VERSION="{old_version}"', f'PROJECT_VERSION="{new_version}"')
 	with open(__file__, 'w') as file: file.write(content)		
 	print(new_version)
 

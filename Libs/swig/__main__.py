@@ -15,159 +15,183 @@ APPLE=platform.system()=="Darwin"
 LINUX=not (WIN32 or APPLE)
 
 # /////////////////////////////////////////////////////////////////////////
-def ReadTextFile(filename):
-	file = open(filename, "r") 
-	ret=file.read().strip()
-	file.close()
-	return ret
-	
-# /////////////////////////////////////////////////////////////////////////
-def GetFilenameWithoutExtension(filename):
-	return os.path.splitext(os.path.basename(filename))[0]
-
-# /////////////////////////////////////////////////////////////////////////
-def GetCommandOutput(cmd,shell=False):
-	print("Executing command", cmd)
-	output=subprocess.check_output(cmd, shell = shell, universal_newlines=True)
-	return output.strip()
-
-# /////////////////////////////////////////////////////////////////////////
-def ExecuteCommand(cmd,shell=False,check_result=False):	
-	print("Executing command", cmd)
+def ExecuteCommand(cmd,shell=False,check_result=False, dry_run=False):	
+	print(" ".join(cmd))
+	if dry_run: return
 	if check_result:
 		return subprocess.check_call(cmd, shell=shell)
 	else:
 		return subprocess.call(cmd, shell=shell)
 
+
 # ////////////////////////////////////////////////
-def Configure(bUserInstall=False):
+"""
+This configure step is the most buggy OpenVisus code.
+Since OpenVisus viewer needs C++ Qt, I will try here to `replace` C++ Qt with PyQt5
+but this has issue regarding portability on different platforms (Windows,Linux,OSX) and python versions (cpython, conda)
+It should work in theory, but combinations are huge and a simple change in python version or PyQt version is a nightmare
 
-	"""
-	This configure step is the most buggy OpenVisus code.
-	Since OpenVisus viewer needs C++ Qt, I will try here to `replace` C++ Qt with PyQt5
-	but this has issue regarding portability on different platforms (Windows,Linux,OSX) and python versions (cpython, conda)
-	It should work in theory, but combinations are huge and a simple change in python version or PyQt version is a nightmare
+To check if the software has been linking right:
 
-	To check if the software has been linking right:
+Linux:
+	readelf -d bin/visus
+	QT_DEBUG_PLUGINS=1 LD_DEBUG=libs,files  ./visusviewer.sh
+	LD_DEBUG=libs,files ldd bin/visus
 
-	Linux:
-		readelf -d bin/visus
-		QT_DEBUG_PLUGINS=1 LD_DEBUG=libs,files  ./visusviewer.sh
-		LD_DEBUG=libs,files ldd bin/visus
+OSX:
+	otool -L libname.dylib
+	otool -l libVisusGui.dylib  | grep -i "rpath"
+	DYLD_PRINT_LIBRARIES=1 QT_DEBUG_PLUGINS=1 visusviewer.app/Contents/MacOS/visusviewer
+"""
 
-	OSX:
-		otool -L libname.dylib
-		otool -l libVisusGui.dylib  | grep -i "rpath"
-		DYLD_PRINT_LIBRARIES=1 QT_DEBUG_PLUGINS=1 visusviewer.app/Contents/MacOS/visusviewer
-	"""
+def Configure():
 
-	def SetRPath(filename,value):
-	
-		if APPLE:
+	# for macos arm64
+	INSTALL_NAME_TOOL = os.environ.get("INSTALL_NAME_TOOL","install_name_tool")
+	CODE_SIGN         = os.environ.get("CODE_SIGN",None)
 
-			def GetRPaths(filename):
-				try:
-					lines  = GetCommandOutput("otool -l '%s' | grep -A2 LC_RPATH | grep path " % filename, shell=True).splitlines()
-				except:
-					return []
-				
-				path_re = re.compile("^\s*path (.*) \(offset \d*\)$")
-				return [path_re.search(line).group(1).strip() for line in lines]
-			
-			for it in GetRPaths(filename):
-				ExecuteCommand(["install_name_tool","-delete_rpath",it, filename])
-	
-			for it in value.split(":"):
-				ExecuteCommand(["install_name_tool","-add_rpath", it, filename])
-			
-			print(filename,GetRPaths(filename))
+	# /////////////////////////////////////////////////////////////////////////
+	def GetFilenameWithoutExtension(filename):
+		return os.path.splitext(os.path.basename(filename))[0]
 
-		else:
-			ExecuteCommand(["patchelf","--set-rpath",value, filename])			
-				
-	def ExtractDeps(filename):
+	# /////////////////////////////////////////////////////////////////////////
+	def ReadTextFile(filename):
+		file = open(filename, "r") 
+		ret=file.read().strip()
+		file.close()
+		return ret
+
+	# /////////////////////////////////////////////////////////////////////////
+	def GetCommandOutput(cmd,shell=False):
+		# print("# GetCommandOutput", cmd)
+		output=subprocess.check_output(cmd, shell = shell, universal_newlines=True)
+		return output.strip()
+
+	# ////////////////////////////////////////////////
+	def MacOsExtractDeps(filename):
 		output=GetCommandOutput(['otool', '-L' , filename])
 		deps=[line.strip().split(' ', 1)[0].strip() for line in output.split('\n')[1:]]
 		deps=[dep for dep in deps if os.path.basename(filename)!=os.path.basename(dep)] # remove any reference to myself
 		return deps
-	
-	def ShowDeps(all_bins):
+
+	# ////////////////////////////////////////////////
+	def MacOsShowDeps(all_bins):
 		all_deps={}
 		for filename in all_bins:
-			for dep in ExtractDeps(filename):
+			for dep in MacOsExtractDeps(filename):
 				all_deps[dep]=1
 		all_deps=list(all_deps)
 		all_deps.sort()	
-	
-		print("\nAll dependencies....")
-		for filename in all_deps:
-			print(filename)	
-	
-	IS_CONDA = True if "USE_CONDA" in os.environ and os.environ["USE_CONDA"] == "1" else False # os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history')) # see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
-	IS_CPYTHON = not IS_CONDA
-	CONDA_PREFIX=os.environ['CONDA_PREFIX'] if IS_CONDA else ""		
-	VISUS_GUI=os.path.isfile("QT_VERSION")
-	QT_VERSION=ReadTextFile("QT_VERSION") if VISUS_GUI else ""
-	QT_MAJOR_VERSION,QT_MINOR_VERSION=QT_VERSION.split('.')[0:2] if VISUS_GUI else ("","")
-	NUMPY_VERSION=os.environ.get("NUMPY_VERSION",None)
-	
-	print("sys.executable",sys.executable,"VISUS_GUI",VISUS_GUI, "QT_VERSION", QT_VERSION, "IS_CONDA", IS_CONDA, "CONDA_PREFIX",CONDA_PREFIX)
 
+		print("\n")
+		print("# Final  dependencies (you shuold see no absolute deps)....")
+		for filename in all_deps:
+			print(f"#   {filename}")	
+
+	# ////////////////////////////////////////////////
+	def MacOsGetRPaths(filename):
+		try:
+			lines  = GetCommandOutput("otool -l '%s' | grep -A2 LC_RPATH | grep path " % filename, shell=True).splitlines()
+		except:
+			return []
+		
+		path_re = re.compile("^\s*path (.*) \(offset \d*\)$")
+		return [path_re.search(line).group(1).strip() for line in lines]
+
+	# ////////////////////////////////////////////////
+	def MacOsSetRPath(filename, value, dry_run=False):
+
+		for it in MacOsGetRPaths(filename):
+			ExecuteCommand([INSTALL_NAME_TOOL,"-delete_rpath",it, filename], dry_run=dry_run)
+
+		for it in value.split(":"):
+			ExecuteCommand([INSTALL_NAME_TOOL,"-add_rpath", it, filename], dry_run=dry_run)
+		
+
+	user_install="--user"    in sys.argv
+	dry_run     ="--dry-run" in sys.argv
+
+	# _____________________________________________________
+	VISUS_GUI=os.path.isfile("QT_VERSION")
+	if VISUS_GUI:
+		QT_VERSION=ReadTextFile("QT_VERSION")
+		QT_MAJOR_VERSION,QT_MINOR_VERSION=QT_VERSION.split('.')[0:2]
+		print(f"# VISUS_GUI={VISUS_GUI} QT_VERSION={QT_VERSION} QT_MAJOR_VERSION={QT_MAJOR_VERSION} QT_MINOR_VERSION={QT_MINOR_VERSION}")
+	
+	# _____________________________________________________
+	# see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
+	IS_CONDA = os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history'))
 	if IS_CONDA:
+		CONDA_PREFIX=os.environ['CONDA_PREFIX']
+		print(f"# IS_CONDA={IS_CONDA} CONDA_PREFIX={CONDA_PREFIX}")
+
+		# install dependencies
 		cmd=['install', '-y', '-c', 'conda-forge', 'numpy']
-		if VISUS_GUI:
-			cmd+=[f"pyqt={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}"]
-			if LINUX: cmd+=["libglu"]
+		cmd+=[f"pyqt={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}"] if VISUS_GUI else ""
+		cmd+=["libglu"] if LINUX else ""
 
 		# for conda
 		try:# I am specifying the version because any greater version fails on my Docker portable virtual env
-
 			import conda.cli 
 		except:
 			pass
 
-		conda.cli.main(*cmd)
-		print("OPENVISUS WARNING", "if you get errors like:  module compiled against API version 0xc but this version of numpy is 0xa, then execute","conda update -y numpy")
+		# print("# OPENVISUS WARNING", "if you get errors like:  module compiled against API version 0xc but this version of numpy is 0xa, then execute","conda update -y numpy")
+		if dry_run:
+			ExecuteCommand(["conda"] + cmd, dry_run=dry_run)
+		else:
+			conda.cli.main(*cmd)
 
 	else:
 
-		def ExecutePipCommand(*args):
-			ExecuteCommand([sys.executable,"-m", "pip"] + (["--user"] if bUserInstall else []) + list(args), check_result=False)
-		
-		ExecutePipCommand("install","--upgrade","pip")
-		ExecutePipCommand("install",f"numpy=={NUMPY_VERSION}" if NUMPY_VERSION is not None else "numpy")
+		# install dependencies
+		pip_cmd=[sys.executable,"-m", "pip", "install"] + (["--user"] if user_install else [])
+
+		ExecuteCommand(pip_cmd + ["--upgrade","pip"], check_result=False, dry_run=dry_run)
+
+		# for some environment I need to stick with a specific version
+		NUMPY_VERSION=os.environ.get("NUMPY_VERSION",None)
+		ExecuteCommand(pip_cmd + [f"numpy=={NUMPY_VERSION}" if NUMPY_VERSION else "numpy"], check_result=False, dry_run=dry_run)
 
 		 # False since it fails a lot !
 		if VISUS_GUI:
-			ExecutePipCommand("install",f"PyQt5~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", f"PyQtWebEngine~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", f"PyQt5-sip")
+			ExecuteCommand(pip_cmd + [f"PyQt5~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", f"PyQtWebEngine~={QT_MAJOR_VERSION}.{QT_MINOR_VERSION}.0", f"PyQt5-sip"], check_result=False, dry_run=dry_run)
 		
-	# *** fix rpath ****
+	# _____________________________________________________
 	# on windows it's enough to use sys.path (see *.i %pythonbegin section)
 	# i don't have any RPATH way of modifying DLLs
 	if WIN32:
 		return
 
-	# find Qt5 directory
-	QT_LIB_DIR=""
+	# _____________________________________________________
 	if VISUS_GUI:
+		
+		# find PyQt5
 		PyQt5_HOME=GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.dirname(PyQt5.__file__))"]).strip() # this should cover the case where I just installed PyQt5
-		print("PyQt5_HOME",PyQt5_HOME)
+		print(f"# Found PyQt5_HOME={PyQt5_HOME}")
 		Assert(os.path.isdir(PyQt5_HOME))
 
-		if IS_CONDA:
-			QT_LIB_DIR="{}/lib".format(CONDA_PREFIX)
+		# find Qt5 directory
+		QT_LIB_DIR=os.environ.get("QT_LIB_DIR","")
 
-		elif os.path.isdir(os.path.join(PyQt5_HOME,'Qt5/lib')):
-			QT_LIB_DIR=os.path.join(PyQt5_HOME,'Qt5/lib')
+		if not QT_LIB_DIR:
 
-		elif os.path.isdir(os.path.join(PyQt5_HOME,'Qt/lib')):
-			QT_LIB_DIR=os.path.join(PyQt5_HOME,'Qt/lib')
-		else:
-			raise Exception("cannot find QT_LIB_DIR")
+			if IS_CONDA:
+				QT_LIB_DIR="{}/lib".format(CONDA_PREFIX)
 
-		print("QT_LIB_DIR",QT_LIB_DIR)
+			elif os.path.isdir(os.path.join(PyQt5_HOME,'Qt5/lib')):
+				QT_LIB_DIR=os.path.join(PyQt5_HOME,'Qt5/lib')
+
+			elif os.path.isdir(os.path.join(PyQt5_HOME,'Qt/lib')):
+				QT_LIB_DIR=os.path.join(PyQt5_HOME,'Qt/lib')
+			else:
+				raise Exception("cannot find QT_LIB_DIR")
+
+			print(f"# FOUND QT_LIB_DIR={QT_LIB_DIR}")
+
 		Assert(os.path.isdir(QT_LIB_DIR))
 
+	# _____________________________________________________
 	if APPLE:
 		dylibs=glob.glob("bin/*.dylib")
 		so=glob.glob("*.so")
@@ -176,34 +200,47 @@ def Configure(bUserInstall=False):
 			
 		# remove any reference to absolute Qt (it happens with brew which has absolute path), make it relocable with rpath as is in PyQt5
 		for filename in all_bins:
-			print("# FIXING",filename)
-			if QT_VERSION:
+			print("\n# fixing",filename)
+			print(f"# OLD rpaths for {filename} value={MacOsGetRPaths(filename)}")
+			
+			if VISUS_GUI:
+
 				# example .../libQt5*.dylib -> @rpath/libQt5*.dylib
 				if IS_CONDA:
 					for Old in GetCommandOutput("otool -L %s | grep '.*/libQt5.*\.dylib' | awk '{print $1;}'" % filename, shell=True).splitlines():
 						New="@rpath/libQt5" + Old.split("libQt5", 1)[1]
-						ExecuteCommand(["install_name_tool","-change", Old, New, filename])
+						if Old!=New:
+							ExecuteCommand([INSTALL_NAME_TOOL,"-change", Old, New, filename], dry_run=dry_run)
+				
 				# eample ../Qt*.framework -> @rpath/Qt*.framework
 				else:
 					for Old in GetCommandOutput("otool -L %s | grep '.*/Qt.*\.framework' | awk '{print $1;}'" % filename, shell=True).splitlines():
 						New="@rpath/Qt" + Old.split("/Qt", 1)[1]
-						ExecuteCommand(["install_name_tool","-change", Old, New, filename])	
+						if Old!=New:
+							ExecuteCommand([INSTALL_NAME_TOOL,"-change", Old, New, filename], dry_run=dry_run)	
 			rpath=""
 			rpath+="@loader_path/"
 			rpath+=":@loader_path/../../../" if filename in apps else ":@loader_path/bin"
 			rpath+=":" + QT_LIB_DIR if VISUS_GUI else ""
-			SetRPath(filename, rpath)
-		ShowDeps(all_bins)
+			MacOsSetRPath(filename, rpath, dry_run=dry_run)
+
+			if CODE_SIGN:
+				ExecuteCommand([CODE_SIGN,"--force", "-s", "-", filename], dry_run=dry_run)
+
+			print(f"# NEW rpaths for {filename} value={MacOsGetRPaths(filename)}")
+
+		MacOsShowDeps(all_bins)
 		return
 				
+	# _____________________________________________________
 	if LINUX:
 		for filename in glob.glob("*.so") + glob.glob("bin/*.so") + ["bin/visus","bin/visusviewer"]:
 			if not os.path.isfile(filename): continue
 			rpath=""
 			rpath+="$ORIGIN"
 			rpath+=":$ORIGIN/bin"
-			rpath+=":" + QT_LIB_DIR if VISUS_GUI else ""
-			SetRPath(filename,rpath)
+			rpath+=f":{QT_LIB_DIR}" if VISUS_GUI else ""
+			ExecuteCommand(["patchelf","--set-rpath",rpath, filename], dry_run=dry_run)
 		return
 
 
@@ -395,11 +432,12 @@ def Main(args):
 	action=args[0].lower()
 	action_args=args[1:]
 
-	print("-m OpenVisus",action,action_args)
+	print(f"\n# OpenVisus Main")
+	print(f"# {sys.executable }-m OpenVisus",action,action_args)
 
 	if action=="configure":
 		os.chdir(this_dir)
-		Configure(bUserInstall="--user" in action_args)
+		Configure()
 		print(action,"done")
 		sys.exit(0)
 
@@ -652,7 +690,6 @@ def Main(args):
 		sys.exit(0)
 
 	raise Exception("unknown action",action)
-
 
 
 # //////////////////////////////////////////

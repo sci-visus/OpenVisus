@@ -5,6 +5,18 @@
 
 #include "gzguts.h"
 
+
+//scrgiorgio
+//https://www.ultraengine.com/community/topic/59665-freeimage-build-errors/
+#if 1
+    #ifdef __APPLE__
+        #define _LARGEFILE64_SOURCE     /* See feature_test_macros(7) */
+        #include <sys/types.h>
+        #include <unistd.h>
+    #endif
+#endif
+
+
 /* Local functions */
 local int gz_init OF((gz_statep));
 local int gz_comp OF((gz_statep, int));
