@@ -40,6 +40,8 @@
 //
 //-----------------------------------------------------------------------------
 
+#include <functional>
+
 #include <ImfAttribute.h>
 #include "IlmThreadMutex.h"
 #include "Iex.h"
