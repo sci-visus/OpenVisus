@@ -517,6 +517,7 @@ SharedPtr<IdxFilter> Dataset::createFilter(const Field& field)
   {
     if (field.dtype.isVectorOf(DTypes::UINT8  )) return std::make_shared< Private::IdentityFilter<Uint8  > >(this,field);
     if (field.dtype.isVectorOf(DTypes::UINT16 )) return std::make_shared< Private::IdentityFilter<Uint16 > >(this,field);
+    if (field.dtype.isVectorOf(DTypes::INT64  )) return std::make_shared< Private::IdentityFilter<Int64  > >(this,field);
     if (field.dtype.isVectorOf(DTypes::FLOAT32)) return std::make_shared< Private::IdentityFilter<Float32> >(this,field);
     if (field.dtype.isVectorOf(DTypes::FLOAT64)) return std::make_shared< Private::IdentityFilter<Float64> >(this,field);
   }
@@ -525,6 +526,7 @@ SharedPtr<IdxFilter> Dataset::createFilter(const Field& field)
   {
     if (field.dtype.isVectorOf(DTypes::UINT8  )) return std::make_shared< Private::MinFilter<Uint8  > >(this,field);
     if (field.dtype.isVectorOf(DTypes::UINT16 )) return std::make_shared< Private::MinFilter<Uint16 > >(this,field);
+    if (field.dtype.isVectorOf(DTypes::INT64  )) return std::make_shared< Private::MinFilter<Int64  > >(this,field);
     if (field.dtype.isVectorOf(DTypes::FLOAT32)) return std::make_shared< Private::MinFilter<Float32> >(this,field);
     if (field.dtype.isVectorOf(DTypes::FLOAT64)) return std::make_shared< Private::MinFilter<Float64> >(this,field);
   }
@@ -533,6 +535,7 @@ SharedPtr<IdxFilter> Dataset::createFilter(const Field& field)
   {
     if (field.dtype.isVectorOf(DTypes::UINT8  )) return std::make_shared< Private::MaxFilter<Uint8  > >(this,field);
     if (field.dtype.isVectorOf(DTypes::UINT16 )) return std::make_shared< Private::MaxFilter<Uint16 > >(this,field);
+    if (field.dtype.isVectorOf(DTypes::INT64  )) return std::make_shared< Private::MaxFilter<Int64  > >(this,field);
     if (field.dtype.isVectorOf(DTypes::FLOAT32)) return std::make_shared< Private::MaxFilter<Float32> >(this,field);
     if (field.dtype.isVectorOf(DTypes::FLOAT64)) return std::make_shared< Private::MaxFilter<Float64> >(this,field);
   }

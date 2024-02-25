@@ -2219,6 +2219,7 @@ void Dataset::computeFilter(const Field& field, int window_size, bool bVerbose)
     PrintInfo("starting filter computation...");
 
   auto filter = createFilter(field);
+  VisusReleaseAssert(filter);
 
   //the filter will be applied using this sliding window
   PointNi sliding_box = PointNi::one(getPointDim());
