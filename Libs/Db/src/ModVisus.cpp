@@ -546,6 +546,8 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
 {
+  NetResponse response(HttpStatus::STATUS_OK);
+
   auto dataset_name = request.url.getParam("dataset");
 
   auto datasets = getDatasets();
@@ -638,6 +640,16 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
         tf->setUserRange(Range(palette_min, palette_max, 0));
         tf->setNormalizationMode(TransferFunction::UserRange);
         tf->endTransaction();
+
+        //for debugging
+        response.setHeader("visus-source-dtype", buffer.dtype.toString());
+        response.setHeader("visus-palette-min", cstring(palette_min));
+        response.setHeader("visus-palette-max", cstring(palette_max));
+        if (buffer.dtype.ncomponents() == 1)
+        {
+          Range r = ArrayUtils::computeRange(buffer, 0);
+          response.setHeader("visus-source-range", cstring(r.from, r.to));
+        }
       }
 
       buffer = tf->applyToArray(buffer);
@@ -674,7 +686,7 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
   }
   
 
-  NetResponse response(HttpStatus::STATUS_OK);
+  
   if (!response.setArrayBody(compression, buffer))
     return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "NetResponse encodeBuffer failed");
 

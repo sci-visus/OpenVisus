@@ -223,23 +223,37 @@ struct ApplyTransferFunctionOp
     if (!dst.resize(src.dims, DType(ND, DTypes::UINT8), __FILE__, __LINE__))
       return false;
 
-    for (int I = 0; I < ND; I++)
+    for (int C = 0; C < ND; C++)
     {
-      auto D = I < ND ? I : ND - 1; auto DST = GetComponentSamples<Uint8  >(dst, D);
-      auto S = I < NS ? I : NS - 1; auto SRC = GetComponentSamples<SrcType>(src, S);
+      auto D = C < ND ? C : ND - 1; auto DST = GetComponentSamples<Uint8  >(dst, D);
+      auto S = C < NS ? C : NS - 1; auto SRC = GetComponentSamples<SrcType>(src, S);
 
       auto input_range = TransferFunction::ComputeRange(src, S,/*bNormalizeToFloat*/false, tf.getNormalizationMode(), tf.getUserRange());
       double A = input_range.from;
       double B = input_range.to;
 
-      VisusReleaseAssert(I>=0 && I<4);
-      auto f = tf.getFunctions()[I];
-      for (Int64 I = 0, Tot= src.getTotalNumberOfSamples(); I < Tot; I++)
+      
+
+      VisusReleaseAssert(C >=0 && C <4);
+      auto f = tf.getFunctions()[C];
+      for (Int64 K = 0, Tot= src.getTotalNumberOfSamples(); K < Tot; K++)
       {
         if (aborted())  return false;
-        double x = (SRC[I] - A) / (B - A);
+
+#if 1
+        //scrgiorgio 12 Apr 2024
+        //e.g. float32 to uint8[4] for alpha channel preservation
+        //     (this is done automatically on GPU)
+        if (NS == 1 && ND == 4 && C == 3 && !(SRC[K] >= A && SRC[K] <= B))
+        {
+          DST[K] = (Uint8)0; //alpha set to zero
+          continue;
+        }
+#endif
+
+        double x = (SRC[K] - A) / (B - A);
         double y = f->getValue(x);
-        DST[I] = (Uint8)Utils::clamp((Uint8)(y*255.0), (Uint8)0, (Uint8)255);
+        DST[K] = (Uint8)Utils::clamp((Uint8)(y*255.0), (Uint8)0, (Uint8)255);
       }
     }
 
