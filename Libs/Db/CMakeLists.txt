@@ -50,7 +50,7 @@ if (VISUS_IDX2)
 	target_compile_definitions(VisusDb PUBLIC -DVISUS_IDX2=1)
 
 	# https://stackoverflow.com/questions/40515557/compilation-error-on-clock-gettime-and-clock-monotonic
-	target_compile_definitions(VisusDb PRIVATE -D_POSIX_C_SOURCE 199309L)
+	target_compile_definitions(VisusDb PRIVATE -D_POSIX_C_SOURCE=199309L)
 
 	# enable AVX2 platform
 	target_compile_definitions(VisusDb PRIVATE -Didx2_Avx2)

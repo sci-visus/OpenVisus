@@ -54,6 +54,13 @@ For support : support@visus.net
 
 #include <Visus/Kernel.h>
 
+
+#ifndef SWIG_Python_str_DelForPy3
+/* Was useful for Python 3.0.x-3.2.x - now provided only for compatibility
+ * with any uses in user interface files. */
+#define SWIG_Python_str_DelForPy3(x)
+#endif
+
 static String convertToString(PyObject* value)
 {
     if (!value) return "";
