@@ -90,7 +90,6 @@ if [[ "1" == "1" ]]; then
     -DVISUS_GUI=$VISUS_GUI \
     -DVISUS_SLAM=$VISUS_SLAM \
     -DVISUS_MODVISUS=$VISUS_MODVISUS \
-    -DVISUS_IDX2=1 \
     ../
   cmake --build . --target ALL_BUILD --config Release --parallel 4
   cmake --build . --target install	 --config Release 

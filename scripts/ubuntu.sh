@@ -170,7 +170,6 @@ if [[ "1" == "1" ]]; then
     -DVISUS_GUI=${VISUS_GUI} \
     -DVISUS_MODVISUS=${VISUS_MODVISUS} \
     -DVISUS_SLAM=${VISUS_SLAM} \
-    -DVISUS_IDX2=1 \
     ../
   make -j
   make install

@@ -151,6 +151,9 @@ VISUS_KERNEL_API inline String     cstring(Int64   v)            { return std::t
 VISUS_KERNEL_API inline String     cstring(Uint64  v)            { return std::to_string(v); }
 VISUS_KERNEL_API inline String     cstring(const String& value)  { return value; }
 VISUS_KERNEL_API inline String     cstring(const char* value)    { return String(value); }
+
+
+VISUS_KERNEL_API inline String     cstring(const long int v)     { return std::to_string(v); }
   
 #if !defined(_WIN32)
   VISUS_KERNEL_API inline String   cstring(size_t v)             { return std::to_string(v); }

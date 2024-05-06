@@ -78,7 +78,6 @@ if [[ 1 == 1 ]] ; then
     -DVISUS_SLAM=0 \
     -DVISUS_MODVISUS=0 \
     -DVISUS_IMAGE=0 \
-    -DVISUS_IDX2=1 \
     ../
 
   cmake --build . --target ALL_BUILD --config Release
