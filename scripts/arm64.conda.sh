@@ -67,6 +67,9 @@ cd ${BUILD_DIR}
 
 if [[ 1 == 1 ]] ; then
 
+  # IDX2
+  git submodule update --recursive
+
   cmake  \
     -GXcode \
     -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES} \
@@ -77,6 +80,7 @@ if [[ 1 == 1 ]] ; then
     -DVISUS_SLAM=0 \
     -DVISUS_MODVISUS=0 \
     -DVISUS_IMAGE=0 \
+    -DVISUS_IDX2=1 \
     ../
 
   cmake --build . --target ALL_BUILD --config Release

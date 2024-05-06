@@ -160,11 +160,21 @@ if [[ "1" == "1" ]]; then
   if [[ "${ARCHITECTURE}" == "aarch64" ]] ; then PIP_PLATFORM=manylinux2014_${ARCHITECTURE} ; fi
 fi
 
+# IDX2
+git submodule update --recursive
+
 # compile OpenVisus
 if [[ "1" == "1" ]]; then
   mkdir -p ${BUILD_DIR} 
   cd ${BUILD_DIR}
-  cmake -DPython_EXECUTABLE=${PYTHON} -DQt5_DIR=${Qt5_DIR} -DVISUS_GUI=${VISUS_GUI} -DVISUS_MODVISUS=${VISUS_MODVISUS} -DVISUS_SLAM=${VISUS_SLAM} ../
+  cmake \
+    -DPython_EXECUTABLE=${PYTHON} \
+    -DQt5_DIR=${Qt5_DIR} \
+    -DVISUS_GUI=${VISUS_GUI} \
+    -DVISUS_MODVISUS=${VISUS_MODVISUS} \
+    -DVISUS_SLAM=${VISUS_SLAM} \
+    -DVISUS_IDX2=1 \
+    ../
   make -j
   make install
 fi

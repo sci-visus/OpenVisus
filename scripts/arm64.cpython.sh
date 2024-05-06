@@ -74,6 +74,9 @@ cd ${BUILD_DIR}
 # compile openvisus
 if [[ 1 == 1 ]] ; then
 
+   # IDX2
+   git submodule update --recursive
+
    cmake \
       -GXcode \
       -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES} \
@@ -83,6 +86,7 @@ if [[ 1 == 1 ]] ; then
       -DVISUS_GUI=1 \
       -DVISUS_SLAM=0 \
       -DVISUS_MODVISUS=0 \
+      -DVISUS_IDX2=1 \
       ../
    
    cmake --build . --target ALL_BUILD --config Release 

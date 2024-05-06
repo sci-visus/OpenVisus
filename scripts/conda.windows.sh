@@ -69,6 +69,10 @@ fi
 
 # compile openvisus
 if [[ "1" == "1" ]]; then
+
+    # IDX2
+    git submodule update --recursive
+
     BUILD_DIR=build_windows_conda
     mkdir -p ${BUILD_DIR} 
     cd ${BUILD_DIR}
@@ -79,6 +83,7 @@ if [[ "1" == "1" ]]; then
         -DVISUS_GUI=${VISUS_GUI} \
         -DVISUS_SLAM=${VISUS_SLAM} \
         -DVISUS_MODVISUS=${VISUS_MODVISUS} \
+        -DVISUS_IDX2=1 \
         ../ 
     cmake --build . --target ALL_BUILD --config Release --parallel 8
     cmake --build . --target install   --config Release
