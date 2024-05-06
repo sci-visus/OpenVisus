@@ -144,17 +144,6 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # must be before PROJECT command
 SET(MSVC_INCREMENTAL_DEFAULT OFF) 
 
-
-option(VISUS_MINIMAL      "Enable VISUS_MINIMAL"   OFF)
-
-
-# this must be before project
-if (VISUS_MINIMAL)
-	MESSAGE(STATUS "Forcing static linking on MSVC")
-	SET(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-endif()
-
-
 PROJECT(OpenVisus) 
 
 # todo this default for linux too
@@ -182,21 +171,6 @@ option(VISUS_HDF5         "Enable VISUS_HDF5"      OFF)
 option(VISUS_WEAVING      "Enable VISUS_WEAVING"   OFF)
 option(VISUS_IDX2         "Enable VISUS_IDX2"      ON) # 20240506 scrgiorgio: changing default to ON
 
-if (VISUS_MINIMAL)
-	SET(BUILD_SHARED_LIBS OFF CACHE BOOL "disabled" FORCE)
-	SET(VISUS_NET         OFF CACHE BOOL "disabled" FORCE)
-	SET(VISUS_IMAGE       OFF CACHE BOOL "disabled" FORCE)
-	SET(VISUS_DATAFLOW    OFF CACHE BOOL "disabled" FORCE)
-	SET(VISUS_PYTHON      OFF CACHE BOOL "disabled" FORCE)
-	SET(VISUS_GUI         OFF CACHE BOOL "disabled" FORCE)
-	SET(VISUS_MODVISUS    OFF CACHE BOOL "disabled" FORCE)
-	SET(VISUS_SLAM        OFF CACHE BOOL "disabled" FORCE)
-	SET(VISUS_OSPRAY      OFF CACHE BOOL "disabled" FORCE)
-	SET(VISUS_HDF5        OFF CACHE BOOL "disabled" FORCE)
-	SET(VISUS_WEAVING     OFF CACHE BOOL "disabled" FORCE)
-	SET(VISUS_IDX2        OFF CACHE BOOL "disabled" FORCE)
-endif()
-	
 MESSAGE(STATUS "BUILD_SHARED_LIBS  ${BUILD_SHARED_LIBS}")
 MESSAGE(STATUS "VISUS_NET          ${VISUS_NET}")
 MESSAGE(STATUS "VISUS_IMAGE        ${VISUS_IMAGE}")
@@ -239,10 +213,8 @@ endif()
 
 add_subdirectory(ExternalLibs)
 add_subdirectory(Libs)
+add_subdirectory(Executable)
 
-if (NOT VISUS_MINIMAL)
-	add_subdirectory(Executable)
-endif()
 
 # ///////////////////////////////////////////////////////////////////////////
 # install step (NOTE: there is no need to install binaries/libraries since they are already in correct position)

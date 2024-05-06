@@ -73,7 +73,7 @@ if [[ "1" == "1" ]]; then
     BUILD_DIR=build_windows_conda
     mkdir -p ${BUILD_DIR} 
     cd ${BUILD_DIR}
-    cmake -G "Visual Studio 16 2019" -A x64 \
+    cmake -G "Visual Studio 17 2022" -A x64 \
         -DQt5_DIR=${CONDA_PREFIX}/Library/lib/cmake/Qt5 \
         -DSWIG_EXECUTABLE=$(which swig) \
         -DPython_EXECUTABLE=${PYTHON} \

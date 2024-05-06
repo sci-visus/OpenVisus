@@ -37,7 +37,7 @@ git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 mkdir build
 cd build
-cmake -G "Visual Studio 16 2019" -A "x64" -DQt5_DIR=%Qt5_DIR% -DPython_EXECUTABLE=%Python_EXECUTABLE% ../ 
+cmake -G "Visual Studio 17 2022" -A "x64" -DQt5_DIR=%Qt5_DIR% -DPython_EXECUTABLE=%Python_EXECUTABLE% ../ 
 cmake --build . --target ALL_BUILD --config Release
 cmake --build . --target INSTALL   --config Release
 
@@ -46,38 +46,6 @@ python -m OpenVisus configure --user
 python -m OpenVisus viewer
 ```
 
-
-<!--//////////////////////////////////////////////////////////////////////// -->
-## Windows compilation mingw
-
-
-
-Install prerequisites. The fastest way is to use `chocolatey`:
-
-```
-choco install -y git cmake mingw
-```
-
-To compile OpenVisus (change the paths as needed):
-
-```
-git clone https://github.com/sci-visus/OpenVisus
-cd OpenVisus
-
-mkdir build_gcc
-cd build_gcc
-
-set PATH=%PATH%;C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin
-
-# NOTE: only VISUS_MINIMAL is supported.
-cmake -G "MinGW Makefiles" -DVISUS_MINIMAL=1 ../ 
-cmake --build . --target all       --config Release
-cmake --build . --target install   --config Release
-
-set PYTHON_PATH=.\Release
-python -m OpenVisus configure --user
-python -m OpenVisus viewer
-```
 
 
 <!--//////////////////////////////////////////////////////////////////////// -->
@@ -287,98 +255,6 @@ If you want to test the viewer:
 PYTHONPATH=$(pwd)/Release python3 -m OpenVisus configure --user # configure is needed to install PyQt5
 PYTHONPATH=$(pwd)/Release python3 -m OpenVisus viewer
 ```
-
-
-<!--//////////////////////////////d////////////////////////////////////////// -->
-## Minimal compilation
-
-Minimal compilation disable 
-
-- Image support
-- Network support
-- Python supports
-
-it enables only minimal IDX read/write operations.
-
-For Windows/Visual Studio:
-
-```
-mkdir build && cd build
-cmake -G "Visual Studio 16 2019" -A "x64" -DVISUS_MINIMAL=1 ../ 
-cmake --build . --target ALL_BUILD --config Release
-cmake --build . --target INSTALL   --config Release
-```
-
-For Windows/mingw
-
-```
-choco install -y mingw
-set PATH=%PATH%;C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin
-mkdir build && cd build
-cmake -G "MinGW Makefiles" -DVISUS_MINIMAL=1 ../ 
-cmake --build . --target all       --config Release
-cmake --build . --target install   --config Release
-```
-
-For Apple/Xcode
-
-```
-mkdir build  && cd build
-cmake -GXcode -DVISUS_MINIMAL=1 ../
-cmake --build ./ --target ALL_BUILD --config Release --parallel 4
-cmake --build ./ --target install   --config Release
-```
-
-For Apple/gcc:
-
-```
-
-brew install gcc
-export CC=cc-9
-export CXX=g++-9
-mkdir build && cd build
-cmake -G"Unix Makefiles" -DVISUS_MINIMAL=1 ../
-make -j 
-make install
-```
-
-
-For Linux/gcc:
-
-```
-mkdir build && cd build
-cmake -DVISUS_MINIMAL ../
-make -j
-make install
-```
-
-
-To use the VisusMinimal you can create a Makefile (change as needed):
-
-```
-CXX=g++-9 -std=c++11
-
-OpenVisus_DIR=build/Release/OpenVisus
-
-CXX_FLAGS=\
-	-I$(OpenVisus_DIR)/include/Db \
-	-I$(OpenVisus_DIR)/include/Kernel \
-	-DVISUS_STATIC_LIB=1 
-
-main: main.o
-	$(CXX) -o $@ $< -L${OpenVisus_DIR}/lib -lVisusKernel VisusDb
- 
-main.o: main.cpp 
-	$(CXX) $(CXX_FLAGS) -c -o $@ $< 
-
-clean:
-	rm -f  main main.o
-
-.PHONY: clean
-```
-
-If you don't want to use C++11 because you have an old compiler (like C++98) see Executable/use_minimal directory
-which use exclusively a `Visus/Minimal.h` header.
 
 
 <!--//////////////////////////////////////////////////////////////////////// -->

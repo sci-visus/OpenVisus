@@ -98,7 +98,7 @@ Run cmake and Configure/Generate/Configure/Generate as usual (**change values as
 
 -   Where the source code: `D:/hdf5`
 -   Where to build the binaries `D:/hdf5/build`
--   Compiler: `Visual Studio 16 2019`
+-   Compiler: `Visual Studio 17 2022`
 -   Platform: `x64`
 -   Change the `CMAKE_INSTALL_PREFIX` to `d:/hdf5/install`
 
