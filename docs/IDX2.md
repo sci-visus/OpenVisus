@@ -10,7 +10,15 @@ and the 'AVX2' architecture, so binary packages DO NOT CONTAIN IDX2.
 
 If you want to enable IDX2 inside OpenVisus you need to manually compile binaries:
 
-Make sure you have the IDX2 submodule. , and set VISUS_IDX2 to "ON" in CMake
+Make sure you have the IDX2 submodule:
+
+```bash
+[submodule "Libs/IDX2"]
+        path = Libs/IDX2
+        url = https://github.com/sci-visus/idx2.git
+```
+
+and set `VISUS_IDX2` to "ON" in CMake
 
 
 # Familiarize with OpenVisus
@@ -49,7 +57,7 @@ Then test using one-chunk per file (useful for CloudAccess, DiskAccess):
 - you will see a lot of files, one per block/chunk
 
 ```
-set VISUS_USE_IDX2_FILE_FORMAT=
+set VISUS_USE_IDX2_FILE_FORMAT=0
 rmdir /S /Q MIRANDA
 visus.exe idx2 --encode MIRANDA-DENSITY-.384-384-256.-Float64.raw --name Miranda --field Density --dims  384 384 256 --type float64 --tolerance 1e-16 --num_levels 2 --out_dir .
 visus.exe idx2 --decode Miranda/Density.idx2 --downsampling 1 1 1 --tolerance 0.001 --out_file test.raw
