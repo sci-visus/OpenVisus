@@ -44,10 +44,17 @@ DumpText(cstr FileName, i Begin, i End, cstr Format);
 #define idx2_FTell _ftelli64
 #elif defined(__CYGWIN__) || defined(__linux__) || defined(__APPLE__)
 #define _FILE_OFFSET_BITS 64
-#define idx2_FSeek fseeko
-#define idx2_FTell ftello
+
+//scrgiorgio rever (dows not work on APPLE)
+if defined(__APPLE__)
+  #define idx2_FSeek fseek
+  #define idx2_FTell ftell
+#else
+  #define idx2_FSeek fseeko
+  #define idx2_FTell ftello
 #endif
 
+#endif
 
 
 namespace idx2

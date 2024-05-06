@@ -58,7 +58,6 @@ inline String cstring(PyObject* value)
   PyObject* py_str = PyObject_Str(value);
   const char* tmp = py_str ? PyUnicode_AsUTF8(py_str) : nullptr;
   String ret = tmp ? tmp : "";
-  SWIG_Python_str_DelForPy3(tmp);
   Py_DECREF(py_str);
   return ret;
 }

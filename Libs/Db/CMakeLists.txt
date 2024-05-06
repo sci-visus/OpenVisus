@@ -55,9 +55,6 @@ if (VISUS_IDX2)
 	# enable AVX2 platform
 	target_compile_definitions(VisusDb PRIVATE -Didx2_Avx2)
 
-	#  DISABLED for now
-	# target_compile_definitions(VisusDb PRIVATE -Didx2_Parallel_Decode=1)
-
 	# enable assert in debug mode
 	target_compile_definitions(VisusDb PRIVATE "$<$<CONFIG:DEBUG>:idx2_Slow>") 
 	target_include_directories(VisusDb PRIVATE ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/stla)
