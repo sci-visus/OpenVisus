@@ -121,7 +121,8 @@ bool IdxDataset2::setBoxQueryEndResolution(SharedPtr<BoxQuery> query, int H)
   //I just need to know the Grid
   idx2::idx2_file Idx2;
   DoAtExit do_at_exit([&]() {idx2::Dealloc(&Idx2); });
-  idx2::InitFromBuffer(&Idx2, P, idx2::buffer((const idx2::byte*)this->metafile.c_str(), this->metafile.size()));
+  idx2::buffer my_buffer((const idx2::byte*)this->metafile.c_str(), this->metafile.size());
+  idx2::InitFromBuffer(&Idx2, P, my_buffer);
   idx2::grid OutGrid = idx2::GetGrid(Idx2, P.DecodeExtent);
   idx2::v3i from = idx2::From(OutGrid);
   idx2::v3i dims = idx2::Dims(OutGrid);
@@ -336,7 +337,9 @@ bool IdxDataset2::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> 
   GetDecodeParams(P, query, query->end_resolution);
 
   idx2::idx2_file Idx2; DoAtExit do_at_exit([&]() {idx2::Dealloc(&Idx2); });
-  idx2::InitFromBuffer(&Idx2, P, idx2::buffer((const idx2::byte*)this->metafile.c_str(), this->metafile.size()));
+
+  idx2::buffer my_buffer((const idx2::byte*)this->metafile.c_str(), this->metafile.size());
+  idx2::InitFromBuffer(&Idx2, P, my_buffer);
 
   //in OpenVisus by default I use IDX1 format
   if (!this->useIdx2FileFormat())
@@ -372,7 +375,8 @@ void IdxDataset2::readDatasetFromArchive(Archive& ar)
 
   this->metafile = Utils::loadTextDocument(url);
   VisusReleaseAssert(!metafile.empty());
-  VisusReleaseAssert(idx2::ReadMetaFileFromBuffer(&Idx2, idx2::buffer((const idx2::byte*)metafile.c_str(), metafile.size())));
+  idx2::buffer my_buffer((const idx2::byte*)metafile.c_str(), metafile.size());
+  VisusReleaseAssert(idx2::ReadMetaFileFromBuffer(&Idx2, my_buffer));
 
   DType dtype;
   if      (Idx2.DType == idx2::dtype::float32) dtype = DTypes::FLOAT32;
