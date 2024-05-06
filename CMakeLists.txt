@@ -180,7 +180,7 @@ option(VISUS_OSPRAY       "Enable VISUS_OSPRAY"    ${VISUS_DEFAULT_OSPRAY})
 option(VISUS_MODVISUS     "Enable VISUS_MODVISUS"  OFF)
 option(VISUS_HDF5         "Enable VISUS_HDF5"      OFF)
 option(VISUS_WEAVING      "Enable VISUS_WEAVING"   OFF)
-option(VISUS_IDX2         "Enable VISUS_IDX2"      OFF)
+option(VISUS_IDX2         "Enable VISUS_IDX2"      ON) # 20240506 scrgiorgio: changing default to ON
 
 if (VISUS_MINIMAL)
 	SET(BUILD_SHARED_LIBS OFF CACHE BOOL "disabled" FORCE)
