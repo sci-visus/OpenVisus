@@ -67,8 +67,6 @@ cd ${BUILD_DIR}
 
 if [[ 1 == 1 ]] ; then
 
-  # IDX2
-  git submodule update --recursive
 
   cmake  \
     -GXcode \

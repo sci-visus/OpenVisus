@@ -160,9 +160,6 @@ if [[ "1" == "1" ]]; then
   if [[ "${ARCHITECTURE}" == "aarch64" ]] ; then PIP_PLATFORM=manylinux2014_${ARCHITECTURE} ; fi
 fi
 
-# IDX2
-git submodule update --recursive
-
 # compile OpenVisus
 if [[ "1" == "1" ]]; then
   mkdir -p ${BUILD_DIR} 
@@ -196,9 +193,10 @@ fi
 
 # /////////////////////////////////////////////////////////////////////////
 # *** conda ***
+# scrgiorgio: disabled on linux for now, getting `ImportError: /lib64/libc.so.6: version `GLIBC_2.14' not found1
 # /////////////////////////////////////////////////////////////////////////
 
-# scrgiorgio: disabled on linux for now, getting `ImportError: /lib64/libc.so.6: version `GLIBC_2.14' not found1
+
 
 # install conda
 # if [[ "1" == "1" ]]; then

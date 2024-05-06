@@ -1,0 +1,15 @@
+.ccls-cache
+.idea
+.vscode
+.vs
+*.o
+*.exe
+*.pdb
+*.dll
+*.swp
+*.raw
+bin
+build
+build-linux
+cmake-build-*
+CMakeFiles

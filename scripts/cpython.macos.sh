@@ -74,9 +74,6 @@ fi
 # compile openvisus
 if [[ "1" == "1" ]]; then
 
-	# IDX2
-	git submodule update --recursive
-
 	mkdir -p ${BUILD_DIR} 
 	cd ${BUILD_DIR}
 	cmake \
