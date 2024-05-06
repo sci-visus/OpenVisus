@@ -45,14 +45,14 @@ DumpText(cstr FileName, i Begin, i End, cstr Format);
 #elif defined(__CYGWIN__) || defined(__linux__) || defined(__APPLE__)
 #define _FILE_OFFSET_BITS 64
 
-//scrgiorgio rever (dows not work on APPLE)
-if defined(__APPLE__)
-  #define idx2_FSeek fseek
-  #define idx2_FTell ftell
-#else
-  #define idx2_FSeek fseeko
-  #define idx2_FTell ftello
-#endif
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+#define idx2_FSeek fseeko
+#define idx2_FTell ftello
 
 #endif
 
