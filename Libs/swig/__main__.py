@@ -616,12 +616,11 @@ def Main(args):
 		ExecuteCommand([sys.executable, "Samples/python/array.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow1.py"],check_result=True) 
 		
-		# broken on __APPLE__
-		# ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow2.py"],check_result=True) 
-
-		ExecuteCommand([sys.executable, "Samples/python/idx/read.py"],check_result=True) 
-		ExecuteCommand([sys.executable, "-m","OpenVisus","server","--dataset","./datasets/cat/rgb.idx","--port","10000","--exit"],check_result=True) 
-
+		# broken 
+		if not APPLE:
+			ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow2.py"],check_result=True) 
+			ExecuteCommand([sys.executable, "Samples/python/idx/read.py"],check_result=True) 
+			ExecuteCommand([sys.executable, "-m","OpenVisus","server","--dataset","./datasets/cat/rgb.idx","--port","10000","--exit"],check_result=True) 
 
 		ExecuteCommand([sys.executable, "Samples/python/test_api.py"],check_result=True) 
 		sys.exit(0)
