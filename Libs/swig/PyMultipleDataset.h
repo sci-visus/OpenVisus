@@ -51,14 +51,12 @@ For support : support@visus.net
 
 namespace Visus {
 
-
-inline String cstring(PyObject* value)
+inline String convertToString(PyObject* value)
 {
   if (!value) return "";
   PyObject* py_str = PyObject_Str(value);
-  auto tmp = SWIG_Python_str_AsChar(py_str);
+  const char* tmp = py_str ? PyUnicode_AsUTF8(py_str) : nullptr; //cit "The caller is not responsible for deallocating the buffer."
   String ret = tmp ? tmp : "";
-  SWIG_Python_str_DelForPy3(tmp);
   Py_DECREF(py_str);
   return ret;
 }
