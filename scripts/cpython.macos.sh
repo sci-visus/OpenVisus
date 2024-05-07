@@ -73,6 +73,7 @@ fi
 
 # compile openvisus
 if [[ "1" == "1" ]]; then
+
 	mkdir -p ${BUILD_DIR} 
 	cd ${BUILD_DIR}
 	cmake \

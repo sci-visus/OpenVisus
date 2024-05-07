@@ -78,6 +78,7 @@ fi
 
 # compile openvisus
 if [[ "1" == "1" ]]; then
+
   BUILD_DIR=build_macos_conda
   mkdir -p ${BUILD_DIR} 
   cd ${BUILD_DIR}

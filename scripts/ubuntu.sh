@@ -164,7 +164,13 @@ fi
 if [[ "1" == "1" ]]; then
   mkdir -p ${BUILD_DIR} 
   cd ${BUILD_DIR}
-  cmake -DPython_EXECUTABLE=${PYTHON} -DQt5_DIR=${Qt5_DIR} -DVISUS_GUI=${VISUS_GUI} -DVISUS_MODVISUS=${VISUS_MODVISUS} -DVISUS_SLAM=${VISUS_SLAM} ../
+  cmake \
+    -DPython_EXECUTABLE=${PYTHON} \
+    -DQt5_DIR=${Qt5_DIR} \
+    -DVISUS_GUI=${VISUS_GUI} \
+    -DVISUS_MODVISUS=${VISUS_MODVISUS} \
+    -DVISUS_SLAM=${VISUS_SLAM} \
+    ../
   make -j
   make install
 fi
@@ -186,9 +192,10 @@ fi
 
 # /////////////////////////////////////////////////////////////////////////
 # *** conda ***
+# scrgiorgio: disabled on linux for now, getting `ImportError: /lib64/libc.so.6: version `GLIBC_2.14' not found1
 # /////////////////////////////////////////////////////////////////////////
 
-# scrgiorgio: disabled on linux for now, getting `ImportError: /lib64/libc.so.6: version `GLIBC_2.14' not found1
+
 
 # install conda
 # if [[ "1" == "1" ]]; then

@@ -24,11 +24,12 @@ source_group("Samples\\cpp" FILES ${TutorialSources})
 # NOTE: I am not using the IDX2 original CMakeList.txt so I have more "freedom" to change stuff
 #       but if anything is going to change in IDX, you MUST keep this up-to-date
 if (VISUS_IDX2)
-	
-	FILE(GLOB        Idx2Sources  ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/*.h ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/*.cpp
-		                          ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/idx2.h   ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/idx2.cpp
-								  ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Applications/idx2App.cpp # IDX2 does not support dynamic libraries, so I am compiling here
-								  )
+	FILE(GLOB Idx2Sources  
+		${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/*.h ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/*.cpp
+		${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/idx2.h   
+		${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/idx2.cpp
+		${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Applications/idx2App.cpp # IDX2 does not support dynamic libraries, so I am compiling here
+	)
 	list(REMOVE_ITEM Idx2Sources  ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/Core.cpp)
 	source_group("Idx2" FILES ${Idx2Sources})
 endif()
@@ -46,20 +47,36 @@ target_include_directories(VisusDb PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOUR
 # NOTE: I am not using the IDX2 original CMakeList.txt so I have more "freedom" to change stuff
 #       but if anything is going to change in IDX, you MUST keep this up-to-date
 if (VISUS_IDX2)
-	target_compile_features(VisusDb PUBLIC cxx_std_17) # PROBLEM here: do we really need C++17?
+
+	# some code needs C++17
+	target_compile_features(VisusDb PUBLIC cxx_std_17) 
+
+	# enable idx2
 	target_compile_definitions(VisusDb PUBLIC -DVISUS_IDX2=1)
+
+	# enable AVX2 platform
 	target_compile_definitions(VisusDb PRIVATE -Didx2_Avx2)
 
-	# target_compile_definitions(VisusDb PRIVATE -Didx2_Parallel_Decode=1) DISABLED for now
-	target_compile_definitions(VisusDb PRIVATE "$<$<CONFIG:DEBUG>:idx2_Slow>")
-	target_include_directories(VisusDb PRIVATE ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source ${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/stla)
+	# less precise but more portable clock functions
+	target_compile_definitions(VisusDb PRIVATE -Didx2_CTimer)
+	
+	# enable assert in debug mode
+	target_compile_definitions(VisusDb PRIVATE "$<$<CONFIG:DEBUG>:idx2_Slow>") 
+	
+	# includes
+	target_include_directories(VisusDb PRIVATE 
+		${CMAKE_SOURCE_DIR}/Libs/IDX2/Source 
+		${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/stla)
 
+	# enable AVX2
 	if (MSVC)
 		target_compile_definitions(VisusDb PRIVATE -D_CRT_SECURE_NO_WARNINGS  -DNOMINMAX)
 		target_compile_options(VisusDb PRIVATE /arch:AVX2 /Zc:preprocessor /Zc:__cplusplus /wd5105)
 		target_link_options(VisusDb PRIVATE dbghelp.lib)
-	elseif (UNIX)
+	elseif (CLANG)
 		target_compile_options(VisusDb PRIVATE -Wno-format-zero-length -mavx2)
+	else()
+		target_compile_options(VisusDb PRIVATE -Wno-format-zero-length -march=core-avx2)
 	endif()
 endif()
 
