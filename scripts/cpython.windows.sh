@@ -18,7 +18,7 @@ GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
 function InstallSwig() {
 	mkdir -p /tmp
 	pushd /tmp
-	__filename=https://cfhcable.dl.sourceforge.net/project/swig/swigwin/swigwin-4.0.2/swigwin-4.0.2.zip
+	__filename=http://prdownloads.sourceforge.net/swig/swigwin-4.0.2.zip
 	curl -L --insecure  -O ${__filename} || \
 	curl -L --insecure  -O ${__filename} 
 	unzip -q swigwin-4.0.2.zip
