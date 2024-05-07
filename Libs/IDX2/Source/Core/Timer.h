@@ -49,7 +49,7 @@ ElapsedTime(timer* Timer)
 {
   auto End = clock();
   auto Seconds = (double)(End - Timer->Start) / CLOCKS_PER_SEC;
-  return Seconds * 1e9;
+  return i64(Seconds * 1e9); //nanoseconds
 }
 
 
@@ -102,7 +102,6 @@ ElapsedTime(timer* Timer)
 } // namespace idx2
 
 #elif defined(__CYGWIN__) || defined(__linux__) || defined(__APPLE__)
-#define _POSIX_C_SOURCE 199309L
 #include <time.h>
 
 namespace idx2

@@ -861,6 +861,9 @@ TraverseHierarchy(u64 TraverseOrder,
       idx2_PropagateIfError(Callback(Top));
     }
   }
+
+  //scrgiorgio
+  return idx2_Error(idx2_err_code::NoError);
 }
 
 
