@@ -43,8 +43,7 @@ macro(DetectAndSetupCompiler)
 
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 	set(CMAKE_CXX_STANDARD_REQUIRED     ON)
-	
-	set(CMAKE_CXX_STANDARD 11)
+	set(CMAKE_CXX_STANDARD 17) # 17 is needed for VISUS_IDX2
 	
 	#minimum support is Vista
 	if (MINGW)
