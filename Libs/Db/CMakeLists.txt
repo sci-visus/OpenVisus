@@ -48,6 +48,9 @@ target_include_directories(VisusDb PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOUR
 #       but if anything is going to change in IDX, you MUST keep this up-to-date
 if (VISUS_IDX2)
 
+	# some code needs C++17
+	target_compile_features(VisusDb PRIVATE cxx_std_17)
+
 	# enable idx2
 	target_compile_definitions(VisusDb PUBLIC -DVISUS_IDX2=1)
 
