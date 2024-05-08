@@ -861,6 +861,8 @@ TraverseHierarchy(u64 TraverseOrder,
       idx2_PropagateIfError(Callback(Top));
     }
   }
+
+  return idx2_Error(idx2_err_code::NoError);
 }
 
 
