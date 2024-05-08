@@ -169,7 +169,7 @@ option(VISUS_OSPRAY       "Enable VISUS_OSPRAY"    ${VISUS_DEFAULT_OSPRAY})
 option(VISUS_MODVISUS     "Enable VISUS_MODVISUS"  OFF)
 option(VISUS_HDF5         "Enable VISUS_HDF5"      OFF)
 option(VISUS_WEAVING      "Enable VISUS_WEAVING"   OFF)
-option(VISUS_IDX2         "Enable VISUS_IDX2"      OFF) 
+option(VISUS_IDX2         "Enable VISUS_IDX2"      ON) # enabled by default in may 2024 
 
 MESSAGE(STATUS "BUILD_SHARED_LIBS  ${BUILD_SHARED_LIBS}")
 MESSAGE(STATUS "VISUS_NET          ${VISUS_NET}")
