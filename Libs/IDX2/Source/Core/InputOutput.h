@@ -47,7 +47,7 @@ DumpText(cstr FileName, i Begin, i End, cstr Format);
 #elif defined(__CYGWIN__) || defined(__linux__) || defined(__APPLE__)
   #define _FILE_OFFSET_BITS 64
 
-  #if defined (__APPLE__) -
+  #if defined (__APPLE__)
     #define idx2_FSeek fseek 
     #define idx2_FTell ftell
   #else
