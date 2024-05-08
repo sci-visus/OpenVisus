@@ -51,15 +51,7 @@ For support : support@visus.net
 
 namespace Visus {
 
-inline String convertToString(PyObject* value)
-{
-  if (!value) return "";
-  PyObject* py_str = PyObject_Str(value);
-  const char* tmp = py_str ? PyUnicode_AsUTF8(py_str) : nullptr; //cit "The caller is not responsible for deallocating the buffer."
-  String ret = tmp ? tmp : "";
-  Py_DECREF(py_str);
-  return ret;
-}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 class ScopedAcquireGil
@@ -199,6 +191,17 @@ public:
 
 private:
 
+  static String convertToString(PyObject* value)
+  {
+    if (!value) return "";
+    PyObject* py_str = PyObject_Str(value);
+    const char* tmp = py_str ? PyUnicode_AsUTF8(py_str) : nullptr; //cit "The caller is not responsible for deallocating the buffer."
+    String ret = tmp ? tmp : "";
+    Py_DECREF(py_str);
+    return ret;
+  }
+
+
   //getPythonErrorMessage
   static String getPythonErrorMessage()
   {
@@ -212,7 +215,7 @@ private:
 
     std::ostringstream out;
 
-    out << "Python error: " << cstring(type) << " " << cstring(value) << " ";
+    out << "Python error: " << convertToString(type) << " " << convertToString(value) << " ";
 
     auto module_name = PyString_FromString("traceback");
     auto module = PyImport_Import(module_name);
@@ -223,7 +226,7 @@ private:
     {
       if (auto descr = PyObject_CallFunctionObjArgs(fn, type, value, traceback, NULL))
       {
-        out << cstring(descr);
+        out << convertToString(descr);
         Py_DECREF(descr);
       }
     }
@@ -433,7 +436,7 @@ private:
       VisusAssert(PyTuple_Check(args));
       VisusAssert(PyTuple_Size(args) == 1);
       auto arg0 = PyTuple_GetItem(args, 0); VisusAssert(arg0);//borrowed
-      auto expr = cstring(arg0); VisusAssert(!expr.empty());
+      auto expr = convertToString(arg0); VisusAssert(!expr.empty());
       if (!getattr) {
         PyErr_SetString(PyExc_SystemError, "getattr is null");
         return (PyObject*)nullptr;

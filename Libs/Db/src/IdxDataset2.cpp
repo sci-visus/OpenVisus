@@ -342,7 +342,7 @@ bool IdxDataset2::executeBoxQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> 
   idx2::InitFromBuffer(&Idx2, P, my_buffer);
 
   //in OpenVisus by default I use IDX1 format
-  if (!this->useIdx2FileFormat())
+  if (!this->useLegacyFileFormat())
     enableExternalRead(Idx2, access, query->aborted);
 
   auto query_buffer = idx2::buffer((const idx2::byte*)query->buffer.c_ptr(), query->buffer.c_size());
@@ -408,6 +408,8 @@ void IdxDataset2::readDatasetFromArchive(Archive& ar)
 #endif
 
   setDatasetBody(ar);
+
+  PrintInfo(idx1.toString());
   setDefaultAccuracy(0.01);
 }
 

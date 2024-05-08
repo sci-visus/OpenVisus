@@ -103,15 +103,15 @@ public:
     return "IdxDataset2";
   }
   
-  //VISUS_USE_IDX2_FILE_FORMAT
-  static bool VISUS_USE_IDX2_FILE_FORMAT() {
-    return cbool(Utils::getEnv("VISUS_USE_IDX2_FILE_FORMAT", "0"));
+  //UseLegacyFileFormat
+  static bool UseLegacyFileFormat() {
+    return cbool(Utils::getEnv("VISUS_IDX2_USE_LEGACY_FILE_FORMAT", "0"));
   }
 
-  //disableExternalAccess
-  bool useIdx2FileFormat() const {
+  //useLegacyFileFormat
+  bool useLegacyFileFormat() const {
     Url url = this->getUrl();
-    return IdxDataset2::VISUS_USE_IDX2_FILE_FORMAT() || cbool(url.getParam("VISUS_USE_IDX2_FILE_FORMAT", "0"));
+    return IdxDataset2::UseLegacyFileFormat() || cbool(url.getParam("legacy", "0"));
   }
 
 public:

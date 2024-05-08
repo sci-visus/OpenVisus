@@ -7,16 +7,18 @@ import skimage
 # /////////////////////////////////////////////////////////////
 if __name__=="__main__":
 
-	in_filename,W,H,D,dtype=sys.argv[1:]
-	W,H,D=[int(it) for it in (W,H,D)]
-	data = np.fromfile(in_filename, dtype=dtype).reshape((D, H, H))
+	filename,W,H,D,dtype,prefix=sys.argv[1:]
+	shape=list(reversed([int(it) for it in (W,H,D)]))
+	print(f"filename={filename} dtype={dtype} shape={shape} prefix={prefix}")
+	data = np.fromfile(filename, dtype=dtype).reshape(shape)
 
-	# remap to 0,1
+	# remap to 0,1 and write as uuint8
 	m,M=np.min(data),np.max(data) 
 	print("m",m,"M",M)
 	data=(data-m)/(M-m)
 	
-	for Z in range(D):
-		out_filename=os.path.splitext(in_filename)[0]+f".{Z:03d}.png"
+	os.makedirs(prefix,exist_ok=True)
+	for Z in range(data.shape[0]):
+		out_filename=f"{prefix}/{Z:03d}.png"
 		imageio.imwrite(out_filename, skimage.img_as_ubyte(data[Z,:,:]))
 		print("wrote",out_filename)

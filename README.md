@@ -110,6 +110,87 @@ Convert to using a proxy:
 
 - [docs/connect-proxy.md](./docs/connect-proxy.md).
 
-Enable IDX2:
+## VISUS_IDX2
 
-- [docs/IDX2.md](./docs/IDX2.md).
+Links:
+- https://github.com/sci-visus/idx2.git
+
+
+if you are debugging in Windows (change as needed):
+
+```bash
+SET PATH=%PATH%;C:\Python310;C:\Python310\Lib\site-packages\PyQt5\Qt\bin;c:\projects\OpenVisus\build\RelWithDebInfo\OpenVisus\bin
+SET VISUS_VERBOSE_DISKACCESS=0
+SET VISUS_CPP_VERBOSE=0
+```
+
+Download a test file from here:
+
+```bash
+curl -L https://github.com/sci-visus/OpenVisus/releases/download/files/MIRANDA-DENSITY-.384-384-256.-Float64.raw -O
+python.exe Samples/python/extract_slices.py MIRANDA-DENSITY-.384-384-256.-Float64.raw  384 384 256 float64 ./tmp/input
+```
+
+Test pure IDX2, with IDX2 legacy file format (not cachable, not cloud-ready)
+
+```bash
+set VISUS_IDX2_USE_LEGACY_FILE_FORMAT=1
+
+# this will create 
+#    `tmp/legagy/Miranda/Density.idx` 
+#    `tmp/legacy/Miranda/Density/L00.bin`
+
+rmdir /S /Q tmp\legacy
+visus.exe idx2 --encode "MIRANDA-DENSITY-.384-384-256.-Float64.raw" --name Miranda --field Density --dims 384 384 256 --type float64 --tolerance 1e-16 --num_levels 2 --out_dir tmp/legacy
+
+# this will extract some data from the IDX2 file and `L*.bin` files
+#   NOTE the dimension are 1+value/2
+cd tmp\legacy
+visus.exe idx2 --decode Miranda/Density.idx2 --downsampling 1 1 1 --tolerance 0.001 --out_file "output.legacy.raw"
+python.exe ../../Samples/python/extract_slices.py output.legacy.raw 193 193 129 float64 ./decoded
+
+cd ..
+
+unset VISUS_IDX2_USE_LEGACY_FILE_FORMAT
+```
+
+Then test using one-chunk per file (useful for CloudAccess, DiskAccess etc):
+- you will see a lot of files, one per block/chunk
+- probably blocks are too small
+
+```bash
+
+# this will create 
+#    `tmp/arco/Miranda/Density.idx` and 
+#    `tmp/arco/Miranda/Density/0==<timestep>/Density==<fieldname>/0000/0000/0000/0000.bin`
+
+rmdir /S /Q tmp\arco
+visus.exe idx2 --encode MIRANDA-DENSITY-.384-384-256.-Float64.raw --name Miranda --field Density --dims  384 384 256 --type float64 --tolerance 1e-16 --num_levels 2 --out_dir tmp/arco
+
+# NOTE: don't need to compress since the compression/decompression is really the IDX encoding/decoding
+# in fact you will see blocks of different sizes
+
+# export the output (NOTE the dimension are 1+value/2)
+#   NOTE the dimension are 1+value/2
+cd tmp\arco
+visus.exe idx2  --decode "Miranda\Density.idx2" --downsampling 1 1 1 --tolerance 0.001 --out_file output.arco.raw
+python.exe ../../Samples/python/extract_slices.py output.arco.raw 193 193 129 float64 ./decoded
+cd ..\..
+
+# (OPTIONAL) if you want the data on the cloud
+#   e.g.  s3://utah/idx2/Miranda/Density.idx2
+#   e.g.  s3://utah/idx2/Miranda/Density/0/Density/0000/0000/0000/0000.bin
+aws s3 --profile sealstorage --no-verify-ssl sync ./tmp/arco/Miranda s3://utah/idx2/Miranda/
+```
+
+You can create a `visus.config` with:
+- NOTE: compression will be automatically set to `raw` since the compression/decompression is really IDX2 encoding/decoding
+-       current implementation does read blocks (i.e. IDX2 chunks) serially so first network access will be SLOW. Caching will help later.
+-       atomic IO operation are "chunk" reading. Need to investigate if a chunk is made of mantissa/exponent or is selectively possible to read piece of info (IMPORTANT!)
+
+```xml
+
+<dataset name="idx2-legacy"   url="tmp/legacy/Miranda/Density.idx2?legacy=1" />
+<dataset name="idx2-arco"     url='tmp/arco/Miranda/Density.idx2' />
+<dataset name="idx2-cloud"    url='https://maritime.sealstorage.io/api/v0/s3/utah/idx2/Miranda/Density.idx2?profile=sealstorage&amp;cached=arco' />
+```
