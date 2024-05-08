@@ -1,0 +1,14 @@
+﻿---
+BasedOnStyle: Mozilla
+BreakBeforeBraces: Allman
+ColumnLimit: '100'
+AlwaysBreakAfterReturnType: TopLevel
+SpaceAfterTemplateKeyword: true
+MaxEmptyLinesToKeep: 3
+FixNamespaceComments: true
+AlwaysBreakTemplateDeclarations: No
+PenaltyBreakTemplateDeclaration: 200
+ForEachMacros: [idx2_For, idx2_ForEach, idx2_InclusiveForBackward, idx2_InclusiveFor, idx2_BeginFor3]
+SortIncludes: true
+
+...

@@ -1,0 +1,24 @@
+//#define _CRTDBG_MAP_ALLOC
+//#include <stdlib.h>
+//#include <crtdbg.h>
+
+#include "Args.cpp"
+#include "Assert.cpp"
+#include "DataSet.cpp"
+#include "FileSystem.cpp"
+#include "Format.cpp"
+#include "InputOutput.cpp"
+#include "Logger.cpp"
+#include "Memory.cpp"
+#include "MemoryMap.cpp"
+#include "StackTrace.cpp"
+#include "String.cpp"
+#include "Utilities.cpp"
+#include "idx2Common.cpp"
+#include "idx2Decode.cpp"
+#include "idx2Encode.cpp"
+#include "idx2Lookup.cpp"
+#include "VarInt.cpp"
+#include "Volume.cpp"
+#include "Wavelet.cpp"
+#include "Zfp.cpp"
