@@ -2,7 +2,10 @@
 
 #include "Common.h"
 #include "HashTable.h"
+
+#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+
 #include <stdio.h>
 
 
