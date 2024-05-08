@@ -54,9 +54,6 @@ if (VISUS_IDX2)
 	# enable idx2
 	target_compile_definitions(VisusDb PUBLIC -DVISUS_IDX2=1)
 
-	# enable AVX2 platform
-	target_compile_definitions(VisusDb PRIVATE -Didx2_Avx2)
-
 	# less precise but more portable clock functions
 	target_compile_definitions(VisusDb PRIVATE -Didx2_CTimer)
 	
@@ -68,15 +65,25 @@ if (VISUS_IDX2)
 		${CMAKE_SOURCE_DIR}/Libs/IDX2/Source 
 		${CMAKE_SOURCE_DIR}/Libs/IDX2/Source/Core/stla)
 
-	# enable AVX2
 	if (MSVC)
 		target_compile_definitions(VisusDb PRIVATE -D_CRT_SECURE_NO_WARNINGS  -DNOMINMAX)
-		target_compile_options(VisusDb PRIVATE /arch:AVX2 /Zc:preprocessor /Zc:__cplusplus /wd5105)
+		target_compile_options(VisusDb PRIVATE /Zc:preprocessor /Zc:__cplusplus /wd5105)
 		target_link_options(VisusDb PRIVATE dbghelp.lib)
-	elseif (CLANG)
-		target_compile_options(VisusDb PRIVATE -Wno-format-zero-length -mavx2)
 	else()
-		target_compile_options(VisusDb PRIVATE -Wno-format-zero-length -march=core-avx2)
+		target_compile_options(VisusDb PRIVATE -Wno-format-zero-length)
+	endif()
+
+	# AVX2 platform is disabled by default
+	if (VISUS_IDX2_AVX2)
+		target_compile_definitions(VisusDb PRIVATE -Didx2_Avx2)
+		if (MSVC)
+			target_compile_options(VisusDb PRIVATE /arch:AVX2)
+		elseif (CLANG)
+			target_compile_options(VisusDb PRIVATE -mavx2)
+		else()
+			target_compile_options(VisusDb PRIVATE -march=core-avx2)
+		endif()
+
 	endif()
 endif()
 

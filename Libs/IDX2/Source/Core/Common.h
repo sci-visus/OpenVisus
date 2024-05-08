@@ -2,7 +2,10 @@
 
 #include "Macros.h"
 #include <float.h>
+
+#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+
 #include <stdint.h>
 //#include <crtdbg.h>
 

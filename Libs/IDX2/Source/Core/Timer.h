@@ -49,7 +49,7 @@ ElapsedTime(timer* Timer)
 {
   auto End = clock();
   auto Seconds = (double)(End - Timer->Start) / CLOCKS_PER_SEC;
-  return i64(Seconds * 1e9);
+  return i64(Seconds * 1e9); //nanoseconds
 }
 
 

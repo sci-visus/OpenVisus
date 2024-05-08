@@ -40,19 +40,25 @@ DumpText(cstr FileName, i Begin, i End, cstr Format);
 #undef idx2_FTell
 /* Enable support for reading large files */
 #if defined(_WIN32)
-#define idx2_FSeek _fseeki64
-#define idx2_FTell _ftelli64
+
+  #define idx2_FSeek _fseeki64
+  #define idx2_FTell _ftelli64
+
 #elif defined(__CYGWIN__) || defined(__linux__) || defined(__APPLE__)
-#define _FILE_OFFSET_BITS 64
-#define idx2_FSeek fseeko
-#define idx2_FTell ftello
+  #define _FILE_OFFSET_BITS 64
+
+  #if defined (__APPLE__) -
+    #define idx2_FSeek fseek 
+    #define idx2_FTell ftell
+  #else
+    #define idx2_FSeek fseeko
+    #define idx2_FTell ftello
+  #endif
+
 #endif
-
-
 
 namespace idx2
 {
-
 
 #define idx2_OpenExistingFile(Fp, FileName, Mode) FILE* Fp = fopen(FileName, Mode)
 
