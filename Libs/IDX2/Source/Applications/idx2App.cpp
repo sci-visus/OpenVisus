@@ -258,7 +258,7 @@ Idx2App(int Argc, const char* Argv[])
     Visus::SharedPtr<Visus::Access> access;
 
     //by default inside OpenVisus I am switching to IDX1 data access
-    if (!Visus::IdxDataset2::VISUS_USE_IDX2_FILE_FORMAT()) 
+    if (!Visus::IdxDataset2::UseLegacyFileFormat()) 
     {
       // need to have the *.idx2 file written in advance (otherwise I cannot load the IdxDataset2 inside OpenVisus)
       std::string url = idx2_PrintScratch("%s/%s/%s.idx2", P.OutDir, P.Meta.Name, P.Meta.Field);
@@ -313,7 +313,7 @@ Idx2App(int Argc, const char* Argv[])
     Visus::SharedPtr<Visus::Access> access;
 
     // by default inside OpenVisus I am switching to IDX1 data access
-    if (!Visus::IdxDataset2::VISUS_USE_IDX2_FILE_FORMAT())
+    if (!Visus::IdxDataset2::UseLegacyFileFormat())
     { 
       std::string url = idx2_PrintScratch("%s%s/%s.idx2", Idx2.Dir.ConstPtr, Idx2.Name, Idx2.Field);
       dataset = std::dynamic_pointer_cast<Visus::IdxDataset2>(Visus::LoadDataset(url));

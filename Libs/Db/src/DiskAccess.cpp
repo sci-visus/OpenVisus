@@ -110,15 +110,19 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   {
     PrintInfo("DiskAccess using existing IdxFile at", local_idx_filename);
 
-    //need to load it again since it can be different from the dataset
-    if (local_idx_filename != dataset->getUrl())
+    auto dataset_url=dataset->getUrl();
+    if (local_idx_filename != dataset_url)
     {
+#if VISUS_IDX2
+      ;//do I need to load again???
+#else
       this->idxfile = IdxFile();
       this->idxfile.load(local_idx_filename);
+#endif
     }
   }
-  VisusAssert(this->idxfile.version >= 1 && idxfile.version <= 6);
 
+  VisusAssert(this->idxfile.version >= 1 && idxfile.version <= 6);
 
   //NOTE I am ignoring what it is stored in the idx file, but using filename template to guess filenames
   //example: "s3://bucket-name/whatever/$(time)/$(field)/$(block:%016x:%04x).$(compression)";

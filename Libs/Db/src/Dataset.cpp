@@ -238,6 +238,12 @@ void EnableCachingIfNeeded(String& url, Archive& ar)
 
   //compression, but default I set zip
   auto cache_compression = parsed.getParam("cache_compression", "zip");
+  String cloud_compression = "";
+
+#if VISUS_IDX2
+  //in idx2 the compression is coming from encoding/decoding
+  bool is_idx2 = StringUtils::contains(url, ".idx2");
+#endif
 
   //if the url contains the string mod_visus I think the origin is an OpenVisus server, otherwise is an S3 cloud dataset
   //PROBLEM HERE: what is the S3 path contains the string mod_visus? I am not handling this case so please don't use this substring in S3
@@ -253,13 +259,23 @@ void EnableCachingIfNeeded(String& url, Archive& ar)
   out << "<access type='multiplex'>" << std::endl;
   {
     //local
-    out << "<access type='" << cache_access_type << "'  chmod='rw' compression='" << cache_compression << "' ";
+    out << "<access type='" << cache_access_type << "'  chmod='rw'  ";
+    if (is_idx2)
+      out << " compression='raw' ";
+    else
+      out << " compression='" << cache_compression << "' ";
+
     if (!cache_dir.empty())
       out << "cache_dir=\"" << cache_dir << "\" ";
+
     out << "/>" << std::endl;
 
     //remote
-    out << "<access type='" << remote_access_type << "' chmod='r' />" << std::endl;
+    out << "<access type='" << remote_access_type << "' chmod='r' ";
+    if (is_idx2)
+      out << " compression='raw' ";
+    
+    out<<" />" << std::endl; 
   }
   out << "</access>" << std::endl;
 
@@ -408,7 +424,7 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool for_block_query)
 #if VISUS_IDX2 
   else if (auto idx2 = dynamic_cast<IdxDataset2*>(this))
   {
-    if (idx2->useIdx2FileFormat())
+    if (idx2->useLegacyFileFormat())
     {
       //no access needed, I will just do BoxQuery using native IDX2 format
       //I do not support Block Query / Access classes (i.e. I will support only BlockQueries)
