@@ -51,7 +51,15 @@ String Access::getBlockFilename(Dataset* dataset, int bitsperblock, String filen
 
   String ret = filename_template;
 
+  //changed 7 june 2024, not sure If I still need caching for MIDX
+  //in any case the computeChecksum result seems wrong anyway 
+#if 1
+  ret = StringUtils::replaceFirst(ret, "$(field)", fieldname);
+#else
   ret = StringUtils::replaceFirst(ret, "$(field)", fieldname.length() < 32 ? StringUtils::onlyAlNum(fieldname) : StringUtils::computeChecksum(fieldname));
+
+#endif
+  
   ret = StringUtils::replaceFirst(ret, "$(time)", StringUtils::onlyAlNum(int(time) == time ? cstring((int)time) : cstring(time)));
   ret = StringUtils::replaceFirst(ret, "$(compression)", compression);
 
