@@ -455,12 +455,15 @@ def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=
 		Dfields.append(Field(fieldname, dtype, 'row_major'))  # force row major here
 
 	# NOTE: I am creating a new idx with all timesteps and all fields
-	DST=CreateIdx(
-		url=dst, 
-		dims=dims,
-		time=[all_timesteps[0],all_timesteps[-1],"%00000d/"],
-		fields=Dfields,
-		arco=arco)
+	if os.path.isfile(dst):
+		DST=LoadIdxDataset(dst)
+	else:
+		DST=CreateIdx(
+			url=dst, 
+			dims=dims,
+			time=[all_timesteps[0],all_timesteps[-1],"%00000d/"],
+			fields=Dfields,
+			arco=arco)
 	
 	Saccess=SRC.createAccessForBlockQuery() 
 
@@ -523,7 +526,7 @@ def CopyDataset(SRC, dst:str, arco="modvisus", tile_size:int=None, timestep:int=
 				write_sec=time.time()-t1
 
 				# statistics
-				ETA=N*((time.time()-T1)/(I+1)) 
+				ETA=((N-I)*(time.time()-T1))/(I+1) 
 				logger.info(f"CopyDataset Wrote src={src} {I}/{N} {logic_box.toString()} timestep({timestep}) field({fieldname}) sec({read_sec:.2f}/{write_sec:.2f}/{read_sec+write_sec}) ETA({ETA:.0f}s {ETA/60:.0f}m {ETA/3600:.0}h {ETA/86400:.0f}d)")
 				break
 			except:
