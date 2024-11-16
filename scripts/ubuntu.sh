@@ -35,7 +35,7 @@ function DistribToPip() {
   
   # this fails a LOT on linux, and this is a good combination for OLD manyliux
   ${Python_EXECUTABLE} -m pip install --upgrade pip         ||  true 
-  $${Python_EXECUTABLE} -m pip install setuptools==59.6.0 wheel==0.37.0 cryptography==3.4.0 twine==3.8.0 readme-renderer==34.0 ||  true
+  ${Python_EXECUTABLE} -m pip install setuptools==59.6.0 wheel==0.37.0 cryptography==3.4.0 twine==3.8.0 readme-renderer==34.0 ||  true
 
   
   ${Python_EXECUTABLE}  setup.py -q bdist_wheel --python-tag=$PYTHON_TAG --plat-name=$PIP_PLATFORM
