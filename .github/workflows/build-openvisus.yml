@@ -137,24 +137,17 @@ jobs:
           
           # mod_visus
           if [[ "${GIT_TAG}" != "" && "${{ matrix.python-version }}" == "3.9" ]] ; then
-
-            # give time to 'receive' the wheel and the conda package
-            sleep 90 
-
-            IMAGE_BUILD_MODVISUS=visus/mod_visus_$(uname -m)
+            sleep 90  # give time to 'receive' the wheel
+            pushd Docker/mod_visus
+            MODVISUS_IMAGE=visus/mod_visus_x86_64
             docker build \
-              --tag ${IMAGE_BUILD_MODVISUS}:${GIT_TAG} \
-              --tag ${IMAGE_BUILD_MODVISUS}:latest \
+              --tag ${MODVISUS_IMAGE}:${GIT_TAG} \
+              --tag ${MODVISUS_IMAGE}:latest \
               --build-arg TAG=${GIT_TAG} \
               --progress=plain \
-              ./  
-            
+              ./ 
             echo ${DOCKER_TOKEN} | docker login -u=${DOCKER_USERNAME} --password-stdin
-            docker push ${IMAGE_BUILD_MODVISUS}:${GIT_TAG}
-            docker push ${IMAGE_BUILD_MODVISUS}:latest
+            docker push ${MODVISUS_IMAGE}:${GIT_TAG}
+            docker push ${MODVISUS_IMAGE}:latest
             popd
-            
           fi
-
-
-
