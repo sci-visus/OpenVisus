@@ -116,7 +116,7 @@ jobs:
       run: |
           set -ex
 
-          IMAGE_BUILD_WHEELS=visus/portable-linux-binaries_$(uname -m):5.0
+          IMAGE_BUILD_WHEELS=visus/portable-linux-binaries_x86_64:5.0
 
           # run docker to compile portable OpenVisus
           docker run --rm \
