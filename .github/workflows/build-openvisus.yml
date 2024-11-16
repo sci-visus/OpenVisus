@@ -153,7 +153,8 @@ jobs:
             docker push ${IMAGE_BUILD_MODVISUS}:${GIT_TAG}
             docker push ${IMAGE_BUILD_MODVISUS}:latest
             popd
-          end
+            
+          fi
 
 
 
