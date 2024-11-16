@@ -6,7 +6,9 @@ BUILD_DIR=${BUILD_DIR:-build_docker}
 VISUS_GUI=${VISUS_GUI:-1}
 VISUS_SLAM=${VISUS_SLAM:-1}
 VISUS_MODVISUS=${VISUS_MODVISUS:-1}
-Python_EXECUTABLE=${Python_EXECUTABLE:-}
+Python_EXECUTABLE=${Python_EXECUTABLE:-/opt/python39/bin/python3.9}
+PYTHON_TAG=${PYTHON_TAG:cp39}
+PLAT_NAME=${PLAT_NAME:manylinux2014_x86_64}
 Qt5_DIR=${Qt5_DIR:-/opt/qt515}
 PYPI_USERNAME=${PYPI_USERNAME:-}
 PYPI_TOKEN=${PYPI_TOKEN:-}
@@ -32,13 +34,8 @@ function ConfigureAndTestCPython() {
 # ///////////////////////////////////////////////
 function DistribToPip() {
   rm -Rf ./dist
-  
-  # this fails a LOT on linux, and this is a good combination for OLD manyliux
-  ${Python_EXECUTABLE} -m pip install --upgrade pip         ||  true 
-  ${Python_EXECUTABLE} -m pip install setuptools==59.6.0 wheel==0.37.0 cryptography==3.4.0 twine==3.8.0 readme-renderer==34.0 ||  true
 
-  
-  ${Python_EXECUTABLE}  setup.py -q bdist_wheel --python-tag=$PYTHON_TAG --plat-name=$PIP_PLATFORM
+  ${Python_EXECUTABLE}  setup.py -q bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PLAT_NAME}
   
   if [[ "${GIT_TAG}" != "" ]] ; then
     ${Python_EXECUTABLE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_TOKEN} --skip-existing   "dist/*.whl" 
@@ -50,14 +47,6 @@ yum install -y libffi-devel
 
 # make sure pip is updated
 ${Python_EXECUTABLE} -m pip install --upgrade pip || true
-
-# detect architecture
-if [[ "1" == "1" ]]; then
-  ARCHITECTURE=`uname -m`
-  PIP_PLATFORM=unknown
-  if [[ "${ARCHITECTURE}" ==  "x86_64" ]] ; then PIP_PLATFORM=manylinux2010_${ARCHITECTURE} ; fi
-  if [[ "${ARCHITECTURE}" == "aarch64" ]] ; then PIP_PLATFORM=manylinux2014_${ARCHITECTURE} ; fi
-fi
 
 # compile OpenVisus
 if [[ "1" == "1" ]]; then

@@ -94,13 +94,19 @@ jobs:
         include:
           - python-version: "3.9"
             python-executable: "/opt/python39/bin/python3.9"
+            python-tag: "cp39"
+
           - python-version: "3.10"
             python-executable: "/opt/python310/bin/python3.10"
+            python-tag: "cp310"
+
           - python-version: "3.11"
             python-executable: "/opt/python311/bin/python3.11"
+            python-tag: "cp311"
+            
           - python-version: "3.12"
             python-executable: "/opt/python312/bin/python3.12"
-
+            python-tag: "cp312"
 
     steps:
     - name: git clone OpenVisus
@@ -110,7 +116,7 @@ jobs:
       run: |
           set -ex
 
-          IMAGE=visus/portable-linux-binaries_$(uname -m):5.0
+          IMAGE_BUILD_WHEELS=visus/portable-linux-binaries_$(uname -m):5.0
 
           # run docker to compile portable OpenVisus
           docker run --rm \
@@ -118,10 +124,12 @@ jobs:
             -w /home/OpenVisus \
             -e BUILD_DIR=build_docker \
             -e Python_EXECUTABLE=${{ matrix.python-executable }} \
+            -e PYTHON_TAG=${{ matrix.python-tag }} \
+            -e PLAT_NAME=manylinux2014_x86_64 \
             -e PYPI_USERNAME=${PYPI_USERNAME} \
             -e PYPI_TOKEN=${PYPI_TOKEN} \
             -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
-            ${IMAGE} \
+            ${IMAGE_BUILD_WHEELS} \
             bash scripts/ubuntu.sh
 
           # now that the wheels/conda are pushed to PyPi and conda, I can build the docker images
@@ -133,17 +141,17 @@ jobs:
             # give time to 'receive' the wheel and the conda package
             sleep 90 
 
-            IMAGE=visus/mod_visus_$(uname -m)
+            IMAGE_BUILD_MODVISUS=visus/mod_visus_$(uname -m)
             docker build \
-              --tag ${IMAGE}:${GIT_TAG} \
-              --tag ${IMAGE}:latest \
+              --tag ${IMAGE_BUILD_MODVISUS}:${GIT_TAG} \
+              --tag ${IMAGE_BUILD_MODVISUS}:latest \
               --build-arg TAG=${GIT_TAG} \
               --progress=plain \
               ./  
             
             echo ${DOCKER_TOKEN} | docker login -u=${DOCKER_USERNAME} --password-stdin
-            docker push ${IMAGE}:${GIT_TAG}
-            docker push ${IMAGE}:latest
+            docker push ${IMAGE_BUILD_MODVISUS}:${GIT_TAG}
+            docker push ${IMAGE_BUILD_MODVISUS}:latest
             popd
           end
 
