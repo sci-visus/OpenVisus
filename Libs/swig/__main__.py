@@ -149,9 +149,7 @@ def Configure():
 
 		ExecuteCommand(pip_cmd + ["--upgrade","pip"], check_result=False, dry_run=dry_run)
 
-		# for some environment I need to stick with a specific version
-		NUMPY_VERSION=os.environ.get("NUMPY_VERSION",None)
-		ExecuteCommand(pip_cmd + [f"numpy=={NUMPY_VERSION}" if NUMPY_VERSION else "numpy"], check_result=False, dry_run=dry_run)
+		ExecuteCommand(pip_cmd + ["numpy"], check_result=False, dry_run=dry_run)
 
 		 # False since it fails a lot !
 		if VISUS_GUI:

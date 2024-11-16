@@ -91,31 +91,61 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.9', '3.10'] # , TODO '3.11' and 3.12 WE DON"T HAVE IT IN THE DOCKER IMAGE
+        include:
+          - python-version: "3.9"
+            python-executable: "/opt/python39/bin/python3.9"
+          - python-version: "3.10"
+            python-executable: "/opt/python310/bin/python3.10"
+          - python-version: "3.11"
+            python-executable: "/opt/python311/bin/python3.11"
+          - python-version: "3.12"
+            python-executable: "/opt/python312/bin/python3.12"
+
+
     steps:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
     - name: Compile cpython
       shell: bash
       run: |
-           set -ex
-           export PYTHON_VERSION=${{ matrix.python-version }}
-           export DOCKER_IMAGE=visus/portable-linux-binaries_x86_64:4.1
-           
-           # choose an old version, otherwise it will try to build numpy from scratch
-           export NUMPY_VERSION=1.21.6 
-           if [[ "${{ matrix.python-version }}" ==  "3.6" ]] ; then 
-             export NUMPY_VERSION=1.19.5
-           fi
-           
-           source scripts/ubuntu.sh
+          set -ex
 
+          IMAGE=visus/portable-linux-binaries_x86_64:5.0
 
+          # run docker to compile portable OpenVisus
+          docker run --rm \
+            -v ${PWD}:/home/OpenVisus \
+            -w /home/OpenVisus \
+            -e BUILD_DIR=build_docker \
+            -e Python_EXECUTABLE=${{ matrix.python-executable }} \
+            -e PYPI_USERNAME=${PYPI_USERNAME} \
+            -e PYPI_TOKEN=${PYPI_TOKEN} \
+            -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
+            ${IMAGE} \
+            bash scripts/ubuntu.sh
 
+          # now that the wheels/conda are pushed to PyPi and conda, I can build the docker images
+          export GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
+          
+          # mod_visus
+          if [[ "${GIT_TAG}" != "" && "${{ matrix.python-version }}" == "3.9" ]] ; then
 
+            # give time to 'receive' the wheel and the conda package
+            sleep 90 
 
-
-
+            IMAGE=visus/mod_visus_$(uname -m)
+            docker build \
+              --tag ${IMAGE}:${GIT_TAG} \
+              --tag ${IMAGE}:latest \
+              --build-arg TAG=${GIT_TAG} \
+              --progress=plain \
+              ./  
+            
+            echo ${DOCKER_TOKEN} | docker login -u=${DOCKER_USERNAME} --password-stdin
+            docker push ${IMAGE}:${GIT_TAG}
+            docker push ${IMAGE}:latest
+            popd
+          end
 
 
 
