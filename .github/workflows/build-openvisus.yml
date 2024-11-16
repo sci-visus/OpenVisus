@@ -118,11 +118,14 @@ jobs:
 
           IMAGE_BUILD_WHEELS=visus/portable-linux-binaries_x86_64:5.0
 
+          export GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
+
           # run docker to compile portable OpenVisus
           docker run --rm \
             -v ${PWD}:/home/OpenVisus \
             -w /home/OpenVisus \
             -e BUILD_DIR=build_docker \
+            -e GIT_TAG=${GIT_TAG} \
             -e Python_EXECUTABLE=${{ matrix.python-executable }} \
             -e PYTHON_TAG=${{ matrix.python-tag }} \
             -e PLAT_NAME=manylinux2014_x86_64 \
@@ -132,9 +135,6 @@ jobs:
             ${IMAGE_BUILD_WHEELS} \
             bash scripts/ubuntu.sh
 
-          # now that the wheels/conda are pushed to PyPi and conda, I can build the docker images
-          export GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
-          
           # mod_visus
           if [[ "${GIT_TAG}" != "" && "${{ matrix.python-version }}" == "3.9" ]] ; then
             sleep 90  # give time to 'receive' the wheel

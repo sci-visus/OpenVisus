@@ -14,13 +14,24 @@ jobs:
       - run:
           name: Build openvisus
           command: |
-                   set -ex
-                   export PYTHON_VERSION=<< parameters.python-version >>
-                   export VISUS_GUI=0
-                   export VISUS_SLAM=0
-                   export VISUS_MODVISUS=0 
-                   export DOCKER_IMAGE=nsdf/manylinux2014_aarch64:latest
-                   source scripts/ubuntu.sh
+                  set -ex
+                  PYTHON_VERSION=<< parameters.python-version >>
+                  docker run --rm \
+                    -v ${PWD}:/home/OpenVisus \
+                    -w /home/OpenVisus \
+                    -e BUILD_DIR=build_docker \
+                    -e Python_EXECUTABLE=/opt/python${PYTHON_VERSION/./}/bin/python${PYTHON_VERSION} \
+                    -e PYTHON_TAG=${{ matrix.python-tag }} \
+                    -e PLAT_NAME=manylinux2014_aarch64 \
+                    -e PYPI_USERNAME=${PYPI_USERNAME} \
+                    -e PYPI_TOKEN=${PYPI_TOKEN} \
+                    -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
+                    -e VISUS_MODVISUS=0  \
+                    -e VISUS_SLAM=0 \
+                    -e VISUS_GUI=0 \
+                    visus/portable-linux-binaries_aarch64:5.0 \
+                    bash scripts/ubuntu.sh
+
 workflows:
   version: 2
   build-and-deploy:
@@ -28,5 +39,5 @@ workflows:
       - build-openvisus-arm64:
           matrix:
             parameters:
-              python-version: ['3.7', '3.8', '3.9' ,'3.10' ]
+              python-version: ['3.9', '3.10', '3.11' ,'3.12' ]
               image: [ 'ubuntu-2004:202101-01' ]
