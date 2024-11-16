@@ -1,11 +1,17 @@
 # Instructions
 
 ```bash
-TAG=5.0
-docker build --tag visus/portable-linux-binaries_x86_64:${TAG} --progress=plain -f Dockerfile .
+cd Docker/portable-linux-binaries
 
-docker build --tag visus/portable-linux-binaries_x86_64:latest --progress=plain -f Dockerfile .
-docker push visus/portable-linux-binaries_x86_64:$TAG
-docker push visus/portable-linux-binaries_x86_64:latest
+IMAGE=visus/portable-linux-binaries_$(uname -m)
+TAG=5.0
+
+docker build \
+  --tag ${IMAGE}:${TAG} \
+  --tag ${IMAGE}:latest \
+  .
+
+docker push ${IMAGE}:$TAG
+docker push ${IMAGE}:latest
 ```
 
