@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.9' , '3.10', '3.11', '3.12']
+        python-version: [ '3.9' , '3.10', '3.11', '3.12', '3.13']
     steps:
     - name: git clone OpenVisus
       uses: actions/checkout@v2    
@@ -53,7 +53,7 @@ jobs:
     strategy:
       fail-fast: false  
       matrix:
-        python-version: [ '3.9' , '3.10', '3.11', '3.12' ]
+        python-version: [ '3.9' , '3.10', '3.11', '3.12', '3.13' ]
     steps:
     - name: git clone OpenVisus
       uses: actions/checkout@v2
@@ -107,6 +107,10 @@ jobs:
           - python-version: "3.12"
             python-executable: "/opt/python312/bin/python3.12"
             python-tag: "cp312"
+
+          - python-version: "3.13"
+            python-executable: "/opt/python313/bin/python3.13"
+            python-tag: "cp313"
 
     steps:
     - name: git clone OpenVisus
