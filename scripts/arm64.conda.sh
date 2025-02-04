@@ -58,7 +58,7 @@ export CMAKE_OSX_ARCHITECTURES="arm64"
 # check the environment
 which python                                                  # /Users/m1/miniforge3/bin/python
 python -c "import platform; print(platform.processor())"      # arm
-python -c "import sysconfig;print(sysconfig.get_platform())"  # macosx-11.0-arm64
+python -c "import sysconfig;print(sysconfig.get_platform())"  # macosx-XX.0-arm64
 
 BUILD_DIR="./build-conda-${PYTHON_VERSION}"
 # rm -Rf ${BUILD_DIR}
@@ -78,6 +78,7 @@ if [[ 1 == 1 ]] ; then
     -DVISUS_SLAM=0 \
     -DVISUS_MODVISUS=0 \
     -DVISUS_IMAGE=0 \
+    -DVISUS_IDX2=0 \
     ../
 
   cmake --build . --target ALL_BUILD --config Release

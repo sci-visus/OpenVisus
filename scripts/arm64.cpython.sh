@@ -11,7 +11,7 @@ export PYPI_PLATFORM_NAME="macosx_11_0_arm64"
 export CMAKE_OSX_ARCHITECTURES="arm64"
 
 
-# install a portable SDK (it sems the same used by miniforge and  PyQt5-5.15.10-cp37-abi3-macosx_11_0_arm64.whl)
+# install a portable SDK (it seems the same used by miniforge and PyQt5-5.15.10-cp37-abi3-macosx_11_0_arm64.whl)
 if [ ! -d "/tmp/MacOSX-SDKs" ] ; then
   pushd /tmp 
   rm -Rf MacOSX-SDKs 
@@ -45,6 +45,7 @@ if [[ 1 == 1 ]] ; then
    # make sure you have a good pip
    ${PYTHON_EXE} -m pip install --upgrade pip
 
+   # jan 2025: this is installing qt 5.15
    brew install qt@5
 
    # patch qt5 for arm64
@@ -61,11 +62,10 @@ if [[ 1 == 1 ]] ; then
    ${PYTHON_EXE} -m pip install setuptools wheel twine --upgrade 
 fi
 
-#  cjeck python environment
+#  check python environment
 echo "PYTHON_EXE=${PYTHON_EXE}"
 ${PYTHON_EXE} -c "import platform; print(platform.processor())"      # arm
-${PYTHON_EXE} -c "import sysconfig;print(sysconfig.get_platform())"  # macosx-11.0-arm64
-
+${PYTHON_EXE} -c "import sysconfig;print(sysconfig.get_platform())"  # macosx-XX.0-arm64
 
 BUILD_DIR="./build-cpython-${PYTHON_VERSION}"
 mkdir -p ${BUILD_DIR}
@@ -74,6 +74,7 @@ cd ${BUILD_DIR}
 # compile openvisus
 if [[ 1 == 1 ]] ; then
 
+   # IDX2 does not work on silicon macosx
    cmake \
       -GXcode \
       -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES} \
@@ -83,6 +84,7 @@ if [[ 1 == 1 ]] ; then
       -DVISUS_GUI=1 \
       -DVISUS_SLAM=0 \
       -DVISUS_MODVISUS=0 \
+      -DVISUS_IDX2=0 \
       ../
    
    cmake --build . --target ALL_BUILD --config Release 
