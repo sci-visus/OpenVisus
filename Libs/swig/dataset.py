@@ -146,14 +146,14 @@ class PyDataset(object):
 		return self.db.getMaxResolution()
 
 	# getLogicBox
-	def getLogicBox(self,x=None,y=None,z=None,v=None,w=None):
+	def getLogicBox(self,x=None,y=None,z=None,u=None,v=None):
 		pdim=self.getPointDim()
 		lbox=self.db.getLogicBox()
 		A=[lbox.p1[I] for I in range(pdim)]
 		B=[lbox.p2[I] for I in range(pdim)]
 		p1,p2=[0]*pdim,[0]*pdim
 		for I in range(pdim):
-			r=(x,y,z,v,w)[I]
+			r=(x,y,z,u,v)[I]
 			if r is None: r=[A[I],B[I]]
 			p1[I] = int( A[I]+r[0]*(B[I]-A[I]) if isinstance(r[0],float) else r[0])
 			p2[I] = int( A[I]+r[1]*(B[I]-A[I]) if isinstance(r[1],float) else r[1])
@@ -285,7 +285,7 @@ class PyDataset(object):
 
 
 	# read
-	def read(self, logic_box=None, x=None, y=None, z=None, time=None, field=None, field_name=None, num_refinements=1, quality=0, max_resolution=None, disable_filters=False, access=None):
+	def read(self, logic_box=None, x=None, y=None, z=None, u=None, v=None, time=None, field=None, field_name=None, num_refinements=1, quality=0, max_resolution=None, disable_filters=False, access=None):
 		"""
 		Reads a box in voxel or unit coordinates.
 
@@ -333,7 +333,7 @@ class PyDataset(object):
 			time = self.getTime()			
 
 		if logic_box is None:
-			logic_box=self.getLogicBox(x,y,z)
+			logic_box=self.getLogicBox(x,y,z,u,v)
 
 		if isinstance(logic_box,(tuple,list)):
 			logic_box=BoxNi(PointNi(logic_box[0]),PointNi(logic_box[1]))
@@ -389,7 +389,7 @@ class PyDataset(object):
 
 	# write
 	# IMPORTANT: usually db.write happens without write lock and synchronously (at least in Python)
-	def write(self, data, x=0, y=0, z=0,logic_box=None, time=None, field=None, access=None):
+	def write(self, data, x=0, y=0, z=0,u=0,v=0, logic_box=None, time=None, field=None, access=None):
 
 		"""
 		import OpenVisus as ov
@@ -435,7 +435,7 @@ class PyDataset(object):
 		dims=list(reversed(dims))	
 
 		if logic_box is None:
-			p1=PointNi([x,y,z][0:pdim])
+			p1=PointNi([x,y,z,u,v][0:pdim])
 			logic_box=BoxNi(p1,p1+PointNi(dims))
 
 		if isinstance(logic_box,(tuple,list)):
@@ -465,7 +465,7 @@ class PyDataset(object):
 			raise Exception("query error {0}".format(query.errormsg))
 			
 	# writeSlabs
-	def writeSlabs(self,slices, x=0, y=0, z=0, time=None, field=None, max_memsize=4*1024*1024*1024, access=None):
+	def writeSlabs(self,slices, x=0, y=0, z=0, u=0, v=0, time=None, field=None, max_memsize=4*1024*1024*1024, access=None):
 		
 		os.environ["VISUS_DISABLE_WRITE_LOCK"]="1"
 		
@@ -479,7 +479,7 @@ class PyDataset(object):
 			# flush
 			if memsize>=max_memsize: 
 				data=numpy.stack(slab,axis=0)
-				self.write(data , x=x, y=y, z=z,field=field,time=time, access=access)
+				self.write(data , x=x, y=y, z=z, u=u, v=v, field=field,time=time, access=access)
 				z+=len(slab)
 				slab=[]
 				memsize=0
@@ -487,7 +487,7 @@ class PyDataset(object):
 		# flush
 		if slab: 
 			data=numpy.stack(slab,axis=0)
-			self.write(data , x=x, y=y, z=z,field=field,time=time, access=access)
+			self.write(data , x=x, y=y, z=z,u=u,v=v, field=field,time=time, access=access)
 
 	#getXSlice (get a slice orthogonal to the X axis)
 	def getXSlice(self, position=None, resolution=-1,resample_output=True): 
@@ -726,16 +726,18 @@ class Dataset1(object):
 		self.x = low[0], high[0] if len(low) > 0 else None
 		self.y = low[1], high[1] if len(low) > 1 else None
 		self.z = low[2], high[2] if len(low) > 2 else None
+		self.u = low[3], high[3] if len(low) > 3 else None
+		self.v = low[4], high[4] if len(low) > 4 else None
 
 
-	def getLogicBox(self,x=None,y=None,z=None,v=None,w=None):
+	def getLogicBox(self,x=None,y=None,z=None,u=None,v=None):
 		pdim=self.db.getPointDim()
 		lbox=self.db.getLogicBox()
 		A=[lbox.p1[I] for I in range(pdim)]
 		B=[lbox.p2[I] for I in range(pdim)]
 		p1,p2=[0]*pdim,[0]*pdim
 		for I in range(pdim):
-			r=(x,y,z,v,w)[I]
+			r=(x,y,z,u,v)[I]
 			if r is None: r=A[I],B[I]
 			if type(r) is tuple:
 				p1[I] = r[0]
@@ -746,7 +748,7 @@ class Dataset1(object):
 		return p1,p2
 		
 
-	def read(self, logic_box=None, x=None, y=None, z=None, field_name=None, resolution=None):
+	def read(self, logic_box=None, x=None, y=None, z=None, u=None,v=None, field_name=None, resolution=None):
 		"""
 		Reads a box in voxel or unit coordinates.
 
@@ -759,12 +761,12 @@ class Dataset1(object):
 		# reading box with y coordinate automatically set, first coordinate is inclusive, second is exclusive
 		data = dataset.read(x=(10,20), z=(5,30))
 		"""
-		if x is None:
-			x = self.x
-		if y is None:
-			y = self.y
-		if z is None:
-			z = self.z
+		if x is None: x = self.x
+		if y is None: y = self.y
+		if z is None: z = self.z
+		if u is None: u = self.u
+		if v is None: v = self.v
+
 		if resolution is None:
 			resolution = self.max_resolution
 
@@ -807,7 +809,7 @@ class Dataset1(object):
 		pdim = self.db.getPointDim()
 			
 		time = self.db.getTime()			
-		logic_box = self.getLogicBox(x,y,z)
+		logic_box = self.getLogicBox(x,y,z,u,v)
 
 		if isinstance(logic_box, tuple):
 			logic_box = BoxNi(PointNi(logic_box[0]), PointNi(logic_box[1]))
