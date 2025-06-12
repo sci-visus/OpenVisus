@@ -243,6 +243,8 @@ void EnableCachingIfNeeded(String& url, Archive& ar)
 #if VISUS_IDX2
   //in idx2 the compression is coming from encoding/decoding
   bool is_idx2 = StringUtils::contains(url, ".idx2");
+#else
+  bool is_idx2 = false;
 #endif
 
   //if the url contains the string mod_visus I think the origin is an OpenVisus server, otherwise is an S3 cloud dataset

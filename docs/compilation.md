@@ -157,13 +157,13 @@ python3 -m jupyter notebook ../Samples/jupyter/Agricolture.ipynb
 
 # Instructions
 
-Create a Silocon M1/M2 machine(e.g.  Scaleway or MacCloud)
+Create a Silicon M1/M2 machine with OS version macOS Ventura 13.6 (e.g.  Scaleway or MacCloud)
 
 - change shell to `bash``
 - setup `id_nsdf`` key (it will be the default `id_rsa`)
 - add the pub key to `~/.ssh/authorized_keys`
-- install xcode
-- Open xcode once from the UI
+- install xcode `xcode-select --install`
+- (OPTIONAL) Open xcode once from the UI
 
 Create the `~/.bashrc` file with credentials to upload artifacts:
 
@@ -184,8 +184,8 @@ sudo visudo
 Clone the OpenVisus repo
 
 ```bash
-mkdir -p sci-visus
-cd sci-visus
+mkdir -p github.com/sci-visus
+cd github.com/sci-visus
 git clone git clone git@github.com:sci-visus/OpenVisus.git
 cd OpenVisus
 
