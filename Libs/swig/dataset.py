@@ -146,14 +146,14 @@ class PyDataset(object):
 		return self.db.getMaxResolution()
 
 	# getLogicBox
-	def getLogicBox(self,x=None,y=None,z=None):
+	def getLogicBox(self,x=None,y=None,z=None,v=None,w=None):
 		pdim=self.getPointDim()
 		lbox=self.db.getLogicBox()
 		A=[lbox.p1[I] for I in range(pdim)]
 		B=[lbox.p2[I] for I in range(pdim)]
 		p1,p2=[0]*pdim,[0]*pdim
 		for I in range(pdim):
-			r=(x,y,z)[I]
+			r=(x,y,z,v,w)[I]
 			if r is None: r=[A[I],B[I]]
 			p1[I] = int( A[I]+r[0]*(B[I]-A[I]) if isinstance(r[0],float) else r[0])
 			p2[I] = int( A[I]+r[1]*(B[I]-A[I]) if isinstance(r[1],float) else r[1])
@@ -728,14 +728,14 @@ class Dataset1(object):
 		self.z = low[2], high[2] if len(low) > 2 else None
 
 
-	def getLogicBox(self,x=None,y=None,z=None):
+	def getLogicBox(self,x=None,y=None,z=None,v=None,w=None):
 		pdim=self.db.getPointDim()
 		lbox=self.db.getLogicBox()
 		A=[lbox.p1[I] for I in range(pdim)]
 		B=[lbox.p2[I] for I in range(pdim)]
 		p1,p2=[0]*pdim,[0]*pdim
 		for I in range(pdim):
-			r=(x,y,z)[I]
+			r=(x,y,z,v,w)[I]
 			if r is None: r=A[I],B[I]
 			if type(r) is tuple:
 				p1[I] = r[0]
