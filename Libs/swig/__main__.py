@@ -616,7 +616,9 @@ def Main(args):
 		ExecuteCommand([sys.executable, "Samples/python/dataflow/dataflow2.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "Samples/python/idx/read.py"],check_result=True) 
 		ExecuteCommand([sys.executable, "-m","OpenVisus","server","--dataset","./datasets/cat/rgb.idx","--port","10000","--exit"],check_result=True) 
-		ExecuteCommand([sys.executable, "Samples/python/test_api.py"],check_result=True) 
+
+		# scrgiorgio 20250612 temporarly disabling since the website is not responding (todo: handle failure gently)
+		# ExecuteCommand([sys.executable, "Samples/python/test_api.py"],check_result=True) 
 		sys.exit(0)
 
 	# test-full
