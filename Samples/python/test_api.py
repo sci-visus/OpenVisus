@@ -37,16 +37,16 @@ class TestAPI(unittest.TestCase):
 		assert not os.path.isdir("test")
 		dataset = ov.load_dataset(f"http://{DOMAIN}/open-scivis-datasets/silicium/silicium.idx", cache_dir="test")
 		dataset.read()
-		self.assertTrue(os.path.exists(f"test/IdxDiskAccess/{DOMAIN}/443/zip/open-scivis-datasets/silicium/silicium.idx"))
-		self.assertTrue(os.path.exists(f"test/IdxDiskAccess/{DOMAIN}/443/zip/open-scivis-datasets/silicium/silicium/time_0000/0000.bin"))
+		self.assertTrue(os.path.exists(f"test/IdxDiskAccess/{DOMAIN}/80/zip/open-scivis-datasets/silicium/silicium.idx"))
+		self.assertTrue(os.path.exists(f"test/IdxDiskAccess/{DOMAIN}/80/zip/open-scivis-datasets/silicium/silicium/time_0000/0000.bin"))
 		shutil.rmtree("test")
 
 		# TODO(2/19/2023): test if dangling lock file is handled correctly (can happen if process is interrupted)
 		#assert not os.path.isdir("test")
 		#dataset = ov.load_dataset(f"http://{DOMAIN}/open-scivis-datasets/silicium/silicium.idx", cache_dir="test")
 		#dataset.read()
-		#os.remove(f"test/{DOMAIN}/443/open-scivis-datasets/silicium/silicium/0000.bin")
-		#with open(f"test/{DOMAIN}/443/open-scivis-datasets/silicium/silicium/0000.bin.lock", "w") as f:
+		#os.remove(f"test/{DOMAIN}/80/open-scivis-datasets/silicium/silicium/0000.bin")
+		#with open(f"test/{DOMAIN}/80/open-scivis-datasets/silicium/silicium/0000.bin.lock", "w") as f:
 		#	pass
 		#dataset.read()
 		#shutil.rmtree("test")
