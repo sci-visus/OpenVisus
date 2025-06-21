@@ -723,11 +723,11 @@ class Dataset1(object):
 
 		low, high = self.getLogicBox()
 		assert len(low) == len(high)
-		self.x = low[0], high[0] if len(low) > 0 else None
-		self.y = low[1], high[1] if len(low) > 1 else None
-		self.z = low[2], high[2] if len(low) > 2 else None
-		self.u = low[3], high[3] if len(low) > 3 else None
-		self.v = low[4], high[4] if len(low) > 4 else None
+		self.x = (low[0], high[0]) if len(low) > 0 else None
+		self.y = (low[1], high[1]) if len(low) > 1 else None
+		self.z = (low[2], high[2]) if len(low) > 2 else None
+		self.u = (low[3], high[3]) if len(low) > 3 else None
+		self.v = (low[4], high[4]) if len(low) > 4 else None
 
 
 	def getLogicBox(self,x=None,y=None,z=None,u=None,v=None):
