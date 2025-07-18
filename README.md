@@ -19,8 +19,13 @@ Make sure `pip` is [installed, updated and in PATH](https://pip.pypa.io/en/stabl
 
 ```bash
 pip install --upgrade OpenVisus
-# configure OpenVisus (one time)
+
+# configure OpenVisus (one time), not macosx-arm
 python -m OpenVisus configure 
+
+# configure OpenVisus (one time), for macosx-arm
+CODE_SIGN=$(which codesign) python -m OpenVisus configure
+
 # test installation
 python -c "from OpenVisus import *"
 ```

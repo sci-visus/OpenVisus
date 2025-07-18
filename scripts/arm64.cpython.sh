@@ -10,7 +10,6 @@ export CODE_SIGN=/usr/bin/codesign
 export PYPI_PLATFORM_NAME="macosx_11_0_arm64" 
 export CMAKE_OSX_ARCHITECTURES="arm64"
 
-
 # install a portable SDK (it seems the same used by miniforge and PyQt5-5.15.10-cp37-abi3-macosx_11_0_arm64.whl)
 if [ ! -d "/tmp/MacOSX-SDKs" ] ; then
   pushd /tmp 
@@ -103,7 +102,7 @@ if [[ 1 == 1 ]] ; then
    pushd ./Release/OpenVisus
 
    export PYTHONPATH=../
-   ${PYTHON_EXE} -m OpenVisus configure 
+   CODE_SIGN=$(which codesign) ${PYTHON_EXE} -m OpenVisus configure 
    ${PYTHON_EXE} -m OpenVisus test
    ${PYTHON_EXE} -m OpenVisus test-gui 
    unset PYTHONPATH
@@ -137,7 +136,7 @@ if [[ 1 == 1 ]] ; then
    pushd Release.nogui/OpenVisus
 
    export PYTHONPATH=../
-   ${PYTHON_EXE} -m OpenVisus configure
+   CODE_SIGN=$(which codesign) ${PYTHON_EXE} -m OpenVisus configure
    ${PYTHON_EXE} -m OpenVisus test
    unset PYTHONPATH
 
