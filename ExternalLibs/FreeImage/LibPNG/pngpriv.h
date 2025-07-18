@@ -443,7 +443,8 @@
       * <fp.h> if possible.
       */
 #    if !defined(__MATH_H__) && !defined(__MATH_H) && !defined(__cmath__)
-#      include <fp.h>
+//#      include <fp.h>
+#    include <math.h>
 #    endif
 #  else
 #    include <math.h>

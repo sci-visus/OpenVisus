@@ -19,6 +19,11 @@ if [ ! -d "/tmp/MacOSX-SDKs" ] ; then
   popd
   sudo ln -s /tmp/MacOSX-SDKs/MacOSX11.3.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
 fi
+
+# NOTE: 
+# you can check later 
+#    `otool -l build-cpython-3.9/Release/OpenVisus/bin/visusviewer.app/visusviewer | grep -A 4 LC_BUILD_VERSION`
+# it should print out something like 11.3
 export CMAKE_OSX_SYSROOT="/tmp/MacOSX-SDKs/MacOSX11.3.sdk"
 
 # install homebrew
@@ -105,7 +110,16 @@ if [[ 1 == 1 ]] ; then
 
    rm -Rf ./dist
    ${PYTHON_EXE} setup.py -q bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PYPI_PLATFORM_NAME}
-   ${PYTHON_EXE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_TOKEN} --skip-existing "dist/*.whl" 
+
+   if [[ -z "${PYPI_USERNAME}" ]] || [[ -z "${PYPI_TOKEN}" ]] ; then
+      echo "PYPI_USERNAME or PYPI_TOKEN not set, skipping upload"
+   else
+      echo "Uploading to PyPI..."
+      # make sure you have twine installed
+      ${PYTHON_EXE} -m pip install twine --upgrade
+      # upload the wheel
+      ${PYTHON_EXE} -m twine upload --username ${PYPI_USERNAME} --password ${PYPI_TOKEN} --skip-existing "dist/*.whl" 
+   fi
 
    popd
 
@@ -114,8 +128,10 @@ fi
 # NO GUI VERSION
 if [[ 1 == 1 ]] ; then
 
+   # copy the release to a new folder without GUI
    mkdir -p Release.nogui
-   cp -R Release/OpenVisus Release.nogui/OpenVisus
+   rm -Rf Release.nogui/*
+   cp -R Release/OpenVisus Release.nogui/
    rm -Rf Release.nogui/OpenVisus/QT_VERSION $(find Release.nogui/OpenVisus -iname "*VisusGui*")
 
    pushd Release.nogui/OpenVisus
@@ -127,7 +143,16 @@ if [[ 1 == 1 ]] ; then
 
    rm -Rf ./dist
    ${PYTHON_EXE} setup.py -q bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PYPI_PLATFORM_NAME}
-   ${PYTHON_EXE} -m twine upload --username "${PYPI_USERNAME}" --password "${PYPI_TOKEN}" --skip-existing "dist/*.whl" 
+
+   if [[ -z "${PYPI_USERNAME}" ]] || [[ -z "${PYPI_TOKEN}" ]] ; then
+      echo "PYPI_USERNAME or PYPI_TOKEN not set, skipping upload"
+   else
+      echo "Uploading to PyPI..."
+      # make sure you have twine installed
+      ${PYTHON_EXE} -m pip install twine --upgrade
+      # upload the wheel
+      ${PYTHON_EXE} -m twine upload --username "${PYPI_USERNAME}" --password "${PYPI_TOKEN}" --skip-existing "dist/*.whl" 
+   fi
 
    popd 
 fi

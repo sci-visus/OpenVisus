@@ -193,7 +193,8 @@ def Configure():
 	if APPLE:
 		dylibs=glob.glob("bin/*.dylib")
 		so=glob.glob("*.so")
-		apps=["%s/Contents/MacOS/%s"   % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("bin/*.app")]
+		# apps=["%s/Contents/MacOS/%s"   % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("bin/*.app")]
+		apps=["%s/%s"   % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("bin/*.app")]
 		all_bins=so + dylibs + apps
 			
 		# remove any reference to absolute Qt (it happens with brew which has absolute path), make it relocable with rpath as is in PyQt5
