@@ -117,6 +117,24 @@ RUN /opt/python312/bin/python3.12 -c "import pip,numpy,twine,wheel,urllib3;print
 
 
 # ////////////////////////////////////////////////////////
+FROM quay.io/pypa/manylinux2014_x86_64 as python313
+RUN yum -y install xz zlib zlib-devel libffi libffi-devel 
+COPY --from=openssl11 /opt/openssl11 /opt/openssl11 
+WORKDIR /tmp
+ADD https://www.python.org/ftp/python/3.13.6/Python-3.13.6.tgz /tmp/
+RUN tar xzf Python-3.13.6.tgz
+WORKDIR /tmp/Python-3.13.6
+ENV CFLAGS="-I/opt/openssl11/include/" 
+ENV LDFLAGS="-Wl,-rpath=/opt/openssl11/lib -Wl,--rpath=/opt/python313/lib"
+RUN ./configure --enable-shared --prefix=/opt/python313 --with-openssl=/opt/openssl11
+RUN make 
+RUN make altinstall
+RUN /opt/python313/bin/python3.13 -m pip install -q --upgrade pip
+RUN /opt/python313/bin/python3.13 -m pip install -q numpy twine setuptools wheel urllib3 
+RUN /opt/python313/bin/python3.13 -c "import pip,numpy,twine,wheel,urllib3;print(f'pip=={pip.__version__} numpy=={numpy.__version__} twine=={twine.__version__} wheel=={wheel.__version__} urllib3=={urllib3.__version__}')"
+
+
+# ////////////////////////////////////////////////////////
 FROM quay.io/pypa/manylinux2014_x86_64 as build_openvisus
 
 ENV LC_ALL en_US.UTF-8
@@ -130,28 +148,34 @@ COPY --from=python39  /opt/python39  /opt/python39
 COPY --from=python310 /opt/python310 /opt/python310
 COPY --from=python311 /opt/python311 /opt/python311
 COPY --from=python312 /opt/python312 /opt/python312
+COPY --from=python313 /opt/python313 /opt/python313
 
 # other openvisus dependencies
 WORKDIR /tmp
 
 # pcre (needed by httpd and swig)
-RUN curl -L --insecure "http://ftp.cs.stanford.edu/pub/exim/pcre/pcre-8.42.tar.gz" -O  && \
+RUN \
+  curl -L --insecure "http://ftp.cs.stanford.edu/pub/exim/pcre/pcre-8.42.tar.gz" -O  && \
 	tar xzf pcre*.tar.gz  && pushd pcre*  && ./configure  && make && make install  && popd && rm -Rf pcre*
 
 # cmake
-RUN curl -L --insecure "https://github.com/Kitware/CMake/releases/download/v3.17.1/cmake-3.17.1-Linux-x86_64.tar.gz" -O && \
+RUN \
+  curl -L --insecure "https://github.com/Kitware/CMake/releases/download/v3.17.1/cmake-3.17.1-Linux-x86_64.tar.gz" -O && \
   tar xf cmake*.tar.gz --strip-components=1 -C /usr && rm -R cmake*.tar.gz 
 
 # swig
-RUN curl -L --insecure "https://ftp.osuosl.org/pub/blfs/conglomeration/swig/swig-3.0.12.tar.gz" -O  && \
+RUN \
+  curl -L --insecure "https://ftp.osuosl.org/pub/blfs/conglomeration/swig/swig-3.0.12.tar.gz" -O  && \
   tar xzf swig-*.tar.gz  && pushd swig-* && ./configure --prefix=/usr && make && make install && popd && rm -Rf swig-* 
 
 # expat (needed by hbttpd)
-RUN curl -L --insecure "https://toolchains.bootlin.com/downloads/releases/sources/expat-2.2.6/expat-2.2.6.tar.bz2" -O	 && \
+RUN \
+  curl -L --insecure "https://toolchains.bootlin.com/downloads/releases/sources/expat-2.2.6/expat-2.2.6.tar.bz2" -O	 && \
   tar xvjf expat*.bz2  && pushd expat*  && ./configure && make && make install && popd && rm -Rf expat*
 
 # httpd
-RUN curl -L --insecure "https://archive.apache.org/dist/httpd/httpd-2.4.38.tar.gz"  -O	 && \
+RUN \
+  curl -L --insecure "https://archive.apache.org/dist/httpd/httpd-2.4.38.tar.gz"  -O	 && \
 	tar xzf httpd*.tar.gz  && \
 	pushd httpd*  && \
     curl -L --insecure "https://archive.apache.org/dist/apr/apr-1.6.5.tar.gz"      -O && tar xvzf apr-1.6.5.tar.gz       && mv ./apr-1.6.5      ./srclib/apr       && \

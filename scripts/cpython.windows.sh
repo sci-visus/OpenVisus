@@ -50,15 +50,8 @@ function InstallPython() {
 # choco install qt5-default
 function InstallQt5() {	
 	$PYTHON -m pip install aqtinstall
-	if [[ "$PYTHON_VERSION" == "3.10" ]] ; then
-		VERSION=5.15.0
-		ARCH=msvc2019_64
-	else
-		#VERSION=5.12.0
-		#ARCH=msvc2017_64
-		VERSION=5.15.0
-		ARCH=msvc2019_64		
-	fi
+	VERSION=5.15.0
+	ARCH=msvc2019_64		
 	$PYTHON -m aqt install-qt --outputdir c:/Qt windows desktop ${VERSION} win64_${ARCH}
 	Qt5_Dir=C:/Qt/${VERSION}/${ARCH}/lib/cmake/Qt5
 }

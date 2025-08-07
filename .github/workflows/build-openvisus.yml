@@ -120,7 +120,7 @@ jobs:
       run: |
           set -ex
 
-          IMAGE_BUILD_WHEELS=visus/portable-linux-binaries_x86_64:5.0
+          IMAGE_BUILD_WHEELS=visus/portable-linux-binaries_x86_64:5.1
 
           export GIT_TAG=`git describe --tags --exact-match 2>/dev/null || true`
 
