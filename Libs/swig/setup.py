@@ -7,7 +7,7 @@ except:
 	pass
 
 # the following line can be replaced automatically by `NewTag` so be careful not to change its format
-PROJECT_VERSION="2.2.141"
+PROJECT_VERSION="2.2.142"
 
 # I can override by env variable
 if "PROJECT_VERSION" in os.environ:
