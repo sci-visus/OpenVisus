@@ -95,7 +95,7 @@ def Configure():
 		except:
 			return []
 		
-		path_re = re.compile("^\s*path (.*) \(offset \d*\)$")
+		path_re = re.compile(r"^\s*path (.*) \(offset \d*\)$")
 		return [path_re.search(line).group(1).strip() for line in lines]
 
 	# ////////////////////////////////////////////////
@@ -206,14 +206,14 @@ def Configure():
 
 				# example .../libQt5*.dylib -> @rpath/libQt5*.dylib
 				if IS_CONDA:
-					for Old in GetCommandOutput("otool -L %s | grep '.*/libQt5.*\.dylib' | awk '{print $1;}'" % filename, shell=True).splitlines():
+					for Old in GetCommandOutput(r"otool -L %s | grep '.*/libQt5.*\.dylib' | awk '{print $1;}'" % filename, shell=True).splitlines():
 						New="@rpath/libQt5" + Old.split("libQt5", 1)[1]
 						if Old!=New:
 							ExecuteCommand([INSTALL_NAME_TOOL,"-change", Old, New, filename], dry_run=dry_run)
 				
 				# eample ../Qt*.framework -> @rpath/Qt*.framework
 				else:
-					for Old in GetCommandOutput("otool -L %s | grep '.*/Qt.*\.framework' | awk '{print $1;}'" % filename, shell=True).splitlines():
+					for Old in GetCommandOutput(r"otool -L %s | grep '.*/Qt.*\.framework' | awk '{print $1;}'" % filename, shell=True).splitlines():
 						New="@rpath/Qt" + Old.split("/Qt", 1)[1]
 						if Old!=New:
 							ExecuteCommand([INSTALL_NAME_TOOL,"-change", Old, New, filename], dry_run=dry_run)	
@@ -511,7 +511,7 @@ def Main(args):
 		sys.exit(0)
 
 	if action=="copy-dataset":
-		"""
+		r"""
 		python -m OpenVisus copy-dataset --arco 1mb C:\data\visus-datasets\2kbit1\modvisus\visus.idx C:\data\visus-datasets\2kbit1\remove-me\visus.idx
 		"""
 		import argparse
