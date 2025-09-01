@@ -199,3 +199,5 @@ You can create a `visus.config` with:
 <dataset name="idx2-arco"     url='tmp/arco/Miranda/Density.idx2' />
 <dataset name="idx2-cloud"    url='https://maritime.sealstorage.io/api/v0/s3/utah/idx2/Miranda/Density.idx2?profile=sealstorage&amp;cached=arco' />
 ```
+
+<!-- Security scan triggered at 2025-09-01 20:12:42 -->
