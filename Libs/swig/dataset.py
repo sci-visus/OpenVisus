@@ -284,8 +284,7 @@ class PyDataset(object):
 		return write_block.ok()
 
 
-	# read
-	def read(self, logic_box=None, x=None, y=None, z=None, u=None, v=None, time=None, field=None, field_name=None, num_refinements=1, quality=0, max_resolution=None, disable_filters=False, access=None):
+	def read(self, logic_box=None, x=None, y=None, z=None, u=None, v=None, time=None, field=None, field_name=None, num_refinements=1, quality=0,size=None, max_resolution=None, disable_filters=False, access=None):
 		"""
 		Reads a box in voxel or unit coordinates.
 
@@ -294,14 +293,49 @@ class PyDataset(object):
 
 		# example of reading a single slice with z coordinate 512
 		data = dataset.read(z=[512,513]) 
-		
+
 		# example of reading a box in normalized coordinates (i.e., [0,1])
 		data = dataset.read(x=[0,0.1], y=[0.1,0.2], z=[0,0.1])
-		
+
 		# example of reading a single slice with 3 refinements
 		for data in dataset.read(z=[512,513], num_refinements=3):
-			print(data)
+				print(data)
 		"""
+		import math, re
+
+		def _bytes_from_size(size):
+			if size is None: return None
+			if isinstance(size, (int, float)): return int(size)
+			s = str(size).strip().lower()
+			m = re.fullmatch(r"\s*([0-9]*\.?[0-9]+)\s*([kmgt]?b)?\s*", s)
+			if not m: raise ValueError(f"Unrecognized size: {size!r}")
+			val = float(m.group(1)); unit = (m.group(2) or "b")
+			scale = {"b":1,"kb":1024,"mb":1024**2,"gb":1024**3,"tb":1024**4}[unit]
+			return int(val * scale)
+
+		def _dtype_nbytes(dtype_str):
+			m = re.search(r"(\d+)$", str(dtype_str))
+			return (int(m.group(1)) // 8) if m else 4  # default 4B
+
+		def pick_quality_from_size(size, dtype_str, q_max, base_elems_q1=2):
+			"""
+			size: '120MB'
+			dtype_str: e.g. 'float32'
+			q_max: len(bitmask)-1
+			base_elems_q1: elements at q=1 (default 1×2 -> 2)
+			Returns q in [1, q_max]; never returns 0.
+			"""
+			T = _bytes_from_size(size)
+			if not T or T <= 0:                      # degenerate → coarsest allowed
+					return max(1, min(q_max, 1))
+			elem_bytes = _dtype_nbytes(dtype_str)
+			if elem_bytes <= 0:
+					elem_bytes = 4
+			N = max(1, T // elem_bytes)
+
+			q = 1 + math.floor(math.log2(max(1, N // max(1, base_elems_q1))))
+
+			return max(1, min(q, q_max))
 		if x is not None and not isinstance(x[0], float):
 			if not x[0] < x[1]:
 				raise IndexError(f"The first index in x needs to be lower than the second index")
@@ -327,10 +361,9 @@ class PyDataset(object):
 
 		pdim=self.getPointDim()
 
-		field=self.getField() if field is None else self.getField(field)	
-			
+		field=self.getField() if field is None else self.getField(field)
 		if time is None:
-			time = self.getTime()			
+			time = self.getTime()
 
 		if logic_box is None:
 			logic_box=self.getLogicBox(x,y,z,u,v)
@@ -339,53 +372,59 @@ class PyDataset(object):
 			logic_box=BoxNi(PointNi(logic_box[0]),PointNi(logic_box[1]))
 
 		query = self.db.createBoxQuery(BoxNi(logic_box), field , time, ord('r'))
-		
 		if disable_filters:
 			query.disableFilters()
 		else:
 			query.enableFilters()
-		
+
 		if max_resolution is None:
 			max_resolution=self.getMaxResolution()
-		
+
 		# example quality -3 means not full resolution
-		Assert(quality<=0)
+		# Assert(quality<=0)
+		temp_qual=quality
+		bit_length=len(self.getBitmask().toString())-1
+		if temp_qual!=0:
+			quality = pick_quality_from_size(size, self.getField().dtype.toString(), bit_length)
+		temp_qual=quality
+		if temp_qual<=0:
+			quality=temp_qual
+		else:
+			quality=temp_qual-bit_length
 		max_resolution=max_resolution+quality 
-		
+
 		for I in reversed(range(num_refinements)):
 			res=max_resolution-(pdim*I)
 			if res>=0:
 				query.end_resolutions.push_back(res)
-		
+
 		self.db.beginBoxQuery(query)
-		
+
 		if not query.isRunning():
 			raise Exception("begin query failed {0}".format(query.errormsg))
-			
+
 		if not access:
 			access=self.db.createAccess()
-			
+
 		def NoGenerator():
 			if not self.db.executeBoxQuery(access, query):
 				raise Exception("query error {0}".format(query.errormsg))
 			# i cannot be sure how the numpy will be used outside or when the query will dealllocate the buffer
 			data=Array.toNumPy(query.buffer, bShareMem=False) 
 			return data
-			
+
 		def WithGenerator():
 			while query.isRunning():
 
 				if not self.db.executeBoxQuery(access, query):
 					raise Exception("query error {0}".format(query.errormsg))
 
-				# i cannot be sure how the numpy will be used outside or when the query will dealllocate the buffer
+						# i cannot be sure how the numpy will be used outside or when the query will dealllocate the buffer
 				data=Array.toNumPy(query.buffer, bShareMem=False) 
 				yield data
-				self.db.nextBoxQuery(query)	
+				self.db.nextBoxQuery(query)
 
 		return NoGenerator() if query.end_resolutions.size()==1 else WithGenerator()
-			
-
 
 	# write
 	# IMPORTANT: usually db.write happens without write lock and synchronously (at least in Python)
