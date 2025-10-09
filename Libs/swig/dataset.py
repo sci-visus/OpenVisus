@@ -385,7 +385,9 @@ class PyDataset(object):
 		temp_qual=quality
 		bit_length=len(self.getBitmask().toString())-1
 		if size!=None:
-			quality = pick_quality_from_size(size, self.getField().dtype.toString(), bit_length)
+			dtype = re.search(r'dtype="([^"]+)"', self.getField().toString())
+			dtype = dtype.group(1) if dtype else None
+			quality = pick_quality_from_size(size, dtype, bit_length)		
 		temp_qual=quality
 		if temp_qual<=0:
 			quality=temp_qual
