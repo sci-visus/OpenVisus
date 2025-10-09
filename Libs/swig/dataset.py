@@ -384,7 +384,7 @@ class PyDataset(object):
 		# Assert(quality<=0)
 		temp_qual=quality
 		bit_length=len(self.getBitmask().toString())-1
-		if temp_qual!=0:
+		if size!=None:
 			quality = pick_quality_from_size(size, self.getField().dtype.toString(), bit_length)
 		temp_qual=quality
 		if temp_qual<=0:
@@ -880,3 +880,4 @@ class Dataset1(object):
 		elif type(z) is not tuple:
 			data = data[0,:,:]
 		return data
+

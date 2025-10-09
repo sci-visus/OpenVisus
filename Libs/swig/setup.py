@@ -7,7 +7,7 @@ except:
 	pass
 
 # the following line can be replaced automatically by `NewTag` so be careful not to change its format
-PROJECT_VERSION="2.2.142"
+PROJECT_VERSION="2.2.146"
 
 # I can override by env variable
 if "PROJECT_VERSION" in os.environ:
@@ -33,8 +33,8 @@ def DoSetup():
 	shutil.rmtree('./dist', ignore_errors=True)	
 	shutil.rmtree('./.git', ignore_errors=True)	
 	shutil.rmtree('./tmp', ignore_errors=True)	
-	shutil.rmtree('./{}.egg-info'.format("OpenVisus"), ignore_errors=True)	
-	shutil.rmtree('./{}.egg-info'.format("OpenVisusNoGui"), ignore_errors=True)	
+	shutil.rmtree('./openvisus.egg-info'.format(""), ignore_errors=True)	
+	shutil.rmtree('./openvisusnogui.egg-info'.format(""), ignore_errors=True)	
 	files=[]	
 	for dirpath, __dirnames__, filenames in os.walk("."):
 		for it in filenames:
@@ -46,11 +46,11 @@ def DoSetup():
 	
 	# special name for no-gui
 	# see https://github.com/opencv/opencv-python/blob/master/setup.py
-	package_name="OpenVisus"
+	package_name="openvisus"
 	
 	# special case no gui
 	if not os.path.isfile(os.path.join(this_dir,"QT_VERSION")):
-		package_name="OpenVisusNoGui"	
+		package_name="openvisusnogui"	
 	
 	# dependency on numpy removed otherwise I have problems with conda which downgrade numpy for unknown reasons
 	setuptools.setup(
