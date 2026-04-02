@@ -70,7 +70,21 @@ For support : support@visus.net
 #include <QPushButton>
 #include <QDialogButtonBox>
 #include <QDockWidget>
+#include <QEvent>
+#include <QFont>
+#include <QHBoxLayout>
+#include <QKeyEvent>
+#include <QLineEdit>
+#include <QPainter>
+#include <QPixmap>
+#include <QPlainTextEdit>
+#include <QFrame>
+#include <QScrollBar>
 #include <QScreen>
+#include <QTextCursor>
+#include <QTextDocument>
+#include <QTextOption>
+#include <QVBoxLayout>
 
 #if defined(WIN32)
 #pragma warning(disable: 4996)
@@ -78,6 +92,87 @@ For support : support@visus.net
 
 
 namespace Visus {
+
+namespace {
+
+static QIcon CreateAgentChatToolbarIcon()
+{
+  const int dpr = 2;
+  const int logical = 22;
+  const int sz = logical * dpr;
+  QPixmap pm(sz, sz);
+  pm.setDevicePixelRatio(dpr);
+  pm.fill(Qt::transparent);
+  QPainter painter(&pm);
+  painter.setRenderHint(QPainter::Antialiasing);
+  const qreal s = sz / 22.0;
+  painter.setPen(QPen(QColor(55, 55, 65), qMax(1.0, 1.2 * s / dpr)));
+  painter.setBrush(QColor(145, 165, 210));
+  painter.drawRoundedRect(QRectF(7 * s, 3 * s, 8 * s, 7 * s), 2 * s, 2 * s);
+  painter.drawRoundedRect(QRectF(5 * s, 10 * s, 12 * s, 9 * s), 2.5 * s, 2.5 * s);
+  painter.setBrush(QColor(252, 252, 255));
+  painter.setPen(Qt::NoPen);
+  painter.drawEllipse(QRectF(8.5 * s, 5 * s, 2 * s, 2 * s));
+  painter.drawEllipse(QRectF(11.5 * s, 5 * s, 2 * s, 2 * s));
+  return QIcon(pm);
+}
+
+} // namespace
+
+static QString agentChatEscapeHtml(const QString& s)
+{
+  return s.toHtmlEscaped().replace(QLatin1Char('\n'), QStringLiteral("<br/>"));
+}
+
+// QTextEdit merges adjacent insertHtml; start a new block so each turn is on its own line.
+static void agentChatStartNewTurnBlock(QTextEdit* out)
+{
+  if (!out)
+    return;
+  if (out->toPlainText().isEmpty())
+    return;
+  QTextCursor c(out->document());
+  c.movePosition(QTextCursor::End);
+  c.insertBlock();
+}
+
+static void agentChatAppendBubbleUser(QTextEdit* out, const QString& text)
+{
+  if (!out)
+    return;
+  const QString esc = agentChatEscapeHtml(text);
+  agentChatStartNewTurnBlock(out);
+  QTextCursor c(out->document());
+  c.movePosition(QTextCursor::End);
+  c.insertHtml(QStringLiteral(
+      "<div style=\"margin:4px 6px 6px 6px; text-align:right; width:100%;\">"
+      "<span style=\"display:inline-block; text-align:left; background-color:#2563eb; color:#ffffff; "
+      "padding:12px 16px; border-radius:18px; max-width:100%; box-sizing:border-box; word-wrap:break-word; "
+      "overflow-wrap:break-word; font-size:16px; line-height:1.45;\">"
+      "<b style=\"color:#bfdbfe;\">You</b><br/>%1</span>"
+      "</div>")
+                   .arg(esc));
+  out->moveCursor(QTextCursor::End);
+}
+
+static void agentChatAppendBubbleAgent(QTextEdit* out, const QString& text)
+{
+  if (!out)
+    return;
+  const QString esc = agentChatEscapeHtml(text);
+  agentChatStartNewTurnBlock(out);
+  QTextCursor c(out->document());
+  c.movePosition(QTextCursor::End);
+  c.insertHtml(QStringLiteral(
+      "<div style=\"margin:4px 6px 6px 6px; text-align:left; width:100%;\">"
+      "<span style=\"display:inline-block; text-align:left; background-color:#f8fafc; color:#334155; "
+      "padding:12px 16px; border-radius:18px; max-width:100%; border:1px solid #e2e8f0; box-sizing:border-box; "
+      "word-wrap:break-word; overflow-wrap:break-word; font-size:16px; line-height:1.45;\">"
+      "<b style=\"color:#64748b;\">Agent</b><br/>%1</span>"
+      "</div>")
+                   .arg(esc));
+  out->moveCursor(QTextCursor::End);
+}
 
 ///////////////////////////////////////////////////////////
 void Viewer::postRedisplay()
@@ -192,6 +287,7 @@ void Viewer::createToolBar()
     widgets.toolbar->bookmarks_button=tab->addBlueMenu(QIcon(""), "Bookmarks", createBookmarks());
 
     tab->addAction(actions.ShowLicences);
+    tab->addAction(actions.ToggleAgentChat);
     tab->addStretch(1);
   }
 
@@ -426,6 +522,11 @@ void Viewer::createActions()
   addAction(actions.ShowLicences = GuiFactory::CreateAction("Licences...", this, [this]() {
     showLicences();
   }));
+
+  addAction(actions.ToggleAgentChat = GuiFactory::CreateAction("Chat About Data", this, CreateAgentChatToolbarIcon(), [this]() {
+    toggleAgentChat();
+  }));
+  actions.ToggleAgentChat->setToolTip(tr("Chat About Data"));
 }
 
 
@@ -626,6 +727,138 @@ void Viewer::showLicences()
   });
 
   dialog->show();
+}
+
+////////////////////////////////////////////////////////////
+void Viewer::submitAgentChatInput()
+{
+  if (!widgets.agent_chat_input || !widgets.agent_chat_output)
+    return;
+  String text = cstring(widgets.agent_chat_input->toPlainText().trimmed());
+  if (text.empty())
+    return;
+  widgets.agent_chat_input->clear();
+  agentChatAppendBubbleUser(widgets.agent_chat_output, QString::fromUtf8(text.c_str()));
+  agentChatMessageReceived(text);
+}
+
+////////////////////////////////////////////////////////////
+bool Viewer::eventFilter(QObject* watched, QEvent* event)
+{
+  if (watched == widgets.agent_chat_input && event->type() == QEvent::KeyPress)
+  {
+    auto* key_event = static_cast<QKeyEvent*>(event);
+    if ((key_event->key() == Qt::Key_Return || key_event->key() == Qt::Key_Enter) &&
+        !(key_event->modifiers() & Qt::ShiftModifier))
+    {
+      submitAgentChatInput();
+      return true;
+    }
+  }
+  return QMainWindow::eventFilter(watched, event);
+}
+
+////////////////////////////////////////////////////////////
+void Viewer::toggleAgentChat()
+{
+  if (!widgets.agent_chat_dock)
+  {
+    auto output = GuiFactory::CreateTextEdit(Colors::Black, Color(232, 234, 240));
+    output->setReadOnly(true);
+    output->setAcceptRichText(true);
+    output->setFrameShape(QFrame::NoFrame);
+    output->setLineWrapMode(QTextEdit::WidgetWidth);
+    output->setWordWrapMode(QTextOption::WrapAnywhere);
+    output->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    QTextOption transcript_opt = output->document()->defaultTextOption();
+    transcript_opt.setWrapMode(QTextOption::WrapAnywhere);
+    output->document()->setDefaultTextOption(transcript_opt);
+    output->setStyleSheet(
+        QStringLiteral("QTextEdit { background-color: #e8eaef; border: none; padding: 8px; font-size: 16px; }"));
+    QFont body = output->font();
+    if (body.pointSizeF() > 0)
+      body.setPointSizeF(qMax(body.pointSizeF(), 14.0));
+    else
+      body.setPixelSize(17);
+    output->setFont(body);
+
+    auto input = new QPlainTextEdit();
+    input->setPlaceholderText(
+        tr("Message the agent...\nShift+Enter for a new line. Enter or Send to send."));
+    input->setMinimumHeight(100);
+    input->setMaximumHeight(180);
+    input->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    input->setWordWrapMode(QTextOption::WrapAnywhere);
+    input->setStyleSheet(
+        QStringLiteral("QPlainTextEdit { background-color: #ffffff; border: 1px solid #cbd5e1; "
+                       "border-radius: 10px; padding: 12px; font-size: 16px; }"));
+    input->installEventFilter(this);
+
+    auto send = new QPushButton(tr("Send"));
+    send->setCursor(Qt::PointingHandCursor);
+    send->setStyleSheet(
+        QStringLiteral(
+            "QPushButton { background-color: #2563eb; color: #ffffff; padding: 10px 18px; "
+            "border-radius: 10px; font-weight: 600; border: none; font-size: 15px; }"
+            "QPushButton:hover { background-color: #1d4ed8; }"
+            "QPushButton:pressed { background-color: #1e40af; }"));
+
+    auto input_row = new QHBoxLayout();
+    input_row->setSpacing(10);
+    input_row->addWidget(input, 1);
+    input_row->addWidget(send, 0, Qt::AlignBottom);
+    connect(send, &QPushButton::clicked, this, [this]() { submitAgentChatInput(); });
+
+    auto panel = new QWidget();
+    panel->setObjectName(QStringLiteral("AgentChatPanel"));
+    panel->setStyleSheet(QStringLiteral("#AgentChatPanel { background-color: #dfe3ea; }"));
+    auto layout = new QVBoxLayout(panel);
+    layout->setContentsMargins(10, 10, 10, 10);
+    layout->setSpacing(10);
+    layout->addWidget(output, 1);
+    layout->addLayout(input_row);
+
+    auto dock = new QDockWidget(tr("Agent chat"), this);
+    dock->setWidget(panel);
+    dock->setMinimumWidth(460);
+    addDockWidget(Qt::RightDockWidgetArea, dock);
+
+    widgets.agent_chat_dock = dock;
+    widgets.agent_chat_output = output;
+    widgets.agent_chat_input = input;
+
+    agentChatAppendBubbleAgent(
+        output,
+        tr("Agent chat ready. Press Send or Enter to send. Use Shift+Enter for a new line in your message."));
+
+    QScrollBar* vs = output->verticalScrollBar();
+    if (vs)
+      vs->setValue(vs->maximum());
+  }
+
+  VisusAssert(widgets.agent_chat_dock);
+  widgets.agent_chat_dock->setVisible(!widgets.agent_chat_dock->isVisible());
+  if (widgets.agent_chat_dock->isVisible())
+  {
+    widgets.agent_chat_dock->raise();
+    if (widgets.agent_chat_input)
+      widgets.agent_chat_input->setFocus(Qt::OtherFocusReason);
+  }
+}
+
+////////////////////////////////////////////////////////////
+void Viewer::appendAgentChatLine(String line)
+{
+  if (!widgets.agent_chat_output)
+    return;
+  agentChatAppendBubbleAgent(widgets.agent_chat_output, QString::fromUtf8(line.c_str()));
+}
+
+////////////////////////////////////////////////////////////
+void Viewer::agentChatMessageReceived(String message)
+{
+  (void)message;
+  appendAgentChatLine("Agent Integration is in Beta. Thank you");
 }
 
 ////////////////////////////////////////////////////////////

@@ -122,7 +122,8 @@ def Configure():
 	# see https://stackoverflow.com/questions/47608532/how-to-detect-from-within-python-whether-packages-are-managed-with-conda
 	IS_CONDA = os.path.exists(os.path.join(sys.prefix, 'conda-meta', 'history'))
 	if IS_CONDA:
-		CONDA_PREFIX=os.environ['CONDA_PREFIX']
+		# Git Bash and some launches omit CONDA_PREFIX even though this is a conda Python
+		CONDA_PREFIX = os.environ.get("CONDA_PREFIX") or sys.prefix
 		print(f"# IS_CONDA={IS_CONDA} CONDA_PREFIX={CONDA_PREFIX}")
 
 		# install dependencies
@@ -546,7 +547,7 @@ def Main(args):
 		return
 
 	if action=="copy-dataset-to-cloud":
-		"""
+		r"""
 		Example
 		SET AWS_PROFILE=wasabi
 		python -m OpenVisus copy-dataset-to-cloud ^

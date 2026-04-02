@@ -4,6 +4,7 @@
 Table of content:
 
 - [Windows compilation using Visual Studio](#windows-compilation-visual-studio)
+- [Windows compilation from VS Code terminal](#windows-compilation-from-vs-code-terminal)
 - [Windows compilation using mingw](#windows-compilation-mingw)
 - [MacOSX compilation using clang](#macosx-compilation-clang)
 - [MacOSX compilation using gcc](#macosx-compilation-gcc)
@@ -45,6 +46,43 @@ set PYTHON_PATH=.\Release
 python -m OpenVisus configure --user
 python -m OpenVisus viewer
 ```
+
+## Windows compilation from VS Code terminal
+
+This path does not generate a Visual Studio project. It uses CMake with the Ninja generator from the VS Code terminal.
+
+Install these prerequisites:
+
+- Git
+- CMake
+- Ninja
+- SWIG
+- Python 3.x
+- Qt5 built for the same compiler toolchain you will use for OpenVisus
+- Visual Studio Build Tools 2022 with the "Desktop development with C++" workload
+
+Open VS Code from a Developer PowerShell or x64 Native Tools prompt for Visual Studio 2022, then run:
+
+```
+python -m pip install numpy
+
+# adjust these paths to your machine
+set Python_EXECUTABLE=C:\Python39\python.exe
+set Qt5_DIR=D:\Qt\5.15.2\msvc2019_64\lib\cmake\Qt5
+
+git clone https://github.com/sci-visus/OpenVisus
+cd OpenVisus
+
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DQt5_DIR=%Qt5_DIR% -DPython_EXECUTABLE=%Python_EXECUTABLE%
+cmake --build build
+cmake --build build --target install
+
+set PYTHONPATH=%cd%\build\Release
+python -m OpenVisus configure --user
+python -m OpenVisus viewer
+```
+
+If you prefer MinGW instead of MSVC, use a Qt build that matches MinGW and configure with `-G "MinGW Makefiles"` or Ninja plus a MinGW toolchain.
 
 
 

@@ -58,6 +58,10 @@ For support : support@visus.net
 #include <QTextEdit>
 #include <QToolBar>
 
+class QDockWidget;
+class QLineEdit;
+class QPlainTextEdit;
+
 namespace Visus {
 
 //predeclaration
@@ -184,11 +188,24 @@ public:
       action->trigger();
     });
 
+    if (!action->text().isEmpty()) {
+      if (action->icon().isNull())
+        ret->setToolButtonStyle(Qt::ToolButtonTextOnly);
+      else
+        ret->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    }
+
     ret->setEnabled(action->isEnabled());
 
     connect(action, &QAction::changed, [ret, action]() {
       ret->setEnabled(action->isEnabled());
       ret->setText(action->text());
+      if (!action->text().isEmpty()) {
+        if (action->icon().isNull())
+          ret->setToolButtonStyle(Qt::ToolButtonTextOnly);
+        else
+          ret->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+      }
     });
 
     ret->setToolTip(action->toolTip());
@@ -323,6 +340,15 @@ public:
 
   //showLicences
   void showLicences();
+
+  //toggleAgentChat
+  void toggleAgentChat();
+
+  //appendAgentChatLine
+  void appendAgentChatLine(String line);
+
+  //agentChatMessageReceived
+  virtual void agentChatMessageReceived(String message);
 
   //getModel
   Dataflow* getDataflow() {
@@ -740,6 +766,10 @@ public:
 
 private:
 
+  void submitAgentChatInput();
+
+  bool eventFilter(QObject* watched, QEvent* event) override;
+
   //________________________________________________________
   class Icons
   {
@@ -840,6 +870,7 @@ private:
     QAction* AddStatistics = nullptr;
 
     QAction* ShowLicences = nullptr;
+    QAction* ToggleAgentChat = nullptr;
 
   };
 
@@ -851,6 +882,9 @@ private:
     //permantent
     ViewerToolBar *    toolbar = nullptr;
     QTextEdit*         log = nullptr;
+    QDockWidget*       agent_chat_dock = nullptr;
+    QTextEdit*         agent_chat_output = nullptr;
+    QPlainTextEdit*    agent_chat_input = nullptr;
 
     //non permanent
     QTabWidget*        tabs = nullptr;

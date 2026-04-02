@@ -1203,6 +1203,15 @@ void Viewer::setDataflow(SharedPtr<Dataflow> value)
     this->widgets.frameview = nullptr;
     this->widgets.glcanvas = nullptr;
 
+    if (this->widgets.agent_chat_dock)
+    {
+      removeDockWidget(this->widgets.agent_chat_dock);
+      delete this->widgets.agent_chat_dock;
+    }
+    this->widgets.agent_chat_dock = nullptr;
+    this->widgets.agent_chat_output = nullptr;
+    this->widgets.agent_chat_input = nullptr;
+
     this->setCentralWidget(nullptr);
     this->setStatusBar(new QStatusBar());
 
