@@ -50,6 +50,7 @@ For support : support@visus.net
 #include <Visus/Thread.h>
 #include <Visus/NetSocket.h>
 #include <Visus/StringTree.h>
+#include <Visus/DataflowMessage.h>
 #include <Visus/NetServer.h>
 
 #include <QMainWindow>
@@ -385,6 +386,15 @@ public:
 
   //getCurrentTime
   double getCurrentTime();
+
+  //startAgentTimePlayback — advance TimeNode like Time panel "Start" (time-varying data only).
+  bool startAgentTimePlayback();
+
+  //stopAgentTimePlayback
+  void stopAgentTimePlayback();
+
+  //isAgentTimePlaybackActive
+  bool isAgentTimePlaybackActive() const;
 
   //addDockWidget
   void addDockWidget(String name, QWidget* widget);
@@ -934,6 +944,8 @@ private:
   //run time (i.e. don't need to be saved)
   UniquePtr<QTimer>                     idle_timer;
   UniquePtr<QTimer>                     save_session_timer;
+  UniquePtr<QTimer>                     agent_time_play_timer;
+  SharedPtr<ReturnReceipt>              agent_time_play_receipt;
   bool                                  mouse_dragging = false;
   SharedPtr<FreeTransform>              free_transform;
   SharedPtr<Icons>                      icons;

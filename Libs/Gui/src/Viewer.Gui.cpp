@@ -204,10 +204,12 @@ static void agentChatHelp(Viewer* viewer)
   agentChatReply(viewer,
                  "Local agent commands (no external LLM). One command per line.\n"
                  "help - this list\n"
+                 "Say \"play over time\" (or \"time play\") to play timesteps; say \"stop\" (or \"time stop\") to stop.\n"
+                 "time play | time stop - same as above (explicit commands)\n"
                  "open <url> - open dataset / .xml scene / .config (same as File - Open)\n"
                  "refresh [uuid] - refresh selected node, or node with given UUID\n"
                  "refreshall - refresh entire dataflow\n"
-                 "drop - stop processing (same as toolbar Drop processing)\n"
+                 "drop - cancel data processing (toolbar Drop processing). Use \"stop\" for time playback only.\n"
                  "fit - best camera fit\n"
                  "camera x|y|z|fit - axis-aligned or fit view\n"
                  "mirror x|y - mirror orthographic camera\n"
@@ -258,17 +260,94 @@ static void agentChatListNodes(Viewer* viewer)
   agentChatReply(viewer, StringUtils::rtrim(out));
 }
 
+static String agentChatStripTrailingPunct(String t)
+{
+  while (!t.empty())
+  {
+    const char c = t.back();
+    if (c == '.' || c == '!' || c == '?' || c == ',' || c == ';' || c == ':')
+      t.pop_back();
+    else
+      break;
+  }
+  return t;
+}
+
+static bool agentChatLineHasStopWord(const String& line)
+{
+  for (String raw : StringUtils::split(line, " ", true))
+  {
+    const String t = agentChatStripTrailingPunct(StringUtils::toLower(raw));
+    if (t == "stop")
+      return true;
+  }
+  return false;
+}
+
+static bool agentChatLineWantsPlayOverTime(const String& line)
+{
+  const String s = StringUtils::toLower(line);
+  if (StringUtils::contains(s, "play over time"))
+    return true;
+  return StringUtils::contains(s, "play") && StringUtils::contains(s, "over") &&
+         StringUtils::contains(s, "time");
+}
+
 static void agentChatProcessLine(Viewer* viewer, const String& line_in)
 {
+  const bool has_stop = agentChatLineHasStopWord(line_in);
+  if (has_stop)
+  {
+    const bool was_playing = viewer->isAgentTimePlaybackActive();
+    viewer->stopAgentTimePlayback();
+    if (was_playing)
+      agentChatReply(viewer, "time: stopped playback.");
+  }
+
+  if (!has_stop && agentChatLineWantsPlayOverTime(line_in))
+  {
+    if (!viewer->startAgentTimePlayback())
+      agentChatReply(viewer, "time: no TimeNode (open time-varying data first).");
+    else
+      agentChatReply(viewer, "time: playing. Say \"stop\" to stop.");
+    return;
+  }
+
   String cmd, args;
   agentChatSplitLine(line_in, &cmd, &args);
 
   if (cmd.empty())
     return;
 
+  if (cmd == "stop" && args.empty())
+    return;
+
   if (cmd == "help" || cmd == "?" || cmd == "commands")
   {
     agentChatHelp(viewer);
+    return;
+  }
+
+  if (cmd == "time")
+  {
+    const std::vector<String> parts = StringUtils::split(args, " ", true);
+    const String a0 = parts.empty() ? String() : StringUtils::toLower(parts[0]);
+    if (a0 == "play")
+    {
+      if (!viewer->startAgentTimePlayback())
+        agentChatReply(viewer, "time: no TimeNode.");
+      else
+        agentChatReply(viewer, "time: playing. Say \"stop\" to stop.");
+      return;
+    }
+    if (a0 == "stop")
+    {
+      const bool was = viewer->isAgentTimePlaybackActive();
+      viewer->stopAgentTimePlayback();
+      agentChatReply(viewer, was ? String("time: stopped.") : String("time: was not playing."));
+      return;
+    }
+    agentChatReply(viewer, "time: use \"time play\", \"time stop\", or say \"play over time\" / \"stop\".");
     return;
   }
 
@@ -284,7 +363,7 @@ static void agentChatProcessLine(Viewer* viewer, const String& line_in)
     return;
   }
 
-  if (cmd == "drop" || cmd == "stop")
+  if (cmd == "drop")
   {
     viewer->dropProcessing();
     agentChatReply(viewer, "drop: processing cancelled.");

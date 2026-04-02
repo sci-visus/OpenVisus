@@ -159,6 +159,7 @@ Viewer::Viewer(String title) : QMainWindow()
 Viewer::~Viewer()
 {
   PrintInfo("destroying VisusViewer");
+  stopAgentTimePlayback();
   RedirectLogTo(nullptr);
   setDataflow(nullptr);
 
@@ -193,6 +194,66 @@ double Viewer::getCurrentTime() {
     return time_node->getCurrentTime();
   else
     return 0;
+}
+
+////////////////////////////////////////////////////////////
+bool Viewer::isAgentTimePlaybackActive() const
+{
+  return agent_time_play_timer && agent_time_play_timer->isActive();
+}
+
+////////////////////////////////////////////////////////////
+void Viewer::stopAgentTimePlayback()
+{
+  agent_time_play_receipt.reset();
+  if (agent_time_play_timer)
+    agent_time_play_timer->stop();
+}
+
+////////////////////////////////////////////////////////////
+bool Viewer::startAgentTimePlayback()
+{
+  stopAgentTimePlayback();
+
+  auto* tn = findNode<TimeNode>();
+  if (!tn)
+    return false;
+
+  int msec = tn->getPlayMsec();
+  if (msec <= 0)
+    msec = 250;
+
+  if (!agent_time_play_timer)
+  {
+    agent_time_play_timer.reset(new QTimer(this));
+    connect(agent_time_play_timer.get(), &QTimer::timeout, this, [this]()
+            {
+              auto* tnode = findNode<TimeNode>();
+              if (!tnode)
+              {
+                stopAgentTimePlayback();
+                return;
+              }
+
+              const double value = tnode->getCurrentTime();
+              if (value >= tnode->getUserRange().to)
+              {
+                stopAgentTimePlayback();
+                return;
+              }
+
+              if (agent_time_play_receipt && !agent_time_play_receipt->isReady())
+                return;
+
+              agent_time_play_receipt = std::make_shared<ReturnReceipt>();
+              tnode->setCurrentTime(value + tnode->getUserRange().step, false);
+              tnode->doPublish(agent_time_play_receipt);
+            });
+  }
+
+  agent_time_play_receipt = std::make_shared<ReturnReceipt>();
+  agent_time_play_timer->start(msec);
+  return true;
 }
 
 ////////////////////////////////////////////////////////////
