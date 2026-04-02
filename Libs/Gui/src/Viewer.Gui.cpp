@@ -65,6 +65,8 @@ For support : support@visus.net
 #include <Visus/PaletteNodeView.h>
 
 #include <Visus/GLOrthoCamera.h>
+#include <Visus/StringUtils.h>
+#include <Visus/Dataflow.h>
 
 #include <QInputDialog>
 #include <QPushButton>
@@ -119,12 +121,13 @@ static QIcon CreateAgentChatToolbarIcon()
 
 } // namespace
 
-static QString agentChatEscapeHtml(const QString& s)
+// Escape body text for HTML. Use <br/> for newlines (Qt rich text may ignore white-space:pre-wrap).
+static QString agentChatEscapeForBubble(const QString& s)
 {
   return s.toHtmlEscaped().replace(QLatin1Char('\n'), QStringLiteral("<br/>"));
 }
 
-// QTextEdit merges adjacent insertHtml; start a new block so each turn is on its own line.
+// QTextEdit merges adjacent insertHtml; start a new block so each turn is a separate paragraph.
 static void agentChatStartNewTurnBlock(QTextEdit* out)
 {
   if (!out)
@@ -140,17 +143,20 @@ static void agentChatAppendBubbleUser(QTextEdit* out, const QString& text)
 {
   if (!out)
     return;
-  const QString esc = agentChatEscapeHtml(text);
+  const QString esc = agentChatEscapeForBubble(text);
   agentChatStartNewTurnBlock(out);
   QTextCursor c(out->document());
   c.movePosition(QTextCursor::End);
+  // One block-level bubble (no width:100% on outer row — avoids full-width strip painting).
   c.insertHtml(QStringLiteral(
-      "<div style=\"margin:4px 6px 6px 6px; text-align:right; width:100%;\">"
-      "<span style=\"display:inline-block; text-align:left; background-color:#2563eb; color:#ffffff; "
-      "padding:12px 16px; border-radius:18px; max-width:100%; box-sizing:border-box; word-wrap:break-word; "
-      "overflow-wrap:break-word; font-size:16px; line-height:1.45;\">"
-      "<b style=\"color:#bfdbfe;\">You</b><br/>%1</span>"
-      "</div>")
+      "<table width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\""
+      " style=\"margin:6px 0; border:none;\"><tr><td align=\"right\">"
+      "<div style=\"display:inline-block; max-width:92%; text-align:left;"
+      " background-color:#2563eb; color:#ffffff; padding:10px 14px; border-radius:16px;"
+      " border:none; box-sizing:border-box;\">"
+      "<div style=\"font-size:12px; font-weight:600; color:#bfdbfe; margin:0 0 6px 0;\">You</div>"
+      "<div style=\"font-size:15px; line-height:1.5; word-break:normal; overflow-wrap:break-word;\">%1</div>"
+      "</div></td></tr></table>")
                    .arg(esc));
   out->moveCursor(QTextCursor::End);
 }
@@ -159,20 +165,422 @@ static void agentChatAppendBubbleAgent(QTextEdit* out, const QString& text)
 {
   if (!out)
     return;
-  const QString esc = agentChatEscapeHtml(text);
+  const QString esc = agentChatEscapeForBubble(text);
   agentChatStartNewTurnBlock(out);
   QTextCursor c(out->document());
   c.movePosition(QTextCursor::End);
   c.insertHtml(QStringLiteral(
-      "<div style=\"margin:4px 6px 6px 6px; text-align:left; width:100%;\">"
-      "<span style=\"display:inline-block; text-align:left; background-color:#f8fafc; color:#334155; "
-      "padding:12px 16px; border-radius:18px; max-width:100%; border:1px solid #e2e8f0; box-sizing:border-box; "
-      "word-wrap:break-word; overflow-wrap:break-word; font-size:16px; line-height:1.45;\">"
-      "<b style=\"color:#64748b;\">Agent</b><br/>%1</span>"
-      "</div>")
+      "<table width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\""
+      " style=\"margin:6px 0; border:none;\"><tr><td align=\"left\">"
+      "<div style=\"display:inline-block; max-width:92%; text-align:left;"
+      " background-color:#f8fafc; color:#334155; padding:10px 14px; border-radius:16px;"
+      " border:1px solid #e2e8f0; box-sizing:border-box;\">"
+      "<div style=\"font-size:12px; font-weight:600; color:#64748b; margin:0 0 6px 0;\">Agent</div>"
+      "<div style=\"font-size:15px; line-height:1.5; word-break:normal; overflow-wrap:break-word;\">%1</div>"
+      "</div></td></tr></table>")
                    .arg(esc));
   out->moveCursor(QTextCursor::End);
 }
+
+namespace {
+
+static void agentChatReply(Viewer* viewer, const String& msg)
+{
+  if (viewer)
+    viewer->appendAgentChatLine(msg);
+}
+
+static void agentChatSplitLine(const String& line, String* cmd_lower, String* args)
+{
+  String t = StringUtils::trim(line);
+  const size_t sp = t.find(' ');
+  const String cmd_raw = (sp == String::npos) ? t : t.substr(0, sp);
+  *args = (sp == String::npos) ? String() : StringUtils::trim(t.substr(sp + 1));
+  *cmd_lower = StringUtils::toLower(cmd_raw);
+}
+
+static void agentChatHelp(Viewer* viewer)
+{
+  agentChatReply(viewer,
+                 "Local agent commands (no external LLM). One command per line.\n"
+                 "help - this list\n"
+                 "open <url> - open dataset / .xml scene / .config (same as File - Open)\n"
+                 "refresh [uuid] - refresh selected node, or node with given UUID\n"
+                 "refreshall - refresh entire dataflow\n"
+                 "drop - stop processing (same as toolbar Drop processing)\n"
+                 "fit - best camera fit\n"
+                 "camera x|y|z|fit - axis-aligned or fit view\n"
+                 "mirror x|y - mirror orthographic camera\n"
+                 "rotate +x|-x|+y|-y|+z|-z - rotate camera 5 degrees\n"
+                 "snapshot [canvas|window] [file.png] - save PNG (auto path if file omitted)\n"
+                 "autorefresh on [msec] | autorefresh off\n"
+                 "select <uuid> | deselect\n"
+                 "show <uuid> | hide <uuid>\n"
+                 "field <name> - set FieldNode field name (if present)\n"
+                 "script <code> - set ScriptingNode code (if present)\n"
+                 "undo | redo\n"
+                 "nodes - list nodes (name, type, UUID) for use with select/hide/etc.\n"
+                 "\n"
+                 "Raw XML: paste one StringTree document starting with \"<\" (e.g. <Open .../>). "
+                 "Forwarded to Viewer::execute - use valid UUIDs; errors may assert.\n"
+                 "\n"
+                 "Example: open D:/data/myvolume.idx");
+}
+
+static void agentChatListNodes(Viewer* viewer)
+{
+  if (!viewer->getDataflow())
+  {
+    agentChatReply(viewer, "nodes: no dataflow.");
+    return;
+  }
+  const auto nodes = viewer->getDataflow()->getNodesAsVector();
+  if (nodes.empty())
+  {
+    agentChatReply(viewer, "nodes: (empty)");
+    return;
+  }
+  String out;
+  int printed = 0;
+  constexpr int kMaxLines = 100;
+  for (Node* node : nodes)
+  {
+    if (!node)
+      continue;
+    if (printed >= kMaxLines)
+    {
+      out += "... list truncated (see scene tree for full list).\n";
+      break;
+    }
+    out += concatenate(node->getName(), " [", node->getTypeName(), "] ", node->getUUID(), "\n");
+    ++printed;
+  }
+  agentChatReply(viewer, StringUtils::rtrim(out));
+}
+
+static void agentChatProcessLine(Viewer* viewer, const String& line_in)
+{
+  String cmd, args;
+  agentChatSplitLine(line_in, &cmd, &args);
+
+  if (cmd.empty())
+    return;
+
+  if (cmd == "help" || cmd == "?" || cmd == "commands")
+  {
+    agentChatHelp(viewer);
+    return;
+  }
+
+  if (cmd == "open")
+  {
+    if (args.empty())
+    {
+      agentChatReply(viewer, "open: need a URL or file path.");
+      return;
+    }
+    const bool ok = viewer->open(args, nullptr);
+    agentChatReply(viewer, ok ? String("open: started.") : String("open: failed (see dialog or log)."));
+    return;
+  }
+
+  if (cmd == "drop" || cmd == "stop")
+  {
+    viewer->dropProcessing();
+    agentChatReply(viewer, "drop: processing cancelled.");
+    return;
+  }
+
+  if (cmd == "fit")
+  {
+    viewer->guessGLCameraPosition(-1);
+    agentChatReply(viewer, "fit: camera updated.");
+    return;
+  }
+
+  if (cmd == "camera")
+  {
+    const String a = StringUtils::toLower(StringUtils::trim(args));
+    if (a == "x")
+      viewer->guessGLCameraPosition(0);
+    else if (a == "y")
+      viewer->guessGLCameraPosition(1);
+    else if (a == "z")
+      viewer->guessGLCameraPosition(2);
+    else if (a == "fit" || a == "best")
+      viewer->guessGLCameraPosition(-1);
+    else
+    {
+      agentChatReply(viewer, "camera: use x, y, z, or fit.");
+      return;
+    }
+    agentChatReply(viewer, "camera: view updated.");
+    return;
+  }
+
+  if (cmd == "mirror")
+  {
+    const String a = StringUtils::toLower(StringUtils::trim(args));
+    if (a == "x")
+      viewer->mirrorGLCamera(0);
+    else if (a == "y")
+      viewer->mirrorGLCamera(1);
+    else
+    {
+      agentChatReply(viewer, "mirror: use x or y.");
+      return;
+    }
+    agentChatReply(viewer, "mirror: applied.");
+    return;
+  }
+
+  if (cmd == "rotate")
+  {
+    const String r = StringUtils::toLower(StringUtils::trim(args));
+    if (r == "+x")
+      viewer->rotateCamera(Point3d(1, 0, 0), 5);
+    else if (r == "-x")
+      viewer->rotateCamera(Point3d(1, 0, 0), -5);
+    else if (r == "+y")
+      viewer->rotateCamera(Point3d(0, 1, 0), 5);
+    else if (r == "-y")
+      viewer->rotateCamera(Point3d(0, 1, 0), -5);
+    else if (r == "+z")
+      viewer->rotateCamera(Point3d(0, 0, 1), 5);
+    else if (r == "-z")
+      viewer->rotateCamera(Point3d(0, 0, 1), -5);
+    else
+    {
+      agentChatReply(viewer, "rotate: use +x, -x, +y, -y, +z, or -z.");
+      return;
+    }
+    agentChatReply(viewer, "rotate: applied.");
+    return;
+  }
+
+  if (cmd == "snapshot")
+  {
+    std::vector<String> parts = StringUtils::split(args, " ", true);
+    bool only_canvas = true;
+    size_t start = 0;
+    if (!parts.empty())
+    {
+      const String low0 = StringUtils::toLower(parts[0]);
+      if (low0 == "win" || low0 == "window")
+      {
+        only_canvas = false;
+        start = 1;
+      }
+      else if (low0 == "canvas" || low0 == "gl")
+      {
+        only_canvas = true;
+        start = 1;
+      }
+    }
+    String file;
+    for (size_t i = start; i < parts.size(); ++i)
+    {
+      if (!file.empty())
+        file += " ";
+      file += parts[i];
+    }
+    const bool ok = viewer->takeSnapshot(only_canvas, file);
+    agentChatReply(viewer, ok ? String("snapshot: saved.") : String("snapshot: failed (see log)."));
+    return;
+  }
+
+  if (cmd == "autorefresh")
+  {
+    std::vector<String> parts = StringUtils::split(args, " ", true);
+    if (parts.empty())
+    {
+      agentChatReply(viewer, "autorefresh: use \"on [msec]\" or \"off\".");
+      return;
+    }
+    const String a0 = StringUtils::toLower(parts[0]);
+    ViewerAutoRefresh ar = viewer->getAutoRefresh();
+    if (a0 == "off")
+    {
+      ar.enabled = false;
+      viewer->setAutoRefresh(ar);
+      agentChatReply(viewer, "autorefresh: off.");
+      return;
+    }
+    if (a0 == "on")
+    {
+      int msec = 500;
+      if (parts.size() >= 2)
+        msec = cint(parts[1]);
+      if (msec <= 0)
+        msec = 500;
+      ar.enabled = true;
+      ar.msec = msec;
+      viewer->setAutoRefresh(ar);
+      agentChatReply(viewer, concatenate("autorefresh: on every ", cstring(msec), " ms."));
+      return;
+    }
+    agentChatReply(viewer, "autorefresh: use \"on [msec]\" or \"off\".");
+    return;
+  }
+
+  if (cmd == "deselect")
+  {
+    viewer->dropSelection();
+    viewer->refreshActions();
+    agentChatReply(viewer, "deselect: cleared selection.");
+    return;
+  }
+
+  if (cmd == "select")
+  {
+    if (!viewer->getDataflow())
+    {
+      agentChatReply(viewer, "select: no dataflow.");
+      return;
+    }
+    if (args.empty())
+    {
+      agentChatReply(viewer, "select: need UUID (see nodes).");
+      return;
+    }
+    Node* node = viewer->findNodeByUUID(args);
+    if (!node)
+    {
+      agentChatReply(viewer, "select: UUID not found.");
+      return;
+    }
+    viewer->setSelection(node);
+    viewer->refreshActions();
+    agentChatReply(viewer, concatenate("select: ", node->getName()));
+    return;
+  }
+
+  if (cmd == "show" || cmd == "hide")
+  {
+    if (!viewer->getDataflow())
+    {
+      agentChatReply(viewer, "show/hide: no dataflow.");
+      return;
+    }
+    if (args.empty())
+    {
+      agentChatReply(viewer, "show/hide: need UUID.");
+      return;
+    }
+    Node* node = viewer->findNodeByUUID(args);
+    if (!node)
+    {
+      agentChatReply(viewer, "show/hide: UUID not found.");
+      return;
+    }
+    viewer->setNodeVisible(node, cmd == "show");
+    viewer->refreshActions();
+    agentChatReply(viewer, cmd == "show" ? String("show: node shown.") : String("hide: node hidden."));
+    return;
+  }
+
+  if (cmd == "refresh")
+  {
+    if (!viewer->getDataflow())
+    {
+      agentChatReply(viewer, "refresh: no dataflow.");
+      return;
+    }
+    Node* node = nullptr;
+    if (args.empty())
+    {
+      node = viewer->getSelection();
+      if (!node)
+      {
+        agentChatReply(viewer, "refresh: select a node or pass a UUID.");
+        return;
+      }
+    }
+    else
+    {
+      node = viewer->findNodeByUUID(args);
+      if (!node)
+      {
+        agentChatReply(viewer, "refresh: UUID not found.");
+        return;
+      }
+    }
+    viewer->refreshNode(node);
+    agentChatReply(viewer, "refresh: scheduled.");
+    return;
+  }
+
+  if (cmd == "refreshall")
+  {
+    if (!viewer->getDataflow())
+    {
+      agentChatReply(viewer, "refreshall: no dataflow.");
+      return;
+    }
+    viewer->refreshAll();
+    agentChatReply(viewer, "refreshall: done.");
+    return;
+  }
+
+  if (cmd == "field")
+  {
+    if (args.empty())
+    {
+      agentChatReply(viewer, "field: need field name.");
+      return;
+    }
+    viewer->setFieldName(args);
+    agentChatReply(viewer, "field: set on FieldNode if present.");
+    return;
+  }
+
+  if (cmd == "script")
+  {
+    if (args.empty())
+    {
+      agentChatReply(viewer, "script: need code after \"script \".");
+      return;
+    }
+    viewer->setScriptingCode(args);
+    agentChatReply(viewer, "script: set on ScriptingNode if present.");
+    return;
+  }
+
+  if (cmd == "undo")
+  {
+    if (viewer->undo())
+    {
+      viewer->refreshActions();
+      agentChatReply(viewer, "undo: OK.");
+    }
+    else
+      agentChatReply(viewer, "undo: nothing to undo.");
+    return;
+  }
+
+  if (cmd == "redo")
+  {
+    if (viewer->redo())
+    {
+      viewer->refreshActions();
+      agentChatReply(viewer, "redo: OK.");
+    }
+    else
+      agentChatReply(viewer, "redo: nothing to redo.");
+    return;
+  }
+
+  if (cmd == "nodes")
+  {
+    agentChatListNodes(viewer);
+    return;
+  }
+
+  agentChatReply(viewer,
+                 concatenate("Unknown: \"", cmd, "\". Type help for commands, or paste XML starting with < for execute()."));
+}
+
+}  // namespace
 
 ///////////////////////////////////////////////////////////
 void Viewer::postRedisplay()
@@ -768,13 +1176,15 @@ void Viewer::toggleAgentChat()
     output->setAcceptRichText(true);
     output->setFrameShape(QFrame::NoFrame);
     output->setLineWrapMode(QTextEdit::WidgetWidth);
-    output->setWordWrapMode(QTextOption::WrapAnywhere);
+    // Wrap at word boundaries first — WrapAnywhere splits mid-word ("S hift", "vi ew").
+    output->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
     output->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     QTextOption transcript_opt = output->document()->defaultTextOption();
-    transcript_opt.setWrapMode(QTextOption::WrapAnywhere);
+    transcript_opt.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
     output->document()->setDefaultTextOption(transcript_opt);
     output->setStyleSheet(
-        QStringLiteral("QTextEdit { background-color: #e8eaef; border: none; padding: 8px; font-size: 16px; }"));
+        QStringLiteral("QTextEdit { background-color: #e8eaef; border: none; padding: 10px; font-size: 15px; "
+                       "selection-background-color: #c7d2fe; selection-color: #1e1b4b; }"));
     QFont body = output->font();
     if (body.pointSizeF() > 0)
       body.setPointSizeF(qMax(body.pointSizeF(), 14.0));
@@ -788,7 +1198,7 @@ void Viewer::toggleAgentChat()
     input->setMinimumHeight(100);
     input->setMaximumHeight(180);
     input->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    input->setWordWrapMode(QTextOption::WrapAnywhere);
+    input->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
     input->setStyleSheet(
         QStringLiteral("QPlainTextEdit { background-color: #ffffff; border: 1px solid #cbd5e1; "
                        "border-radius: 10px; padding: 12px; font-size: 16px; }"));
@@ -829,7 +1239,8 @@ void Viewer::toggleAgentChat()
 
     agentChatAppendBubbleAgent(
         output,
-        tr("Agent chat ready. Press Send or Enter to send. Use Shift+Enter for a new line in your message."));
+        tr("Agent chat ready. Type \"help\" for viewer commands. "
+           "Press Send or Enter to send; Shift+Enter for a new line."));
 
     QScrollBar* vs = output->verticalScrollBar();
     if (vs)
@@ -857,8 +1268,41 @@ void Viewer::appendAgentChatLine(String line)
 ////////////////////////////////////////////////////////////
 void Viewer::agentChatMessageReceived(String message)
 {
-  (void)message;
-  appendAgentChatLine("Agent Integration is in Beta. Thank you");
+  const String msg = StringUtils::trim(message);
+  if (msg.empty())
+  {
+    appendAgentChatLine("Type \"help\" for commands.");
+    return;
+  }
+
+  // Single StringTree / XML action (possibly multiline)
+  if (StringUtils::startsWith(msg, "<"))
+  {
+    StringTree ar = StringTree::fromString(msg);
+    if (!ar.valid())
+    {
+      appendAgentChatLine("Could not parse XML / StringTree.");
+      return;
+    }
+    try
+    {
+      execute(ar);
+      appendAgentChatLine(concatenate("OK: executed <", ar.name, ">"));
+    }
+    catch (const std::exception& ex)
+    {
+      appendAgentChatLine(concatenate("Error: ", ex.what()));
+    }
+    return;
+  }
+
+  const std::vector<String> lines = StringUtils::split(msg, "\n", true);
+  for (String line : lines)
+  {
+    line = StringUtils::trim(line);
+    if (!line.empty())
+      agentChatProcessLine(this, line);
+  }
 }
 
 ////////////////////////////////////////////////////////////
