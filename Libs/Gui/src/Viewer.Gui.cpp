@@ -65,6 +65,7 @@ For support : support@visus.net
 #include <Visus/PaletteNodeView.h>
 
 #include <Visus/GLOrthoCamera.h>
+#include <Visus/GLLookAtCamera.h>
 #include <Visus/StringUtils.h>
 #include <Visus/Dataflow.h>
 
@@ -87,6 +88,8 @@ For support : support@visus.net
 #include <QTextDocument>
 #include <QTextOption>
 #include <QVBoxLayout>
+
+#include <algorithm>
 
 #if defined(WIN32)
 #pragma warning(disable: 4996)
@@ -207,13 +210,22 @@ static void agentChatHelp(Viewer* viewer)
                  "Say \"play over time\" (or \"time play\") to play timesteps; say \"stop\" (or \"time stop\") to stop.\n"
                  "time play | time stop - same as above (explicit commands)\n"
                  "open <url> - open dataset / .xml scene / .config (same as File - Open)\n"
+                 "ADD menu (same as toolbar ADD):\n"
+                 "  add group [name] - default name Group if omitted\n"
+                 "  add transform - add ModelView under selection\n"
+                 "  add insert transform - insert ModelView (needs non-root selection)\n"
+                 "  add slice x|y|z - add slice along axis (needs a dataset in the scene)\n"
+                 "  add volume | add isocontour [value] | add kdquery\n"
+                 "  add render | add kdrender | add scripting | add statistics\n"
                  "refresh [uuid] - refresh selected node, or node with given UUID\n"
                  "refreshall - refresh entire dataflow\n"
                  "drop - cancel data processing (toolbar Drop processing). Use \"stop\" for time playback only.\n"
                  "fit - best camera fit\n"
                  "camera x|y|z|fit - axis-aligned or fit view\n"
+                 "zoom in | zoom out - ortho: scale; look-at: field of view (also: + / -, closer / farther)\n"
                  "mirror x|y - mirror orthographic camera\n"
-                 "rotate +x|-x|+y|-y|+z|-z - rotate camera 5 degrees\n"
+                 "rotate +x|-x|+y|-y|+z|-z - rotate look-at camera 5 degrees\n"
+                 "rotate <deg> <axis> - e.g. rotate 10 x, rotate +15 y, rotate -20 z (look-at only; axis x y z)\n"
                  "snapshot [canvas|window] [file.png] - save PNG (auto path if file omitted)\n"
                  "autorefresh on [msec] | autorefresh off\n"
                  "select <uuid> | deselect\n"
@@ -226,7 +238,255 @@ static void agentChatHelp(Viewer* viewer)
                  "Raw XML: paste one StringTree document starting with \"<\" (e.g. <Open .../>). "
                  "Forwarded to Viewer::execute - use valid UUIDs; errors may assert.\n"
                  "\n"
-                 "Example: open D:/data/myvolume.idx");
+                 "Example: open D:/data/myvolume.idx\n"
+                 "Example: add slice x");
+}
+
+static String agentChatStripTokenPunct(String s)
+{
+  s = StringUtils::trim(s);
+  while (!s.empty() && (s.front() == '(' || s.front() == '[' || s.front() == '"' || s.front() == '\''))
+    s = s.substr(1);
+  while (!s.empty() && (s.back() == ')' || s.back() == ']' || s.back() == '"' || s.back() == '\''))
+    s.pop_back();
+  return StringUtils::trim(s);
+}
+
+static String agentChatJoinParts(const std::vector<String>& parts, size_t from_idx)
+{
+  if (from_idx >= parts.size())
+    return String();
+  String r = parts[from_idx];
+  for (size_t i = from_idx + 1; i < parts.size(); ++i)
+  {
+    r += " ";
+    r += parts[i];
+  }
+  return r;
+}
+
+static bool agentChatParseRotateAxisToken(const String& s, Point3d* axis)
+{
+  const String t = agentChatStripTokenPunct(StringUtils::toLower(s));
+  if (t == "x")
+  {
+    *axis = Point3d(1, 0, 0);
+    return true;
+  }
+  if (t == "y")
+  {
+    *axis = Point3d(0, 1, 0);
+    return true;
+  }
+  if (t == "z")
+  {
+    *axis = Point3d(0, 0, 1);
+    return true;
+  }
+  return false;
+}
+
+static bool agentChatCameraZoom(Viewer* viewer, int direction)
+{
+  auto gl = viewer->getGLCamera();
+  if (auto ortho = std::dynamic_pointer_cast<GLOrthoCamera>(gl))
+  {
+    if (direction > 0)
+      ortho->zoomIn();
+    else
+      ortho->zoomOut();
+    viewer->refreshAll();
+    viewer->postRedisplay();
+    return true;
+  }
+  if (auto look = std::dynamic_pointer_cast<GLLookAtCamera>(gl))
+  {
+    const double factor = 1.1;
+    double fov = look->getFov();
+    if (direction > 0)
+      fov /= factor;
+    else
+      fov *= factor;
+    fov = (std::max)(5.0, (std::min)(120.0, fov));
+    look->setFov(fov);
+    viewer->refreshAll();
+    viewer->postRedisplay();
+    return true;
+  }
+  return false;
+}
+
+static void agentChatAfterSceneChange(Viewer* viewer)
+{
+  viewer->refreshActions();
+  viewer->postRedisplay();
+}
+
+static void agentChatHandleAdd(Viewer* viewer, const String& args_in)
+{
+  if (!viewer->getDataflow())
+  {
+    agentChatReply(viewer, "add: no scene loaded.");
+    return;
+  }
+
+  std::vector<String> parts = StringUtils::split(StringUtils::trim(args_in), " ", true);
+  if (parts.empty())
+  {
+    agentChatReply(viewer,
+                   "add: try e.g. add group, add transform, add slice x, add volume, add isocontour, "
+                   "add kdquery, add render, add kdrender, add scripting, add statistics. Type help for full list.");
+    return;
+  }
+
+  for (size_t i = 0; i < parts.size(); ++i)
+    parts[i] = agentChatStripTokenPunct(StringUtils::toLower(parts[i]));
+
+  const String& a0 = parts[0];
+
+  if (a0 == "group")
+  {
+    const String gname = parts.size() > 1 ? agentChatJoinParts(parts, 1) : String("Group");
+    Node* ret = viewer->addGroup("", viewer->getSelection(), gname);
+    if (!ret)
+      agentChatReply(viewer, "add: group cancelled or failed.");
+    else
+      agentChatReply(viewer, concatenate("add: group \"", gname, "\" created."));
+    agentChatAfterSceneChange(viewer);
+    return;
+  }
+
+  if (a0 == "transform")
+  {
+    viewer->addModelView("", viewer->getSelection(), false);
+    agentChatReply(viewer, "add: transform (ModelView) added.");
+    agentChatAfterSceneChange(viewer);
+    return;
+  }
+
+  if (a0 == "insert" && parts.size() >= 2 && parts[1] == "transform")
+  {
+    Node* sel = viewer->getSelection();
+    if (!sel || sel == viewer->getRoot())
+    {
+      agentChatReply(viewer, "add insert transform: select a non-root node (same as ADD menu).");
+      return;
+    }
+    viewer->addModelView("", sel, true);
+    agentChatReply(viewer, "add: transform inserted.");
+    agentChatAfterSceneChange(viewer);
+    return;
+  }
+
+  if (a0 == "slice")
+  {
+    if (parts.size() < 2)
+    {
+      agentChatReply(viewer, "add slice: need axis x, y, or z (e.g. add slice x).");
+      return;
+    }
+    const String& ax = parts[1];
+    int axis = -1;
+    if (ax == "x" || ax == "0")
+      axis = 0;
+    else if (ax == "y" || ax == "1")
+      axis = 1;
+    else if (ax == "z" || ax == "2")
+      axis = 2;
+    if (axis < 0)
+    {
+      agentChatReply(viewer, "add slice: axis must be x, y, or z.");
+      return;
+    }
+    if (!viewer->findNode<DatasetNode>())
+    {
+      agentChatReply(viewer, "add slice: open or load a dataset first (no DatasetNode in scene).");
+      return;
+    }
+    viewer->addSlice("", viewer->getSelection(), "", 0, axis);
+    agentChatReply(viewer, concatenate("add: slice (", ax, ") added."));
+    agentChatAfterSceneChange(viewer);
+    return;
+  }
+
+  if (a0 == "volume")
+  {
+    if (!viewer->findNode<DatasetNode>())
+    {
+      agentChatReply(viewer, "add volume: open or load a dataset first.");
+      return;
+    }
+    viewer->addVolume("", viewer->getSelection());
+    agentChatReply(viewer, "add: volume added.");
+    agentChatAfterSceneChange(viewer);
+    return;
+  }
+
+  if (a0 == "isocontour" || a0 == "iso" || a0 == "isosurface")
+  {
+    if (!viewer->findNode<DatasetNode>())
+    {
+      agentChatReply(viewer, "add isocontour: open or load a dataset first.");
+      return;
+    }
+    String iso_val;
+    if (parts.size() >= 2)
+      iso_val = agentChatJoinParts(parts, 1);
+    viewer->addIsoContour("", viewer->getSelection(), "", 0, iso_val);
+    agentChatReply(viewer, "add: isocontour added.");
+    agentChatAfterSceneChange(viewer);
+    return;
+  }
+
+  if (a0 == "kdquery" || a0 == "kd_query")
+  {
+    if (!viewer->findNode<DatasetNode>())
+    {
+      agentChatReply(viewer, "add kdquery: open or load a dataset first.");
+      return;
+    }
+    viewer->addKdQuery("", viewer->getSelection());
+    agentChatReply(viewer, "add: kdquery added.");
+    agentChatAfterSceneChange(viewer);
+    return;
+  }
+
+  if (a0 == "render")
+  {
+    viewer->addRender("", viewer->getSelection());
+    agentChatReply(viewer, "add: render added.");
+    agentChatAfterSceneChange(viewer);
+    return;
+  }
+
+  if (a0 == "kdrender")
+  {
+    viewer->addKdRender("", viewer->getSelection());
+    agentChatReply(viewer, "add: kdrender added.");
+    agentChatAfterSceneChange(viewer);
+    return;
+  }
+
+  if (a0 == "scripting" || a0 == "script")
+  {
+    viewer->addScripting("", viewer->getSelection());
+    agentChatReply(viewer, "add: scripting node added.");
+    agentChatAfterSceneChange(viewer);
+    return;
+  }
+
+  if (a0 == "statistics" || a0 == "stats")
+  {
+    viewer->addStatistics("", viewer->getSelection());
+    agentChatReply(viewer, "add: statistics added.");
+    agentChatAfterSceneChange(viewer);
+    return;
+  }
+
+  agentChatReply(viewer,
+                 concatenate("add: unknown subcommand \"", a0,
+                             "\". Try: group, transform, insert transform, slice, volume, isocontour, "
+                             "kdquery, render, kdrender, scripting, statistics."));
 }
 
 static void agentChatListNodes(Viewer* viewer)
@@ -311,6 +571,16 @@ static void agentChatProcessLine(Viewer* viewer, const String& line_in)
     else
       agentChatReply(viewer, "time: playing. Say \"stop\" to stop.");
     return;
+  }
+
+  // Shorthand: "slice x" same as "add slice x"
+  {
+    const String w = StringUtils::toLower(StringUtils::trim(line_in));
+    if (StringUtils::startsWith(w, "slice "))
+    {
+      agentChatHandleAdd(viewer, w);
+      return;
+    }
   }
 
   String cmd, args;
@@ -413,27 +683,85 @@ static void agentChatProcessLine(Viewer* viewer, const String& line_in)
     return;
   }
 
-  if (cmd == "rotate")
+  if (cmd == "zoom")
   {
-    const String r = StringUtils::toLower(StringUtils::trim(args));
-    if (r == "+x")
-      viewer->rotateCamera(Point3d(1, 0, 0), 5);
-    else if (r == "-x")
-      viewer->rotateCamera(Point3d(1, 0, 0), -5);
-    else if (r == "+y")
-      viewer->rotateCamera(Point3d(0, 1, 0), 5);
-    else if (r == "-y")
-      viewer->rotateCamera(Point3d(0, 1, 0), -5);
-    else if (r == "+z")
-      viewer->rotateCamera(Point3d(0, 0, 1), 5);
-    else if (r == "-z")
-      viewer->rotateCamera(Point3d(0, 0, 1), -5);
-    else
+    const String a = StringUtils::toLower(StringUtils::trim(args));
+    if (a.empty())
     {
-      agentChatReply(viewer, "rotate: use +x, -x, +y, -y, +z, or -z.");
+      agentChatReply(viewer, "zoom: use \"zoom in\" or \"zoom out\".");
       return;
     }
-    agentChatReply(viewer, "rotate: applied.");
+    int dir = 0;
+    if (a == "in" || a == "+" || a == "closer")
+      dir = 1;
+    else if (a == "out" || a == "-" || a == "farther")
+      dir = -1;
+    else
+    {
+      agentChatReply(viewer, "zoom: use in, out, +, -, closer, or farther.");
+      return;
+    }
+    if (!agentChatCameraZoom(viewer, dir))
+      agentChatReply(viewer, "zoom: not supported for this camera type.");
+    else
+      agentChatReply(viewer, "zoom: updated.");
+    return;
+  }
+
+  if (cmd == "rotate")
+  {
+    const String raw = StringUtils::trim(args);
+    std::vector<String> parts = StringUtils::split(raw, " ", true);
+    if (parts.empty())
+    {
+      agentChatReply(viewer, "rotate: use +x|-x|+y|-y|+z|-z (5 deg) or e.g. \"10 x\", \"+15 y\".");
+      return;
+    }
+
+    if (parts.size() == 1)
+    {
+      const String r = StringUtils::toLower(parts[0]);
+      if (r == "+x")
+        viewer->rotateCamera(Point3d(1, 0, 0), 5);
+      else if (r == "-x")
+        viewer->rotateCamera(Point3d(1, 0, 0), -5);
+      else if (r == "+y")
+        viewer->rotateCamera(Point3d(0, 1, 0), 5);
+      else if (r == "-y")
+        viewer->rotateCamera(Point3d(0, 1, 0), -5);
+      else if (r == "+z")
+        viewer->rotateCamera(Point3d(0, 0, 1), 5);
+      else if (r == "-z")
+        viewer->rotateCamera(Point3d(0, 0, 1), -5);
+      else
+      {
+        agentChatReply(viewer, "rotate: use +x, -x, +y, -y, +z, -z, or two tokens: degrees and axis (e.g. 10 x).");
+        return;
+      }
+    }
+    else
+    {
+      Point3d axis(0, 0, 0);
+      double angle = 0;
+      bool parsed = false;
+      if (agentChatParseRotateAxisToken(parts[0], &axis))
+      {
+        angle = cdouble(parts[1]);
+        parsed = true;
+      }
+      else if (parts.size() >= 2 && agentChatParseRotateAxisToken(parts[1], &axis))
+      {
+        angle = cdouble(parts[0]);
+        parsed = true;
+      }
+      if (!parsed)
+      {
+        agentChatReply(viewer, "rotate: use e.g. \"rotate 10 x\", \"rotate +15 y\", \"rotate x 10\" (look-at camera).");
+        return;
+      }
+      viewer->rotateCamera(axis, angle);
+    }
+    agentChatReply(viewer, "rotate: applied (look-at camera only; ortho ignores rotation).");
     return;
   }
 
@@ -646,6 +974,12 @@ static void agentChatProcessLine(Viewer* viewer, const String& line_in)
     }
     else
       agentChatReply(viewer, "redo: nothing to redo.");
+    return;
+  }
+
+  if (cmd == "add")
+  {
+    agentChatHandleAdd(viewer, args);
     return;
   }
 
@@ -1318,7 +1652,7 @@ void Viewer::toggleAgentChat()
 
     agentChatAppendBubbleAgent(
         output,
-        tr("Agent chat ready. Type \"help\" for viewer commands. "
+        tr("Agent chat ready. Type \"help\" for commands (including ADD menu: e.g. add slice x). "
            "Press Send or Enter to send; Shift+Enter for a new line."));
 
     QScrollBar* vs = output->verticalScrollBar();
