@@ -345,8 +345,14 @@ public:
   //toggleAgentChat
   void toggleAgentChat();
 
+  //showAgentSettings — Azure OpenAI / agent chat credentials (~/.openvisus/agentic.json)
+  void showAgentSettings();
+
   //appendAgentChatLine
   void appendAgentChatLine(String line);
+
+  //agentChatProcessBuiltinMessage — local agent commands and XML (no LLM). Callable from Python after LLM returns command lines.
+  void agentChatProcessBuiltinMessage(String message);
 
   //agentChatMessageReceived
   virtual void agentChatMessageReceived(String message);
@@ -881,6 +887,7 @@ private:
 
     QAction* ShowLicences = nullptr;
     QAction* ToggleAgentChat = nullptr;
+    QAction* AgentSettings = nullptr;
 
   };
 
@@ -1028,6 +1035,9 @@ private:
 signals:
 
   void postFlushMessages();
+
+  // Emitted when the user submits agent chat (Enter / Send). PyViewer disconnects and handles LLM + builtin routing.
+  void agentChatUserSubmitted(QString text);
 
 }; //end class
 

@@ -96,6 +96,12 @@ endif()
 
 if (TARGET VisusGui)
 	AddSwigLibrary(VisusGui)
+	# Hand-written helpers (e.g. agent_llm.py, viewer.py) must sit next to generated *.py or imports fail at runtime.
+	file(GLOB SWIG_HELPER_PY "${CMAKE_CURRENT_SOURCE_DIR}/*.py")
+	add_custom_command(TARGET VisusGuiPy POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SWIG_HELPER_PY} "$<TARGET_FILE_DIR:VisusGuiPy>"
+		COMMENT "Sync Libs/swig/*.py into OpenVisus build output"
+	)
 	AddPythonTarget("CMakePredefinedTargets" configure       -m OpenVisus configure)
 	AddPythonTarget("CMakePredefinedTargets" viewer          -m OpenVisus viewer)
 	AddPythonTarget("CMakePredefinedTargets" test-gui        -m OpenVisus test-gui)

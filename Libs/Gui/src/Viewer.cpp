@@ -123,6 +123,11 @@ Viewer::Viewer(String title) : QMainWindow()
 
   connect(this, &Viewer::postFlushMessages, this, &Viewer::internalFlushMessages, Qt::QueuedConnection);
 
+  connect(this, &Viewer::agentChatUserSubmitted, this, [this](QString qmsg) {
+    QByteArray utf8 = qmsg.toUtf8();
+    this->agentChatMessageReceived(cstring(utf8.constData()));
+  });
+
   this->log.fstream.open(GetVisusHome() + "/visus." + Time::now().getFormattedLocalTime()+ ".log");
   VisusAssert(this->log.fstream.is_open());
 

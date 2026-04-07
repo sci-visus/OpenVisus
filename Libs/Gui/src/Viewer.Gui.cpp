@@ -69,6 +69,7 @@ For support : support@visus.net
 #include <Visus/StringUtils.h>
 #include <Visus/Dataflow.h>
 
+#include <QDialog>
 #include <QInputDialog>
 #include <QPushButton>
 #include <QDialogButtonBox>
@@ -88,6 +89,16 @@ For support : support@visus.net
 #include <QTextDocument>
 #include <QTextOption>
 #include <QVBoxLayout>
+#include <QFormLayout>
+#include <QLabel>
+#include <QCheckBox>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QFile>
+#include <QDir>
+#include <QMessageBox>
+
+#include <Visus/Kernel.h>
 
 #include <algorithm>
 
@@ -230,6 +241,7 @@ static void agentChatHelp(Viewer* viewer)
                  "autorefresh on [msec] | autorefresh off\n"
                  "select <uuid> | deselect\n"
                  "show <uuid> | hide <uuid>\n"
+                 "palette <name> | color <name> - set PaletteNode(s) palette (e.g. Reds, Viridis, Turbo; color words map smartly: red->Reds)\n"
                  "field <name> - set FieldNode field name (if present)\n"
                  "script <code> - set ScriptingNode code (if present)\n"
                  "undo | redo\n"
@@ -518,6 +530,111 @@ static void agentChatListNodes(Viewer* viewer)
     ++printed;
   }
   agentChatReply(viewer, StringUtils::rtrim(out));
+}
+
+static String agentChatNormalizePaletteToken(String s)
+{
+  s = StringUtils::trim(StringUtils::toLower(s));
+  String out;
+  for (char ch : s)
+  {
+    if ((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9'))
+      out.push_back(ch);
+  }
+  return out;
+}
+
+static String agentChatResolvePaletteName(const String& user_input)
+{
+  String wanted = agentChatNormalizePaletteToken(user_input);
+  if (wanted.empty())
+    return String();
+
+  // Common natural-language aliases.
+  if (wanted == "red")
+    wanted = "reds";
+  else if (wanted == "blue")
+    wanted = "blues";
+  else if (wanted == "green")
+    wanted = "greens";
+  else if (wanted == "orange")
+    wanted = "oranges";
+  else if (wanted == "purple")
+    wanted = "purples";
+  else if (wanted == "grey" || wanted == "gray")
+    wanted = "greys";
+  else if (wanted == "rainbow")
+    wanted = "spectral";
+  else if (wanted == "heat" || wanted == "hot")
+    wanted = "hot1";
+
+  for (const auto& name : Palette::getDefaults())
+  {
+    if (agentChatNormalizePaletteToken(name) == wanted)
+      return name;
+  }
+
+  return String();
+}
+
+static void agentChatSetPalette(Viewer* viewer, const String& args_in)
+{
+  if (!viewer->getDataflow())
+  {
+    agentChatReply(viewer, "palette: no dataflow.");
+    return;
+  }
+
+  const String args = StringUtils::trim(args_in);
+  if (args.empty())
+  {
+    agentChatReply(viewer, "palette: need a palette name, e.g. palette Reds, palette Viridis, palette Turbo, or palette red.");
+    return;
+  }
+
+  const String palette_name = agentChatResolvePaletteName(args);
+  if (palette_name.empty())
+  {
+    agentChatReply(viewer, concatenate("palette: unknown name \"", args, "\". Try Reds, Blues, Greens, Greys, Viridis, Turbo, Hot1."));
+    return;
+  }
+
+  auto palette = Palette::getDefault(palette_name);
+  if (!palette)
+  {
+    agentChatReply(viewer, concatenate("palette: could not load \"", palette_name, "\"."));
+    return;
+  }
+
+  int changed = 0;
+
+  // If a palette node is selected, change only that one.
+  if (auto selected_palette = dynamic_cast<PaletteNode*>(viewer->getSelection()))
+  {
+    selected_palette->setPalette(palette);
+    changed = 1;
+  }
+  else
+  {
+    for (auto* node : viewer->getDataflow()->getNodesAsVector())
+    {
+      if (auto* pnode = dynamic_cast<PaletteNode*>(node))
+      {
+        pnode->setPalette(palette);
+        ++changed;
+      }
+    }
+  }
+
+  if (!changed)
+  {
+    agentChatReply(viewer, "palette: no PaletteNode in scene. Add volume/slice/render first.");
+    return;
+  }
+
+  viewer->refreshAll();
+  viewer->postRedisplay();
+  agentChatReply(viewer, concatenate("palette: set ", cstring(changed), " node(s) to ", palette_name, "."));
 }
 
 static String agentChatStripTrailingPunct(String t)
@@ -941,6 +1058,12 @@ static void agentChatProcessLine(Viewer* viewer, const String& line_in)
     return;
   }
 
+  if (cmd == "palette" || cmd == "colormap" || cmd == "color")
+  {
+    agentChatSetPalette(viewer, args);
+    return;
+  }
+
   if (cmd == "script")
   {
     if (args.empty())
@@ -1109,6 +1232,7 @@ void Viewer::createToolBar()
 
     tab->addAction(actions.ShowLicences);
     tab->addAction(actions.ToggleAgentChat);
+    tab->addAction(actions.AgentSettings);
     tab->addStretch(1);
   }
 
@@ -1348,6 +1472,11 @@ void Viewer::createActions()
     toggleAgentChat();
   }));
   actions.ToggleAgentChat->setToolTip(tr("Chat About Data"));
+
+  addAction(actions.AgentSettings = GuiFactory::CreateAction("Agent Settings", this, [this]() {
+    showAgentSettings();
+  }));
+  actions.AgentSettings->setToolTip(tr("Configure Azure OpenAI for agent chat (saved to ~/.openvisus/agentic.json)"));
 }
 
 
@@ -1560,7 +1689,7 @@ void Viewer::submitAgentChatInput()
     return;
   widgets.agent_chat_input->clear();
   agentChatAppendBubbleUser(widgets.agent_chat_output, QString::fromUtf8(text.c_str()));
-  agentChatMessageReceived(text);
+  emit agentChatUserSubmitted(QString::fromUtf8(text.c_str()));
 }
 
 ////////////////////////////////////////////////////////////
@@ -1653,6 +1782,7 @@ void Viewer::toggleAgentChat()
     agentChatAppendBubbleAgent(
         output,
         tr("Agent chat ready. Type \"help\" for commands (including ADD menu: e.g. add slice x). "
+           "Use Agent Settings to configure Azure OpenAI (PyViewer). "
            "Press Send or Enter to send; Shift+Enter for a new line."));
 
     QScrollBar* vs = output->verticalScrollBar();
@@ -1679,7 +1809,117 @@ void Viewer::appendAgentChatLine(String line)
 }
 
 ////////////////////////////////////////////////////////////
-void Viewer::agentChatMessageReceived(String message)
+void Viewer::showAgentSettings()
+{
+  const String home = GetHomeDirectory();
+  if (home.empty())
+  {
+    QMessageBox::warning(this, tr("Agent Settings"), tr("Could not determine home directory."));
+    return;
+  }
+
+  const QString dir_path = QString::fromUtf8((home + "/.openvisus").c_str());
+  QDir().mkpath(dir_path);
+
+  const QString file_path = dir_path + QStringLiteral("/agentic.json");
+
+  QJsonObject json;
+  {
+    QFile f(file_path);
+    if (f.open(QFile::ReadOnly | QFile::Text))
+    {
+      const QByteArray data = f.readAll();
+      f.close();
+      const QJsonDocument doc = QJsonDocument::fromJson(data);
+      if (doc.isObject())
+        json = doc.object();
+    }
+  }
+
+  QDialog dialog(this);
+  dialog.setWindowTitle(tr("Agent Settings"));
+  dialog.resize(520, 400);
+
+  auto layout = new QVBoxLayout(&dialog);
+
+  auto* intro = new QLabel(
+      tr("Values are saved to ~/.openvisus/agentic.json (same as PyViewer / chat_llm_terminal). "
+         "Non-empty environment variables still override these when set."));
+  intro->setWordWrap(true);
+  layout->addWidget(intro);
+
+  auto* llm_enable = new QCheckBox(tr("Use LLM in agent chat (PyViewer)"));
+  llm_enable->setChecked(json.value(QStringLiteral("agent_chat_llm_enabled")).toBool(true));
+  layout->addWidget(llm_enable);
+
+  auto form = new QFormLayout();
+
+  auto* endpoint_edit = new QLineEdit(json.value(QStringLiteral("azure_openai_endpoint")).toString());
+  endpoint_edit->setPlaceholderText(QStringLiteral("https://your-resource.openai.azure.com/"));
+  form->addRow(tr("AZURE_OPENAI_ENDPOINT"), endpoint_edit);
+
+  auto* key_edit = new QLineEdit(json.value(QStringLiteral("azure_openai_api_key")).toString());
+  key_edit->setEchoMode(QLineEdit::Password);
+  key_edit->setPlaceholderText(tr("API key"));
+  form->addRow(tr("AZURE_OPENAI_API_KEY"), key_edit);
+
+  auto* deploy_edit = new QLineEdit(json.value(QStringLiteral("azure_openai_deployment_name")).toString());
+  deploy_edit->setPlaceholderText(QStringLiteral("gpt-4o"));
+  form->addRow(tr("DEPLOYMENT_NAME"), deploy_edit);
+
+  auto* ver_edit = new QLineEdit(json.value(QStringLiteral("azure_openai_api_version")).toString());
+  if (ver_edit->text().isEmpty())
+    ver_edit->setText(QStringLiteral("2024-08-01-preview"));
+  form->addRow(tr("API version (optional)"), ver_edit);
+
+  auto* openai_key_edit = new QLineEdit(json.value(QStringLiteral("openai_api_key")).toString());
+  openai_key_edit->setEchoMode(QLineEdit::Password);
+  openai_key_edit->setPlaceholderText(tr("Optional: OpenAI API key instead of Azure"));
+  form->addRow(tr("OPENAI_API_KEY (optional)"), openai_key_edit);
+
+  auto* openai_model_edit = new QLineEdit(json.value(QStringLiteral("openai_model")).toString());
+  if (openai_model_edit->text().isEmpty())
+    openai_model_edit->setText(QStringLiteral("gpt-4o"));
+  form->addRow(tr("OPENAI_MODEL (optional)"), openai_model_edit);
+
+  layout->addLayout(form);
+
+  auto buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel);
+  layout->addWidget(buttons);
+
+  QObject::connect(buttons, &QDialogButtonBox::accepted, &dialog, [&, llm_enable]() {
+    QJsonObject out;
+    out[QStringLiteral("agent_chat_llm_enabled")] = llm_enable->isChecked();
+    auto put = [&](const char* key, QLineEdit* edit) {
+      const QString t = edit->text().trimmed();
+      if (!t.isEmpty())
+        out[QString::fromUtf8(key)] = t;
+    };
+    put("azure_openai_endpoint", endpoint_edit);
+    put("azure_openai_api_key", key_edit);
+    put("azure_openai_deployment_name", deploy_edit);
+    put("azure_openai_api_version", ver_edit);
+    put("openai_api_key", openai_key_edit);
+    put("openai_model", openai_model_edit);
+
+    QFile f(file_path);
+    if (!f.open(QFile::WriteOnly | QFile::Text | QFile::Truncate))
+    {
+      QMessageBox::warning(&dialog, QObject::tr("Agent Settings"),
+                           QObject::tr("Could not write %1").arg(file_path));
+      return;
+    }
+    f.write(QJsonDocument(out).toJson(QJsonDocument::Indented));
+    f.close();
+    dialog.accept();
+  });
+  QObject::connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+  dialog.exec();
+}
+
+////////////////////////////////////////////////////////////
+void Viewer::agentChatProcessBuiltinMessage(String message)
 {
   const String msg = StringUtils::trim(message);
   if (msg.empty())
@@ -1716,6 +1956,12 @@ void Viewer::agentChatMessageReceived(String message)
     if (!line.empty())
       agentChatProcessLine(this, line);
   }
+}
+
+////////////////////////////////////////////////////////////
+void Viewer::agentChatMessageReceived(String message)
+{
+  agentChatProcessBuiltinMessage(message);
 }
 
 ////////////////////////////////////////////////////////////

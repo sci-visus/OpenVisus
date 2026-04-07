@@ -155,6 +155,14 @@ if True:
 
 %include <Visus/Viewer.h>
 
+// Python bridge: some SWIG builds omit or fail to wrap agentChatProcessBuiltinMessage(Visus::String).
+// String is std::string; route through std::string so the method always appears on Viewer.
+%extend Visus::Viewer {
+	void agentChatRunBuiltinMessage(const std::string& message) {
+		$self->agentChatProcessBuiltinMessage(message);
+	}
+}
+
 //see https://github.com/bleepbloop/Pivy/blob/master/interfaces/soqt.i
 namespace Visus {
 	QWidget*  ToCppQtWidget   (PyObject* obj);

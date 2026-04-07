@@ -7,3 +7,5 @@ build/
 Docker/mod_visus/group-security/.htpasswd
 .vscode
 
+**.env.example
+**__pycache__**
