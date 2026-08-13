@@ -42,6 +42,8 @@ For support : support@visus.net
 #include <Visus/Kernel.h>
 #include <Visus/CloudStorage.h>
 
+#include <set>
+
 namespace Visus {
 namespace Private {
 
@@ -114,7 +116,8 @@ public:
     String access_key = "",
     String secret_key = "",
     String amzdate = "",
-    bool debug=false)
+    bool debug=false,
+    String method = "GET")
   {
     if (amzdate.empty())
     {
@@ -127,7 +130,6 @@ public:
 
     String datestamp = amzdate.substr(0, 8);
     String algorithm = "AWS4-HMAC-SHA256";
-    String method = "GET";
 
     //must be ordered
     std::map<String, String> headers = {
@@ -191,8 +193,34 @@ public:
 
   VISUS_CLASS(AmazonCloudStorage)
 
+  //looksLikeAwsRegion (matched against the known AWS region codes, not a pattern guess)
+  static bool looksLikeAwsRegion(String value)
+  {
+    static const std::set<String> known_regions = {
+      "af-south-1",
+      "ap-east-1", "ap-east-2",
+      "ap-northeast-1", "ap-northeast-2", "ap-northeast-3",
+      "ap-south-1", "ap-south-2",
+      "ap-southeast-1", "ap-southeast-2", "ap-southeast-3", "ap-southeast-4", "ap-southeast-5", "ap-southeast-6", "ap-southeast-7",
+      "ca-central-1", "ca-west-1",
+      "cn-north-1", "cn-northwest-1",
+      "eu-central-1", "eu-central-2",
+      "eu-north-1",
+      "eu-south-1", "eu-south-2",
+      "eu-west-1", "eu-west-2", "eu-west-3",
+      "il-central-1",
+      "me-central-1", "me-south-1",
+      "mx-central-1",
+      "sa-east-1",
+      "us-east-1", "us-east-2",
+      "us-gov-east-1", "us-gov-west-1",
+      "us-west-1", "us-west-2",
+    };
+    return known_regions.count(value) > 0;
+  }
+
   //constructor
-  AmazonCloudStorage(Url url) 
+  AmazonCloudStorage(Url url)
   {
     String hostname = url.getHostname();
 
@@ -225,6 +253,17 @@ public:
       auto v = StringUtils::split(hostname, ".");
       if (v.size() >= 2)
         this->region = v[1];
+    }
+
+    if (this->region.empty())
+    {
+      //some S3-compatible gateways encode the region as the FIRST hostname label instead of AWS'
+      //"s3.<region>.amazonaws.com" convention, example hostname==us-east-1.gw.some-vendor.com
+      //only trust it if it actually looks like an AWS-style region code (xx-yyyy-#), otherwise
+      //we'd silently sign with a made-up region and get a SignatureDoesNotMatch/403 from the server
+      auto v = StringUtils::split(hostname, ".");
+      if (!v.empty() && looksLikeAwsRegion(v[0]))
+        this->region = v[0];
     }
 
     if (this->region.empty())
@@ -494,8 +533,10 @@ private:
     if (access_key.empty())
       return;
 
-    if (request.method == "GET")
-      return signRequest_v4(request); //TODO: implement other methods for s3v4
+    //presigned query-string s3v4 only works for requests without a body (GET/HEAD)
+    //TODO: PUT/DELETE/POST still use the legacy/deprecated s3v2 signing
+    if (request.method == "GET" || request.method == "HEAD")
+      return signRequest_v4(request);
     else
       return signRequest_v2(request);
   }
@@ -505,7 +546,7 @@ private:
   {
     //remove any params
     String url = request.url.getProtocol() + "://" + request.url.getHostname() + request.url.getPath();
-    auto headers = Private::S3V4::signRequest(url, this->endpoint_url,region,this->access_key,this->secret_key);
+    auto headers = Private::S3V4::signRequest(url, this->endpoint_url, region, this->access_key, this->secret_key, /*amzdate*/"", /*debug*/false, request.method);
     //NOTE: the headers MUST be in the url, not in the body of the net request, otherwise s3v4 will not work
     request.url.setPath(request.url.getPath() + "?" + Private::S3V4::MakeHeaders(headers));
   }
