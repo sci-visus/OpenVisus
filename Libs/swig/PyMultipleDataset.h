@@ -217,7 +217,7 @@ private:
 
     out << "Python error: " << convertToString(type) << " " << convertToString(value) << " ";
 
-    auto module_name = PyString_FromString("traceback");
+    auto module_name = PyUnicode_FromString("traceback");
     auto module = PyImport_Import(module_name);
     Py_DECREF(module_name);
 
@@ -285,7 +285,7 @@ private:
 
   //newPyObject
   PyObject* newPyObject(String s) {
-    return PyString_FromString(s.c_str());
+    return PyUnicode_FromString(s.c_str());
   }
 
   //newPyObject
@@ -403,7 +403,7 @@ private:
   void addObjectMethod(PyObject* self, String name, Function fn)
   {
     auto py_fn = internalNewPyFunction(self, name, fn);
-    auto py_name = PyString_FromString(name.c_str());
+    auto py_name = PyUnicode_FromString(name.c_str());
     PyObject_SetAttr(self, py_name, py_fn);
     Py_DECREF(py_fn);
     Py_XDECREF(py_name);
