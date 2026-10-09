@@ -6,4 +6,5 @@ build/
 .vs/
 Docker/mod_visus/group-security/.htpasswd
 .vscode
-
+Libs/swig/__pycache__/
+build_macos/
