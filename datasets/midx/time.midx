@@ -1,0 +1,6 @@
+<dataset typename='IdxMultipleDataset'>
+<dataset url='file://./A/visus.idx' name= '0'  />
+<dataset url='file://./B/visus.idx' name= '1'  />
+<dataset url='file://./C/visus.idx' name= '2'  />
+<dataset url='file://./D/visus.idx' name= '3'  />
+</dataset>
