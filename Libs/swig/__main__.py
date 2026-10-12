@@ -193,8 +193,14 @@ def Configure():
 	if APPLE:
 		dylibs=glob.glob("bin/*.dylib")
 		so=glob.glob("*.so")
-		# apps=["%s/Contents/MacOS/%s"   % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("bin/*.app")]
-		apps=["%s/%s"   % (it,GetFilenameWithoutExtension(it)) for it in glob.glob("bin/*.app")]
+		# Xcode builds standard bundles (X.app/Contents/MacOS/X), other builds may produce a flat X.app/X
+		apps=[]
+		for it in glob.glob("bin/*.app"):
+			name=GetFilenameWithoutExtension(it)
+			for candidate in [f"{it}/Contents/MacOS/{name}", f"{it}/{name}"]:
+				if os.path.isfile(candidate):
+					apps.append(candidate)
+					break
 		all_bins=so + dylibs + apps
 			
 		# remove any reference to absolute Qt (it happens with brew which has absolute path), make it relocable with rpath as is in PyQt5

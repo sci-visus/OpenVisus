@@ -98,9 +98,8 @@ if (WIN32)
 	target_link_libraries(VisusGui PUBLIC opengl32.lib glu32.lib)
 	
 elseif (APPLE)
-	target_link_libraries(VisusGui PUBLIC 
-		"-framework OpenGL" 
-		"-framework AGL"
+	target_link_libraries(VisusGui PUBLIC
+		"-framework OpenGL"
 		"-framework AppKit" 
 		"-framework IOKit"
 		"-framework CoreAudio" 
