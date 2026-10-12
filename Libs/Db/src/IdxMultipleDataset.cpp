@@ -652,13 +652,21 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& ar)
     
   VisusReleaseAssert(!down_datasets.empty());
 
-  //automatically generate idxfile
-  ar.removeChild("idxfile");
-  auto idxfile = generateIdxFile(ar);
+  
 
-  //used specified fields (happends with midx)
+  //scrgiorgio: if there is an existing IDX file, please make sure it's correct!
+  IdxFile idxfile;
+  bool existing_idxfile = ar.readObject("idxfile", idxfile);
+  if (existing_idxfile)
+		PrintWarning("IdxMultipleDataset::readDatasetFromArchive found an existing IDX file, please make sure it's correct!");
+  else
+    idxfile  = generateIdxFile(ar);
+
+
+	//scrgiorgio: this is executed even if there is an existing IDX file, not sure if this is correct
   if (ar.getChild("field"))
   {
+    //used specified fields (happends with midx)
     int generate_name = 0;
     for (auto child : ar.getChilds("field"))
     {
@@ -676,7 +684,9 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& ar)
       VisusReleaseAssert(FIELD.valid());
       FIELD.setDescription(name);
       addField(name, FIELD); //FIELD.name now contain the real code
-      idxfile.fields.push_back(Field(name, FIELD.dtype));
+
+      if (!existing_idxfile)
+        idxfile.fields.push_back(Field(name, FIELD.dtype));
     }
   }
   else
@@ -730,13 +740,18 @@ void IdxMultipleDataset::readDatasetFromArchive(Archive& ar)
     }
 
     //this is to pass the validation, an midx has infinite run-time fields 
-    idxfile.fields.push_back(Field("__fake__", DTypes::UINT8));
+    if (!existing_idxfile)
+      idxfile.fields.push_back(Field("__fake__", DTypes::UINT8));
   }
 
-  //I need to validate before writing (otherwise for example I will be missing bitmask V0101...)
-  idxfile.validate(this->getUrl());
+  if (!existing_idxfile)
+  {
+    //I need to validate before writing (otherwise for example I will be missing bitmask V0101...)
+    idxfile.validate(this->getUrl());
+    ar.writeObject("idxfile", idxfile);
+    PrintInfo(String("\n") + idxfile.toString());
+  }
 
-  ar.writeObject("idxfile", idxfile);
   IdxDataset::readDatasetFromArchive(ar);
 
   //set logic_to_LOGIC for child datasets

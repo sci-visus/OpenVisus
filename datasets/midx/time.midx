@@ -1,6 +1,50 @@
 <dataset typename='IdxMultipleDataset'>
-<dataset url='file://./A/visus.idx' name= '0'  />
-<dataset url='file://./B/visus.idx' name= '1'  />
-<dataset url='file://./C/visus.idx' name= '2'  />
-<dataset url='file://./D/visus.idx' name= '3'  />
+
+	<dataset url='file://./A/visus.idx' name= '0'  />
+	<dataset url='file://./B/visus.idx' name= '1'  />
+	<dataset url='file://./C/visus.idx' name= '2'  />
+	<dataset url='file://./D/visus.idx' name= '3'  />
+
+	<field name="example" > 			
+		<code>
+		<![CDATA[  
+import numpy as np
+PrintLine("FILE",0,0,f"# query_time={query_time}")
+t=int(query_time)
+tmp=input[f"{t}"]['temperature?time=0']
+
+# cast to float32
+target_dtype = DType.fromString(f"float32[{tmp.dtype.ncomponents()}]")
+if tmp.dtype != target_dtype:
+	tmp = ArrayUtils.cast(tmp, target_dtype)
+
+output=tmp    
+		]]>
+		</code>
+	</field> 
+
+<!-- 
+*** uncomment if you want to force YOUR idxfile
+*** NOTE: better to have it generated
+
+<idxfile>
+      <version value="6" />
+      <bitmask value="V010101010101010101010" />
+      <box value="0 2048 0 1024" />
+      <bitsperblock value="16" />
+      <blocksperfile value="32" />
+      <block_interleaving value="0" />
+      <filename_template value="./time/%04x.bin" />
+      <missing_blocks value="False" />
+      <arco value="0" />
+      <time_template value="" />
+      <axis value="" />
+      <field name="example" description="" index="0" default_compression="" default_layout="" default_value="0" filter="" dtype="uint8[3]" />
+      <timestep when="0" />
+      <timestep from="0" to="9" step="1" />
+</idxfile>
+
+-->
+
 </dataset>
+
